@@ -1,0 +1,3 @@
+mandrake,10.1,i586,/proc
+mandrake,10.1,i586,/sys
+mandrake,10.1,i586,/var/failover
