@@ -61,8 +61,8 @@ final public class PostgresUserManager extends BuilderThread {
                             ResultSet results=stmt.executeQuery(
                                 version.equals(PostgresVersion.VERSION_7_1_3)
                                 || version.equals(PostgresVersion.VERSION_7_2_7)
-                                || version.equals(PostgresVersion.VERSION_7_3_13)
-                                || version.equals(PostgresVersion.VERSION_8_0_6)
+                                || version.equals(PostgresVersion.VERSION_7_3_14)
+                                || version.equals(PostgresVersion.VERSION_8_0_7)
                                 ? "select usename from pg_user"
                                 : "select rolname from pg_authid"
                             );
@@ -104,7 +104,7 @@ final public class PostgresUserManager extends BuilderThread {
                                 StringBuilder sql=new StringBuilder();
                                 sql
                                     .append(
-                                        version.equals(PostgresVersion.VERSION_8_1_2)
+                                        version.equals(PostgresVersion.VERSION_8_1_3)
                                         ? "CREATE ROLE "
                                         : "CREATE USER "
                                     )
@@ -121,11 +121,11 @@ final public class PostgresUserManager extends BuilderThread {
                                     .append(pu.canCreateDB()?"CREATEDB":"NOCREATEDB")
                                     .append(' ')
                                     .append(
-                                        version.equals(PostgresVersion.VERSION_8_1_2)
+                                        version.equals(PostgresVersion.VERSION_8_1_3)
                                         ? (pu.canCatUPD()?"CREATEROLE":"NOCREATEROLE")
                                         : (pu.canCatUPD()?"CREATEUSER":"NOCREATEUSER")
                                     ).append(
-                                        version.equals(PostgresVersion.VERSION_8_1_2)
+                                        version.equals(PostgresVersion.VERSION_8_1_3)
                                         ? " LOGIN"
                                         : ""
                                     )
@@ -137,8 +137,8 @@ final public class PostgresUserManager extends BuilderThread {
                                 !(
                                     version.equals(PostgresVersion.VERSION_7_1_3)
                                     || version.equals(PostgresVersion.VERSION_7_2_7)
-                                    || version.equals(PostgresVersion.VERSION_7_3_13)
-                                    || version.equals(PostgresVersion.VERSION_8_0_6)
+                                    || version.equals(PostgresVersion.VERSION_7_3_14)
+                                    || version.equals(PostgresVersion.VERSION_8_0_7)
                                 )
                             ) {
                                 // Enable/disable using rolcanlogin
@@ -210,8 +210,8 @@ final public class PostgresUserManager extends BuilderThread {
                 PreparedStatement pstmt=conn.prepareStatement(
                     version.equals(PostgresVersion.VERSION_7_1_3)
                     || version.equals(PostgresVersion.VERSION_7_2_7)
-                    || version.equals(PostgresVersion.VERSION_7_3_13)
-                    || version.equals(PostgresVersion.VERSION_8_0_6)
+                    || version.equals(PostgresVersion.VERSION_7_3_14)
+                    || version.equals(PostgresVersion.VERSION_8_0_7)
                     ? "select passwd from pg_shadow where usename=?"
                     : "select rolpassword from pg_authid where rolname=?"
                 );
@@ -257,7 +257,7 @@ final public class PostgresUserManager extends BuilderThread {
                 } else {
                     if(
                         version.equals(PostgresVersion.VERSION_7_2_7)
-                        || version.equals(PostgresVersion.VERSION_7_3_13)
+                        || version.equals(PostgresVersion.VERSION_7_3_14)
                     ) {
                         midStatement=" with unencrypted password ";
                     } else {

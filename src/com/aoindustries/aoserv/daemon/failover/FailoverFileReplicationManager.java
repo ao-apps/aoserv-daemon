@@ -32,6 +32,8 @@ import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.profiler.Profiler;
 import com.aoindustries.util.BufferManager;
 import com.aoindustries.util.SortedArrayList;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -45,13 +47,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
+import java.util.zip.Deflater;
+import java.util.zip.Inflater;
+import java.util.zip.InflaterInputStream;
+import java.util.zip.DeflaterOutputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
  * Handles the replication of data for the failover system.
+ *
+ * TODO: Handle hard links (pertinence space savings)
  *
  * TODO: Handle rotated log files more efficiently
  *
@@ -105,17 +111,17 @@ final public class FailoverFileReplicationManager implements Runnable {
 
             CompressedDataInputStream in;
             CompressedDataOutputStream out;
-            boolean closeStreams;
-            if(useCompression) {
-                in = new CompressedDataInputStream(new GZIPInputStream(new DontCloseInputStream(rawIn), BufferManager.BUFFER_SIZE));
-                out = new CompressedDataOutputStream(new GZIPOutputStream(new DontCloseOutputStream(rawOut), BufferManager.BUFFER_SIZE));
-                closeStreams = true;
-            } else {
+            //boolean closeStreams;
+            //if(useCompression) {
+            //    in = new CompressedDataInputStream(new GZIPInputStream(new DontCloseInputStream(rawIn), BufferManager.BUFFER_SIZE));
+            //    out = new CompressedDataOutputStream(new GZIPOutputStream(new DontCloseOutputStream(rawOut), BufferManager.BUFFER_SIZE));
+            //    closeStreams = true;
+            //} else {
                 in = rawIn;
                 out = rawOut;
-                closeStreams = false;
-            }
-            try {
+            //    closeStreams = false;
+            //}
+            //try {
                 String[] paths=new String[BATCH_SIZE];
                 long[] modifyTimes=new long[BATCH_SIZE];
                 int[] results=new int[BATCH_SIZE];
@@ -312,39 +318,56 @@ final public class FailoverFileReplicationManager implements Runnable {
                         }
 
                         // Write the results
+                        boolean hasRequestData = false;
                         out.write(AOServDaemonProtocol.NEXT);
                         for(int c=0;c<batchSize;c++) {
-                            if(paths[c]!=null) out.write(results[c]);
+                            if(paths[c]!=null) {
+                                int result = results[c];
+                                if(result==MODIFIED_REQUEST_DATA) hasRequestData = true;
+                                out.write(result);
+                            }
                         }
 
                         // Flush the results
                         out.flush();
 
                         // Store incoming data
-                        for(int c=0;c<batchSize;c++) {
-                            String path=paths[c];
-                            if(path!=null) {
-                                int result=results[c];
-                                if(result==MODIFIED_REQUEST_DATA) {
-                                    UnixFile uf=new UnixFile(path);
-                                    if(uf.exists() && !uf.isRegularFile()) uf.deleteRecursive();
-                                    RandomAccessFile raf=new RandomAccessFile(path, "rw");
-                                    try {
-                                        raf.seek(0);
-                                        int response;
-                                        while((response=in.read())==AOServDaemonProtocol.NEXT) {
-                                            int blockLen=in.readShort();
-                                            in.readFully(buff, 0, blockLen);
-                                            raf.write(buff, 0, blockLen);
+                        if(hasRequestData) {
+                            InflaterInputStream inflaterIn;
+                            DataInputStream incoming;
+                            //if(useCompression) {
+                            //    inflaterIn = new InflaterInputStream(new DontCloseInputStream(in), new Inflater(), BufferManager.BUFFER_SIZE);
+                            //    incoming = new DataInputStream(inflaterIn);
+                            //} else {
+                                inflaterIn = null;
+                                incoming = in;
+                            //}
+                            for(int c=0;c<batchSize;c++) {
+                                String path=paths[c];
+                                if(path!=null) {
+                                    int result=results[c];
+                                    if(result==MODIFIED_REQUEST_DATA) {
+                                        UnixFile uf=new UnixFile(path);
+                                        if(uf.exists() && !uf.isRegularFile()) uf.deleteRecursive();
+                                        RandomAccessFile raf=new RandomAccessFile(path, "rw");
+                                        try {
+                                            raf.seek(0);
+                                            int response;
+                                            while((response=incoming.read())==AOServDaemonProtocol.NEXT) {
+                                                int blockLen=incoming.readShort();
+                                                incoming.readFully(buff, 0, blockLen);
+                                                raf.write(buff, 0, blockLen);
+                                            }
+                                            if(response!=AOServDaemonProtocol.DONE) throw new IOException("Unexpected response code: "+response);
+                                        } finally {
+                                            raf.setLength(raf.getFilePointer());
+                                            raf.close();
                                         }
-                                        if(response!=AOServDaemonProtocol.DONE) throw new IOException("Unexpected response code: "+response);
-                                    } finally {
-                                        raf.setLength(raf.getFilePointer());
-                                        raf.close();
+                                        uf.setModifyTime(modifyTimes[c]);
                                     }
-                                    uf.setModifyTime(modifyTimes[c]);
                                 }
                             }
+                            //if(inflaterIn!=null) incoming.close();
                         }
                     }
 
@@ -372,13 +395,13 @@ final public class FailoverFileReplicationManager implements Runnable {
                 } finally {
                     BufferManager.release(buff);
                 }
-            } finally {
-                if(closeStreams) {
+            //} finally {
+            //    if(closeStreams) {
                     // Release compressed stream native resources
-                    in.close();
-                    out.close();
-                }
-            }
+            //        in.close();
+            //        out.close();
+            //    }
+            //}
         } finally {
             Profiler.endProfile(Profiler.IO);
         }
@@ -542,7 +565,7 @@ final public class FailoverFileReplicationManager implements Runnable {
         try {
             AOServer thisServer=AOServDaemon.getThisAOServer();
             AOServer toServer=ffr.getToAOServer();
-            if(log.isDebugEnabled()) log.debug("Running failover from "+thisServer+" to "+toServer);
+            if(log.isInfoEnabled()) log.info("Running failover from "+thisServer+" to "+toServer);
             ProcessTimer timer=new ProcessTimer(
                 AOServDaemon.getRandom(),
                 AOServDaemonConfiguration.getWarningSmtpServer(),
@@ -560,10 +583,14 @@ final public class FailoverFileReplicationManager implements Runnable {
 
                 // Build the skip list
                 List<String> noCopyList=new SortedArrayList<String>();
+                noCopyList.add("/aquota.user");
                 noCopyList.add("/backup");
+                noCopyList.add("/boot/lost+found");
+                noCopyList.add("/dev/log");
                 noCopyList.add("/dev/pts");
                 noCopyList.add("/dev/shm");
                 noCopyList.add("/distro");
+                noCopyList.add("/lost+found");
                 noCopyList.add("/mnt/cdrom");
                 noCopyList.add("/mnt/floppy");
                 noCopyList.add("/proc");
@@ -620,6 +647,7 @@ final public class FailoverFileReplicationManager implements Runnable {
                 noCopyList.add("/var/run/httpd6.pid");
                 noCopyList.add("/var/run/klogd.pid");
                 noCopyList.add("/var/run/proftpd.pid");
+                noCopyList.add("/var/run/proftpd/proftpd.scoreboard");
                 noCopyList.add("/var/run/runlevel.dir");
                 noCopyList.add("/var/run/sendmail.pid");
                 noCopyList.add("/var/run/sm-client.pid");
@@ -632,6 +660,8 @@ final public class FailoverFileReplicationManager implements Runnable {
                 noCopyList.add("/var/tmp");
                 noCopyList.add("/www.aes128.img");
                 noCopyList.add("/www.aes256.img");
+                noCopyList.add("/www/aquota.user");
+                noCopyList.add("/www/lost+found");
                 for(BackupPartition bp : thisServer.getBackupPartitions()) {
                     noCopyList.add(bp.getPath());
                 }
@@ -639,12 +669,12 @@ final public class FailoverFileReplicationManager implements Runnable {
                 // Keep statistics during the replication
                 final long startTime=System.currentTimeMillis();
                 int scanned=0;
-                int added=0;
+                // TODO: int added=0;
                 int updated=0;
-                int removed=0;
-                long bytesOut=0;
+                // TODO: int removed=0;
+                //long bytesOut=0;
                 long rawBytesOut=0;
-                long bytesIn=0;
+                //long bytesIn=0;
                 long rawBytesIn=0;
                 boolean isSuccessful=false;
                 try {
@@ -685,11 +715,11 @@ final public class FailoverFileReplicationManager implements Runnable {
                             CompressedDataInputStream in;
                             ByteCountOutputStream rawBytesOutStream;
                             ByteCountInputStream rawBytesInStream;
-                            ByteCountOutputStream bytesOutStream;
-                            ByteCountInputStream bytesInStream;
-                            boolean closeStreams;
+                            //ByteCountOutputStream bytesOutStream;
+                            //ByteCountInputStream bytesInStream;
+                            //boolean closeStreams;
 
-                            if(useCompression) {
+                            /*if(useCompression) {
                                 if(ffr.getBitRate()!=-1) {
                                     // Only the output is limited because input should always be smaller than the output
                                     out = new CompressedDataOutputStream(
@@ -734,11 +764,11 @@ final public class FailoverFileReplicationManager implements Runnable {
                                     )
                                 );
                                 closeStreams = true;
-                            } else {
+                            } else {*/
                                 if(ffr.getBitRate()!=-1) {
                                     // Only the output is limited because input should always be smaller than the output
                                     out = new CompressedDataOutputStream(
-                                        bytesOutStream = rawBytesOutStream = new ByteCountOutputStream(
+                                        /*bytesOutStream =*/ rawBytesOutStream = new ByteCountOutputStream(
                                             new BitRateOutputStream(
                                                 rawOut,
                                                 ffr
@@ -747,20 +777,20 @@ final public class FailoverFileReplicationManager implements Runnable {
                                     );
                                 } else {
                                     out = new CompressedDataOutputStream(
-                                        bytesOutStream = rawBytesOutStream = new ByteCountOutputStream(
+                                        /*bytesOutStream =*/ rawBytesOutStream = new ByteCountOutputStream(
                                             rawOut
                                         )
                                     );
                                 }
                                 in = new CompressedDataInputStream(
-                                    bytesInStream = rawBytesInStream = new ByteCountInputStream(
+                                    /*bytesInStream =*/ rawBytesInStream = new ByteCountInputStream(
                                         rawIn
                                     )
                                 );
-                                closeStreams = false;
-                            }
+                                //closeStreams = false;
+                            //}
                             try {
-                                if(log.isTraceEnabled()) log.trace("closeStreams="+closeStreams);
+                                //if(log.isTraceEnabled()) log.trace("closeStreams="+closeStreams);
 
                                 FilesystemIterator fileIterator=new FilesystemIterator(noCopyList);
 
@@ -796,7 +826,15 @@ final public class FailoverFileReplicationManager implements Runnable {
                                                     out.writeCompressedUTF(filename, 0);
                                                     out.writeLong(mode);
                                                     if(UnixFile.isRegularFile(mode)) out.writeLong(size);
+                                                    if(uid<0 || uid>65535) {
+                                                        AOServDaemon.reportWarning(new IOException("UID out of range, converted to 0"), new Object[] {"uid="+uid, "path="+uf.getFilename()});
+                                                        uid=0;
+                                                    }
                                                     out.writeCompressedInt(uid);
+                                                    if(gid<0 || gid>65535) {
+                                                        AOServDaemon.reportWarning(new IOException("GID out of range, converted to 0"), new Object[] {"gid="+gid, "path="+uf.getFilename()});
+                                                        gid=0;
+                                                    }
                                                     out.writeCompressedInt(gid);
                                                     if(!isSymLink) out.writeLong(modifyTime);
                                                     if(isSymLink) out.writeCompressedUTF(symLinkTarget, 1);
@@ -815,10 +853,13 @@ final public class FailoverFileReplicationManager implements Runnable {
 
                                         // Read the results
                                         result=in.read();
+                                        boolean hasRequestData = false;
                                         if(result==AOServDaemonProtocol.NEXT) {
                                             for(int d=0;d<batchSize;d++) {
                                                 if(ufs[d]!=null) {
-                                                    results[d]=in.read();
+                                                    result = in.read();
+                                                    if(result==MODIFIED_REQUEST_DATA) hasRequestData = true;
+                                                    results[d]=result;
                                                 }
                                             }
                                         } else {
@@ -828,24 +869,39 @@ final public class FailoverFileReplicationManager implements Runnable {
                                         }
 
                                         // Process the results
+                                        DeflaterOutputStream deflaterOut;
+                                        DataOutputStream outgoing;
+                                        
+                                        if(hasRequestData) {
+                                            //if(useCompression) {
+                                            //    deflaterOut = new DeflaterOutputStream(/*new DontCloseOutputStream(*/out/*)*/, new Deflater(), BufferManager.BUFFER_SIZE);
+                                            //    outgoing = new DataOutputStream(deflaterOut);
+                                            //} else {
+                                                deflaterOut = null;
+                                                outgoing = out;
+                                            //}
+                                        } else {
+                                            deflaterOut = null;
+                                            outgoing = null;
+                                        }
                                         for(int d=0;d<batchSize;d++) {
                                             UnixFile uf=ufs[d];
                                             if(uf!=null) {
                                                 result=results[d];
                                                 if(result==MODIFIED) {
-                                                    if(log.isDebugEnabled()) log.debug("File modified: "+uf.getFilename());
+                                                    if(log.isTraceEnabled()) log.trace("File modified: "+uf.getFilename());
                                                     updated++;
                                                 } else if(result==MODIFIED_REQUEST_DATA) {
                                                     updated++;
                                                     try {
-                                                        if(log.isDebugEnabled()) log.debug("Sending file contents: "+uf.getFilename());
+                                                        if(log.isTraceEnabled()) log.trace("Sending file contents: "+uf.getFilename());
                                                         InputStream fileIn=new FileInputStream(uf.getFile());
                                                         try {
                                                             int blockLen;
                                                             while((blockLen=fileIn.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
-                                                                out.write(AOServDaemonProtocol.NEXT);
-                                                                out.writeShort(blockLen);
-                                                                out.write(buff, 0, blockLen);
+                                                                outgoing.write(AOServDaemonProtocol.NEXT);
+                                                                outgoing.writeShort(blockLen);
+                                                                outgoing.write(buff, 0, blockLen);
                                                             }
                                                         } finally {
                                                             fileIn.close();
@@ -853,14 +909,17 @@ final public class FailoverFileReplicationManager implements Runnable {
                                                     } catch(FileNotFoundException err) {
                                                         // Normal when the file was deleted
                                                     } finally {
-                                                        out.write(AOServDaemonProtocol.DONE);
+                                                        outgoing.write(AOServDaemonProtocol.DONE);
                                                     }
                                                 } else if(result!=NO_CHANGE) throw new IOException("Unknown result: "+result);
                                             }
                                         }
 
                                         // Flush any file data that was sent
-                                        out.flush();
+                                        if(hasRequestData) {
+                                            outgoing.flush();
+                                            //if(deflaterOut!=null) deflaterOut.finish();
+                                        }
                                     }
                                 } finally {
                                     BufferManager.release(buff);
@@ -879,13 +938,13 @@ final public class FailoverFileReplicationManager implements Runnable {
                                 // Store the bytes transferred
                                 rawBytesOut=rawBytesOutStream.getCount();
                                 rawBytesIn=rawBytesInStream.getCount();
-                                bytesOut=bytesOutStream.getCount();
-                                bytesIn=bytesInStream.getCount();
-                                if(closeStreams) {
+                                //bytesOut=bytesOutStream.getCount();
+                                //bytesIn=bytesInStream.getCount();
+                                //if(closeStreams) {
                                     // Release compressed stream native resources
-                                    in.close();
-                                    out.close();
-                                }
+                                    //in.close();
+                                    //out.close();
+                                //}
                             }
                         } else {
                             if (result == AOServDaemonProtocol.IO_EXCEPTION) throw new IOException(rawIn.readUTF());

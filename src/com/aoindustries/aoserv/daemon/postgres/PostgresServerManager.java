@@ -181,8 +181,8 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
                     if(
                         !version.equals(PostgresVersion.VERSION_7_1_3)
                         && !version.equals(PostgresVersion.VERSION_7_2_7)
-                        && !version.equals(PostgresVersion.VERSION_7_3_13)
-                        && !version.equals(PostgresVersion.VERSION_8_0_6)
+                        && !version.equals(PostgresVersion.VERSION_7_3_14)
+                        && !version.equals(PostgresVersion.VERSION_8_0_7)
                     ) {
                         // Is 8.1 or newer, need to compress and rotate logs
                         File logDirectory=new File("/var/log/postgresql", postgresServer.getName());

@@ -81,6 +81,7 @@ final public class SendmailCFManager extends BuilderThread {
                                 // + "FEATURE(`smrsh',`/usr/sbin/smrsh')dnl\n" // AO removed
                                 + "FEATURE(mailertable)dnl\n"
                                 + "dnl virtusertable: redirect incoming mail to virtual domain to particular user or domain\n"
+                                + "FEATURE(`virtuser_entire_domain')dnl\n"
                                 + "FEATURE(`virtusertable',`hash -o /etc/mail/virtusertable')dnl\n"
                                 // + "dnl genericstable: rewrite sender address for outgoing mail\n" // AO removed
                                 // + "FEATURE(genericstable)dnl\n" // AO removed
@@ -90,6 +91,7 @@ final public class SendmailCFManager extends BuilderThread {
                                 + "FEATURE(local_procmail)dnl\n"
                                 // + "FEATURE(`access_db')dnl\n" // AO removed
                                 + "FEATURE(`access_db',`btree -T<TMPF> /etc/mail/access.db')dnl\n" // AO added
+                                + "FEATURE(`delay_checks')dnl\n"
                                 + "FEATURE(`blacklist_recipients')dnl\n"
                                 // + "FEATURE(`relay_based_on_MX')dnl\n" // AO removed
                                 // Was using dsbl, ordb, and spamhaus
@@ -99,7 +101,6 @@ final public class SendmailCFManager extends BuilderThread {
                                 + "dnl FEATURE(dnsbl, `relays.ordb.org', ` Mail from $&{client_addr} rejected;\\ see http://www.ordb.org/faq/\\#why_rejected')dnl\n"
                                 + "dnl FEATURE(dnsbl,`sbl.spamhaus.org',` Mail from $&{client_addr} rejected;\\ see http://www.spamhaus.org/sbl')dnl\n"
                                 + "dnl FEATURE(dnsbl,`list.dsbl.org',` Mail from $&{client_addr} rejected;\\ see http://www.dsbl.org/sender')dnl\n"
-                                // + "FEATURE(`delay_checks')dnl\n" // AO removed
                                 // + "FEATURE(`stickyhost')dnl\n" // AO removed
                                 + "dnl SASL Configuration\n"
                                 + "dnl extract from http://www.sendmail.org/~ca/email/auth.html\n"

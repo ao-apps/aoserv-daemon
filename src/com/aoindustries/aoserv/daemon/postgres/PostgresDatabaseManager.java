@@ -214,9 +214,9 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                 else {
                                     PostgresServerUser datdba=database.getDatDBA();
                                     if(
-                                        version.equals(PostgresVersion.VERSION_7_3_13)
-                                        || version.equals(PostgresVersion.VERSION_8_0_6)
-                                        || version.equals(PostgresVersion.VERSION_8_1_2)
+                                        version.equals(PostgresVersion.VERSION_7_3_14)
+                                        || version.equals(PostgresVersion.VERSION_8_0_7)
+                                        || version.equals(PostgresVersion.VERSION_8_1_3)
                                     ) {
                                         stmt.executeUpdate("create database "+name+" with owner="+datdba.getPostgresUser().getUsername().getUsername()+" encoding='"+database.getPostgresEncoding().getEncoding()+'\'');
                                     } else if(

@@ -212,14 +212,11 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
                             }
 
                             // Block all other email_domains that have not been explicitely configured as an email address.
-                            // TODO: Uncomment once the dead.letter problem is cleared up
-                            /*
-                            for(int c=0;c<eds.length;c++) {
-                                EmailDomain ed=eds[c];
+                            // This had a dead.letter problem and was commented for a while
+                            for(EmailDomain ed : aoServer.getEmailDomains()) {
                                 String domain=ed.getDomain();
-                                if(ed.getEmailAddress("")==null) usersOut.print("@").print(domain).print("\terror:nouser No such email address here\n");
+                                if(ed.getEmailAddress("")==null) usersOut.print("@").print(domain).print("\terror:5.1.1:550 No such email address here\n");
                             }
-                             */
                         } finally {
                             // Close the virtusertable
                             usersOut.flush();
