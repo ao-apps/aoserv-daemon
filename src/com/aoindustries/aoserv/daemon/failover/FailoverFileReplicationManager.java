@@ -29,8 +29,11 @@ import com.aoindustries.io.DontCloseInputStream;
 import com.aoindustries.io.DontCloseOutputStream;
 import com.aoindustries.io.unix.FilesystemIterator;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.md5.MD5;
 import com.aoindustries.profiler.Profiler;
 import com.aoindustries.util.BufferManager;
+import com.aoindustries.util.LongArrayList;
+import com.aoindustries.util.LongList;
 import com.aoindustries.util.SortedArrayList;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -40,6 +43,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.sql.SQLException;
 import java.util.Calendar;
@@ -73,8 +77,15 @@ final public class FailoverFileReplicationManager implements Runnable {
         NO_CHANGE=0,
         MODIFIED=1,
         MODIFIED_REQUEST_DATA=2,
-        NEW_REQUEST_DATA=3
+        MODIFIED_REQUEST_DATA_CHUNKED=3
     ;
+
+    /**
+     * The number of bytes per block when using chunked transfers.
+     * This value is optimal for PostgreSQL because it matches its
+     * page size.
+     */
+    private static final int CHUNK_SIZE=8192;
 
     private static final File failoverDir=new File("/var/failover");
 
@@ -123,10 +134,15 @@ final public class FailoverFileReplicationManager implements Runnable {
             //}
             //try {
                 String[] paths=new String[BATCH_SIZE];
+                boolean[] isLogDirs=new boolean[BATCH_SIZE];
+                UnixFile[] tempNewFiles=new UnixFile[BATCH_SIZE];
+                LongList[] chunksMD5s=useCompression ? new LongList[BATCH_SIZE] : null;
                 long[] modifyTimes=new long[BATCH_SIZE];
                 int[] results=new int[BATCH_SIZE];
 
                 byte[] buff=BufferManager.getBytes();
+                byte[] chunkBuffer = useCompression ? new byte[CHUNK_SIZE] : null;
+                MD5 md5 = useCompression ? new MD5() : null;
                 try {
                     // The extra files in directories are cleaned once the directory is done
                     Stack<UnixFile> directoryUFs=new Stack<UnixFile>();         // UnixFiles
@@ -139,9 +155,10 @@ final public class FailoverFileReplicationManager implements Runnable {
                         for(int c=0;c<batchSize;c++) {
                             if(in.readBoolean()) {
                                 // Read the current file
-                                String path=paths[c]=in.readCompressedUTF();
-                                checkPath(path);
-                                path=paths[c]="/var/failover/"+fromServer+path;
+                                String relativePath=paths[c]=in.readCompressedUTF();
+                                isLogDirs[c]=relativePath.startsWith("/logs/") || relativePath.startsWith("/var/log/");
+                                checkPath(relativePath);
+                                String path=paths[c]="/var/failover/"+fromServer+relativePath;
                                 UnixFile uf=new UnixFile(path);
                                 long mode=in.readLong();
                                 long length;
@@ -177,10 +194,22 @@ final public class FailoverFileReplicationManager implements Runnable {
                                     for(int d=0;d<list.length;d++) {
                                         String fullpath=dirPath+list[d];
                                         if(!dirContents.containsKey(fullpath)) {
-                                            try {
-                                                new UnixFile(fullpath).deleteRecursive();
-                                            } catch(FileNotFoundException err) {
-                                                AOServDaemon.reportError(err, new Object[] {"fullpath="+fullpath});
+                                            // Make sure it is not one of the temp files
+                                            boolean isTemp = false;
+                                            for(int e=0;e<c;e++) {
+                                                if(tempNewFiles[e]!=null && tempNewFiles[e].getFilename().equals(fullpath)) {
+                                                    if(log.isTraceEnabled()) log.trace("Not deleting temp file: "+fullpath);
+                                                    isTemp = true;
+                                                    break;
+                                                }
+                                            }
+                                            if(!isTemp) {
+                                                try {
+                                                    if(log.isTraceEnabled()) log.trace("Deleting extra file: "+fullpath);
+                                                    new UnixFile(fullpath).deleteRecursive();
+                                                } catch(FileNotFoundException err) {
+                                                    AOServDaemon.reportError(err, new Object[] {"fullpath="+fullpath});
+                                                }
                                             }
                                         }
                                     }
@@ -194,6 +223,8 @@ final public class FailoverFileReplicationManager implements Runnable {
 
                                 // Process the current file
                                 int result = NO_CHANGE;
+                                tempNewFiles[c]=null;
+                                if(useCompression) chunksMD5s[c]=null;
                                 if(UnixFile.isBlockDevice(mode)) {
                                     if(
                                         uf.exists()
@@ -202,6 +233,7 @@ final public class FailoverFileReplicationManager implements Runnable {
                                             || uf.getDeviceIdentifier()!=deviceID
                                         )
                                     ) {
+                                        if(log.isTraceEnabled()) log.trace("Deleting to create block device: "+uf.getFilename());
                                         uf.deleteRecursive();
                                         result=MODIFIED;
                                     }
@@ -217,6 +249,7 @@ final public class FailoverFileReplicationManager implements Runnable {
                                             || uf.getDeviceIdentifier()!=deviceID
                                         )
                                     ) {
+                                        if(log.isTraceEnabled()) log.trace("Deleting to create character device: "+uf.getFilename());
                                         uf.deleteRecursive();
                                         result=MODIFIED;
 
@@ -230,6 +263,7 @@ final public class FailoverFileReplicationManager implements Runnable {
                                         uf.exists()
                                         && !uf.isDirectory()
                                     ) {
+                                        if(log.isTraceEnabled()) log.trace("Deleting to create directory: "+uf.getFilename());
                                         uf.deleteRecursive();
                                         result=MODIFIED;
                                     }
@@ -247,6 +281,7 @@ final public class FailoverFileReplicationManager implements Runnable {
                                         uf.exists()
                                         && !uf.isFIFO()
                                     ) {
+                                        if(log.isTraceEnabled()) log.trace("Deleting to create FIFO: "+uf.getFilename());
                                         uf.deleteRecursive();
                                         result=MODIFIED;
                                     }
@@ -255,22 +290,92 @@ final public class FailoverFileReplicationManager implements Runnable {
                                         result=MODIFIED;
                                     }
                                 } else if(UnixFile.isRegularFile(mode)) {
-                                    // TODO: Make new file in a temp file if already exists
                                     if(
-                                        uf.exists()
-                                        && !uf.isRegularFile()
-                                    ) {
-                                        uf.deleteRecursive();
-                                        result=MODIFIED;
-                                    }
-                                    if(!uf.exists()) {
-                                        new FileOutputStream(uf.getFile()).close();
-                                        result=MODIFIED_REQUEST_DATA;
-                                    } else if(
-                                        uf.getSize()!=length
+                                        !uf.exists()
+                                        || !uf.isRegularFile()
+                                        || uf.getSize()!=length
                                         || uf.getModifyTime()!=modifyTime
                                     ) {
-                                        result=MODIFIED_REQUEST_DATA;
+                                        // Always load into a temporary file first
+                                        UnixFile tempNewFile = tempNewFiles[c]=UnixFile.mktemp(uf.getFilename()+'.');
+                                        if(log.isTraceEnabled()) log.trace("Using temp file: "+tempNewFile.getFilename());
+                                        // Is this a log directory
+                                        boolean copiedOldLogFile = false;
+                                        if(isLogDirs[c]) {
+                                            // Look for another file with the same size and modify time
+                                            UnixFile parent = uf.getParent();
+                                            String[] list = parent.list();
+                                            if(list!=null) {
+                                                for(int d=0;d<list.length;d++) {
+                                                    UnixFile otherFile = new UnixFile(parent, list[d]);
+                                                    if(
+                                                        otherFile.exists()
+                                                        && otherFile.isRegularFile()
+                                                        && otherFile.getSize()==length
+                                                        && otherFile.getModifyTime()==modifyTime
+                                                    ) {
+                                                        if(log.isTraceEnabled()) log.trace("Found matching log file, copying to temp file: old="+otherFile.getFilename()+" new="+tempNewFile.getFilename());
+                                                        if(log.isTraceEnabled()) log.trace("Before: otherFile.exists() = "+otherFile.exists());
+                                                        if(log.isTraceEnabled()) log.trace("Before: tempNewFile.exists() = "+tempNewFile.exists());
+                                                        otherFile.copyTo(tempNewFile, true);
+                                                        tempNewFile.setModifyTime(modifyTime);
+                                                        if(log.isTraceEnabled()) log.trace("After: otherFile.exists() = "+otherFile.exists());
+                                                        if(log.isTraceEnabled()) log.trace("After: tempNewFile.exists() = "+tempNewFile.exists());
+                                                        result = MODIFIED;
+                                                        copiedOldLogFile = true;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        if(!copiedOldLogFile) {
+                                            if(
+                                                // Not using compression
+                                                !useCompression
+                                                // Doesn't exist
+                                                || !uf.exists()
+                                                // New file is small (<CHUNK_SIZE)
+                                                || uf.getSize()<CHUNK_SIZE
+                                                // Chunk at best reduces transfer size by CHUNK_SIZE/17 (md5 + 1 byte response)
+                                                || uf.getSize()<=(length/(CHUNK_SIZE/17))
+                                                // File is so large that chunking can't possibly store md5's in RAM (> 8 Terabytes currently)
+                                                || (2*length/CHUNK_SIZE) >= Integer.MAX_VALUE
+                                            ) {
+                                                result = MODIFIED_REQUEST_DATA;
+                                            } else {
+                                                result = MODIFIED_REQUEST_DATA_CHUNKED;
+                                                // If this is compressed, it will send the md5 hashes of each block after the response code
+                                                long sizeToChunk = Math.min(length, uf.getSize());
+                                                LongList md5s = chunksMD5s[c] = new LongArrayList((int)(2*sizeToChunk/CHUNK_SIZE));
+                                                // Generate the MD5 hashes for the current file
+                                                InputStream fileIn = new FileInputStream(uf.getFile());
+                                                try {
+                                                    while(true) {
+                                                        // Read in blocks of CHUNK_SIZE
+                                                        int pos=0;
+                                                        while(pos<CHUNK_SIZE) {
+                                                            int ret = fileIn.read(chunkBuffer, pos, CHUNK_SIZE-pos);
+                                                            if(ret==-1) break;
+                                                            pos+=ret;
+                                                        }
+                                                        if(pos==CHUNK_SIZE) {
+                                                            md5.Init();
+                                                            md5.Update(chunkBuffer, 0, CHUNK_SIZE);
+                                                            byte[] md5Bytes=md5.Final();
+                                                            long md5Hi = MD5.getMD5Hi(md5Bytes);
+                                                            long md5Lo = MD5.getMD5Lo(md5Bytes);
+                                                            md5s.add(md5Hi);
+                                                            md5s.add(md5Lo);
+                                                        } else {
+                                                            // End of file
+                                                            break;
+                                                        }
+                                                    }
+                                                } finally {
+                                                    fileIn.close();
+                                                }
+                                            }
+                                        }
                                     }
                                 } else if(UnixFile.isSymLink(mode)) {
                                     if(
@@ -280,6 +385,7 @@ final public class FailoverFileReplicationManager implements Runnable {
                                             || !uf.readLink().equals(symlinkTarget)
                                         )
                                     ) {
+                                        if(log.isTraceEnabled()) log.trace("Deleting to create sybolic link: "+uf.getFilename());
                                         uf.deleteRecursive();
                                         result=MODIFIED;
                                     }
@@ -289,28 +395,32 @@ final public class FailoverFileReplicationManager implements Runnable {
                                     }
                                 } else throw new IOException("Unknown mode type: "+Long.toOctalString(mode&UnixFile.TYPE_MASK));
 
-                                if(uf.getStatMode()!=mode) {
+                                UnixFile effectiveUF = tempNewFiles[c]==null ? uf : tempNewFiles[c];
+                                if(
+                                    (effectiveUF.getStatMode() & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
+                                    != (mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
+                                ) {
                                     try {
-                                        uf.setMode(mode);
+                                        effectiveUF.setMode(mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK));
                                     } catch(FileNotFoundException err) {
                                         AOServDaemon.reportWarning(err, new Object[] {"path="+path, "mode="+Long.toOctalString(mode)});
                                     }
                                     if(result==NO_CHANGE) result=MODIFIED;
                                 }
-                                if(uf.getUID()!=uid) {
-                                    uf.setUID(uid);
+                                if(effectiveUF.getUID()!=uid) {
+                                    effectiveUF.setUID(uid);
                                     if(result==NO_CHANGE) result=MODIFIED;
                                 }
-                                if(uf.getGID()!=gid) {
-                                    uf.setGID(gid);
+                                if(effectiveUF.getGID()!=gid) {
+                                    effectiveUF.setGID(gid);
                                     if(result==NO_CHANGE) result=MODIFIED;
                                 }
                                 if(
                                     !UnixFile.isSymLink(mode)
                                     && !UnixFile.isDirectory(mode)
-                                    && uf.getModifyTime()!=modifyTime
+                                    && effectiveUF.getModifyTime()!=modifyTime
                                 ) {
-                                    uf.setModifyTime(modifyTime);
+                                    effectiveUF.setModifyTime(modifyTime);
                                     if(result==NO_CHANGE) result=MODIFIED;
                                 }
                                 results[c]=result;
@@ -318,13 +428,16 @@ final public class FailoverFileReplicationManager implements Runnable {
                         }
 
                         // Write the results
-                        boolean hasRequestData = false;
                         out.write(AOServDaemonProtocol.NEXT);
                         for(int c=0;c<batchSize;c++) {
                             if(paths[c]!=null) {
                                 int result = results[c];
-                                if(result==MODIFIED_REQUEST_DATA) hasRequestData = true;
                                 out.write(result);
+                                if(result==MODIFIED_REQUEST_DATA_CHUNKED) {
+                                    LongList md5s = chunksMD5s[c];
+                                    out.writeCompressedInt(md5s.size()/2);
+                                    for(int d=0;d<md5s.size();d++) out.writeLong(md5s.getLong(d));
+                                }
                             }
                         }
 
@@ -332,42 +445,76 @@ final public class FailoverFileReplicationManager implements Runnable {
                         out.flush();
 
                         // Store incoming data
-                        if(hasRequestData) {
-                            InflaterInputStream inflaterIn;
-                            DataInputStream incoming;
-                            //if(useCompression) {
-                            //    inflaterIn = new InflaterInputStream(new DontCloseInputStream(in), new Inflater(), BufferManager.BUFFER_SIZE);
-                            //    incoming = new DataInputStream(inflaterIn);
-                            //} else {
-                                inflaterIn = null;
-                                incoming = in;
-                            //}
-                            for(int c=0;c<batchSize;c++) {
-                                String path=paths[c];
-                                if(path!=null) {
-                                    int result=results[c];
-                                    if(result==MODIFIED_REQUEST_DATA) {
-                                        UnixFile uf=new UnixFile(path);
-                                        if(uf.exists() && !uf.isRegularFile()) uf.deleteRecursive();
-                                        RandomAccessFile raf=new RandomAccessFile(path, "rw");
-                                        try {
-                                            raf.seek(0);
+                        for(int c=0;c<batchSize;c++) {
+                            String path=paths[c];
+                            if(path!=null) {
+                                int result=results[c];
+                                UnixFile uf=new UnixFile(path);
+                                if(result==MODIFIED_REQUEST_DATA || result==MODIFIED_REQUEST_DATA_CHUNKED) {
+
+                                    // Load into the temporary file
+                                    OutputStream fileOut = new FileOutputStream(tempNewFiles[c].getFile());
+                                    try {
+                                        if(result==MODIFIED_REQUEST_DATA) {
                                             int response;
-                                            while((response=incoming.read())==AOServDaemonProtocol.NEXT) {
-                                                int blockLen=incoming.readShort();
-                                                incoming.readFully(buff, 0, blockLen);
-                                                raf.write(buff, 0, blockLen);
+                                            while((response=in.read())==AOServDaemonProtocol.NEXT) {
+                                                int blockLen=in.readShort();
+                                                in.readFully(buff, 0, blockLen);
+                                                fileOut.write(buff, 0, blockLen);
                                             }
                                             if(response!=AOServDaemonProtocol.DONE) throw new IOException("Unexpected response code: "+response);
-                                        } finally {
-                                            raf.setLength(raf.getFilePointer());
-                                            raf.close();
-                                        }
-                                        uf.setModifyTime(modifyTimes[c]);
+                                        } else if(result==MODIFIED_REQUEST_DATA_CHUNKED) {
+                                            RandomAccessFile raf=new RandomAccessFile(uf.getFile(), "r");
+                                            try {
+                                                long bytesWritten=0;
+                                                int response;
+                                                while((response=in.read())==AOServDaemonProtocol.NEXT || response==AOServDaemonProtocol.NEXT_CHUNK) {
+                                                    if(response==AOServDaemonProtocol.NEXT) {
+                                                        int chunkLen=in.readShort();
+                                                        in.readFully(chunkBuffer, 0, chunkLen);
+                                                        fileOut.write(chunkBuffer, 0, chunkLen);
+                                                        bytesWritten+=chunkLen;
+                                                    } else if(response==AOServDaemonProtocol.NEXT_CHUNK) {
+                                                        // Get the values from the old file (chunk matches)
+                                                        raf.seek(bytesWritten);
+                                                        raf.readFully(chunkBuffer, 0, CHUNK_SIZE);
+                                                        fileOut.write(chunkBuffer, 0, CHUNK_SIZE);
+                                                        bytesWritten+=CHUNK_SIZE;
+                                                    } else throw new RuntimeException("Unexpected value for response: "+response);
+                                                }
+                                                if(response!=AOServDaemonProtocol.DONE) throw new IOException("Unexpected response code: "+response);
+                                            } finally {
+                                                raf.close();
+                                            }
+                                        } else throw new RuntimeException("Unexpected value for result: "+result);
+                                    } finally {
+                                        fileOut.close();
                                     }
                                 }
+                                if(tempNewFiles[c]!=null) {
+                                    // Move the file into place
+                                    if(uf.exists()) {
+                                        if(isLogDirs[c] && uf.isRegularFile()) {
+                                            // Move to temporary file for later log blocks
+                                            UnixFile newTemp = UnixFile.mktemp(uf.getFilename()+'.');
+                                            if(log.isTraceEnabled()) log.trace("Moving old log file to new path for later matches after log rotations: from="+uf.getFilename()+" to="+newTemp.getFilename());
+                                            long ufModified = uf.getModifyTime();
+                                            uf.renameTo(newTemp);
+                                            newTemp.setModifyTime(ufModified);
+                                        } else if(!uf.isRegularFile()) {
+                                            if(log.isTraceEnabled()) log.trace("Deleting non-regular file to move new regular file into place: "+uf.getFilename());
+                                            uf.deleteRecursive();
+                                        }
+                                    }
+                                    if(log.isTraceEnabled()) {
+                                        log.trace("tempNewFiles[c]="+tempNewFiles[c].getFilename()+" exists()="+tempNewFiles[c].exists());
+                                        log.trace("uf="+uf.getFilename()+" exists()="+uf.exists());
+                                    }
+                                    tempNewFiles[c].renameTo(uf);
+                                    // Set modify time is after move because some kernels incorrectly update file modified time when it is moved
+                                    uf.setModifyTime(modifyTimes[c]);
+                                }
                             }
-                            //if(inflaterIn!=null) incoming.close();
                         }
                     }
 
@@ -384,7 +531,10 @@ final public class FailoverFileReplicationManager implements Runnable {
                         String[] list=dirUF.list();
                         for(int c=0;c<list.length;c++) {
                             String fullpath=dirPath+list[c];
-                            if(!dirContents.containsKey(fullpath)) new UnixFile(fullpath).deleteRecursive();
+                            if(!dirContents.containsKey(fullpath)) {
+                                if(log.isTraceEnabled()) log.trace("Deleting final clean-up: "+fullpath);
+                                new UnixFile(fullpath).deleteRecursive();
+                            }
                         }
                         dirUF.setModifyTime(dirModifyTime);
                     }
@@ -438,30 +588,30 @@ final public class FailoverFileReplicationManager implements Runnable {
                                 minutes = 1;
                                 isStartup = false;
                             } else minutes = 15;
-                            if(log.isTraceEnabled()) log.trace("Sleeping for "+minutes+" minutes");
+                            if(log.isDebugEnabled()) log.debug("Sleeping for "+minutes+" minutes");
                             Thread.sleep(minutes*60L*1000L);
                         } catch(InterruptedException err) {
                             AOServDaemon.reportWarning(err, null);
                         }
                         AOServer thisServer=AOServDaemon.getThisAOServer();
-                        if(log.isTraceEnabled()) log.trace("thisServer="+thisServer);
+                        if(log.isDebugEnabled()) log.debug("thisServer="+thisServer);
                         AOServer failoverServer=thisServer.getFailoverServer();
-                        if(log.isTraceEnabled()) log.trace("failoverServer="+failoverServer);
+                        if(log.isDebugEnabled()) log.debug("failoverServer="+failoverServer);
                         List<FailoverFileReplication> ffrs=thisServer.getFailoverFileReplications();
                         for(int c=0;c<ffrs.size();c++) {
                             // Try the next server if an error occurs
                             FailoverFileReplication ffr=ffrs.get(c);
-                            if(log.isTraceEnabled()) log.trace("ffr="+ffr);
+                            if(log.isDebugEnabled()) log.debug("ffr="+ffr);
                             try {
                                 // Will not replicate if the to server is our parent server in failover mode
                                 AOServer toServer=ffr.getToAOServer();
-                                if(log.isTraceEnabled()) log.trace("toServer="+toServer);
+                                if(log.isDebugEnabled()) log.debug("toServer="+toServer);
                                 if(!toServer.equals(failoverServer)) {
                                     // Find the most recent successful failover pass
                                     List<FailoverFileLog> logs = ffr.getFailoverFileLogs(1);
                                     // These are sorted most recent on the bottom
                                     FailoverFileLog lastLog = logs.isEmpty() ? null : logs.get(0);
-                                    if(log.isTraceEnabled()) log.trace("lastLog="+lastLog);
+                                    if(log.isDebugEnabled()) log.debug("lastLog="+lastLog);
                                     // Should it run now?
                                     // Is it a regularly scheduled time to run?
                                     int hour=Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
@@ -478,42 +628,42 @@ final public class FailoverFileReplicationManager implements Runnable {
                                         (lastFaileds.containsKey(ffr) && lastFaileds.get(ffr))
                                     ) {
                                         shouldRun = true;
-                                        if(log.isTraceEnabled()) log.trace("The last attempt at this mirror failed");
+                                        if(log.isDebugEnabled()) log.debug("The last attempt at this mirror failed");
                                     } else {
                                         if(
                                             // Never ran this mirror
                                             lastLog==null
                                         ) {
                                             shouldRun = true;
-                                            if(log.isTraceEnabled()) log.trace("Never ran this mirror");
+                                            if(log.isDebugEnabled()) log.debug("Never ran this mirror");
                                         } else {
                                             if(
                                                 // Last pass in the log failed
                                                 !lastLog.isSuccessful()
                                             ) {
                                                 shouldRun = true;
-                                                if(log.isTraceEnabled()) log.trace("Last pass in the log failed");
+                                                if(log.isDebugEnabled()) log.debug("Last pass in the log failed");
                                             } else {
                                                 if(
                                                     // Last pass in the future (time reset)
                                                     lastLog.getStartTime() > System.currentTimeMillis()
                                                 ) {
                                                     shouldRun = true;
-                                                    if(log.isTraceEnabled()) log.trace("Last pass in the future (time reset)");
+                                                    if(log.isDebugEnabled()) log.debug("Last pass in the future (time reset)");
                                                 } else {
                                                     if(
                                                         // Last pass more than 24 hours ago
                                                         (System.currentTimeMillis() - lastLog.getStartTime())>=(24*60*60*1000)
                                                     ) {
                                                         shouldRun = true;
-                                                        if(log.isTraceEnabled()) log.trace("Last pass more than 24 hours ago");
+                                                        if(log.isDebugEnabled()) log.debug("Last pass more than 24 hours ago");
                                                     } else {
                                                         if(
                                                             // It is the scheduled time and the last logged start time was >= MINIMUM_INTERVAL
                                                             (isScheduled && (System.currentTimeMillis()-lastLog.getStartTime())>=FailoverFileReplication.MINIMUM_INTERVAL)
                                                         ) {
                                                             shouldRun = true;
-                                                            if(log.isTraceEnabled()) log.trace("It is the scheduled time and the last logged start time was >= MINIMUM_INTERVAL");
+                                                            if(log.isDebugEnabled()) log.debug("It is the scheduled time and the last logged start time was >= MINIMUM_INTERVAL");
                                                         } else {
                                                             // TODO: Look for more specific missed schedules (down the the hour)
                                                         }
@@ -699,8 +849,11 @@ final public class FailoverFileReplicationManager implements Runnable {
                     try {
                         // Start the replication
                         CompressedDataOutputStream rawOut=daemonConn.getOutputStream();
-                        boolean useCompression = !thisServer.getServer().getServerFarm().equals(toServer.getServer().getServerFarm());
+                        // TODO: Make an configurable option per replication
+                        boolean useCompression = true; // TODO: Less CPU, more network locally if enabled: !thisServer.getServer().getServerFarm().equals(toServer.getServer().getServerFarm());
                         if(log.isTraceEnabled()) log.trace("useCompression="+useCompression);
+
+                        MD5 md5 = useCompression ? new MD5() : null;
 
                         rawOut.writeCompressedInt(AOServDaemonProtocol.FAILOVER_FILE_REPLICATION);
                         rawOut.writeLong(key);
@@ -797,7 +950,10 @@ final public class FailoverFileReplicationManager implements Runnable {
                                 // Do requests in batches
                                 UnixFile[] ufs=new UnixFile[BATCH_SIZE];
                                 int[] results=new int[BATCH_SIZE];
+                                long[][] md5His = useCompression ? new long[BATCH_SIZE][] : null;
+                                long[][] md5Los = useCompression ? new long[BATCH_SIZE][] : null;
                                 byte[] buff=BufferManager.getBytes();
+                                byte[] chunkBuffer = new byte[CHUNK_SIZE];
                                 try {
                                     while(true) {
                                         int batchSize=fileIterator.getNextUnixFiles(ufs, BATCH_SIZE);
@@ -858,8 +1014,19 @@ final public class FailoverFileReplicationManager implements Runnable {
                                             for(int d=0;d<batchSize;d++) {
                                                 if(ufs[d]!=null) {
                                                     result = in.read();
-                                                    if(result==MODIFIED_REQUEST_DATA) hasRequestData = true;
                                                     results[d]=result;
+                                                    if(result==MODIFIED_REQUEST_DATA) {
+                                                        hasRequestData = true;
+                                                    } else if(result==MODIFIED_REQUEST_DATA_CHUNKED) {
+                                                        hasRequestData = true;
+                                                        int chunkCount = in.readCompressedInt();
+                                                        long[] md5Hi = md5His[d] = new long[chunkCount];
+                                                        long[] md5Lo = md5Los[d] = new long[chunkCount];
+                                                        for(int e=0;e<chunkCount;e++) {
+                                                            md5Hi[e]=in.readLong();
+                                                            md5Lo[e]=in.readLong();
+                                                        }
+                                                    }
                                                 }
                                             }
                                         } else {
@@ -889,20 +1056,76 @@ final public class FailoverFileReplicationManager implements Runnable {
                                             if(uf!=null) {
                                                 result=results[d];
                                                 if(result==MODIFIED) {
-                                                    if(log.isTraceEnabled()) log.trace("File modified: "+uf.getFilename());
+                                                    if(log.isDebugEnabled()) log.debug("File modified: "+uf.getFilename());
                                                     updated++;
                                                 } else if(result==MODIFIED_REQUEST_DATA) {
                                                     updated++;
                                                     try {
-                                                        if(log.isTraceEnabled()) log.trace("Sending file contents: "+uf.getFilename());
+                                                        if(log.isDebugEnabled()) log.debug("Sending file contents: "+uf.getFilename());
                                                         InputStream fileIn=new FileInputStream(uf.getFile());
                                                         try {
                                                             int blockLen;
                                                             while((blockLen=fileIn.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
-                                                                outgoing.write(AOServDaemonProtocol.NEXT);
-                                                                outgoing.writeShort(blockLen);
-                                                                outgoing.write(buff, 0, blockLen);
+                                                                if(blockLen>0) {
+                                                                    outgoing.write(AOServDaemonProtocol.NEXT);
+                                                                    outgoing.writeShort(blockLen);
+                                                                    outgoing.write(buff, 0, blockLen);
+                                                                }
                                                             }
+                                                        } finally {
+                                                            fileIn.close();
+                                                        }
+                                                    } catch(FileNotFoundException err) {
+                                                        // Normal when the file was deleted
+                                                    } finally {
+                                                        outgoing.write(AOServDaemonProtocol.DONE);
+                                                    }
+                                                } else if(result==MODIFIED_REQUEST_DATA_CHUNKED) {
+                                                    updated++;
+                                                    try {
+                                                        if(log.isDebugEnabled()) log.debug("Chunking file contents: "+uf.getFilename());
+                                                        long[] md5Hi = md5His[d];
+                                                        long[] md5Lo = md5Los[d];
+                                                        InputStream fileIn=new FileInputStream(uf.getFile());
+                                                        try {
+                                                            int chunkNumber = 0;
+                                                            int sendChunkCount = 0;
+                                                            while(true) {
+                                                                // Read fully one chunk or to end of file
+                                                                int pos=0;
+                                                                while(pos<CHUNK_SIZE) {
+                                                                    int ret = fileIn.read(chunkBuffer, pos, CHUNK_SIZE-pos);
+                                                                    if(ret==-1) break;
+                                                                    pos+=ret;
+                                                                }
+                                                                if(pos>0) {
+                                                                    boolean sendData = true;
+                                                                    if(pos==CHUNK_SIZE && chunkNumber < md5Hi.length) {
+                                                                        // Calculate the MD5 hash
+                                                                        md5.Init();
+                                                                        md5.Update(chunkBuffer, 0, pos);
+                                                                        byte[] md5Bytes = md5.Final();
+                                                                        sendData = md5Hi[chunkNumber]!=MD5.getMD5Hi(md5Bytes) || md5Lo[chunkNumber]!=MD5.getMD5Lo(md5Bytes);
+                                                                        if(sendData) sendChunkCount++;
+                                                                    } else {
+                                                                        // Either incomplete chunk or chunk past those sent by client
+                                                                        sendData = true;
+                                                                    }
+                                                                    if(sendData) {
+                                                                        outgoing.write(AOServDaemonProtocol.NEXT);
+                                                                        outgoing.writeShort(pos);
+                                                                        outgoing.write(chunkBuffer, 0, pos);
+                                                                    } else {
+                                                                        outgoing.write(AOServDaemonProtocol.NEXT_CHUNK);
+                                                                    }
+                                                                }
+                                                                // At end of file when not complete chunk read
+                                                                if(pos!=CHUNK_SIZE) break;
+
+                                                                // Increment chunk number for next iteration
+                                                                chunkNumber++;
+                                                            }
+                                                            if(log.isDebugEnabled()) log.debug("Chunking file contents: "+uf.getFilename()+": Sent "+sendChunkCount+" out of "+chunkNumber+" chunks");
                                                         } finally {
                                                             fileIn.close();
                                                         }

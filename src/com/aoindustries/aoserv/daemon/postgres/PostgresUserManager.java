@@ -59,10 +59,10 @@ final public class PostgresUserManager extends BuilderThread {
                         Statement stmt=conn.createStatement();
                         try {
                             ResultSet results=stmt.executeQuery(
-                                version.equals(PostgresVersion.VERSION_7_1_3)
-                                || version.equals(PostgresVersion.VERSION_7_2_7)
-                                || version.equals(PostgresVersion.VERSION_7_3_14)
-                                || version.equals(PostgresVersion.VERSION_8_0_7)
+                                version.startsWith(PostgresVersion.VERSION_7_1+'.')
+                                || version.startsWith(PostgresVersion.VERSION_7_2+'.')
+                                || version.startsWith(PostgresVersion.VERSION_7_3+'.')
+                                || version.startsWith(PostgresVersion.VERSION_8_0+'.')
                                 ? "select usename from pg_user"
                                 : "select rolname from pg_authid"
                             );
@@ -104,14 +104,14 @@ final public class PostgresUserManager extends BuilderThread {
                                 StringBuilder sql=new StringBuilder();
                                 sql
                                     .append(
-                                        version.equals(PostgresVersion.VERSION_8_1_3)
+                                        version.startsWith(PostgresVersion.VERSION_8_1+'.')
                                         ? "CREATE ROLE "
                                         : "CREATE USER "
                                     )
                                     .append(username)
                                     .append(
                                         (
-                                            version.equals(PostgresVersion.VERSION_7_1_3)
+                                            version.startsWith(PostgresVersion.VERSION_7_1+'.')
                                         )
                                         ? " PASSWORD '"
                                         : " UNENCRYPTED PASSWORD '"
@@ -121,11 +121,11 @@ final public class PostgresUserManager extends BuilderThread {
                                     .append(pu.canCreateDB()?"CREATEDB":"NOCREATEDB")
                                     .append(' ')
                                     .append(
-                                        version.equals(PostgresVersion.VERSION_8_1_3)
+                                        version.startsWith(PostgresVersion.VERSION_8_1+'.')
                                         ? (pu.canCatUPD()?"CREATEROLE":"NOCREATEROLE")
                                         : (pu.canCatUPD()?"CREATEUSER":"NOCREATEUSER")
                                     ).append(
-                                        version.equals(PostgresVersion.VERSION_8_1_3)
+                                        version.startsWith(PostgresVersion.VERSION_8_1+'.')
                                         ? " LOGIN"
                                         : ""
                                     )
@@ -135,10 +135,10 @@ final public class PostgresUserManager extends BuilderThread {
                             }
                             if(
                                 !(
-                                    version.equals(PostgresVersion.VERSION_7_1_3)
-                                    || version.equals(PostgresVersion.VERSION_7_2_7)
-                                    || version.equals(PostgresVersion.VERSION_7_3_14)
-                                    || version.equals(PostgresVersion.VERSION_8_0_7)
+                                    version.startsWith(PostgresVersion.VERSION_7_1+'.')
+                                    || version.startsWith(PostgresVersion.VERSION_7_2+'.')
+                                    || version.startsWith(PostgresVersion.VERSION_7_3+'.')
+                                    || version.startsWith(PostgresVersion.VERSION_8_0+'.')
                                 )
                             ) {
                                 // Enable/disable using rolcanlogin
@@ -208,10 +208,10 @@ final public class PostgresUserManager extends BuilderThread {
             Connection conn=pool.getConnection(true);
             try {
                 PreparedStatement pstmt=conn.prepareStatement(
-                    version.equals(PostgresVersion.VERSION_7_1_3)
-                    || version.equals(PostgresVersion.VERSION_7_2_7)
-                    || version.equals(PostgresVersion.VERSION_7_3_14)
-                    || version.equals(PostgresVersion.VERSION_8_0_7)
+                    version.startsWith(PostgresVersion.VERSION_7_1+'.')
+                    || version.startsWith(PostgresVersion.VERSION_7_2+'.')
+                    || version.startsWith(PostgresVersion.VERSION_7_3+'.')
+                    || version.startsWith(PostgresVersion.VERSION_8_0+'.')
                     ? "select passwd from pg_shadow where usename=?"
                     : "select rolpassword from pg_authid where rolname=?"
                 );
@@ -252,12 +252,12 @@ final public class PostgresUserManager extends BuilderThread {
                 String version=ps.getPostgresVersion().getTechnologyVersion(aoservConn).getVersion();
                 String midStatement;
                 if(forceUnencrypted) {
-                    if(version.equals(PostgresVersion.VERSION_7_1_3)) midStatement=" with password ";
+                    if(version.startsWith(PostgresVersion.VERSION_7_1+'.')) midStatement=" with password ";
                     else midStatement=" with unencrypted password ";
                 } else {
                     if(
-                        version.equals(PostgresVersion.VERSION_7_2_7)
-                        || version.equals(PostgresVersion.VERSION_7_3_14)
+                        version.startsWith(PostgresVersion.VERSION_7_2+'.')
+                        || version.startsWith(PostgresVersion.VERSION_7_3+'.')
                     ) {
                         midStatement=" with unencrypted password ";
                     } else {

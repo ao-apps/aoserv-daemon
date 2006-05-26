@@ -61,13 +61,13 @@ public final class PgHbaManager extends BuilderThread {
                         newHbaUF.setMode(0600).chown(postgresUID, postgresGID);
 
                         if(
-                            version.equals(PostgresVersion.VERSION_7_1_3)
-                            || version.equals(PostgresVersion.VERSION_7_2_7)
+                            version.startsWith(PostgresVersion.VERSION_7_1+'.')
+                            || version.startsWith(PostgresVersion.VERSION_7_2+'.')
                         ) {
                             out.print("local all trust\n"
                                     + "host all 127.0.0.1 255.255.255.255 ident sameuser\n"
                                     + "host all 0.0.0.0 0.0.0.0 password\n");
-                        } else if(version.equals(PostgresVersion.VERSION_7_3_14)) {
+                        } else if(version.startsWith(PostgresVersion.VERSION_7_3+'.')) {
                             out.print("local all all trust\n");
                             List<PostgresServerUser> users=ps.getPostgresServerUsers();
                             for(PostgresDatabase db : ps.getPostgresDatabases()) {
@@ -114,7 +114,7 @@ public final class PgHbaManager extends BuilderThread {
                                 }
                                 out.print(" 0.0.0.0 0.0.0.0 password\n");
                             }
-                        } else if(version.equals(PostgresVersion.VERSION_8_1_3)) {
+                        } else if(version.startsWith(PostgresVersion.VERSION_8_1+'.')) {
                             List<PostgresServerUser> users=ps.getPostgresServerUsers();
                             for(PostgresDatabase db : ps.getPostgresDatabases()) {
                                 // ident used from local

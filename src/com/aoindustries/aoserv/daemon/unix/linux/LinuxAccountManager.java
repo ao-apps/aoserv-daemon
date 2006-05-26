@@ -858,7 +858,7 @@ public class LinuxAccountManager extends BuilderThread {
                     int code;
                     byte[] buff=BufferManager.getBytes();
                     try {
-                        while((code=in.readByte())==AOServProtocol.NEXT) {
+                        while((code=in.readByte())==AOServDaemonProtocol.NEXT) {
                             int len=in.readShort();
                             in.readFully(buff, 0, len);
                             out.write(buff, 0, len);

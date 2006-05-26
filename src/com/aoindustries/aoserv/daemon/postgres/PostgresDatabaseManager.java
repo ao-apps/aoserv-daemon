@@ -214,14 +214,14 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                 else {
                                     PostgresServerUser datdba=database.getDatDBA();
                                     if(
-                                        version.equals(PostgresVersion.VERSION_7_3_14)
-                                        || version.equals(PostgresVersion.VERSION_8_0_7)
-                                        || version.equals(PostgresVersion.VERSION_8_1_3)
+                                        version.startsWith(PostgresVersion.VERSION_7_3+'.')
+                                        || version.startsWith(PostgresVersion.VERSION_8_0+'.')
+                                        || version.startsWith(PostgresVersion.VERSION_8_1+'.')
                                     ) {
                                         stmt.executeUpdate("create database "+name+" with owner="+datdba.getPostgresUser().getUsername().getUsername()+" encoding='"+database.getPostgresEncoding().getEncoding()+'\'');
                                     } else if(
-                                        version.equals(PostgresVersion.VERSION_7_1_3)
-                                        || version.equals(PostgresVersion.VERSION_7_2_7)
+                                        version.startsWith(PostgresVersion.VERSION_7_1+'.')
+                                        || version.startsWith(PostgresVersion.VERSION_7_2+'.')
                                     ) {
                                         // Create the database
                                         stmt.executeUpdate("create database "+name+" with encoding='"+database.getPostgresEncoding().getEncoding()+"'");
@@ -391,11 +391,11 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                 for(PostgresServer postgresServer : AOServDaemon.getThisAOServer().getPostgresServers()) {
                     String postgresServerVersion=postgresServer.getPostgresVersion().getTechnologyVersion(aoservConn).getVersion();
                     boolean postgresServerHasSchemas=
-                        !postgresServerVersion.equals(PostgresVersion.VERSION_7_1_3)
-                        || !postgresServerVersion.equals(PostgresVersion.VERSION_7_2_7)
+                        !postgresServerVersion.startsWith(PostgresVersion.VERSION_7_1+'.')
+                        || !postgresServerVersion.startsWith(PostgresVersion.VERSION_7_2+'.')
                     ;
                     boolean postgresServerHasVacuumFull=
-                        !postgresServerVersion.equals(PostgresVersion.VERSION_7_1_3)
+                        !postgresServerVersion.startsWith(PostgresVersion.VERSION_7_1+'.')
                     ;
                     for(PostgresDatabase postgresDatabase : postgresServer.getPostgresDatabases()) {
                         if(

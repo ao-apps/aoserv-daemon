@@ -179,10 +179,10 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
                 for(PostgresServer postgresServer : AOServDaemon.getThisAOServer().getPostgresServers()) {
                     String version=postgresServer.getPostgresVersion().getTechnologyVersion(conn).getVersion();
                     if(
-                        !version.equals(PostgresVersion.VERSION_7_1_3)
-                        && !version.equals(PostgresVersion.VERSION_7_2_7)
-                        && !version.equals(PostgresVersion.VERSION_7_3_14)
-                        && !version.equals(PostgresVersion.VERSION_8_0_7)
+                        !version.startsWith(PostgresVersion.VERSION_7_1+'.')
+                        && !version.startsWith(PostgresVersion.VERSION_7_2+'.')
+                        && !version.startsWith(PostgresVersion.VERSION_7_3+'.')
+                        && !version.startsWith(PostgresVersion.VERSION_8_0+'.')
                     ) {
                         // Is 8.1 or newer, need to compress and rotate logs
                         File logDirectory=new File("/var/log/postgresql", postgresServer.getName());

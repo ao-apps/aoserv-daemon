@@ -162,6 +162,7 @@ public final class ProcmailManager extends BuilderThread {
                                         // Fourth, send the response
                                         // TODO: Should we send these??? Should we put them in an IMAP folder?  Should we set the subject differently?
                                         // Can we block these attachment types within sendmail at message acceptance time?
+                                        // MILTER!!!
                                         out.print("\n"
                                                 + "  # Send the response message:\n"
                                                 + "  :0 h\n"
