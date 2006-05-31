@@ -48,8 +48,10 @@ import java.io.RandomAccessFile;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Stack;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
@@ -136,6 +138,7 @@ final public class FailoverFileReplicationManager implements Runnable {
                 String[] paths=new String[BATCH_SIZE];
                 boolean[] isLogDirs=new boolean[BATCH_SIZE];
                 UnixFile[] tempNewFiles=new UnixFile[BATCH_SIZE];
+                Set<String> tempNewFilenames=new HashSet<String>(BATCH_SIZE*4/3+1);
                 LongList[] chunksMD5s=useCompression ? new LongList[BATCH_SIZE] : null;
                 long[] modifyTimes=new long[BATCH_SIZE];
                 int[] results=new int[BATCH_SIZE];
@@ -152,6 +155,7 @@ final public class FailoverFileReplicationManager implements Runnable {
                     // Continue until a batchSize of -1 (end of replication)
                     int batchSize;
                     while((batchSize=in.readCompressedInt())!=-1) {
+                        tempNewFilenames.clear();
                         for(int c=0;c<batchSize;c++) {
                             if(in.readBoolean()) {
                                 // Read the current file
@@ -195,17 +199,12 @@ final public class FailoverFileReplicationManager implements Runnable {
                                         String fullpath=dirPath+list[d];
                                         if(!dirContents.containsKey(fullpath)) {
                                             // Make sure it is not one of the temp files
-                                            boolean isTemp = false;
-                                            for(int e=0;e<c;e++) {
-                                                if(tempNewFiles[e]!=null && tempNewFiles[e].getFilename().equals(fullpath)) {
-                                                    if(log.isTraceEnabled()) log.trace("Not deleting temp file: "+fullpath);
-                                                    isTemp = true;
-                                                    break;
-                                                }
-                                            }
-                                            if(!isTemp) {
+                                            boolean isTemp = tempNewFilenames.contains(fullpath);
+                                            if(isTemp) {
+                                                if(log.isTraceEnabled()) log.trace("Not deleting temp file: "+fullpath);
+                                            } else {
+                                                if(log.isTraceEnabled()) log.trace("Deleting extra file: "+fullpath);
                                                 try {
-                                                    if(log.isTraceEnabled()) log.trace("Deleting extra file: "+fullpath);
                                                     new UnixFile(fullpath).deleteRecursive();
                                                 } catch(FileNotFoundException err) {
                                                     AOServDaemon.reportError(err, new Object[] {"fullpath="+fullpath});
@@ -298,11 +297,13 @@ final public class FailoverFileReplicationManager implements Runnable {
                                     ) {
                                         // Always load into a temporary file first
                                         UnixFile tempNewFile = tempNewFiles[c]=UnixFile.mktemp(uf.getFilename()+'.');
+                                        tempNewFilenames.add(tempNewFile.getFilename());
                                         if(log.isTraceEnabled()) log.trace("Using temp file: "+tempNewFile.getFilename());
                                         // Is this a log directory
                                         boolean copiedOldLogFile = false;
                                         if(isLogDirs[c]) {
                                             // Look for another file with the same size and modify time
+                                            // TODO: Use a cache to reduce CPU consumption here
                                             UnixFile parent = uf.getParent();
                                             String[] list = parent.list();
                                             if(list!=null) {
@@ -850,7 +851,7 @@ final public class FailoverFileReplicationManager implements Runnable {
                         // Start the replication
                         CompressedDataOutputStream rawOut=daemonConn.getOutputStream();
                         // TODO: Make an configurable option per replication
-                        boolean useCompression = true; // TODO: Less CPU, more network locally if enabled: !thisServer.getServer().getServerFarm().equals(toServer.getServer().getServerFarm());
+                        boolean useCompression = ffr.getUseCompression();
                         if(log.isTraceEnabled()) log.trace("useCompression="+useCompression);
 
                         MD5 md5 = useCompression ? new MD5() : null;
