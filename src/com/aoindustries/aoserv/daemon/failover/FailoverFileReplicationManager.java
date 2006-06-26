@@ -27,7 +27,10 @@ import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.io.DontCloseInputStream;
 import com.aoindustries.io.DontCloseOutputStream;
+import com.aoindustries.io.unix.FileExistsRule;
 import com.aoindustries.io.unix.FilesystemIterator;
+import com.aoindustries.io.unix.FilesystemIteratorResult;
+import com.aoindustries.io.unix.FilesystemIteratorRule;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.md5.MD5;
 import com.aoindustries.profiler.Profiler;
@@ -108,6 +111,23 @@ final public class FailoverFileReplicationManager implements Runnable {
         } finally {
             Profiler.endProfile(Profiler.FAST);
         }
+    }
+
+    private static boolean isEncryptedLoopFile(String path) {
+        return
+            "/home.aes128.img".equals(path)
+            || "/home.aes256.img".equals(path)
+            || "/logs.aes128.img".equals(path)
+            || "/logs.aes256.img".equals(path)
+            || "/var/cvs.aes128.img".equals(path)
+            || "/var/cvs.aes256.img".equals(path)
+            || "/var/lib/pgsql.aes128.img".equals(path)
+            || "/var/lib/pgsql.aes256.img".equals(path)
+            || "/var/spool.aes128.img".equals(path)
+            || "/var/spool.aes256.img".equals(path)
+            || "/www.aes128.img".equals(path)
+            || "/www.aes256.img".equals(path)
+        ;
     }
 
     public static void failoverServer(
@@ -289,22 +309,27 @@ final public class FailoverFileReplicationManager implements Runnable {
                                         result=MODIFIED;
                                     }
                                 } else if(UnixFile.isRegularFile(mode)) {
+                                    boolean isEncryptedLoopFile = isEncryptedLoopFile(relativePath);
                                     if(
-                                        !uf.exists()
+                                        isEncryptedLoopFile
+                                        || !uf.exists()
                                         || !uf.isRegularFile()
                                         || uf.getSize()!=length
                                         || uf.getModifyTime()!=modifyTime
                                     ) {
                                         // Always load into a temporary file first
-                                        UnixFile tempNewFile = tempNewFiles[c]=UnixFile.mktemp(uf.getFilename()+'.');
+                                        UnixFile parent = uf.getParent();
+                                        String name = uf.getFile().getName();
+                                        String tempFilename = (name.length()>64 ? new UnixFile(parent, name.substring(0, 64)) : uf).getFilename();
+
+                                        UnixFile tempNewFile = tempNewFiles[c]=UnixFile.mktemp(tempFilename+'.');
                                         tempNewFilenames.add(tempNewFile.getFilename());
                                         if(log.isTraceEnabled()) log.trace("Using temp file: "+tempNewFile.getFilename());
                                         // Is this a log directory
                                         boolean copiedOldLogFile = false;
-                                        if(isLogDirs[c]) {
+                                        if(!isEncryptedLoopFile && isLogDirs[c]) {
                                             // Look for another file with the same size and modify time
                                             // TODO: Use a cache to reduce CPU consumption here
-                                            UnixFile parent = uf.getParent();
                                             String[] list = parent.list();
                                             if(list!=null) {
                                                 for(int d=0;d<list.length;d++) {
@@ -733,88 +758,132 @@ final public class FailoverFileReplicationManager implements Runnable {
                 ffr.setLastStartTime(System.currentTimeMillis());
 
                 // Build the skip list
-                List<String> noCopyList=new SortedArrayList<String>();
-                noCopyList.add("/aquota.user");
-                noCopyList.add("/backup");
-                noCopyList.add("/boot/lost+found");
-                noCopyList.add("/dev/log");
-                noCopyList.add("/dev/pts");
-                noCopyList.add("/dev/shm");
-                noCopyList.add("/distro");
-                noCopyList.add("/lost+found");
-                noCopyList.add("/mnt/cdrom");
-                noCopyList.add("/mnt/floppy");
-                noCopyList.add("/proc");
-                noCopyList.add("/swapfile.aes128.img");
-                noCopyList.add("/sys");
-                noCopyList.add("/tmp");
-                noCopyList.add("/usr/tmp");
-                noCopyList.add("/var/backup");
-                noCopyList.add("/var/failover");
-                noCopyList.add("/var/failover.aes128.img");
-                noCopyList.add("/var/failover.aes256.img");
-                noCopyList.add("/var/lib/pgsql.aes128.img");
-                noCopyList.add("/var/lib/pgsql.aes256.img");
-                noCopyList.add("/var/lib/pgsql/7.1/postmaster.pid");
-                noCopyList.add("/var/lib/pgsql/7.2/postmaster.pid");
-                noCopyList.add("/var/lib/pgsql/7.3/postmaster.pid");
-                noCopyList.add("/var/lib/pgsql/8.0/postmaster.pid");
-                noCopyList.add("/var/lib/pgsql/8.1/postmaster.pid");
-                noCopyList.add("/var/lib/sasl2/saslauthd.pid");
-                noCopyList.add("/var/lock/subsys/aoserv-daemon");
-                noCopyList.add("/var/lock/subsys/clear_jvm_stats");
-                noCopyList.add("/var/lock/subsys/clear_postgresql_pid");
-                noCopyList.add("/var/lock/subsys/crond");
-                noCopyList.add("/var/lock/subsys/daemons");
-                noCopyList.add("/var/lock/subsys/kheader");
-                noCopyList.add("/var/lock/subsys/local");
-                noCopyList.add("/var/lock/subsys/mysql");
-                noCopyList.add("/var/lock/subsys/network");
-                noCopyList.add("/var/lock/subsys/postgresql-7.1");
-                noCopyList.add("/var/lock/subsys/postgresql-7.2");
-                noCopyList.add("/var/lock/subsys/postgresql-7.3");
-                noCopyList.add("/var/lock/subsys/postgresql-8.0");
-                noCopyList.add("/var/lock/subsys/postgresql-8.1");
-                noCopyList.add("/var/lock/subsys/proftpd");
-                noCopyList.add("/var/lock/subsys/route");
-                noCopyList.add("/var/lock/subsys/saslauthd");
-                noCopyList.add("/var/lock/subsys/sendmail");
-                noCopyList.add("/var/lock/subsys/sm-client");
-                noCopyList.add("/var/lock/subsys/spamd");
-                noCopyList.add("/var/lock/subsys/sshd1");
-                noCopyList.add("/var/lock/subsys/syslog");
-                noCopyList.add("/var/lock/subsys/xfs");
-                noCopyList.add("/var/lock/subsys/xinetd");
-                noCopyList.add("/var/lock/subsys/xvfb");
-                noCopyList.add("/var/oldaccounts");
-                noCopyList.add("/var/run/aoserv-daemon-java.pid");
-                noCopyList.add("/var/run/aoserv-daemon.pid");
-                noCopyList.add("/var/run/crond.pid");
-                noCopyList.add("/var/run/httpd1.pid");
-                noCopyList.add("/var/run/httpd2.pid");
-                noCopyList.add("/var/run/httpd3.pid");
-                noCopyList.add("/var/run/httpd4.pid");
-                noCopyList.add("/var/run/httpd5.pid");
-                noCopyList.add("/var/run/httpd6.pid");
-                noCopyList.add("/var/run/klogd.pid");
-                noCopyList.add("/var/run/proftpd.pid");
-                noCopyList.add("/var/run/proftpd/proftpd.scoreboard");
-                noCopyList.add("/var/run/runlevel.dir");
-                noCopyList.add("/var/run/sendmail.pid");
-                noCopyList.add("/var/run/sm-client.pid");
-                noCopyList.add("/var/run/sshd.pid");
-                noCopyList.add("/var/run/syslogd.pid");
-                noCopyList.add("/var/run/xfs.pid");
-                noCopyList.add("/var/run/xinetd.pid");
-                noCopyList.add("/var/run/xvfb.pid");
-                noCopyList.add("/var/spool/clientmqueue/sm-client.pid");
-                noCopyList.add("/var/tmp");
-                noCopyList.add("/www.aes128.img");
-                noCopyList.add("/www.aes256.img");
-                noCopyList.add("/www/aquota.user");
-                noCopyList.add("/www/lost+found");
+                Map<String,FilesystemIteratorRule> filesystemRules=new HashMap<String,FilesystemIteratorRule>();
+                filesystemRules.put("/aquota.user", FilesystemIteratorRule.SKIP);
+                //filesystemRules.put("/backup", FilesystemIteratorRule.NO_RECURSE);
+                filesystemRules.put("/boot/lost+found", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/dev/log", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/dev/pts", FilesystemIteratorRule.NO_RECURSE);
+                filesystemRules.put("/dev/shm", FilesystemIteratorRule.NO_RECURSE);
+                //filesystemRules.put("/distro", FilesystemIteratorRule.NO_RECURSE);
+                filesystemRules.put(
+                    "/home",
+                    new FileExistsRule(
+                        new String[] {"/home.aes128.img", "/home.aes256.img"},
+                        FilesystemIteratorRule.NO_RECURSE,
+                        FilesystemIteratorRule.OK
+                    )
+                );
+                filesystemRules.put(
+                    "/logs",
+                    new FileExistsRule(
+                        new String[] {"/logs.aes128.img", "/logs.aes256.img"},
+                        FilesystemIteratorRule.NO_RECURSE,
+                        FilesystemIteratorRule.OK
+                    )
+                );
+                filesystemRules.put("/lost+found", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/mnt/cdrom", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/mnt/floppy", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/proc", FilesystemIteratorRule.NO_RECURSE);
+                filesystemRules.put("/swapfile.aes128.img", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/swapfile.aes256.img", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/sys", FilesystemIteratorRule.NO_RECURSE);
+                filesystemRules.put("/tmp", FilesystemIteratorRule.NO_RECURSE);
+                filesystemRules.put("/usr/tmp", FilesystemIteratorRule.NO_RECURSE);
+                filesystemRules.put("/var/backup", FilesystemIteratorRule.NO_RECURSE);
+                filesystemRules.put("/var/failover", FilesystemIteratorRule.NO_RECURSE);
+                filesystemRules.put(
+                    "/var/cvs",
+                    new FileExistsRule(
+                        new String[] {"/var/cvs.aes128.img", "/var/cvs.aes256.img"},
+                        FilesystemIteratorRule.NO_RECURSE,
+                        FilesystemIteratorRule.OK
+                    )
+                );
+                filesystemRules.put(
+                    "/var/lib/pgsql",
+                    new FileExistsRule(
+                        new String[] {"/var/lib/pgsql.aes128.img", "/var/lib/pgsql.aes256.img"},
+                        FilesystemIteratorRule.NO_RECURSE,
+                        FilesystemIteratorRule.OK
+                    )
+                );
+                filesystemRules.put("/var/lib/pgsql/7.1/postmaster.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lib/pgsql/7.2/postmaster.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lib/pgsql/7.3/postmaster.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lib/pgsql/8.0/postmaster.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lib/pgsql/8.1/postmaster.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lib/sasl2/saslauthd.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/aoserv-daemon", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/clear_jvm_stats", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/clear_postgresql_pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/crond", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/daemons", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/kheader", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/local", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/mysql", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/network", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/postgresql-7.1", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/postgresql-7.2", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/postgresql-7.3", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/postgresql-8.0", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/postgresql-8.1", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/proftpd", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/route", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/saslauthd", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/sendmail", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/sm-client", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/spamd", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/sshd1", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/syslog", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/xfs", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/xinetd", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/xvfb", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/oldaccounts", FilesystemIteratorRule.NO_RECURSE);
+                filesystemRules.put("/var/run/aoserv-daemon-java.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/run/aoserv-daemon.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/run/crond.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/run/httpd1.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/run/httpd2.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/run/httpd3.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/run/httpd4.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/run/httpd5.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/run/httpd6.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/run/klogd.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/run/proftpd.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/run/proftpd/proftpd.scoreboard", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/run/runlevel.dir", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/run/sendmail.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/run/sm-client.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/run/sshd.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/run/syslogd.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/run/xfs.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/run/xinetd.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/run/xvfb.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put(
+                    "/var/spool",
+                    new FileExistsRule(
+                        new String[] {"/var/spool.aes128.img", "/var/spool.aes256.img"},
+                        FilesystemIteratorRule.NO_RECURSE,
+                        FilesystemIteratorRule.OK
+                    )
+                );
+                filesystemRules.put("/var/spool/clientmqueue/sm-client.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/tmp", FilesystemIteratorRule.NO_RECURSE);
+                filesystemRules.put(
+                    "/www",
+                    new FileExistsRule(
+                        new String[] {"/www.aes128.img", "/www.aes256.img"},
+                        FilesystemIteratorRule.NO_RECURSE,
+                        FilesystemIteratorRule.OK
+                    )
+                );
+                filesystemRules.put("/www/aquota.user", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/www/lost+found", FilesystemIteratorRule.SKIP);
+                // Do not replicate the backup directories
                 for(BackupPartition bp : thisServer.getBackupPartitions()) {
-                    noCopyList.add(bp.getPath());
+                    filesystemRules.put(bp.getPath(), FilesystemIteratorRule.NO_RECURSE);
                 }
 
                 // Keep statistics during the replication
@@ -946,10 +1015,10 @@ final public class FailoverFileReplicationManager implements Runnable {
                             try {
                                 //if(log.isTraceEnabled()) log.trace("closeStreams="+closeStreams);
 
-                                FilesystemIterator fileIterator=new FilesystemIterator(noCopyList);
+                                FilesystemIterator fileIterator=new FilesystemIterator(filesystemRules, true);
 
                                 // Do requests in batches
-                                UnixFile[] ufs=new UnixFile[BATCH_SIZE];
+                                FilesystemIteratorResult[] filesystemIteratorResults=new FilesystemIteratorResult[BATCH_SIZE];
                                 int[] results=new int[BATCH_SIZE];
                                 long[][] md5His = useCompression ? new long[BATCH_SIZE][] : null;
                                 long[][] md5Los = useCompression ? new long[BATCH_SIZE][] : null;
@@ -957,13 +1026,24 @@ final public class FailoverFileReplicationManager implements Runnable {
                                 byte[] chunkBuffer = new byte[CHUNK_SIZE];
                                 try {
                                     while(true) {
-                                        int batchSize=fileIterator.getNextUnixFiles(ufs, BATCH_SIZE);
+                                        int batchSize=fileIterator.getNextResults(filesystemIteratorResults, BATCH_SIZE);
                                         if(batchSize==0) break;
 
                                         out.writeCompressedInt(batchSize);
                                         for(int d=0;d<batchSize;d++) {
                                             scanned++;
-                                            UnixFile uf=ufs[d];
+                                            FilesystemIteratorResult filesystemIteratorResult = filesystemIteratorResults[d];
+                                            UnixFile uf=filesystemIteratorResult.getUnixFile();
+                                            String convertedFilename = filesystemIteratorResult.getConvertedFilename();
+                                            if(!convertedFilename.equals(uf.getFilename())) {
+                                                AOServDaemon.reportWarning(
+                                                    new IOException("Warning, filename converted during replication"),
+                                                    new Object[] {
+                                                        "originalFilename ="+uf.getFilename(),
+                                                        "convertedFilename="+convertedFilename
+                                                    }
+                                                );
+                                            }
                                             try {
                                                 long mode=uf.getStatMode();
                                                 if(!UnixFile.isSocket(mode)) {
@@ -980,16 +1060,16 @@ final public class FailoverFileReplicationManager implements Runnable {
                                                     long deviceID=isDevice?uf.getDeviceIdentifier():-1;
 
                                                     out.writeBoolean(true);
-                                                    out.writeCompressedUTF(filename, 0);
+                                                    out.writeCompressedUTF(convertedFilename, 0);
                                                     out.writeLong(mode);
                                                     if(UnixFile.isRegularFile(mode)) out.writeLong(size);
                                                     if(uid<0 || uid>65535) {
-                                                        AOServDaemon.reportWarning(new IOException("UID out of range, converted to 0"), new Object[] {"uid="+uid, "path="+uf.getFilename()});
+                                                        AOServDaemon.reportWarning(new IOException("UID out of range, converted to 0"), new Object[] {"uid="+uid, "path="+filename});
                                                         uid=0;
                                                     }
                                                     out.writeCompressedInt(uid);
                                                     if(gid<0 || gid>65535) {
-                                                        AOServDaemon.reportWarning(new IOException("GID out of range, converted to 0"), new Object[] {"gid="+gid, "path="+uf.getFilename()});
+                                                        AOServDaemon.reportWarning(new IOException("GID out of range, converted to 0"), new Object[] {"gid="+gid, "path="+filename});
                                                         gid=0;
                                                     }
                                                     out.writeCompressedInt(gid);
@@ -997,12 +1077,12 @@ final public class FailoverFileReplicationManager implements Runnable {
                                                     if(isSymLink) out.writeCompressedUTF(symLinkTarget, 1);
                                                     else if(isDevice) out.writeLong(deviceID);
                                                 } else {
-                                                    ufs[d]=null;
+                                                    filesystemIteratorResults[d]=null;
                                                     out.writeBoolean(false);
                                                 }
                                             } catch(FileNotFoundException err) {
                                                 // Normal because of a dynamic file system
-                                                ufs[d]=null;
+                                                filesystemIteratorResults[d]=null;
                                                 out.writeBoolean(false);
                                             }
                                         }
@@ -1013,7 +1093,7 @@ final public class FailoverFileReplicationManager implements Runnable {
                                         boolean hasRequestData = false;
                                         if(result==AOServDaemonProtocol.NEXT) {
                                             for(int d=0;d<batchSize;d++) {
-                                                if(ufs[d]!=null) {
+                                                if(filesystemIteratorResults[d]!=null) {
                                                     result = in.read();
                                                     results[d]=result;
                                                     if(result==MODIFIED_REQUEST_DATA) {
@@ -1053,7 +1133,8 @@ final public class FailoverFileReplicationManager implements Runnable {
                                             outgoing = null;
                                         }
                                         for(int d=0;d<batchSize;d++) {
-                                            UnixFile uf=ufs[d];
+                                            FilesystemIteratorResult filesystemIteratorResult = filesystemIteratorResults[d];
+                                            UnixFile uf=filesystemIteratorResult.getUnixFile();
                                             if(uf!=null) {
                                                 result=results[d];
                                                 if(result==MODIFIED) {
@@ -1063,18 +1144,21 @@ final public class FailoverFileReplicationManager implements Runnable {
                                                     updated++;
                                                     try {
                                                         if(log.isDebugEnabled()) log.debug("Sending file contents: "+uf.getFilename());
-                                                        InputStream fileIn=new FileInputStream(uf.getFile());
-                                                        try {
-                                                            int blockLen;
-                                                            while((blockLen=fileIn.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
-                                                                if(blockLen>0) {
-                                                                    outgoing.write(AOServDaemonProtocol.NEXT);
-                                                                    outgoing.writeShort(blockLen);
-                                                                    outgoing.write(buff, 0, blockLen);
+                                                        // Shortcut for 0 length files (don't open for reading)
+                                                        if(uf.getSize()!=0) {
+                                                            InputStream fileIn=new FileInputStream(uf.getFile());
+                                                            try {
+                                                                int blockLen;
+                                                                while((blockLen=fileIn.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
+                                                                    if(blockLen>0) {
+                                                                        outgoing.write(AOServDaemonProtocol.NEXT);
+                                                                        outgoing.writeShort(blockLen);
+                                                                        outgoing.write(buff, 0, blockLen);
+                                                                    }
                                                                 }
+                                                            } finally {
+                                                                fileIn.close();
                                                             }
-                                                        } finally {
-                                                            fileIn.close();
                                                         }
                                                     } catch(FileNotFoundException err) {
                                                         // Normal when the file was deleted
