@@ -57,6 +57,7 @@ public final class OSFilename {
         switch(operating_system_version) {
             case OperatingSystemVersion.MANDRAKE_10_1_I586: return OperatingSystem.MANDRAKE;
             case OperatingSystemVersion.MANDRIVA_2006_0_I586: return OperatingSystem.MANDRIVA;
+            case OperatingSystemVersion.REDHAT_ES_4_X86_64: return OperatingSystem.REDHAT;
             default: throw new RuntimeException("Unsupported operating_system_version: "+operating_system_version);
         }
     }
@@ -65,6 +66,7 @@ public final class OSFilename {
         switch(operating_system_version) {
             case OperatingSystemVersion.MANDRAKE_10_1_I586: return OperatingSystemVersion.VERSION_10_1;
             case OperatingSystemVersion.MANDRIVA_2006_0_I586: return OperatingSystemVersion.VERSION_2006_0;
+            case OperatingSystemVersion.REDHAT_ES_4_X86_64: return OperatingSystemVersion.VERSION_ES_4;
             default: throw new RuntimeException("Unsupported operating_system_version: "+operating_system_version);
         }
     }
@@ -73,6 +75,7 @@ public final class OSFilename {
         switch(operating_system_version) {
             case OperatingSystemVersion.MANDRAKE_10_1_I586: return Architecture.I586;
             case OperatingSystemVersion.MANDRIVA_2006_0_I586: return Architecture.I586;
+            case OperatingSystemVersion.REDHAT_ES_4_X86_64: return Architecture.X86_64;
             default: throw new RuntimeException("Unsupported operating_system_version: "+operating_system_version);
         }
     }

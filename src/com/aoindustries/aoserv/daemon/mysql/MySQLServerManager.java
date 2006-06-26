@@ -8,6 +8,7 @@ package com.aoindustries.aoserv.daemon.mysql;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.MySQLDatabase;
 import com.aoindustries.aoserv.client.MySQLServer;
+import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.server.ServerManager;
@@ -120,6 +121,8 @@ final public class MySQLServerManager extends BuilderThread {
     static void flushPrivileges(MySQLServer mysqlServer) throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, MySQLServerManager.class, "flushPrivileges(MySQLServer)", null);
         try {
+            int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+
             synchronized(flushLock) {
                 /*
                 This did not work properly, so we now invoke a native process instead.
@@ -138,8 +141,20 @@ final public class MySQLServerManager extends BuilderThread {
                     }
                 }
                 */
+                String path;
+                if(
+                    osv==OperatingSystemVersion.MANDRAKE_10_1_I586
+                    || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+                ) {
+                    path="/usr/mysql/"+mysqlServer.getMinorVersion()+"/bin/mysqladmin";
+                } else if(
+                    osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+                ) {
+                    path="/opt/mysql-"+mysqlServer.getMinorVersion()+"/bin/mysqladmin";
+                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+
                 String[] cmd={
-                    "/usr/mysql/"+mysqlServer.getMinorVersion()+"/bin/mysqladmin",
+                    path,
                     "-h",
                     "127.0.0.1",
                     "-P",

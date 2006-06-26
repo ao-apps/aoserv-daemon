@@ -551,6 +551,11 @@ final public class DistroGenerator extends Thread {
             && version.equals(OperatingSystemVersion.VERSION_2006_0)
             && architecture.equals(Architecture.I586)
         ) return OperatingSystemVersion.MANDRIVA_2006_0_I586;
+        if(
+            name.equals(OperatingSystem.REDHAT)
+            && version.equals(OperatingSystemVersion.VERSION_ES_4)
+            && architecture.equals(Architecture.X86_64)
+        ) return OperatingSystemVersion.REDHAT_ES_4_X86_64;
         throw new RuntimeException("Unsupported operating system: name="+name+", version="+version+", architecture="+architecture);
     }
     
@@ -577,6 +582,7 @@ final public class DistroGenerator extends Thread {
                     }
                     if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) System.err.print("mandrake,10.1,i586,");
                     else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) System.err.print("mandriva,2006.0,i586,");
+                    else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) System.err.print("redhat,ES 4,x86_64,");
                     else throw new RuntimeException("Unknown value for osv: "+osv);
                     System.err.println(path);
                 }
@@ -587,6 +593,7 @@ final public class DistroGenerator extends Thread {
     private static String getOperatingSystemPath(int osv) {
         if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) return root+"/mandrake/10.1/i586";
         if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) return root+"/mandriva/2006.0/i586";
+        if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) return root+"/redhat/ES 4/x86_64";
         else throw new RuntimeException("Unknown value for osv: "+osv);
     }
 

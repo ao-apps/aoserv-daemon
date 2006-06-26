@@ -38,6 +38,8 @@ final public class MySQLHostManager extends BuilderThread {
             int osv=thisAOServer.getServer().getOperatingSystemVersion().getPKey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
+                && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized (rebuildLock) {
@@ -83,6 +85,8 @@ final public class MySQLHostManager extends BuilderThread {
                         String insertSQL;
                         if(
                             osv==OperatingSystemVersion.MANDRAKE_10_1_I586
+                            || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+                            || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                         ) {
                             if(version.startsWith("4.1.")) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
                             else if(version.startsWith("5.0.")) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";

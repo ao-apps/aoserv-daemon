@@ -2119,6 +2119,7 @@ final public class HttpdManager extends BuilderThread {
                                     + "        RewriteRule ^(.*).jspa~$ $1.jspa [L,R]\n"
                                     + "        RewriteRule ^(.*).php~$ $1.php [L,R]\n"
                                     + "        RewriteRule ^(.*).shtml~$ $1.shtml [L,R]\n"
+                                    + "        RewriteRule ^(.*).vm~$ $1.vm [L,R]\n"
                                     + "        RewriteRule ^(.*).xml~$ $1.xml [L,R]\n"
                                     + "\n"
                                     + "        # Protect dangerous request methods\n"
@@ -2234,6 +2235,7 @@ final public class HttpdManager extends BuilderThread {
                                     + "            RewriteRule ^(.*).do~$ $1.do [L,R]\n"
                                     + "            RewriteRule ^(.*).jsp~$ $1.jsp [L,R]\n"
                                     + "            RewriteRule ^(.*).jspa~$ $1.jspa [L,R]\n"
+                                    + "            RewriteRule ^(.*).vm~$ $1.vm [L,R]\n"
                                     + "            RewriteRule ^(.*).xml~$ $1.xml [L,R]\n"
                                     + "        </IfModule>\n");
 			    if(useApache) {
@@ -2244,6 +2246,7 @@ final public class HttpdManager extends BuilderThread {
                                     + "        JkMount ").print(path).print("/*.do ").print(jkCode).print("\n"
                                     + "        JkMount ").print(path).print("/*.jsp ").print(jkCode).print("\n"
                                     + "        JkMount ").print(path).print("/*.jspa ").print(jkCode).print("\n"
+                                    + "        JkMount ").print(path).print("/*.vm ").print(jkCode).print("\n"
                                     + "        JkMount ").print(path).print("/*.xml ").print(jkCode).print("\n");
 				}
 			    } else {
@@ -2981,7 +2984,7 @@ final public class HttpdManager extends BuilderThread {
                         UnixFile newConfServerXMLUF=new UnixFile(newConfServerXML);
                         out=new ChainWriter(
                             new BufferedOutputStream(
-                                newConfServerXMLUF.getSecureOutputStream(lsaUID, lsgGID, tomcat.isSecure()?0600:0660, false)
+                                newConfServerXMLUF.getSecureOutputStream(lsaUID, lsgGID, tomcat.isSecure()?0600:0660, true)
                             )
                         );
 			try {
