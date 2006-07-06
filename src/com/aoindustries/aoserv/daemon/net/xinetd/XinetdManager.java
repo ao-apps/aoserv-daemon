@@ -2,7 +2,7 @@ package com.aoindustries.aoserv.daemon.net.xinetd;
 
 /*
  * Copyright 2003-2006 by AO Industries, Inc.,
- * 2200 Dogwood Ct N, Mobile, Alabama, 36693, U.S.A.
+ * 816 Azalea Rd, Mobile, Alabama, 36693, U.S.A.
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.*;
@@ -45,6 +45,7 @@ public final class XinetdManager extends BuilderThread {
             int osv=aoServer.getServer().getOperatingSystemVersion().getPKey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
+                && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(rebuildLock) {
@@ -262,6 +263,7 @@ public final class XinetdManager extends BuilderThread {
                             } else if(protocol.equals(Protocol.SIMAP)) {
                                 if(
                                     osv==OperatingSystemVersion.MANDRAKE_10_1_I586
+                                    || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
                                 ) {
                                     service=new Service(
                                         portMatches?null:UNLISTED,
@@ -287,6 +289,7 @@ public final class XinetdManager extends BuilderThread {
                             } else if(protocol.equals(Protocol.SPOP3)) {
                                 if(
                                     osv==OperatingSystemVersion.MANDRAKE_10_1_I586
+                                    || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
                                 ) {
                                     service=new Service(
                                         portMatches?null:UNLISTED,
@@ -333,6 +336,7 @@ public final class XinetdManager extends BuilderThread {
                             } else if(protocol.equals(Protocol.TELNET)) {
                                 if(
                                     osv==OperatingSystemVersion.MANDRAKE_10_1_I586
+                                    || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
                                 ) {
                                     service=new Service(
                                         portMatches?null:UNLISTED,

@@ -2,7 +2,7 @@ package com.aoindustries.aoserv.daemon.failover;
 
 /*
  * Copyright 2003-2006 by AO Industries, Inc.,
- * 2200 Dogwood Ct N, Mobile, Alabama, 36693, U.S.A.
+ * 816 Azalea Rd, Mobile, Alabama, 36693, U.S.A.
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.AOServClientConfiguration;
@@ -49,7 +49,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -623,7 +626,25 @@ final public class FailoverFileReplicationManager implements Runnable {
                         if(log.isDebugEnabled()) log.debug("thisServer="+thisServer);
                         AOServer failoverServer=thisServer.getFailoverServer();
                         if(log.isDebugEnabled()) log.debug("failoverServer="+failoverServer);
-                        List<FailoverFileReplication> ffrs=thisServer.getFailoverFileReplications();
+                        List<FailoverFileReplication> ffrs=new ArrayList<FailoverFileReplication>(thisServer.getFailoverFileReplications());
+
+                        /*
+                         * Sorts the replications by bandwidth decreasing, with -1 meaning unlimited bandwidth.  This
+                         * causes the fastest (and thus more local, better snapshots, and more likely to complete quickly)
+                         * to be processed first when multiple replications are due for a pass.
+                         */
+                        Collections.sort(
+                            ffrs,
+                            new Comparator<FailoverFileReplication>() {
+                                public int compare(FailoverFileReplication ffr1, FailoverFileReplication ffr2) {
+                                    int rate1=ffr1.getBitRate();
+                                    int rate2=ffr2.getBitRate();
+                                    if(rate1==-1) return (rate2==-1) ? 0 : -1;
+                                    else return (rate2==-1) ? 1 : (rate2-rate1);
+                                }
+                            }
+                        );
+
                         for(int c=0;c<ffrs.size();c++) {
                             // Try the next server if an error occurs
                             FailoverFileReplication ffr=ffrs.get(c);
@@ -766,6 +787,7 @@ final public class FailoverFileReplicationManager implements Runnable {
                 filesystemRules.put("/dev/pts", FilesystemIteratorRule.NO_RECURSE);
                 filesystemRules.put("/dev/shm", FilesystemIteratorRule.NO_RECURSE);
                 //filesystemRules.put("/distro", FilesystemIteratorRule.NO_RECURSE);
+                filesystemRules.put("/etc/mail/statistics", FilesystemIteratorRule.SKIP);
                 filesystemRules.put(
                     "/home",
                     new FileExistsRule(
@@ -900,10 +922,12 @@ final public class FailoverFileReplicationManager implements Runnable {
                 try {
                     // Get the connection to the daemon
                     long key=toServer.requestDaemonAccess(AOServDaemonProtocol.FAILOVER_FILE_REPLICATION, ffr.getPKey());
+                    // Allow the address to be overridden
+                    String daemonConnectAddress=toServer.getDaemonConnectAddress();
                     NetBind daemonBind=toServer.getDaemonConnectBind();
                     AOServDaemonConnector daemonConnector=AOServDaemonConnector.getConnector(
                         toServer.getServer().getPKey(),
-                        toServer.getDaemonIPAddress().getIPAddress(),
+                        daemonConnectAddress!=null ? daemonConnectAddress : toServer.getDaemonIPAddress().getIPAddress(),
                         daemonBind.getPort().getPort(),
                         daemonBind.getAppProtocol().getProtocol(),
                         null,
@@ -1134,8 +1158,8 @@ final public class FailoverFileReplicationManager implements Runnable {
                                         }
                                         for(int d=0;d<batchSize;d++) {
                                             FilesystemIteratorResult filesystemIteratorResult = filesystemIteratorResults[d];
-                                            UnixFile uf=filesystemIteratorResult.getUnixFile();
-                                            if(uf!=null) {
+                                            if(filesystemIteratorResult!=null) {
+                                                UnixFile uf=filesystemIteratorResult.getUnixFile();
                                                 result=results[d];
                                                 if(result==MODIFIED) {
                                                     if(log.isDebugEnabled()) log.debug("File modified: "+uf.getFilename());
