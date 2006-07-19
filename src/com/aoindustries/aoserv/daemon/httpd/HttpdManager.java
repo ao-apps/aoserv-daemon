@@ -2728,7 +2728,7 @@ final public class HttpdManager extends BuilderThread {
                         mkdir(wwwGroupDir+"/common/endorsed", tomcat.isSecure()?0750:0770, lsa, lsg);
                         lnAll("../../../.."+tomcatDirectory+"/common/endorsed/", wwwGroupDir+"/common/endorsed/", lsaUID, lsgGID);
                         mkdir(wwwGroupDir+"/common/i18n", tomcat.isSecure()?0750:0770, lsa, lsg);
-                        lnAll("../../../.."+tomcatDirectory+"/common/i18n/", wwwGroupDir+"/common/i18n/", lsaUID, lsgGID);
+                        if(isTomcat55) lnAll("../../../.."+tomcatDirectory+"/common/i18n/", wwwGroupDir+"/common/i18n/", lsaUID, lsgGID);
                         mkdir(wwwGroupDir+"/common/lib", tomcat.isSecure()?0750:0770, lsa, lsg);
                         lnAll("../../../.."+tomcatDirectory+"/common/lib/", wwwGroupDir+"/common/lib/", lsaUID, lsgGID);
                         

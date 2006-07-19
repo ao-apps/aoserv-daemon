@@ -79,8 +79,6 @@ final public class FailoverFileReplicationManager implements Runnable {
 
     private static final Log log = LogFactory.getLog(FailoverFileReplicationManager.class);
 
-    private static final int BATCH_SIZE=1000;
-    
     private static final int
         NO_CHANGE=0,
         MODIFIED=1,
@@ -145,442 +143,434 @@ final public class FailoverFileReplicationManager implements Runnable {
             rawOut.write(AOServDaemonProtocol.NEXT);
             rawOut.flush();
 
-            CompressedDataInputStream in;
-            CompressedDataOutputStream out;
-            //boolean closeStreams;
-            //if(useCompression) {
-            //    in = new CompressedDataInputStream(new GZIPInputStream(new DontCloseInputStream(rawIn), BufferManager.BUFFER_SIZE));
-            //    out = new CompressedDataOutputStream(new GZIPOutputStream(new DontCloseOutputStream(rawOut), BufferManager.BUFFER_SIZE));
-            //    closeStreams = true;
-            //} else {
-                in = rawIn;
-                out = rawOut;
-            //    closeStreams = false;
-            //}
-            //try {
-                String[] paths=new String[BATCH_SIZE];
-                boolean[] isLogDirs=new boolean[BATCH_SIZE];
-                UnixFile[] tempNewFiles=new UnixFile[BATCH_SIZE];
-                Set<String> tempNewFilenames=new HashSet<String>(BATCH_SIZE*4/3+1);
-                LongList[] chunksMD5s=useCompression ? new LongList[BATCH_SIZE] : null;
-                long[] modifyTimes=new long[BATCH_SIZE];
-                int[] results=new int[BATCH_SIZE];
+            CompressedDataInputStream in = rawIn;
+            CompressedDataOutputStream out = rawOut;
 
-                byte[] buff=BufferManager.getBytes();
-                byte[] chunkBuffer = useCompression ? new byte[CHUNK_SIZE] : null;
-                MD5 md5 = useCompression ? new MD5() : null;
-                try {
-                    // The extra files in directories are cleaned once the directory is done
-                    Stack<UnixFile> directoryUFs=new Stack<UnixFile>();         // UnixFiles
-                    Stack<Long> directoryModifyTimes=new Stack<Long>(); // Longs
-                    Stack<Map<String,Object>> directoryContents=new Stack<Map<String,Object>>();    // HashMaps
+            String[] paths=null;
+            boolean[] isLogDirs=null;
+            UnixFile[] tempNewFiles=null;
+            Set<String> tempNewFilenames=new HashSet<String>();
+            LongList[] chunksMD5s=null;
+            long[] modifyTimes=null;
+            int[] results=null;
 
-                    // Continue until a batchSize of -1 (end of replication)
-                    int batchSize;
-                    while((batchSize=in.readCompressedInt())!=-1) {
-                        tempNewFilenames.clear();
-                        for(int c=0;c<batchSize;c++) {
-                            if(in.readBoolean()) {
-                                // Read the current file
-                                String relativePath=paths[c]=in.readCompressedUTF();
-                                isLogDirs[c]=relativePath.startsWith("/logs/") || relativePath.startsWith("/var/log/");
-                                checkPath(relativePath);
-                                String path=paths[c]="/var/failover/"+fromServer+relativePath;
-                                UnixFile uf=new UnixFile(path);
-                                long mode=in.readLong();
-                                long length;
-                                if(UnixFile.isRegularFile(mode)) length=in.readLong();
-                                else length=-1;
-                                int uid=in.readCompressedInt();
-                                int gid=in.readCompressedInt();
-                                long modifyTime=modifyTimes[c]=UnixFile.isSymLink(mode)?-1:in.readLong();
-                                String symlinkTarget;
-                                if(UnixFile.isSymLink(mode)) symlinkTarget=in.readCompressedUTF();
-                                else symlinkTarget=null;
-                                long deviceID;
+            byte[] buff=BufferManager.getBytes();
+            byte[] chunkBuffer = useCompression ? new byte[CHUNK_SIZE] : null;
+            MD5 md5 = useCompression ? new MD5() : null;
+            try {
+                // The extra files in directories are cleaned once the directory is done
+                Stack<UnixFile> directoryUFs=new Stack<UnixFile>();         // UnixFiles
+                Stack<Long> directoryModifyTimes=new Stack<Long>(); // Longs
+                Stack<Map<String,Object>> directoryContents=new Stack<Map<String,Object>>();    // HashMaps
+
+                // Continue until a batchSize of -1 (end of replication)
+                int batchSize;
+                while((batchSize=in.readCompressedInt())!=-1) {
+                    if(paths==null || paths.length < batchSize) {
+                        paths=new String[batchSize];
+                        isLogDirs=new boolean[batchSize];
+                        tempNewFiles=new UnixFile[batchSize];
+                        chunksMD5s=useCompression ? new LongList[batchSize] : null;
+                        modifyTimes=new long[batchSize];
+                        results=new int[batchSize];
+                    }
+
+                    tempNewFilenames.clear();
+                    for(int c=0;c<batchSize;c++) {
+                        if(in.readBoolean()) {
+                            // Read the current file
+                            String relativePath=paths[c]=in.readCompressedUTF();
+                            isLogDirs[c]=relativePath.startsWith("/logs/") || relativePath.startsWith("/var/log/");
+                            checkPath(relativePath);
+                            String path=paths[c]="/var/failover/"+fromServer+relativePath;
+                            UnixFile uf=new UnixFile(path);
+                            long mode=in.readLong();
+                            long length;
+                            if(UnixFile.isRegularFile(mode)) length=in.readLong();
+                            else length=-1;
+                            int uid=in.readCompressedInt();
+                            int gid=in.readCompressedInt();
+                            long modifyTime=modifyTimes[c]=UnixFile.isSymLink(mode)?-1:in.readLong();
+                            String symlinkTarget;
+                            if(UnixFile.isSymLink(mode)) symlinkTarget=in.readCompressedUTF();
+                            else symlinkTarget=null;
+                            long deviceID;
+                            if(
+                                UnixFile.isBlockDevice(mode)
+                                || UnixFile.isCharacterDevice(mode)
+                            ) deviceID=in.readLong();
+                            else deviceID=-1;
+
+                            // Cleanup extra entries in completed directories, setting modifyTime on the directories
+                            while(!directoryUFs.isEmpty()) {
+                                UnixFile dirUF=directoryUFs.peek();
+                                String dirPath=dirUF.getFilename();
+                                if(!dirPath.endsWith("/")) dirPath=dirPath+'/';
+
+                                // If the current file starts with the current directory, continue
+                                if(path.startsWith(dirPath)) break;
+
+                                // Otherwise, clean and complete the directory
+                                directoryUFs.pop();
+                                long dirModifyTime=directoryModifyTimes.pop().longValue();
+                                Map<String,Object> dirContents=directoryContents.pop();
+                                String[] list=dirUF.list();
+                                for(int d=0;d<list.length;d++) {
+                                    String fullpath=dirPath+list[d];
+                                    if(!dirContents.containsKey(fullpath)) {
+                                        // Make sure it is not one of the temp files
+                                        boolean isTemp = tempNewFilenames.contains(fullpath);
+                                        if(isTemp) {
+                                            if(log.isTraceEnabled()) log.trace("Not deleting temp file: "+fullpath);
+                                        } else {
+                                            if(log.isTraceEnabled()) log.trace("Deleting extra file: "+fullpath);
+                                            try {
+                                                new UnixFile(fullpath).deleteRecursive();
+                                            } catch(FileNotFoundException err) {
+                                                AOServDaemon.reportError(err, new Object[] {"fullpath="+fullpath});
+                                            }
+                                        }
+                                    }
+                                }
+                                dirUF.setModifyTime(dirModifyTime);
+                            }
+
+                            // Add the current to the directory
+                            if(!directoryContents.isEmpty()) {
+                                directoryContents.peek().put(path, null);
+                            }
+
+                            // Process the current file
+                            int result = NO_CHANGE;
+                            tempNewFiles[c]=null;
+                            if(useCompression) chunksMD5s[c]=null;
+                            if(UnixFile.isBlockDevice(mode)) {
                                 if(
-                                    UnixFile.isBlockDevice(mode)
-                                    || UnixFile.isCharacterDevice(mode)
-                                ) deviceID=in.readLong();
-                                else deviceID=-1;
+                                    uf.exists()
+                                    && (
+                                        !uf.isBlockDevice()
+                                        || uf.getDeviceIdentifier()!=deviceID
+                                    )
+                                ) {
+                                    if(log.isTraceEnabled()) log.trace("Deleting to create block device: "+uf.getFilename());
+                                    uf.deleteRecursive();
+                                    result=MODIFIED;
+                                }
+                                if(!uf.exists()) {
+                                    uf.mknod(mode, deviceID);
+                                    result=MODIFIED;
+                                }
+                            } else if(UnixFile.isCharacterDevice(mode)) {
+                                if(
+                                    uf.exists()
+                                    && (
+                                        !uf.isCharacterDevice()
+                                        || uf.getDeviceIdentifier()!=deviceID
+                                    )
+                                ) {
+                                    if(log.isTraceEnabled()) log.trace("Deleting to create character device: "+uf.getFilename());
+                                    uf.deleteRecursive();
+                                    result=MODIFIED;
 
-                                // Cleanup extra entries in completed directories, setting modifyTime on the directories
-                                while(!directoryUFs.isEmpty()) {
-                                    UnixFile dirUF=directoryUFs.peek();
-                                    String dirPath=dirUF.getFilename();
-                                    if(!dirPath.endsWith("/")) dirPath=dirPath+'/';
+                                }
+                                if(!uf.exists()) {
+                                    uf.mknod(mode, deviceID);
+                                    result=MODIFIED;
+                                }
+                            } else if(UnixFile.isDirectory(mode)) {
+                                if(
+                                    uf.exists()
+                                    && !uf.isDirectory()
+                                ) {
+                                    if(log.isTraceEnabled()) log.trace("Deleting to create directory: "+uf.getFilename());
+                                    uf.deleteRecursive();
+                                    result=MODIFIED;
+                                }
+                                if(!uf.exists()) {
+                                    uf.mkdir();
+                                    result=MODIFIED;
+                                } else if(uf.getModifyTime()!=modifyTime) {
+                                    result=MODIFIED;
+                                }
+                                directoryUFs.push(uf);
+                                directoryModifyTimes.push(Long.valueOf(modifyTime));
+                                directoryContents.push(new HashMap<String,Object>());
+                            } else if(UnixFile.isFIFO(mode)) {
+                                if(
+                                    uf.exists()
+                                    && !uf.isFIFO()
+                                ) {
+                                    if(log.isTraceEnabled()) log.trace("Deleting to create FIFO: "+uf.getFilename());
+                                    uf.deleteRecursive();
+                                    result=MODIFIED;
+                                }
+                                if(!uf.exists()) {
+                                    uf.mkfifo(mode);
+                                    result=MODIFIED;
+                                }
+                            } else if(UnixFile.isRegularFile(mode)) {
+                                boolean isEncryptedLoopFile = isEncryptedLoopFile(relativePath);
+                                if(
+                                    isEncryptedLoopFile
+                                    || !uf.exists()
+                                    || !uf.isRegularFile()
+                                    || uf.getSize()!=length
+                                    || uf.getModifyTime()!=modifyTime
+                                ) {
+                                    // Always load into a temporary file first
+                                    UnixFile parent = uf.getParent();
+                                    String name = uf.getFile().getName();
+                                    String tempFilename = (name.length()>64 ? new UnixFile(parent, name.substring(0, 64)) : uf).getFilename();
 
-                                    // If the current file starts with the current directory, continue
-                                    if(path.startsWith(dirPath)) break;
-
-                                    // Otherwise, clean and complete the directory
-                                    directoryUFs.pop();
-                                    long dirModifyTime=directoryModifyTimes.pop().longValue();
-                                    Map<String,Object> dirContents=directoryContents.pop();
-                                    String[] list=dirUF.list();
-                                    for(int d=0;d<list.length;d++) {
-                                        String fullpath=dirPath+list[d];
-                                        if(!dirContents.containsKey(fullpath)) {
-                                            // Make sure it is not one of the temp files
-                                            boolean isTemp = tempNewFilenames.contains(fullpath);
-                                            if(isTemp) {
-                                                if(log.isTraceEnabled()) log.trace("Not deleting temp file: "+fullpath);
-                                            } else {
-                                                if(log.isTraceEnabled()) log.trace("Deleting extra file: "+fullpath);
-                                                try {
-                                                    new UnixFile(fullpath).deleteRecursive();
-                                                } catch(FileNotFoundException err) {
-                                                    AOServDaemon.reportError(err, new Object[] {"fullpath="+fullpath});
+                                    UnixFile tempNewFile = tempNewFiles[c]=UnixFile.mktemp(tempFilename+'.');
+                                    tempNewFilenames.add(tempNewFile.getFilename());
+                                    if(log.isTraceEnabled()) log.trace("Using temp file: "+tempNewFile.getFilename());
+                                    // Is this a log directory
+                                    boolean copiedOldLogFile = false;
+                                    if(!isEncryptedLoopFile && isLogDirs[c]) {
+                                        // Look for another file with the same size and modify time
+                                        // TODO: Use a cache to reduce CPU consumption here
+                                        String[] list = parent.list();
+                                        if(list!=null) {
+                                            for(int d=0;d<list.length;d++) {
+                                                UnixFile otherFile = new UnixFile(parent, list[d]);
+                                                if(
+                                                    otherFile.exists()
+                                                    && otherFile.isRegularFile()
+                                                    && otherFile.getSize()==length
+                                                    && otherFile.getModifyTime()==modifyTime
+                                                ) {
+                                                    if(log.isTraceEnabled()) log.trace("Found matching log file, copying to temp file: old="+otherFile.getFilename()+" new="+tempNewFile.getFilename());
+                                                    if(log.isTraceEnabled()) log.trace("Before: otherFile.exists() = "+otherFile.exists());
+                                                    if(log.isTraceEnabled()) log.trace("Before: tempNewFile.exists() = "+tempNewFile.exists());
+                                                    otherFile.copyTo(tempNewFile, true);
+                                                    tempNewFile.setModifyTime(modifyTime);
+                                                    if(log.isTraceEnabled()) log.trace("After: otherFile.exists() = "+otherFile.exists());
+                                                    if(log.isTraceEnabled()) log.trace("After: tempNewFile.exists() = "+tempNewFile.exists());
+                                                    result = MODIFIED;
+                                                    copiedOldLogFile = true;
+                                                    break;
                                                 }
                                             }
                                         }
                                     }
-                                    dirUF.setModifyTime(dirModifyTime);
-                                }
-
-                                // Add the current to the directory
-                                if(!directoryContents.isEmpty()) {
-                                    directoryContents.peek().put(path, null);
-                                }
-
-                                // Process the current file
-                                int result = NO_CHANGE;
-                                tempNewFiles[c]=null;
-                                if(useCompression) chunksMD5s[c]=null;
-                                if(UnixFile.isBlockDevice(mode)) {
-                                    if(
-                                        uf.exists()
-                                        && (
-                                            !uf.isBlockDevice()
-                                            || uf.getDeviceIdentifier()!=deviceID
-                                        )
-                                    ) {
-                                        if(log.isTraceEnabled()) log.trace("Deleting to create block device: "+uf.getFilename());
-                                        uf.deleteRecursive();
-                                        result=MODIFIED;
-                                    }
-                                    if(!uf.exists()) {
-                                        uf.mknod(mode, deviceID);
-                                        result=MODIFIED;
-                                    }
-                                } else if(UnixFile.isCharacterDevice(mode)) {
-                                    if(
-                                        uf.exists()
-                                        && (
-                                            !uf.isCharacterDevice()
-                                            || uf.getDeviceIdentifier()!=deviceID
-                                        )
-                                    ) {
-                                        if(log.isTraceEnabled()) log.trace("Deleting to create character device: "+uf.getFilename());
-                                        uf.deleteRecursive();
-                                        result=MODIFIED;
-
-                                    }
-                                    if(!uf.exists()) {
-                                        uf.mknod(mode, deviceID);
-                                        result=MODIFIED;
-                                    }
-                                } else if(UnixFile.isDirectory(mode)) {
-                                    if(
-                                        uf.exists()
-                                        && !uf.isDirectory()
-                                    ) {
-                                        if(log.isTraceEnabled()) log.trace("Deleting to create directory: "+uf.getFilename());
-                                        uf.deleteRecursive();
-                                        result=MODIFIED;
-                                    }
-                                    if(!uf.exists()) {
-                                        uf.mkdir();
-                                        result=MODIFIED;
-                                    } else if(uf.getModifyTime()!=modifyTime) {
-                                        result=MODIFIED;
-                                    }
-                                    directoryUFs.push(uf);
-                                    directoryModifyTimes.push(Long.valueOf(modifyTime));
-                                    directoryContents.push(new HashMap<String,Object>());
-                                } else if(UnixFile.isFIFO(mode)) {
-                                    if(
-                                        uf.exists()
-                                        && !uf.isFIFO()
-                                    ) {
-                                        if(log.isTraceEnabled()) log.trace("Deleting to create FIFO: "+uf.getFilename());
-                                        uf.deleteRecursive();
-                                        result=MODIFIED;
-                                    }
-                                    if(!uf.exists()) {
-                                        uf.mkfifo(mode);
-                                        result=MODIFIED;
-                                    }
-                                } else if(UnixFile.isRegularFile(mode)) {
-                                    boolean isEncryptedLoopFile = isEncryptedLoopFile(relativePath);
-                                    if(
-                                        isEncryptedLoopFile
-                                        || !uf.exists()
-                                        || !uf.isRegularFile()
-                                        || uf.getSize()!=length
-                                        || uf.getModifyTime()!=modifyTime
-                                    ) {
-                                        // Always load into a temporary file first
-                                        UnixFile parent = uf.getParent();
-                                        String name = uf.getFile().getName();
-                                        String tempFilename = (name.length()>64 ? new UnixFile(parent, name.substring(0, 64)) : uf).getFilename();
-
-                                        UnixFile tempNewFile = tempNewFiles[c]=UnixFile.mktemp(tempFilename+'.');
-                                        tempNewFilenames.add(tempNewFile.getFilename());
-                                        if(log.isTraceEnabled()) log.trace("Using temp file: "+tempNewFile.getFilename());
-                                        // Is this a log directory
-                                        boolean copiedOldLogFile = false;
-                                        if(!isEncryptedLoopFile && isLogDirs[c]) {
-                                            // Look for another file with the same size and modify time
-                                            // TODO: Use a cache to reduce CPU consumption here
-                                            String[] list = parent.list();
-                                            if(list!=null) {
-                                                for(int d=0;d<list.length;d++) {
-                                                    UnixFile otherFile = new UnixFile(parent, list[d]);
-                                                    if(
-                                                        otherFile.exists()
-                                                        && otherFile.isRegularFile()
-                                                        && otherFile.getSize()==length
-                                                        && otherFile.getModifyTime()==modifyTime
-                                                    ) {
-                                                        if(log.isTraceEnabled()) log.trace("Found matching log file, copying to temp file: old="+otherFile.getFilename()+" new="+tempNewFile.getFilename());
-                                                        if(log.isTraceEnabled()) log.trace("Before: otherFile.exists() = "+otherFile.exists());
-                                                        if(log.isTraceEnabled()) log.trace("Before: tempNewFile.exists() = "+tempNewFile.exists());
-                                                        otherFile.copyTo(tempNewFile, true);
-                                                        tempNewFile.setModifyTime(modifyTime);
-                                                        if(log.isTraceEnabled()) log.trace("After: otherFile.exists() = "+otherFile.exists());
-                                                        if(log.isTraceEnabled()) log.trace("After: tempNewFile.exists() = "+tempNewFile.exists());
-                                                        result = MODIFIED;
-                                                        copiedOldLogFile = true;
+                                    if(!copiedOldLogFile) {
+                                        if(
+                                            // Not using compression
+                                            !useCompression
+                                            // Doesn't exist
+                                            || !uf.exists()
+                                            // New file is small (<CHUNK_SIZE)
+                                            || uf.getSize()<CHUNK_SIZE
+                                            // Chunk at best reduces transfer size by CHUNK_SIZE/17 (md5 + 1 byte response)
+                                            || uf.getSize()<=(length/(CHUNK_SIZE/17))
+                                            // File is so large that chunking can't possibly store md5's in RAM (> 8 Terabytes currently)
+                                            || (2*length/CHUNK_SIZE) >= Integer.MAX_VALUE
+                                        ) {
+                                            result = MODIFIED_REQUEST_DATA;
+                                        } else {
+                                            result = MODIFIED_REQUEST_DATA_CHUNKED;
+                                            // If this is compressed, it will send the md5 hashes of each block after the response code
+                                            long sizeToChunk = Math.min(length, uf.getSize());
+                                            LongList md5s = chunksMD5s[c] = new LongArrayList((int)(2*sizeToChunk/CHUNK_SIZE));
+                                            // Generate the MD5 hashes for the current file
+                                            InputStream fileIn = new FileInputStream(uf.getFile());
+                                            try {
+                                                while(true) {
+                                                    // Read in blocks of CHUNK_SIZE
+                                                    int pos=0;
+                                                    while(pos<CHUNK_SIZE) {
+                                                        int ret = fileIn.read(chunkBuffer, pos, CHUNK_SIZE-pos);
+                                                        if(ret==-1) break;
+                                                        pos+=ret;
+                                                    }
+                                                    if(pos==CHUNK_SIZE) {
+                                                        md5.Init();
+                                                        md5.Update(chunkBuffer, 0, CHUNK_SIZE);
+                                                        byte[] md5Bytes=md5.Final();
+                                                        long md5Hi = MD5.getMD5Hi(md5Bytes);
+                                                        long md5Lo = MD5.getMD5Lo(md5Bytes);
+                                                        md5s.add(md5Hi);
+                                                        md5s.add(md5Lo);
+                                                    } else {
+                                                        // End of file
                                                         break;
                                                     }
                                                 }
-                                            }
-                                        }
-                                        if(!copiedOldLogFile) {
-                                            if(
-                                                // Not using compression
-                                                !useCompression
-                                                // Doesn't exist
-                                                || !uf.exists()
-                                                // New file is small (<CHUNK_SIZE)
-                                                || uf.getSize()<CHUNK_SIZE
-                                                // Chunk at best reduces transfer size by CHUNK_SIZE/17 (md5 + 1 byte response)
-                                                || uf.getSize()<=(length/(CHUNK_SIZE/17))
-                                                // File is so large that chunking can't possibly store md5's in RAM (> 8 Terabytes currently)
-                                                || (2*length/CHUNK_SIZE) >= Integer.MAX_VALUE
-                                            ) {
-                                                result = MODIFIED_REQUEST_DATA;
-                                            } else {
-                                                result = MODIFIED_REQUEST_DATA_CHUNKED;
-                                                // If this is compressed, it will send the md5 hashes of each block after the response code
-                                                long sizeToChunk = Math.min(length, uf.getSize());
-                                                LongList md5s = chunksMD5s[c] = new LongArrayList((int)(2*sizeToChunk/CHUNK_SIZE));
-                                                // Generate the MD5 hashes for the current file
-                                                InputStream fileIn = new FileInputStream(uf.getFile());
-                                                try {
-                                                    while(true) {
-                                                        // Read in blocks of CHUNK_SIZE
-                                                        int pos=0;
-                                                        while(pos<CHUNK_SIZE) {
-                                                            int ret = fileIn.read(chunkBuffer, pos, CHUNK_SIZE-pos);
-                                                            if(ret==-1) break;
-                                                            pos+=ret;
-                                                        }
-                                                        if(pos==CHUNK_SIZE) {
-                                                            md5.Init();
-                                                            md5.Update(chunkBuffer, 0, CHUNK_SIZE);
-                                                            byte[] md5Bytes=md5.Final();
-                                                            long md5Hi = MD5.getMD5Hi(md5Bytes);
-                                                            long md5Lo = MD5.getMD5Lo(md5Bytes);
-                                                            md5s.add(md5Hi);
-                                                            md5s.add(md5Lo);
-                                                        } else {
-                                                            // End of file
-                                                            break;
-                                                        }
-                                                    }
-                                                } finally {
-                                                    fileIn.close();
-                                                }
+                                            } finally {
+                                                fileIn.close();
                                             }
                                         }
                                     }
-                                } else if(UnixFile.isSymLink(mode)) {
-                                    if(
-                                        uf.exists()
-                                        && (
-                                            !uf.isSymLink()
-                                            || !uf.readLink().equals(symlinkTarget)
-                                        )
-                                    ) {
-                                        if(log.isTraceEnabled()) log.trace("Deleting to create sybolic link: "+uf.getFilename());
-                                        uf.deleteRecursive();
-                                        result=MODIFIED;
-                                    }
-                                    if(!uf.exists()) {
-                                        uf.symLink(symlinkTarget);
-                                        result=MODIFIED;
-                                    }
-                                } else throw new IOException("Unknown mode type: "+Long.toOctalString(mode&UnixFile.TYPE_MASK));
-
-                                UnixFile effectiveUF = tempNewFiles[c]==null ? uf : tempNewFiles[c];
+                                }
+                            } else if(UnixFile.isSymLink(mode)) {
                                 if(
-                                    (effectiveUF.getStatMode() & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
-                                    != (mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
+                                    uf.exists()
+                                    && (
+                                        !uf.isSymLink()
+                                        || !uf.readLink().equals(symlinkTarget)
+                                    )
                                 ) {
-                                    try {
-                                        effectiveUF.setMode(mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK));
-                                    } catch(FileNotFoundException err) {
-                                        AOServDaemon.reportWarning(err, new Object[] {"path="+path, "mode="+Long.toOctalString(mode)});
-                                    }
-                                    if(result==NO_CHANGE) result=MODIFIED;
+                                    if(log.isTraceEnabled()) log.trace("Deleting to create sybolic link: "+uf.getFilename());
+                                    uf.deleteRecursive();
+                                    result=MODIFIED;
                                 }
-                                if(effectiveUF.getUID()!=uid) {
-                                    effectiveUF.setUID(uid);
-                                    if(result==NO_CHANGE) result=MODIFIED;
+                                if(!uf.exists()) {
+                                    uf.symLink(symlinkTarget);
+                                    result=MODIFIED;
                                 }
-                                if(effectiveUF.getGID()!=gid) {
-                                    effectiveUF.setGID(gid);
-                                    if(result==NO_CHANGE) result=MODIFIED;
-                                }
-                                if(
-                                    !UnixFile.isSymLink(mode)
-                                    && !UnixFile.isDirectory(mode)
-                                    && effectiveUF.getModifyTime()!=modifyTime
-                                ) {
-                                    effectiveUF.setModifyTime(modifyTime);
-                                    if(result==NO_CHANGE) result=MODIFIED;
-                                }
-                                results[c]=result;
-                            } else paths[c]=null;
-                        }
+                            } else throw new IOException("Unknown mode type: "+Long.toOctalString(mode&UnixFile.TYPE_MASK));
 
-                        // Write the results
-                        out.write(AOServDaemonProtocol.NEXT);
-                        for(int c=0;c<batchSize;c++) {
-                            if(paths[c]!=null) {
-                                int result = results[c];
-                                out.write(result);
-                                if(result==MODIFIED_REQUEST_DATA_CHUNKED) {
-                                    LongList md5s = chunksMD5s[c];
-                                    out.writeCompressedInt(md5s.size()/2);
-                                    for(int d=0;d<md5s.size();d++) out.writeLong(md5s.getLong(d));
+                            UnixFile effectiveUF = tempNewFiles[c]==null ? uf : tempNewFiles[c];
+                            if(
+                                (effectiveUF.getStatMode() & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
+                                != (mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
+                            ) {
+                                try {
+                                    effectiveUF.setMode(mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK));
+                                } catch(FileNotFoundException err) {
+                                    AOServDaemon.reportWarning(err, new Object[] {"path="+path, "mode="+Long.toOctalString(mode)});
                                 }
+                                if(result==NO_CHANGE) result=MODIFIED;
+                            }
+                            if(effectiveUF.getUID()!=uid) {
+                                effectiveUF.setUID(uid);
+                                if(result==NO_CHANGE) result=MODIFIED;
+                            }
+                            if(effectiveUF.getGID()!=gid) {
+                                effectiveUF.setGID(gid);
+                                if(result==NO_CHANGE) result=MODIFIED;
+                            }
+                            if(
+                                !UnixFile.isSymLink(mode)
+                                && !UnixFile.isDirectory(mode)
+                                && effectiveUF.getModifyTime()!=modifyTime
+                            ) {
+                                effectiveUF.setModifyTime(modifyTime);
+                                if(result==NO_CHANGE) result=MODIFIED;
+                            }
+                            results[c]=result;
+                        } else paths[c]=null;
+                    }
+
+                    // Write the results
+                    out.write(AOServDaemonProtocol.NEXT);
+                    for(int c=0;c<batchSize;c++) {
+                        if(paths[c]!=null) {
+                            int result = results[c];
+                            out.write(result);
+                            if(result==MODIFIED_REQUEST_DATA_CHUNKED) {
+                                LongList md5s = chunksMD5s[c];
+                                out.writeCompressedInt(md5s.size()/2);
+                                for(int d=0;d<md5s.size();d++) out.writeLong(md5s.getLong(d));
                             }
                         }
+                    }
 
-                        // Flush the results
-                        out.flush();
+                    // Flush the results
+                    out.flush();
 
-                        // Store incoming data
-                        for(int c=0;c<batchSize;c++) {
-                            String path=paths[c];
-                            if(path!=null) {
-                                int result=results[c];
-                                UnixFile uf=new UnixFile(path);
-                                if(result==MODIFIED_REQUEST_DATA || result==MODIFIED_REQUEST_DATA_CHUNKED) {
+                    // Store incoming data
+                    for(int c=0;c<batchSize;c++) {
+                        String path=paths[c];
+                        if(path!=null) {
+                            int result=results[c];
+                            UnixFile uf=new UnixFile(path);
+                            if(result==MODIFIED_REQUEST_DATA || result==MODIFIED_REQUEST_DATA_CHUNKED) {
 
-                                    // Load into the temporary file
-                                    OutputStream fileOut = new FileOutputStream(tempNewFiles[c].getFile());
-                                    try {
-                                        if(result==MODIFIED_REQUEST_DATA) {
+                                // Load into the temporary file
+                                OutputStream fileOut = new FileOutputStream(tempNewFiles[c].getFile());
+                                try {
+                                    if(result==MODIFIED_REQUEST_DATA) {
+                                        int response;
+                                        while((response=in.read())==AOServDaemonProtocol.NEXT) {
+                                            int blockLen=in.readShort();
+                                            in.readFully(buff, 0, blockLen);
+                                            fileOut.write(buff, 0, blockLen);
+                                        }
+                                        if(response!=AOServDaemonProtocol.DONE) throw new IOException("Unexpected response code: "+response);
+                                    } else if(result==MODIFIED_REQUEST_DATA_CHUNKED) {
+                                        RandomAccessFile raf=new RandomAccessFile(uf.getFile(), "r");
+                                        try {
+                                            long bytesWritten=0;
                                             int response;
-                                            while((response=in.read())==AOServDaemonProtocol.NEXT) {
-                                                int blockLen=in.readShort();
-                                                in.readFully(buff, 0, blockLen);
-                                                fileOut.write(buff, 0, blockLen);
+                                            while((response=in.read())==AOServDaemonProtocol.NEXT || response==AOServDaemonProtocol.NEXT_CHUNK) {
+                                                if(response==AOServDaemonProtocol.NEXT) {
+                                                    int chunkLen=in.readShort();
+                                                    in.readFully(chunkBuffer, 0, chunkLen);
+                                                    fileOut.write(chunkBuffer, 0, chunkLen);
+                                                    bytesWritten+=chunkLen;
+                                                } else if(response==AOServDaemonProtocol.NEXT_CHUNK) {
+                                                    // Get the values from the old file (chunk matches)
+                                                    raf.seek(bytesWritten);
+                                                    raf.readFully(chunkBuffer, 0, CHUNK_SIZE);
+                                                    fileOut.write(chunkBuffer, 0, CHUNK_SIZE);
+                                                    bytesWritten+=CHUNK_SIZE;
+                                                } else throw new RuntimeException("Unexpected value for response: "+response);
                                             }
                                             if(response!=AOServDaemonProtocol.DONE) throw new IOException("Unexpected response code: "+response);
-                                        } else if(result==MODIFIED_REQUEST_DATA_CHUNKED) {
-                                            RandomAccessFile raf=new RandomAccessFile(uf.getFile(), "r");
-                                            try {
-                                                long bytesWritten=0;
-                                                int response;
-                                                while((response=in.read())==AOServDaemonProtocol.NEXT || response==AOServDaemonProtocol.NEXT_CHUNK) {
-                                                    if(response==AOServDaemonProtocol.NEXT) {
-                                                        int chunkLen=in.readShort();
-                                                        in.readFully(chunkBuffer, 0, chunkLen);
-                                                        fileOut.write(chunkBuffer, 0, chunkLen);
-                                                        bytesWritten+=chunkLen;
-                                                    } else if(response==AOServDaemonProtocol.NEXT_CHUNK) {
-                                                        // Get the values from the old file (chunk matches)
-                                                        raf.seek(bytesWritten);
-                                                        raf.readFully(chunkBuffer, 0, CHUNK_SIZE);
-                                                        fileOut.write(chunkBuffer, 0, CHUNK_SIZE);
-                                                        bytesWritten+=CHUNK_SIZE;
-                                                    } else throw new RuntimeException("Unexpected value for response: "+response);
-                                                }
-                                                if(response!=AOServDaemonProtocol.DONE) throw new IOException("Unexpected response code: "+response);
-                                            } finally {
-                                                raf.close();
-                                            }
-                                        } else throw new RuntimeException("Unexpected value for result: "+result);
-                                    } finally {
-                                        fileOut.close();
-                                    }
-                                }
-                                if(tempNewFiles[c]!=null) {
-                                    // Move the file into place
-                                    if(uf.exists()) {
-                                        if(isLogDirs[c] && uf.isRegularFile()) {
-                                            // Move to temporary file for later log blocks
-                                            UnixFile newTemp = UnixFile.mktemp(uf.getFilename()+'.');
-                                            if(log.isTraceEnabled()) log.trace("Moving old log file to new path for later matches after log rotations: from="+uf.getFilename()+" to="+newTemp.getFilename());
-                                            long ufModified = uf.getModifyTime();
-                                            uf.renameTo(newTemp);
-                                            newTemp.setModifyTime(ufModified);
-                                        } else if(!uf.isRegularFile()) {
-                                            if(log.isTraceEnabled()) log.trace("Deleting non-regular file to move new regular file into place: "+uf.getFilename());
-                                            uf.deleteRecursive();
+                                        } finally {
+                                            raf.close();
                                         }
-                                    }
-                                    if(log.isTraceEnabled()) {
-                                        log.trace("tempNewFiles[c]="+tempNewFiles[c].getFilename()+" exists()="+tempNewFiles[c].exists());
-                                        log.trace("uf="+uf.getFilename()+" exists()="+uf.exists());
-                                    }
-                                    tempNewFiles[c].renameTo(uf);
-                                    // Set modify time is after move because some kernels incorrectly update file modified time when it is moved
-                                    uf.setModifyTime(modifyTimes[c]);
+                                    } else throw new RuntimeException("Unexpected value for result: "+result);
+                                } finally {
+                                    fileOut.close();
                                 }
                             }
-                        }
-                    }
-
-                    // Clean all remaining directories all the way to /, setting modifyTime on the directories
-                    while(!directoryUFs.isEmpty()) {
-                        UnixFile dirUF=directoryUFs.peek();
-                        String dirPath=dirUF.getFilename();
-                        if(!dirPath.endsWith("/")) dirPath=dirPath+'/';
-
-                        // Otherwise, clean and complete the directory
-                        directoryUFs.pop();
-                        long dirModifyTime=directoryModifyTimes.pop().longValue();
-                        Map<String,Object> dirContents=directoryContents.pop();
-                        String[] list=dirUF.list();
-                        for(int c=0;c<list.length;c++) {
-                            String fullpath=dirPath+list[c];
-                            if(!dirContents.containsKey(fullpath)) {
-                                if(log.isTraceEnabled()) log.trace("Deleting final clean-up: "+fullpath);
-                                new UnixFile(fullpath).deleteRecursive();
+                            if(tempNewFiles[c]!=null) {
+                                // Move the file into place
+                                if(uf.exists()) {
+                                    if(isLogDirs[c] && uf.isRegularFile()) {
+                                        // Move to temporary file for later log blocks
+                                        UnixFile newTemp = UnixFile.mktemp(uf.getFilename()+'.');
+                                        if(log.isTraceEnabled()) log.trace("Moving old log file to new path for later matches after log rotations: from="+uf.getFilename()+" to="+newTemp.getFilename());
+                                        long ufModified = uf.getModifyTime();
+                                        uf.renameTo(newTemp);
+                                        newTemp.setModifyTime(ufModified);
+                                    } else if(!uf.isRegularFile()) {
+                                        if(log.isTraceEnabled()) log.trace("Deleting non-regular file to move new regular file into place: "+uf.getFilename());
+                                        uf.deleteRecursive();
+                                    }
+                                }
+                                if(log.isTraceEnabled()) {
+                                    log.trace("tempNewFiles[c]="+tempNewFiles[c].getFilename()+" exists()="+tempNewFiles[c].exists());
+                                    log.trace("uf="+uf.getFilename()+" exists()="+uf.exists());
+                                }
+                                tempNewFiles[c].renameTo(uf);
+                                // Set modify time is after move because some kernels incorrectly update file modified time when it is moved
+                                uf.setModifyTime(modifyTimes[c]);
                             }
                         }
-                        dirUF.setModifyTime(dirModifyTime);
                     }
-
-                    // Tell the client we are done OK
-                    out.write(AOServDaemonProtocol.DONE);
-                    out.flush();
-                } finally {
-                    BufferManager.release(buff);
                 }
-            //} finally {
-            //    if(closeStreams) {
-                    // Release compressed stream native resources
-            //        in.close();
-            //        out.close();
-            //    }
-            //}
+
+                // Clean all remaining directories all the way to /, setting modifyTime on the directories
+                while(!directoryUFs.isEmpty()) {
+                    UnixFile dirUF=directoryUFs.peek();
+                    String dirPath=dirUF.getFilename();
+                    if(!dirPath.endsWith("/")) dirPath=dirPath+'/';
+
+                    // Otherwise, clean and complete the directory
+                    directoryUFs.pop();
+                    long dirModifyTime=directoryModifyTimes.pop().longValue();
+                    Map<String,Object> dirContents=directoryContents.pop();
+                    String[] list=dirUF.list();
+                    for(int c=0;c<list.length;c++) {
+                        String fullpath=dirPath+list[c];
+                        if(!dirContents.containsKey(fullpath)) {
+                            if(log.isTraceEnabled()) log.trace("Deleting final clean-up: "+fullpath);
+                            new UnixFile(fullpath).deleteRecursive();
+                        }
+                    }
+                    dirUF.setModifyTime(dirModifyTime);
+                }
+
+                // Tell the client we are done OK
+                out.write(AOServDaemonProtocol.DONE);
+                out.flush();
+            } finally {
+                BufferManager.release(buff);
+            }
         } finally {
             Profiler.endProfile(Profiler.IO);
         }
@@ -761,6 +751,7 @@ final public class FailoverFileReplicationManager implements Runnable {
         Profiler.startProfile(Profiler.UNKNOWN, FailoverFileReplicationManager.class, "runFailoverCopy(FailoverFileReplication)", null);
         try {
             AOServer thisServer=AOServDaemon.getThisAOServer();
+            final int failoverBatchSize = thisServer.getFailoverBatchSize();
             AOServer toServer=ffr.getToAOServer();
             if(log.isInfoEnabled()) log.info("Running failover from "+thisServer+" to "+toServer);
             ProcessTimer timer=new ProcessTimer(
@@ -1042,15 +1033,15 @@ final public class FailoverFileReplicationManager implements Runnable {
                                 FilesystemIterator fileIterator=new FilesystemIterator(filesystemRules, true);
 
                                 // Do requests in batches
-                                FilesystemIteratorResult[] filesystemIteratorResults=new FilesystemIteratorResult[BATCH_SIZE];
-                                int[] results=new int[BATCH_SIZE];
-                                long[][] md5His = useCompression ? new long[BATCH_SIZE][] : null;
-                                long[][] md5Los = useCompression ? new long[BATCH_SIZE][] : null;
+                                FilesystemIteratorResult[] filesystemIteratorResults=new FilesystemIteratorResult[failoverBatchSize];
+                                int[] results=new int[failoverBatchSize];
+                                long[][] md5His = useCompression ? new long[failoverBatchSize][] : null;
+                                long[][] md5Los = useCompression ? new long[failoverBatchSize][] : null;
                                 byte[] buff=BufferManager.getBytes();
                                 byte[] chunkBuffer = new byte[CHUNK_SIZE];
                                 try {
                                     while(true) {
-                                        int batchSize=fileIterator.getNextResults(filesystemIteratorResults, BATCH_SIZE);
+                                        int batchSize=fileIterator.getNextResults(filesystemIteratorResults, failoverBatchSize);
                                         if(batchSize==0) break;
 
                                         out.writeCompressedInt(batchSize);
