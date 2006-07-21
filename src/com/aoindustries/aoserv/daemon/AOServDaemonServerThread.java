@@ -213,9 +213,11 @@ final public class AOServDaemonServerThread extends Thread {
                                     if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing FAILOVER_FILE_REPLICATION, Thread="+toString());
                                     long daemonKey=in.readLong();
                                     boolean useCompression = in.readBoolean();
+                                    short retention = in.readShort();
+                                    long fromServerTime = in.readLong();
                                     DaemonAccessEntry dae=AOServDaemonServer.getDaemonAccessEntry(daemonKey);
                                     if(dae.command!=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION) throw new IOException("Mistmatched DaemonAccessEntry command, dae.command!="+AOServDaemonProtocol.FAILOVER_FILE_REPLICATION);
-                                    FailoverFileReplicationManager.failoverServer(in, out, dae.param1, useCompression);
+                                    FailoverFileReplicationManager.failoverServer(in, out, dae.param1, useCompression, retention, fromServerTime);
                                 }
                                 break;
                             case AOServDaemonProtocol.GET_AUTORESPONDER_CONTENT :

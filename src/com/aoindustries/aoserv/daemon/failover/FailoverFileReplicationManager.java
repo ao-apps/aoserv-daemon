@@ -50,6 +50,7 @@ import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
@@ -71,8 +72,6 @@ import org.apache.commons.logging.LogFactory;
  *
  * TODO: Handle hard links (pertinence space savings)
  *
- * TODO: Handle rotated log files more efficiently
- *
  * @author  AO Industries, Inc.
  */
 final public class FailoverFileReplicationManager implements Runnable {
@@ -93,7 +92,14 @@ final public class FailoverFileReplicationManager implements Runnable {
      */
     private static final int CHUNK_SIZE=8192;
 
-    private static final File failoverDir=new File("/var/failover");
+    private static final String FAILOVER_DIRECTORY="/var/failover";
+    
+    private static final String BACKUP_DIRECTORY="/var/backup";
+
+    /**
+     * The extension added to the directory name when it is a partial pass.
+     */
+    private static final String PARTIAL_EXTENSION = ".partial";
 
     private static Thread thread;
 
@@ -132,16 +138,98 @@ final public class FailoverFileReplicationManager implements Runnable {
     }
 
     public static void failoverServer(
-        CompressedDataInputStream rawIn,
-        CompressedDataOutputStream rawOut,
-        String fromServer,
-        boolean useCompression
+        final CompressedDataInputStream rawIn,
+        final CompressedDataOutputStream rawOut,
+        final String fromServer,
+        final boolean useCompression,
+        final short retention,
+        final long fromServerTime
     ) throws IOException {
-        Profiler.startProfile(Profiler.IO, FailoverFileReplicationManager.class, "failoverServer(CompressedDataInputStream,CompressedDataOutputStream,String,boolean)", null);
+        Profiler.startProfile(Profiler.IO, FailoverFileReplicationManager.class, "failoverServer(CompressedDataInputStream,CompressedDataOutputStream,String,boolean,short,long)", null);
         try {
             // Tell the client it is OK to continue
             rawOut.write(AOServDaemonProtocol.NEXT);
             rawOut.flush();
+
+            // Determine the date on the from server
+            Calendar cal = Calendar.getInstance();
+            cal.setTimeInMillis(fromServerTime);
+            final int year = cal.get(Calendar.YEAR);
+            final int month = cal.get(Calendar.MONTH)+1;
+            final int day = cal.get(Calendar.DAY_OF_MONTH);
+
+            // Determine the directory that is/will be storing the mirror
+            String partialMirrorRoot;
+            String finalMirrorRoot;
+            String linkToRoot;
+            if(retention==1) {
+                partialMirrorRoot = finalMirrorRoot = FAILOVER_DIRECTORY+"/"+fromServer;
+                linkToRoot = null;
+            } else {
+                // The directory that holds the different versions
+                StringBuilder SB = new StringBuilder(BACKUP_DIRECTORY).append('/').append(fromServer);
+                String serverRoot = SB.toString();
+                // The directory including the date
+                SB.append('/').append(year).append('-');
+                if(month<10) SB.append('0');
+                SB.append(month).append('-');
+                if(day<10) SB.append('0');
+                SB.append(day);
+                finalMirrorRoot = SB.toString();
+                // The partial directory name used during the transfer
+                SB.append(PARTIAL_EXTENSION);
+                partialMirrorRoot = SB.toString();
+
+                // Find the most recent complete pass.  If none exists, select the most recent partial
+                // Skip the new partial directory
+                String[] list = new UnixFile(serverRoot).list();
+                linkToRoot = null;
+                if(list!=null && list.length>0) {
+                    // This is not y10k compliant - this is assuming lexical order is the same as chronological order.
+                    Arrays.sort(list);
+                    // Find most recent complete pass
+                    for(int c=list.length-1;c>=0;c++) {
+                        String filename = list[c];
+                        if(
+                            !filename.equals(finalMirrorRoot)
+                            && !filename.equals(partialMirrorRoot)
+                            && !filename.endsWith(PARTIAL_EXTENSION)
+                        ) {
+                            linkToRoot = serverRoot+"/"+filename;
+                            break;
+                        }
+                    }
+                    if(linkToRoot == null) {
+                        // When no complete pass is available, find the most recent partial pass
+                        for(int c=list.length-1;c>=0;c++) {
+                            String filename = list[c];
+                            if(
+                                !filename.equals(finalMirrorRoot)
+                                && !filename.equals(partialMirrorRoot)
+                                && filename.endsWith(PARTIAL_EXTENSION)
+                            ) {
+                                linkToRoot = serverRoot+"/"+filename;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            if(log.isDebugEnabled()) {
+                log.debug("partialMirrorRoot="+partialMirrorRoot);
+                log.debug("finalMirrorRoot="+finalMirrorRoot);
+                log.debug("linkToRoot="+linkToRoot);
+            }
+            if(retention!=1) {
+                // For backup, rename any existing final directory to the partial at the beginning of the pass
+                // This may happen when multiple backup passes are scheduled for one day
+                UnixFile finalUF = new UnixFile(finalMirrorRoot);
+                if(finalUF.exists()) {
+                    if(log.isDebugEnabled()) log.debug("Renaming existing "+finalMirrorRoot+" to "+partialMirrorRoot);
+                    UnixFile partialUF = new UnixFile(partialMirrorRoot);
+                    finalUF.renameTo(partialUF);
+                }
+            }
 
             CompressedDataInputStream in = rawIn;
             CompressedDataOutputStream out = rawOut;
@@ -179,10 +267,10 @@ final public class FailoverFileReplicationManager implements Runnable {
                     for(int c=0;c<batchSize;c++) {
                         if(in.readBoolean()) {
                             // Read the current file
-                            String relativePath=paths[c]=in.readCompressedUTF();
+                            final String relativePath=paths[c]=in.readCompressedUTF();
                             isLogDirs[c]=relativePath.startsWith("/logs/") || relativePath.startsWith("/var/log/");
                             checkPath(relativePath);
-                            String path=paths[c]="/var/failover/"+fromServer+relativePath;
+                            String path=paths[c]=partialMirrorRoot+relativePath;
                             UnixFile uf=new UnixFile(path);
                             long mode=in.readLong();
                             long length;
@@ -309,6 +397,14 @@ final public class FailoverFileReplicationManager implements Runnable {
                                     result=MODIFIED;
                                 }
                             } else if(UnixFile.isRegularFile(mode)) {
+                                if(retention!=1 && linkToRoot!=null && !uf.exists()) {
+                                    // Hard link here first, completed new version will overwrite link using UnixFile.renameTo
+                                    String linkToPath=linkToRoot+relativePath;
+                                    UnixFile linkToUF=new UnixFile(linkToPath);
+                                    if(linkToUF.exists() && linkToUF.isRegularFile()) {
+                                        uf.link(linkToPath);
+                                    }
+                                }
                                 boolean isEncryptedLoopFile = isEncryptedLoopFile(relativePath);
                                 if(
                                     isEncryptedLoopFile
@@ -565,6 +661,13 @@ final public class FailoverFileReplicationManager implements Runnable {
                     dirUF.setModifyTime(dirModifyTime);
                 }
 
+                // The pass was successful, now rename partial to final
+                if(log.isDebugEnabled()) log.debug("Renaming "+partialMirrorRoot+" to "+finalMirrorRoot);
+                new UnixFile(partialMirrorRoot).renameTo(new UnixFile(finalMirrorRoot));
+
+                // The pass was successful, now cleanup old directories based on retention settings
+                // TODO: Cleanup based on retention
+                
                 // Tell the client we are done OK
                 out.write(AOServDaemonProtocol.DONE);
                 out.flush();
@@ -804,8 +907,8 @@ final public class FailoverFileReplicationManager implements Runnable {
                 filesystemRules.put("/sys", FilesystemIteratorRule.NO_RECURSE);
                 filesystemRules.put("/tmp", FilesystemIteratorRule.NO_RECURSE);
                 filesystemRules.put("/usr/tmp", FilesystemIteratorRule.NO_RECURSE);
-                filesystemRules.put("/var/backup", FilesystemIteratorRule.NO_RECURSE);
-                filesystemRules.put("/var/failover", FilesystemIteratorRule.NO_RECURSE);
+                filesystemRules.put(BACKUP_DIRECTORY, FilesystemIteratorRule.NO_RECURSE);
+                filesystemRules.put(FAILOVER_DIRECTORY, FilesystemIteratorRule.NO_RECURSE);
                 filesystemRules.put(
                     "/var/cvs",
                     new FileExistsRule(
@@ -905,9 +1008,7 @@ final public class FailoverFileReplicationManager implements Runnable {
                 // TODO: int added=0;
                 int updated=0;
                 // TODO: int removed=0;
-                //long bytesOut=0;
                 long rawBytesOut=0;
-                //long bytesIn=0;
                 long rawBytesIn=0;
                 boolean isSuccessful=false;
                 try {
@@ -937,12 +1038,17 @@ final public class FailoverFileReplicationManager implements Runnable {
                         // TODO: Make an configurable option per replication
                         boolean useCompression = ffr.getUseCompression();
                         if(log.isTraceEnabled()) log.trace("useCompression="+useCompression);
+                        short retention = ffr.getRetention().getDays();
+                        if(log.isTraceEnabled()) log.trace("retention="+retention);
+                        
 
                         MD5 md5 = useCompression ? new MD5() : null;
 
                         rawOut.writeCompressedInt(AOServDaemonProtocol.FAILOVER_FILE_REPLICATION);
                         rawOut.writeLong(key);
                         rawOut.writeBoolean(useCompression);
+                        rawOut.writeShort(retention);
+                        rawOut.writeLong(System.currentTimeMillis());
                         rawOut.flush();
 
                         CompressedDataInputStream rawIn=daemonConn.getInputStream();
@@ -953,83 +1059,30 @@ final public class FailoverFileReplicationManager implements Runnable {
                             CompressedDataInputStream in;
                             ByteCountOutputStream rawBytesOutStream;
                             ByteCountInputStream rawBytesInStream;
-                            //ByteCountOutputStream bytesOutStream;
-                            //ByteCountInputStream bytesInStream;
-                            //boolean closeStreams;
 
-                            /*if(useCompression) {
-                                if(ffr.getBitRate()!=-1) {
-                                    // Only the output is limited because input should always be smaller than the output
-                                    out = new CompressedDataOutputStream(
-                                        bytesOutStream = new ByteCountOutputStream(
-                                            new GZIPOutputStream(
-                                                rawBytesOutStream = new ByteCountOutputStream(
-                                                    new DontCloseOutputStream(
-                                                        new BitRateOutputStream(
-                                                            rawOut,
-                                                            ffr
-                                                        )
-                                                    )
-                                                ),
-                                                BufferManager.BUFFER_SIZE
-                                            )
-                                        )
-                                    );
-                                } else {
-                                    out = new CompressedDataOutputStream(
-                                        bytesOutStream = new ByteCountOutputStream(
-                                            new GZIPOutputStream(
-                                                rawBytesOutStream = new ByteCountOutputStream(
-                                                    new DontCloseOutputStream(
-                                                        rawOut
-                                                    )
-                                                ),
-                                                BufferManager.BUFFER_SIZE
-                                            )
-                                        )
-                                    );
-                                }
-                                in = new CompressedDataInputStream(
-                                    bytesInStream = new ByteCountInputStream(
-                                        new GZIPInputStream(
-                                            rawBytesInStream = new ByteCountInputStream(
-                                                new DontCloseInputStream(
-                                                    rawIn
-                                                )
-                                            ),
-                                            BufferManager.BUFFER_SIZE
+                            if(ffr.getBitRate()!=-1) {
+                                // Only the output is limited because input should always be smaller than the output
+                                out = new CompressedDataOutputStream(
+                                    /*bytesOutStream =*/ rawBytesOutStream = new ByteCountOutputStream(
+                                        new BitRateOutputStream(
+                                            rawOut,
+                                            ffr
                                         )
                                     )
                                 );
-                                closeStreams = true;
-                            } else {*/
-                                if(ffr.getBitRate()!=-1) {
-                                    // Only the output is limited because input should always be smaller than the output
-                                    out = new CompressedDataOutputStream(
-                                        /*bytesOutStream =*/ rawBytesOutStream = new ByteCountOutputStream(
-                                            new BitRateOutputStream(
-                                                rawOut,
-                                                ffr
-                                            )
-                                        )
-                                    );
-                                } else {
-                                    out = new CompressedDataOutputStream(
-                                        /*bytesOutStream =*/ rawBytesOutStream = new ByteCountOutputStream(
-                                            rawOut
-                                        )
-                                    );
-                                }
-                                in = new CompressedDataInputStream(
-                                    /*bytesInStream =*/ rawBytesInStream = new ByteCountInputStream(
-                                        rawIn
+                            } else {
+                                out = new CompressedDataOutputStream(
+                                    /*bytesOutStream =*/ rawBytesOutStream = new ByteCountOutputStream(
+                                        rawOut
                                     )
                                 );
-                                //closeStreams = false;
-                            //}
+                            }
+                            in = new CompressedDataInputStream(
+                                /*bytesInStream =*/ rawBytesInStream = new ByteCountInputStream(
+                                    rawIn
+                                )
+                            );
                             try {
-                                //if(log.isTraceEnabled()) log.trace("closeStreams="+closeStreams);
-
                                 FilesystemIterator fileIterator=new FilesystemIterator(filesystemRules, true);
 
                                 // Do requests in batches
@@ -1136,13 +1189,8 @@ final public class FailoverFileReplicationManager implements Runnable {
                                         DataOutputStream outgoing;
                                         
                                         if(hasRequestData) {
-                                            //if(useCompression) {
-                                            //    deflaterOut = new DeflaterOutputStream(/*new DontCloseOutputStream(*/out/*)*/, new Deflater(), BufferManager.BUFFER_SIZE);
-                                            //    outgoing = new DataOutputStream(deflaterOut);
-                                            //} else {
-                                                deflaterOut = null;
-                                                outgoing = out;
-                                            //}
+                                            deflaterOut = null;
+                                            outgoing = out;
                                         } else {
                                             deflaterOut = null;
                                             outgoing = null;
@@ -1241,7 +1289,6 @@ final public class FailoverFileReplicationManager implements Runnable {
                                         // Flush any file data that was sent
                                         if(hasRequestData) {
                                             outgoing.flush();
-                                            //if(deflaterOut!=null) deflaterOut.finish();
                                         }
                                     }
                                 } finally {
@@ -1261,13 +1308,6 @@ final public class FailoverFileReplicationManager implements Runnable {
                                 // Store the bytes transferred
                                 rawBytesOut=rawBytesOutStream.getCount();
                                 rawBytesIn=rawBytesInStream.getCount();
-                                //bytesOut=bytesOutStream.getCount();
-                                //bytesIn=bytesInStream.getCount();
-                                //if(closeStreams) {
-                                    // Release compressed stream native resources
-                                    //in.close();
-                                    //out.close();
-                                //}
                             }
                         } else {
                             if (result == AOServDaemonProtocol.IO_EXCEPTION) throw new IOException(rawIn.readUTF());
