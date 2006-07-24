@@ -189,7 +189,7 @@ final public class FailoverFileReplicationManager {
                     // This is not y10k compliant - this is assuming lexical order is the same as chronological order.
                     Arrays.sort(list);
                     // Find most recent complete pass
-                    for(int c=list.length-1;c>=0;c++) {
+                    for(int c=list.length-1;c>=0;c--) {
                         String filename = list[c];
                         if(
                             !filename.equals(finalMirrorRoot)
@@ -202,7 +202,7 @@ final public class FailoverFileReplicationManager {
                     }
                     if(linkToRoot == null) {
                         // When no complete pass is available, find the most recent partial pass
-                        for(int c=list.length-1;c>=0;c++) {
+                        for(int c=list.length-1;c>=0;c--) {
                             String filename = list[c];
                             if(
                                 !filename.equals(finalMirrorRoot)
@@ -273,6 +273,18 @@ final public class FailoverFileReplicationManager {
                             checkPath(relativePath);
                             String path=paths[c]=partialMirrorRoot+relativePath;
                             UnixFile uf=new UnixFile(path);
+                            String linkToPath;
+                            UnixFile linkToUF;
+                            UnixFile linkToParent;
+                            if(linkToRoot!=null) {
+                                linkToPath=linkToRoot+relativePath;
+                                linkToUF=new UnixFile(linkToPath);
+                                linkToParent=linkToUF.getParent();
+                            } else {
+                                linkToPath=null;
+                                linkToUF=null;
+                                linkToParent=null;
+                            }
                             long mode=in.readLong();
                             long length;
                             if(UnixFile.isRegularFile(mode)) length=in.readLong();
@@ -347,7 +359,18 @@ final public class FailoverFileReplicationManager {
                                 }
                                 if(!uf.exists()) {
                                     uf.mknod(mode, deviceID);
-                                    result=MODIFIED;
+                                    if(linkToUF!=null) {
+                                        // Only modified if not in last backup set, too
+                                        if(
+                                            !linkToUF.exists()
+                                            || !linkToUF.isBlockDevice()
+                                            || linkToUF.getDeviceIdentifier()!=deviceID
+                                        ) {
+                                            result=MODIFIED;
+                                        }
+                                    } else {
+                                        result=MODIFIED;
+                                    }
                                 }
                             } else if(UnixFile.isCharacterDevice(mode)) {
                                 if(
@@ -364,7 +387,18 @@ final public class FailoverFileReplicationManager {
                                 }
                                 if(!uf.exists()) {
                                     uf.mknod(mode, deviceID);
-                                    result=MODIFIED;
+                                    if(linkToUF!=null) {
+                                        // Only modified if not in last backup set, too
+                                        if(
+                                            !linkToUF.exists()
+                                            || !linkToUF.isCharacterDevice()
+                                            || linkToUF.getDeviceIdentifier()!=deviceID
+                                        ) {
+                                            result=MODIFIED;
+                                        }
+                                    } else {
+                                        result=MODIFIED;
+                                    }
                                 }
                             } else if(UnixFile.isDirectory(mode)) {
                                 if(
@@ -377,7 +411,17 @@ final public class FailoverFileReplicationManager {
                                 }
                                 if(!uf.exists()) {
                                     uf.mkdir();
-                                    result=MODIFIED;
+                                    if(linkToUF!=null) {
+                                        // Only modified if not in last backup set, too
+                                        if(
+                                            !linkToUF.exists()
+                                            || !linkToUF.isDirectory()
+                                        ) {
+                                            result=MODIFIED;
+                                        }
+                                    } else {
+                                        result=MODIFIED;
+                                    }
                                 } else if(uf.getModifyTime()!=modifyTime) {
                                     result=MODIFIED;
                                 }
@@ -395,13 +439,21 @@ final public class FailoverFileReplicationManager {
                                 }
                                 if(!uf.exists()) {
                                     uf.mkfifo(mode);
-                                    result=MODIFIED;
+                                    if(linkToUF!=null) {
+                                        // Only modified if not in last backup set, too
+                                        if(
+                                            !linkToUF.exists()
+                                            || !linkToUF.isFIFO()
+                                        ) {
+                                            result=MODIFIED;
+                                        }
+                                    } else {
+                                        result=MODIFIED;
+                                    }
                                 }
                             } else if(UnixFile.isRegularFile(mode)) {
-                                if(retention!=1 && linkToRoot!=null && !uf.exists()) {
+                                if(retention!=1 && linkToUF!=null && !uf.exists()) {
                                     // Hard link here first, completed new version in temp file will overwrite link using UnixFile.renameTo
-                                    String linkToPath=linkToRoot+relativePath;
-                                    UnixFile linkToUF=new UnixFile(linkToPath);
                                     if(linkToUF.exists() && linkToUF.isRegularFile()) {
                                         if(log.isTraceEnabled()) log.trace("Linking "+uf.getParent()+" to "+linkToPath);
                                         uf.link(linkToPath);
@@ -424,9 +476,10 @@ final public class FailoverFileReplicationManager {
                                     tempNewFilenames.add(tempNewFile.getFilename());
                                     if(log.isTraceEnabled()) log.trace("Using temp file: "+tempNewFile.getFilename());
                                     // Is this a log directory
-                                    boolean copiedOldLogFile = false;
+                                    boolean linkedOldLogFile = false;
                                     if(!isEncryptedLoopFile && isLogDirs[c]) {
-                                        // Look for another file with the same size and modify time
+                                        // Look for another file with the same size and modify time in this partial directory
+
                                         // TODO: Use a cache to reduce CPU consumption here
                                         String[] list = parent.list();
                                         if(list!=null) {
@@ -438,21 +491,52 @@ final public class FailoverFileReplicationManager {
                                                     && otherFile.getSize()==length
                                                     && otherFile.getModifyTime()==modifyTime
                                                 ) {
-                                                    if(log.isTraceEnabled()) log.trace("Found matching log file, copying to temp file: old="+otherFile.getFilename()+" new="+tempNewFile.getFilename());
+                                                    if(log.isTraceEnabled()) log.trace("Found matching log file, linking to temp file: old="+otherFile.getFilename()+" new="+tempNewFile.getFilename());
                                                     if(log.isTraceEnabled()) log.trace("Before: otherFile.exists() = "+otherFile.exists());
                                                     if(log.isTraceEnabled()) log.trace("Before: tempNewFile.exists() = "+tempNewFile.exists());
-                                                    otherFile.copyTo(tempNewFile, true);
-                                                    tempNewFile.setModifyTime(modifyTime);
+                                                    //otherFile.copyTo(tempNewFile, true);
+                                                    //tempNewFile.setModifyTime(modifyTime);
+                                                    tempNewFile.link(otherFile.getFilename());
                                                     if(log.isTraceEnabled()) log.trace("After: otherFile.exists() = "+otherFile.exists());
                                                     if(log.isTraceEnabled()) log.trace("After: tempNewFile.exists() = "+tempNewFile.exists());
                                                     result = MODIFIED;
-                                                    copiedOldLogFile = true;
+                                                    linkedOldLogFile = true;
                                                     break;
                                                 }
                                             }
                                         }
+                                        if(!linkedOldLogFile && linkToUF!=null) {
+                                            // Look for another file with the same size and modify time in the link to directory (previous
+                                            // backup pass.
+
+                                            // TODO: Use a cache to reduce CPU consumption here
+                                            String[] linkToList = linkToParent.list();
+                                            if(linkToList!=null) {
+                                                for(int d=0;d<linkToList.length;d++) {
+                                                    UnixFile otherFile = new UnixFile(linkToParent, linkToList[d]);
+                                                    if(
+                                                        otherFile.exists()
+                                                        && otherFile.isRegularFile()
+                                                        && otherFile.getSize()==length
+                                                        && otherFile.getModifyTime()==modifyTime
+                                                    ) {
+                                                        if(log.isTraceEnabled()) log.trace("Found matching log file, linking to temp file: old="+otherFile.getFilename()+" new="+tempNewFile.getFilename());
+                                                        if(log.isTraceEnabled()) log.trace("Before: otherFile.exists() = "+otherFile.exists());
+                                                        if(log.isTraceEnabled()) log.trace("Before: tempNewFile.exists() = "+tempNewFile.exists());
+                                                        //otherFile.copyTo(tempNewFile, true);
+                                                        //tempNewFile.setModifyTime(modifyTime);
+                                                        tempNewFile.link(otherFile.getFilename());
+                                                        if(log.isTraceEnabled()) log.trace("After: otherFile.exists() = "+otherFile.exists());
+                                                        if(log.isTraceEnabled()) log.trace("After: tempNewFile.exists() = "+tempNewFile.exists());
+                                                        result = MODIFIED;
+                                                        linkedOldLogFile = true;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
-                                    if(!copiedOldLogFile) {
+                                    if(!linkedOldLogFile) {
                                         if(
                                             // Not using compression
                                             !useCompression
@@ -530,17 +614,56 @@ final public class FailoverFileReplicationManager {
                                 } catch(FileNotFoundException err) {
                                     AOServDaemon.reportWarning(err, new Object[] {"path="+path, "mode="+Long.toOctalString(mode)});
                                 }
-                                if(result==NO_CHANGE) result=MODIFIED;
+                                if(result==NO_CHANGE) {
+                                    if(linkToUF!=null) {
+                                        // Only modified if not in last backup set, too
+                                        if(
+                                            !linkToUF.exists()
+                                            || (
+                                                (linkToUF.getStatMode() & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
+                                                != (mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
+                                            )
+                                        ) {
+                                            result=MODIFIED;
+                                        }
+                                    } else {
+                                        result=MODIFIED;
+                                    }
+                                }
                             }
                             if(effectiveUF.getUID()!=uid) {
                                 copyIfHardLinked(effectiveUF);
                                 effectiveUF.setUID(uid);
-                                if(result==NO_CHANGE) result=MODIFIED;
+                                if(result==NO_CHANGE) {
+                                    if(linkToUF!=null) {
+                                        // Only modified if not in last backup set, too
+                                        if(
+                                            !linkToUF.exists()
+                                            || linkToUF.getUID()!=uid
+                                        ) {
+                                            result=MODIFIED;
+                                        }
+                                    } else {
+                                        result=MODIFIED;
+                                    }
+                                }
                             }
                             if(effectiveUF.getGID()!=gid) {
                                 copyIfHardLinked(effectiveUF);
                                 effectiveUF.setGID(gid);
-                                if(result==NO_CHANGE) result=MODIFIED;
+                                if(result==NO_CHANGE) {
+                                    if(linkToUF!=null) {
+                                        // Only modified if not in last backup set, too
+                                        if(
+                                            !linkToUF.exists()
+                                            || linkToUF.getGID()!=gid
+                                        ) {
+                                            result=MODIFIED;
+                                        }
+                                    } else {
+                                        result=MODIFIED;
+                                    }
+                                }
                             }
                             if(
                                 !UnixFile.isSymLink(mode)
@@ -549,7 +672,20 @@ final public class FailoverFileReplicationManager {
                             ) {
                                 copyIfHardLinked(effectiveUF);
                                 effectiveUF.setModifyTime(modifyTime);
-                                if(result==NO_CHANGE) result=MODIFIED;
+                                if(result==NO_CHANGE) {
+                                    if(linkToUF!=null) {
+                                        // Only modified if not in last backup set, too
+                                        if(
+                                            !linkToUF.exists()
+                                            || linkToUF.getModifyTime()!=modifyTime
+                                        ) {
+                                            result=MODIFIED;
+                                        }
+                                    } else {
+                                        result=MODIFIED;
+                                    }
+                                    result=MODIFIED;
+                                }
                             }
                             results[c]=result;
                         } else paths[c]=null;
