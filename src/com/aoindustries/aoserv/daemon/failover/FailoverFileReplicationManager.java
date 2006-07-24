@@ -74,7 +74,7 @@ import org.apache.commons.logging.LogFactory;
  *
  * @author  AO Industries, Inc.
  */
-final public class FailoverFileReplicationManager implements Runnable {
+final public class FailoverFileReplicationManager {
 
     private static final Log log = LogFactory.getLog(FailoverFileReplicationManager.class);
 
@@ -101,7 +101,8 @@ final public class FailoverFileReplicationManager implements Runnable {
      */
     private static final String PARTIAL_EXTENSION = ".partial";
 
-    private static Thread thread;
+    private static Thread backupThread;
+    private static Thread failoverThread;
 
     private FailoverFileReplicationManager() {
         Profiler.startProfile(Profiler.INSTANTANEOUS, FailoverFileReplicationManager.class, "<init>()", null);
@@ -398,10 +399,11 @@ final public class FailoverFileReplicationManager implements Runnable {
                                 }
                             } else if(UnixFile.isRegularFile(mode)) {
                                 if(retention!=1 && linkToRoot!=null && !uf.exists()) {
-                                    // Hard link here first, completed new version will overwrite link using UnixFile.renameTo
+                                    // Hard link here first, completed new version in temp file will overwrite link using UnixFile.renameTo
                                     String linkToPath=linkToRoot+relativePath;
                                     UnixFile linkToUF=new UnixFile(linkToPath);
                                     if(linkToUF.exists() && linkToUF.isRegularFile()) {
+                                        if(log.isTraceEnabled()) log.trace("Linking "+uf.getParent()+" to "+linkToPath);
                                         uf.link(linkToPath);
                                     }
                                 }
@@ -523,6 +525,7 @@ final public class FailoverFileReplicationManager implements Runnable {
                                 != (mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
                             ) {
                                 try {
+                                    copyIfHardLinked(effectiveUF);
                                     effectiveUF.setMode(mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK));
                                 } catch(FileNotFoundException err) {
                                     AOServDaemon.reportWarning(err, new Object[] {"path="+path, "mode="+Long.toOctalString(mode)});
@@ -530,10 +533,12 @@ final public class FailoverFileReplicationManager implements Runnable {
                                 if(result==NO_CHANGE) result=MODIFIED;
                             }
                             if(effectiveUF.getUID()!=uid) {
+                                copyIfHardLinked(effectiveUF);
                                 effectiveUF.setUID(uid);
                                 if(result==NO_CHANGE) result=MODIFIED;
                             }
                             if(effectiveUF.getGID()!=gid) {
+                                copyIfHardLinked(effectiveUF);
                                 effectiveUF.setGID(gid);
                                 if(result==NO_CHANGE) result=MODIFIED;
                             }
@@ -542,6 +547,7 @@ final public class FailoverFileReplicationManager implements Runnable {
                                 && !UnixFile.isDirectory(mode)
                                 && effectiveUF.getModifyTime()!=modifyTime
                             ) {
+                                copyIfHardLinked(effectiveUF);
                                 effectiveUF.setModifyTime(modifyTime);
                                 if(result==NO_CHANGE) result=MODIFIED;
                             }
@@ -662,8 +668,10 @@ final public class FailoverFileReplicationManager implements Runnable {
                 }
 
                 // The pass was successful, now rename partial to final
-                if(log.isDebugEnabled()) log.debug("Renaming "+partialMirrorRoot+" to "+finalMirrorRoot);
-                new UnixFile(partialMirrorRoot).renameTo(new UnixFile(finalMirrorRoot));
+                if(!partialMirrorRoot.equals(finalMirrorRoot)) {
+                    if(log.isDebugEnabled()) log.debug("Renaming "+partialMirrorRoot+" to "+finalMirrorRoot);
+                    new UnixFile(partialMirrorRoot).renameTo(new UnixFile(finalMirrorRoot));
+                }
 
                 // The pass was successful, now cleanup old directories based on retention settings
                 // TODO: Cleanup based on retention
@@ -682,12 +690,39 @@ final public class FailoverFileReplicationManager implements Runnable {
     public static void start() throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, FailoverFileReplicationManager.class, "start()", null);
         try {
-            if(AOServDaemonConfiguration.isManagerEnabled(FailoverFileReplicationManager.class) && thread==null) {
+            if(
+                AOServDaemonConfiguration.isManagerEnabled(FailoverFileReplicationManager.class)
+                && (
+                    backupThread==null
+                    || failoverThread==null
+                )
+            ) {
                 synchronized(System.out) {
-                    if(thread==null) {
-                        System.out.print("Starting FailoverFileReplicationManager: ");
-                        (thread=new Thread(new FailoverFileReplicationManager())).start();
-                        System.out.println("Done");
+                    if(backupThread==null || failoverThread==null) {
+                        if(backupThread==null) {
+                            System.out.print("Starting FailoverFileReplicationManager (Backups): ");
+                            backupThread=new Thread(
+                                new Runnable() {
+                                    public void run() {
+                                        runBackups();
+                                    }
+                                }
+                            );
+                            backupThread.start();
+                            System.out.println("Done");
+                        }
+                        if(failoverThread==null) {
+                            System.out.print("Starting FailoverFileReplicationManager (Failovers): ");
+                            failoverThread=new Thread(
+                                new Runnable() {
+                                    public void run() {
+                                        runFailovers();
+                                    }
+                                }
+                            );
+                            failoverThread.start();
+                            System.out.println("Done");
+                        }
                     }
                 }
             }
@@ -696,8 +731,26 @@ final public class FailoverFileReplicationManager implements Runnable {
         }
     }
     
-    public void run() {
-        Profiler.startProfile(Profiler.UNKNOWN, FailoverFileReplicationManager.class, "run()", null);
+    private static void runFailovers() {
+        Profiler.startProfile(Profiler.UNKNOWN, FailoverFileReplicationManager.class, "runFailovers()", null);
+        try {
+            run(false);
+        } finally {
+            Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
+
+    private static void runBackups() {
+        Profiler.startProfile(Profiler.UNKNOWN, FailoverFileReplicationManager.class, "runBackups()", null);
+        try {
+            run(true);
+        } finally {
+            Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
+
+    private static void run(boolean backupMode) {
+        Profiler.startProfile(Profiler.UNKNOWN, FailoverFileReplicationManager.class, "run(boolean)", null);
         try {
             boolean isStartup = true;
             Map<FailoverFileReplication,Boolean> lastFaileds = new HashMap<FailoverFileReplication,Boolean>();
@@ -710,15 +763,15 @@ final public class FailoverFileReplicationManager implements Runnable {
                                 minutes = 1;
                                 isStartup = false;
                             } else minutes = 15;
-                            if(log.isDebugEnabled()) log.debug("Sleeping for "+minutes+" minutes");
+                            if(log.isDebugEnabled()) log.debug((backupMode ? "Backup: " : "Failover: ") + "Sleeping for "+minutes+" minutes");
                             Thread.sleep(minutes*60L*1000L);
                         } catch(InterruptedException err) {
                             AOServDaemon.reportWarning(err, null);
                         }
                         AOServer thisServer=AOServDaemon.getThisAOServer();
-                        if(log.isDebugEnabled()) log.debug("thisServer="+thisServer);
+                        if(log.isDebugEnabled()) log.debug((backupMode ? "Backup: " : "Failover: ") + "thisServer="+thisServer);
                         AOServer failoverServer=thisServer.getFailoverServer();
-                        if(log.isDebugEnabled()) log.debug("failoverServer="+failoverServer);
+                        if(log.isDebugEnabled()) log.debug((backupMode ? "Backup: " : "Failover: ") + "failoverServer="+failoverServer);
                         List<FailoverFileReplication> ffrs=new ArrayList<FailoverFileReplication>(thisServer.getFailoverFileReplications());
 
                         /*
@@ -741,95 +794,97 @@ final public class FailoverFileReplicationManager implements Runnable {
                         for(int c=0;c<ffrs.size();c++) {
                             // Try the next server if an error occurs
                             FailoverFileReplication ffr=ffrs.get(c);
-                            if(log.isDebugEnabled()) log.debug("ffr="+ffr);
-                            try {
-                                // Will not replicate if the to server is our parent server in failover mode
-                                AOServer toServer=ffr.getToAOServer();
-                                if(log.isDebugEnabled()) log.debug("toServer="+toServer);
-                                if(!toServer.equals(failoverServer)) {
-                                    // Find the most recent successful failover pass
-                                    List<FailoverFileLog> logs = ffr.getFailoverFileLogs(1);
-                                    // These are sorted most recent on the bottom
-                                    FailoverFileLog lastLog = logs.isEmpty() ? null : logs.get(0);
-                                    if(log.isDebugEnabled()) log.debug("lastLog="+lastLog);
-                                    // Should it run now?
-                                    // Is it a regularly scheduled time to run?
-                                    int hour=Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-                                    boolean isScheduled=false;
-                                    for(FailoverFileSchedule ffs : ffr.getFailoverFileSchedules()) {
-                                        if(ffs.isEnabled() && ffs.getHour()==hour) {
-                                            isScheduled=true;
-                                            break;
+                            if( (ffr.getRetention().getDays()!=1) == backupMode) {
+                                if(log.isDebugEnabled()) log.debug((backupMode ? "Backup: " : "Failover: ") + "ffr="+ffr);
+                                try {
+                                    // Will not replicate if the to server is our parent server in failover mode
+                                    AOServer toServer=ffr.getToAOServer();
+                                    if(log.isDebugEnabled()) log.debug((backupMode ? "Backup: " : "Failover: ") + "toServer="+toServer);
+                                    if(!toServer.equals(failoverServer)) {
+                                        // Find the most recent successful failover pass
+                                        List<FailoverFileLog> logs = ffr.getFailoverFileLogs(1);
+                                        // These are sorted most recent on the bottom
+                                        FailoverFileLog lastLog = logs.isEmpty() ? null : logs.get(0);
+                                        if(log.isDebugEnabled()) log.debug((backupMode ? "Backup: " : "Failover: ") + "lastLog="+lastLog);
+                                        // Should it run now?
+                                        // Is it a regularly scheduled time to run?
+                                        int hour=Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+                                        boolean isScheduled=false;
+                                        for(FailoverFileSchedule ffs : ffr.getFailoverFileSchedules()) {
+                                            if(ffs.isEnabled() && ffs.getHour()==hour) {
+                                                isScheduled=true;
+                                                break;
+                                            }
                                         }
-                                    }
-                                    boolean shouldRun = false;
-                                    if(
-                                        // The last attempt at this mirror failed
-                                        (lastFaileds.containsKey(ffr) && lastFaileds.get(ffr))
-                                    ) {
-                                        shouldRun = true;
-                                        if(log.isDebugEnabled()) log.debug("The last attempt at this mirror failed");
-                                    } else {
+                                        boolean shouldRun = false;
                                         if(
-                                            // Never ran this mirror
-                                            lastLog==null
+                                            // The last attempt at this mirror failed
+                                            (lastFaileds.containsKey(ffr) && lastFaileds.get(ffr))
                                         ) {
                                             shouldRun = true;
-                                            if(log.isDebugEnabled()) log.debug("Never ran this mirror");
+                                            if(log.isDebugEnabled()) log.debug((backupMode ? "Backup: " : "Failover: ") + "The last attempt at this mirror failed");
                                         } else {
                                             if(
-                                                // Last pass in the log failed
-                                                !lastLog.isSuccessful()
+                                                // Never ran this mirror
+                                                lastLog==null
                                             ) {
                                                 shouldRun = true;
-                                                if(log.isDebugEnabled()) log.debug("Last pass in the log failed");
+                                                if(log.isDebugEnabled()) log.debug((backupMode ? "Backup: " : "Failover: ") + "Never ran this mirror");
                                             } else {
                                                 if(
-                                                    // Last pass in the future (time reset)
-                                                    lastLog.getStartTime() > System.currentTimeMillis()
+                                                    // Last pass in the log failed
+                                                    !lastLog.isSuccessful()
                                                 ) {
                                                     shouldRun = true;
-                                                    if(log.isDebugEnabled()) log.debug("Last pass in the future (time reset)");
+                                                    if(log.isDebugEnabled()) log.debug((backupMode ? "Backup: " : "Failover: ") + "Last pass in the log failed");
                                                 } else {
                                                     if(
-                                                        // Last pass more than 24 hours ago
-                                                        (System.currentTimeMillis() - lastLog.getStartTime())>=(24*60*60*1000)
+                                                        // Last pass in the future (time reset)
+                                                        lastLog.getStartTime() > System.currentTimeMillis()
                                                     ) {
                                                         shouldRun = true;
-                                                        if(log.isDebugEnabled()) log.debug("Last pass more than 24 hours ago");
+                                                        if(log.isDebugEnabled()) log.debug((backupMode ? "Backup: " : "Failover: ") + "Last pass in the future (time reset)");
                                                     } else {
                                                         if(
-                                                            // It is the scheduled time and the last logged start time was >= MINIMUM_INTERVAL
-                                                            (isScheduled && (System.currentTimeMillis()-lastLog.getStartTime())>=FailoverFileReplication.MINIMUM_INTERVAL)
+                                                            // Last pass more than 24 hours ago
+                                                            (System.currentTimeMillis() - lastLog.getStartTime())>=(24*60*60*1000)
                                                         ) {
                                                             shouldRun = true;
-                                                            if(log.isDebugEnabled()) log.debug("It is the scheduled time and the last logged start time was >= MINIMUM_INTERVAL");
+                                                            if(log.isDebugEnabled()) log.debug((backupMode ? "Backup: " : "Failover: ") + "Last pass more than 24 hours ago");
                                                         } else {
-                                                            // TODO: Look for more specific missed schedules (down the the hour)
+                                                            if(
+                                                                // It is the scheduled time and the last logged start time was >= MINIMUM_INTERVAL
+                                                                (isScheduled && (System.currentTimeMillis()-lastLog.getStartTime())>=FailoverFileReplication.MINIMUM_INTERVAL)
+                                                            ) {
+                                                                shouldRun = true;
+                                                                if(log.isDebugEnabled()) log.debug((backupMode ? "Backup: " : "Failover: ") + "It is the scheduled time and the last logged start time was >= MINIMUM_INTERVAL");
+                                                            } else {
+                                                                // TODO: Look for more specific missed schedules (down the the hour)
+                                                            }
                                                         }
                                                     }
                                                 }
                                             }
                                         }
+                                        if(shouldRun) runFailoverCopy(ffr, backupMode);
                                     }
-                                    if(shouldRun) runFailoverCopy(ffr);
-                                }
-                                lastFaileds.put(ffr, false);
-                            } catch(IOException err) {
-                                lastFaileds.put(ffr, true);
-                                AOServDaemon.reportError(err, null);
-                                try {
-                                    Thread.sleep(60*1000);
-                                } catch(InterruptedException err2) {
-                                    AOServDaemon.reportWarning(err2, null);
-                                }
-                            } catch(SQLException err) {
-                                lastFaileds.put(ffr, true);
-                                AOServDaemon.reportError(err, null);
-                                try {
-                                    Thread.sleep(60*1000);
-                                } catch(InterruptedException err2) {
-                                    AOServDaemon.reportWarning(err2, null);
+                                    lastFaileds.put(ffr, false);
+                                } catch(IOException err) {
+                                    lastFaileds.put(ffr, true);
+                                    AOServDaemon.reportError(err, null);
+                                    try {
+                                        Thread.sleep(60*1000);
+                                    } catch(InterruptedException err2) {
+                                        AOServDaemon.reportWarning(err2, null);
+                                    }
+                                } catch(SQLException err) {
+                                    lastFaileds.put(ffr, true);
+                                    AOServDaemon.reportError(err, null);
+                                    try {
+                                        Thread.sleep(60*1000);
+                                    } catch(InterruptedException err2) {
+                                        AOServDaemon.reportWarning(err2, null);
+                                    }
                                 }
                             }
                         }
@@ -850,13 +905,13 @@ final public class FailoverFileReplicationManager implements Runnable {
         }
     }
     
-    private static void runFailoverCopy(FailoverFileReplication ffr) throws IOException, SQLException {
+    private static void runFailoverCopy(FailoverFileReplication ffr, boolean backupMode) throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, FailoverFileReplicationManager.class, "runFailoverCopy(FailoverFileReplication)", null);
         try {
             AOServer thisServer=AOServDaemon.getThisAOServer();
             final int failoverBatchSize = thisServer.getFailoverBatchSize();
             AOServer toServer=ffr.getToAOServer();
-            if(log.isInfoEnabled()) log.info("Running failover from "+thisServer+" to "+toServer);
+            if(log.isInfoEnabled()) log.info((backupMode ? "Backup: " : "Failover: ") + "Running failover from "+thisServer+" to "+toServer);
             ProcessTimer timer=new ProcessTimer(
                 AOServDaemon.getRandom(),
                 AOServDaemonConfiguration.getWarningSmtpServer(),
@@ -1037,11 +1092,10 @@ final public class FailoverFileReplicationManager implements Runnable {
                         CompressedDataOutputStream rawOut=daemonConn.getOutputStream();
                         // TODO: Make an configurable option per replication
                         boolean useCompression = ffr.getUseCompression();
-                        if(log.isTraceEnabled()) log.trace("useCompression="+useCompression);
+                        if(log.isTraceEnabled()) log.trace((backupMode ? "Backup: " : "Failover: ") + "useCompression="+useCompression);
                         short retention = ffr.getRetention().getDays();
-                        if(log.isTraceEnabled()) log.trace("retention="+retention);
+                        if(log.isTraceEnabled()) log.trace((backupMode ? "Backup: " : "Failover: ") + "retention="+retention);
                         
-
                         MD5 md5 = useCompression ? new MD5() : null;
 
                         rawOut.writeCompressedInt(AOServDaemonProtocol.FAILOVER_FILE_REPLICATION);
@@ -1201,12 +1255,12 @@ final public class FailoverFileReplicationManager implements Runnable {
                                                 UnixFile uf=filesystemIteratorResult.getUnixFile();
                                                 result=results[d];
                                                 if(result==MODIFIED) {
-                                                    if(log.isDebugEnabled()) log.debug("File modified: "+uf.getFilename());
+                                                    if(log.isDebugEnabled()) log.debug((backupMode ? "Backup: " : "Failover: ") + "File modified: "+uf.getFilename());
                                                     updated++;
                                                 } else if(result==MODIFIED_REQUEST_DATA) {
                                                     updated++;
                                                     try {
-                                                        if(log.isDebugEnabled()) log.debug("Sending file contents: "+uf.getFilename());
+                                                        if(log.isDebugEnabled()) log.debug((backupMode ? "Backup: " : "Failover: ") + "Sending file contents: "+uf.getFilename());
                                                         // Shortcut for 0 length files (don't open for reading)
                                                         if(uf.getSize()!=0) {
                                                             InputStream fileIn=new FileInputStream(uf.getFile());
@@ -1231,7 +1285,7 @@ final public class FailoverFileReplicationManager implements Runnable {
                                                 } else if(result==MODIFIED_REQUEST_DATA_CHUNKED) {
                                                     updated++;
                                                     try {
-                                                        if(log.isDebugEnabled()) log.debug("Chunking file contents: "+uf.getFilename());
+                                                        if(log.isDebugEnabled()) log.debug((backupMode ? "Backup: " : "Failover: ") + "Chunking file contents: "+uf.getFilename());
                                                         long[] md5Hi = md5His[d];
                                                         long[] md5Lo = md5Los[d];
                                                         InputStream fileIn=new FileInputStream(uf.getFile());
@@ -1273,7 +1327,7 @@ final public class FailoverFileReplicationManager implements Runnable {
                                                                 // Increment chunk number for next iteration
                                                                 chunkNumber++;
                                                             }
-                                                            if(log.isDebugEnabled()) log.debug("Chunking file contents: "+uf.getFilename()+": Sent "+sendChunkCount+" out of "+chunkNumber+" chunks");
+                                                            if(log.isDebugEnabled()) log.debug((backupMode ? "Backup: " : "Failover: ") + "Chunking file contents: "+uf.getFilename()+": Sent "+sendChunkCount+" out of "+chunkNumber+" chunks");
                                                         } finally {
                                                             fileIn.close();
                                                         }
@@ -1334,6 +1388,23 @@ final public class FailoverFileReplicationManager implements Runnable {
             }
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
+    
+    /**
+     * If the file is a regular file and is hard-linked, copies the file and renames it over the original (to break the link).
+     */
+    private static void copyIfHardLinked(UnixFile uf) throws IOException {
+        if(uf.isRegularFile() && uf.getLinkCount()>1) {
+            if(log.isTraceEnabled()) log.trace("Copying file due to hard link: "+uf);
+            UnixFile temp = UnixFile.mktemp(uf.getFilename()+'.');
+            uf.copyTo(temp, true);
+            temp.chown(uf.getUID(), uf.getGID());
+            temp.setMode(uf.getMode());
+            long atime = uf.getAccessTime();
+            long mtime = uf.getModifyTime();
+            temp.renameTo(uf);
+            uf.utime(atime, mtime);
         }
     }
 }
