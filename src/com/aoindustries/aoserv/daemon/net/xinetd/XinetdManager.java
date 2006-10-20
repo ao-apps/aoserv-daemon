@@ -48,6 +48,8 @@ public final class XinetdManager extends BuilderThread {
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
+            final Stat tempStat = new Stat();
+
             synchronized(rebuildLock) {
                 LinuxServerAccount interbaseUser=aoServer.getLinuxServerAccount(LinuxAccount.INTERBASE);
                 LinuxServerAccount nobodyUser=aoServer.getLinuxServerAccount(LinuxAccount.NOBODY);
@@ -405,7 +407,7 @@ public final class XinetdManager extends BuilderThread {
                     
                     // Move into place if different than existing
                     UnixFile existingUF=new UnixFile(xinetdDirectory, filename);
-                    if(existingUF.exists() && newUF.contentEquals(existingUF)) newUF.delete();
+                    if(existingUF.getStat(tempStat).exists() && newUF.contentEquals(existingUF)) newUF.delete();
                     else {
                         newUF.renameTo(existingUF);
                         needsReloaded=true;
@@ -427,13 +429,13 @@ public final class XinetdManager extends BuilderThread {
                 UnixFile rcFile=new UnixFile("/etc/rc.d/rc3.d/S56xinetd");
                 if(numServices==0) {
                     // Turn off xinetd completely if not already off
-                    if(rcFile.exists()) {
+                    if(rcFile.getStat(tempStat).exists()) {
                         AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/xinetd", "stop"});
                         AOServDaemon.exec(new String[] {"/sbin/chkconfig", "--del", "xinetd"});
                     }
                 } else {
                     // Turn on xinetd if not already on
-                    if(!rcFile.exists()) {
+                    if(!rcFile.getStat(tempStat).exists()) {
                         AOServDaemon.exec(new String[] {"/sbin/chkconfig", "--add", "xinetd"});
                     }
 

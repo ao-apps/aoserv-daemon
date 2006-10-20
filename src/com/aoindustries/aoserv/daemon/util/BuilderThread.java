@@ -36,7 +36,16 @@ abstract public class BuilderThread implements TableListener {
     private boolean isSleeping=false;
 
     public void tableUpdated(Table table) {
-        Profiler.startProfile(Profiler.UNKNOWN, BuilderThread.class, "batchRebuild()", null);
+        Profiler.startProfile(Profiler.INSTANTANEOUS, BuilderThread.class, "tableUpdated(Table)", null);
+        try {
+            delayAndRebuild();
+        } finally {
+            Profiler.endProfile(Profiler.INSTANTANEOUS);
+        }
+    }
+
+    public void delayAndRebuild() {
+        Profiler.startProfile(Profiler.UNKNOWN, BuilderThread.class, "delayAndRebuild()", null);
         try {
 	    synchronized(this) {
 		lastUpdated = System.currentTimeMillis();

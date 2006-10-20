@@ -64,6 +64,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
             int osv=aoServer.getServer().getOperatingSystemVersion().getPKey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
+                && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             List<EmailAddress> eas=aoServer.getEmailAddresses();
@@ -211,7 +212,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
                                 }
                             }
 
-                            // Block all other email_domains that have not been explicitely configured as an email address.
+                            // Block all other email_domains that have not been explicitly configured as an email address.
                             // This had a dead.letter problem and was commented for a while
                             if(aoServer.getRestrictOutboundEmail()) {
                                 for(EmailDomain ed : aoServer.getEmailDomains()) {
@@ -435,6 +436,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
                     else {
                         if(
                             osv==OperatingSystemVersion.MANDRAKE_10_1_I586
+                            || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
                         ) {
                             folderFile=new File(new File(lsa.getHome(), "Mail"), folderName);
                         } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
@@ -459,7 +461,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
             UnixFile mailboxlist=new UnixFile(lsa.getHome(), ".mailboxlist");
             List<String> lines=new ArrayList<String>();
             boolean currentlySubscribed=false;
-            if(mailboxlist.exists()) {
+            if(mailboxlist.getStat().exists()) {
                 BufferedReader in=new BufferedReader(new InputStreamReader(mailboxlist.getSecureInputStream()));
                 try {
                     String line;
@@ -488,6 +490,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
                                 File folderFile;
                                 if(
                                     osv==OperatingSystemVersion.MANDRAKE_10_1_I586
+                                    || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
                                 ) {
                                     folderFile=new File(new File(lsa.getHome(), "Mail"), line);
                                 } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
@@ -559,6 +562,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
                 int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
                 if(
                     osv==OperatingSystemVersion.MANDRAKE_10_1_I586
+                    || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
                 ) makemap="/usr/sbin/makemap";
                 else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 

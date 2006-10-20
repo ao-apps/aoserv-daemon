@@ -124,9 +124,10 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                     String filename=fileList[c];
                     if(filename.startsWith("ham_") || filename.startsWith("spam_")) {
                         // Must be a directory
-                        UnixFile uf=new UnixFile(incomingDirectory, filename);
-                        if(uf.isDirectory()) {
-                            long mtime=uf.getModifyTime();
+                        UnixFile uf=new UnixFile(incomingDirectory, filename, false);
+                        Stat ufStat = uf.getStat();
+                        if(ufStat.isDirectory()) {
+                            long mtime=ufStat.getModifyTime();
                             if(mtime==-1) AOServDaemon.reportWarning(new IOException("getModify() returned -1"), new Object[] {"incomingDirectory="+incomingDirectory.getFilename(), "filename="+filename});
                             else {
                                 long currentTime=System.currentTimeMillis();
@@ -165,8 +166,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                         new Comparator<UnixFile>() {
                             public int compare(UnixFile uf1, UnixFile uf2) {
                                 try {
-                                    long mtime1=uf1.getModifyTime();
-                                    long mtime2=uf2.getModifyTime();
+                                    long mtime1=uf1.getStat().getModifyTime();
+                                    long mtime2=uf2.getStat().getModifyTime();
                                     return
                                         mtime1<mtime2 ? -1
                                         : mtime1>mtime2 ? 1
@@ -192,14 +193,14 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                     while(!readyList.isEmpty()) {
                         thisPass.clear();
                         UnixFile currentUF=readyList.get(0);
-                        int currentUID=currentUF.getUID();
+                        int currentUID=currentUF.getStat().getUID();
                         boolean currentIsHam=currentUF.getFile().getName().startsWith("ham_");
                         thisPass.add(currentUF);
                         readyList.remove(0);
                         for(int c=0;c<readyList.size();c++) {
                             UnixFile other=readyList.get(c);
                             // Only consider batching/terminating batching for same UID
-                            if(other.getUID()==currentUID) {
+                            if(other.getStat().getUID()==currentUID) {
                                 boolean otherIsHam=other.getFile().getName().startsWith("ham_");
                                 if(currentIsHam==otherIsHam) {
                                     // If both spam or both ham, batch to one call and remove from later processing
@@ -243,7 +244,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                                 String[] list=uf.list();
                                 if(list!=null) {
                                     // Delete all the immediate children, not recursing deeper
-                                    for(int d=0;d<list.length;d++) new UnixFile(uf, list[d]).delete();
+                                    for(int d=0;d<list.length;d++) new UnixFile(uf, list[d], false).delete();
                                 }
                                 uf.delete();
                             }
@@ -266,6 +267,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
             int osv=server.getServer().getOperatingSystemVersion().getPKey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
+                && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             List<LinuxServerAccount> lsas=server.getLinuxServerAccounts();
@@ -276,13 +278,16 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                     // Only write files when SpamAssassin is turned on
                     if(!integrationMode.getName().equals(EmailSpamAssassinIntegrationMode.NONE)) {
                         UnixFile homeDir=new UnixFile(lsa.getHome());
-                        UnixFile spamAssassinDir=new UnixFile(homeDir, ".spamassassin");
-                        if(!spamAssassinDir.exists()) spamAssassinDir.mkdir().setMode(0700).chown(lsa.getUID().getID(), lsa.getPrimaryLinuxServerGroup().getGID().getID());
-                        UnixFile user_prefs=new UnixFile(spamAssassinDir, "user_prefs");
+                        UnixFile spamAssassinDir=new UnixFile(homeDir, ".spamassassin", false);
+                        if(!spamAssassinDir.getStat().exists()) spamAssassinDir.mkdir().setMode(0700).chown(lsa.getUID().getID(), lsa.getPrimaryLinuxServerGroup().getGID().getID());
+                        UnixFile user_prefs=new UnixFile(spamAssassinDir, "user_prefs", false);
                         // Build the new file in RAM
                         ByteArrayOutputStream bout=new ByteArrayOutputStream();
                         ChainWriter newOut=new ChainWriter(bout);
-                        if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) {
+                        if(
+                            osv==OperatingSystemVersion.MANDRAKE_10_1_I586
+                            || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+                        ) {
                             newOut.print("required_score ").print(lsa.getSpamAssassinRequiredScore()).print('\n');
                             if(integrationMode.getName().equals(EmailSpamAssassinIntegrationMode.POP3)) {
                                 newOut.print("rewrite_header Subject *****SPAM*****\n");
@@ -292,7 +297,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                         byte[] newBytes=bout.toByteArray();
 
                         // Compare to existing
-                        if(!user_prefs.exists() || !user_prefs.contentEquals(newBytes)) {
+                        if(!user_prefs.getStat().exists() || !user_prefs.contentEquals(newBytes)) {
                             // Overwrite when changed
                             FileOutputStream out=user_prefs.getSecureOutputStream(lsa.getUID().getID(), lsa.getPrimaryLinuxServerGroup().getGID().getID(), 0600, true);
                             out.write(newBytes);

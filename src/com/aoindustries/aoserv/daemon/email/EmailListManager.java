@@ -35,7 +35,8 @@ final public class EmailListManager {
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             UnixFile file = new UnixFile(path);
-            StringBuilder sb=new StringBuilder((int) file.getSize());
+            Stat fileStat = file.getStat();
+            StringBuilder sb=new StringBuilder((int) fileStat.getSize());
             InputStream fin=new BufferedInputStream(file.getSecureInputStream());
             int ch;
             while ((ch = fin.read()) != -1) sb.append((char) ch);
@@ -98,9 +99,9 @@ final public class EmailListManager {
             if(isMajordomo) {
                 UnixFile pathUF=new UnixFile(path);
                 UnixFile listDir=pathUF.getParent();
-                if(!listDir.exists()) {
+                if(!listDir.getStat().exists()) {
                     UnixFile serverDir=listDir.getParent();
-                    if(!serverDir.exists()) {
+                    if(!serverDir.getStat().exists()) {
                         serverDir.mkdir().setMode(0750);
                     }
                     listDir.mkdir().setMode(0750);

@@ -63,3 +63,31 @@ mandrake,10.1,i586,/var/lib/dav
 mandrake,10.1,i586,/var/www/cgi-bin
 mandrake,10.1,i586,/rpms
 mandrake,10.1,i586,/var/run/ifplugd.eth0.pid
+mandriva,2006.0,i586,/etc/httpd/conf.d
+mandriva,2006.0,i586,/etc/httpd/modules.d
+mandriva,2006.0,i586,/etc/httpd/conf/addon-modules
+mandriva,2006.0,i586,/etc/httpd/conf/httpd.conf
+mandriva,2006.0,i586,/etc/httpd/conf/httpd-perl.conf
+mandriva,2006.0,i586,/etc/httpd/conf/ssl.crl
+mandriva,2006.0,i586,/etc/httpd/conf/ssl.crt
+mandriva,2006.0,i586,/etc/httpd/conf/ssl.csr
+mandriva,2006.0,i586,/etc/httpd/conf/ssl.key
+mandriva,2006.0,i586,/etc/httpd/conf/ssl.prm
+mandriva,2006.0,i586,/etc/httpd/conf/vhosts.d
+mandriva,2006.0,i586,/etc/httpd/conf/webapps.d
+redhat,ES 4,x86_64,/etc/rc.d/init.d/httpd
+redhat,ES 4,x86_64,/etc/rc.d/rc0.d/K15httpd
+redhat,ES 4,x86_64,/etc/rc.d/rc1.d/K15httpd
+redhat,ES 4,x86_64,/etc/rc.d/rc2.d/K15httpd
+redhat,ES 4,x86_64,/etc/rc.d/rc3.d/S85httpd
+redhat,ES 4,x86_64,/etc/rc.d/rc4.d/S85httpd
+redhat,ES 4,x86_64,/etc/rc.d/rc5.d/S85httpd
+redhat,ES 4,x86_64,/etc/rc.d/rc6.d/K15httpd
+redhat,ES 4,x86_64,/etc/rc.d/init.d/httpd
+redhat,ES 4,x86_64,/etc/rc.d/rc0.d/K15httpd
+redhat,ES 4,x86_64,/etc/rc.d/rc1.d/K15httpd
+redhat,ES 4,x86_64,/etc/rc.d/rc2.d/K15httpd
+redhat,ES 4,x86_64,/etc/rc.d/rc3.d/K15httpd
+redhat,ES 4,x86_64,/etc/rc.d/rc4.d/K15httpd
+redhat,ES 4,x86_64,/etc/rc.d/rc5.d/K15httpd
+redhat,ES 4,x86_64,/etc/rc.d/rc6.d/K15httpd

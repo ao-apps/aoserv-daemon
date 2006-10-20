@@ -72,23 +72,24 @@ final public class MajordomoManager extends BuilderThread {
                     LinuxServerGroup lsg=ms.getLinuxServerGroup();
                     int lsgGID=lsg.getGID().getID();
                     UnixFile msUF=new UnixFile(msPath);
-                    UnixFile listsUF=new UnixFile(msUF, "lists");
+                    Stat msUFStat = msUF.getStat();
+                    UnixFile listsUF=new UnixFile(msUF, "lists", false);
                     if(
-                        !msUF.exists()
-                        || msUF.getUID()==UnixFile.ROOT_UID
-                        || msUF.getGID()==UnixFile.ROOT_GID
+                        !msUFStat.exists()
+                        || msUFStat.getUID()==UnixFile.ROOT_UID
+                        || msUFStat.getGID()==UnixFile.ROOT_GID
                     ) {
                         // Add a new install
                         String sharedPath="../../../../usr/majordomo/"+version;
                         
-                        if(!msUF.exists()) msUF.mkdir();
+                        if(!msUFStat.exists()) msUF.mkdir();
                         msUF.setMode(0750);
-                        new UnixFile(msUF, "digests").mkdir().setMode(0700).chown(lsaUID, lsgGID);
-                        if(!listsUF.exists()) listsUF.mkdir();
+                        new UnixFile(msUF, "digests", false).mkdir().setMode(0700).chown(lsaUID, lsgGID);
+                        if(!listsUF.getStat().exists()) listsUF.mkdir();
                         listsUF.setMode(0750).chown(lsaUID, mailGID);
-                        UnixFile LogUF=new UnixFile(msUF, "Log");
+                        UnixFile LogUF=new UnixFile(msUF, "Log", false);
                         LogUF.getSecureOutputStream(lsaUID, lsgGID, 0600, false).close();
-                        UnixFile majordomocfUF=new UnixFile(msUF, "majordomo.cf");
+                        UnixFile majordomocfUF=new UnixFile(msUF, "majordomo.cf", false);
                         ChainWriter out=new ChainWriter(new BufferedOutputStream(majordomocfUF.getSecureOutputStream(lsaUID, lsgGID, 0600, false)));
                         try {
                             out.print("#\n"
@@ -493,15 +494,15 @@ final public class MajordomoManager extends BuilderThread {
                         String listName=ml.getName();
 
                         // Make the list file
-                        UnixFile listUF=new UnixFile(listsUF, listName);
-                        if(!listUF.exists()) {
+                        UnixFile listUF=new UnixFile(listsUF, listName, false);
+                        if(!listUF.getStat().exists()) {
                             listUF.getSecureOutputStream(lsaUID, lsgGID, 0644, false).close();
                         } else listUF.setMode(0644).chown(lsaUID, lsgGID);
                         existingListFiles.remove(listName);
 
                         // Make the .config file
-                        UnixFile configUF=new UnixFile(listsUF, listName+".config");
-                        if(!configUF.exists()) {
+                        UnixFile configUF=new UnixFile(listsUF, listName+".config", false);
+                        if(!configUF.getStat().exists()) {
                             ChainWriter out=new ChainWriter(configUF.getSecureOutputStream(lsaUID, lsgGID, 0660, false));
                             try {
                                 out.print("# The configuration file for a majordomo mailing list.\n"
@@ -900,13 +901,13 @@ final public class MajordomoManager extends BuilderThread {
                         existingListFiles.remove(listName+".config");
 
                         // Make the .info file
-                        UnixFile infoUF=new UnixFile(listsUF, listName+".info");
-                        if(!infoUF.exists()) infoUF.getSecureOutputStream(lsaUID, lsgGID, 0664, false).close();
+                        UnixFile infoUF=new UnixFile(listsUF, listName+".info", false);
+                        if(!infoUF.getStat().exists()) infoUF.getSecureOutputStream(lsaUID, lsgGID, 0664, false).close();
                         existingListFiles.remove(listName+".info");
 
                         // Allow the .intro file
-                        UnixFile introUF=new UnixFile(listsUF, listName+".intro");
-                        if(!introUF.exists()) introUF.getSecureOutputStream(lsaUID, lsgGID, 0664, false).close();
+                        UnixFile introUF=new UnixFile(listsUF, listName+".intro", false);
+                        if(!introUF.getStat().exists()) introUF.getSecureOutputStream(lsaUID, lsgGID, 0664, false).close();
                         existingListFiles.remove(listName+".intro");
 
                         // Allow the -post file

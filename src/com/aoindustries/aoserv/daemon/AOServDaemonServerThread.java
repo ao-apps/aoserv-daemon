@@ -153,7 +153,7 @@ final public class AOServDaemonServerThread extends Thread {
                                     if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing BACKUP_POSTGRES_DATABASE_SEND_DATA, Thread="+toString());
                                     long daemonKey=in.readLong();
                                     DaemonAccessEntry dae=AOServDaemonServer.getDaemonAccessEntry(daemonKey);
-                                    if(dae.command!=AOServDaemonProtocol.BACKUP_POSTGRES_DATABASE_SEND_DATA) throw new IOException("Mistmatched DaemonAccessEntry command, dae.command!="+AOServDaemonProtocol.BACKUP_POSTGRES_DATABASE_SEND_DATA);
+                                    if(dae.command!=AOServDaemonProtocol.BACKUP_POSTGRES_DATABASE_SEND_DATA) throw new IOException("Mismatched DaemonAccessEntry command, dae.command!="+AOServDaemonProtocol.BACKUP_POSTGRES_DATABASE_SEND_DATA);
                                     String relativePath = dae.param1;
                                     int backupPartitionPKey = Integer.parseInt(dae.param2);
                                     String expectedMD5 = dae.param3;
@@ -216,8 +216,18 @@ final public class AOServDaemonServerThread extends Thread {
                                     short retention = in.readShort();
                                     long fromServerTime = in.readLong();
                                     DaemonAccessEntry dae=AOServDaemonServer.getDaemonAccessEntry(daemonKey);
-                                    if(dae.command!=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION) throw new IOException("Mistmatched DaemonAccessEntry command, dae.command!="+AOServDaemonProtocol.FAILOVER_FILE_REPLICATION);
-                                    FailoverFileReplicationManager.failoverServer(in, out, dae.param1, useCompression, retention, fromServerTime);
+                                    if(dae.command!=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION) throw new IOException("Mismatched DaemonAccessEntry command, dae.command!="+AOServDaemonProtocol.FAILOVER_FILE_REPLICATION);
+                                    FailoverFileReplicationManager.failoverServer(
+                                        socket,
+                                        in,
+                                        out,
+                                        dae.param1,
+                                        useCompression,
+                                        retention,
+                                        dae.param2,
+                                        "t".equals(dae.param3),
+                                        fromServerTime
+                                    );
                                 }
                                 break;
                             case AOServDaemonProtocol.GET_AUTORESPONDER_CONTENT :
@@ -785,7 +795,7 @@ final public class AOServDaemonServerThread extends Thread {
                                     boolean isCompressed = in.readBoolean();
                                     // Get the values provided by the master
                                     DaemonAccessEntry dae=AOServDaemonServer.getDaemonAccessEntry(daemonKey);
-                                    if(dae.command!=AOServDaemonProtocol.STORE_BACKUP_DATA_DIRECT_ACCESS) throw new IOException("Mistmatched DaemonAccessEntry command, dae.command!="+AOServDaemonProtocol.STORE_BACKUP_DATA_DIRECT_ACCESS);
+                                    if(dae.command!=AOServDaemonProtocol.STORE_BACKUP_DATA_DIRECT_ACCESS) throw new IOException("Mismatched DaemonAccessEntry command, dae.command!="+AOServDaemonProtocol.STORE_BACKUP_DATA_DIRECT_ACCESS);
                                     int backupPartitionPKey=Integer.parseInt(dae.param1);
                                     int backupData=Integer.parseInt(dae.param2);
                                     String expectedMD5=dae.param3;

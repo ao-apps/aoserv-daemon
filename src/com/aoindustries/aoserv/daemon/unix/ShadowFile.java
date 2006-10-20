@@ -51,6 +51,7 @@ final public class ShadowFile {
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(shadowLock) {
@@ -84,6 +85,7 @@ final public class ShadowFile {
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(shadowLock) {
@@ -147,7 +149,7 @@ final public class ShadowFile {
                     out.close();
                 }
 
-                if(newShadowFile.getSize()>0) {
+                if(newShadowFile.getStat().getSize()>0) {
                     shadowFile.renameTo(backupShadowFile);
                     newShadowFile.renameTo(shadowFile);
                 } else throw new IOException(newShadowFile.getFilename()+" has zero or unknown length");
@@ -171,6 +173,7 @@ final public class ShadowFile {
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(shadowLock) {

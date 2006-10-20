@@ -1,4 +1,3 @@
-mandrake,10.1,i586,/.backup
 mandrake,10.1,i586,/dev/pts
 mandrake,10.1,i586,/etc/httpd/conf/hosts
 mandrake,10.1,i586,/etc/httpd/conf/logrotate.d
@@ -93,3 +92,36 @@ mandrake,10.1,i586,/www
 mandrake,10.1,i586,/wwwgroup
 mandrake,10.1,i586,/usr/serverlocal
 mandrake,10.1,i586,/var/log/qmail
+redhat,ES 4,x86_64,/dev/pts
+redhat,ES 4,x86_64,/home/a
+redhat,ES 4,x86_64,/home/b
+redhat,ES 4,x86_64,/home/c
+redhat,ES 4,x86_64,/home/d
+redhat,ES 4,x86_64,/home/e
+redhat,ES 4,x86_64,/home/f
+redhat,ES 4,x86_64,/home/g
+redhat,ES 4,x86_64,/home/h
+redhat,ES 4,x86_64,/home/i
+redhat,ES 4,x86_64,/home/j
+redhat,ES 4,x86_64,/home/k
+redhat,ES 4,x86_64,/home/l
+redhat,ES 4,x86_64,/home/m
+redhat,ES 4,x86_64,/home/n
+redhat,ES 4,x86_64,/home/o
+redhat,ES 4,x86_64,/home/p
+redhat,ES 4,x86_64,/home/q
+redhat,ES 4,x86_64,/home/r
+redhat,ES 4,x86_64,/home/s
+redhat,ES 4,x86_64,/home/t
+redhat,ES 4,x86_64,/home/u
+redhat,ES 4,x86_64,/home/v
+redhat,ES 4,x86_64,/home/w
+redhat,ES 4,x86_64,/home/x
+redhat,ES 4,x86_64,/home/y
+redhat,ES 4,x86_64,/home/z
+redhat,ES 4,x86_64,/tmp
+redhat,ES 4,x86_64,/var/lib/pgsql/8.1/pg_clog
+redhat,ES 4,x86_64,/var/lib/pgsql/8.1/pg_xlog
+redhat,ES 4,x86_64,/var/opt/postgresql-8.1/log
+redhat,ES 4,x86_64,/var/spool/mail
+redhat,ES 4,x86_64,/var/spool/mqueue

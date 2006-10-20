@@ -42,6 +42,8 @@ final public class NetDeviceManager extends BuilderThread {
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
             
+            final Stat tempStat = new Stat();
+
             synchronized(rebuildLock) {
                 List<NetDeviceID> restartDeviceIDs=new SortedArrayList<NetDeviceID>();
                 
@@ -51,7 +53,7 @@ final public class NetDeviceManager extends BuilderThread {
                     NetDeviceID deviceId=device.getNetDeviceID();
                     if(!deviceId.isLoopback()) {
                         // Build the new primary IP script
-                        UnixFile cfgFile=new UnixFile(netScriptDirectory, "ifcfg-"+deviceId+".new");
+                        UnixFile cfgFile=new UnixFile(netScriptDirectory, "ifcfg-"+deviceId+".new", false);
                         ChainWriter out=new ChainWriter(
                             new BufferedOutputStream(
                                 cfgFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true)
@@ -89,8 +91,8 @@ final public class NetDeviceManager extends BuilderThread {
                             out.flush();
                             out.close();
                         }
-                        UnixFile existing=new UnixFile(netScriptDirectory, "ifcfg-"+deviceId);
-                        if(!existing.exists() || !cfgFile.contentEquals(existing)) {
+                        UnixFile existing=new UnixFile(netScriptDirectory, "ifcfg-"+deviceId, false);
+                        if(!existing.getStat(tempStat).exists() || !cfgFile.contentEquals(existing)) {
                             cfgFile.renameTo(existing);
                             if(!restartDeviceIDs.contains(deviceId)) restartDeviceIDs.add(deviceId);
                         } else cfgFile.delete();
@@ -112,7 +114,7 @@ final public class NetDeviceManager extends BuilderThread {
                                         
                                         String filename=aliasBeginning+(num++);
                                         cfgFilenames.add(filename);
-                                        UnixFile newCfgUF=new UnixFile(netScriptDirectory, filename+".new");
+                                        UnixFile newCfgUF=new UnixFile(netScriptDirectory, filename+".new", false);
                                         out=new ChainWriter(
                                             new BufferedOutputStream(
                                                 newCfgUF.getSecureOutputStream(
@@ -136,8 +138,8 @@ final public class NetDeviceManager extends BuilderThread {
                                             out.close();
                                         }
                                         
-                                        UnixFile cfgUF=new UnixFile(netScriptDirectory, filename);
-                                        if(!cfgUF.exists() || !newCfgUF.contentEquals(cfgUF)) {
+                                        UnixFile cfgUF=new UnixFile(netScriptDirectory, filename, false);
+                                        if(!cfgUF.getStat(tempStat).exists() || !newCfgUF.contentEquals(cfgUF)) {
                                             if(!newCfgUF.getFile().renameTo(cfgUF.getFile())) throw new IOException("Unable to move "+newCfgUF.getFilename()+" to "+cfgUF.getFilename());
                                             if(!restartDeviceIDs.contains(deviceId)) restartDeviceIDs.add(deviceId);
                                         } else newCfgUF.delete();
@@ -155,7 +157,7 @@ final public class NetDeviceManager extends BuilderThread {
                             && filename.length()>aliasBeginning.length()
                             && filename.substring(0, aliasBeginning.length()).equals(aliasBeginning)
                             ) {
-                                UnixFile extra=new UnixFile(netScriptDirectory, filename);
+                                UnixFile extra=new UnixFile(netScriptDirectory, filename, false);
                                 extra.delete();
                                 if(!restartDeviceIDs.contains(deviceId)) restartDeviceIDs.add(deviceId);
                             }
@@ -197,7 +199,7 @@ final public class NetDeviceManager extends BuilderThread {
                         out.flush();
                         out.close();
                     }
-                    if(!networkScript.exists() || !networkScriptNew.contentEquals(networkScript)) {
+                    if(!networkScript.getStat(tempStat).exists() || !networkScriptNew.contentEquals(networkScript)) {
                         networkScriptNew.renameTo(networkScript);
                         // Restart all devices in this scenario
                         for(int c=0;c<devices.size();c++) {

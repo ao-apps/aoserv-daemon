@@ -13,6 +13,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.ChainWriter;
+import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.profiler.Profiler;
 import java.io.BufferedReader;
@@ -22,6 +23,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -58,7 +61,11 @@ final public class MrtgManager extends BuilderThread {
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
+            final Stat tempStat = new Stat();
+
             synchronized(rebuildLock) {
+                List<String> dfDevices = getDFDevices();
+                List<String> dfSafeNames = getSafeNames(dfDevices);
                 {
                     /*
                      * Create the new config file in RAM first
@@ -81,8 +88,11 @@ final public class MrtgManager extends BuilderThread {
                                 + "  <a href=\"stats.html\">Stats Overview</a> |\n"
                                 + "  <a href=\"load.html\">Load</a> |\n"
                                 + "  <a href=\"cpu.html\">CPU</a> |\n"
-                                + "  <a href=\"diskio.html\">DiskIO</a> |\n"
-                                + "  <a href=\"mem.html\"> Memory</a> |\n");
+                                + "  <a href=\"diskio.html\">DiskIO</a> |\n");
+                        for(int c=0;c<dfDevices.size();c++) {
+                            out.print("  <a href=\"").print(dfSafeNames.get(c)).print(".html\">").print(dfDevices.get(c)).print("</a> |\n");
+                        }
+                        out.print("  <a href=\"mem.html\"> Memory</a> |\n");
                         // Add the network devices
                         List<NetDevice> netDevices=thisAOServer.getNetDevices();
                         for(NetDevice netDevice : netDevices) {
@@ -205,8 +215,35 @@ final public class MrtgManager extends BuilderThread {
                                 + "PageFoot[diskio]: <p>\n"
                                 + "PageTop[diskio]: <H2>Server Disk I/O (blocks per second)</H2>\n"
                                 + "XSize[diskio]: ").print(GRAPH_WIDTH).print("\n"
-                                + "YSize[diskio]: ").print(GRAPH_HEIGHT).print("\n"
-                                + "\n"
+                                + "YSize[diskio]: ").print(GRAPH_HEIGHT).print("\n");
+                        for(int c=0;c<dfDevices.size();c++) {
+                            String device = dfDevices.get(c);
+                            String safeName = dfSafeNames.get(c);
+                            String command =
+                                (osv==OperatingSystemVersion.REDHAT_ES_4_X86_64)
+                                ? "/opt/aoserv-daemon/bin/mrtg_df"
+                                : "/usr/aoserv/daemon/bin/mrtg_df"
+                            ;
+                            out.print("\n"
+                                    + "Target[").print(safeName).print("]: `").print(command).print(' ').print(device).print("`\n"
+                                    + "Options[").print(safeName).print("]: gauge, noinfo, growright, transparent\n"
+                                    + "MaxBytes[").print(safeName).print("]: 100\n"
+                                    + "YLegend[").print(safeName).print("]: % Used space and inodes\n"
+                                    + "ShortLegend[").print(safeName).print("]: %\n"
+                                    + "Legend1[").print(safeName).print("]: % space used\n"
+                                    + "Legend2[").print(safeName).print("]: % inodes used\n"
+                                    + "Legend3[").print(safeName).print("]: Maximal 5 Minute\n"
+                                    + "Legend4[").print(safeName).print("]: Maximal 5 Minute\n"
+                                    + "LegendI[").print(safeName).print("]:  Space:\n"
+                                    + "LegendO[").print(safeName).print("]:  Inodes:\n"
+                                    + "Timezone[").print(safeName).print("]: ").print(thisAOServer.getTimeZone()).print("\n"
+                                    + "Title[").print(safeName).print("]: ").print(device).print(" Space and Inodes (%)\n"
+                                    + "PageFoot[").print(safeName).print("]: <p>\n"
+                                    + "PageTop[").print(safeName).print("]: <H2>").print(device).print(" Space and Inodes (%)</H2>\n"
+                                    + "XSize[").print(safeName).print("]: ").print(GRAPH_WIDTH).print("\n"
+                                    + "YSize[").print(safeName).print("]: ").print(GRAPH_HEIGHT).print("\n");
+                        }
+                        out.print("\n"
                                 + "Target[swap]: `/usr/aoserv/daemon/bin/mrtg_swap`\n"
                                 + "Options[swap]: gauge, noinfo, growright, transparent, nopercent\n"
                                 + "MaxBytes[swap]: 100000000\n"
@@ -229,7 +266,7 @@ final public class MrtgManager extends BuilderThread {
                         out.close();
                     }
                     byte[] newFile=bout.toByteArray();
-                    if(!cfgFile.exists() || !cfgFile.contentEquals(newFile)) {
+                    if(!cfgFile.getStat(tempStat).exists() || !cfgFile.contentEquals(newFile)) {
                         OutputStream fileOut=cfgFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true);
                         try {
                             fileOut.write(newFile);
@@ -273,8 +310,11 @@ final public class MrtgManager extends BuilderThread {
                                 + "        <a href=\"stats.html\">Stats Overview</a> |\n"
                                 + "        <a href=\"load.html\">Load</a> |\n"
                                 + "        <a href=\"cpu.html\">CPU</a> |\n"
-                                + "        <a href=\"diskio.html\">DiskIO</a> |\n"
-                                + "        <a href=\"mem.html\"> Memory</a> |\n");
+                                + "        <a href=\"diskio.html\">DiskIO</a> |\n");
+                        for(int c=0;c<dfDevices.size();c++) {
+                            out.print("        <a href=\"").print(dfSafeNames.get(c)).print(".html\">").print(dfDevices.get(c)).print("</a> |\n");
+                        }
+                        out.print("        <a href=\"mem.html\"> Memory</a> |\n");
                         // Add the network devices
                         List<NetDevice> netDevices=thisAOServer.getNetDevices();
                         for(NetDevice netDevice : netDevices) {
@@ -292,8 +332,13 @@ final public class MrtgManager extends BuilderThread {
                                 + "      <hr>\n"
                                 + "      <H2>Server Disk I/O (blocks per second)</H2><BR>\n"
                                 + "\n"
-                                + "      <A href=\"diskio.html\"><IMG BORDER=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"diskio-day.png\" ALT=\"diskio\"></A>\n"
-                                + "      <hr>\n"
+                                + "      <A href=\"diskio.html\"><IMG BORDER=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"diskio-day.png\" ALT=\"diskio\"></A>\n");
+                        for(int c=0;c<dfDevices.size();c++) {
+                            out.print("      <hr>\n"
+                                    + "      <H2>").print(dfDevices.get(c)).print(" Space and Inodes (%)</H2><BR>\n"
+                                    + "      <A href=\"").print(dfSafeNames.get(c)).print(".html\"><IMG BORDER=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"").print(dfSafeNames.get(c)).print("-day.png\" ALT=\"").print(dfDevices.get(c)).print("\"></A>\n");
+                        }
+                        out.print("      <hr>\n"
                                 + "      <H2>Server Memory and Swap space (%)</H2><BR>\n"
                                 + "      <A href=\"mem.html\"><IMG BORDER=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"mem-day.png\" ALT=\"mem\"></A>\n");
                         for(NetDevice netDevice : netDevices) {
@@ -341,7 +386,7 @@ final public class MrtgManager extends BuilderThread {
                         out.close();
                     }
                     byte[] newFile=bout.toByteArray();
-                    if(!statsFile.exists() || !statsFile.contentEquals(newFile)) {
+                    if(!statsFile.getStat(tempStat).exists() || !statsFile.contentEquals(newFile)) {
                         OutputStream fileOut=statsFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true);
                         try {
                             fileOut.write(newFile);
@@ -371,6 +416,7 @@ final public class MrtgManager extends BuilderThread {
                         conn.netDeviceIDs.addTableListener(mrtgManager, 0);
                         conn.servers.addTableListener(mrtgManager, 0);
                         conn.timeZones.addTableListener(mrtgManager, 0);
+                        mrtgManager.delayAndRebuild();
                         System.out.println("Done");
                     }
                 }
@@ -411,5 +457,69 @@ final public class MrtgManager extends BuilderThread {
         } finally {
             Profiler.endProfile(PROFILER_LEVEL);
         }
+    }
+    
+    /**
+     * Gets the list of devices for df commands.  When in a failover state, returns empty list.
+     */
+    public static List<String> getDFDevices() throws IOException, SQLException {
+        AOServer thisAOServer = AOServDaemon.getThisAOServer();
+        if(thisAOServer.getFailoverServer()!=null) return Collections.emptyList();
+        int osv = thisAOServer.getServer().getOperatingSystemVersion().getPKey();
+        List<String> devices = new ArrayList<String>();
+        Process P = Runtime.getRuntime().exec(
+            new String[] {
+                osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+                ? "/opt/aoserv-daemon/bin/list_partitions"
+                : "/usr/aoserv/daemon/bin/list_partitions"
+            }
+        );
+        BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()));
+        String line;
+        while((line=in.readLine())!=null) {
+            if(devices.contains(line)) {
+                AOServDaemon.reportWarning(new Throwable("Warning: duplicate device from list_partitions: "+line), null);
+            } else {
+                devices.add(line);
+            }
+        }
+        in.close();
+        try {
+            int retCode = P.waitFor();
+            if(retCode!=0) throw new IOException("Non-zero return value from list_partitions: "+retCode);
+        } catch(InterruptedException err) {
+            AOServDaemon.reportWarning(err, null);
+        }
+
+        Collections.sort(devices);
+        return devices;
+    }
+    
+    public static List<String> getSafeNames(List<String> devices) throws IOException {
+        if(devices.isEmpty()) return Collections.emptyList();
+        List<String> safeNames = new ArrayList<String>(devices.size());
+        for(String device : devices) {
+            String safeName;
+            if(device.equals("/var/lib/pgsql.aes256.img")) {
+                safeName = "pgsqlaes256";
+            } else if(device.equals("/www.aes256.img")) {
+                safeName = "wwwaes256";
+            } else {
+                if(device.startsWith("/dev/")) device=device.substring(5);
+                // All characters should now be a-z, A-Z, and 0-9
+                if(device.length()==0) throw new IOException("Empty device name: "+device);
+                for(int c=0;c<device.length();c++) {
+                    char ch=device.charAt(c);
+                    if(
+                        (ch<'a' || ch>'z')
+                        && (ch<'A' || ch>'Z')
+                        && (ch<'0' || ch>'9')
+                    ) throw new IOException("Invalid character in device.  ch="+ch+", device="+device);
+                }
+                safeName = device;
+            }
+            safeNames.add(safeName);
+        }
+        return safeNames;
     }
 }

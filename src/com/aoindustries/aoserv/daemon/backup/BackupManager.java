@@ -623,7 +623,8 @@ final public class BackupManager {
                         File[] files=mufOut.getFiles();
                         for(int c=0;c<files.length;c++) {
                             UnixFile uf=new UnixFile(files[c]);
-                            if(uf.exists()) uf.setMode(0600);
+                            Stat stat = uf.getStat();
+                            if(stat.exists() && stat.getMode()!=0600) uf.setMode(0600);
                         }
                     }
 

@@ -46,7 +46,10 @@ public final class PgHbaManager extends BuilderThread {
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+
+            final Stat tempStat = new Stat();
 
             synchronized(rebuildLock) {
                 for(PostgresServer ps : thisAOServer.getPostgresServers()) {
@@ -217,7 +220,7 @@ public final class PgHbaManager extends BuilderThread {
 
                     // Move the new file into place
                     UnixFile hbaUF=new UnixFile(serverDir, "pg_hba.conf");
-                    if(hbaUF.exists() && newHbaUF.contentEquals(hbaUF)) newHbaUF.delete();
+                    if(hbaUF.getStat(tempStat).exists() && newHbaUF.contentEquals(hbaUF)) newHbaUF.delete();
                     else {
                         // Move the new file into place
                         newHbaUF.renameTo(hbaUF);

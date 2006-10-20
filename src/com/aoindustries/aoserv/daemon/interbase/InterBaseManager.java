@@ -71,6 +71,10 @@ final public class InterBaseManager extends BuilderThread {
             List<InterBaseDatabase> databases=thisAOServer.getInterBaseDatabases();
             List<InterBaseServerUser> users = thisAOServer.getInterBaseServerUsers();
 
+            final Stat tempStat = new Stat();
+            final Stat dbGroupDirectoryUFStat = new Stat();
+            final Stat dbFileUFStat = new Stat();
+
             // Using during rebuild process
             Map<String,Map<String,InterBaseDatabase>> foundGroups=new HashMap<String,Map<String,InterBaseDatabase>>();
             Map<String,InterBaseServerUser> foundUsers=new HashMap<String,InterBaseServerUser>();
@@ -90,11 +94,12 @@ final public class InterBaseManager extends BuilderThread {
                 for(int c=0;c<dbGroupDirectories.length;c++) {
                     String dbGroupName=dbGroupDirectories[c];
                     if(!dbGroupName.equals(InterBaseDBGroup.LOST_AND_FOUND)) {
-                        UnixFile dbGroupDirectoryUF=new UnixFile(dbGroupPathUF, dbGroupName);
+                        UnixFile dbGroupDirectoryUF=new UnixFile(dbGroupPathUF, dbGroupName, false);
+                        dbGroupDirectoryUF.getStat(dbGroupDirectoryUFStat);
                         InterBaseDBGroup dbGroup=null;
                         if(
-                            dbGroupDirectoryUF.isDirectory()
-                            && !dbGroupDirectoryUF.isSymLink()
+                            dbGroupDirectoryUFStat.isDirectory()
+                            && !dbGroupDirectoryUFStat.isSymLink()
                         ) {
                             for(int d=0;d<groups.size();d++) {
                                 if(groups.get(d).getName().equals(dbGroupName)) {
@@ -114,12 +119,12 @@ final public class InterBaseManager extends BuilderThread {
                             }
                         } else {
                             // Enforce DB group permissions
-                            if(dbGroupDirectoryUF.getMode()!=DB_GROUP_DIRECTORY_MODE) dbGroupDirectoryUF.setMode(DB_GROUP_DIRECTORY_MODE);
+                            if(dbGroupDirectoryUFStat.getMode()!=DB_GROUP_DIRECTORY_MODE) dbGroupDirectoryUF.setMode(DB_GROUP_DIRECTORY_MODE);
                             int dbGroupUID=dbGroupName.equals(InterBaseDBGroup.IBSERVER)?UnixFile.ROOT_UID:interbaseUID;
                             int dbGroupGID=dbGroup.getLinuxServerGroup().getGID().getID();
                             if(
-                                dbGroupDirectoryUF.getUID()!=dbGroupUID
-                                || dbGroupDirectoryUF.getGID()!=dbGroupGID
+                                dbGroupDirectoryUFStat.getUID()!=dbGroupUID
+                                || dbGroupDirectoryUFStat.getGID()!=dbGroupGID
                             ) dbGroupDirectoryUF.chown(dbGroupUID, dbGroupGID);
 
                             String[] databaseFiles=dbGroupDirectoryUF.list();
@@ -136,12 +141,13 @@ final public class InterBaseManager extends BuilderThread {
                                         || dbName.equals("isc_lock1")
                                     )
                                 ;
-                                UnixFile dbFileUF=new UnixFile(dbGroupDirectoryUF, dbName);
+                                UnixFile dbFileUF=new UnixFile(dbGroupDirectoryUF, dbName, false);
+                                dbFileUF.getStat(dbFileUFStat);
                                 InterBaseDatabase database=null;
                                 if(
                                     !dontDelete
-                                    && dbFileUF.isRegularFile()
-                                    && !dbFileUF.isSymLink()
+                                    && dbFileUFStat.isRegularFile()
+                                    && !dbFileUFStat.isSymLink()
                                 ) {
                                     for(int e=0;e<databases.size();e++) {
                                         if(
@@ -167,10 +173,10 @@ final public class InterBaseManager extends BuilderThread {
                                 } else {
                                     // Enforce database permissions
                                     long fileMode=dbGroupName.equals(InterBaseDBGroup.IBSERVER) ? IBSERVER_FILE_MODE : DB_FILE_MODE ;
-                                    if(dbFileUF.getMode()!=fileMode) dbFileUF.setMode(fileMode);
+                                    if(dbFileUFStat.getMode()!=fileMode) dbFileUF.setMode(fileMode);
                                     if(
-                                        dbFileUF.getUID()!=interbaseUID
-                                        || dbFileUF.getGID()!=dbGroupGID
+                                        dbFileUFStat.getUID()!=interbaseUID
+                                        || dbFileUFStat.getGID()!=dbGroupGID
                                     ) dbFileUF.chown(interbaseUID, dbGroupGID);
                                 }
                             }
@@ -194,12 +200,12 @@ final public class InterBaseManager extends BuilderThread {
                         File file=deleteFileList.get(c);
                         UnixFile deleteUF=new UnixFile(file);
                         // First try to drop the databases properly
-                        if(deleteUF.isDirectory()) {
+                        if(deleteUF.getStat(tempStat).isDirectory()) {
                             String[] list=deleteUF.list();
                             if(list!=null) {
                                 for(int d=0;d<list.length;d++) {
                                     if(list[d].endsWith(InterBaseDatabase.DB_FILENAME_EXTENSION)) {
-                                        UnixFile dbUF=new UnixFile(deleteUF, list[d]);
+                                        UnixFile dbUF=new UnixFile(deleteUF, list[d], false);
                                         try {
                                             dropDatabase(dbUF.getFilename());
                                         } catch(IOException err) {
@@ -225,7 +231,7 @@ final public class InterBaseManager extends BuilderThread {
                         }
                         
                         // Delete if not already gone
-                        if(deleteUF.exists()) deleteUF.secureDeleteRecursive();
+                        if(deleteUF.getStat(tempStat).exists()) deleteUF.secureDeleteRecursive();
                     }
                 }
 
@@ -864,7 +870,7 @@ final public class InterBaseManager extends BuilderThread {
                     md5In.close();
                 }
             } finally {
-                if(tempFile.exists()) tempFile.delete();
+                if(tempFile.getStat().exists()) tempFile.delete();
             }
         } finally {
             Profiler.endProfile(Profiler.IO);
@@ -903,7 +909,7 @@ final public class InterBaseManager extends BuilderThread {
                     dumpin.close();
                 }
             } finally {
-                if(tempFile.exists()) tempFile.delete();
+                if(tempFile.getStat().exists()) tempFile.delete();
             }
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);

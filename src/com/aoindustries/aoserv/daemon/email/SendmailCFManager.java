@@ -41,6 +41,7 @@ final public class SendmailCFManager extends BuilderThread {
             int osv=aoServer.getServer().getOperatingSystemVersion().getPKey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
+                && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(rebuildLock) {
@@ -50,6 +51,7 @@ final public class SendmailCFManager extends BuilderThread {
                 try {
                     if(
                         osv==OperatingSystemVersion.MANDRAKE_10_1_I586
+                        || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
                     ) {
                         out.print("divert(-1)\n"
                                 + "dnl This is the macro config file used to generate the /etc/sendmail.cf\n"
@@ -214,6 +216,7 @@ final public class SendmailCFManager extends BuilderThread {
                     UnixFile oldCF;
                     if(
                         osv==OperatingSystemVersion.MANDRAKE_10_1_I586
+                        || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
                     ) {
                         newCF=new UnixFile("/etc/mail/sendmail.cf.new");
                         oldCF=new UnixFile("/etc/mail/sendmail.cf");

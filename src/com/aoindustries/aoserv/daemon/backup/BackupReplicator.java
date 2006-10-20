@@ -506,7 +506,7 @@ final public class BackupReplicator implements Runnable {
                                     File file=new File(path);
                                     UnixFile uf=new UnixFile(path);
                                     UnixFile parent=uf.getParent();
-                                    if(!parent.exists()) {
+                                    if(!parent.getStat().exists()) {
                                         try {
                                             parent.mkdir(true, 0700);
                                         } catch(IOException err) {

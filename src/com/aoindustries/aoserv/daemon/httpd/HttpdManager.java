@@ -31,9 +31,9 @@ final public class HttpdManager extends BuilderThread {
     /**
      * The default PHP version.
      */
-    //public static final String DEFAULT_REDHAT72_PHP_VERSION="4.3.3";
-    //public static final String DEFAULT_MANDRAKE92_PHP_VERSION="4";
     public static final String DEFAULT_MANDRAKE_10_1_PHP_VERSION="4";
+    public static final String DEFAULT_MANDRIVA_2006_0_PHP_VERSION="4";
+    public static final String DEFAULT_REDHAT_ES_4_PHP_VERSION=null;
 
     /**
      * The version of PostgreSQL minor version used by the default PHP version.
@@ -43,17 +43,17 @@ final public class HttpdManager extends BuilderThread {
     /**
      * The default JDK version.
      */
-    //public static final String DEFAULT_REDHAT_7_2_JDK_VERSION="j2sdk1.4.2_04";
-    //public static final String DEFAULT_MANDRAKE_9_2_JDK_VERSION="j2sdk1.4.2_08";
-    public static final String DEFAULT_MANDRAKE_10_1_JDK_VERSION="j2sdk1.4.2_08";
+    public static final String DEFAULT_MANDRAKE_10_1_JDK_VERSION="jdk1.5.0";
+    public static final String DEFAULT_MANDRIVA_2006_0_JDK_VERSION="jdk1.5.0";
+    public static final String DEFAULT_REDHAT_ES_4_JDK_VERSION="jdk1.5.0";
     public static final String DEFAULT_TOMCAT_5_JDK_VERSION="jdk1.5.0";
 
     /**
      * The default JDK paths.
      */
-    //public static final String DEFAULT_REDHAT_7_2_JDK_PATH="/usr/j2sdk1.4.2_04";
-    //public static final String DEFAULT_MANDRAKE_9_2_JDK_PATH="/usr/j2sdk/1.4.2_08";
     public static final String DEFAULT_MANDRAKE_10_1_JDK_PATH="/usr/j2sdk/1.4.2_08";
+    public static final String DEFAULT_MANDRIVA_2006_0_JDK_PATH="/usr/jdk/1.5.0";
+    public static final String DEFAULT_REDHAT_ES_4_JDK_PATH="/opt/jdk1.5.0";
     public static final String DEFAULT_TOMCAT_5_JDK_PATH="/usr/jdk/1.5.0";
 
     /**
@@ -95,16 +95,6 @@ final public class HttpdManager extends BuilderThread {
      * The directory that contains the log rotation scripts.
      */
     public static final String LOG_ROTATION_DIR="/etc/httpd/conf/logrotate.d";
-
-    /**
-     * The characters that may be used inside a crypt salt.
-     */
-    private static char[] cryptChars={
-        '.', '/', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D',
-        'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
-        'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
-        'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'
-    };
 
     /**
      * The list of files that are contained in /www/{site}/var/log directories.
@@ -280,19 +270,14 @@ final public class HttpdManager extends BuilderThread {
                 String rootDir = siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE;
                 mkdir(rootDir, 0775, lsa, lsg);
 
-                boolean archiveInstalled = installArchive(tomcatSite.getHttpdSite(), rootDir);
-
-                if (!archiveInstalled) {		
-                    // if content fails or no content...
-                    if(!isTomcat4) mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF", 0775, lsa, lsg);
-                    mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, lsa, lsg);
-                    mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, lsa, lsg);
-                    if(!isTomcat4) mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon", 0770, lsa, lsg);
-                    if(!isTomcat4) mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf", 0770, lsa, lsg);
-                    mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, lsa, lsg);	
-                    mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", 0755, lsa, lsg);
-                }
-                //mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/analog", 0775, lsa, lsg);
+                // if content fails or no content...
+                if(!isTomcat4) mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF", 0775, lsa, lsg);
+                mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, lsa, lsg);
+                mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, lsa, lsg);
+                if(!isTomcat4) mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon", 0770, lsa, lsg);
+                if(!isTomcat4) mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf", 0770, lsa, lsg);
+                mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, lsa, lsg);	
+                mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", 0755, lsa, lsg);
 
                 if (isStandard || isJBoss) {
 
@@ -337,14 +322,30 @@ final public class HttpdManager extends BuilderThread {
 			    if(isTomcat4) {
 				out.print(". /etc/profile\n");
                                 if(isTomcat55) {
-                                    out.print(". /usr/aoserv/etc/").print(DEFAULT_TOMCAT_5_JDK_VERSION).print(".sh\n");
+                                    if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                                        out.print(". /opt/aoserv-client/scripts/").print(DEFAULT_TOMCAT_5_JDK_VERSION).print(".sh\n");
+                                    } else {
+                                        out.print(". /usr/aoserv/etc/").print(DEFAULT_TOMCAT_5_JDK_VERSION).print(".sh\n");
+                                    }
                                 } else {
+                                    // Note, pre Tomcat 5.5 not installed on RedHat ES4
                                     out.print(". /usr/aoserv/etc/").print(getDefaultJdkVersion(osv)).print(".sh\n");
                                 }
-                                out.print(". /usr/aoserv/etc/php-").print(getDefaultPhpVersion(osv)).print(".sh\n");
-				if(postgresServerMinorVersion!=null) out.print(". /usr/aoserv/etc/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
-				out.print(". /usr/aoserv/etc/aoserv.sh\n"
-                                        + "\n"
+                                String defaultPhpVersion = getDefaultPhpVersion(osv);
+                                if(defaultPhpVersion!=null) out.print(". /usr/aoserv/etc/php-").print(defaultPhpVersion).print(".sh\n");
+				if(postgresServerMinorVersion!=null) {
+                                    if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                                        out.print(". /opt/aoserv-client/scripts/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
+                                    } else {
+                                        out.print(". /usr/aoserv/etc/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
+                                    }
+                                }
+                                if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                                    out.print(". /opt/aoserv-client/scripts/aoserv-client.sh\n");
+                                } else {
+                                    out.print(". /usr/aoserv/etc/aoserv.sh\n");
+                                }
+                                out.print("\n"
                                         + "umask 002\n"
                                         + "export DISPLAY=:0.0\n"
                                         + "\n"
@@ -392,13 +393,13 @@ final public class HttpdManager extends BuilderThread {
 										     + "\n");
 			    if(!tomcatVersion.startsWith(HttpdTomcatVersion.VERSION_4_1_PREFIX)) {
 				out.print("CLASSPATH=${CLASSPATH}:").print(siteDir).print("/classes\n"
-											  + "\n"
-											  + "for i in ").print(siteDir).print("/lib/* ; do\n"
-															      + "    if [ -f $i ]; then\n"
-															      + "        CLASSPATH=${CLASSPATH}:$i\n"
-															      + "    fi\n"
-															      + "done\n"
-															      + "\n");
+                                        + "\n"
+                                        + "for i in ").print(siteDir).print("/lib/* ; do\n"
+                                        + "    if [ -f $i ]; then\n"
+                                        + "        CLASSPATH=${CLASSPATH}:$i\n"
+                                        + "    fi\n"
+                                        + "done\n"
+                                        + "\n");
 			    }
 			    out.print("export CLASSPATH\n");
 			} finally {
@@ -530,9 +531,18 @@ final public class HttpdManager extends BuilderThread {
                         mkdir(siteDir+"/common/lib", 0775, lsa, lsg);
                         lnAll("../../../.."+tomcatDirectory+"/common/lib/", siteDir+"/common/lib/", uid, gid);
                         
-                        if(postgresServerMinorVersion!=null) ln("../../../../usr/postgresql/"+postgresServerMinorVersion+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
-                        if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) ln("../../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", siteDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", uid, gid);
-                        else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        if(postgresServerMinorVersion!=null) {
+                            if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                ln("../../../../usr/postgresql/"+postgresServerMinorVersion+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
+                            } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                                ln("../../../../opt/postgresql-"+postgresServerMinorVersion+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
+                            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        }
+                        if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                            ln("../../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", siteDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", uid, gid);
+                        } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                            ln("../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar", siteDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", uid, gid);
+                        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
                         /*
                          * Write the conf/catalina.policy file
@@ -569,23 +579,6 @@ final public class HttpdManager extends BuilderThread {
                 }
 
                 /*
-                 * Write the conf/group file.
-                 */
-                /*
-                String confGroup=siteDir+"/conf/group";
-                ChainWriter out=new ChainWriter(
-                    new BufferedOutputStream(
-                        new UnixFile(confGroup).getSecureOutputStream(uid, gid, 0644, false)
-                    )
-                );
-		try {
-		    out.print("developer: ").print(laUsername).print("\n");
-		} finally {
-		    out.flush();
-		    out.close();
-		}*/
-
-                /*
                  * Write the manifest.servlet file.
                  */
                 if(!isTomcat4) {
@@ -620,12 +613,6 @@ final public class HttpdManager extends BuilderThread {
 			out.close();
 		    }
                 }
-
-                /*
-                 * Create an empty password list file.
-                 */
-                //String confPasswd=siteDir+"/conf/passwd";
-                //new UnixFile(confPasswd).getSecureOutputStream(uid, gid, 0644, false).close();
 
                 /*
                  * Create the conf/server.dtd file.
@@ -791,253 +778,183 @@ final public class HttpdManager extends BuilderThread {
                     }
                 }
 
-                if (!archiveInstalled) {
-                    /*
-                     * Create the manifest file.
-                     */
-                    if(!isTomcat4) {
-                        String manifestFile=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF/MANIFEST.MF";
-                        new ChainWriter(
-                            new UnixFile(manifestFile).getSecureOutputStream(
-                                uid,
-                                gid,
-                                0664,
-                                false
-                            )
-                        ).print("Manifest-Version: 1.0").flush().close();
-                    }
-
-                    /*
-                     * Create the test servlet source and compile
-                     */
-                    String servletHello=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes/Hello.java";
-                    ChainWriter out=new ChainWriter(
-                        new BufferedOutputStream(
-                            new UnixFile(servletHello).getSecureOutputStream(uid, gid, 0660, false)
+                /*
+                 * Create the manifest file.
+                 */
+                if(!isTomcat4) {
+                    String manifestFile=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF/MANIFEST.MF";
+                    new ChainWriter(
+                        new UnixFile(manifestFile).getSecureOutputStream(
+                            uid,
+                            gid,
+                            0664,
+                            false
                         )
-                    );
-		    try {
-			out.print("import java.io.*;\n"
-				  + "import javax.servlet.*;\n"
-				  + "import javax.servlet.http.*;\n"
-				  + "\n"
-				  + "public class Hello extends HttpServlet {\n"
-				  + "\n"
-				  + "    public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {\n"
-				  + "        resp.setContentType(\"text/html\");\n"
-				  + "        PrintWriter out=resp.getWriter();\n"
-				  + "        out.println(\"<HTML>\");\n"
-				  + "        out.println(\"  <HEAD><TITLE>Test Servlet for ").print(primaryUrl).print("</TITLE></HEAD>\");\n"
-														      + "        out.println(\"  <BODY bgcolor='#FFFFFF'>\");\n"
-														      + "        out.println(\"    <H1>Test Servlet for ").print(primaryUrl).print("</H1>\");\n"
-																								   + "        out.println(\"    <H2>Congratulations, Jakarta-Tomcat is working!\");\n"
-																								   + "        out.println(\"  </BODY>\");\n"
-																								   + "        out.println(\"</HTML>\");\n"
-																								   + "        out.close();\n"
-																								   + "    }\n"
-																								   + "}\n"
-																								   );
-		    } finally {
-			out.flush();
-			out.close();
-		    }
-                    // Compile
-                    String[] command=new String[] {getDefaultJdkPath(osv)+"/bin/javac", "-classpath", "/usr/apache/jakarta/servletapi/3.2.2/lib/servlet.jar", servletHello};
-                    Process P=Runtime.getRuntime().exec(command);
-                    try {
-                        int retCode=P.waitFor();
-                        if(retCode!=0) throw new IOException("Unable to compile Hello.java, retCode="+retCode);
-                    } catch(InterruptedException err) {
-                        InterruptedIOException newErr=new InterruptedIOException("Unable to compile Hello.java");
-                        newErr.initCause(err);
-                        throw newErr;
-                    }
-                    new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes/Hello.class").chown(uid, gid).setMode(0660);
-
-                    /*
-                     * Write the cocoon.properties file.
-                     */
-                    if(!isTomcat4) {
-                        String cocoonProps=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties";
-                        OutputStream fileOut=new BufferedOutputStream(new UnixFile(cocoonProps).getSecureOutputStream(uid, gid, 0660, false));
-			try {
-			    copyResource("cocoon.properties.1", fileOut);
-			    out=new ChainWriter(fileOut);
-			    try {
-				out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon\n");
-				out.flush();
-				copyResource("cocoon.properties.2", fileOut);
-			    } finally {
-				out.flush();
-			    }
-			} finally {
-			    fileOut.flush();
-			    fileOut.close();
-			}
-                    }
-
-                    /*
-                     * Write the ROOT/WEB-INF/web.xml file.
-                     */
-                    String webXML=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/web.xml";
-                    out=new ChainWriter(
-                        new BufferedOutputStream(
-                            new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false)
-                        )
-                    );
-		    try {
-                        if(isTomcat55) {
-                            out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
-                                    + "<web-app xmlns=\"http://java.sun.com/xml/ns/j2ee\"\n"
-                                    + "    xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
-                                    + "    xsi:schemaLocation=\"http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd\"\n"
-                                    + "    version=\"2.4\">\n"
-                                    + "  <display-name>Welcome to Tomcat</display-name>\n"
-                                    + "  <description>\n"
-                                    + "     Welcome to Tomcat\n"
-                                    + "  </description>\n"
-                                    + "</web-app>\n");
-                        } else if(isTomcat4) {
-			    out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
-				      + "\n"
-				      + "<!DOCTYPE web-app\n"
-				      + "    PUBLIC \"-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN\"\n"
-				      + "    \"http://java.sun.com/j2ee/dtds/web-app_2_3.dtd\">\n"
-				      + "\n"
-				      + "<web-app>\n");
-			    if(tomcatVersion.startsWith(HttpdTomcatVersion.VERSION_4_1_PREFIX)) {
-				out.print("  <display-name>Welcome to Tomcat</display-name>\n"
-					  + "  <description>\n"
-					  + "    Welcome to Tomcat\n"
-					  + "  </description>\n");
-			    }
-			    out.print("</web-app>\n");
-			} else {
-			    out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
-				      + "\n"
-				      + "<!DOCTYPE web-app\n"
-				      + "    PUBLIC \"-//Sun Microsystems, Inc.//DTD Web Application 2.2//EN\"\n"
-				      + "    \"http://java.sun.com/j2ee/dtds/web-app_2.2.dtd\">\n"
-				      + "\n"
-				      + "<web-app>\n"
-				      + "\n"
-				      + " <servlet>\n"
-				      + "  <servlet-name>org.apache.cocoon.Cocoon</servlet-name>\n"
-				      + "  <servlet-class>org.apache.cocoon.Cocoon</servlet-class>\n"
-				      + "  <init-param>\n"
-				      + "   <param-name>properties</param-name>\n"
-				      + "   <param-value>\n"
-				      + "    WEB-INF/conf/cocoon.properties\n"
-				      + "   </param-value>\n"
-				      + "  </init-param>\n"
-				      + " </servlet>\n"
-				      + "\n"
-				      + " <servlet-mapping>\n"
-				      + "  <servlet-name>org.apache.cocoon.Cocoon</servlet-name>\n"
-				      + "  <url-pattern>*.xml</url-pattern>\n"
-				      + " </servlet-mapping>\n"
-				      + "\n"
-				      + "</web-app>\n");
-			}
-		    } finally {
-			out.flush();
-			out.close();
-		    }
+                    ).print("Manifest-Version: 1.0").flush().close();
                 }
 
                 /*
-                 * Protect the analog directory.
+                 * Write the cocoon.properties file.
                  */
+                if(!isTomcat4) {
+                    String cocoonProps=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties";
+                    OutputStream fileOut=new BufferedOutputStream(new UnixFile(cocoonProps).getSecureOutputStream(uid, gid, 0660, false));
+                    try {
+                        copyResource("cocoon.properties.1", fileOut);
+                        ChainWriter out=new ChainWriter(fileOut);
+                        try {
+                            out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon\n");
+                            out.flush();
+                            copyResource("cocoon.properties.2", fileOut);
+                        } finally {
+                            out.flush();
+                        }
+                    } finally {
+                        fileOut.flush();
+                        fileOut.close();
+                    }
+                }
+
                 /*
-                String analogAccess=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/analog/.htaccess";
-                out=new ChainWriter(
+                 * Write the ROOT/WEB-INF/web.xml file.
+                 */
+                String webXML=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/web.xml";
+                ChainWriter out=new ChainWriter(
                     new BufferedOutputStream(
-                        new UnixFile(analogAccess).getSecureOutputStream(uid, gid, 0664, false)
+                        new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false)
                     )
                 );
-		try {
-		    out.print("AuthGroupFile ").print(siteDir).print("/conf/group\n"
-                            + "AuthUserFile ").print(siteDir).print("/conf/passwd\n"
-                            + "AuthName \"").print(siteDir).print(" log files\"\n"
-                            + "AuthType Basic\n"
-                            + "require group developer\n"
-                    );
-		} finally {
-		    out.flush();
-		    out.close();
-		}*/
+                try {
+                    if(isTomcat55) {
+                        out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+                                + "<web-app xmlns=\"http://java.sun.com/xml/ns/j2ee\"\n"
+                                + "    xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
+                                + "    xsi:schemaLocation=\"http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd\"\n"
+                                + "    version=\"2.4\">\n"
+                                + "  <display-name>Welcome to Tomcat</display-name>\n"
+                                + "  <description>\n"
+                                + "     Welcome to Tomcat\n"
+                                + "  </description>\n"
+                                + "</web-app>\n");
+                    } else if(isTomcat4) {
+                        out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+                                  + "\n"
+                                  + "<!DOCTYPE web-app\n"
+                                  + "    PUBLIC \"-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN\"\n"
+                                  + "    \"http://java.sun.com/j2ee/dtds/web-app_2_3.dtd\">\n"
+                                  + "\n"
+                                  + "<web-app>\n");
+                        if(tomcatVersion.startsWith(HttpdTomcatVersion.VERSION_4_1_PREFIX)) {
+                            out.print("  <display-name>Welcome to Tomcat</display-name>\n"
+                                      + "  <description>\n"
+                                      + "    Welcome to Tomcat\n"
+                                      + "  </description>\n");
+                        }
+                        out.print("</web-app>\n");
+                    } else {
+                        out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+                                  + "\n"
+                                  + "<!DOCTYPE web-app\n"
+                                  + "    PUBLIC \"-//Sun Microsystems, Inc.//DTD Web Application 2.2//EN\"\n"
+                                  + "    \"http://java.sun.com/j2ee/dtds/web-app_2.2.dtd\">\n"
+                                  + "\n"
+                                  + "<web-app>\n"
+                                  + "\n"
+                                  + " <servlet>\n"
+                                  + "  <servlet-name>org.apache.cocoon.Cocoon</servlet-name>\n"
+                                  + "  <servlet-class>org.apache.cocoon.Cocoon</servlet-class>\n"
+                                  + "  <init-param>\n"
+                                  + "   <param-name>properties</param-name>\n"
+                                  + "   <param-value>\n"
+                                  + "    WEB-INF/conf/cocoon.properties\n"
+                                  + "   </param-value>\n"
+                                  + "  </init-param>\n"
+                                  + " </servlet>\n"
+                                  + "\n"
+                                  + " <servlet-mapping>\n"
+                                  + "  <servlet-name>org.apache.cocoon.Cocoon</servlet-name>\n"
+                                  + "  <url-pattern>*.xml</url-pattern>\n"
+                                  + " </servlet-mapping>\n"
+                                  + "\n"
+                                  + "</web-app>\n");
+                    }
+                } finally {
+                    out.flush();
+                    out.close();
+                }
 
-                if (!archiveInstalled) {
-                    /*
-                     * Create the PHP script.
-                     */
+                /*
+                 * Create the PHP script.
+                 */
+                String defaultPhpVersion = getDefaultPhpVersion(osv);
+                if(defaultPhpVersion!=null) {
                     String php=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin/php";
-                    ChainWriter out=new ChainWriter(
+                    out=new ChainWriter(
                         new UnixFile(php).getSecureOutputStream(uid, gid, 0755, false)
                     );
-		    try {
-			out.print("#!/bin/sh\n"
-				  + ". /usr/aoserv/etc/postgresql-"+PHP_POSTGRES_MINOR_VERSION+".sh\n"
-				  + "exec /usr/php/").print(getDefaultPhpVersion(osv)).print("/bin/php \"$@\"\n");
-		    } finally {
-			out.flush();
-			out.close();
-		    }
-
-                    /*
-                     * Create the test CGI script.
-                     */
-                    String testCGI=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin/test";
-                    out=new ChainWriter(
-                        new BufferedOutputStream(
-                            new UnixFile(testCGI).getSecureOutputStream(uid, gid, 0755, false)
-                        )
-                    );
-		    try {
-			out.print("#!/usr/bin/perl\n"
-                                + "print \"Content-type: text/html\\n\";\n"
-                                + "print \"\\n\";\n"
-                                + "print \"<HTML>\\n\";\n"
-                                + "print \"  <BODY>\\n\";\n"
-                                + "print \"    <H1>Test CGI Script for ").print(primaryUrl).print("</H1>\\n\";\n"
-                                + "print \"  </BODY>\\n\";\n"
-                                + "print \"</HTML>\\n\";\n"
-                        );
+                    try {
+                        out.print("#!/bin/sh\n"
+                                  + ". /usr/aoserv/etc/postgresql-"+PHP_POSTGRES_MINOR_VERSION+".sh\n"
+                                  + "exec /usr/php/").print(defaultPhpVersion).print("/bin/php \"$@\"\n");
                     } finally {
-			out.flush();
-			out.close();
-		    }
-
-                    /*
-                     * Create the index.html
-                     */
-                    String indexHTML=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/index.html";
-                    out=new ChainWriter(
-                        new BufferedOutputStream(
-                            new UnixFile(indexHTML).getSecureOutputStream(uid, gid, 0664, false)
-                        )
-                    );
-		    try {
-			out.print("<HTML>\n"
-                                + "  <HEAD><TITLE>Test HTML Page for ").print(primaryUrl).print("</TITLE></HEAD>\n"
-                                + "  <BODY>\n"
-                                + "    Test HTML Page for ").print(primaryUrl).print("\n"
-                                + "  </BODY>\n"
-                                + "</HTML>\n"
-                        );
-		    } finally {
-			out.flush();
-			out.close();
-		    }
-
-                    /*
-                     * Create the test.php file.
-                     */
-                    String testPHP=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php";
-                    new ChainWriter(
-                        new UnixFile(testPHP).getSecureOutputStream(uid, gid, 0664, false)
-                    ).print("<?phpinfo()?>\n").flush().close();
+                        out.flush();
+                        out.close();
+                    }
                 }
+
+                /*
+                 * Create the test CGI script.
+                 */
+                String testCGI=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin/test";
+                out=new ChainWriter(
+                    new BufferedOutputStream(
+                        new UnixFile(testCGI).getSecureOutputStream(uid, gid, 0755, false)
+                    )
+                );
+                try {
+                    out.print("#!/usr/bin/perl\n"
+                            + "print \"Content-type: text/html\\n\";\n"
+                            + "print \"\\n\";\n"
+                            + "print \"<HTML>\\n\";\n"
+                            + "print \"  <BODY>\\n\";\n"
+                            + "print \"    <H1>Test CGI Script for ").print(primaryUrl).print("</H1>\\n\";\n"
+                            + "print \"  </BODY>\\n\";\n"
+                            + "print \"</HTML>\\n\";\n"
+                    );
+                } finally {
+                    out.flush();
+                    out.close();
+                }
+
+                /*
+                 * Create the index.html
+                 */
+                String indexHTML=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/index.html";
+                out=new ChainWriter(
+                    new BufferedOutputStream(
+                        new UnixFile(indexHTML).getSecureOutputStream(uid, gid, 0664, false)
+                    )
+                );
+                try {
+                    out.print("<HTML>\n"
+                            + "  <HEAD><TITLE>Test HTML Page for ").print(primaryUrl).print("</TITLE></HEAD>\n"
+                            + "  <BODY>\n"
+                            + "    Test HTML Page for ").print(primaryUrl).print("\n"
+                            + "  </BODY>\n"
+                            + "</HTML>\n"
+                    );
+                } finally {
+                    out.flush();
+                    out.close();
+                }
+
+                /*
+                 * Create the test.php file.
+                 */
+                String testPHP=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php";
+                new ChainWriter(
+                    new UnixFile(testPHP).getSecureOutputStream(uid, gid, 0664, false)
+                ).print("<?phpinfo()?>\n").flush().close();
 
                 /*
                  * Create the log file analysis.
@@ -1174,10 +1091,14 @@ final public class HttpdManager extends BuilderThread {
             AOServer aoServer=AOServDaemon.getThisAOServer();
 
             int osv=aoServer.getServer().getOperatingSystemVersion().getPKey();
-            // Currently only Mandrake 10.1 supported
+            // Currently only Mandrake 10.1, Mandriva 2006.0, and RedHat ES4 supported
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
+                && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+
+            final Stat tempStat = new Stat();
 
             synchronized(rebuildLock) {
                 // Get some variables that will be used throughout the method
@@ -1186,15 +1107,15 @@ final public class HttpdManager extends BuilderThread {
                 IntList sharedTomcatsNeedingRestarted=new SortedIntArrayList();
                 IntList sitesNeedingRestarted=new SortedIntArrayList();
 
-                doRebuildSharedTomcats(aoServer, deleteFileList, connector, sharedTomcatsNeedingRestarted);
-                doRebuildHttpdSites(aoServer, deleteFileList, connector, serversNeedingRestarted, sitesNeedingRestarted, sharedTomcatsNeedingRestarted);
-                doRebuildHttpdServers(aoServer, deleteFileList, connector, serversNeedingRestarted);
-                disableAndEnableSharedTomcats(aoServer, connector, sharedTomcatsNeedingRestarted);
-                disableAndEnableHttpdSites(aoServer, connector, sitesNeedingRestarted);
+                doRebuildSharedTomcats(aoServer, deleteFileList, connector, sharedTomcatsNeedingRestarted, tempStat);
+                doRebuildHttpdSites(aoServer, deleteFileList, connector, serversNeedingRestarted, sitesNeedingRestarted, sharedTomcatsNeedingRestarted, tempStat);
+                doRebuildHttpdServers(aoServer, deleteFileList, connector, serversNeedingRestarted, tempStat);
+                disableAndEnableSharedTomcats(aoServer, connector, sharedTomcatsNeedingRestarted, tempStat);
+                disableAndEnableHttpdSites(aoServer, connector, sitesNeedingRestarted, tempStat);
                 disableAndEnableSiteBinds(aoServer, connector);
 
                 // Control the /etc/logrotate.d and /etc/httpd/conf/logrotate.d files
-                doRebuildLogrotate(aoServer, deleteFileList, connector);
+                doRebuildLogrotate(aoServer, deleteFileList, connector, tempStat);
 
                 // Reload the server configs
                 reload(serversNeedingRestarted);
@@ -1225,11 +1146,12 @@ final public class HttpdManager extends BuilderThread {
     /**
      * Only called by the internally synchronized <code>doRebuild()</code> method.
      */
-    private static void doRebuildHttpdServers(AOServer aoServer, List<File> deleteFileList, AOServConnector conn, IntList serversNeedingRestarted) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "doRebuildHttpdServers(AOServer,List<File>,AOServConnector,IntList)", null);
+    private static void doRebuildHttpdServers(AOServer aoServer, List<File> deleteFileList, AOServConnector conn, IntList serversNeedingRestarted, Stat tempStat) throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "doRebuildHttpdServers(AOServer,List<File>,AOServConnector,IntList,Stat)", null);
         try {
             for(HttpdServer hs : aoServer.getHttpdServers()) {
                 final int serverNum=hs.getNumber();
+                final int osv = aoServer.getServer().getOperatingSystemVersion().getPKey();
 
                 /*
                  * Rebuild the httpd.conf file
@@ -1246,230 +1168,439 @@ final public class HttpdManager extends BuilderThread {
                     )
                 );
 		try {
+                    LinuxServerAccount lsa=hs.getLinuxServerAccount();
+                    boolean isEnabled=lsa.getDisableLog()==null;
+                    // The version of PHP module to run
+                    TechnologyVersion phpVersion=hs.getModPhpVersion();
+                    if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) {
+                        // Standard beginning
+                        out.print("PidFile /var/run/httpd").print(serverNum).print(".pid\n"
+                                + "ScoreBoardFile /var/run/httpd").print(serverNum).print(".scoreboard\n"
+                                + "ServerName 127.0.0.1\n"
+                                + "ErrorLog /var/log/httpd").print(serverNum).print("/error_log\n"
+                                + "\n"
+                                + "ServerType standalone\n"
+                                + "ServerRoot \"/etc/httpd\"\n"
+                                + "LockFile /var/lock/httpd.lock\n"
+                                + "ResourceConfig conf/srm.conf\n"
+                                + "AccessConfig conf/access.conf\n"
+                                + "TimeOut ").print(hs.getTimeOut()).print("\n"
+                                + "KeepAlive On\n"
+                                + "MaxKeepAliveRequests 100\n"
+                                + "KeepAliveTimeout 15\n"
+                                + "MinSpareServers ").print(10).print("\n" //(servers.length==1 || hs.isShared())?10:2).print("\n" // TODO: Make column for this
+                                + "MaxSpareServers ").print(20).print("\n" //(servers.length==1 || hs.isShared())?20:10).print("\n" // TODO: Make column for this
+                                + "StartServers ").print(20).print("\n" //(servers.length==1 || hs.isShared())?20:10).print("\n" // TODO: Make column for this
+                                + "MaxClients ").print(200).print("\n" //(servers.length==1 || hs.isShared())?200:50).print("\n" // TODO: Make column for this
+                                + "MaxRequestsPerChild 0\n"
+                                + "\n"
+                                + "Include conf/modules_load/mod_vhost_alias\n"
+                                + "Include conf/modules_load/mod_env\n"
+                                + "Include conf/modules_load/mod_log_config\n"
+                                + "Include conf/modules_load/mod_log_agent\n"
+                                + "Include conf/modules_load/mod_log_referer\n"
+                                + "Include conf/modules_load/mod_mime\n"
+                                + "Include conf/modules_load/mod_negotiation\n"
+                                + "Include conf/modules_load/mod_status\n"
+                                + "Include conf/modules_load/mod_info\n"
+                                + "Include conf/modules_load/mod_include\n"
+                                + "Include conf/modules_load/mod_autoindex\n"
+                                + "Include conf/modules_load/mod_dir\n"
+                                + "Include conf/modules_load/mod_cgi\n"
+                                + "Include conf/modules_load/mod_asis\n"
+                                + "Include conf/modules_load/mod_imap\n"
+                                + "Include conf/modules_load/mod_actions\n"
+                                //+ "Include conf/modules_load/mod_userdir\n"
+                                + "Include conf/modules_load/mod_alias\n"
+                                + "Include conf/modules_load/mod_rewrite\n"
+                                + "Include conf/modules_load/mod_access\n"
+                                + "Include conf/modules_load/mod_auth\n"
+                                + "Include conf/modules_load/mod_auth_anon\n"
+                                + "Include conf/modules_load/mod_auth_db\n"
+                                + "Include conf/modules_load/libproxy\n"
+                                + "Include conf/modules_load/mod_expires\n"
+                                + "Include conf/modules_load/mod_headers\n"
+                                + "Include conf/modules_load/mod_setenvif\n"
+                                + "Include conf/modules_load/libssl\n"
+                                + "Include conf/modules_load/libdav\n"
+                                //+ "Include conf/modules_load/mod_fastcgi\n"
+                                + "Include conf/modules_load/mod_").print(hs.isModJK()?"jk":"jserv").print("\n");
+                        if(isEnabled && hs.useModPERL()) out.print("Include conf/modules_load/mod_perl\n");
+                        if(isEnabled && phpVersion!=null) {
+                            String version = phpVersion.getVersion();
+                            out.print("LoadModule php"+version.charAt(0)+"_module /usr/php/"+getMajorPhpVersion(version)+"/lib/apache/"+getPhpLib(phpVersion)+"\n");
+                        }
+                        out.print("\n"
+                                + "ClearModuleList\n"
+                                + "AddModule mod_so.c\n"
+                                + "\n"
+                                + "Include conf/modules_init/mod_vhost_alias\n"
+                                + "Include conf/modules_init/mod_env\n"
+                                + "Include conf/modules_init/mod_log_config\n"
+                                + "Include conf/modules_init/mod_log_agent\n"
+                                + "Include conf/modules_init/mod_log_referer\n"
+                                + "Include conf/modules_init/mod_mime\n"
+                                + "Include conf/modules_init/mod_negotiation\n"
+                                + "Include conf/modules_init/mod_status\n"
+                                + "Include conf/modules_init/mod_info\n"
+                                + "Include conf/modules_init/mod_include\n"
+                                + "Include conf/modules_init/mod_autoindex\n"
+                                + "Include conf/modules_init/mod_dir\n"
+                                + "Include conf/modules_init/mod_cgi\n"
+                                + "Include conf/modules_init/mod_asis\n"
+                                + "Include conf/modules_init/mod_imap\n"
+                                + "Include conf/modules_init/mod_actions\n"
+                                //+ "Include conf/modules_init/mod_userdir\n"
+                                + "Include conf/modules_init/mod_alias\n"
+                                + "Include conf/modules_init/mod_rewrite\n"
+                                + "Include conf/modules_init/mod_access\n"
+                                + "Include conf/modules_init/mod_auth\n"
+                                + "Include conf/modules_init/mod_auth_anon\n"
+                                + "Include conf/modules_init/mod_auth_db\n"
+                                + "Include conf/modules_init/libproxy\n"
+                                + "Include conf/modules_init/mod_expires\n"
+                                + "Include conf/modules_init/mod_headers\n"
+                                + "Include conf/modules_init/mod_setenvif\n"
+                                + "Include conf/modules_init/libssl\n"
+                                + "Include conf/modules_init/libdav\n"
+                                //+ "Include conf/modules_init/mod_fastcgi\n"
+                                + "Include conf/modules_init/mod_").print(hs.isModJK()?"jk":"jserv").print("\n");
+                        if(isEnabled && hs.useModPERL()) out.print("Include conf/modules_init/mod_perl\n");
+                        if(isEnabled && phpVersion!=null) out.print("Include conf/modules_init/mod_php").print(getMajorPhpVersion(phpVersion.getVersion())).print('\n');
+                        out.print("\n"
+                                + "Include conf/modules_conf/mod_vhost_alias\n"
+                                + "Include conf/modules_conf/mod_env\n"
+                                + "Include conf/modules_conf/mod_log_config\n"
+                                + "Include conf/modules_conf/mod_log_agent\n"
+                                + "Include conf/modules_conf/mod_log_referer\n"
+                                + "Include conf/modules_conf/mod_mime\n"
+                                + "Include conf/modules_conf/mod_negotiation\n"
+                                + "Include conf/modules_conf/mod_status\n"
+                                + "Include conf/modules_conf/mod_info\n"
+                                + "Include conf/modules_conf/mod_include\n"
+                                + "Include conf/modules_conf/mod_autoindex\n"
+                                + "Include conf/modules_conf/mod_dir\n"
+                                + "Include conf/modules_conf/mod_cgi\n"
+                                + "Include conf/modules_conf/mod_asis\n"
+                                + "Include conf/modules_conf/mod_imap\n"
+                                + "Include conf/modules_conf/mod_actions\n"
+                                //+ "Include conf/modules_conf/mod_userdir\n"
+                                + "Include conf/modules_conf/mod_alias\n"
+                                + "Include conf/modules_conf/mod_rewrite\n"
+                                + "Include conf/modules_conf/mod_access\n"
+                                + "Include conf/modules_conf/mod_auth\n"
+                                + "Include conf/modules_conf/mod_auth_anon\n"
+                                + "Include conf/modules_conf/mod_auth_db\n"
+                                + "Include conf/modules_conf/libproxy\n"
+                                + "Include conf/modules_conf/mod_expires\n"
+                                + "Include conf/modules_conf/mod_headers\n"
+                                + "Include conf/modules_conf/mod_setenvif\n"
+                                + "Include conf/modules_conf/libssl\n"
+                                + "Include conf/modules_conf/libdav\n"
+                                //+ "Include conf/modules_conf/mod_fastcgi\n"
+                                + "Include conf/modules_conf/mod_").print(hs.isModJK()?"jk":"jserv").print("\n");
+                        if(isEnabled && hs.useModPERL()) out.print("Include conf/modules_conf/mod_perl\n");
+                        if(isEnabled && phpVersion!=null) out.print("Include conf/modules_conf/mod_php").print(getMajorPhpVersion(phpVersion.getVersion())).print('\n');
+                        out.print("\n");
+                        // Use httpd if the account is disabled
+                        if(isEnabled) {
+                            out.print("User ").print(lsa.getLinuxAccount().getUsername().getUsername()).print("\n"
+                                    + "Group ").print(hs.getLinuxServerGroup().getLinuxGroup().getName()).print("\n");
+                        } else {
+                            out.print("User "+LinuxAccount.HTTPD+"\n"
+                                    + "Group "+LinuxGroup.HTTPD+"\n");
+                        }
+                        out.print("ServerAdmin support@aoindustries.com\n"
+                                + "DocumentRoot \"/var/www/html\"\n"
+                                + "<Directory />\n"
+                                + "    AllowOverride None\n"
+                                + "    Deny from All\n"
+                                + "    Order deny,allow\n"
+                                + "    Options None\n"
+                                + "    AuthType Basic\n"
+                                + "</Directory>\n"
+                                + "<Directory /var/www/html>\n"
+                                + "    Allow from All\n"
+                                + "    Order allow,deny\n"
+                                + "</Directory>\n"
+                                + "AccessFileName .htaccess\n"
+                                + "<Files ~ \"^\\.ht\">\n"
+                                + "    Order allow,deny\n"
+                                + "    Deny from all\n"
+                                + "</Files>\n"
+                                + "\n"
+                                + "UseCanonicalName On\n"
+                                + "DefaultType text/plain\n"
+                                + "HostnameLookups Off\n"
+                                + "LogLevel error\n"
+                                + "ServerSignature Off\n"
+                                + "ServerTokens Minimal\n"
+                                + "\n"
+                                + "<Location />\n"
+                                + "    AuthType Basic\n"
+                                + "</Location>\n"
+                                + "\n"
+                                + "CustomLog /var/log/httpd").print(serverNum).print("/access_log common\n"
+                                + "RewriteLog /var/log/httpd").print(serverNum).print("/rewrite.log\n"
+                                + "\n"
+                                + "<IfModule mod_dav.c>\n"
+                                + "    DAVLockDB /var/lock/libdav/httpd").print(serverNum).print("\n"
+                                + "</IfModule>"
+                                + "\n"
+                                + "<IfModule mod_ssl.c>\n"
+                                + "    SSLRandomSeed startup file:/dev/urandom 1024\n"
+                                + "    SSLRandomSeed connect file:/dev/urandom 1024\n"
+                                + "    SSLSessionCache shm:/var/log/httpd").print(serverNum).print("/ssl_scache(512000)\n"
+                                + "    SSLLog /var/log/httpd").print(serverNum).print("/ssl_engine_log\n"
+                                + "</IfModule>\n"
+                                + "\n"
+                                + "<IfModule mod_jserv.c>\n"
+                                + "    ApJServLogFile /var/log/httpd").print(serverNum).print("/jserv.log\n"
+                                + "</IfModule>\n"
+                                + "\n"
+                                + "<IfModule mod_jk.c>\n"
+                                + "    JkWorkersFile /etc/httpd/conf/workers").print(serverNum).print(".properties\n"
+                                + "    JkLogFile /var/log/httpd").print(serverNum).print("/mod_jk.log\n"
+                                + "</IfModule>\n"
+                                + "\n"
+                        );
+                    } else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                        out.print("ServerRoot \"/etc/httpd\"\n"
+                                + "Include conf/modules_conf/core\n"
+                                + "PidFile /var/run/httpd").print(serverNum).print(".pid\n"
+                                + "Timeout ").print(hs.getTimeOut()).print("\n"
+                                + "CoreDumpDirectory /var/log/httpd").print(serverNum).print("\n"
+                                + "LockFile /var/log/httpd").print(serverNum).print("/accept.lock\n"
+                                + "\n"
+                                + "Include conf/modules_conf/prefork\n"
+                                + "Include conf/modules_conf/worker\n"
+                                + "\n"
+                                + "LoadModule access_module modules/mod_access.so\n"
+                                + "LoadModule auth_module modules/mod_auth.so\n"
+                                + "# LoadModule auth_anon_module modules/mod_auth_anon.so\n"
+                                + "# LoadModule auth_dbm_module modules/mod_auth_dbm.so\n"
+                                + "# LoadModule auth_digest_module modules/mod_auth_digest.so\n"
+                                + "# LoadModule file_cache_module modules/mod_file_cache.so\n"
+                                + "# LoadModule charset_lite_module modules/mod_charset_lite.so\n"
+                                + "# LoadModule cache_module modules/mod_cache.so\n"
+                                + "# LoadModule disk_cache_module modules/mod_disk_cache.so\n"
+                                + "# LoadModule mem_cache_module modules/mod_mem_cache.so\n"
+                                + "# LoadModule case_filter_module modules/mod_case_filter.so\n"
+                                + "# LoadModule case_filter_in_module modules/mod_case_filter_in.so\n"
+                                + "# LoadModule dumpio_module modules/mod_dumpio.so\n"
+                                + "# LoadModule ldap_module modules/mod_ldap.so\n"
+                                + "# LoadModule auth_ldap_module modules/mod_auth_ldap.so\n"
+                                + "# LoadModule ext_filter_module modules/mod_ext_filter.so\n"
+                                + "LoadModule include_module modules/mod_include.so\n"
+                                + "LoadModule deflate_module modules/mod_deflate.so\n"
+                                + "LoadModule log_config_module modules/mod_log_config.so\n"
+                                + "# LoadModule log_forensic_module modules/mod_log_forensic.so\n"
+                                + "# LoadModule logio_module modules/mod_logio.so\n"
+                                + "LoadModule env_module modules/mod_env.so\n"
+                                + "LoadModule mime_magic_module modules/mod_mime_magic.so\n"
+                                + "# LoadModule cern_meta_module modules/mod_cern_meta.so\n"
+                                + "LoadModule expires_module modules/mod_expires.so\n"
+                                + "LoadModule headers_module modules/mod_headers.so\n"
+                                + "# LoadModule usertrack_module modules/mod_usertrack.so\n"
+                                + "# LoadModule unique_id_module modules/mod_unique_id.so\n"
+                                + "LoadModule setenvif_module modules/mod_setenvif.so\n"
+                                + "LoadModule proxy_module modules/mod_proxy.so\n"
+                                + "# LoadModule proxy_connect_module modules/mod_proxy_connect.so\n"
+                                + "# LoadModule proxy_ftp_module modules/mod_proxy_ftp.so\n"
+                                + "LoadModule proxy_http_module modules/mod_proxy_http.so\n"
+                                + "LoadModule mime_module modules/mod_mime.so\n"
+                                + "# LoadModule dav_module modules/mod_dav.so\n"
+                                + "# LoadModule status_module modules/mod_status.so\n"
+                                + "LoadModule autoindex_module modules/mod_autoindex.so\n"
+                                + "LoadModule asis_module modules/mod_asis.so\n"
+                                + "# LoadModule info_module modules/mod_info.so\n"
+                                + "LoadModule cgi_module modules/mod_cgi.so\n"
+                                + "# LoadModule cgid_module modules/mod_cgid.so\n"
+                                + "# LoadModule dav_fs_module modules/mod_dav_fs.so\n"
+                                + "# LoadModule vhost_alias_module modules/mod_vhost_alias.so\n"
+                                + "LoadModule negotiation_module modules/mod_negotiation.so\n"
+                                + "LoadModule dir_module modules/mod_dir.so\n"
+                                + "LoadModule imap_module modules/mod_imap.so\n"
+                                + "LoadModule actions_module modules/mod_actions.so\n"
+                                + "# LoadModule speling_module modules/mod_speling.so\n"
+                                + "# LoadModule userdir_module modules/mod_userdir.so\n"
+                                + "LoadModule alias_module modules/mod_alias.so\n"
+                                + "LoadModule rewrite_module modules/mod_rewrite.so\n"
+                                + "LoadModule jk_module modules/mod_jk-apache-2.0.49-linux-i686.so\n"
+                                + "LoadModule ssl_module extramodules/mod_ssl.so\n"
+                                + "LoadModule suexec_module extramodules/mod_suexec.so\n");
+                        if(isEnabled && phpVersion!=null) {
+                            String version = phpVersion.getVersion();
+                            out.print("\n"
+                                    + "# Enable mod_php\n"
+                                    + "LoadModule php").print(version.charAt(0)).print("_module /usr/php/").print(getMajorPhpVersion(version)).print("/lib/apache/").print(getPhpLib(phpVersion)).print("\n"
+                                    + "AddType application/x-httpd-php .php4 .php3 .phtml .php\n"
+                                    + "AddType application/x-httpd-php-source .phps\n");
+                        }
+                        out.print("\n"
+                                + "Include conf/modules_conf/mod_log_config\n"
+                                + "Include conf/modules_conf/mod_mime_magic\n"
+                                + "Include conf/modules_conf/mod_setenvif\n"
+                                + "Include conf/modules_conf/mod_mime\n"
+                                + "Include conf/modules_conf/mod_dav\n"
+                                + "Include conf/modules_conf/mod_status\n"
+                                + "Include conf/modules_conf/mod_autoindex\n"
+                                + "Include conf/modules_conf/mod_negotiation\n"
+                                + "Include conf/modules_conf/mod_dir\n"
+                                + "Include conf/modules_conf/mod_userdir\n"
+                                + "Include conf/modules_conf/mod_ssl\n"
+                                + "Include conf/modules_conf/mod_jk\n"
+                                + "\n"
+                                + "SSLSessionCache shmcb:/var/cache/httpd/mod_ssl/ssl_scache").print(serverNum).print("(512000)\n"
+                                + "\n");
+                        // Use apache if the account is disabled
+                        if(isEnabled) {
+                            out.print("User ").print(lsa.getLinuxAccount().getUsername().getUsername()).print("\n"
+                                    + "Group ").print(hs.getLinuxServerGroup().getLinuxGroup().getName()).print("\n");
+                        } else {
+                            out.print("User "+LinuxAccount.APACHE+"\n"
+                                    + "Group "+LinuxGroup.APACHE+"\n");
+                        }
+                        out.print("\n"
+                                + "ServerName ").print(hs.getAOServer().getServer().getHostname()).print("\n"
+                                + "\n"
+                                + "ErrorLog /var/log/httpd").print(serverNum).print("/error_log\n"
+                                + "CustomLog /var/log/httpd").print(serverNum).print("/access_log combined\n"
+                                + "\n"
+                                + "<IfModule mod_dav_fs.c>\n"
+                                + "    DAVLockDB /var/lib/dav").print(serverNum).print("/lockdb\n"
+                                + "</IfModule>\n"
+                                + "\n"
+                                + "<IfModule mod_jk.c>\n"
+                                + "    JkWorkersFile /etc/httpd/conf/workers").print(serverNum).print(".properties\n"
+                                + "    JkLogFile /var/log/httpd").print(serverNum).print("/mod_jk.log\n"
+                                + "</IfModule>\n"
+                                + "\n"
+                                + "Include conf/fileprotector.conf\n"
+                                + "\n"
+                        );
+                    } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                        out.print("ServerRoot \"/etc/httpd\"\n"
+                                + "Include conf/modules_conf/core\n"
+                                + "PidFile /var/run/httpd").print(serverNum).print(".pid\n"
+                                + "Timeout ").print(hs.getTimeOut()).print("\n"
+                                + "CoreDumpDirectory /var/log/httpd").print(serverNum).print("\n"
+                                + "LockFile /var/log/httpd").print(serverNum).print("/accept.lock\n"
+                                + "\n"
+                                + "Include conf/modules_conf/prefork\n"
+                                + "Include conf/modules_conf/worker\n"
+                                + "\n"
+                                + "LoadModule access_module modules/mod_access.so\n"
+                                + "LoadModule auth_module modules/mod_auth.so\n"
+                                + "# LoadModule auth_anon_module modules/mod_auth_anon.so\n"
+                                + "# LoadModule auth_dbm_module modules/mod_auth_dbm.so\n"
+                                + "# LoadModule auth_digest_module modules/mod_auth_digest.so\n"
+                                + "# LoadModule ldap_module modules/mod_ldap.so\n"
+                                + "# LoadModule auth_ldap_module modules/mod_auth_ldap.so\n"
+                                + "LoadModule include_module modules/mod_include.so\n"
+                                + "LoadModule log_config_module modules/mod_log_config.so\n"
+                                + "LoadModule env_module modules/mod_env.so\n"
+                                + "LoadModule mime_magic_module modules/mod_mime_magic.so\n"
+                                + "# LoadModule cern_meta_module modules/mod_cern_meta.so\n"
+                                + "LoadModule expires_module modules/mod_expires.so\n"
+                                + "LoadModule deflate_module modules/mod_deflate.so\n"
+                                + "LoadModule headers_module modules/mod_headers.so\n"
+                                + "# LoadModule usertrack_module modules/mod_usertrack.so\n"
+                                + "LoadModule setenvif_module modules/mod_setenvif.so\n"
+                                + "LoadModule mime_module modules/mod_mime.so\n"
+                                + "# LoadModule dav_module modules/mod_dav.so\n"
+                                + "# LoadModule status_module modules/mod_status.so\n"
+                                + "LoadModule autoindex_module modules/mod_autoindex.so\n"
+                                + "LoadModule asis_module modules/mod_asis.so\n"
+                                + "# LoadModule info_module modules/mod_info.so\n"
+                                + "# LoadModule dav_fs_module modules/mod_dav_fs.so\n"
+                                + "# LoadModule vhost_alias_module modules/mod_vhost_alias.so\n"
+                                + "LoadModule negotiation_module modules/mod_negotiation.so\n"
+                                + "LoadModule dir_module modules/mod_dir.so\n"
+                                + "LoadModule imap_module modules/mod_imap.so\n"
+                                + "LoadModule actions_module modules/mod_actions.so\n"
+                                + "# LoadModule speling_module modules/mod_speling.so\n"
+                                + "# LoadModule userdir_module modules/mod_userdir.so\n"
+                                + "LoadModule alias_module modules/mod_alias.so\n"
+                                + "LoadModule rewrite_module modules/mod_rewrite.so\n"
+                                + "LoadModule proxy_module modules/mod_proxy.so\n"
+                                + "# LoadModule proxy_ftp_module modules/mod_proxy_ftp.so\n"
+                                + "LoadModule proxy_http_module modules/mod_proxy_http.so\n"
+                                + "# LoadModule proxy_connect_module modules/mod_proxy_connect.so\n"
+                                + "# LoadModule cache_module modules/mod_cache.so\n"
+                                + "LoadModule suexec_module modules/mod_suexec.so\n"
+                                + "# LoadModule disk_cache_module modules/mod_disk_cache.so\n"
+                                + "# LoadModule file_cache_module modules/mod_file_cache.so\n"
+                                + "# LoadModule mem_cache_module modules/mod_mem_cache.so\n"
+                                + "LoadModule cgi_module modules/mod_cgi.so\n"
+                                + "LoadModule ssl_module modules/mod_ssl.so\n"
+                                + "LoadModule jk_module modules/mod_jk-apache-2.0.52-linux-x86_64.so\n"
+                                + "\n"
+                                + "Include conf/modules_conf/mod_log_config\n"
+                                + "Include conf/modules_conf/mod_mime_magic\n"
+                                + "Include conf/modules_conf/mod_setenvif\n"
+                                + "Include conf/modules_conf/mod_mime\n"
+                                + "Include conf/modules_conf/mod_status\n"
+                                + "Include conf/modules_conf/mod_autoindex\n"
+                                + "Include conf/modules_conf/mod_negotiation\n"
+                                + "Include conf/modules_conf/mod_dir\n"
+                                + "Include conf/modules_conf/mod_userdir\n"
+                                + "Include conf/modules_conf/mod_ssl\n"
+                                + "Include conf/modules_conf/mod_jk\n"
+                                + "\n"
+                                + "SSLSessionCache shmcb:/var/cache/mod_ssl/scache").print(serverNum).print("(512000)\n"
+                                + "\n");
+                        // Use apache if the account is disabled
+                        if(isEnabled) {
+                            out.print("User ").print(lsa.getLinuxAccount().getUsername().getUsername()).print("\n"
+                                    + "Group ").print(hs.getLinuxServerGroup().getLinuxGroup().getName()).print("\n");
+                        } else {
+                            out.print("User "+LinuxAccount.APACHE+"\n"
+                                    + "Group "+LinuxGroup.APACHE+"\n");
+                        }
+                        out.print("\n"
+                                + "ServerName ").print(hs.getAOServer().getServer().getHostname()).print("\n"
+                                + "\n"
+                                + "ErrorLog /var/log/httpd").print(serverNum).print("/error_log\n"
+                                + "CustomLog /var/log/httpd").print(serverNum).print("/access_log combined\n"
+                                + "\n"
+                                + "<IfModule mod_dav_fs.c>\n"
+                                + "    DAVLockDB /var/lib/dav").print(serverNum).print("/lockdb\n"
+                                + "</IfModule>\n"
+                                + "\n"
+                                + "<IfModule mod_jk.c>\n"
+                                + "    JkWorkersFile /etc/httpd/conf/workers").print(serverNum).print(".properties\n"
+                                + "    JkLogFile /var/log/httpd").print(serverNum).print("/mod_jk.log\n"
+                                + "</IfModule>\n"
+                                + "\n"
+                        );
+                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
-		    // The version of PHP module to run
-		    TechnologyVersion phpVersion=hs.getModPhpVersion();
+                    // List of binds
+                    for(HttpdBind hb : hs.getHttpdBinds()) {
+                        NetBind nb=hb.getNetBind();
+                        String ip=nb.getIPAddress().getIPAddress();
+                        int port=nb.getPort().getPort();
+                        out.print("Listen ").print(ip).print(':').print(port).print("\n"
+                                + "NameVirtualHost ").print(ip).print(':').print(port).print('\n');
+                    }
 
-		    LinuxServerAccount lsa=hs.getLinuxServerAccount();
-		    boolean isEnabled=lsa.getDisableLog()==null;
-
-                // Standard beginning
-                out.print("PidFile /var/run/httpd").print(serverNum).print(".pid\n"
-                        + "ScoreBoardFile /var/run/httpd").print(serverNum).print(".scoreboard\n"
-			+ "ServerName 127.0.0.1\n"
-                        + "ErrorLog /var/log/httpd").print(serverNum).print("/error_log\n"
-                        + "\n"
-                        + "ServerType standalone\n"
-                        + "ServerRoot \"/etc/httpd\"\n"
-                        + "LockFile /var/lock/httpd.lock\n"
-                        + "ResourceConfig conf/srm.conf\n"
-                        + "AccessConfig conf/access.conf\n"
-                        + "TimeOut ").print(hs.getTimeOut()).print("\n"
-                        + "KeepAlive On\n"
-                        + "MaxKeepAliveRequests 100\n"
-                        + "KeepAliveTimeout 15\n"
-                        + "MinSpareServers ").print(10).print("\n" //(servers.length==1 || hs.isShared())?10:2).print("\n" // TODO: Make column for this
-                        + "MaxSpareServers ").print(20).print("\n" //(servers.length==1 || hs.isShared())?20:10).print("\n" // TODO: Make column for this
-                        + "StartServers ").print(20).print("\n" //(servers.length==1 || hs.isShared())?20:10).print("\n" // TODO: Make column for this
-                        + "MaxClients ").print(200).print("\n" //(servers.length==1 || hs.isShared())?200:50).print("\n" // TODO: Make column for this
-                        + "MaxRequestsPerChild 0\n"
-                        + "\n"
-                        + "Include conf/modules_load/mod_vhost_alias\n"
-                        + "Include conf/modules_load/mod_env\n"
-                        + "Include conf/modules_load/mod_log_config\n"
-                        + "Include conf/modules_load/mod_log_agent\n"
-                        + "Include conf/modules_load/mod_log_referer\n"
-                        + "Include conf/modules_load/mod_mime\n"
-                        + "Include conf/modules_load/mod_negotiation\n"
-                        + "Include conf/modules_load/mod_status\n"
-                        + "Include conf/modules_load/mod_info\n"
-                        + "Include conf/modules_load/mod_include\n"
-                        + "Include conf/modules_load/mod_autoindex\n"
-                        + "Include conf/modules_load/mod_dir\n"
-                        + "Include conf/modules_load/mod_cgi\n"
-                        + "Include conf/modules_load/mod_asis\n"
-                        + "Include conf/modules_load/mod_imap\n"
-                        + "Include conf/modules_load/mod_actions\n"
-                        //+ "Include conf/modules_load/mod_userdir\n"
-                        + "Include conf/modules_load/mod_alias\n"
-                        + "Include conf/modules_load/mod_rewrite\n"
-                        + "Include conf/modules_load/mod_access\n"
-                        + "Include conf/modules_load/mod_auth\n"
-                        + "Include conf/modules_load/mod_auth_anon\n"
-                        + "Include conf/modules_load/mod_auth_db\n"
-                        + "Include conf/modules_load/libproxy\n"
-                        + "Include conf/modules_load/mod_expires\n"
-                        + "Include conf/modules_load/mod_headers\n"
-                        + "Include conf/modules_load/mod_setenvif\n"
-                        + "Include conf/modules_load/libssl\n"
-                        + "Include conf/modules_load/libdav\n"
-                        //+ "Include conf/modules_load/mod_fastcgi\n"
-                        + "Include conf/modules_load/mod_").print(hs.isModJK()?"jk":"jserv").print("\n");
-                if(isEnabled && hs.useModPERL()) out.print("Include conf/modules_load/mod_perl\n");
-                if(isEnabled && phpVersion!=null) {
-                    String version = phpVersion.getVersion();
-                    out.print("LoadModule php"+version.charAt(0)+"_module /usr/php/"+getMajorPhpVersion(version)+"/lib/apache/"+getPhpLib(phpVersion)+"\n");
-                }
-                out.print("\n"
-                        + "ClearModuleList\n"
-                        + "AddModule mod_so.c\n"
-                        + "\n"
-                        + "Include conf/modules_init/mod_vhost_alias\n"
-                        + "Include conf/modules_init/mod_env\n"
-                        + "Include conf/modules_init/mod_log_config\n"
-                        + "Include conf/modules_init/mod_log_agent\n"
-                        + "Include conf/modules_init/mod_log_referer\n"
-                        + "Include conf/modules_init/mod_mime\n"
-                        + "Include conf/modules_init/mod_negotiation\n"
-                        + "Include conf/modules_init/mod_status\n"
-                        + "Include conf/modules_init/mod_info\n"
-                        + "Include conf/modules_init/mod_include\n"
-                        + "Include conf/modules_init/mod_autoindex\n"
-                        + "Include conf/modules_init/mod_dir\n"
-                        + "Include conf/modules_init/mod_cgi\n"
-                        + "Include conf/modules_init/mod_asis\n"
-                        + "Include conf/modules_init/mod_imap\n"
-                        + "Include conf/modules_init/mod_actions\n"
-                        //+ "Include conf/modules_init/mod_userdir\n"
-                        + "Include conf/modules_init/mod_alias\n"
-                        + "Include conf/modules_init/mod_rewrite\n"
-                        + "Include conf/modules_init/mod_access\n"
-                        + "Include conf/modules_init/mod_auth\n"
-                        + "Include conf/modules_init/mod_auth_anon\n"
-                        + "Include conf/modules_init/mod_auth_db\n"
-                        + "Include conf/modules_init/libproxy\n"
-                        + "Include conf/modules_init/mod_expires\n"
-                        + "Include conf/modules_init/mod_headers\n"
-                        + "Include conf/modules_init/mod_setenvif\n"
-                        + "Include conf/modules_init/libssl\n"
-                        + "Include conf/modules_init/libdav\n"
-                        //+ "Include conf/modules_init/mod_fastcgi\n"
-                        + "Include conf/modules_init/mod_").print(hs.isModJK()?"jk":"jserv").print("\n");
-                if(isEnabled && hs.useModPERL()) out.print("Include conf/modules_init/mod_perl\n");
-                if(isEnabled && phpVersion!=null) out.print("Include conf/modules_init/mod_php").print(getMajorPhpVersion(phpVersion.getVersion())).print('\n');
-                out.print("\n"
-                        + "Include conf/modules_conf/mod_vhost_alias\n"
-                        + "Include conf/modules_conf/mod_env\n"
-                        + "Include conf/modules_conf/mod_log_config\n"
-                        + "Include conf/modules_conf/mod_log_agent\n"
-                        + "Include conf/modules_conf/mod_log_referer\n"
-                        + "Include conf/modules_conf/mod_mime\n"
-                        + "Include conf/modules_conf/mod_negotiation\n"
-                        + "Include conf/modules_conf/mod_status\n"
-                        + "Include conf/modules_conf/mod_info\n"
-                        + "Include conf/modules_conf/mod_include\n"
-                        + "Include conf/modules_conf/mod_autoindex\n"
-                        + "Include conf/modules_conf/mod_dir\n"
-                        + "Include conf/modules_conf/mod_cgi\n"
-                        + "Include conf/modules_conf/mod_asis\n"
-                        + "Include conf/modules_conf/mod_imap\n"
-                        + "Include conf/modules_conf/mod_actions\n"
-                        //+ "Include conf/modules_conf/mod_userdir\n"
-                        + "Include conf/modules_conf/mod_alias\n"
-                        + "Include conf/modules_conf/mod_rewrite\n"
-                        + "Include conf/modules_conf/mod_access\n"
-                        + "Include conf/modules_conf/mod_auth\n"
-                        + "Include conf/modules_conf/mod_auth_anon\n"
-                        + "Include conf/modules_conf/mod_auth_db\n"
-                        + "Include conf/modules_conf/libproxy\n"
-                        + "Include conf/modules_conf/mod_expires\n"
-                        + "Include conf/modules_conf/mod_headers\n"
-                        + "Include conf/modules_conf/mod_setenvif\n"
-                        + "Include conf/modules_conf/libssl\n"
-                        + "Include conf/modules_conf/libdav\n"
-                        //+ "Include conf/modules_conf/mod_fastcgi\n"
-                        + "Include conf/modules_conf/mod_").print(hs.isModJK()?"jk":"jserv").print("\n");
-                if(isEnabled && hs.useModPERL()) out.print("Include conf/modules_conf/mod_perl\n");
-                if(isEnabled && phpVersion!=null) out.print("Include conf/modules_conf/mod_php").print(getMajorPhpVersion(phpVersion.getVersion())).print('\n');
-                out.print("\n");
-                // Use httpd if the account is disabled
-                if(isEnabled) {
-                    out.print("User ").print(lsa.getLinuxAccount().getUsername().getUsername()).print("\n"
-                            + "Group ").print(hs.getLinuxServerGroup().getLinuxGroup().getName()).print("\n");
-                } else {
-                    out.print("User "+LinuxAccount.HTTPD+"\n"
-                            + "Group "+LinuxGroup.HTTPD+"\n");
-                }
-                out.print("ServerAdmin support@aoindustries.com\n"
-                        + "DocumentRoot \"/var/www/html\"\n"
-                        + "<Directory />\n"
-                        + "    AllowOverride None\n"
-                        + "    Deny from All\n"
-                        + "    Order deny,allow\n"
-                        + "    Options None\n"
-                        + "    AuthType Basic\n"
-                        + "</Directory>\n"
-                        + "<Directory /var/www/html>\n"
-                        + "    Allow from All\n"
-                        + "    Order allow,deny\n"
-                        + "</Directory>\n"
-                        + "AccessFileName .htaccess\n"
-                        + "<Files ~ \"^\\.ht\">\n"
-                        + "    Order allow,deny\n"
-                        + "    Deny from all\n"
-                        + "</Files>\n"
-                        + "\n"
-                        + "UseCanonicalName On\n"
-                        + "DefaultType text/plain\n"
-                        + "HostnameLookups Off\n"
-                        + "LogLevel error\n"
-                        + "ServerSignature Off\n"
-                        + "ServerTokens Minimal\n"
-                        + "\n"
-                        + "<Location />\n"
-                        + "    AuthType Basic\n"
-                        + "</Location>\n"
-                        + "\n"
-                        + "CustomLog /var/log/httpd").print(serverNum).print("/access_log common\n"
-                        + "RewriteLog /var/log/httpd").print(serverNum).print("/rewrite.log\n"
-                        + "\n"
-                        + "<IfModule mod_dav.c>\n"
-                        + "    DAVLockDB /var/lock/libdav/httpd").print(serverNum).print("\n"
-                        + "</IfModule>"
-                        + "\n"
-                        + "<IfModule mod_ssl.c>\n"
-                        + "    SSLRandomSeed startup file:/dev/urandom 1024\n"
-                        + "    SSLRandomSeed connect file:/dev/urandom 1024\n"
-                        + "    SSLSessionCache shm:/var/log/httpd").print(serverNum).print("/ssl_scache(512000)\n"
-                        + "    SSLLog /var/log/httpd").print(serverNum).print("/ssl_engine_log\n"
-                        + "</IfModule>\n"
-                        + "\n"
-                        + "<IfModule mod_jserv.c>\n"
-                        + "    ApJServLogFile /var/log/httpd").print(serverNum).print("/jserv.log\n"
-                        + "</IfModule>\n"
-                        + "\n"
-                        + "<IfModule mod_jk.c>\n"
-                        + "    JkWorkersFile /etc/httpd/conf/workers").print(serverNum).print(".properties\n"
-                        + "    JkLogFile /var/log/httpd").print(serverNum).print("/mod_jk.log\n"
-                        + "</IfModule>\n"
-                        + "\n"
-                );
-
-                // List of binds
-                for(HttpdBind hb : hs.getHttpdBinds()) {
-                    NetBind nb=hb.getNetBind();
-                    String ip=nb.getIPAddress().getIPAddress();
-                    int port=nb.getPort().getPort();
-                    out.print("Listen ").print(ip).print(':').print(port).print("\n"
-                            + "NameVirtualHost ").print(ip).print(':').print(port).print('\n');
-                }
-
-                // The list of sites to include
-                List<HttpdSite> sites=hs.getHttpdSites();
-                for(int d=0;d<2;d++) {
-                    boolean listFirst=d==0;
-                    out.print("\n");
-                    for(HttpdSite site : sites) {
-                        if(site.listFirst()==listFirst) {
-                            for(HttpdSiteBind bind : site.getHttpdSiteBinds(hs)) {
-                                NetBind nb=bind.getHttpdBind().getNetBind();
-                                String ipAddress=nb.getIPAddress().getIPAddress();
-                                int port=nb.getPort().getPort();
-                                out.print("Include conf/hosts/").print(site.getSiteName()).print('_').print(ipAddress).print('_').print(port).print('\n');
+                    // The list of sites to include
+                    List<HttpdSite> sites=hs.getHttpdSites();
+                    for(int d=0;d<2;d++) {
+                        boolean listFirst=d==0;
+                        out.print("\n");
+                        for(HttpdSite site : sites) {
+                            if(site.listFirst()==listFirst) {
+                                for(HttpdSiteBind bind : site.getHttpdSiteBinds(hs)) {
+                                    NetBind nb=bind.getHttpdBind().getNetBind();
+                                    String ipAddress=nb.getIPAddress().getIPAddress();
+                                    int port=nb.getPort().getPort();
+                                    out.print("Include conf/hosts/").print(site.getSiteName()).print('_').print(ipAddress).print('_').print(port).print('\n');
+                                }
                             }
                         }
                     }
-                }
 		} finally {
 		    out.flush();
 		    out.close();
@@ -1515,7 +1646,7 @@ final public class HttpdManager extends BuilderThread {
                  * Move the new files into place
                  */
                 UnixFile httpdConfFile=new UnixFile(HTTPD_CONF_BEGINNING+serverNum+HTTPD_CONF_ENDING);
-                boolean httpdConfFileExists=httpdConfFile.exists();
+                boolean httpdConfFileExists=httpdConfFile.getStat(tempStat).exists();
                 UnixFile httpdConfFileOld=new UnixFile(HTTPD_CONF_BEGINNING+serverNum+HTTPD_CONF_ENDING_OLD);
                 if(!httpdConfFileExists || !httpdConfFile.contentEquals(httpdConfFileNew)) {
                     int hsPKey=hs.getPKey();
@@ -1525,7 +1656,7 @@ final public class HttpdManager extends BuilderThread {
                 } else httpdConfFileNew.delete();
 
                 UnixFile workersFile=new UnixFile(WORKERS_BEGINNING+serverNum+WORKERS_ENDING);
-                boolean workersFileExists=workersFile.exists();
+                boolean workersFileExists=workersFile.getStat(tempStat).exists();
                 UnixFile workersFileOld=new UnixFile(WORKERS_BEGINNING+serverNum+WORKERS_ENDING_OLD);
                 if(!workersFileExists || !workersFile.contentEquals(workersFileNew)) {
                     int hsPKey=hs.getPKey();
@@ -1548,17 +1679,20 @@ final public class HttpdManager extends BuilderThread {
         AOServConnector conn,
         IntList serversNeedingRestarted,
         IntList sitesNeedingRestarted,
-        IntList sharedTomcatsNeedingRestarted
+        IntList sharedTomcatsNeedingRestarted,
+        Stat tempStat
     ) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "doRebuildHttpdSites(AOServer,List<File>,AOServConnector,IntList,IntList,IntList)", null);
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "doRebuildHttpdSites(AOServer,List<File>,AOServConnector,IntList,IntList,IntList,Stat)", null);
         try {
             int osv=aoServer.getServer().getOperatingSystemVersion().getPKey();
 
             /*
              * Get values used in the rest of the method.
              */
-            Username httpdUsername=conn.usernames.get(LinuxAccount.HTTPD);
-            if(httpdUsername==null) throw new SQLException("Unable to find Username: "+LinuxAccount.HTTPD);
+            final String username = (osv==OperatingSystemVersion.REDHAT_ES_4_X86_64 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) ? LinuxAccount.APACHE : LinuxAccount.HTTPD;
+
+            Username httpdUsername=conn.usernames.get(username);
+            if(httpdUsername==null) throw new SQLException("Unable to find Username: "+username);
             LinuxAccount httpdLA=httpdUsername.getLinuxAccount();
             if(httpdLA==null) throw new SQLException("Unable to find LinuxAccount: "+httpdUsername);
             LinuxServerAccount httpdLSA=httpdLA.getLinuxServerAccount(aoServer);
@@ -1626,9 +1760,13 @@ final public class HttpdManager extends BuilderThread {
                  * Take care of the log files and their rotation.
                  */
                 UnixFile uf=new UnixFile(LOG_DIR+'/'+siteName);
-                if(!uf.exists()) uf.mkdir();
-                uf.chown(awstatsUID, lsgGID);
-                uf.setMode(0750);
+                uf.getStat(tempStat);
+                if(!tempStat.exists()) {
+                    uf.mkdir();
+                    uf.getStat(tempStat);
+                }
+                if(tempStat.getUID()!=awstatsUID || tempStat.getGID()!=lsgGID) uf.chown(awstatsUID, lsgGID);
+                if(tempStat.getMode()!=0750) uf.setMode(0750);
 
                 // Make sure the newly created or existing log directories are not removed
                 logDirectories.remove(siteName);
@@ -1638,10 +1776,11 @@ final public class HttpdManager extends BuilderThread {
                  */
                 HttpdTomcatSite tomcatSite=site.getHttpdTomcatSite();
                 UnixFile wwwDirUF=new UnixFile(siteDir);
-                if(!wwwDirUF.exists() || wwwDirUF.getUID()==UnixFile.ROOT_GID) {
+                wwwDirUF.getStat(tempStat);
+                if(!tempStat.exists() || tempStat.getUID()==UnixFile.ROOT_GID) {
                     HttpdStaticSite staticSite=site.getHttpdStaticSite();
 
-                    if(!wwwDirUF.exists()) wwwDirUF.mkdir();
+                    if(!tempStat.exists()) wwwDirUF.mkdir();
                     wwwDirUF.setMode(
                         (
                             tomcatSite!=null
@@ -1691,7 +1830,7 @@ final public class HttpdManager extends BuilderThread {
 
                         String confServerXML=siteDir+"/conf/server.xml";
                         UnixFile confServerXMLFile=new UnixFile(confServerXML);
-                        if(!site.isManual() || !confServerXMLFile.exists()) {
+                        if(!site.isManual() || !confServerXMLFile.getStat(tempStat).exists()) {
                             UnixFile newConfServerXML=new UnixFile(confServerXML+".new");
                             try {
                                 ChainWriter out=new ChainWriter(
@@ -1974,7 +2113,7 @@ final public class HttpdManager extends BuilderThread {
                                 // Flag the JVM as needing a restart if the server.xml file has been modified
                                 if(site.getDisableLog()==null) {
                                     boolean needsRestart;
-                                    if(confServerXMLFile.exists()) {
+                                    if(confServerXMLFile.getStat(tempStat).exists()) {
                                         needsRestart=!confServerXMLFile.contentEquals(newConfServerXML);
                                     } else needsRestart=true;
                                     if(needsRestart) {
@@ -1997,7 +2136,8 @@ final public class HttpdManager extends BuilderThread {
                             try {
                                 stripFilePrefix(
                                     confServerXMLFile,
-                                    autoWarning
+                                    autoWarning,
+                                    tempStat
                                 );
                             } catch(IOException err) {
                                 // Errors OK because this is done in manual mode and they might have symbolic linked stuff
@@ -2013,7 +2153,7 @@ final public class HttpdManager extends BuilderThread {
                 String sharedConfig=CONF_HOSTS+'/'+siteName;
                 hostConfFiles.remove(siteName);
                 UnixFile sharedFile=new UnixFile(sharedConfig);
-                if(!site.isManual() || !sharedFile.exists()) {
+                if(!site.isManual() || !sharedFile.getStat(tempStat).exists()) {
                     String newSharedConfig=sharedConfig+".new";
                     UnixFile newSharedFile=new UnixFile(newSharedConfig);
                     ChainWriter out=new ChainWriter(
@@ -2028,7 +2168,7 @@ final public class HttpdManager extends BuilderThread {
                     );
 		    try {
 			out.print("    ServerAdmin ").print(site.getServerAdmin()).print("\n"
-											 + "\n");
+                                + "\n");
 			
 			if(tomcatSite!=null) {
 			    HttpdTomcatVersion htv=tomcatSite.getHttpdTomcatVersion();
@@ -2038,24 +2178,31 @@ final public class HttpdManager extends BuilderThread {
 			    HttpdJBossSite jbossSite=tomcatSite.getHttpdJBossSite();
 			    HttpdTomcatSharedSite sharedSite=tomcatSite.getHttpdTomcatSharedSite();
 			    
-			    out.print("    <IfModule !mod_php4.c>\n");
-                out.print("    <IfModule !mod_php5.c>\n");
 			    boolean useApache=tomcatSite.useApache();
-			    if(!useApache) {
-				out.print("        <IfModule mod_jk.c>\n"
-					  + "            Include conf/options/cgi_php4\n"
-					  + "        </IfModule>\n");
-			    } else {
-				out.print("        Include conf/options/cgi_php4\n");
-			    }
-			    out.print("    </IfModule>\n");
-                out.print("    </IfModule>\n");
-			    
-			    if(useApache) {
-				out.print("    Include conf/options/shtml_standard\n"
-					  + "    Include conf/options/mod_rewrite\n"
-					  + "\n");
-			    }
+                            if(osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                                if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                    out.print("    <IfModule !sapi_apache2.c>\n"
+                                            + "        <IfModule !mod_php5.c>\n"
+                                            + "            Action php4-script /cgi-bin/php\n"
+                                            + "            AddHandler php4-script .php .php3 .php4\n"
+                                            + "        </IfModule>\n"
+                                            + "    </IfModule>\n");
+                                } else {
+                                    out.print("    <IfModule !mod_php4.c>\n"
+                                            + "        <IfModule !mod_php5.c>\n"
+                                            + "            Include conf/options/cgi_php4\n"
+                                            + "        </IfModule>\n"
+                                            + "    </IfModule>\n");
+                                }
+
+                                if(useApache) {
+                                    if(osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                        out.print("    Include conf/options/shtml_standard\n"
+                                                  + "    Include conf/options/mod_rewrite\n"
+                                                  + "\n");
+                                    }
+                                }
+                            }
 			    if(stdSite!=null || jbossSite!=null) {
 				if(!isTomcat4) {
 				    out.print("    <IfModule mod_jserv.c>\n"
@@ -2079,8 +2226,10 @@ final public class HttpdManager extends BuilderThread {
                                             + "\n");
 				}
 			    } else if(sharedSite!=null) {
-				out.print("    Include conf/wwwgroup/").print(sharedSite.getHttpdSharedTomcat().getName()).print("\n"
-																 + "\n");
+                                if(osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                    out.print("    Include conf/wwwgroup/").print(sharedSite.getHttpdSharedTomcat().getName()).print("\n"
+                                            + "\n");
+                                }
 			    } else throw new IllegalArgumentException("Unsupported HttpdTomcatSite type: "+site.getPKey());
 			    
 			    // The CGI user info
@@ -2095,9 +2244,14 @@ final public class HttpdManager extends BuilderThread {
 				}
 			    }
 			    if(useSuexec || !foundOne) {
-				out.print("    User ").print(lsa.getLinuxAccount().getUsername()).print("\n"
-                                        + "    Group ").print(lsg.getLinuxGroup().getName()).print("\n"
-                                        + "\n");
+                                if(osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                    out.print("    User ").print(lsa.getLinuxAccount().getUsername()).print("\n"
+                                            + "    Group ").print(lsg.getLinuxGroup().getName()).print("\n"
+                                            + "\n");
+                                } else {
+                                    out.print("    SuexecUserGroup ").print(lsa.getLinuxAccount().getUsername()).print(' ').print(lsg.getLinuxGroup().getName()).print("\n"
+                                            + "\n");
+                                }
 			    }
 
                             // Write the standard restricted URL patterns
@@ -2126,6 +2280,20 @@ final public class HttpdManager extends BuilderThread {
                                     + "        RewriteCond %{REQUEST_METHOD} ^(TRACE|TRACK)\n"
                                     + "        RewriteRule .* - [F]\n"
                                     + "    </IfModule>\n");
+                            // Write the authenticated locations
+                            List<HttpdSiteAuthenticatedLocation> hsals = site.getHttpdSiteAuthenticatedLocations();
+                            if(!hsals.isEmpty()) {
+                                out.print("    # Authenticated Locations\n");
+                                for(HttpdSiteAuthenticatedLocation hsal : hsals) {
+                                    out.print("    <").print(hsal.getIsRegularExpression()?"LocationMatch":"Location").print(" \"").print(hsal.getPath()).print("\">\n");
+                                    if(hsal.getAuthUserFile().length()>0 || hsal.getAuthGroupFile().length()>0) out.print("        AuthType Basic\n");
+                                    if(hsal.getAuthName().length()>0) out.print("        AuthName \"").print(hsal.getAuthName()).print("\"\n");
+                                    if(hsal.getAuthUserFile().length()>0) out.print("        AuthUserFile \"").print(hsal.getAuthUserFile()).print("\"\n");
+                                    if(hsal.getAuthGroupFile().length()>0) out.print("        AuthGroupFile \"").print(hsal.getAuthGroupFile()).print("\"\n");
+                                    if(hsal.getRequire().length()>0) out.print("        require ").print(hsal.getRequire()).print('\n');
+                                    out.print("    </").print(hsal.getIsRegularExpression()?"LocationMatch":"Location").print(">\n");
+                                }
+                            }
 
                             // Set up all of the webapps
 			    for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
@@ -2152,17 +2320,27 @@ final public class HttpdManager extends BuilderThread {
                                             + "    </Directory>\n");
 				}
 				if(useApache) {
-				    out.print("    ScriptAlias ").print(path).print("/cgi-bin/ ").print(docBase).print("/cgi-bin/\n"
-                                            + "    <Directory ").print(docBase).print("/cgi-bin>\n"
-                                            + "        Options ExecCGI\n"
-                                            + "        <IfModule mod_ssl.c>\n"
-                                            + "            SSLOptions +StdEnvVars\n"
-                                            + "        </IfModule>\n"
-                                            + "        Allow from All\n"
-                                            + "        Order allow,deny\n"
-                                            + "    </Directory>\n");
+                                    if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                        out.print("    <Directory \"").print(docBase).print("/cgi-bin\">\n"
+                                                + "        <IfModule mod_ssl.c>\n"
+                                                + "            SSLOptions +StdEnvVars\n"
+                                                + "        </IfModule>\n"
+                                                + "        SetHandler cgi-script\n"
+                                                + "        Options ExecCGI\n"
+                                                + "    </Directory>\n");
+                                    } else {
+                                        out.print("    ScriptAlias ").print(path).print("/cgi-bin/ ").print(docBase).print("/cgi-bin/\n"
+                                                + "    <Directory ").print(docBase).print("/cgi-bin>\n"
+                                                + "        Options ExecCGI\n"
+                                                + "        <IfModule mod_ssl.c>\n"
+                                                + "            SSLOptions +StdEnvVars\n"
+                                                + "        </IfModule>\n"
+                                                + "        Allow from All\n"
+                                                + "        Order allow,deny\n"
+                                                + "    </Directory>\n");
+                                    }
 				} else {
-				    out.print("    <IfModule mod_jk.c>\n"
+                                    out.print("    <IfModule mod_jk.c>\n"
                                             + "        ScriptAlias ").print(path).print("/cgi-bin/ ").print(docBase).print("/cgi-bin/\n"
                                             + "        <Directory ").print(docBase).print("/cgi-bin>\n"
                                             + "            Options ExecCGI\n"
@@ -2176,13 +2354,13 @@ final public class HttpdManager extends BuilderThread {
 				}
 				if(useApache) {
 				    out.print("    <Location ").print(path).print("/META-INF/>\n"
-										  + "        AllowOverride None\n"
-										  + "        Deny from All\n"
-										  + "    </Location>\n"
-										  + "    <Location ").print(path).print("/WEB-INF/>\n"
-															+ "        AllowOverride None\n"
-															+ "        Deny from All\n"
-															+ "    </Location>\n");
+                                            + "        AllowOverride None\n"
+                                            + "        Deny from All\n"
+                                            + "    </Location>\n"
+                                            + "    <Location ").print(path).print("/WEB-INF/>\n"
+                                            + "        AllowOverride None\n"
+                                            + "        Deny from All\n"
+                                            + "    </Location>\n");
 				}
 				out.print('\n');
 			    }
@@ -2228,16 +2406,16 @@ final public class HttpdManager extends BuilderThread {
 				}
 			    }
 			    String jkCode=ajp13Code!=null?ajp13Code:ajp12Code;
-			    out.print("    <IfModule mod_jk.c>\n"
-                                    + "        # Redirect past automatic backups\n"
-                                    + "        <IfModule mod_rewrite.c>\n"
-                                    + "            RewriteEngine on\n"
-                                    + "            RewriteRule ^(.*).do~$ $1.do [L,R]\n"
-                                    + "            RewriteRule ^(.*).jsp~$ $1.jsp [L,R]\n"
-                                    + "            RewriteRule ^(.*).jspa~$ $1.jspa [L,R]\n"
-                                    + "            RewriteRule ^(.*).vm~$ $1.vm [L,R]\n"
-                                    + "            RewriteRule ^(.*).xml~$ $1.xml [L,R]\n"
-                                    + "        </IfModule>\n");
+			    out.print("    <IfModule mod_jk.c>\n");
+                                    //+ "        # Redirect past automatic backups\n"
+                                    //+ "        <IfModule mod_rewrite.c>\n"
+                                    //+ "            RewriteEngine on\n"
+                                    //+ "            RewriteRule ^(.*).do~$ $1.do [L,R]\n"
+                                    //+ "            RewriteRule ^(.*).jsp~$ $1.jsp [L,R]\n"
+                                    //+ "            RewriteRule ^(.*).jspa~$ $1.jspa [L,R]\n"
+                                    //+ "            RewriteRule ^(.*).vm~$ $1.vm [L,R]\n"
+                                    //+ "            RewriteRule ^(.*).xml~$ $1.xml [L,R]\n"
+                                    //+ "        </IfModule>\n");
 			    if(useApache) {
 				for(HttpdTomcatContext context : tomcatSite.getHttpdTomcatContexts()) {
 				    String path=context.getPath();
@@ -2251,41 +2429,24 @@ final public class HttpdManager extends BuilderThread {
 				}
 			    } else {
 				out.print("        JkMount /* ").print(jkCode).print("\n");
+                                if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                    out.print("        JkUnMount /*.php ").print(jkCode).print("\n");
+                                }
 			    }
-                out.print("        # Remove jsessionid for non-jk requests\n"
-                        + "        <IfModule mod_rewrite.c>\n"
-                        + "            RewriteEngine On\n"
-                        + "            RewriteRule ^(.*);jsessionid=.*$ $1\n"
-                        + "        </IfModule>\n"
+                            out.print("        # Remove jsessionid for non-jk requests\n"
+                                    + "        <IfModule mod_rewrite.c>\n"
+                                    + "            RewriteEngine On\n"
+                                    + "            RewriteRule ^(.*);jsessionid=.*$ $1\n"
+                                    + "        </IfModule>\n"
 			            + "    </IfModule>\n"
-                        + "\n");
-                /*
-			    if(useApache) {
-                                String analogImages;
-                                if(osv==OperatingSystemVersion.REDHAT_7_2_I686) analogImages="/var/www/html/images";
-                                else if(
-                                    osv==OperatingSystemVersion.MANDRAKE_9_2_I586
-                                    || osv==OperatingSystemVersion.MANDRAKE_10_1_I586
-                                ) analogImages="/usr/analog/5.32/images";
-                                else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-				out.print("    # The analog config\n"
-					  + "    AliasMatch ^/analog/images$ ").print(analogImages).print("\n"
-                                          + "    AliasMatch ^/analog/images/(.*) ").print(analogImages).print("/$1\n"
-					  + "    <Directory ").print(analogImages).print(">\n"
-					  + "        Allow from All\n"
-					  + "        Order allow,deny\n"
-					  + "        Options Indexes\n"
-					  + "    </Directory>\n"
-                                  );
-			    }
-                 */
+                                    + "\n");
 			} else throw new IllegalArgumentException("Unsupported HttpdSite type for HttpdSite #"+site.getPKey());
 		    } finally {
 			out.flush();
 			out.close();
 		    }
                     
-                    if(!sharedFile.exists() || !sharedFile.contentEquals(newSharedFile)) {
+                    if(!sharedFile.getStat(tempStat).exists() || !sharedFile.contentEquals(newSharedFile)) {
                         for(HttpdSiteBind hsb : site.getHttpdSiteBinds()) {
                             int hsPKey=hsb.getHttpdBind().getHttpdServer().getPKey();
                             if(!serversNeedingRestarted.contains(hsPKey)) serversNeedingRestarted.add(hsPKey);
@@ -2301,11 +2462,11 @@ final public class HttpdManager extends BuilderThread {
                     String bindConfig=CONF_HOSTS+'/'+siteName+'_'+ipAddress+'_'+port;
                     hostConfFiles.remove(siteName+'_'+ipAddress+'_'+port);
                     UnixFile bindFile=new UnixFile(bindConfig);
-                    if(!bind.isManual() || !bindFile.exists()) {
+                    if(!bind.isManual() || !bindFile.getStat(tempStat).exists()) {
                         String newBindConfig=bindConfig+".new";
                         UnixFile newBindFile=new UnixFile(newBindConfig);
                         writeHttpdSiteBindFile(bind, newBindFile, bind.getDisableLog()!=null?HttpdSite.DISABLED:siteName);
-                        if(!bindFile.exists() || !bindFile.contentEquals(newBindFile)) {
+                        if(!bindFile.getStat(tempStat).exists() || !bindFile.contentEquals(newBindFile)) {
                             int hsPKey=bind.getHttpdBind().getHttpdServer().getPKey();
                             if(!serversNeedingRestarted.contains(hsPKey)) serversNeedingRestarted.add(hsPKey);
                             newBindFile.renameTo(bindFile);
@@ -2319,7 +2480,7 @@ final public class HttpdManager extends BuilderThread {
                 String ftpPath=FTPManager.SHARED_FTP_DIRECTORY+'/'+siteName;
                 ftpDirectories.remove(siteName);
                 UnixFile ftpDir=new UnixFile(ftpPath);
-                if(!ftpDir.exists()) ftpDir.mkdir().chown(lsaUID, lsgGID).setMode(0775);
+                if(!ftpDir.getStat(tempStat).exists()) ftpDir.mkdir().chown(lsaUID, lsgGID).setMode(0775);
             }
 
             /*
@@ -2329,8 +2490,8 @@ final public class HttpdManager extends BuilderThread {
             for(int c=0;c<logDirectories.size();c++) deleteFileList.add(new File(LOG_DIR, logDirectories.get(c)));
             for(int c=0;c<wwwDirectories.size();c++) {
                 String siteName=wwwDirectories.get(c);
-                stopHttpdSite(siteName);
-                disableHttpdSite(siteName);
+                stopHttpdSite(siteName, tempStat);
+                disableHttpdSite(siteName, tempStat);
                 String fullPath=HttpdSite.WWW_DIRECTORY+'/'+siteName;
                 if(!aoServer.isHomeUsed(fullPath)) {
                     deleteFileList.add(new File(fullPath));
@@ -2348,6 +2509,7 @@ final public class HttpdManager extends BuilderThread {
             NetBind netBind=bind.getHttpdBind().getNetBind();
             int port=netBind.getPort().getPort();
             int lsgGID=bind.getHttpdSite().getLinuxServerGroup().getGID().getID();
+            int osv=netBind.getAOServer().getServer().getOperatingSystemVersion().getPKey();
 
             ChainWriter out=new ChainWriter(
                 new BufferedOutputStream(
@@ -2355,38 +2517,44 @@ final public class HttpdManager extends BuilderThread {
                 )
             );
 	    try {
-            out.print("<VirtualHost ").print(netBind.getIPAddress().getIPAddress()).print(':').print(port).print(">\n"
-                    + "    ServerName ").print(bind.getPrimaryHttpdSiteURL().getHostname()).print('\n'
-            );
-            List<HttpdSiteURL> altURLs=bind.getAltHttpdSiteURLs();
-            if(!altURLs.isEmpty()) {
-                out.print("    ServerAlias");
-                for(HttpdSiteURL altURL : altURLs) {
-                    out.print(' ').print(altURL.getHostname());
-                }
-                out.print('\n');
-            }
-            out.print("\n"
-                    + "    CustomLog ").print(bind.getAccessLog()).print(" common\n"
-                    + "    ErrorLog ").print(bind.getErrorLog()).print("\n"
-                    + "\n");
-            String sslCert=bind.getSSLCertFile();
-            if(sslCert!=null) {
-                out.print("    <IfModule mod_ssl.c>\n"
-                        + "        SSLCertificateFile ").print(sslCert).print("\n"
-                        + "        SSLCertificateKeyFile ").print(bind.getSSLCertKeyFile()).print("\n"
-                        + "        SSLCACertificateFile /etc/ssl/CA/ca.txt\n"
-                        + "        <Files ~ \"\\.(.cgi|shtml|phtml|php3?)$\">\n"
-                        + "            SSLOptions +StdEnvVars\n"
-                        + "        </Files>\n"
-                        + "        SSLEngine On\n"
-                        + "    </IfModule>\n"
-                        + "\n"
+                out.print("<VirtualHost ").print(netBind.getIPAddress().getIPAddress()).print(':').print(port).print(">\n"
+                        + "    ServerName ").print(bind.getPrimaryHttpdSiteURL().getHostname()).print('\n'
                 );
-            }
-            out.print("    Include conf/hosts/").print(siteInclude).print("\n"
-                    + "\n"
-                    + "</VirtualHost>\n");
+                List<HttpdSiteURL> altURLs=bind.getAltHttpdSiteURLs();
+                if(!altURLs.isEmpty()) {
+                    out.print("    ServerAlias");
+                    for(HttpdSiteURL altURL : altURLs) {
+                        out.print(' ').print(altURL.getHostname());
+                    }
+                    out.print('\n');
+                }
+                out.print("\n");
+                if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                    out.print("    CustomLog ").print(bind.getAccessLog()).print(" combined\n");
+                } else {
+                    out.print("    CustomLog ").print(bind.getAccessLog()).print(" common\n");
+                }
+                out.print("    ErrorLog ").print(bind.getErrorLog()).print("\n"
+                        + "\n");
+                String sslCert=bind.getSSLCertFile();
+                if(sslCert!=null) {
+                    out.print("    <IfModule mod_ssl.c>\n"
+                            + "        SSLCertificateFile ").print(sslCert).print("\n"
+                            + "        SSLCertificateKeyFile ").print(bind.getSSLCertKeyFile()).print("\n");
+                    if(osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                        out.print("        SSLCACertificateFile /etc/ssl/CA/ca.txt\n");
+                    }
+                    out.print("        <Files ~ \"\\.(.cgi|shtml|phtml|php3?)$\">\n"
+                            + "            SSLOptions +StdEnvVars\n"
+                            + "        </Files>\n"
+                            + "        SSLEngine On\n"
+                            + "    </IfModule>\n"
+                            + "\n"
+                    );
+                }
+                out.print("    Include conf/hosts/").print(siteInclude).print("\n"
+                        + "\n"
+                        + "</VirtualHost>\n");
 	    } finally {
 		out.flush();
 		out.close();
@@ -2403,9 +2571,10 @@ final public class HttpdManager extends BuilderThread {
 	AOServer aoServer,
 	List<File> deleteFileList,
 	AOServConnector conn,
-        IntList sharedTomcatsNeedingRestarted
+        IntList sharedTomcatsNeedingRestarted,
+        Stat tempStat
     ) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "doRebuildSharedTomcats(AOServer,List<File>,AOServConnector,IntList)", null);
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "doRebuildSharedTomcats(AOServer,List<File>,AOServConnector,IntList,Stat)", null);
         try {
             int osv=aoServer.getServer().getOperatingSystemVersion().getPKey();
 
@@ -2425,9 +2594,14 @@ final public class HttpdManager extends BuilderThread {
             }
 
             // The config directory should only contain files referenced in the database
-            list = new File(CONF_WWWGROUPS).list();
-            List<String> groupConfFiles = new SortedArrayList<String>(list.length);
-            for (int c = 0; c < list.length; c++) groupConfFiles.add(list[c]);
+            List<String> groupConfFiles;
+            if(osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                list = new File(CONF_WWWGROUPS).list();
+                groupConfFiles = new SortedArrayList<String>(list.length);
+                for (int c = 0; c < list.length; c++) groupConfFiles.add(list[c]);
+            } else {
+                groupConfFiles = null;
+            }
 
             int len = tomcats.size();
             for (int i = 0; i < len; i++) {
@@ -2451,16 +2625,16 @@ final public class HttpdManager extends BuilderThread {
                  * Create and fill in the directory if it does not exist or is owned by root.
                  */
                 final UnixFile wwwGroupDirUF = new UnixFile(HttpdSharedTomcat.WWW_GROUP_DIR, tomcat.getName());
-                UnixFile workUF = new UnixFile(wwwGroupDirUF, "work");
+                UnixFile workUF = new UnixFile(wwwGroupDirUF, "work", false);
                 UnixFile innerWorkUF;
                 if(isTomcat4) {
-                    innerWorkUF=new UnixFile(workUF, "Tomcat-Apache");
+                    innerWorkUF=new UnixFile(workUF, "Tomcat-Apache", false);
                 } else {
                     innerWorkUF=null;
                 }
 
                 boolean needRestart=false;
-                if (!wwwGroupDirUF.exists() || wwwGroupDirUF.getUID() == UnixFile.ROOT_GID) {
+                if (!wwwGroupDirUF.getStat(tempStat).exists() || wwwGroupDirUF.getStat(tempStat).getUID() == UnixFile.ROOT_GID) {
 
                     final String wwwGroupDir = wwwGroupDirUF.getFilename();
                     final int mgroup = (tomcat.isSecure() ? 0750 : 0770);
@@ -2469,19 +2643,19 @@ final public class HttpdManager extends BuilderThread {
                     // Create the /wwwgroup/name/...
 
                     // 001
-                    if (!wwwGroupDirUF.exists()) wwwGroupDirUF.mkdir();
+                    if (!wwwGroupDirUF.getStat(tempStat).exists()) wwwGroupDirUF.mkdir();
                     wwwGroupDirUF.setMode(tomcat.isSecure() ? 0750 : 0770);
-                    new UnixFile(wwwGroupDirUF, "bin").mkdir().chown(lsaUID, lsgGID).setMode(mgroup);
-                    new UnixFile(wwwGroupDirUF, "conf").mkdir().chown(lsaUID, lsgGID).setMode(tomcat.isSecure() ? 0750 : 0770);
-                    UnixFile daemonUF = new UnixFile(wwwGroupDirUF, "daemon").mkdir().chown(lsaUID, lsgGID).setMode(mprivate);
-                    if(tomcat.getDisableLog()==null) new UnixFile(daemonUF, "tomcat").symLink("../bin/tomcat").chown(lsaUID, lsgGID);
+                    new UnixFile(wwwGroupDirUF, "bin", false).mkdir().chown(lsaUID, lsgGID).setMode(mgroup);
+                    new UnixFile(wwwGroupDirUF, "conf", false).mkdir().chown(lsaUID, lsgGID).setMode(tomcat.isSecure() ? 0750 : 0770);
+                    UnixFile daemonUF = new UnixFile(wwwGroupDirUF, "daemon", false).mkdir().chown(lsaUID, lsgGID).setMode(mprivate);
+                    if(tomcat.getDisableLog()==null) new UnixFile(daemonUF, "tomcat", false).symLink("../bin/tomcat").chown(lsaUID, lsgGID);
                     if(isTomcat4) {
                         ln("var/log", wwwGroupDir+"/logs", lsaUID, lsgGID);
                         mkdir(wwwGroupDir+"/temp", mprivate, lsa, lsg);
                     }
-                    UnixFile varUF = new UnixFile(wwwGroupDirUF, "var").mkdir().chown(lsaUID, lsgGID).setMode(isTomcat4?mgroup:mprivate);
-                    new UnixFile(varUF, "log").mkdir().chown(lsaUID, lsgGID).setMode(isTomcat4?mgroup:mprivate);
-                    new UnixFile(varUF, "run").mkdir().chown(lsaUID, lsgGID).setMode(0700);
+                    UnixFile varUF = new UnixFile(wwwGroupDirUF, "var", false).mkdir().chown(lsaUID, lsgGID).setMode(isTomcat4?mgroup:mprivate);
+                    new UnixFile(varUF, "log", false).mkdir().chown(lsaUID, lsgGID).setMode(isTomcat4?mgroup:mprivate);
+                    new UnixFile(varUF, "run", false).mkdir().chown(lsaUID, lsgGID).setMode(0700);
                     
                     workUF.mkdir().chown(lsaUID, lsgGID).setMode(0750);
                     if(innerWorkUF!=null) {
@@ -2525,14 +2699,30 @@ final public class HttpdManager extends BuilderThread {
 			if(isTomcat4) {
 			    out.print(". /etc/profile\n");
                             if (version.startsWith(HttpdTomcatVersion.VERSION_5_5_PREFIX)) {
-                                out.print(". /usr/aoserv/etc/").print(DEFAULT_TOMCAT_5_JDK_VERSION).print(".sh\n");
+                                if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                                    out.print(". /opt/aoserv-client/scripts/").print(DEFAULT_TOMCAT_5_JDK_VERSION).print(".sh\n");
+                                } else {
+                                    out.print(". /usr/aoserv/etc/").print(DEFAULT_TOMCAT_5_JDK_VERSION).print(".sh\n");
+                                }
                             } else {
+                                // Note: Pre Tomcat 5.5 not installed on RedHat ES4
                                 out.print(". /usr/aoserv/etc/").print(getDefaultJdkVersion(osv)).print(".sh\n");
                             }
-                            out.print(". /usr/aoserv/etc/php-").print(getDefaultPhpVersion(osv)).print(".sh\n");
-			    if(postgresServerMinorVersion!=null) out.print(". /usr/aoserv/etc/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
-			    out.print(". /usr/aoserv/etc/aoserv.sh\n"
-				      + "\n"
+                            String defaultPhpVersion = getDefaultPhpVersion(osv);
+                            if(defaultPhpVersion!=null) out.print(". /usr/aoserv/etc/php-").print(defaultPhpVersion).print(".sh\n");
+			    if(postgresServerMinorVersion!=null) {
+                                if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                                    out.print(". /opt/aoserv-client/scripts/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
+                                } else {
+                                    out.print(". /usr/aoserv/etc/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
+                                }
+                            }
+                            if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                                out.print(". /opt/aoserv-client/scripts/aoserv-client.sh\n");
+                            } else {
+                                out.print(". /usr/aoserv/etc/aoserv.sh\n");
+                            }
+                            out.print("\n"
 				      + "umask 002\n"
 				      + "export DISPLAY=:0.0\n"
 				      + "\n"
@@ -2555,21 +2745,18 @@ final public class HttpdManager extends BuilderThread {
                                     + ". /usr/aoserv/etc/cocoon-1.8.2.sh\n"
                                     + ". /usr/aoserv/etc/xerces-1.2.0.sh\n"
                                     + ". /usr/aoserv/etc/ant-1.6.2.sh\n"
-                                    + ". /usr/aoserv/etc/xalan-1.2.d02.sh\n"
-                                    + ". /usr/aoserv/etc/php-").print(getDefaultPhpVersion(osv)).print(".sh\n");
+                                    + ". /usr/aoserv/etc/xalan-1.2.d02.sh\n");
+                            String defaultPhpVersion = getDefaultPhpVersion(osv);
+                            if(defaultPhpVersion!=null) out.print(". /usr/aoserv/etc/php-").print(defaultPhpVersion).print(".sh\n");
                             if(postgresServerMinorVersion!=null) out.print(". /usr/aoserv/etc/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
                             out.print(". /usr/aoserv/etc/profile\n"
                                     + ". /usr/aoserv/etc/fop-0.15.0.sh\n");
                         } else throw new IllegalArgumentException("Unknown version of Tomcat: " + version);
 
                         out.print("\n"
-                                //+ "if [ -d ").print(wwwGroupDir).print("/httpd/bin ] ; then\n"
-                                //+ "    export PATH=").print(wwwGroupDir).print("/httpd/bin:${PATH}\n"
-                                //+ "fi\n"
-                                //+ "\n"
                                 + "export PATH=${PATH}:").print(wwwGroupDir).print("/bin\n"
                                 + "\n");
-                        if(!isTomcat4) {
+                        if(!isTomcat4 && !isTomcat55) {
                             out.print("# Add site group classes\n"
                                     + "CLASSPATH=${CLASSPATH}:").print(wwwGroupDir).print("/classes\n"
                                     + "for i in ").print(wwwGroupDir).print("/lib/* ; do\n"
@@ -2718,7 +2905,7 @@ final public class HttpdManager extends BuilderThread {
                         if(
                             !version.startsWith(HttpdTomcatVersion.VERSION_4_1_PREFIX)
                             && !isTomcat55
-                        ) new UnixFile(wwwGroupDirUF, "classes").mkdir().chown(lsaUID, lsgGID).setMode(mgroup);
+                        ) new UnixFile(wwwGroupDirUF, "classes", false).mkdir().chown(lsaUID, lsgGID).setMode(mgroup);
 
                         /*
                          * Create the common directory and all contents
@@ -2732,9 +2919,18 @@ final public class HttpdManager extends BuilderThread {
                         mkdir(wwwGroupDir+"/common/lib", tomcat.isSecure()?0750:0770, lsa, lsg);
                         lnAll("../../../.."+tomcatDirectory+"/common/lib/", wwwGroupDir+"/common/lib/", lsaUID, lsgGID);
                         
-                        if(postgresServerMinorVersion!=null) ln("../../../../usr/postgresql/"+postgresServerMinorVersion+"/share/java/postgresql.jar", wwwGroupDir+"/common/lib/postgresql.jar", lsaUID, lsgGID);
-                        if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) ln("../../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", wwwGroupDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", lsaUID, lsgGID);
-                        else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        if(postgresServerMinorVersion!=null) {
+                            if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                ln("../../../../usr/postgresql/"+postgresServerMinorVersion+"/share/java/postgresql.jar", wwwGroupDir+"/common/lib/postgresql.jar", lsaUID, lsgGID);
+                            } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                                ln("../../../../opt/postgresql-"+postgresServerMinorVersion+"/share/java/postgresql.jar", wwwGroupDir+"/common/lib/postgresql.jar", lsaUID, lsgGID);
+                            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        }
+                        if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                            ln("../../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", wwwGroupDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", lsaUID, lsgGID);
+                        } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                            ln("../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar", wwwGroupDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", lsaUID, lsgGID);
+                        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
                         /*
                          * Write the conf/catalina.policy file
@@ -2779,14 +2975,22 @@ final public class HttpdManager extends BuilderThread {
                         /*
                          * Create /lib
                          */
-                        if(!isTomcat4) {
-                            new UnixFile(wwwGroupDirUF, "lib").mkdir().chown(lsaUID, lsgGID).setMode(mgroup);
+                        if(!isTomcat4 && !isTomcat55) {
+                            new UnixFile(wwwGroupDirUF, "lib", false).mkdir().chown(lsaUID, lsgGID).setMode(mgroup);
                             lnAll("../../.."+tomcatDirectory+"/lib/", wwwGroupDir+"/lib/", lsaUID, lsgGID);
                             ln("../../.."+tomcatDirectory+"/lib/jasper-runtime.jar", wwwGroupDir+"/lib/jasper-runtime.jar", lsaUID, lsgGID);
-                            if(postgresServerMinorVersion!=null) ln("../../../usr/postgresql/"+postgresServerMinorVersion+"/share/java/postgresql.jar", wwwGroupDir+"/lib/postgresql.jar", lsaUID, lsgGID);
-                            if(
-                                osv==OperatingSystemVersion.MANDRAKE_10_1_I586
-                            ) ln("../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", wwwGroupDir+"/lib/mysql-connector-java-3.1.12-bin.jar", lsaUID, lsgGID);
+                            if(postgresServerMinorVersion!=null) {
+                                if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                    ln("../../../usr/postgresql/"+postgresServerMinorVersion+"/share/java/postgresql.jar", wwwGroupDir+"/lib/postgresql.jar", lsaUID, lsgGID);
+                                } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                                    ln("../../../opt/postgresql-"+postgresServerMinorVersion+"/share/java/postgresql.jar", wwwGroupDir+"/lib/postgresql.jar", lsaUID, lsgGID);
+                                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                            }
+                            if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                ln("../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", wwwGroupDir+"/lib/mysql-connector-java-3.1.12-bin.jar", lsaUID, lsgGID);
+                            } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                                ln("../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar", wwwGroupDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", lsaUID, lsgGID);
+                            }
                             else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                         }
                         mkdir(wwwGroupDir+"/server", tomcat.isSecure()?0750:0770, lsa, lsg);
@@ -2816,7 +3020,7 @@ final public class HttpdManager extends BuilderThread {
 
                     //  008
                     if(!isTomcat4) {
-                        UnixFile servErrUF = new UnixFile(varUF, "log/servlet_err");
+                        UnixFile servErrUF = new UnixFile(varUF, "log/servlet_err", false);
                         servErrUF.getSecureOutputStream(lsaUID, lsgGID, 0640, false).close();
                     }
 
@@ -2827,7 +3031,7 @@ final public class HttpdManager extends BuilderThread {
                 }
 
                 // always rebuild profile.sites file
-                UnixFile newSitesFileUF = new UnixFile(wwwGroupDirUF, "bin/profile.sites.new");
+                UnixFile newSitesFileUF = new UnixFile(wwwGroupDirUF, "bin/profile.sites.new", false);
                 ChainWriter out = new ChainWriter(
                     new BufferedOutputStream(
                         newSitesFileUF.getSecureOutputStream(lsaUID, lsgGID, 0750, true)
@@ -2851,19 +3055,19 @@ final public class HttpdManager extends BuilderThread {
 		    out.close();
 		}
                 // flag as needing a restart if this file is different than any existing
-                UnixFile sitesFile = new UnixFile(wwwGroupDirUF, "bin/profile.sites");
-                if(!sitesFile.exists() || !newSitesFileUF.contentEquals(sitesFile)) {
+                UnixFile sitesFile = new UnixFile(wwwGroupDirUF, "bin/profile.sites", false);
+                if(!sitesFile.getStat(tempStat).exists() || !newSitesFileUF.contentEquals(sitesFile)) {
                     needRestart=true;
-                    UnixFile backupFile=new UnixFile(wwwGroupDirUF, "bin/profile.sites.old");
-                    if(sitesFile.exists()) sitesFile.renameTo(backupFile);
+                    UnixFile backupFile=new UnixFile(wwwGroupDirUF, "bin/profile.sites.old", false);
+                    if(sitesFile.getStat(tempStat).exists()) sitesFile.renameTo(backupFile);
                     newSitesFileUF.renameTo(sitesFile);
                 } else newSitesFileUF.delete();
 
                 if(isTomcat4 && tomcat.isSecure()) {
-                    UnixFile buildPolicy=new UnixFile(wwwGroupDirUF, "bin/build_catalina_policy");
-                    if(!tomcat.isManual() || buildPolicy.exists()) {
+                    UnixFile buildPolicy=new UnixFile(wwwGroupDirUF, "bin/build_catalina_policy", false);
+                    if(!tomcat.isManual() || buildPolicy.getStat(tempStat).exists()) {
                         // always rebuild the bin/build_catalina_policy script for secured and auto JVMs
-                        UnixFile newBuildPolicy=new UnixFile(wwwGroupDirUF, "bin/build_catalina_policy.new");
+                        UnixFile newBuildPolicy=new UnixFile(wwwGroupDirUF, "bin/build_catalina_policy.new", false);
                         out=new ChainWriter(
                             new BufferedOutputStream(
                                 newBuildPolicy.getSecureOutputStream(lsaUID, lsgGID, 0700, true)
@@ -2886,10 +3090,10 @@ final public class HttpdManager extends BuilderThread {
 			}
 
                         // flag as needing a restart if this file is different than any existing
-                        if(!buildPolicy.exists() || !newBuildPolicy.contentEquals(buildPolicy)) {
+                        if(!buildPolicy.getStat(tempStat).exists() || !newBuildPolicy.contentEquals(buildPolicy)) {
                             needRestart=true;
-                            UnixFile backupBuildPolicy = new UnixFile(wwwGroupDirUF, "bin/build_catalina_policy.old");
-                            if(buildPolicy.exists()) buildPolicy.renameTo(backupBuildPolicy);
+                            UnixFile backupBuildPolicy = new UnixFile(wwwGroupDirUF, "bin/build_catalina_policy.old", false);
+                            if(buildPolicy.getStat(tempStat).exists()) buildPolicy.renameTo(backupBuildPolicy);
                             newBuildPolicy.renameTo(buildPolicy);
                         } else newBuildPolicy.delete();
                     }
@@ -2908,8 +3112,8 @@ final public class HttpdManager extends BuilderThread {
                     if(hs.getDisableLog()==null) {
                         String subwork= isTomcat4?hs.getPrimaryHttpdSiteURL().getHostname():hs.getSiteName();
                         workFiles.remove(subwork);
-                        UnixFile workDir = new UnixFile((innerWorkUF==null?workUF:innerWorkUF), subwork);
-                        if (!workDir.exists()) {
+                        UnixFile workDir = new UnixFile((innerWorkUF==null?workUF:innerWorkUF), subwork, false);
+                        if (!workDir.getStat(tempStat).exists()) {
                             workDir
                                 .mkdir()
                                 .chown(
@@ -2936,42 +3140,44 @@ final public class HttpdManager extends BuilderThread {
                 /*
                  * Add the web server config files if they do not exist.
                  */
-                // The shared config part
-                String config = CONF_WWWGROUPS + '/' + tomcat.getName();
-                groupConfFiles.remove(tomcat.getName());
-                UnixFile configFile = new UnixFile(config);
-                if (!configFile.exists()) {
-                    // Add the /etc/httpd/conf/wwwgroup/shared_tomcat_name file
-                    out=new ChainWriter(
-                        configFile.getSecureOutputStream(UnixFile.ROOT_UID, lsgGID, 0640, false)
-                    );
-		    try {
-			if(!isTomcat4) {
-			    out.print("<IfModule mod_jserv.c>\n"
-				      + "    ApJServDefaultProtocol ajpv12\n"
-				      + "    ApJServSecretKey DISABLED\n"
-				      + "    ApJServMountCopy on\n"
-				      + "    ApJServLogLevel notice\n"
-				      + "    ApJServMount default /root\n"
-				      + "    AddType text/do .do\n"
-				      + "    AddHandler jserv-servlet .do\n"
-				      + "    AddType text/jsp .jsp\n"
-				      + "    AddHandler jserv-servlet .jsp\n"
-				      + "    AddType text/xml .xml\n"
-				      + "    AddHandler jserv-servlet .xml\n"
-				      + "    <IfModule mod_rewrite.c>\n"
-				      + "        RewriteEngine on\n"
-				      + "        RewriteRule ^(/.*;jsessionid=.*)$ $1 [T=jserv-servlet]\n"
-				      + "    </IfModule>\n"
-				      + "</IfModule>\n"
-				      + "\n");
-			    if (version.startsWith(HttpdTomcatVersion.VERSION_3_1_PREFIX)) out.print("Include conf/webapps/examples\n");
-			    else out.print("Include conf/webapps/examples-").print(version).print('\n');
-			}
-		    } finally {
-			out.flush();
-			out.close();
-		    }
+                if(osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                    // The shared config part
+                    String config = CONF_WWWGROUPS + '/' + tomcat.getName();
+                    if(groupConfFiles!=null) groupConfFiles.remove(tomcat.getName());
+                    UnixFile configFile = new UnixFile(config);
+                    if (!configFile.getStat(tempStat).exists()) {
+                        // Add the /etc/httpd/conf/wwwgroup/shared_tomcat_name file
+                        out=new ChainWriter(
+                            configFile.getSecureOutputStream(UnixFile.ROOT_UID, lsgGID, 0640, false)
+                        );
+                        try {
+                            if(!isTomcat4) {
+                                out.print("<IfModule mod_jserv.c>\n"
+                                          + "    ApJServDefaultProtocol ajpv12\n"
+                                          + "    ApJServSecretKey DISABLED\n"
+                                          + "    ApJServMountCopy on\n"
+                                          + "    ApJServLogLevel notice\n"
+                                          + "    ApJServMount default /root\n"
+                                          + "    AddType text/do .do\n"
+                                          + "    AddHandler jserv-servlet .do\n"
+                                          + "    AddType text/jsp .jsp\n"
+                                          + "    AddHandler jserv-servlet .jsp\n"
+                                          + "    AddType text/xml .xml\n"
+                                          + "    AddHandler jserv-servlet .xml\n"
+                                          + "    <IfModule mod_rewrite.c>\n"
+                                          + "        RewriteEngine on\n"
+                                          + "        RewriteRule ^(/.*;jsessionid=.*)$ $1 [T=jserv-servlet]\n"
+                                          + "    </IfModule>\n"
+                                          + "</IfModule>\n"
+                                          + "\n");
+                                if (version.startsWith(HttpdTomcatVersion.VERSION_3_1_PREFIX)) out.print("Include conf/webapps/examples\n");
+                                else out.print("Include conf/webapps/examples-").print(version).print('\n');
+                            }
+                        } finally {
+                            out.flush();
+                            out.close();
+                        }
+                    }
                 }
 
                 // Rebuild the server.xml for Tomcat 4 and Tomcat 5 JVMs
@@ -2979,7 +3185,7 @@ final public class HttpdManager extends BuilderThread {
                     String autoWarning=getAutoWarning(tomcat);
                     String confServerXML=HttpdSharedTomcat.WWW_GROUP_DIR+'/'+tomcat.getName()+"/conf/server.xml";
                     UnixFile confServerXMLUF=new UnixFile(confServerXML);
-                    if(!tomcat.isManual() || !confServerXMLUF.exists()) {
+                    if(!tomcat.isManual() || !confServerXMLUF.getStat(tempStat).exists()) {
                         String newConfServerXML=HttpdSharedTomcat.WWW_GROUP_DIR+'/'+tomcat.getName()+"/conf/server.xml.new";
                         UnixFile newConfServerXMLUF=new UnixFile(newConfServerXML);
                         out=new ChainWriter(
@@ -3159,7 +3365,7 @@ final public class HttpdManager extends BuilderThread {
 
                         // Must restart JVM if this file has changed
                         if(
-                            !confServerXMLUF.exists()
+                            !confServerXMLUF.getStat(tempStat).exists()
                             || !newConfServerXMLUF.contentEquals(confServerXMLUF)
                         ) {
                             needRestart=true;
@@ -3169,7 +3375,8 @@ final public class HttpdManager extends BuilderThread {
                         try {
                             stripFilePrefix(
                                 confServerXMLUF,
-                                autoWarning
+                                autoWarning,
+                                tempStat
                             );
                         } catch(IOException err) {
                             // Errors OK because this is done in manual mode and they might have symbolic linked stuff
@@ -3187,121 +3394,16 @@ final public class HttpdManager extends BuilderThread {
             /*
              * Delete any extra files once the rebuild is done
              */
-            for (int c = 0; c < groupConfFiles.size(); c++)
-                deleteFileList.add(new File(CONF_WWWGROUPS, groupConfFiles.get(c)));
+            if(groupConfFiles!=null) {
+                for (int c = 0; c < groupConfFiles.size(); c++)
+                    deleteFileList.add(new File(CONF_WWWGROUPS, groupConfFiles.get(c)));
+            }
             for (int c = 0; c < wwwGroupDirectories.size(); c++) {
                 String tomcatName=wwwGroupDirectories.get(c);
-                stopSharedTomcat(tomcatName);
-                disableSharedTomcat(tomcatName);
+                stopSharedTomcat(tomcatName, tempStat);
+                disableSharedTomcat(tomcatName, tempStat);
                 String fullPath = HttpdSharedTomcat.WWW_GROUP_DIR + '/' + tomcatName;
                 if (!aoServer.isHomeUsed(fullPath)) deleteFileList.add(new File(fullPath));
-            }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
-        }
-    }
-
-    /*public static void initializeHttpdSitePasswdFile(int sitePKey, String username, String encPassword) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "initializeHttpdSitePasswdFile(int,String,String)", null);
-        try {
-            AOServConnector conn=AOServDaemon.getConnector();
-
-            HttpdSite httpdSite=conn.httpdSites.getHttpdSite(sitePKey);
-            AOServer thisAOServer=AOServDaemon.getThisAOServer();
-            if(!httpdSite.getAOServer().equals(thisAOServer)) throw new SQLException("HttpdSite #"+sitePKey+" has server of "+httpdSite.getAOServer().getServer().getHostname()+", which is not this server ("+thisAOServer.getServer().getHostname()+')');
-
-            LinuxServerAccount lsa=httpdSite.getLinuxServerAccount();
-            LinuxServerGroup lsg=httpdSite.getLinuxServerGroup();
-
-            String passwdFile=httpdSite.getInstallDirectory()+"/conf/passwd";
-            File file=new File(passwdFile);
-            ChainWriter out=new ChainWriter(
-                new UnixFile(passwdFile).getSecureOutputStream(
-                   lsa.getUID().getID(),
-                   lsg.getGID().getID(),
-                   0644,
-                   true
-                )
-            );
-	    try {
-		out.print(username).print(':').print(encPassword).print('\n');
-	    } finally {
-		out.flush();
-		out.close();
-	    }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
-        }
-    }*/
-
-    private static final boolean installArchive(HttpdSite site, String installDir) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "installArchive(HttpdSite,String)", null);
-        try {
-            // supported extensions:
-            //	.tar				/bin/tar -C install_dir -x -f content_src
-            //	.tgz / .tar.gz		/bin/tar -C install_dir -x -z -f content_src
-            //	.zip / .jar / .war	/usr/j2sdk1.4.2_04/bin/jar -C install_dir -x -f content_src
-            //	.bz2				/bin/tar -C install_dir -x --bzip -f content_src
-
-            String contentSrc = site.getContentSrc();
-            if (contentSrc==null) return false;
-
-            String command;
-            String ext = contentSrc.substring(contentSrc.length()-3);
-            if (ext.equals("tar")) {
-                command = "/bin/tar -C "+installDir+" -x -f "+contentSrc;
-            } else if (ext.equals("tgz") || ext.equals(".gz")) {
-                command = "/bin/tar -C "+installDir+" -x -z -f "+contentSrc;
-            } else if (ext.equals("zip") || (ext.equals("jar") || (ext.equals("war")))) {
-                command = getDefaultJdkPath(site.getAOServer().getServer().getOperatingSystemVersion().getPKey())+"/bin/jar -C "+installDir+" -x -f "+contentSrc;
-            } else if (ext.equals("bz2")) {
-                command = "/bin/tar -C "+installDir+" -x --bzip -f "+contentSrc;
-            } else {
-                File file=new File(contentSrc);
-                if(file.isDirectory()) {
-                    StringBuilder SB=new StringBuilder();
-                    SB.append("/bin/cp -rdp");
-                    String[] list=file.list();
-                    int count=0;
-                    if(list!=null) {
-                        AutoSort.sortStatic(list);
-                        for(int c=0;c<list.length;c++) {
-                            String filename=list[c];
-                            // Only accept if all characters valid
-                            boolean good=true;
-                            for(int d=0;d<filename.length();d++) {
-                                char ch=filename.charAt(d);
-                                if(
-                                    (ch<'a' || ch>'z')
-                                    && (ch<'A' || ch>'Z')
-                                    && (ch<'0' || ch>'9')
-                                    && ch!='-'
-                                    && ch!='_'
-                                    && ch!='.'
-                                ) {
-                                    good=false;
-                                    break;
-                                }
-                            }
-                            if(good) {
-                                SB.append(' ').append(filename);
-                                count++;
-                            }
-                        }
-                    }
-                    if(count==0) return false;
-                    SB.append(' ').append(installDir);
-                    command=SB.toString();
-                } else throw new IllegalArgumentException("Content archive is of an unsupported file type: "+contentSrc);
-            }
-
-            String username = site.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername();
-            try {
-                AOServDaemon.suexec(username, command);
-                return true;
-            } catch (IOException err) {
-                AOServDaemon.reportError(err, null);
-                return false;
             }
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);
@@ -3336,9 +3438,15 @@ final public class HttpdManager extends BuilderThread {
         Profiler.startProfile(Profiler.IO, HttpdManager.class, "mkdir(String,int,LinuxServerAccount,LinuxServerGroup)", null);
         try {
             UnixFile uf=new UnixFile(dirName);
-            if(!uf.exists()) uf.mkdir();
-            else if(!uf.isDirectory()) throw new IOException("File exists and is not a directory: "+dirName);
-            uf.chown(owner.getUID().getID(), group.getGID().getID()).setMode(mode);
+            Stat ufStat = uf.getStat();
+            if(!ufStat.exists()) {
+                uf.mkdir();
+                uf.getStat(ufStat);
+            } else if(!ufStat.isDirectory()) throw new IOException("File exists and is not a directory: "+dirName);
+            int uid = owner.getUID().getID();
+            int gid = group.getGID().getID();
+            if(ufStat.getUID()!=uid || ufStat.getGID()!=gid) uf.chown(uid, gid);
+            if(ufStat.getMode()!=mode) uf.setMode(mode);
         } finally {
             Profiler.endProfile(Profiler.IO);
         }
@@ -3440,6 +3548,7 @@ final public class HttpdManager extends BuilderThread {
                         connector.httpdJBossSites.addTableListener(httpdManager, 0);
                         connector.httpdSharedTomcats.addTableListener(httpdManager, 0);
                         connector.httpdSites.addTableListener(httpdManager, 0);
+                        connector.httpdSiteAuthenticatedLocationTable.addTableListener(httpdManager, 0);
                         connector.httpdSiteBinds.addTableListener(httpdManager, 0);
                         connector.httpdSiteURLs.addTableListener(httpdManager, 0);
                         connector.httpdStaticSites.addTableListener(httpdManager, 0);
@@ -3565,6 +3674,7 @@ final public class HttpdManager extends BuilderThread {
     public static String stopJVM(int sitePKey) throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "stopJVM(int)", null);
         try {
+            final Stat tempStat = new Stat();
             synchronized(startJVMTimes) {
                 AOServConnector conn=AOServDaemon.getConnector();
 
@@ -3620,7 +3730,7 @@ final public class HttpdManager extends BuilderThread {
                             ;
                         }
 
-                        stopSharedTomcat(shrTomcat);
+                        stopSharedTomcat(shrTomcat, tempStat);
 
                         // Make sure we don't start too quickly
                         startJVMTimes.put(key, Long.valueOf(System.currentTimeMillis()));
@@ -3671,8 +3781,8 @@ final public class HttpdManager extends BuilderThread {
         }
     }
     
-    private static void disableAndEnableSharedTomcats(AOServer aoServer, AOServConnector connector, IntList needStarted) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "disableAndEnableSharedTomcats(AOServer,AOServConnector,IntList)", null);
+    private static void disableAndEnableSharedTomcats(AOServer aoServer, AOServConnector connector, IntList needStarted, Stat tempStat) throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "disableAndEnableSharedTomcats(AOServer,AOServConnector,IntList,Stat)", null);
         try {
             List<HttpdSharedTomcat> hsts=aoServer.getHttpdSharedTomcats();
             for(int c=0;c<hsts.size();c++) {
@@ -3682,12 +3792,12 @@ final public class HttpdManager extends BuilderThread {
                 UnixFile daemonUF=new UnixFile(HttpdSharedTomcat.WWW_GROUP_DIR+'/'+tomcatName+"/daemon/tomcat");
                 if(hst.getDisableLog()==null) {
                     // Enabled, make sure running and auto
-                    if(needStarted.contains(hst.getPKey()) || !pidUF.exists()) startSharedTomcat(hst);
-                    if(!daemonUF.exists()) enableSharedTomcat(hst);
+                    if(needStarted.contains(hst.getPKey()) || !pidUF.getStat(tempStat).exists()) startSharedTomcat(hst);
+                    if(!daemonUF.getStat(tempStat).exists()) enableSharedTomcat(hst, tempStat);
                 } else {
                     // Disabled, make sure stopped and not auto
-                    if(daemonUF.exists()) disableSharedTomcat(hst);
-                    if(pidUF.exists()) stopSharedTomcat(hst);
+                    if(daemonUF.getStat(tempStat).exists()) disableSharedTomcat(hst, tempStat);
+                    if(pidUF.getStat(tempStat).exists()) stopSharedTomcat(hst, tempStat);
                 }
             }
         } finally {
@@ -3695,8 +3805,8 @@ final public class HttpdManager extends BuilderThread {
         }
     }
     
-    private static void disableAndEnableHttpdSites(AOServer aoServer, AOServConnector connector, IntList needStarted) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "disableAndEnableHttpdSites(AOServer,AOServConnector,IntList)", null);
+    private static void disableAndEnableHttpdSites(AOServer aoServer, AOServConnector connector, IntList needStarted, Stat tempStat) throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "disableAndEnableHttpdSites(AOServer,AOServConnector,IntList,Stat)", null);
         try {
             List<HttpdSite> hss=aoServer.getHttpdSites();
             for(int c=0;c<hss.size();c++) {
@@ -3706,26 +3816,26 @@ final public class HttpdManager extends BuilderThread {
                     UnixFile ftpUF=new UnixFile("/var/ftp/pub/"+siteName);
                     if(hs.getDisableLog()==null) {
                         // Enabled, make sure running and auto
-                        if(ftpUF.exists() && ftpUF.getUID()==UnixFile.ROOT_UID) ftpUF.chown(
+                        if(ftpUF.getStat(tempStat).exists() && tempStat.getUID()==UnixFile.ROOT_UID) ftpUF.chown(
                             hs.getLinuxServerAccount().getUID().getID(),
                             hs.getLinuxServerGroup().getGID().getID()
                         ).setMode(0775);
                         UnixFile pidUF=getPIDUnixFile(hs);
                         UnixFile daemonUF=getDaemonUnixFile(hs);
-                        if(pidUF!=null && (needStarted.contains(hs.getPKey()) || !pidUF.exists())) {
+                        if(pidUF!=null && (needStarted.contains(hs.getPKey()) || !pidUF.getStat(tempStat).exists())) {
                             startHttpdSite(hs);
                         }
-                        if(daemonUF!=null && !daemonUF.exists()) enableHttpdSite(hs);
+                        if(daemonUF!=null && !daemonUF.getStat(tempStat).exists()) enableHttpdSite(hs, tempStat);
                     } else {
                         // Disabled, make sure stopped and not auto
-                        if(ftpUF.exists() && ftpUF.getUID()!=UnixFile.ROOT_UID) ftpUF.chown(
+                        if(ftpUF.getStat(tempStat).exists() && tempStat.getUID()!=UnixFile.ROOT_UID) ftpUF.chown(
                             UnixFile.ROOT_UID,
                             UnixFile.ROOT_GID
                         ).setMode(0700);
                         UnixFile daemonUF=getDaemonUnixFile(hs);
                         UnixFile pidUF=getPIDUnixFile(hs);
-                        if(daemonUF!=null && daemonUF.exists()) disableHttpdSite(hs);
-                        if(pidUF!=null && pidUF.exists()) stopHttpdSite(hs);
+                        if(daemonUF!=null && daemonUF.getStat(tempStat).exists()) disableHttpdSite(hs, tempStat);
+                        if(pidUF!=null && pidUF.getStat(tempStat).exists()) stopHttpdSite(hs, tempStat);
                     }
                 } catch(IOException err) {
                     System.err.println("disableAndEnableHttpdSites error on site: "+siteName);
@@ -3750,24 +3860,25 @@ final public class HttpdManager extends BuilderThread {
         }
     }
 
-    private static void stopSharedTomcat(HttpdSharedTomcat hst) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.FAST, HttpdManager.class, "stopSharedTomcat(HttpdSharedTomcat)", null);
+    private static void stopSharedTomcat(HttpdSharedTomcat hst, Stat tempStat) throws IOException, SQLException {
+        Profiler.startProfile(Profiler.FAST, HttpdManager.class, "stopSharedTomcat(HttpdSharedTomcat,Stat)", null);
         try {
-            stopSharedTomcat(hst.getLinuxServerAccount(), hst.getName());
+            stopSharedTomcat(hst.getLinuxServerAccount(), hst.getName(), tempStat);
         } finally {
             Profiler.endProfile(Profiler.FAST);
         }
     }
     
-    private static void stopSharedTomcat(String tomcatName) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "stopSharedTomcat(String)", null);
+    private static void stopSharedTomcat(String tomcatName, Stat tempStat) throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "stopSharedTomcat(String,Stat)", null);
         try {
             UnixFile uf=new UnixFile(HttpdSharedTomcat.WWW_GROUP_DIR+'/'+tomcatName+"/daemon");
-            if(uf.exists()) {
-                int uid=uf.getUID();
+            uf.getStat(tempStat);
+            if(tempStat.exists()) {
+                int uid=tempStat.getUID();
                 LinuxServerAccount lsa=AOServDaemon.getThisAOServer().getLinuxServerAccount(uid);
                 if(lsa!=null) {
-                    stopSharedTomcat(lsa, tomcatName);
+                    stopSharedTomcat(lsa, tomcatName, tempStat);
                 }
             }
         } finally {
@@ -3775,11 +3886,11 @@ final public class HttpdManager extends BuilderThread {
         }
     }
 
-    private static void stopSharedTomcat(LinuxServerAccount lsa, String tomcatName) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "stopSharedTomcat(LinuxServerAccount,String)", null);
+    private static void stopSharedTomcat(LinuxServerAccount lsa, String tomcatName, Stat tempStat) throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "stopSharedTomcat(LinuxServerAccount,String,Stat)", null);
         try {
             UnixFile pidUF=new UnixFile(HttpdSharedTomcat.WWW_GROUP_DIR+'/'+tomcatName+"/var/run/tomcat.pid");
-            if(pidUF.exists()) {
+            if(pidUF.getStat(tempStat).exists()) {
                 AOServDaemon.suexec(
                     lsa.getLinuxAccount().getUsername().getUsername(),
                     HttpdSharedTomcat.WWW_GROUP_DIR+'/'+tomcatName+"/bin/tomcat stop"
@@ -3790,11 +3901,11 @@ final public class HttpdManager extends BuilderThread {
         }
     }
 
-    private static void enableSharedTomcat(HttpdSharedTomcat hst) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "enableSharedTomcat(HttpdSharedTomcat)", null);
+    private static void enableSharedTomcat(HttpdSharedTomcat hst, Stat tempStat) throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "enableSharedTomcat(HttpdSharedTomcat,Stat)", null);
         try {
             UnixFile uf=new UnixFile(HttpdSharedTomcat.WWW_GROUP_DIR+'/'+hst.getName()+"/daemon/tomcat");
-            if(!uf.exists()) uf.symLink("../bin/tomcat").chown(
+            if(!uf.getStat(tempStat).exists()) uf.symLink("../bin/tomcat").chown(
                 hst.getLinuxServerAccount().getUID().getID(),
                 hst.getLinuxServerGroup().getGID().getID()
             );
@@ -3803,20 +3914,20 @@ final public class HttpdManager extends BuilderThread {
         }
     }
 
-    private static void disableSharedTomcat(HttpdSharedTomcat hst) throws IOException {
-        Profiler.startProfile(Profiler.FAST, HttpdManager.class, "disableSharedTomcat(HttpdSharedTomcat)", null);
+    private static void disableSharedTomcat(HttpdSharedTomcat hst, Stat tempStat) throws IOException {
+        Profiler.startProfile(Profiler.FAST, HttpdManager.class, "disableSharedTomcat(HttpdSharedTomcat,Stat)", null);
         try {
-            disableSharedTomcat(hst.getName());
+            disableSharedTomcat(hst.getName(), tempStat);
         } finally {
             Profiler.endProfile(Profiler.FAST);
         }
     }
 
-    private static void disableSharedTomcat(String tomcatName) throws IOException {
-        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "disableSharedTomcat(String)", null);
+    private static void disableSharedTomcat(String tomcatName, Stat tempStat) throws IOException {
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "disableSharedTomcat(String,Stat)", null);
         try {
             UnixFile uf=new UnixFile(HttpdSharedTomcat.WWW_GROUP_DIR+'/'+tomcatName+"/daemon/tomcat");
-            if(uf.exists()) uf.delete();
+            if(uf.getStat(tempStat).exists()) uf.delete();
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);
         }
@@ -3863,11 +3974,11 @@ final public class HttpdManager extends BuilderThread {
         }
     }
     
-    private static void stopHttpdSite(HttpdSite hs) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "stopHttpdSite(HttpdSite)", null);
+    private static void stopHttpdSite(HttpdSite hs, Stat tempStat) throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "stopHttpdSite(HttpdSite,Stat)", null);
         try {
             UnixFile pidUF=getPIDUnixFile(hs);
-            if(pidUF!=null && pidUF.exists()) controlHttpdSite(hs, "stop");
+            if(pidUF!=null && pidUF.getStat(tempStat).exists()) controlHttpdSite(hs, "stop");
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);
         }
@@ -3901,18 +4012,19 @@ final public class HttpdManager extends BuilderThread {
         }
     }
 
-    private static void stopHttpdSite(String siteName) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "stopHttpdSite(String)", null);
+    private static void stopHttpdSite(String siteName, Stat tempStat) throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "stopHttpdSite(String,Stat)", null);
         try {
             UnixFile uf=new UnixFile(HttpdSite.WWW_DIRECTORY+'/'+siteName+"/daemon");
-            if(uf.exists()) {
-                int uid=uf.getUID();
+            uf.getStat(tempStat);
+            if(tempStat.exists()) {
+                int uid=tempStat.getUID();
                 LinuxServerAccount lsa=AOServDaemon.getThisAOServer().getLinuxServerAccount(uid);
                 if(lsa!=null) {
                     UnixFile jbossUF=new UnixFile(HttpdSite.WWW_DIRECTORY+'/'+siteName+"/bin/jboss");
-                    if(jbossUF.exists()) {
+                    if(jbossUF.getStat(tempStat).exists()) {
                         UnixFile jbossPID=new UnixFile(HttpdSite.WWW_DIRECTORY+'/'+siteName+"/var/run/jboss.pid");
-                        if(jbossPID.exists()) {
+                        if(jbossPID.getStat(tempStat).exists()) {
                             AOServDaemon.suexec(
                                 lsa.getLinuxAccount().getUsername().getUsername(),
                                 HttpdSite.WWW_DIRECTORY+'/'+siteName+"/bin/jboss stop"
@@ -3920,9 +4032,9 @@ final public class HttpdManager extends BuilderThread {
                         }
                     }
                     UnixFile tomcatUF=new UnixFile(HttpdSite.WWW_DIRECTORY+'/'+siteName+"/bin/tomcat");
-                    if(tomcatUF.exists()) {
+                    if(tomcatUF.getStat(tempStat).exists()) {
                         UnixFile tomcatPID=new UnixFile(HttpdSite.WWW_DIRECTORY+'/'+siteName+"/var/run/tomcat.pid");
-                        if(tomcatPID.exists()) {
+                        if(tomcatPID.getStat(tempStat).exists()) {
                             AOServDaemon.suexec(
                                 lsa.getLinuxAccount().getUsername().getUsername(),
                                 HttpdSite.WWW_DIRECTORY+'/'+siteName+"/bin/tomcat stop"
@@ -3936,15 +4048,15 @@ final public class HttpdManager extends BuilderThread {
         }
     }
 
-    private static void enableHttpdSite(HttpdSite hs) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "enableHttpdSite(HttpdSite)", null);
+    private static void enableHttpdSite(HttpdSite hs,Stat tempStat) throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "enableHttpdSite(HttpdSite,Stat)", null);
         try {
             HttpdTomcatSite hst=hs.getHttpdTomcatSite();
             if(hst!=null) {
                 HttpdJBossSite hjs=hst.getHttpdJBossSite();
                 if(hjs!=null) {
                     UnixFile uf=new UnixFile(hs.getInstallDirectory()+"/daemon/jboss");
-                    if(!uf.exists()) uf.symLink("../bin/jboss").chown(
+                    if(!uf.getStat(tempStat).exists()) uf.symLink("../bin/jboss").chown(
                         hs.getLinuxServerAccount().getUID().getID(),
                         hs.getLinuxServerGroup().getGID().getID()
                     );
@@ -3952,7 +4064,7 @@ final public class HttpdManager extends BuilderThread {
                     HttpdTomcatStdSite htss=hst.getHttpdTomcatStdSite();
                     if(htss!=null) {
                         UnixFile uf=new UnixFile(hs.getInstallDirectory()+"/daemon/tomcat");
-                        if(!uf.exists()) uf.symLink("../bin/tomcat").chown(
+                        if(!uf.getStat(tempStat).exists()) uf.symLink("../bin/tomcat").chown(
                             hs.getLinuxServerAccount().getUID().getID(),
                             hs.getLinuxServerGroup().getGID().getID()
                         );
@@ -3964,23 +4076,23 @@ final public class HttpdManager extends BuilderThread {
         }
     }
 
-    private static void disableHttpdSite(HttpdSite hs) throws IOException {
-        Profiler.startProfile(Profiler.FAST, HttpdManager.class, "disableHttpdSite(HttpdSite)", null);
+    private static void disableHttpdSite(HttpdSite hs, Stat tempStat) throws IOException {
+        Profiler.startProfile(Profiler.FAST, HttpdManager.class, "disableHttpdSite(HttpdSite,Stat)", null);
         try {
-            disableHttpdSite(hs.getSiteName());
+            disableHttpdSite(hs.getSiteName(), tempStat);
         } finally {
             Profiler.endProfile(Profiler.FAST);
         }
     }
 
-    private static void disableHttpdSite(String siteName) throws IOException {
-        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "disableHttpdSite(String)", null);
+    private static void disableHttpdSite(String siteName, Stat tempStat) throws IOException {
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "disableHttpdSite(String,Stat)", null);
         try {
             UnixFile jbossUF=new UnixFile(HttpdSite.WWW_DIRECTORY+'/'+siteName+"/daemon/jboss");
-            if(jbossUF.exists()) jbossUF.delete();
+            if(jbossUF.getStat(tempStat).exists()) jbossUF.delete();
 
             UnixFile tomcatUF=new UnixFile(HttpdSite.WWW_DIRECTORY+'/'+siteName+"/daemon/tomcat");
-            if(tomcatUF.exists()) tomcatUF.delete();
+            if(tomcatUF.getStat(tempStat).exists()) tomcatUF.delete();
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);
         }
@@ -4116,12 +4228,13 @@ final public class HttpdManager extends BuilderThread {
         }
     }
     
-    public static void stripFilePrefix(UnixFile uf, String prefix) throws IOException {
-        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "stripFilePrefix(UnixFile,String)", null);
+    public static void stripFilePrefix(UnixFile uf, String prefix, Stat tempStat) throws IOException {
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "stripFilePrefix(UnixFile,String,Stat)", null);
         try {
             // Remove the auto warning if the site has recently become manual
             int prefixLen=prefix.length();
-            if(uf.getSize()>=prefixLen) {
+            uf.getStat(tempStat);
+            if(tempStat.getSize()>=prefixLen) {
                 UnixFile newUF=null;
                 InputStream in=new BufferedInputStream(uf.getSecureInputStream());
                 try {
@@ -4134,9 +4247,9 @@ final public class HttpdManager extends BuilderThread {
                         newUF=UnixFile.mktemp(uf.getFilename()+'.');
                         OutputStream out=new BufferedOutputStream(
                             newUF.getSecureOutputStream(
-                                uf.getUID(),
-                                uf.getGID(),
-                                uf.getMode(),
+                                tempStat.getUID(),
+                                tempStat.getGID(),
+                                tempStat.getMode(),
                                 true
                             )
                         );
@@ -4166,9 +4279,9 @@ final public class HttpdManager extends BuilderThread {
     private static final String getDefaultPhpVersion(int operatingSystemVersion) {
         Profiler.startProfile(Profiler.FAST, HttpdManager.class, "getDefaultPhpVersion(int)", null);
         try {
-            //if(operatingSystemVersion==OperatingSystemVersion.REDHAT_7_2_I686) return DEFAULT_REDHAT72_PHP_VERSION;
-            //else if(operatingSystemVersion==OperatingSystemVersion.MANDRAKE_9_2_I586) return DEFAULT_MANDRAKE92_PHP_VERSION;
             if(operatingSystemVersion==OperatingSystemVersion.MANDRAKE_10_1_I586) return DEFAULT_MANDRAKE_10_1_PHP_VERSION;
+            else if(operatingSystemVersion==OperatingSystemVersion.MANDRIVA_2006_0_I586) return DEFAULT_MANDRIVA_2006_0_PHP_VERSION;
+            else if(operatingSystemVersion==OperatingSystemVersion.REDHAT_ES_4_X86_64) return DEFAULT_REDHAT_ES_4_PHP_VERSION;
             else throw new RuntimeException("Unsupported OperatingSystemVersion: "+operatingSystemVersion);
         } finally {
             Profiler.endProfile(Profiler.FAST);
@@ -4178,9 +4291,9 @@ final public class HttpdManager extends BuilderThread {
     private static final String getDefaultJdkVersion(int operatingSystemVersion) {
         Profiler.startProfile(Profiler.FAST, HttpdManager.class, "getDefaultJdkVersion(int)", null);
         try {
-            //if(operatingSystemVersion==OperatingSystemVersion.REDHAT_7_2_I686) return DEFAULT_REDHAT_7_2_JDK_VERSION;
-            //else if(operatingSystemVersion==OperatingSystemVersion.MANDRAKE_9_2_I586) return DEFAULT_MANDRAKE_9_2_JDK_VERSION;
             if(operatingSystemVersion==OperatingSystemVersion.MANDRAKE_10_1_I586) return DEFAULT_MANDRAKE_10_1_JDK_VERSION;
+            else if(operatingSystemVersion==OperatingSystemVersion.MANDRIVA_2006_0_I586) return DEFAULT_MANDRIVA_2006_0_JDK_VERSION;
+            else if(operatingSystemVersion==OperatingSystemVersion.REDHAT_ES_4_X86_64) return DEFAULT_REDHAT_ES_4_JDK_VERSION;
             else throw new RuntimeException("Unsupported OperatingSystemVersion: "+operatingSystemVersion);
         } finally {
             Profiler.endProfile(Profiler.FAST);
@@ -4190,9 +4303,9 @@ final public class HttpdManager extends BuilderThread {
     private static final String getDefaultJdkPath(int operatingSystemVersion) {
         Profiler.startProfile(Profiler.FAST, HttpdManager.class, "getDefaultJdkPath(int)", null);
         try {
-            //if(operatingSystemVersion==OperatingSystemVersion.REDHAT_7_2_I686) return DEFAULT_REDHAT_7_2_JDK_PATH;
-            //else if(operatingSystemVersion==OperatingSystemVersion.MANDRAKE_9_2_I586) return DEFAULT_MANDRAKE_9_2_JDK_PATH;
             if(operatingSystemVersion==OperatingSystemVersion.MANDRAKE_10_1_I586) return DEFAULT_MANDRAKE_10_1_JDK_PATH;
+            else if(operatingSystemVersion==OperatingSystemVersion.MANDRIVA_2006_0_I586) return DEFAULT_MANDRIVA_2006_0_JDK_PATH;
+            else if(operatingSystemVersion==OperatingSystemVersion.REDHAT_ES_4_X86_64) return DEFAULT_REDHAT_ES_4_JDK_PATH;
             else throw new RuntimeException("Unsupported OperatingSystemVersion: "+operatingSystemVersion);
         } finally {
             Profiler.endProfile(Profiler.FAST);
@@ -4217,9 +4330,10 @@ final public class HttpdManager extends BuilderThread {
     private static final void doRebuildLogrotate(
         AOServer aoServer,
         List<File> deleteFileList,
-        AOServConnector conn
+        AOServConnector conn,
+        Stat tempStat
     ) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "doRebuildLogrotate(AOServer,List<File>,AOServConnector)", null);
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "doRebuildLogrotate(AOServer,List<File>,AOServConnector,Stat)", null);
         try {
             // The log rotations that exist but are not used will be removed
             String[] list=new File(LOG_ROTATION_DIR).list();
@@ -4241,15 +4355,15 @@ final public class HttpdManager extends BuilderThread {
                 List<HttpdSiteBind> binds=site.getHttpdSiteBinds();
                 for(int d=0;d<binds.size();d++) {
                     HttpdSiteBind bind=binds.get(d);
-                    writeLogRotateAndMakeLogFiles(site, chainOut, bind, bind.getAccessLog(), deleteFileList, completedPaths);
-                    writeLogRotateAndMakeLogFiles(site, chainOut, bind, bind.getErrorLog(), deleteFileList, completedPaths);
+                    writeLogRotateAndMakeLogFiles(site, chainOut, bind, bind.getAccessLog(), deleteFileList, completedPaths, tempStat);
+                    writeLogRotateAndMakeLogFiles(site, chainOut, bind, bind.getErrorLog(), deleteFileList, completedPaths, tempStat);
                 }
                 chainOut.flush();
                 byte[] newFileContent=byteOut.toByteArray();
 
                 // Write to disk if file missing or doesn't match
                 UnixFile logRotation=new UnixFile(LOG_ROTATION_DIR, site.getSiteName());
-                if(!logRotation.exists() || !logRotation.contentEquals(newFileContent)) {
+                if(!logRotation.getStat(tempStat).exists() || !logRotation.contentEquals(newFileContent)) {
                     OutputStream out=logRotation.getSecureOutputStream(
                         UnixFile.ROOT_UID,
                         site.getLinuxServerGroup().getGID().getID(),
@@ -4279,9 +4393,10 @@ final public class HttpdManager extends BuilderThread {
         HttpdSiteBind siteBind,
         String path,
         List<File> deleteFileList,
-        Map<String,Object> completedPaths
+        Map<String,Object> completedPaths,
+        Stat tempStat
     ) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "writeLogRotateAndMakeLogFiles(HttpdSite,ChainWriter,HttpdSiteBind,String,List<File>,Map<String,Object>)", null);
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "writeLogRotateAndMakeLogFiles(HttpdSite,ChainWriter,HttpdSiteBind,String,List<File>,Map<String,Object>,Stat)", null);
         try {
             // Each unique path is only rotated once
             if(!completedPaths.containsKey(path)) {
@@ -4297,17 +4412,18 @@ final public class HttpdManager extends BuilderThread {
                 UnixFile logFileParent=logFile.getParent();
                 
                 // Make sure the parent directory exists and has the correct permissions
-                if(!logFileParent.exists()) logFileParent.mkdir(true, 0750, awstatsUID, lsgGID);
+                logFileParent.getStat(tempStat);
+                if(!tempStat.exists()) logFileParent.mkdir(true, 0750, awstatsUID, lsgGID);
                 else {
-                    if(logFileParent.getMode()!=0750) logFileParent.setMode(0750);
+                    if(tempStat.getMode()!=0750) logFileParent.setMode(0750);
                     if(
-                        logFileParent.getUID()!=awstatsUID
-                        || logFileParent.getGID()!=lsgGID
+                        tempStat.getUID()!=awstatsUID
+                        || tempStat.getGID()!=lsgGID
                     ) logFileParent.chown(awstatsUID, lsgGID);
                 }
 
                 // Make sure the log file exists
-                if(!logFile.exists()) logFile.getSecureOutputStream(awstatsUID, lsgGID, 0640, false).close();
+                if(!logFile.getStat(tempStat).exists()) logFile.getSecureOutputStream(awstatsUID, lsgGID, 0640, false).close();
 
                 // Add to the site log rotation
                 out.print(path).print(" {\n    daily\n    rotate 379\n}\n");

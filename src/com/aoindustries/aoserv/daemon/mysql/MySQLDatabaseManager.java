@@ -193,7 +193,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
                     md5In.close();
                 }
             } finally {
-                if(tempFile.exists()) tempFile.delete();
+                if(tempFile.getStat().exists()) tempFile.delete();
             }
         } finally {
             Profiler.endProfile(Profiler.IO);
@@ -244,7 +244,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
                     dumpin.close();
                 }
             } finally {
-                if(tempFile.exists()) tempFile.delete();
+                if(tempFile.getStat().exists()) tempFile.delete();
             }
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);

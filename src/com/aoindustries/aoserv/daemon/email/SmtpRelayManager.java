@@ -63,6 +63,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
             int osv=server.getServer().getOperatingSystemVersion().getPKey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
+                && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             EmailSmtpRelayType allowRelay=connector.emailSmtpRelayTypes.get(EmailSmtpRelayType.ALLOW_RELAY);
@@ -157,7 +158,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 		    }
                 }
 
-                if(access.exists() && !newFile.contentEquals(access)) {
+                if(access.getStat().exists() && !newFile.contentEquals(access)) {
                     newFile.renameTo(access);
                     makeAccessMap();
                 } else newFile.delete();

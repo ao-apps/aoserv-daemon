@@ -60,6 +60,8 @@ final public class AWStatsManager extends BuilderThread {
             // RAM is used to verify config files before committing to the filesystem
             ByteArrayOutputStream byteBuff=new ByteArrayOutputStream();
             ChainWriter out=new ChainWriter(byteBuff);
+            
+            final Stat tempStat = new Stat();
 
             synchronized(rebuildLock) {
                 // Get some variables that will be used throughout the method
@@ -293,7 +295,8 @@ final public class AWStatsManager extends BuilderThread {
 
                     // Write to disk if file missing or doesn't match
                     UnixFile configFile=new UnixFile(configDirectory, configFilename);
-                    if(!configFile.exists() || !configFile.contentEquals(newFileContent)) {
+                    configFile.getStat(tempStat);
+                    if(!tempStat.exists() || !configFile.contentEquals(newFileContent)) {
                         OutputStream fileOut=configFile.getSecureOutputStream(
                             UnixFile.ROOT_UID,
                             awstatsGID,
@@ -306,43 +309,46 @@ final public class AWStatsManager extends BuilderThread {
                             fileOut.close();
                         }
                     } else {
-                        if(configFile.getMode()!=0640) configFile.setMode(0640);
+                        if(tempStat.getMode()!=0640) configFile.setMode(0640);
                         if(
-                            configFile.getUID()!=UnixFile.ROOT_UID
-                            || configFile.getGID()!=awstatsGID
+                            tempStat.getUID()!=UnixFile.ROOT_UID
+                            || tempStat.getGID()!=awstatsGID
                         ) configFile.chown(UnixFile.ROOT_UID, awstatsGID);
                     }
 
                     // Make sure /var/lib/awstats/hosts/<site_name> directory exists and has the proper permissions
                     UnixFile hostDirectory=new UnixFile(hostsDirectory, siteName);
-                    if(!hostDirectory.exists()) hostDirectory.mkdir(false, 0750, UnixFile.ROOT_UID, awstatsGID);
+                    hostDirectory.getStat(tempStat);
+                    if(!tempStat.exists()) hostDirectory.mkdir(false, 0750, UnixFile.ROOT_UID, awstatsGID);
                     else {
-                        if(hostDirectory.getMode()!=0750) hostDirectory.setMode(0750);
+                        if(tempStat.getMode()!=0750) hostDirectory.setMode(0750);
                         if(
-                            hostDirectory.getUID()!=UnixFile.ROOT_UID
-                            || hostDirectory.getGID()!=awstatsGID
+                            tempStat.getUID()!=UnixFile.ROOT_UID
+                            || tempStat.getGID()!=awstatsGID
                         ) hostDirectory.chown(UnixFile.ROOT_UID, awstatsGID);
                     }
 
                     // Make sure /var/lib/awstats/hosts/<site_name>/data directory exists and has the proper permissions
-                    UnixFile dataDirectory=new UnixFile(hostDirectory, "data");
-                    if(!dataDirectory.exists()) dataDirectory.mkdir(false, 0750, awstatsUID, awstatsGID);
+                    UnixFile dataDirectory=new UnixFile(hostDirectory, "data", false);
+                    dataDirectory.getStat(tempStat);
+                    if(!tempStat.exists()) dataDirectory.mkdir(false, 0750, awstatsUID, awstatsGID);
                     else {
-                        if(dataDirectory.getMode()!=0750) dataDirectory.setMode(0750);
+                        if(tempStat.getMode()!=0750) dataDirectory.setMode(0750);
                         if(
-                            dataDirectory.getUID()!=awstatsUID
-                            || dataDirectory.getGID()!=awstatsGID
+                            tempStat.getUID()!=awstatsUID
+                            || tempStat.getGID()!=awstatsGID
                         ) dataDirectory.chown(awstatsUID, awstatsGID);
                     }
 
                     // dnscachelastupdate.txt
-                    UnixFile dnscachelastupdate=new UnixFile(hostDirectory, "dnscachelastupdate.txt");
-                    if(!dnscachelastupdate.exists()) dnscachelastupdate.getSecureOutputStream(awstatsUID, awstatsGID, 0640, false);
+                    UnixFile dnscachelastupdate=new UnixFile(hostDirectory, "dnscachelastupdate.txt", false);
+                    dnscachelastupdate.getStat(tempStat);
+                    if(!tempStat.exists()) dnscachelastupdate.getSecureOutputStream(awstatsUID, awstatsGID, 0640, false);
                     else {
-                        if(dnscachelastupdate.getMode()==0640) dnscachelastupdate.setMode(0640);
+                        if(tempStat.getMode()==0640) dnscachelastupdate.setMode(0640);
                         if(
-                            dnscachelastupdate.getUID()!=awstatsUID
-                            || dnscachelastupdate.getGID()!=awstatsGID
+                            tempStat.getUID()!=awstatsUID
+                            || tempStat.getGID()!=awstatsGID
                         ) dnscachelastupdate.chown(awstatsUID, awstatsGID);
                     }
 
@@ -366,8 +372,9 @@ final public class AWStatsManager extends BuilderThread {
                     newFileContent=byteBuff.toByteArray();
 
                     // Write to disk if file missing or doesn't match
-                    UnixFile logviewFile=new UnixFile(hostDirectory, "logview.sh");;
-                    if(!logviewFile.exists() || !logviewFile.contentEquals(newFileContent)) {
+                    UnixFile logviewFile=new UnixFile(hostDirectory, "logview.sh", false);
+                    logviewFile.getStat(tempStat);
+                    if(!tempStat.exists() || !logviewFile.contentEquals(newFileContent)) {
                         OutputStream fileOut=logviewFile.getSecureOutputStream(
                             UnixFile.ROOT_UID,
                             awstatsGID,
@@ -380,10 +387,10 @@ final public class AWStatsManager extends BuilderThread {
                             fileOut.close();
                         }
                     } else {
-                        if(logviewFile.getMode()!=0750) logviewFile.setMode(0750);
+                        if(tempStat.getMode()!=0750) logviewFile.setMode(0750);
                         if(
-                            logviewFile.getUID()!=UnixFile.ROOT_UID
-                            || logviewFile.getGID()!=awstatsGID
+                            tempStat.getUID()!=UnixFile.ROOT_UID
+                            || tempStat.getGID()!=awstatsGID
                         ) logviewFile.chown(UnixFile.ROOT_UID, awstatsGID);
                     }
 
@@ -426,8 +433,9 @@ final public class AWStatsManager extends BuilderThread {
                     newFileContent=byteBuff.toByteArray();
 
                     // Write to disk if file missing or doesn't match
-                    UnixFile runascgiFile=new UnixFile(hostDirectory, "runascgi.sh");;
-                    if(!runascgiFile.exists() || !runascgiFile.contentEquals(newFileContent)) {
+                    UnixFile runascgiFile=new UnixFile(hostDirectory, "runascgi.sh", false);
+                    runascgiFile.getStat(tempStat);
+                    if(!tempStat.exists() || !runascgiFile.contentEquals(newFileContent)) {
                         OutputStream fileOut=runascgiFile.getSecureOutputStream(
                             UnixFile.ROOT_UID,
                             awstatsGID,
@@ -440,10 +448,10 @@ final public class AWStatsManager extends BuilderThread {
                             fileOut.close();
                         }
                     } else {
-                        if(runascgiFile.getMode()!=0750) runascgiFile.setMode(0750);
+                        if(tempStat.getMode()!=0750) runascgiFile.setMode(0750);
                         if(
-                            runascgiFile.getUID()!=UnixFile.ROOT_UID
-                            || runascgiFile.getGID()!=awstatsGID
+                            tempStat.getUID()!=UnixFile.ROOT_UID
+                            || tempStat.getGID()!=awstatsGID
                         ) runascgiFile.chown(UnixFile.ROOT_UID, awstatsGID);
                     }
 
@@ -456,8 +464,9 @@ final public class AWStatsManager extends BuilderThread {
                     newFileContent=byteBuff.toByteArray();
 
                     // Write to disk if file missing or doesn't match
-                    UnixFile updateFile=new UnixFile(hostDirectory, "update.sh");;
-                    if(!updateFile.exists() || !updateFile.contentEquals(newFileContent)) {
+                    UnixFile updateFile=new UnixFile(hostDirectory, "update.sh", false);
+                    updateFile.getStat(tempStat);
+                    if(!tempStat.exists() || !updateFile.contentEquals(newFileContent)) {
                         OutputStream fileOut=updateFile.getSecureOutputStream(
                             UnixFile.ROOT_UID,
                             awstatsGID,
@@ -470,10 +479,10 @@ final public class AWStatsManager extends BuilderThread {
                             fileOut.close();
                         }
                     } else {
-                        if(updateFile.getMode()!=0750) updateFile.setMode(0750);
+                        if(tempStat.getMode()!=0750) updateFile.setMode(0750);
                         if(
-                            updateFile.getUID()!=UnixFile.ROOT_UID
-                            || updateFile.getGID()!=awstatsGID
+                            tempStat.getUID()!=UnixFile.ROOT_UID
+                            || tempStat.getGID()!=awstatsGID
                         ) updateFile.chown(UnixFile.ROOT_UID, awstatsGID);
                     }
                 }

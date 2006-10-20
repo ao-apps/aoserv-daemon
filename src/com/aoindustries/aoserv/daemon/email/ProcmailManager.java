@@ -63,7 +63,7 @@ public final class ProcmailManager extends BuilderThread {
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-            ) throw new SQLException("ProcmailManager is currently only programmed for Mandrake 10.1");
+            ) throw new SQLException("ProcmailManager is currently only programmed for Mandrake 10.1 and Mandriva 2006.0");
 
             synchronized(rebuildLock) {
                 List<LinuxServerAccount> lsas=aoServer.getLinuxServerAccounts();
@@ -73,6 +73,8 @@ public final class ProcmailManager extends BuilderThread {
                         UnixFile procmailrc=new UnixFile(home, PROCMAILRC);
 
                         if(!isManual(lsa)) {
+                            // Stat for use below
+                            Stat procmailrcStat = procmailrc.getStat();
                             boolean isAutoresponderEnabled=lsa.isAutoresponderEnabled();
                             boolean useInbox=lsa.useInbox();
                             List<EmailAttachmentBlock> eabs=lsa.getEmailAttachmentBlocks();
@@ -254,7 +256,7 @@ public final class ProcmailManager extends BuilderThread {
                                 
                                 // Write to disk if different than the copy on disk
                                 byte[] newBytes=bout.toByteArray();
-                                if(!procmailrc.exists() || !procmailrc.contentEquals(newBytes)) {
+                                if(!procmailrcStat.exists() || !procmailrc.contentEquals(newBytes)) {
                                     // Create the new autoresponder config
                                     UnixFile tempUF=new UnixFile(home+"/.procmailrc.");
                                     FileOutputStream fout=tempUF.getSecureOutputStream(
@@ -273,7 +275,7 @@ public final class ProcmailManager extends BuilderThread {
                                 }
                             } else {
                                 // Delete the old procmailrc file because it is not needed
-                                if(procmailrc.exists()) procmailrc.delete();
+                                if(procmailrcStat.exists()) procmailrc.delete();
                             }
                         }
                     }
@@ -314,11 +316,12 @@ public final class ProcmailManager extends BuilderThread {
             ) return true;
 
             UnixFile procmailrc=new UnixFile(home, PROCMAILRC);
+            Stat procmailrcStat = procmailrc.getStat();
 
             boolean isManual;
             if(
-                procmailrc.exists()
-                && procmailrc.isRegularFile()
+                procmailrcStat.exists()
+                && procmailrcStat.isRegularFile()
             ) {
                 int len1=AUTO_PROCMAILRC.length();
                 StringBuilder SB=new StringBuilder(len1);

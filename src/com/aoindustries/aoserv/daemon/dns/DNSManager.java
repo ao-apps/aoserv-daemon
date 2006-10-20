@@ -95,13 +95,14 @@ final public class DNSManager extends BuilderThread {
                     long serial=zone.getSerial();
                     Long lastSerial=zoneSerials.get(zone);
                     String file=zone.getFile();
-                    UnixFile realFile=new UnixFile(namedZoneDir, file);
+                    UnixFile realFile=new UnixFile(namedZoneDir, file, false);
+                    Stat realFileStat = realFile.getStat();
                     if(
                         lastSerial==null
                         || lastSerial.longValue()!=serial
-                        || !realFile.exists()
+                        || !realFileStat.exists()
                     ) {
-                        UnixFile newFile=new UnixFile(namedZoneDir, file+".new");
+                        UnixFile newFile=new UnixFile(namedZoneDir, file+".new", false);
 
                         PrintWriter out=new PrintWriter(
                             new BufferedOutputStream(
@@ -115,7 +116,7 @@ final public class DNSManager extends BuilderThread {
 			    out.close();
 			}
 
-                        if(!realFile.exists() || !newFile.contentEquals(realFile)) {
+                        if(!realFileStat.exists() || !newFile.contentEquals(realFile)) {
                             newFile.renameTo(realFile);
                             needsRestart=true;
                         } else newFile.delete();
@@ -179,7 +180,7 @@ final public class DNSManager extends BuilderThread {
 		    out.flush();
 		    out.close();
 		}
-                if(confFile.exists() && newConfFile.contentEquals(confFile)) {
+                if(confFile.getStat().exists() && newConfFile.contentEquals(confFile)) {
                     newConfFile.delete();
                 } else {
                     needsRestart=true;
@@ -189,7 +190,7 @@ final public class DNSManager extends BuilderThread {
                 /*
                  * Write the new root cache file.
                  */
-                UnixFile newRoot=new UnixFile(namedZoneDir, NEW_ROOT_CACHE);
+                UnixFile newRoot=new UnixFile(namedZoneDir, NEW_ROOT_CACHE, false);
                 out=new ChainWriter(
                     newRoot.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)
                 );
@@ -363,8 +364,8 @@ final public class DNSManager extends BuilderThread {
 		    out.flush();
 		    out.close();
 		}
-                UnixFile rootCache=new UnixFile(namedZoneDir, ROOT_CACHE);
-                if(rootCache.exists() && newRoot.contentEquals(rootCache)) {
+                UnixFile rootCache=new UnixFile(namedZoneDir, ROOT_CACHE, false);
+                if(rootCache.getStat().exists() && newRoot.contentEquals(rootCache)) {
                     newRoot.delete();
                 } else {
                     needsRestart=true;

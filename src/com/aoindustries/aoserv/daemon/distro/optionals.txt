@@ -1,4 +1,3 @@
-mandrake,10.1,i586,/.backup
 mandrake,10.1,i586,/boot/boot.0300
 mandrake,10.1,i586,/boot/boot.0304
 mandrake,10.1,i586,/boot/boot.0800

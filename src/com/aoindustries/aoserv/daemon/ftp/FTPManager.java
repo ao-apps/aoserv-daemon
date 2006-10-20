@@ -80,33 +80,35 @@ final public class FTPManager extends BuilderThread {
     public static void copyIfNeeded(UnixFile sourceDir, UnixFile destDir, String filename) throws IOException {
         Profiler.startProfile(Profiler.IO, FTPManager.class, "copyIfNeeded(UnixFile,UnixFile,String)", null);
         try {
-            UnixFile sourceFile=new UnixFile(sourceDir, filename);
-            UnixFile destFile=new UnixFile(destDir, filename);
+            UnixFile sourceFile=new UnixFile(sourceDir, filename, false);
+            Stat sourceFileStat = sourceFile.getStat();
+            UnixFile destFile=new UnixFile(destDir, filename, false);
+            Stat destFileStat = destFile.getStat();
             
-            if(sourceFile.isSymLink()) {
+            if(sourceFileStat.isSymLink()) {
                 String linkTarget=sourceFile.readLink();
                 if(
-                    !destFile.exists()
-                    || !destFile.isSymLink()
+                    !destFileStat.exists()
+                    || !destFileStat.isSymLink()
                     || !destFile.readLink().equals(linkTarget)
                 ) {
-                    if(destFile.exists()) destFile.delete();
-                    destFile.symLink(linkTarget).chown(sourceFile.getUID(), sourceFile.getGID());
+                    if(destFileStat.exists()) destFile.delete();
+                    destFile.symLink(linkTarget).chown(sourceFileStat.getUID(), sourceFileStat.getGID());
                 }
-            } else if(sourceFile.isBlockDevice()) throw new IOException("Cannot copy block device: "+sourceFile.getFilename());
-            else if(sourceFile.isCharacterDevice()) throw new IOException("Cannot copy character device: "+sourceFile.getFilename());
-            else if(sourceFile.isDirectory()) throw new IOException("Cannot copy directory: "+sourceFile.getFilename());
-            else if(sourceFile.isFIFO()) throw new IOException("Cannot copy fifo: "+sourceFile.getFilename());
-            else if(sourceFile.isSocket()) throw new IOException("Cannot copy socket: "+sourceFile.getFilename());
+            } else if(sourceFileStat.isBlockDevice()) throw new IOException("Cannot copy block device: "+sourceFile.getFilename());
+            else if(sourceFileStat.isCharacterDevice()) throw new IOException("Cannot copy character device: "+sourceFile.getFilename());
+            else if(sourceFileStat.isDirectory()) throw new IOException("Cannot copy directory: "+sourceFile.getFilename());
+            else if(sourceFileStat.isFIFO()) throw new IOException("Cannot copy fifo: "+sourceFile.getFilename());
+            else if(sourceFileStat.isSocket()) throw new IOException("Cannot copy socket: "+sourceFile.getFilename());
             else {
                 // Copy as regular file
                 if(
-                    !destFile.exists()
-                    || sourceFile.getSize()!=destFile.getSize()
-                    || sourceFile.getModifyTime()!=destFile.getModifyTime()
+                    !destFileStat.exists()
+                    || sourceFileStat.getSize()!=destFileStat.getSize()
+                    || sourceFileStat.getModifyTime()!=destFileStat.getModifyTime()
                 ) {
                     sourceFile.copyTo(destFile, true);
-                    destFile.setModifyTime(sourceFile.getModifyTime());
+                    destFile.utime(destFileStat.getAccessTime(), sourceFileStat.getModifyTime());
                 }
             }
         } finally {
@@ -122,6 +124,7 @@ final public class FTPManager extends BuilderThread {
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
             int osv=thisAOServer.getServer().getOperatingSystemVersion().getPKey();
+            final Stat tempStat = new Stat();
             synchronized(rebuildLock) {
                 if(
                     osv==OperatingSystemVersion.MANDRAKE_10_1_I586
@@ -203,7 +206,7 @@ final public class FTPManager extends BuilderThread {
 
                     // Move into place if different than existing
                     boolean configChanged;
-                    if(proFtpdConf.exists() && newProFtpdConf.contentEquals(proFtpdConf)) {
+                    if(proFtpdConf.getStat(tempStat).exists() && newProFtpdConf.contentEquals(proFtpdConf)) {
                         newProFtpdConf.delete();
                         configChanged=false;
                     } else {
@@ -215,13 +218,13 @@ final public class FTPManager extends BuilderThread {
                     UnixFile rcFile=new UnixFile("/etc/rc.d/rc3.d/S85proftpd");
                     if(bindCount==0) {
                         // Turn off proftpd completely if not already off
-                        if(rcFile.exists()) {
+                        if(rcFile.getStat(tempStat).exists()) {
                             AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/proftpd", "stop"});
                             AOServDaemon.exec(new String[] {"/sbin/chkconfig", "--del", "proftpd"});
                         }
                     } else {
                         // Turn on proftpd if not already on
-                        if(!rcFile.exists()) {
+                        if(!rcFile.getStat(tempStat).exists()) {
                             AOServDaemon.exec(new String[] {"/sbin/chkconfig", "--add", "proftpd"});
                             AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/proftpd", "start"});
                         } else if(configChanged) {
@@ -291,6 +294,7 @@ final public class FTPManager extends BuilderThread {
         try {
             String[] list=dir.list();
             if(list!=null) {
+                final Stat tempStat = new Stat();
                 int len=list.length;
                 int flen=files.length;
                 for(int c=0;c<len;c++) {
@@ -303,8 +307,8 @@ final public class FTPManager extends BuilderThread {
                         }
                     }
                     if(!found) {
-                        UnixFile file=new UnixFile(dir, filename);
-                        if(file.exists()) file.delete();
+                        UnixFile file=new UnixFile(dir, filename, false);
+                        if(file.getStat(tempStat).exists()) file.delete();
                     }
                 }
             }

@@ -85,6 +85,7 @@ public class LinuxAccountManager extends BuilderThread {
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(rebuildLock) {
@@ -308,11 +309,12 @@ public class LinuxAccountManager extends BuilderThread {
                         || (th.length()>6 && th.substring(0, 6).equals("/home/"))
                     ) {
                         UnixFile unixFile=new UnixFile(th);
+                        Stat unixFileStat = unixFile.getStat();
                         if(
                             !isWWWAndUser
                             && (
-                                unixFile.getUID()==UnixFile.ROOT_UID
-                                || unixFile.getGID()==UnixFile.ROOT_GID
+                                unixFileStat.getUID()==UnixFile.ROOT_UID
+                                || unixFileStat.getGID()==UnixFile.ROOT_GID
                             )
                         ) {
                             unixFile.chown(uid, gid);
@@ -346,7 +348,7 @@ public class LinuxAccountManager extends BuilderThread {
                                     // Only do the rest of the files for user accounts
                                     UnixFile skelFile=new UnixFile(skel, filename);
                                     UnixFile homeFile=new UnixFile(homeDir, filename);
-                                    if(!homeFile.exists()) {
+                                    if(!homeFile.getStat().exists()) {
                                         skelFile.copyTo(homeFile, false);
                                         homeFile.chown(uid, gid);
                                     }
@@ -503,7 +505,7 @@ public class LinuxAccountManager extends BuilderThread {
         try {
             UnixFile file=new UnixFile(path);
             String content;
-            if(file.exists()) {
+            if(file.getStat().exists()) {
 		StringBuilder SB=new StringBuilder();
                 InputStream in=new BufferedInputStream(file.getSecureInputStream());
 		try {
@@ -595,6 +597,7 @@ public class LinuxAccountManager extends BuilderThread {
                     if(
                         osv==OperatingSystemVersion.MANDRAKE_10_1_I586
                         || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+                        || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                     ) addJailed=true;
                     else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                     if(addJailed) {
@@ -681,7 +684,7 @@ public class LinuxAccountManager extends BuilderThread {
             UnixFile profileFile=new UnixFile(lsa.getHome(), BASHRC);
 
             // Make sure the file exists
-            if(profileFile.exists()) {
+            if(profileFile.getStat().exists()) {
                 // Read the old file, looking for the source in the file
                 BufferedReader in=new BufferedReader(new InputStreamReader(profileFile.getSecureInputStream()));
                 String line;

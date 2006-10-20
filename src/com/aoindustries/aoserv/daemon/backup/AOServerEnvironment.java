@@ -198,7 +198,7 @@ public class AOServerEnvironment extends BackupEnvironment {
     public long getStatMode(String filename) throws IOException {
         Profiler.startProfile(Profiler.FAST, AOServerEnvironment.class, "getStatMode(String)", null);
         try {
-            return getUnixFile(filename).getStatMode();
+            return getUnixFile(filename).getStat().getRawMode();
         } finally {
             Profiler.endProfile(Profiler.FAST);
         }
@@ -216,7 +216,7 @@ public class AOServerEnvironment extends BackupEnvironment {
     public FileBackupDevice getFileBackupDevice(String filename) throws IOException, SQLException {
         Profiler.startProfile(Profiler.FAST, AOServerEnvironment.class, "getFileBackupDevice(String)", null);
         try {
-            long device=getUnixFile(filename).getDevice();
+            long device=getUnixFile(filename).getStat().getDevice();
             FileBackupDevice dev=fileBackupDeviceTable.get(device);
             if(dev==null) throw new IOException("Unable to find FileBackupDevice for '"+filename+"': "+device);
             return dev;
@@ -228,7 +228,7 @@ public class AOServerEnvironment extends BackupEnvironment {
     public long getInode(String filename) throws IOException {
         Profiler.startProfile(Profiler.FAST, AOServerEnvironment.class, "getInode(String)", null);
         try {
-            long inode=getUnixFile(filename).getInode();
+            long inode=getUnixFile(filename).getStat().getInode();
             if(inode==-1) throw new IOException("Inode value of -1 conflicts with internal use of -1 as null");
             return inode;
         } finally {
@@ -239,7 +239,7 @@ public class AOServerEnvironment extends BackupEnvironment {
     public int getUID(String filename) throws IOException {
         Profiler.startProfile(Profiler.FAST, AOServerEnvironment.class, "getUID(String)", null);
         try {
-            return getUnixFile(filename).getUID();
+            return getUnixFile(filename).getStat().getUID();
         } finally {
             Profiler.endProfile(Profiler.FAST);
         }
@@ -248,7 +248,7 @@ public class AOServerEnvironment extends BackupEnvironment {
     public int getGID(String filename) throws IOException {
         Profiler.startProfile(Profiler.FAST, AOServerEnvironment.class, "getGID(String)", null);
         try {
-            return getUnixFile(filename).getGID();
+            return getUnixFile(filename).getStat().getGID();
         } finally {
             Profiler.endProfile(Profiler.FAST);
         }
@@ -257,7 +257,7 @@ public class AOServerEnvironment extends BackupEnvironment {
     public long getModifyTime(String filename) throws IOException {
         Profiler.startProfile(Profiler.FAST, AOServerEnvironment.class, "getModifyTime(String)", null);
         try {
-            return getUnixFile(filename).getModifyTime();
+            return getUnixFile(filename).getStat().getModifyTime();
         } finally {
             Profiler.endProfile(Profiler.FAST);
         }
@@ -284,7 +284,7 @@ public class AOServerEnvironment extends BackupEnvironment {
     public long getDeviceIdentifier(String filename) throws IOException {
         Profiler.startProfile(Profiler.FAST, AOServerEnvironment.class, "getDeviceIdentifier(String)", null);
         try {
-            return getUnixFile(filename).getDeviceIdentifier();
+            return getUnixFile(filename).getStat().getDeviceIdentifier();
         } finally {
             Profiler.endProfile(Profiler.FAST);
         }
@@ -345,7 +345,8 @@ public class AOServerEnvironment extends BackupEnvironment {
 
             // Third, the FileBackupDevices take effect
             UnixFile unixFile=getUnixFile(filename);
-            long device=unixFile.getDevice();
+            Stat stat = unixFile.getStat();
+            long device = stat.getDevice();
             FileBackupDevice fileDevice=fileBackupDeviceTable.get(device);
             if(fileDevice==null) throw new IOException("Unable to find FileBackupDevice for device #"+device+": filename='"+filename+'\'');
             if(!fileDevice.canBackup()) {
@@ -360,6 +361,10 @@ public class AOServerEnvironment extends BackupEnvironment {
                 || filename.equals("/mnt/floppy")
                 || filename.equals("/tmp")
                 || filename.equals("/var/backup")
+                || filename.equals("/var/backup1")
+                || filename.equals("/var/backup2")
+                || filename.equals("/var/backup3")
+                || filename.equals("/var/backup4")
                 || filename.equals("/var/failover")
                 //|| filename.equals("/var/lib/interbase")
                 || filename.equals("/var/lib/mysql")

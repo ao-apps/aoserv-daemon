@@ -42,7 +42,7 @@ public class LinuxProcess extends UnixProcess {
     public int getGID() throws IOException {
         Profiler.startProfile(Profiler.IO, LinuxProcess.class, "getGID()", null);
         try {
-            return new UnixFile(getProc().getPath()).getGID();
+            return new UnixFile(getProc().getPath()).getStat().getGID();
         } finally {
             Profiler.endProfile(Profiler.IO);
         }
@@ -81,7 +81,7 @@ public class LinuxProcess extends UnixProcess {
     public int getUID() throws IOException {
         Profiler.startProfile(Profiler.IO, LinuxProcess.class, "getUID()", null);
         try {
-            return new UnixFile(getProc().getPath()).getUID();
+            return new UnixFile(getProc().getPath()).getStat().getUID();
         } finally {
             Profiler.endProfile(Profiler.IO);
         }

@@ -60,19 +60,20 @@ final public class CvsManager extends BuilderThread {
                 for(CvsRepository cvs : thisAOServer.getCvsRepositories()) {
                     String path=cvs.getPath();
                     UnixFile cvsUF=new UnixFile(path);
+                    Stat cvsStat = cvsUF.getStat();
                     long cvsMode=cvs.getMode();
                     // Make the directory
-                    if(!cvsUF.exists()) cvsUF.mkdir(true, cvsMode);
+                    if(!cvsStat.exists()) cvsUF.mkdir(true, cvsMode);
                     // Set the mode
-                    if(cvsUF.getMode()!=cvsMode) cvsUF.setMode(cvsMode);
+                    if(cvsStat.getMode()!=cvsMode) cvsUF.setMode(cvsMode);
                     // Set the owner and group
                     LinuxServerAccount lsa=cvs.getLinuxServerAccount();
                     int uid=lsa.getUID().getID();
                     int gid=cvs.getLinuxServerGroup().getGID().getID();
-                    if(uid!=cvsUF.getUID() || gid!=cvsUF.getGID()) cvsUF.chown(uid, gid);
+                    if(uid!=cvsStat.getUID() || gid!=cvsStat.getGID()) cvsUF.chown(uid, gid);
                     // Init if needed
-                    UnixFile cvsRootUF=new UnixFile(cvsUF, "CVSROOT");
-                    if(!cvsRootUF.exists()) {
+                    UnixFile cvsRootUF=new UnixFile(cvsUF, "CVSROOT", false);
+                    if(!cvsRootUF.getStat().exists()) {
                         AOServDaemon.suexec(
                             lsa.getLinuxAccount().getUsername().getUsername(),
                             "/usr/bin/cvs -d "+path+" init"

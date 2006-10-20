@@ -257,10 +257,13 @@ final public class DistroManager implements Runnable {
                 // Flag as found
                 foundFiles[index]=true;
 
+                // Stat here for use below
+                Stat fileStat = file.getStat();
+
                 // Do not check the ownership of the /usr/serverlocal directory
                 if(!filename.equals("/usr/serverlocal")) {
                     // Check owner
-                    int fileUID=file.getUID();
+                    int fileUID=fileStat.getUID();
                     LinuxAccount la=distroFile.getLinuxAccount();
                     LinuxServerAccount lsa=la.getLinuxServerAccount(aoServer);
                     if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount for "+la+" on "+aoServer);
@@ -270,7 +273,7 @@ final public class DistroManager implements Runnable {
                     }
 
                     // Check group
-                    int fileGID=file.getGID();
+                    int fileGID=fileStat.getGID();
                     int distroGID=distroFile.getLinuxGroup().getLinuxServerGroup(aoServer).getGID().getID();
                     if(fileGID!=distroGID) {
                         results.add("chgrp "+distroGID+" '"+filename+"' #"+fileGID+"!="+distroGID);
@@ -278,7 +281,7 @@ final public class DistroManager implements Runnable {
                 }
 
                 // Type
-                long fileMode=file.getStatMode();
+                long fileMode=fileStat.getRawMode();
                 long distroMode=distroFile.getMode();
                 long fileType=fileMode&UnixFile.TYPE_MASK;
                 long distroType=distroMode&UnixFile.TYPE_MASK;
@@ -297,7 +300,7 @@ final public class DistroManager implements Runnable {
                 }
 
                 // Symlinks
-                if(file.isSymLink()) {
+                if(fileStat.isSymLink()) {
                     String distroLink=distroFile.getSymlinkTarget();
                     if(distroLink!=null) {
                         String fileLink=file.readLink();
@@ -314,13 +317,13 @@ final public class DistroManager implements Runnable {
                     }
                 } else {
                     if(
-                        !file.isBlockDevice()
-                        && !file.isCharacterDevice()
-                        && !file.isFIFO()
-                        && !file.isSocket()
+                        !fileStat.isBlockDevice()
+                        && !fileStat.isCharacterDevice()
+                        && !fileStat.isFIFO()
+                        && !fileStat.isSocket()
                     ) {
                         String type=distroFile.getType().getType();
-                        if(!file.isDirectory()) {
+                        if(!fileStat.isDirectory()) {
                             if(!type.equals(DistroFileType.CONFIG)) {
                                 // Length
                                 long fileLen=file.getFile().length();
@@ -376,7 +379,7 @@ final public class DistroManager implements Runnable {
                                                 distroFiles,
                                                 foundFiles,
                                                 pathComparator,
-                                                new UnixFile(file, list[c]),
+                                                new UnixFile(file, list[c], false),
                                                 results,
                                                 newRecursionLevel
                                             );
@@ -430,7 +433,7 @@ final public class DistroManager implements Runnable {
                 for(int c=0;c<len;c++) {
                     try {
                         String name=list[c];
-                        UnixFile uf=new UnixFile(file, name);
+                        UnixFile uf=new UnixFile(file, name, false);
                         try {
                             // Check for ...
                             if(
@@ -438,20 +441,23 @@ final public class DistroManager implements Runnable {
                                 || (name.length()>0 && name.charAt(0)==' ')
                             ) results.add("3D "+uf);
 
+                            // Stat here for use below
+                            Stat ufStat = uf.getStat();
+
                             // Make sure is a valid user
-                            int uid=uf.getUID();
+                            int uid=ufStat.getUID();
                             if(aoServer.getLinuxServerAccount(uid)==null) {
                                 results.add("NO "+uf+" "+uid);
                             }
 
                             // Make sure is a valid group
-                            int gid=uf.getGID();
+                            int gid=ufStat.getGID();
                             if(aoServer.getLinuxServerGroup(gid)==null) {
                                 results.add("NG "+uf+" "+gid);
                             }
 
                             // Make sure not setUID or setGID
-                            long fileMode=uf.getMode();
+                            long fileMode=ufStat.getMode();
                             if(
                                 (fileMode&(UnixFile.SET_UID|UnixFile.SET_GID))!=0
                                 && (
@@ -472,8 +478,8 @@ final public class DistroManager implements Runnable {
                                         if(
                                             fname.equals("wrapper")
                                             && fileMode==04750
-                                            && uf.getUID()==UnixFile.ROOT_UID
-                                            && aoServer.getLinuxServerGroup(uf.getGID()).getLinuxGroup().getName().equals(LinuxGroup.MAIL)
+                                            && ufStat.getUID()==UnixFile.ROOT_UID
+                                            && aoServer.getLinuxServerGroup(ufStat.getGID()).getLinuxGroup().getName().equals(LinuxGroup.MAIL)
                                         ) found=true;
                                     }
                                 }
@@ -486,7 +492,7 @@ final public class DistroManager implements Runnable {
                             //}
 
                             // Recurse
-                            if(includeUser && !uf.isSymLink() && uf.isDirectory()) {
+                            if(includeUser && !ufStat.isSymLink() && ufStat.isDirectory()) {
                                 checkUserDirectory(aoServer, uf, results, recursionLevel+1);
                             }
                         } catch(RuntimeException err) {

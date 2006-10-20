@@ -50,6 +50,7 @@ import com.aoindustries.aoserv.daemon.report.ServerReportThread;
 import com.aoindustries.aoserv.daemon.slocate.SLocateManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.email.ErrorMailer;
+import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.profiler.Profiler;
 import com.aoindustries.util.ErrorHandler;
@@ -125,9 +126,10 @@ final public class AOServDaemon {
             if(file.exists()) {
                 // Figure out the ownership
                 UnixFile unixFile=new UnixFile(file.getPath());
-                int uid=unixFile.getUID();
+                Stat stat = unixFile.getStat();
+                int uid=stat.getUID();
                 if(uids.contains(uid)) {
-                    if(!unixFile.isSymLink()) {
+                    if(!stat.isSymLink()) {
                         // Search any children files
                         String[] list=file.list();
                         if(list!=null) {

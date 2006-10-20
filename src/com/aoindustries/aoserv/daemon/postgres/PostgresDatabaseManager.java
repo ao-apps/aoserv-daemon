@@ -44,8 +44,17 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
             int port=masterIn.readCompressedInt();
 
             // Dump, count raw bytes, create MD5, and compress to a temp file
+            int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+            String commandPath;
+            if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                commandPath = "/opt/aoserv-daemon/bin/backup_postgres_database";
+            } else if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                commandPath = "/usr/aoserv/daemon/bin/backup_postgres_database";
+            } else {
+                throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            }
             String[] command={
-                "/usr/aoserv/daemon/bin/backup_postgres_database",
+                commandPath,
                 minorVersion,
                 Integer.toString(port),
                 dbName
@@ -183,6 +192,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(rebuildLock) {
@@ -229,8 +239,22 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                     } else throw new SQLException("Unsupported version of PostgreSQL: "+version);
 
                                     // Automatically add plpgsql support
-                                    AOServDaemon.suexec(LinuxAccount.POSTGRES, "/usr/postgresql/"+minorVersion+"/bin/createlang -p "+port+" plpgsql "+name);
-                                    AOServDaemon.suexec(LinuxAccount.POSTGRES, "/usr/postgresql/"+minorVersion+"/bin/psql -p "+port+" -c \"create function fti() returns opaque as '/usr/postgresql/"+minorVersion+"/lib/mfti.so' language 'c';\" "+name);
+                                    String createlang;
+                                    String psql;
+                                    String lib;
+                                    if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                                        createlang = "/opt/postgresql-"+minorVersion+"/bin/createlang";
+                                        psql = "/opt/postgresql-"+minorVersion+"/bin/psql";
+                                        lib = "/opt/postgresql-"+minorVersion+"/lib";
+                                    } else if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                        createlang = "/usr/postgresql/"+minorVersion+"/bin/createlang";
+                                        psql = "/usr/postgresql/"+minorVersion+"/bin/psql";
+                                        lib = "/usr/postgresql/"+minorVersion+"/lib";
+                                    } else {
+                                        throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                                    }
+                                    AOServDaemon.suexec(LinuxAccount.POSTGRES, createlang+" -p "+port+" plpgsql "+name);
+                                    AOServDaemon.suexec(LinuxAccount.POSTGRES, psql+" -p "+port+" -c \"create function fti() returns opaque as '"+lib+"/mfti.so' language 'c';\" "+name);
                                 }
                             }
 
@@ -273,8 +297,17 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                 int port=ps.getNetBind().getPort().getPort();
                 String dbName=pd.getName();
 
+                int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+                String commandPath;
+                if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                    commandPath = "/opt/aoserv-daemon/bin/dump_postgres_database";
+                } else if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                    commandPath = "/usr/aoserv/daemon/bin/dump_postgres_database";
+                } else {
+                    throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                }
                 String[] command={
-                    "/usr/aoserv/daemon/bin/dump_postgres_database",
+                    commandPath,
                     minorVersion,
                     Integer.toString(port),
                     dbName,
@@ -299,7 +332,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 		    dumpin.close();
 		}
             } finally {
-                if(tempFile.exists()) tempFile.delete();
+                if(tempFile.getStat().exists()) tempFile.delete();
             }
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);

@@ -129,7 +129,10 @@ public final class EmailDomainManager extends BuilderThread {
                     String[] cmd;
                     //if(osv==OperatingSystemVersion.REDHAT_7_2_I686) cmd=reloadSendmailCommandRedHat7_2;
                     //else if(osv==OperatingSystemVersion.MANDRAKE_9_2_I586) cmd=reloadSendmailCommandMandrake9_2;
-                    if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) cmd=reloadSendmailCommandMandrake10_1;
+                    if(
+                        osv==OperatingSystemVersion.MANDRAKE_10_1_I586
+                        || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+                    ) cmd=reloadSendmailCommandMandrake10_1;
                     else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                     AOServDaemon.exec(cmd);
                 }

@@ -266,7 +266,7 @@ final public class DistroGenerator extends Thread {
                     while(filenames.hasNext()) {
                         String filename=getOperatingSystemPath(osv)+filenames.next();
                         UnixFile uf=new UnixFile(filename);
-                        if(uf.exists()) {
+                        if(uf.getStat().exists()) {
                             System.err.println("File exists but is listed in nevers: "+filename);
                             foundNever=true;
                         }
@@ -370,7 +370,7 @@ final public class DistroGenerator extends Thread {
                     // Recurse for directories
                     try {
                         UnixFile unixFile=new UnixFile(root+filename);
-                        long statMode=unixFile.getStatMode();
+                        long statMode=unixFile.getStat().getRawMode();
                         temp.parseValues(filename);
                         if(
                             !UnixFile.isSymLink(statMode)
@@ -455,7 +455,8 @@ final public class DistroGenerator extends Thread {
 
                         // Decide if the size should be stored
                         UnixFile file = new UnixFile(osFilename.getFullPath(root));
-                        long statMode=file.getStatMode();
+                        Stat fileStat = file.getStat();
+                        long statMode=fileStat.getRawMode();
                         boolean isRegularFile=UnixFile.isRegularFile(statMode);
                         boolean storeSize=isRegularFile && !isConfig(osFilename);
 
@@ -476,11 +477,11 @@ final public class DistroGenerator extends Thread {
                                 .append("', ")
                                 .append(statMode)
                                 .append("::int8, '")
-                                .append(SQLUtility.escapeSQL(getUsername(osFilename, file.getUID())))
+                                .append(SQLUtility.escapeSQL(getUsername(osFilename, fileStat.getUID())))
                                 .append("', '")
-                                .append(SQLUtility.escapeSQL(getGroupname(osFilename, file.getGID())))
+                                .append(SQLUtility.escapeSQL(getGroupname(osFilename, fileStat.getGID())))
                                 .append("', ");
-                            if(storeSize) SB.append(file.getSize()).append("::int8");
+                            if(storeSize) SB.append(fileStat.getSize()).append("::int8");
                             else SB.append("null");
                             SB.append(", ");
                             if(doHash) {

@@ -45,6 +45,8 @@ final public class SshdManager extends BuilderThread {
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
+            final Stat tempStat = new Stat();
+
             synchronized(rebuildLock) {
                 // Figure out how many sshd daemons exist
                 int beforeCount=0;
@@ -205,7 +207,7 @@ final public class SshdManager extends BuilderThread {
                 for(int c=1;c<=numServers;c++) {
                     UnixFile configFile=new UnixFile("/etc/ssh/sshd_config"+c);
                     UnixFile newFile=new UnixFile("/etc/ssh/sshd_config"+c+".new");
-                    if(!configFile.exists() || !configFile.contentEquals(newFile)) {
+                    if(!configFile.getStat(tempStat).exists() || !configFile.contentEquals(newFile)) {
                         needsRestarted.add(c);
                         newFile.renameTo(configFile);
                     } else newFile.delete();
