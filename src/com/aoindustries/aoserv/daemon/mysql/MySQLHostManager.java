@@ -88,7 +88,8 @@ final public class MySQLHostManager extends BuilderThread {
                             || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
                             || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                         ) {
-                            if(version.startsWith("4.1.")) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
+                            if(version.startsWith("4.0.")) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
+                            else if(version.startsWith("4.1.")) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
                             else if(version.startsWith("5.0.")) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
                             else throw new SQLException("Unsupported MySQL version: "+version);
                         } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);

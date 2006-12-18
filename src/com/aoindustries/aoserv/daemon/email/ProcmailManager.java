@@ -56,14 +56,15 @@ public final class ProcmailManager extends BuilderThread {
         Profiler.startProfile(Profiler.UNKNOWN, ProcmailManager.class, "doRebuild()", null);
         try {
             AOServer aoServer=AOServDaemon.getThisAOServer();
+            String primaryIP = aoServer.getPrimaryIPAddress().getIPAddress();
             AOServConnector conn=AOServDaemon.getConnector();
 
-            // Currently only Mandrake 10.1 supported
             int osv=aoServer.getServer().getOperatingSystemVersion().getPKey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-            ) throw new SQLException("ProcmailManager is currently only programmed for Mandrake 10.1 and Mandriva 2006.0");
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(rebuildLock) {
                 List<LinuxServerAccount> lsas=aoServer.getLinuxServerAccounts();
@@ -72,7 +73,7 @@ public final class ProcmailManager extends BuilderThread {
                         String home=lsa.getHome();
                         UnixFile procmailrc=new UnixFile(home, PROCMAILRC);
 
-                        if(!isManual(lsa)) {
+                        if(home.startsWith("/home/") && !isManual(lsa)) {
                             // Stat for use below
                             Stat procmailrcStat = procmailrc.getStat();
                             boolean isAutoresponderEnabled=lsa.isAutoresponderEnabled();
@@ -118,7 +119,7 @@ public final class ProcmailManager extends BuilderThread {
                                                 + "# Filter through spamassassin\n"
                                                 + ":0fw: spamassassin.lock\n"
                                                 + "* < 256000\n"
-                                                + "| /usr/bin/spamc\n");
+                                                + "| /usr/bin/spamc -d ").print(primaryIP).print('\n');
                                     }
                                     // First figure out if this message will be rejected due to attachment
                                     if(!eabs.isEmpty()) {
@@ -358,6 +359,7 @@ public final class ProcmailManager extends BuilderThread {
                         AOServConnector connector=AOServDaemon.getConnector();
                         procmailManager=new ProcmailManager();
                         connector.emailAttachmentBlocks.addTableListener(procmailManager, 0);
+                        connector.ipAddresses.addTableListener(procmailManager, 0);
                         connector.linuxServerAccounts.addTableListener(procmailManager, 0);
                         System.out.println("Done");
                     }

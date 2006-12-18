@@ -75,7 +75,8 @@ final public class MySQLDBUserManager extends BuilderThread {
                             || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
                             || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                         ) {
-                            if(version.startsWith("4.1.")) insertSQL="insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                            if(version.startsWith("4.0.")) insertSQL="insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                            else if(version.startsWith("4.1.")) insertSQL="insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
                             else if(version.startsWith("5.0.")) insertSQL="insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
                             else throw new SQLException("Unsupported MySQL version: "+version);
                         } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);

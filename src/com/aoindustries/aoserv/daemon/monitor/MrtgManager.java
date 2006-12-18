@@ -504,6 +504,10 @@ final public class MrtgManager extends BuilderThread {
                 safeName = "pgsqlaes256";
             } else if(device.equals("/www.aes256.img")) {
                 safeName = "wwwaes256";
+            } else if(device.equals("/ao.aes256.img")) {
+                safeName = "aoaes256";
+            } else if(device.equals("/ao.copy.aes256.img")) {
+                safeName = "aocopyaes256";
             } else {
                 if(device.startsWith("/dev/")) device=device.substring(5);
                 // All characters should now be a-z, A-Z, and 0-9

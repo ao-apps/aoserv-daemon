@@ -31,6 +31,34 @@ final public class DNSManager extends BuilderThread {
         "restart"
     };
 
+    /**
+     * The IPs allowed to query non-AO names.
+     */
+    private static final String ACL =
+        // Private IP addresses used internally
+          "10.0.0.0/8;"
+        + " 172.16.0.0/24;"
+        + " 192.168.0.0/16;"
+        // Loopbackup IP
+        + " 127.0.0.0/8;"
+        // Kansas City
+        + " 65.77.181.128/29;" // Firewalls
+        + " 65.77.211.0/24;"   // Hosts
+        // Fremont
+        + " 64.71.143.176/29;" // Firewalls
+        + " 66.160.183.0/24;"  // Hosts
+        + " 64.62.174.0/24;"   // ultimateshoppingcart.com
+        // Amsterdam
+        + " 64.62.145.40/29;"  // Firewalls
+        + " 64.71.144.0/25;"   // Hosts
+        // Mobile
+        + " 68.63.51.29;"      // 2200 Dogwood Ct N
+        + " 70.91.161.42;"     // 816 Azalea Rd
+        // Spain
+        + " 81.19.103.96/28;"  // Firewalls
+        + " 81.19.103.64/27;"  // Hosts
+    ;
+
     private static final UnixFile
         newConfFile=new UnixFile("/etc/named.conf.new"),
         confFile=new UnixFile("/etc/named.conf")
@@ -135,12 +163,7 @@ final public class DNSManager extends BuilderThread {
                     )
                 );
 		try {
-		    out.print(//"acl localhost { 127.0.0.0/8; };\n"
-			      //+ "acl css { 192.168.0.0/24; };\n"
-			      //+ "acl kc { 209.15.126.2/32; 209.15.126.250/32; 209.15.126.251/32; 209.15.201.0/24; };\n"
-			      //+ "acl mob { 192.168.1.0/24; };\n"
-			      //+ "acl ntr { 66.166.55.219/32; };\n"
-			      "options {\n");
+		    out.print("options {\n");
                     if(
                         osv==OperatingSystemVersion.MANDRAKE_10_1_I586
                         || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -148,11 +171,11 @@ final public class DNSManager extends BuilderThread {
                         out.print("\tpid-file \"/var/run/named/named.pid\";\n");
                     }
                     out.print("\tdirectory \"").print(namedZoneDir.getFilename()).print("\";\n"
-                          // + "\tallow-query { localhost; css; kc; mob; ntr; };\n"
-                          // + "\tallow-recursion { localhost; css; kc; mob; ntr; };\n"
                              + "\tallow-transfer { 216.218.130.2; 216.218.131.2; 216.218.132.2; };\n"
                              + "\tnotify explicit;\n"
-                             + "\talso-notify { 216.218.130.2; 216.218.131.2; 216.218.132.2; };\n");
+                             + "\talso-notify { 216.218.130.2; 216.218.131.2; 216.218.132.2; };\n"
+                             + "\tallow-query { " + ACL + " };\n"
+                             + "\tallow-recursion { " + ACL + " };\n");
 		    for(NetBind nb : AOServDaemon.getThisAOServer().getNetBinds(connector.protocols.get(Protocol.DNS))) {
 			out.print("\tlisten-on port ").print(nb.getPort().getPort()).print(" { ").print(nb.getIPAddress().getIPAddress()).print("; };\n");
 		    }

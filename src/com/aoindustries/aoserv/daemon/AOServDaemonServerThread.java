@@ -214,7 +214,9 @@ final public class AOServDaemonServerThread extends Thread {
                                     long daemonKey=in.readLong();
                                     boolean useCompression = in.readBoolean();
                                     short retention = in.readShort();
-                                    long fromServerTime = in.readLong();
+                                    short fromServerYear = in.readShort();
+                                    short fromServerMonth = in.readShort();
+                                    short fromServerDay = in.readShort();
                                     DaemonAccessEntry dae=AOServDaemonServer.getDaemonAccessEntry(daemonKey);
                                     if(dae.command!=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION) throw new IOException("Mismatched DaemonAccessEntry command, dae.command!="+AOServDaemonProtocol.FAILOVER_FILE_REPLICATION);
                                     FailoverFileReplicationManager.failoverServer(
@@ -226,7 +228,9 @@ final public class AOServDaemonServerThread extends Thread {
                                         retention,
                                         dae.param2,
                                         "t".equals(dae.param3),
-                                        fromServerTime
+                                        fromServerYear,
+                                        fromServerMonth,
+                                        fromServerDay
                                     );
                                 }
                                 break;

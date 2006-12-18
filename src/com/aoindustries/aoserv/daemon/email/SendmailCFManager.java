@@ -42,6 +42,7 @@ final public class SendmailCFManager extends BuilderThread {
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(rebuildLock) {
@@ -52,18 +53,31 @@ final public class SendmailCFManager extends BuilderThread {
                     if(
                         osv==OperatingSystemVersion.MANDRAKE_10_1_I586
                         || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+                        || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                     ) {
-                        out.print("divert(-1)\n"
-                                + "dnl This is the macro config file used to generate the /etc/sendmail.cf\n"
-                                + "dnl file. If you modify the file you will have to regenerate the\n"
-                                + "dnl /etc/mail/sendmail.cf by running this macro config through the m4\n"
-                                + "dnl preprocessor:\n"
-                                + "dnl\n"
-                                + "dnl        m4 /etc/mail/sendmail.mc > /etc/mail/sendmail.cf\n"
-                                + "dnl\n"
-                                + "dnl You will need to have the sendmail-cf package installed for this to\n"
-                                + "dnl work.\n"
-                                + "include(`/usr/share/sendmail-cf/m4/cf.m4')dnl\n"
+                        if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                            out.print("divert(-1)\n"
+                                    + "dnl This is the macro config file used to generate the /etc/sendmail.cf\n"
+                                    + "dnl file. If you modify the file you will have to regenerate the\n"
+                                    + "dnl /etc/mail/sendmail.cf by running this macro config through the m4\n"
+                                    + "dnl preprocessor:\n"
+                                    + "dnl\n"
+                                    + "dnl        m4 /etc/mail/sendmail.mc > /etc/mail/sendmail.cf\n"
+                                    + "dnl\n"
+                                    + "dnl You will need to have the sendmail-cf package installed for this to\n"
+                                    + "dnl work.\n");
+                        } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                            out.print("divert(-1)dnl\n"
+                                    + "dnl #\n"
+                                    + "dnl # This is the sendmail macro config file for m4. If you make changes to\n"
+                                    + "dnl # /etc/mail/sendmail.mc, you will need to regenerate the\n"
+                                    + "dnl # /etc/mail/sendmail.cf file by confirming that the sendmail-cf package is\n"
+                                    + "dnl # installed and then performing a\n"
+                                    + "dnl #\n"
+                                    + "dnl #     make -C /etc/mail\n"
+                                    + "dnl #\n");
+                        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        out.print("include(`/usr/share/sendmail-cf/m4/cf.m4')dnl\n"
                                 + "VERSIONID(`AO Industries, Inc.')dnl\n"   // AO added
                                 + "define(`confDEF_USER_ID',``mail:mail'')dnl\n"
                                 + "OSTYPE(`linux')dnl\n"
@@ -73,50 +87,40 @@ final public class SendmailCFManager extends BuilderThread {
                                 + "define(`confTO_CONNECT', `1m')dnl\n"
                                 + "define(`confTRY_NULL_MX_LIST',true)dnl\n"
                                 + "define(`confDONT_PROBE_INTERFACES',true)dnl\n"
-                                + "define(`PROCMAIL_MAILER_PATH',`/usr/bin/procmail')dnl\n"
-                                + "dnl define delivery mode: interactive, background, or queued\n"
-                                // + "dnl define(`confDELIVERY_MODE', `i')\n" // AO removed
-                                + "define(`confDELIVERY_MODE', `background')\n" // AO added
-                                // + "MASQUERADE_AS(`localhost.localdomain')dnl\n" // AO removed
-                                // + "FEATURE(`limited_masquerade')dnl\n" // AO removed
-                                // + "FEATURE(`masquerade_envelope')dnl\n" // AO removed
-                                // + "FEATURE(`smrsh',`/usr/sbin/smrsh')dnl\n" // AO removed
-                                + "FEATURE(mailertable)dnl\n"
-                                + "dnl virtusertable: redirect incoming mail to virtual domain to particular user or domain\n"
+                                + "define(`PROCMAIL_MAILER_PATH',`/usr/bin/procmail')dnl\n");
+                        if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                            out.print("define(`ALIAS_FILE', `/etc/aliases')dnl\n"
+                                    + "define(`STATUS_FILE', `/var/log/mail/statistics')dnl\n"
+                                    + "define(`UUCP_MAILER_MAX', `2000000')dnl\n"
+                                    + "define(`confUSERDB_SPEC', `/etc/mail/userdb.db')dnl\n"
+                                    + "FEATURE(`smrsh',`/usr/sbin/smrsh')dnl\n");
+                        }
+                        out.print("dnl define delivery mode: interactive, background, or queued\n"
+                                + "define(`confDELIVERY_MODE', `background')\n"
+                                + "FEATURE(`mailertable',`hash -o /etc/mail/mailertable.db')dnl\n"
                                 + "FEATURE(`virtuser_entire_domain')dnl\n"
-                                + "FEATURE(`virtusertable',`hash -o /etc/mail/virtusertable')dnl\n"
-                                // + "dnl genericstable: rewrite sender address for outgoing mail\n" // AO removed
-                                // + "FEATURE(genericstable)dnl\n" // AO removed
-                                // + "FEATURE(always_add_domain)dnl\n" // AO removed
+                                + "FEATURE(`virtusertable',`hash -o /etc/mail/virtusertable.db')dnl\n"
                                 + "FEATURE(redirect)dnl\n"
-                                + "FEATURE(use_cw_file)dnl\n"
-                                + "FEATURE(local_procmail)dnl\n"
-                                // + "FEATURE(`access_db')dnl\n" // AO removed
-                                + "FEATURE(`access_db',`btree -T<TMPF> /etc/mail/access.db')dnl\n" // AO added
+                                + "FEATURE(use_cw_file)dnl\n");
+                        if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                            out.print("FEATURE(local_procmail)dnl\n");
+                        } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                            out.print("FEATURE(local_procmail,`',`procmail -t -Y -a $h -d $u')dnl\n");
+                        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        out.print("FEATURE(`access_db',`btree -T<TMPF> /etc/mail/access.db')dnl\n"
                                 + "FEATURE(`delay_checks')dnl\n"
                                 + "FEATURE(`blacklist_recipients')dnl\n"
-                                // + "FEATURE(`relay_based_on_MX')dnl\n" // AO removed
-                                // Was using dsbl, ordb, and spamhaus
-                                // + "dnl FEATURE(dnsbl, `blackholes.mail-abuse.org', `Rejected - see  http://www.mail-abuse.org/rbl/')dnl\n" // AO removed
-                                // + "dnl FEATURE(dnsbl, `dialups.mail-abuse.org', `Dialup - see http://www.mail-abuse.org/dul/')dnl\n" // AO removed
-                                // + "dnl FEATURE(dnsbl, `relays.mail-abuse.org', `Open spam relay - see http://www.mail-abuse.org/rss/')dnl\n" // AO removed
-                                + "dnl FEATURE(dnsbl, `relays.ordb.org', ` Mail from $&{client_addr} rejected;\\ see http://www.ordb.org/faq/\\#why_rejected')dnl\n"
-                                + "dnl FEATURE(dnsbl,`sbl.spamhaus.org',` Mail from $&{client_addr} rejected;\\ see http://www.spamhaus.org/sbl')dnl\n"
-                                + "dnl FEATURE(dnsbl,`list.dsbl.org',` Mail from $&{client_addr} rejected;\\ see http://www.dsbl.org/sender')dnl\n"
-                                // + "FEATURE(`stickyhost')dnl\n" // AO removed
-                                + "dnl SASL Configuration\n"
-                                + "dnl extract from http://www.sendmail.org/~ca/email/auth.html\n"
                                 + "dnl\n"
                                 + "dnl Next lines are for SMTP Authentication\n"
-                                + "define(`confAUTH_OPTIONS', `A y')dnl\n" // AO added
-                                //+ "TRUST_AUTH_MECH(`LOGIN PLAIN')dnl\n" // AO removed
-                                + "TRUST_AUTH_MECH(`GSSAPI DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n" // AO added
-                                //+ "define(`confAUTH_MECHANISMS', `LOGIN PLAIN')dnl\n" // AO removed
-                                + "define(`confAUTH_MECHANISMS', `GSSAPI DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n" // AO added
-                                + "dnl\n"
-                                //+ "dnl Next line stops sendmail from allowing auth without encryption\n" // AO removed
-                                //+ "define(`confAUTH_OPTIONS', `A p y')dnl\n" // AO removed
-                                + "dnl\n"
+                                + "define(`confAUTH_OPTIONS', `A y')dnl\n");
+                        if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                            out.print("TRUST_AUTH_MECH(`GSSAPI DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n"
+                                    + "define(`confAUTH_MECHANISMS', `GSSAPI DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n");
+                        } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                            out.print("dnl TRUST_AUTH_MECH(`EXTERNAL DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n"
+                                    + "dnl define(`confAUTH_MECHANISMS', `EXTERNAL GSSAPI DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n");
+                        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        out.print("dnl\n"
                                 + "dnl STARTTLS configuration\n"
                                 + "dnl extract from http://www.sendmail.org/~ca/email/starttls.html\n"
                                 + "dnl\n"
@@ -128,27 +132,22 @@ final public class SendmailCFManager extends BuilderThread {
                                 + "define(`confCLIENT_CERT', `CERT_DIR/MYcert.pem')dnl\n"
                                 + "define(`confCLIENT_KEY', `CERT_DIR/MYkey.pem')dnl\n"
                                 + "dnl\n"
-                                + "dnl Allow relatively high load averages\n" // AO added
-                                + "dnl\n" // AO added
-                                + "define(`confQUEUE_LA', `50')dnl\n" // AO added
-                                + "define(`confREFUSE_LA', `80')dnl\n" // AO added
-                                + "dnl\n" // AO added
-                                + "dnl Do not add the hostname to incorrectly formatted headers\n" // AO added
-                                + "dnl\n" // AO added
-                                + "FEATURE(`nocanonify')dnl\n" // AO added
-                                + "define(`confBIND_OPTS',`-DNSRCH -DEFNAMES')dnl\n" // AO added
-                                + "dnl\n" // AO added
-                                // + "dnl Uncomment next lines to hide identity of mail serve\n" // AO removed
-                                + "dnl Uncomment next lines to hide identity of mail server\n" // AO added
-                                // + "define(`confPRIVACY_FLAGS',`goaway,restrictqrun,restrictmailq')dnl\n" // AO removed
-                                // + "define(`confPRIVACY_FLAGS',`authwarnings,goaway,novrfy,noexpn,restrictqrun,restrictmailq')dnl\n" // AO removed on 2005-04-14
-                                + "define(`confPRIVACY_FLAGS',`authwarnings,goaway,novrfy,noexpn,restrictqrun,restrictmailq,restrictexpand')dnl\n" // AO added on 2005-04-14
+                                + "dnl Allow relatively high load averages\n"
+                                + "define(`confQUEUE_LA', `50')dnl\n"
+                                + "define(`confREFUSE_LA', `80')dnl\n"
+                                + "dnl\n"
+                                + "dnl Do not add the hostname to incorrectly formatted headers\n"
+                                + "FEATURE(`nocanonify')dnl\n"
+                                + "define(`confBIND_OPTS',`-DNSRCH -DEFNAMES')dnl\n"
+                                + "dnl\n"
+                                + "dnl Uncomment next lines to hide identity of mail server\n"
+                                + "define(`confPRIVACY_FLAGS',`authwarnings,goaway,novrfy,noexpn,restrictqrun,restrictmailq,restrictexpand')dnl\n"
                                 + "dnl define(`confSMTP_LOGIN_MSG', `$j server ready at $b')dnl\n"
+                                + "dnl\n"
                                 + "dnl Additional features added AO Industries on 2005-04-22\n"
                                 + "define(`confBAD_RCPT_THROTTLE',`10')dnl\n"
                                 + "define(`confCONNECTION_RATE_THROTTLE',`100')dnl\n"
                                 + "define(`confDELAY_LA',`40')dnl\n"
-                                + "define(`confDONT_PROBE_INTERFACES',`true')dnl\n"
                                 + "define(`confMAX_DAEMON_CHILDREN',`1000')dnl\n"
                                 + "define(`confMAX_MESSAGE_SIZE',`100000000')dnl\n"
                                 + "define(`confMAX_QUEUE_CHILDREN',`100')dnl\n"
@@ -158,7 +157,7 @@ final public class SendmailCFManager extends BuilderThread {
                                 + "dnl\n"
                                 + "dnl Only listen to the IP addresses of this logical server\n"
                                 + "dnl\n"
-                                + "FEATURE(`no_default_msa')dnl\n"); // AO added
+                                + "FEATURE(`no_default_msa')dnl\n");
                         List<String> finishedIPs=new SortedArrayList<String>();
                         List<NetBind> nbs=aoServer.getNetBinds(conn.protocols.get(Protocol.SMTP));
                         for(NetBind nb : nbs) {
@@ -171,7 +170,23 @@ final public class SendmailCFManager extends BuilderThread {
                                 out.print("DAEMON_OPTIONS(`Addr=").print(ip).print(", Family=inet, Port=").print(nb.getPort().getPort()).print(", Name=").print(ia.isWildcard()?aoServer.getServer().getHostname():ia.getHostname()).print("-MTA, Modifiers=");
                                 if(ia.isWildcard()) out.print("h");
                                 else out.print("bh");
-                                out.print("')\n"); // AO added
+                                out.print("')dnl\n"); // AO added
+                                finishedIPs.add(ip);
+                            }
+                        }
+                        finishedIPs.clear();
+                        nbs=aoServer.getNetBinds(conn.protocols.get(Protocol.SMTPS));
+                        for(NetBind nb : nbs) {
+                            IPAddress ia=nb.getIPAddress();
+                            String ip=ia.getIPAddress();
+                            if(
+                                !ip.equals(IPAddress.LOOPBACK_IP)
+                                && !finishedIPs.contains(ip)
+                            ) {
+                                out.print("DAEMON_OPTIONS(`Addr=").print(ip).print(", Family=inet, Port=").print(nb.getPort().getPort()).print(", Name=").print(ia.isWildcard()?aoServer.getServer().getHostname():ia.getHostname()).print("-TLSMSA, Modifiers=");
+                                if(ia.isWildcard()) out.print("hs");
+                                else out.print("bhs");
+                                out.print("')dnl\n"); // AO added
                                 finishedIPs.add(ip);
                             }
                         }
@@ -187,7 +202,7 @@ final public class SendmailCFManager extends BuilderThread {
                                 out.print("DAEMON_OPTIONS(`Addr=").print(ip).print(", Family=inet, Port=").print(nb.getPort().getPort()).print(", Name=").print(ia.isWildcard()?aoServer.getServer().getHostname():ia.getHostname()).print("-MSA, Modifiers=");
                                 if(ia.isWildcard()) out.print("Eh");
                                 else out.print("Ebh");
-                                out.print("')\n"); // AO added
+                                out.print("')dnl\n"); // AO added
                                 finishedIPs.add(ip);
                             }
                         }
@@ -211,12 +226,22 @@ final public class SendmailCFManager extends BuilderThread {
                     newMC.renameTo(mc);
                     
                     // Rebuild the /etc/sendmail.cf file
-                    AOServDaemon.exec(new String[] {"/usr/aoserv/daemon/bin/create_sendmail.cf.new"});
+                    String[] command;
+                    if(
+                        osv==OperatingSystemVersion.MANDRAKE_10_1_I586
+                        || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+                    ) {
+                        command=new String[] {"/usr/aoserv/daemon/bin/create_sendmail.cf.new"};
+                    } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                        command=new String[] {"/opt/aoserv-daemon/bin/create_sendmail.cf.new"};
+                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                    AOServDaemon.exec(command);
                     UnixFile newCF;
                     UnixFile oldCF;
                     if(
                         osv==OperatingSystemVersion.MANDRAKE_10_1_I586
                         || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+                        || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                     ) {
                         newCF=new UnixFile("/etc/mail/sendmail.cf.new");
                         oldCF=new UnixFile("/etc/mail/sendmail.cf");
@@ -225,7 +250,7 @@ final public class SendmailCFManager extends BuilderThread {
                         newCF.renameTo(oldCF);
 
                         if(!aoServer.isQmail()) reloadSendmail();
-                    }
+                    } else newCF.delete();
                 } else newMC.delete();
             }
         } finally {

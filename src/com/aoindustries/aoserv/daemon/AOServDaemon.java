@@ -48,6 +48,7 @@ import com.aoindustries.aoserv.daemon.postgres.PostgresUserManager;
 import com.aoindustries.aoserv.daemon.random.RandomEntropyManager;
 import com.aoindustries.aoserv.daemon.report.ServerReportThread;
 import com.aoindustries.aoserv.daemon.slocate.SLocateManager;
+import com.aoindustries.aoserv.daemon.timezone.TimeZoneManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.email.ErrorMailer;
 import com.aoindustries.io.unix.Stat;
@@ -190,12 +191,12 @@ final public class AOServDaemon {
                 synchronized(SSLConnector.class) {
                     if(!SSLConnector.sslProviderLoaded[0]) {
                         boolean useSSL=false;
-                        String trustStorePath=AOServClientConfiguration.getProperty("aoserv.client.ssl.truststore.path");
+                        String trustStorePath=AOServClientConfiguration.getSslTruststorePath();
                         if(trustStorePath!=null && trustStorePath.length()>0) {
                             System.setProperty("javax.net.ssl.trustStore", trustStorePath);
                             useSSL=true;
                         }
-                        String trustStorePassword=AOServClientConfiguration.getProperty("aoserv.client.ssl.truststore.password");
+                        String trustStorePassword=AOServClientConfiguration.getSslTruststorePassword();
                         if(trustStorePassword!=null && trustStorePassword.length()>0) {
                             System.setProperty("javax.net.ssl.trustStorePassword", trustStorePassword);
                             useSSL=true;
@@ -256,6 +257,7 @@ final public class AOServDaemon {
                 SLocateManager.start();
                 SmtpRelayManager.start();
                 XinetdManager.start();
+                TimeZoneManager.start();
 
                 // Start up the AOServDaemonServers
                 NetBind bind=getThisAOServer().getDaemonBind();

@@ -8,6 +8,8 @@ package com.aoindustries.aoserv.daemon.email;
 import com.aoindustries.aoserv.client.*;
 import com.aoindustries.aoserv.daemon.*;
 import com.aoindustries.aoserv.daemon.util.*;
+import com.aoindustries.cron.CronDaemon;
+import com.aoindustries.cron.CronJob;
 import com.aoindustries.io.*;
 import com.aoindustries.io.unix.*;
 import com.aoindustries.profiler.*;
@@ -103,7 +105,11 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                         AOServConnector connector=AOServDaemon.getConnector();
                         spamAssassinManager=new SpamAssassinManager();
                         connector.linuxServerAccounts.addTableListener(spamAssassinManager, 0);
+                        connector.ipAddresses.addTableListener(spamAssassinManager, 0);
+                        spamAssassinManager.delayAndRebuild();
                         new Thread(spamAssassinManager, "SpamAssassinManager").start();
+                        // Once per day, the razor logs will be trimmed to only include the last 1000 lines
+                        CronDaemon.addCronJob(new RazorLogTrimmer(), AOServDaemon.getErrorHandler());
                         System.out.println("Done");
                     }
                 }
@@ -118,7 +124,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
         try {
             String[] fileList=incomingDirectory.list();
             if(fileList!=null && fileList.length>0) {
-                // Get the list of UnixFile's of all messages that are at least one minute old or on minute in the future
+                // Get the list of UnixFile's of all messages that are at least one minute old or one minute in the future
                 List<UnixFile> readyList=new ArrayList<UnixFile>(fileList.length);
                 for(int c=0;c<fileList.length;c++) {
                     String filename=fileList[c];
@@ -270,6 +276,69 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
+            final String primaryIP = server.getPrimaryIPAddress().getIPAddress();
+
+            /**
+             * Build the /etc/sysconfig/..... file.
+             */
+            ByteArrayOutputStream bout=new ByteArrayOutputStream();
+            ChainWriter newOut=new ChainWriter(bout);
+            {
+                // Build a new file in RAM
+                newOut.print("# Customized settings for spamassassin (spamd)\n"
+                           + "\n"
+                           + "# Cmdline options\n"
+                           + "SPAMDOPTIONS=\"-d -c -m25 -H -i ").print(primaryIP).print(" -A ");
+                // Allow all IP addresses for this machine
+                Set<String> usedIps = new HashSet<String>();
+                List<IPAddress> ips = server.getIPAddresses();
+                for(IPAddress ip : ips) {
+                    if(!ip.isWildcard() && !ip.getNetDevice().getNetDeviceID().isLoopback()) {
+                        String addr = ip.getIPAddress();
+                        if(!usedIps.contains(addr)) {
+                            if(!usedIps.isEmpty()) newOut.print(',');
+                            newOut.print(addr);
+                            usedIps.add(addr);
+                        }
+                    }
+                }
+                // Allow the primary IP of our current failover server
+                /*
+                AOServer failoverServer = server.getFailoverServer();
+                if(failoverServer!=null) {
+                    IPAddress foPrimaryIP = failoverServer.getPrimaryIPAddress();
+                    if(foPrimaryIP==null) throw new SQLException("Unable to find Primary IP Address for failover server: "+failoverServer);
+                    String addr = foPrimaryIP.getIPAddress();
+                    if(!usedIps.contains(addr)) {
+                        if(!usedIps.isEmpty()) newOut.print(',');
+                        newOut.print(addr);
+                        usedIps.add(addr);
+                    }
+                }*/
+                newOut.print("\"\n");
+                if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                    newOut.print("# Run at nice level of 10\n"
+                               + "NICELEVEL=\"+10\"\n");
+                }
+                newOut.flush();
+                newOut.close();
+                byte[] newBytes=bout.toByteArray();
+                // Compare to existing
+                UnixFile spamdConfigFile = getSpamdConfigFile();
+                if(!spamdConfigFile.getStat().exists() || !spamdConfigFile.contentEquals(newBytes)) {
+                    // Overwrite when changed
+                    FileOutputStream out=new FileOutputStream(spamdConfigFile.getFile());
+                    out.write(newBytes);
+                    out.flush();
+                    out.close();
+                    spamdConfigFile.setMode(0644);
+                    AOServDaemon.exec(getSpamdRestartCommand());
+                }
+            }
+
+            /**
+             * Build the spam assassin files per account.
+             */
             List<LinuxServerAccount> lsas=server.getLinuxServerAccounts();
             synchronized(rebuildLock) {
                 for(int c=0;c<lsas.size();c++) {
@@ -282,8 +351,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                         if(!spamAssassinDir.getStat().exists()) spamAssassinDir.mkdir().setMode(0700).chown(lsa.getUID().getID(), lsa.getPrimaryLinuxServerGroup().getGID().getID());
                         UnixFile user_prefs=new UnixFile(spamAssassinDir, "user_prefs", false);
                         // Build the new file in RAM
-                        ByteArrayOutputStream bout=new ByteArrayOutputStream();
-                        ChainWriter newOut=new ChainWriter(bout);
+                        bout.reset();
+                        newOut=new ChainWriter(bout);
                         if(
                             osv==OperatingSystemVersion.MANDRAKE_10_1_I586
                             || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -293,6 +362,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                                 newOut.print("rewrite_header Subject *****SPAM*****\n");
                             }
                         } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        newOut.flush();
                         newOut.close();
                         byte[] newBytes=bout.toByteArray();
 
@@ -301,6 +371,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                             // Overwrite when changed
                             FileOutputStream out=user_prefs.getSecureOutputStream(lsa.getUID().getID(), lsa.getPrimaryLinuxServerGroup().getGID().getID(), 0600, true);
                             out.write(newBytes);
+                            out.flush();
                             out.close();
                         }
                     }
@@ -327,5 +398,101 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
         } finally {
             Profiler.endProfile(Profiler.INSTANTANEOUS);
         }
+    }
+    
+    public static class RazorLogTrimmer implements CronJob {
+        
+        private static final int NUM_LINES_RETAINED = 1000;
+
+        public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek) {
+            return minute==5 && hour==1;
+        }
+
+        public int getCronJobScheduleMode() {
+            return CRON_JOB_SCHEDULE_SKIP;
+        }
+
+        public String getCronJobName() {
+            return "RazorLogTrimmer";
+        }
+
+        /**
+         * Once a day, all of the razor-agent.log files are cleaned to only include the last 1000 lines.
+         */
+        public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek) {
+            try {
+                Queue<String> queuedLines = new LinkedList<String>();
+                for(LinuxServerAccount lsa : AOServDaemon.getThisAOServer().getLinuxServerAccounts()) {
+                    UnixFile home = new UnixFile(lsa.getHome());
+                    UnixFile dotRazor = new UnixFile(home, ".razor", false);
+                    UnixFile razorAgentLog = new UnixFile(dotRazor, "razor-agent.log", false);
+                    if(razorAgentLog.getStat().exists()) {
+                        try {
+                            boolean removed = false;
+                            BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(razorAgentLog.getFile())));
+                            try {
+                                queuedLines.clear();
+                                String line;
+                                while((line=in.readLine())!=null) {
+                                    queuedLines.add(line);
+                                    if(queuedLines.size()>NUM_LINES_RETAINED) {
+                                        queuedLines.remove();
+                                        removed=true;
+                                    }
+                                }
+                            } finally {
+                                in.close();
+                            }
+                            if(removed) {
+                                int uid = lsa.getUID().getID();
+                                int gid = lsa.getPrimaryLinuxServerGroup().getGID().getID();
+                                UnixFile tempFile = UnixFile.mktemp(razorAgentLog.getFilename()+'.');
+                                try {
+                                    PrintWriter out = new PrintWriter(new BufferedOutputStream(tempFile.getSecureOutputStream(uid, gid, 0644, true)));
+                                    try {
+                                        while(!queuedLines.isEmpty()) out.println(queuedLines.remove());
+                                    } finally {
+                                        out.close();
+                                    }
+                                    tempFile.renameTo(razorAgentLog);
+                                } finally {
+                                    if(tempFile.getStat().exists()) tempFile.delete();
+                                }
+                            }
+                        } catch(IOException err) {
+                            AOServDaemon.reportWarning(err, new Object[] {"lsa="+lsa});
+                        }
+                    }
+                }
+            } catch(RuntimeException err) {
+                AOServDaemon.reportError(err, null);
+            } catch(IOException err) {
+                AOServDaemon.reportError(err, null);
+            } catch(SQLException err) {
+                AOServDaemon.reportError(err, null);
+            }
+        }
+
+        public int getCronJobThreadPriority() {
+            return Thread.MIN_PRIORITY;
+        }
+    }
+    
+    private static String[] getSpamdRestartCommand() throws IOException, SQLException {
+        int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+        if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) {
+            return new String[] {"/etc/rc.d/init.d/spamd", "restart"};
+        } else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+            return new String[] {"/etc/rc.d/init.d/spamassassin", "restart"};
+        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+    }
+
+    private static UnixFile getSpamdConfigFile() throws IOException, SQLException {
+        int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+        if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) {
+            return new UnixFile("/etc/sysconfig/spamd");
+        } else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+            return new UnixFile("/etc/sysconfig/spamassassin");
+        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
     }
 }

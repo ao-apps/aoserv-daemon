@@ -38,7 +38,7 @@ final public class HttpdManager extends BuilderThread {
     /**
      * The version of PostgreSQL minor version used by the default PHP version.
      */
-    public static final String PHP_POSTGRES_MINOR_VERSION="8.1";
+    public static final String PHP_POSTGRES_MINOR_VERSION="7.3";
 
     /**
      * The default JDK version.
@@ -139,909 +139,2396 @@ final public class HttpdManager extends BuilderThread {
         }
     }
 
-    private static boolean buildTomcatSite(HttpdTomcatSite tomcatSite, LinuxServerAccount lsa, LinuxServerGroup lsg) throws IOException, SQLException {
+    private static void buildTomcatSite(HttpdTomcatSite tomcatSite, LinuxServerAccount lsa, LinuxServerGroup lsg) throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "buildTomcatSite(HttpdTomcatSite,LinuxServerAccount,LinuxServerGroup)", null);
         try {
             AOServConnector connector=AOServDaemon.getConnector();
-            AOServer thisAOServer=tomcatSite.getHttpdSite().getAOServer();
-            if(!thisAOServer.equals(AOServDaemon.getThisAOServer())) throw new SQLException("ao_server mismatch");
-            OperatingSystemVersion OSV=thisAOServer.getServer().getOperatingSystemVersion();
-            int osv=OSV.getPKey();
+
+            HttpdTomcatVersion htv=tomcatSite.getHttpdTomcatVersion();
+            String tomcatVersion=htv.getTechnologyVersion(connector).getVersion();
+
             HttpdTomcatStdSite stdSite=tomcatSite.getHttpdTomcatStdSite();
             HttpdTomcatSharedSite shrSite = tomcatSite.getHttpdTomcatSharedSite();
             HttpdJBossSite jbossSite = tomcatSite.getHttpdJBossSite();
-            int uid=lsa.getUID().getID();
-            int gid=lsg.getGID().getID();
-            LinuxServerAccount rootLSA=connector
-                .usernames
-                .get(LinuxAccount.ROOT)
-                .getLinuxAccount()
-                .getLinuxServerAccount(AOServDaemon.getThisAOServer())
-            ;
-            boolean isStandard=stdSite!=null;
-            boolean isShared=shrSite!=null;
-            boolean isJBoss=jbossSite!=null;
-            if(isStandard || isShared || isJBoss) {
-                /*
-                 * Resolve and allocate stuff used throughout the method
-                 */
-                final HttpdSite site=tomcatSite.getHttpdSite();
-                final String siteName=site.getSiteName();
-                final String siteDir=HttpdSite.WWW_DIRECTORY+'/'+siteName;
-                final HttpdTomcatVersion htv=tomcatSite.getHttpdTomcatVersion();
-                final String tomcatDirectory=htv.getInstallDirectory();
-                final String laUsername=lsa.getLinuxAccount().getUsername().getUsername();
-                final String laGroupname = lsg.getLinuxGroup().getName();
-                final String primaryUrl=site.getPrimaryHttpdSiteURL().getHostname();
-                String tomcatVersion=htv.getTechnologyVersion(connector).getVersion();
-                final boolean isTomcat4=htv.isTomcat4(connector);
-                final boolean isTomcat55=htv.isTomcat55(connector);
-                PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
-                String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
+            if(stdSite!=null) {
+                if(tomcatVersion.equals("3.1")) buildHttpdTomcatStdSite_3_1(stdSite);
+                else if(tomcatVersion.equals("3.2.4")) buildHttpdTomcatStdSite_3_2_4(stdSite);
+                else if(tomcatVersion.equals("4.1.31")) buildHttpdTomcatStdSite_4_1_X(stdSite);
+                else if(tomcatVersion.equals("4.1.34")) buildHttpdTomcatStdSite_4_1_X(stdSite);
+                else if(tomcatVersion.equals("4.1.Latest")) buildHttpdTomcatStdSite_4_1_X(stdSite);
+                else if(tomcatVersion.equals("5.5.17")) buildHttpdTomcatStdSite_5_5_X(stdSite);
+                else if(tomcatVersion.equals("5.5.20")) buildHttpdTomcatStdSite_5_5_X(stdSite);
+                else if(tomcatVersion.equals("5.5.Latest")) buildHttpdTomcatStdSite_5_5_X(stdSite);
+                else throw new SQLException("Unsupported version of standard Tomcat: "+tomcatVersion+" on "+stdSite);
+            } else if(jbossSite!=null) {
+                String jbossVersion = jbossSite.getHttpdJBossVersion().getTechnologyVersion(connector).getVersion();
+                if(jbossVersion.equals("2.2.2")) buildHttpdJBossSite_2_2_2(jbossSite);
+            } else if(shrSite!=null) {
+                if(tomcatVersion.equals("3.1")) buildHttpdTomcatSharedSite_3_1(shrSite);
+                else if(tomcatVersion.equals("3.2.4")) buildHttpdTomcatSharedSite_3_2_4(shrSite);
+                else if(tomcatVersion.equals("4.1.31")) buildHttpdTomcatSharedSite_4_1_X(shrSite);
+                else if(tomcatVersion.equals("4.1.34")) buildHttpdTomcatSharedSite_4_1_X(shrSite);
+                else if(tomcatVersion.equals("4.1.Latest")) buildHttpdTomcatSharedSite_4_1_X(shrSite);
+                else if(tomcatVersion.equals("5.5.17")) buildHttpdTomcatSharedSite_5_5_X(shrSite);
+                else if(tomcatVersion.equals("5.5.20")) buildHttpdTomcatSharedSite_5_5_X(shrSite);
+                else if(tomcatVersion.equals("5.5.Latest")) buildHttpdTomcatSharedSite_5_5_X(shrSite);
+                else throw new SQLException("Unsupported version of shared Tomcat: "+tomcatVersion+" on "+stdSite);
+            } else throw new SQLException("HttpdTomcatSite must be one of HttpdTomcatStdSite, HttpdTomcatSharedSite, or HttpdJBossSite: "+tomcatSite);
+        } finally {
+            Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
 
-                /*
-                 * Create the skeleton of the site, the directories and links.
-                 */
-                mkdir(siteDir+"/bin", 0770, lsa, lsg);
-                if(!isTomcat4) ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
-                mkdir(
-                    siteDir+"/conf",
-                    !isTomcat4 && isShared && shrSite.getHttpdSharedTomcat().isSecure()?01775:0775,
-                    !isTomcat4 && isShared && shrSite.getHttpdSharedTomcat().isSecure()?rootLSA:lsa,
-                    lsg
-                );
-                mkdir(siteDir+"/daemon", 0770, lsa, lsg);
-                if (site.getDisableLog()==null && isStandard) ln("../bin/tomcat", siteDir+"/daemon/tomcat", uid, gid);
-                if(!isTomcat4) ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
-                if(!isTomcat4) mkdir(siteDir+"/lib", 0770, lsa, lsg);
-                if(isTomcat4 && isStandard) mkdir(siteDir+"/temp", 0770, lsa, lsg);
-                if(isTomcat4) ln("var/log", siteDir+"/logs", uid, gid);
-                if(!isTomcat4) ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", siteDir+"/servlet", uid, gid);
-                if(isShared && shrSite.getHttpdSharedTomcat().isSecure()) {
-                    HttpdSharedTomcat hst=shrSite.getHttpdSharedTomcat();
-                    LinuxServerAccount shrLSA=hst.getLinuxServerAccount();
-                    LinuxServerGroup shrLSG=hst.getLinuxServerGroup();
-                    mkdir(siteDir+"/var", 01750, shrLSA, shrLSG);
-                    mkdir(siteDir+"/var/log", 01750, shrLSA, shrLSG);
-                } else {
-                    mkdir(siteDir+"/var", 0770, lsa, lsg);
-                    mkdir(siteDir+"/var/log", 0770, lsa, lsg);
-                }
-                if(isStandard || isJBoss) mkdir(siteDir+"/var/run", 0770, lsa, lsg);
-                mkdir(siteDir+"/webapps", 0775, lsa, lsg);
-                if(!isTomcat4) ln(tomcatDirectory+"/webapps/examples", siteDir+"/webapps/examples", uid, gid);
-                if (isJBoss) {
-                    String templateDir = jbossSite.getHttpdJBossVersion().getTemplateDirectory();
-                    File f = new File(templateDir);
-                    String[] contents = f.list();
-                    String[] command = new String[contents.length+3];
-                    command[0] = "/bin/cp";
-                    command[1] = "-rdp";
-                    command[command.length-1] = siteDir;
-                    for (int i = 0; i < contents.length; i++) command[i+2] = templateDir+"/"+contents[i];
-                    AOServDaemon.exec(command);
-                    String[] command2 = {
-                        "/bin/chown", 
-                        "-R", 
-                        laUsername+"."+laGroupname,
-                        siteDir+"/jboss",
-                        siteDir+"/bin",
-                        siteDir+"/lib",
-                        siteDir+"/daemon"
-                    };
-                    AOServDaemon.exec(command2);
+    /**
+     * Builds a standard install for Tomcat 3.1
+     */
+    private static void buildHttpdTomcatStdSite_3_1(HttpdTomcatStdSite stdSite) throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "buildHttpdTomcatStdSite_3_1(HttpdTomcatStdSite)", null);
+        try {
+            /*
+             * Resolve and allocate stuff used throughout the method
+             */
+            final AOServConnector connector=AOServDaemon.getConnector();
+            final HttpdTomcatSite tomcatSite = stdSite.getHttpdTomcatSite();
+            final HttpdSite site = tomcatSite.getHttpdSite();
+            final LinuxServerAccount lsa = site.getLinuxServerAccount();
+            final LinuxServerGroup lsg = site.getLinuxServerGroup();
+            final int uid = lsa.getUID().getID();
+            final int gid = lsg.getGID().getID();
+            final String laUsername=lsa.getLinuxAccount().getUsername().getUsername();
+            final String laGroupname = lsg.getLinuxGroup().getName();
+            final String siteName=site.getSiteName();
+            final String siteDir=HttpdSite.WWW_DIRECTORY+'/'+siteName;
+            final String tomcatDirectory=tomcatSite.getHttpdTomcatVersion().getInstallDirectory();
+            final String primaryUrl=site.getPrimaryHttpdSiteURL().getHostname();
+            final AOServer thisAOServer = AOServDaemon.getThisAOServer();
+            final Server server = thisAOServer.getServer();
+            final String hostname = server.getHostname();
+            final int osv = server.getOperatingSystemVersion().getPKey();
+            final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
+            final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
 
-                    String jbossConfDir = siteDir+"/jboss/conf/tomcat";
-                    File f2 = new File(jbossConfDir);
-                    String[] f2contents = f2.list();
-
-                    String[] command3 = new String[5];
-                    command3[0] = "/usr/bin/replace";
-                    command3[3] = "--";
-                    for (int i = 0; i < 5; i++) {
-                        for (int j = 0; j < f2contents.length; j++) {
-                            switch (i) {
-                                case 0: command3[1] = "2222"; command3[2] = String.valueOf(jbossSite.getJnpBind().getPort().getPort()); break;
-                                case 1: command3[1] = "3333"; command3[2] = String.valueOf(jbossSite.getWebserverBind().getPort().getPort()); break;
-                                case 2: command3[1] = "4444"; command3[2] = String.valueOf(jbossSite.getRmiBind().getPort().getPort()); break;
-                                case 3: command3[1] = "5555"; command3[2] = String.valueOf(jbossSite.getHypersonicBind().getPort().getPort()); break;
-                                case 4: command3[1] = "6666"; command3[2] = String.valueOf(jbossSite.getJmxBind().getPort().getPort()); break;
-                            }
-                            command3[4] = jbossConfDir+"/"+f2contents[j];
-                            AOServDaemon.exec(command3);
-                        }
-                    }
-                    // here!!!!!    replace
-                    String[] command4 = {
-                        "/usr/bin/replace", 
-                        "site_name", 
-                        siteName,
-                        "--",
-                        siteDir+"/bin/jboss",
-                        siteDir+"/bin/profile.jboss",
-                        siteDir+"/bin/profile.user"
-                    };
-                    AOServDaemon.exec(command4);
-
-                    ln(".", siteDir+"/tomcat", uid, gid);
-                }
-
-                // try to install content source archive
-                String rootDir = siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE;
-                mkdir(rootDir, 0775, lsa, lsg);
-
-                // if content fails or no content...
-                if(!isTomcat4) mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF", 0775, lsa, lsg);
-                mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, lsa, lsg);
-                mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, lsa, lsg);
-                if(!isTomcat4) mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon", 0770, lsa, lsg);
-                if(!isTomcat4) mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf", 0770, lsa, lsg);
-                mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, lsa, lsg);	
-                mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", 0755, lsa, lsg);
-
-                if (isStandard || isJBoss) {
-
-                    mkdir(siteDir+"/work", 0750, lsa, lsg);
-
-                    if(isTomcat4) {
-                        ln("../../.."+tomcatDirectory+"/bin/bootstrap.jar", siteDir+"/bin/bootstrap.jar", uid, gid);
-                        ln("../../.."+tomcatDirectory+"/bin/catalina.sh", siteDir+"/bin/catalina.sh", uid, gid);
-                        //UnixFile catalinaUF=new UnixFile(siteDir+"/bin/catalina.sh");
-                        //new UnixFile(tomcatDirectory+"/bin/catalina.sh").copyTo(catalinaUF, false);
-                        //catalinaUF.chown(uid, gid).setMode(0700);
-                        ln("../../.."+tomcatDirectory+"/bin/commons-daemon.jar", siteDir+"/bin/commons-daemon.jar", uid, gid);
-                        if(isTomcat55) ln("../../.."+tomcatDirectory+"/bin/commons-logging-api.jar", siteDir+"/bin/commons-logging-api.jar", uid, gid);
-                        ln("../../.."+tomcatDirectory+"/bin/digest.sh", siteDir+"/bin/digest.sh", uid, gid);
-                        if(!isTomcat55) ln("../../.."+tomcatDirectory+"/bin/jasper.sh", siteDir+"/bin/jasper.sh", uid, gid);
-                        if(!isTomcat55) ln("../../.."+tomcatDirectory+"/bin/jspc.sh", siteDir+"/bin/jspc.sh", uid, gid);
-                    }
-
-                    /*
-                     * Set up the bash profile source
-                     */
-                    String profileFile=siteDir+(isJBoss?"/bin/profile.jboss":"/bin/profile");
-                    LinuxAccountManager.setBashProfile(lsa, profileFile);
-
-                    /*
-                     * Write the profile script for standard only
-                     */
-                    if(isStandard) {
-                        ChainWriter out=new ChainWriter(
-                            new BufferedOutputStream(
-                                new UnixFile(profileFile).getSecureOutputStream(
-                                    uid,
-                                    gid,
-                                    0750,
-                                    false
-                                )
-                            )
-                        );
-			try {
-			    out.print("#!/bin/sh\n"
-				      + "\n");
-			    if(isTomcat4) {
-				out.print(". /etc/profile\n");
-                                if(isTomcat55) {
-                                    if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-                                        out.print(". /opt/aoserv-client/scripts/").print(DEFAULT_TOMCAT_5_JDK_VERSION).print(".sh\n");
-                                    } else {
-                                        out.print(". /usr/aoserv/etc/").print(DEFAULT_TOMCAT_5_JDK_VERSION).print(".sh\n");
-                                    }
-                                } else {
-                                    // Note, pre Tomcat 5.5 not installed on RedHat ES4
-                                    out.print(". /usr/aoserv/etc/").print(getDefaultJdkVersion(osv)).print(".sh\n");
-                                }
-                                String defaultPhpVersion = getDefaultPhpVersion(osv);
-                                if(defaultPhpVersion!=null) out.print(". /usr/aoserv/etc/php-").print(defaultPhpVersion).print(".sh\n");
-				if(postgresServerMinorVersion!=null) {
-                                    if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-                                        out.print(". /opt/aoserv-client/scripts/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
-                                    } else {
-                                        out.print(". /usr/aoserv/etc/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
-                                    }
-                                }
-                                if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-                                    out.print(". /opt/aoserv-client/scripts/aoserv-client.sh\n");
-                                } else {
-                                    out.print(". /usr/aoserv/etc/aoserv.sh\n");
-                                }
-                                out.print("\n"
-                                        + "umask 002\n"
-                                        + "export DISPLAY=:0.0\n"
-                                        + "\n"
-                                        + "export CATALINA_HOME=\"").print(siteDir).print("\"\n"
-                                        + "export CATALINA_BASE=\"").print(siteDir).print("\"\n"
-                                        + "export CATALINA_TEMP=\"").print(siteDir).print("/temp\"\n"
-                                );
-			    } else if(tomcatVersion.startsWith(HttpdTomcatVersion.VERSION_3_1_PREFIX)) {
-				out.print(". /etc/profile\n"
-					  + ". /usr/aoserv/etc/").print(getDefaultJdkVersion(osv)).print(".sh\n"
-					  + ". /usr/aoserv/etc/jakarta-oro-2.0.sh\n"
-					  + ". /usr/aoserv/etc/jakarta-regexp-1.1.sh\n"
-					  + ". /usr/aoserv/etc/jakarta-servletapi-3.1.sh\n"
-					  + ". /usr/aoserv/etc/jakarta-tomcat-3.1.sh\n"
-					  + ". /usr/aoserv/etc/jetspeed-1.1.sh\n"
-					  + ". /usr/aoserv/etc/cocoon-1.8.2.sh\n"
-					  + ". /usr/aoserv/etc/xerces-1.2.0.sh\n"
-					  + ". /usr/aoserv/etc/ant-1.6.2.sh\n"
-					  + ". /usr/aoserv/etc/xalan-1.2.d02.sh\n"
-					  + ". /usr/aoserv/etc/php-").print(getDefaultPhpVersion(osv)).print(".sh\n");
-				if(postgresServerMinorVersion!=null) out.print(". /usr/aoserv/etc/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
-				out.print(". /usr/aoserv/etc/profile\n"
-					  + ". /usr/aoserv/etc/fop-0.15.0.sh\n"
-					  );
-			    } else if(tomcatVersion.startsWith(HttpdTomcatVersion.VERSION_3_2_PREFIX)) {
-				out.print(". /etc/profile\n"
-					  + ". /usr/aoserv/etc/").print(getDefaultJdkVersion(osv)).print(".sh\n"
-					  + ". /usr/aoserv/etc/jakarta-oro-2.0.sh\n"
-					  + ". /usr/aoserv/etc/jakarta-regexp-1.1.sh\n"
-					  + ". /usr/aoserv/etc/jakarta-servletapi-3.2.sh\n"
-					  + ". /usr/aoserv/etc/jakarta-tomcat-3.2.sh\n"
-					  + ". /usr/aoserv/etc/jetspeed-1.1.sh\n"
-					  + ". /usr/aoserv/etc/cocoon-1.8.2.sh\n"
-					  + ". /usr/aoserv/etc/xerces-1.2.0.sh\n"
-					  + ". /usr/aoserv/etc/ant-1.6.2.sh\n"
-					  + ". /usr/aoserv/etc/xalan-1.2.d02.sh\n"
-					  + ". /usr/aoserv/etc/php-").print(getDefaultPhpVersion(osv)).print(".sh\n");
-				if(postgresServerMinorVersion!=null) out.print(". /usr/aoserv/etc/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
-				out.print(". /usr/aoserv/etc/profile\n"
-					  + ". /usr/aoserv/etc/fop-0.15.0.sh\n"
-					  );
-			    } else throw new IllegalArgumentException("Unknown HttpdTomcatVersion: "+tomcatVersion);
-			    out.print("\n"
-				      + "export PATH=${PATH}:").print(siteDir).print("/bin\n"
-										     + "\n");
-			    if(!tomcatVersion.startsWith(HttpdTomcatVersion.VERSION_4_1_PREFIX)) {
-				out.print("CLASSPATH=${CLASSPATH}:").print(siteDir).print("/classes\n"
-                                        + "\n"
-                                        + "for i in ").print(siteDir).print("/lib/* ; do\n"
-                                        + "    if [ -f $i ]; then\n"
-                                        + "        CLASSPATH=${CLASSPATH}:$i\n"
-                                        + "    fi\n"
-                                        + "done\n"
-                                        + "\n");
-			    }
-			    out.print("export CLASSPATH\n");
-			} finally {
-			    out.flush();
-			    out.close();
-			}
-
-                        /*
-                         * Write the bin/tomcat script.
-                         */
-                        String tomcatScript=siteDir+"/bin/tomcat";
-                        out=new ChainWriter(
-                            new BufferedOutputStream(
-                                new UnixFile(tomcatScript).getSecureOutputStream(
-                                    uid,
-                                    gid,
-                                    0700,
-                                    false
-                                )
-                            )
-                        );
-			try {
-			    out.print("#!/bin/sh\n"
-                                    + "\n"
-                                    + "TOMCAT_HOME=").print(siteDir).print("\n"
-                                    + "\n"
-                                    + "if [ \"$1\" = \"start\" ]; then\n"
-                                    + "    $0 stop\n"
-                                    + "    $0 daemon &\n"
-                                    + "    echo $! >${TOMCAT_HOME}/var/run/tomcat.pid\n"
-                                    + "elif [ \"$1\" = \"stop\" ]; then\n"
-                                    + "    if [ -f ${TOMCAT_HOME}/var/run/tomcat.pid ]; then\n"
-                                    + "        kill `cat ${TOMCAT_HOME}/var/run/tomcat.pid`\n"
-                                    + "        rm -f ${TOMCAT_HOME}/var/run/tomcat.pid\n"
-                                    + "    fi\n"
-                                    + "    if [ -f ${TOMCAT_HOME}/var/run/java.pid ]; then\n"
-                                    + "        cd $TOMCAT_HOME\n"
-                                    + "        . $TOMCAT_HOME/bin/profile\n"
-                                    + "        umask 002\n"
-                                    + "        export DISPLAY=:0.0\n");
-                            if(!tomcatVersion.startsWith(HttpdTomcatVersion.VERSION_5_PREFIX)) {
-                                out.print("        ulimit -S -m 196608 -v 400000\n"
-                                        + "        ulimit -H -m 196608 -v 400000\n");
-                            }
-			    if(isTomcat4) {
-				out.print("        ${TOMCAT_HOME}/bin/catalina.sh stop 2>&1 >>${TOMCAT_HOME}/var/log/tomcat_err\n");
-			    } else out.print("        java -Dmail.smtp.host=").print(thisAOServer.getServer().getHostname()).print(" org.apache.tomcat.startup.Tomcat -f ${TOMCAT_HOME}/conf/server.xml -stop &>/dev/null\n");
-			    out.print("        kill `cat ${TOMCAT_HOME}/var/run/java.pid` &>/dev/null\n"
-                                    + "        rm -f ${TOMCAT_HOME}/var/run/java.pid\n"
-                                    + "    fi\n"
-                                    + "elif [ \"$1\" = \"daemon\" ]; then\n"
-                                    + "    cd $TOMCAT_HOME\n"
-                                    + "    . $TOMCAT_HOME/bin/profile\n"
-                                    + "\n"
-                                    + "    while [ 1 ]; do\n");
-                            if(!tomcatVersion.startsWith(HttpdTomcatVersion.VERSION_5_PREFIX)) {
-                                out.print("        ulimit -S -m 196608 -v 400000\n"
-                                        + "        ulimit -H -m 196608 -v 400000\n");
-                            }
-                            out.print("        umask 002\n"
-                                    + "        export DISPLAY=:0.0\n");
-			    if(isTomcat4) {
-				out.print("        mv -f ${TOMCAT_HOME}/var/log/tomcat_err ${TOMCAT_HOME}/var/log/tomcat_err.old\n"
-					  + "        ${TOMCAT_HOME}/bin/catalina.sh run >&${TOMCAT_HOME}/var/log/tomcat_err &\n");
-			    } else out.print("        java -Dmail.smtp.host=").print(thisAOServer.getServer().getHostname()).print(" org.apache.tomcat.startup.Tomcat -f ${TOMCAT_HOME}/conf/server.xml &>var/log/servlet_err &\n");
-			    out.print("        echo $! >${TOMCAT_HOME}/var/run/java.pid\n"
-				      + "        wait\n"
-				      + "        RETCODE=$?\n"
-				      + "        echo \"`date`: JVM died with a return code of $RETCODE, restarting in 5 seconds\" >>${TOMCAT_HOME}/var/log/jvm_crashes.log\n"
-				      + "        sleep 5\n"
-				      + "    done\n"
-				      + "else\n"
-				      + "    echo \"Usage:\"\n"
-				      + "    echo \"tomcat {start|stop}\"\n"
-				      + "    echo \"        start - start tomcat\"\n"
-				      + "    echo \"        stop  - stop tomcat\"\n"
-				      + "fi\n"
-				      );
-			} finally {
-			    out.flush();
-			    out.close();
-			}
-                    }
-                    if(isTomcat4) {
-                        ln("../../.."+tomcatDirectory+"/bin/setclasspath.sh", siteDir+"/bin/setclasspath.sh", uid, gid);
-
-			UnixFile shutdown=new UnixFile(siteDir+"/bin/shutdown.sh");
-                        ChainWriter out=new ChainWriter(shutdown.getSecureOutputStream(uid, gid, 0700, true));
-			try {
-			    out.print("#!/bin/sh\n"
-                                    + "exec ").print(siteDir).print("/bin/tomcat stop\n");
-			} finally {
-			    out.flush();
-			    out.close();
-			}
-
-			UnixFile startup=new UnixFile(siteDir+"/bin/startup.sh");
-			out=new ChainWriter(startup.getSecureOutputStream(uid, gid, 0700, true));
-			try {
-			    out.print("#!/bin/sh\n"
-                                    + "exec ").print(siteDir).print("/bin/tomcat start\n");
-			} finally {
-			    out.flush();
-			    out.close();
-			}
-
-                        if(tomcatVersion.startsWith(HttpdTomcatVersion.VERSION_4_1_PREFIX)) ln("../../.."+tomcatDirectory+"/bin/tomcat-jni.jar", siteDir+"/bin/tomcat-jni.jar", uid, gid);
-                        if(isTomcat55) ln("../../.."+tomcatDirectory+"/bin/tomcat-juli.jar", siteDir+"/bin/tomcat-juli.jar", uid, gid);
-                        if(
-                            tomcatVersion.startsWith(HttpdTomcatVersion.VERSION_4_1_PREFIX)
-                            || isTomcat55
-                        ) ln("../../.."+tomcatDirectory+"/bin/tool-wrapper.sh", siteDir+"/bin/tool-wrapper.sh", uid, gid);
-                        if(isTomcat55) ln("../../.."+tomcatDirectory+"/bin/version.sh", siteDir+"/bin/version.sh", uid, gid);
-
-                        /*
-                         * Create the common directory and all contents
-                         */
-                        mkdir(siteDir+"/common", 0775, lsa, lsg);
-                        mkdir(siteDir+"/common/classes", 0775, lsa, lsg);
-                        
-                        mkdir(siteDir+"/common/endorsed", 0775, lsa, lsg);
-                        lnAll("../../../.."+tomcatDirectory+"/common/endorsed/", siteDir+"/common/endorsed/", uid, gid);
-
-                        if(isTomcat55) {
-                            mkdir(siteDir+"/common/i18n", 0775, lsa, lsg);
-                            lnAll("../../../.."+tomcatDirectory+"/common/i18n/", siteDir+"/common/i18n/", uid, gid);
-                        }
-
-                        mkdir(siteDir+"/common/lib", 0775, lsa, lsg);
-                        lnAll("../../../.."+tomcatDirectory+"/common/lib/", siteDir+"/common/lib/", uid, gid);
-                        
-                        if(postgresServerMinorVersion!=null) {
-                            if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                                ln("../../../../usr/postgresql/"+postgresServerMinorVersion+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
-                            } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-                                ln("../../../../opt/postgresql-"+postgresServerMinorVersion+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
-                            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-                        }
-                        if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                            ln("../../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", siteDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", uid, gid);
-                        } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-                            ln("../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar", siteDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", uid, gid);
-                        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-
-                        /*
-                         * Write the conf/catalina.policy file
-                         */
-                        {
-                            UnixFile cp=new UnixFile(siteDir+"/conf/catalina.policy");
-                            new UnixFile(tomcatDirectory+"/conf/catalina.policy").copyTo(cp, false);
-                            cp.chown(uid, gid).setMode(0660);
-                        }
-                        
-                        if(isTomcat55) {
-                            UnixFile cp=new UnixFile(siteDir+"/conf/catalina.properties");
-                            new UnixFile(tomcatDirectory+"/conf/catalina.properties").copyTo(cp, false);
-                            cp.chown(uid, gid).setMode(0660);
-                        }
-                        if(isTomcat55) {
-                            UnixFile cp=new UnixFile(siteDir+"/conf/context.xml");
-                            new UnixFile(tomcatDirectory+"/conf/context.xml").copyTo(cp, false);
-                            cp.chown(uid, gid).setMode(0660);
-                        }
-                        if(isTomcat55) {
-                            UnixFile cp=new UnixFile(siteDir+"/conf/logging.properties");
-                            new UnixFile(tomcatDirectory+"/conf/logging.properties").copyTo(cp, false);
-                            cp.chown(uid, gid).setMode(0660);
-                        }
-                    }
-                    /*
-                     * The classes directory
-                     */
-                    if(
-                        !tomcatVersion.startsWith(HttpdTomcatVersion.VERSION_4_1_PREFIX)
-                        && !isTomcat55
-                    ) mkdir(siteDir+"/classes", 0770, lsa, lsg);
-                }
-
-                /*
-                 * Write the manifest.servlet file.
-                 */
-                if(!isTomcat4) {
-                    String confManifestServlet=siteDir+"/conf/manifest.servlet";
-                    ChainWriter out=new ChainWriter(
-                        new BufferedOutputStream(
-                            new UnixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false)
-                        )
-                    );
-		    try {
-			out.print("Manifest-version: 1.0\n"
-				  + "Name: javax/servlet\n"
-				  + "Sealed: true\n"
-				  + "Specification-Title: \"Java Servlet API\"\n"
-				  + "Specification-Version: \"2.1.1\"\n"
-				  + "Specification-Vendor: \"Sun Microsystems, Inc.\"\n"
-				  + "Implementation-Title: \"javax.servlet\"\n"
-				  + "Implementation-Version: \"2.1.1\"\n"
-				  + "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n"
-				  + "\n"
-				  + "Name: javax/servlet/http\n"
-				  + "Sealed: true\n"
-				  + "Specification-Title: \"Java Servlet API\"\n"
-				  + "Specification-Version: \"2.1.1\"\n"
-				  + "Specification-Vendor: \"Sun Microsystems, Inc.\"\n"
-				  + "Implementation-Title: \"javax.servlet\"\n"
-				  + "Implementation-Version: \"2.1.1\"\n"
-				  + "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n"
-				  );
-		    } finally {
-			out.flush();
-			out.close();
-		    }
-                }
-
-                /*
-                 * Create the conf/server.dtd file.
-                 */
-                if(tomcatVersion.startsWith(HttpdTomcatVersion.VERSION_3_1_PREFIX)
-                    || tomcatVersion.startsWith(HttpdTomcatVersion.VERSION_3_2_PREFIX)) {
-                    String confServerDTD=siteDir+"/conf/server.dtd";
-                    ChainWriter out=new ChainWriter(
-                        new BufferedOutputStream(
-                            new UnixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false)
-                        )
-                    );
-		    try {
-			out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
-				  + "\n"
-				  + "<!ELEMENT Server (ContextManager+)>\n"
-				  + "<!ATTLIST Server\n"
-				  + "    adminPort NMTOKEN \"-1\"\n"
-				  + "    workDir CDATA \"work\">\n"
-				  + "\n"
-				  + "<!ELEMENT ContextManager (Context+, Interceptor*, Connector+)>\n"
-				  + "<!ATTLIST ContextManager\n"
-				  + "    port NMTOKEN \"8080\"\n"
-				  + "    hostName NMTOKEN \"\"\n"
-				  + "    inet NMTOKEN \"\">\n"
-				  + "\n"
-				  + "<!ELEMENT Context EMPTY>\n"
-				  + "<!ATTLIST Context\n"
-				  + "    path CDATA #REQUIRED\n"
-				  + "    docBase CDATA #REQUIRED\n"
-				  + "    defaultSessionTimeOut NMTOKEN \"30\"\n"
-				  + "    isWARExpanded (true | false) \"true\"\n"
-				  + "    isWARValidated (false | true) \"false\"\n"
-				  + "    isInvokerEnabled (true | false) \"true\"\n"
-				  + "    isWorkDirPersistent (false | true) \"false\">\n"
-				  + "\n"
-				  + "<!ELEMENT Interceptor EMPTY>\n"
-				  + "<!ATTLIST Interceptor\n"
-				  + "    className NMTOKEN #REQUIRED\n"
-				  + "    docBase   CDATA #REQUIRED>\n"
-				  + "\n"
-				  + "<!ELEMENT Connector (Parameter*)>\n"
-				  + "<!ATTLIST Connector\n"
-				  + "    className NMTOKEN #REQUIRED>\n"
-				  + "\n"
-				  + "<!ELEMENT Parameter EMPTY>\n"
-				  + "<!ATTLIST Parameter\n"
-				  + "    name CDATA #REQUIRED\n"
-				  + "    value CDATA \"\">\n"
-				  );
-		    } finally {
-			out.flush();
-			out.close();
-		    }
-                }
-
-                /*
-                 * Create the test-tomcat.xml file.
-                 */
-                if(!isTomcat4) {
-                    String confTestTomcat=siteDir+"/conf/test-tomcat.xml";
-                    copyResource("test-tomcat.xml", confTestTomcat, uid, gid, 0660);
-                }
-
-                /*
-                 * Create the tomcat-users.xml file
-                 */
-                if(isTomcat4) {
-                    if(isStandard) {
-                        UnixFile tu=new UnixFile(siteDir+"/conf/tomcat-users.xml");
-                        new UnixFile(tomcatDirectory+"/conf/tomcat-users.xml").copyTo(tu, false);
-                        tu.chown(uid, gid).setMode(0660);
-                    }
-                } else {
-                    String confTomcatUsers=siteDir+"/conf/tomcat-users.xml";
-                    ChainWriter out=new ChainWriter(
-                        new BufferedOutputStream(
-                            new UnixFile(confTomcatUsers).getSecureOutputStream(uid, gid, 0660, false)
-                        )
-                    );
-		    try {
-			if(
-			   tomcatVersion.startsWith(HttpdTomcatVersion.VERSION_3_1_PREFIX)
-			   || tomcatVersion.startsWith(HttpdTomcatVersion.VERSION_3_2_PREFIX)
-			   ) {
-			    out.print("<tomcat-users>\n"
-				      + "  <user name=\"tomcat\" password=\"tomcat\" roles=\"tomcat\" />\n"
-				      + "</tomcat-users>\n"
-				      );
-			} else if(tomcatVersion.startsWith(HttpdTomcatVersion.VERSION_3_2_PREFIX)) {
-			    out.print("<tomcat-users>\n"
-				      + "  <user name=\"tomcat\" password=\"tomcat\" roles=\"tomcat\" />\n"
-				      + "  <user name=\"role1\"  password=\"tomcat\" roles=\"role1\" />\n"
-				      + "  <user name=\"both\"   password=\"tomcat\" roles=\"tomcat,role1\" />\n"
-				      + "</tomcat-users>\n"
-				      );
-			} else throw new IllegalArgumentException("Unsupported version of Tomcat: "+tomcatVersion);
-		    } finally {
-			out.flush();
-			out.close();
-		    }
-                }
-
-                /*
-                 * Create the web.dtd file.
-                 */
-                if(!isTomcat4) {
-                    String confWebDTD=siteDir+"/conf/web.dtd";
-                    copyResource("web.dtd-"+tomcatVersion, confWebDTD, uid, gid, 0660);
-                }
-
-                /*
-                 * Create the web.xml file.
-                 */
-                if(isTomcat4) {
-                    if(isStandard) {
-                        UnixFile wx=new UnixFile(siteDir+"/conf/web.xml");
-                        new UnixFile(tomcatDirectory+"/conf/web.xml").copyTo(wx, false);
-                        wx.chown(uid, gid).setMode(0660);
-                    }
-                } else {
-                    String confWebXML=siteDir+"/conf/web.xml";
-                    copyResource("web.xml-"+tomcatVersion, confWebXML, uid, gid, 0660);
-                }
-
-                if(isTomcat4 && isStandard) {
-                    mkdir(siteDir+"/server", 0775, lsa, lsg);
-                    mkdir(siteDir+"/server/classes", 0775, lsa, lsg);
-                    mkdir(siteDir+"/server/lib", 0775, lsa, lsg);
-                    lnAll("../../../.."+tomcatDirectory+"/server/lib/", siteDir+"/server/lib/", uid, gid);
-                    if(
-                        tomcatVersion.startsWith(HttpdTomcatVersion.VERSION_4_1_PREFIX)
-                        || isTomcat55
-                    ) {
-                        mkdir(siteDir+"/server/webapps", 0775, lsa, lsg);
-                    }
-
-                    /*
-                     * The shared directory
-                     */
-                    if(
-                        tomcatVersion.startsWith(HttpdTomcatVersion.VERSION_4_1_PREFIX)
-                        || isTomcat55
-                    ) {
-                        mkdir(siteDir+"/shared", 0775, lsa, lsg);
-                        mkdir(siteDir+"/shared/classes", 0775, lsa, lsg);
-                        mkdir(siteDir+"/shared/lib", 0775, lsa, lsg);
-                    }
-                }
-
-                /*
-                 * Create the empty log files.
-                 */
-                if(!isTomcat4) {
-                    for(int c=0;c<tomcatLogFiles.length;c++) {
-                        String filename=siteDir+"/var/log/"+tomcatLogFiles[c];
-                        new UnixFile(filename).getSecureOutputStream(
-                            isShared?shrSite.getHttpdSharedTomcat().getLinuxServerAccount().getUID().getID():uid,
-                            isShared?shrSite.getHttpdSharedTomcat().getLinuxServerGroup().getGID().getID():gid,
-                            isShared && shrSite.getHttpdSharedTomcat().isSecure()?0640:0660,
-                            false
-                        ).close();
-                    }
-                }
-
-                /*
-                 * Create the manifest file.
-                 */
-                if(!isTomcat4) {
-                    String manifestFile=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF/MANIFEST.MF";
-                    new ChainWriter(
-                        new UnixFile(manifestFile).getSecureOutputStream(
-                            uid,
-                            gid,
-                            0664,
-                            false
-                        )
-                    ).print("Manifest-Version: 1.0").flush().close();
-                }
-
-                /*
-                 * Write the cocoon.properties file.
-                 */
-                if(!isTomcat4) {
-                    String cocoonProps=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties";
-                    OutputStream fileOut=new BufferedOutputStream(new UnixFile(cocoonProps).getSecureOutputStream(uid, gid, 0660, false));
-                    try {
-                        copyResource("cocoon.properties.1", fileOut);
-                        ChainWriter out=new ChainWriter(fileOut);
-                        try {
-                            out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon\n");
-                            out.flush();
-                            copyResource("cocoon.properties.2", fileOut);
-                        } finally {
-                            out.flush();
-                        }
-                    } finally {
-                        fileOut.flush();
-                        fileOut.close();
-                    }
-                }
-
-                /*
-                 * Write the ROOT/WEB-INF/web.xml file.
-                 */
-                String webXML=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/web.xml";
-                ChainWriter out=new ChainWriter(
-                    new BufferedOutputStream(
-                        new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false)
+            /*
+             * Create the skeleton of the site, the directories and links.
+             */
+            mkdir(siteDir+"/bin", 0770, lsa, lsg);
+            ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
+            mkdir(siteDir+"/conf", 0775, lsa, lsg);
+            mkdir(siteDir+"/daemon", 0770, lsa, lsg);
+            if (site.getDisableLog()==null) ln("../bin/tomcat", siteDir+"/daemon/tomcat", uid, gid);
+            ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
+            mkdir(siteDir+"/lib", 0770, lsa, lsg);
+            ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", siteDir+"/servlet", uid, gid);
+            mkdir(siteDir+"/var", 0770, lsa, lsg);
+            mkdir(siteDir+"/var/log", 0770, lsa, lsg);
+            mkdir(siteDir+"/var/run", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps", 0775, lsa, lsg);
+            final String rootDir = siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE;
+            mkdir(rootDir, 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF", 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, lsa, lsg);	
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", 0755, lsa, lsg);
+            mkdir(siteDir+"/work", 0750, lsa, lsg);
+            final String profileFile=siteDir+"/bin/profile";
+            LinuxAccountManager.setBashProfile(lsa, profileFile);
+            ChainWriter out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(profileFile).getSecureOutputStream(
+                        uid,
+                        gid,
+                        0750,
+                        false
                     )
-                );
-                try {
-                    if(isTomcat55) {
-                        out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
-                                + "<web-app xmlns=\"http://java.sun.com/xml/ns/j2ee\"\n"
-                                + "    xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
-                                + "    xsi:schemaLocation=\"http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd\"\n"
-                                + "    version=\"2.4\">\n"
-                                + "  <display-name>Welcome to Tomcat</display-name>\n"
-                                + "  <description>\n"
-                                + "     Welcome to Tomcat\n"
-                                + "  </description>\n"
-                                + "</web-app>\n");
-                    } else if(isTomcat4) {
-                        out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
-                                  + "\n"
-                                  + "<!DOCTYPE web-app\n"
-                                  + "    PUBLIC \"-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN\"\n"
-                                  + "    \"http://java.sun.com/j2ee/dtds/web-app_2_3.dtd\">\n"
-                                  + "\n"
-                                  + "<web-app>\n");
-                        if(tomcatVersion.startsWith(HttpdTomcatVersion.VERSION_4_1_PREFIX)) {
-                            out.print("  <display-name>Welcome to Tomcat</display-name>\n"
-                                      + "  <description>\n"
-                                      + "    Welcome to Tomcat\n"
-                                      + "  </description>\n");
-                        }
-                        out.print("</web-app>\n");
-                    } else {
-                        out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
-                                  + "\n"
-                                  + "<!DOCTYPE web-app\n"
-                                  + "    PUBLIC \"-//Sun Microsystems, Inc.//DTD Web Application 2.2//EN\"\n"
-                                  + "    \"http://java.sun.com/j2ee/dtds/web-app_2.2.dtd\">\n"
-                                  + "\n"
-                                  + "<web-app>\n"
-                                  + "\n"
-                                  + " <servlet>\n"
-                                  + "  <servlet-name>org.apache.cocoon.Cocoon</servlet-name>\n"
-                                  + "  <servlet-class>org.apache.cocoon.Cocoon</servlet-class>\n"
-                                  + "  <init-param>\n"
-                                  + "   <param-name>properties</param-name>\n"
-                                  + "   <param-value>\n"
-                                  + "    WEB-INF/conf/cocoon.properties\n"
-                                  + "   </param-value>\n"
-                                  + "  </init-param>\n"
-                                  + " </servlet>\n"
-                                  + "\n"
-                                  + " <servlet-mapping>\n"
-                                  + "  <servlet-name>org.apache.cocoon.Cocoon</servlet-name>\n"
-                                  + "  <url-pattern>*.xml</url-pattern>\n"
-                                  + " </servlet-mapping>\n"
-                                  + "\n"
-                                  + "</web-app>\n");
-                    }
-                } finally {
-                    out.flush();
-                    out.close();
-                }
-
-                /*
-                 * Create the PHP script.
-                 */
-                String defaultPhpVersion = getDefaultPhpVersion(osv);
-                if(defaultPhpVersion!=null) {
-                    String php=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin/php";
-                    out=new ChainWriter(
-                        new UnixFile(php).getSecureOutputStream(uid, gid, 0755, false)
-                    );
-                    try {
-                        out.print("#!/bin/sh\n"
-                                  + ". /usr/aoserv/etc/postgresql-"+PHP_POSTGRES_MINOR_VERSION+".sh\n"
-                                  + "exec /usr/php/").print(defaultPhpVersion).print("/bin/php \"$@\"\n");
-                    } finally {
-                        out.flush();
-                        out.close();
-                    }
-                }
-
-                /*
-                 * Create the test CGI script.
-                 */
-                String testCGI=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin/test";
-                out=new ChainWriter(
-                    new BufferedOutputStream(
-                        new UnixFile(testCGI).getSecureOutputStream(uid, gid, 0755, false)
-                    )
-                );
-                try {
-                    out.print("#!/usr/bin/perl\n"
-                            + "print \"Content-type: text/html\\n\";\n"
-                            + "print \"\\n\";\n"
-                            + "print \"<HTML>\\n\";\n"
-                            + "print \"  <BODY>\\n\";\n"
-                            + "print \"    <H1>Test CGI Script for ").print(primaryUrl).print("</H1>\\n\";\n"
-                            + "print \"  </BODY>\\n\";\n"
-                            + "print \"</HTML>\\n\";\n"
-                    );
-                } finally {
-                    out.flush();
-                    out.close();
-                }
-
-                /*
-                 * Create the index.html
-                 */
-                String indexHTML=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/index.html";
-                out=new ChainWriter(
-                    new BufferedOutputStream(
-                        new UnixFile(indexHTML).getSecureOutputStream(uid, gid, 0664, false)
-                    )
-                );
-                try {
-                    out.print("<HTML>\n"
-                            + "  <HEAD><TITLE>Test HTML Page for ").print(primaryUrl).print("</TITLE></HEAD>\n"
-                            + "  <BODY>\n"
-                            + "    Test HTML Page for ").print(primaryUrl).print("\n"
-                            + "  </BODY>\n"
-                            + "</HTML>\n"
-                    );
-                } finally {
-                    out.flush();
-                    out.close();
-                }
-
-                /*
-                 * Create the test.php file.
-                 */
-                String testPHP=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php";
-                new ChainWriter(
-                    new UnixFile(testPHP).getSecureOutputStream(uid, gid, 0664, false)
-                ).print("<?phpinfo()?>\n").flush().close();
-
-                /*
-                 * Create the log file analysis.
-                 */
-                // Shared config first
-                //String analogShared=siteDir+"/conf/analog.shared";
-		//String fullPrimaryURL;
-                //out=new ChainWriter(
-                //    new UnixFile(analogShared).getSecureOutputStream(uid, gid, 0660, false)
-                //);
-		//try {
-		//    fullPrimaryURL=site.getPrimaryHttpdSiteURL().getURL();
-		//    out.print("HOSTNAME \"").print(fullPrimaryURL).print("\"\n"
-		//	 + "DNSFILE ").print(siteDir).print("/var/analog.dns\n"
-		//    + "DNSLOCKFILE ").print(siteDir).print("/var/analog.dns.lock\n"
-		//																   );
-		//} finally {
-		//    out.flush();
-		//    out.close();
-		//}
-
-                // Each different bind
-                /*
-                HttpdSiteBind[] binds=site.getHttpdSiteBinds(false);
-                for(int c=0;c<binds.length;c++) {
-                    HttpdSiteBind bind=binds[c];
-                    String accessLog=bind.getAccessLog();
-                    String errorLog=bind.getErrorLog();
-                    NetBind netBind=bind.getHttpdBind().getNetBind();
-                    NetPort port=netBind.getPort();
-                    ProtocolTable protocolTable=connector.protocols;
-                    String protocol=
-                        port.equals(protocolTable.getProtocol(Protocol.HTTP))?"http"
-                        :port.equals(protocolTable.getProtocol(Protocol.HTTPS))?"https"
-                        :String.valueOf(port.getPort())
-                    ;
-                    String analogBind=siteDir+"/conf/analog."+protocol;
-                    out=new ChainWriter(
-                        new UnixFile(analogBind).getSecureOutputStream(uid, gid, 0660, false)
-                    );
-		    try {
-			out.print("CONFIGFILE ").print(siteDir).print("/conf/analog.shared\n");
-			for(int d=9;d>0;d--) out.print("LOGFILE ").print(accessLog).print('.').print(d).print(".gz\n");
-			out.print("LOGFILE ").print(accessLog).print("\n"
-								     + "OUTFILE ").print(siteDir).print("/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/analog/%Y%M-").print(protocol).print(".html\n"
-																							    + "HOSTURL \"").print(bind.getPrimaryHttpdSiteURL().getURL()).print("\"\n"
-																																+ "ERRFILE ").print(siteDir).print("/var/log/analog.").print(protocol).print(".err\n"
-																																									     );
-		    } finally {
-			out.flush();
-			out.close();
-		    }
-                }
-                // The analog.all config.
-                String analogAll=siteDir+"/conf/analog.all";
-                out=new ChainWriter(
-                    new BufferedOutputStream(
-                        new UnixFile(analogAll).getSecureOutputStream(uid, gid, 0660, false)
-                    )
-                );
-		try {
-		    out.print("CONFIGFILE ").print(siteDir).print("/conf/analog.shared\n");
-		    for(int c=9;c>0;c--) {
-			for(int d=0;d<binds.length;d++) {
-			    out.print("LOGFILE ").print(binds[d].getAccessLog()).print('.').print(c).print(".gz\n");
-			}
-		    }
-		    for(int d=0;d<binds.length;d++) {
-			out.print("LOGFILE ").print(binds[d].getAccessLog()).print("\n");
-		    }
-		    out.print("OUTFILE ").print(siteDir).print("/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/analog/%Y%M-all.html\n"
-							       + "HOSTURL \"").print(fullPrimaryURL).print("\"\n"
-													   + "ERRFILE ").print(siteDir).print("/var/log/analog.all.err\n"
-																	      );
-		} finally {
-		    out.flush();
-		    out.close();
-		}
-                */
-
-                /*
-                 * Tell the system that everything has completed successfully.
-                 */
-                return true;
-            } else {
-                return false;
+                )
+            );
+            try {
+                out.print("#!/bin/sh\n"
+                        + "\n"
+                        + ". /etc/profile\n"
+                        + ". /usr/aoserv/etc/").print(getDefaultJdkVersion(osv)).print(".sh\n"
+                        + ". /usr/aoserv/etc/jakarta-oro-2.0.sh\n"
+                        + ". /usr/aoserv/etc/jakarta-regexp-1.1.sh\n"
+                        + ". /usr/aoserv/etc/jakarta-servletapi-3.1.sh\n"
+                        + ". /usr/aoserv/etc/jakarta-tomcat-3.1.sh\n"
+                        + ". /usr/aoserv/etc/jetspeed-1.1.sh\n"
+                        + ". /usr/aoserv/etc/cocoon-1.8.2.sh\n"
+                        + ". /usr/aoserv/etc/xerces-1.2.0.sh\n"
+                        + ". /usr/aoserv/etc/ant-1.6.2.sh\n"
+                        + ". /usr/aoserv/etc/xalan-1.2.d02.sh\n"
+                        + ". /usr/aoserv/etc/php-").print(getDefaultPhpVersion(osv)).print(".sh\n");
+                if(postgresServerMinorVersion!=null) out.print(". /usr/aoserv/etc/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
+                out.print(". /usr/aoserv/etc/profile\n"
+                        + "export \"CLASSPATH=/usr/aoserv/lib-1.3/aocode-public.jar:$CLASSPATH\"\n"
+                        + ". /usr/aoserv/etc/fop-0.15.0.sh\n"
+                        + "\n"
+                        + "export PATH=${PATH}:").print(siteDir).print("/bin\n"
+                        + "\n"
+                        + "CLASSPATH=${CLASSPATH}:").print(siteDir).print("/classes\n"
+                        + "\n"
+                        + "for i in ").print(siteDir).print("/lib/* ; do\n"
+                        + "    if [ -f $i ]; then\n"
+                        + "        CLASSPATH=${CLASSPATH}:$i\n"
+                        + "    fi\n"
+                        + "done\n"
+                        + "\n"
+                        + "export CLASSPATH\n");
+            } finally {
+                out.flush();
+                out.close();
             }
+
+            /*
+             * Write the bin/tomcat script.
+             */
+            String tomcatScript=siteDir+"/bin/tomcat";
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(tomcatScript).getSecureOutputStream(
+                        uid,
+                        gid,
+                        0700,
+                        false
+                    )
+                )
+            );
+            try {
+                out.print("#!/bin/sh\n"
+                        + "\n"
+                        + "TOMCAT_HOME=").print(siteDir).print("\n"
+                        + "\n"
+                        + "if [ \"$1\" = \"start\" ]; then\n"
+                        + "    $0 stop\n"
+                        + "    $0 daemon &\n"
+                        + "    echo $! >${TOMCAT_HOME}/var/run/tomcat.pid\n"
+                        + "elif [ \"$1\" = \"stop\" ]; then\n"
+                        + "    if [ -f ${TOMCAT_HOME}/var/run/tomcat.pid ]; then\n"
+                        + "        kill `cat ${TOMCAT_HOME}/var/run/tomcat.pid`\n"
+                        + "        rm -f ${TOMCAT_HOME}/var/run/tomcat.pid\n"
+                        + "    fi\n"
+                        + "    if [ -f ${TOMCAT_HOME}/var/run/java.pid ]; then\n"
+                        + "        cd $TOMCAT_HOME\n"
+                        + "        . $TOMCAT_HOME/bin/profile\n"
+                        + "        umask 002\n"
+                        + "        export DISPLAY=:0.0\n"
+                        + "        ulimit -S -m 196608 -v 400000\n"
+                        + "        ulimit -H -m 196608 -v 400000\n"
+                        + "        java -Dmail.smtp.host=").print(hostname).print(" org.apache.tomcat.startup.Tomcat -f ${TOMCAT_HOME}/conf/server.xml -stop &>/dev/null\n"
+                        + "        kill `cat ${TOMCAT_HOME}/var/run/java.pid` &>/dev/null\n"
+                        + "        rm -f ${TOMCAT_HOME}/var/run/java.pid\n"
+                        + "    fi\n"
+                        + "elif [ \"$1\" = \"daemon\" ]; then\n"
+                        + "    cd $TOMCAT_HOME\n"
+                        + "    . $TOMCAT_HOME/bin/profile\n"
+                        + "\n"
+                        + "    while [ 1 ]; do\n"
+                        + "        ulimit -S -m 196608 -v 400000\n"
+                        + "        ulimit -H -m 196608 -v 400000\n"
+                        + "        umask 002\n"
+                        + "        export DISPLAY=:0.0\n"
+                        + "        java -Dmail.smtp.host=").print(hostname).print(" org.apache.tomcat.startup.Tomcat -f ${TOMCAT_HOME}/conf/server.xml &>var/log/servlet_err &\n"
+                        + "        echo $! >${TOMCAT_HOME}/var/run/java.pid\n"
+                        + "        wait\n"
+                        + "        RETCODE=$?\n"
+                        + "        echo \"`date`: JVM died with a return code of $RETCODE, restarting in 5 seconds\" >>${TOMCAT_HOME}/var/log/jvm_crashes.log\n"
+                        + "        sleep 5\n"
+                        + "    done\n"
+                        + "else\n"
+                        + "    echo \"Usage:\"\n"
+                        + "    echo \"tomcat {start|stop}\"\n"
+                        + "    echo \"        start - start tomcat\"\n"
+                        + "    echo \"        stop  - stop tomcat\"\n"
+                        + "fi\n"
+                );
+            } finally {
+                out.flush();
+                out.close();
+            }
+            mkdir(siteDir+"/classes", 0770, lsa, lsg);
+            String confManifestServlet=siteDir+"/conf/manifest.servlet";
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false)
+                )
+            );
+            try {
+                out.print("Manifest-version: 1.0\n"
+                        + "Name: javax/servlet\n"
+                        + "Sealed: true\n"
+                        + "Specification-Title: \"Java Servlet API\"\n"
+                        + "Specification-Version: \"2.1.1\"\n"
+                        + "Specification-Vendor: \"Sun Microsystems, Inc.\"\n"
+                        + "Implementation-Title: \"javax.servlet\"\n"
+                        + "Implementation-Version: \"2.1.1\"\n"
+                        + "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n"
+                        + "\n"
+                        + "Name: javax/servlet/http\n"
+                        + "Sealed: true\n"
+                        + "Specification-Title: \"Java Servlet API\"\n"
+                        + "Specification-Version: \"2.1.1\"\n"
+                        + "Specification-Vendor: \"Sun Microsystems, Inc.\"\n"
+                        + "Implementation-Title: \"javax.servlet\"\n"
+                        + "Implementation-Version: \"2.1.1\"\n"
+                        + "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n"
+                );
+            } finally {
+                out.flush();
+                out.close();
+            }
+            String confServerDTD=siteDir+"/conf/server.dtd";
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false)
+                )
+            );
+            try {
+                out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+                        + "\n"
+                        + "<!ELEMENT Server (ContextManager+)>\n"
+                        + "<!ATTLIST Server\n"
+                        + "    adminPort NMTOKEN \"-1\"\n"
+                        + "    workDir CDATA \"work\">\n"
+                        + "\n"
+                        + "<!ELEMENT ContextManager (Context+, Interceptor*, Connector+)>\n"
+                        + "<!ATTLIST ContextManager\n"
+                        + "    port NMTOKEN \"8080\"\n"
+                        + "    hostName NMTOKEN \"\"\n"
+                        + "    inet NMTOKEN \"\">\n"
+                        + "\n"
+                        + "<!ELEMENT Context EMPTY>\n"
+                        + "<!ATTLIST Context\n"
+                        + "    path CDATA #REQUIRED\n"
+                        + "    docBase CDATA #REQUIRED\n"
+                        + "    defaultSessionTimeOut NMTOKEN \"30\"\n"
+                        + "    isWARExpanded (true | false) \"true\"\n"
+                        + "    isWARValidated (false | true) \"false\"\n"
+                        + "    isInvokerEnabled (true | false) \"true\"\n"
+                        + "    isWorkDirPersistent (false | true) \"false\">\n"
+                        + "\n"
+                        + "<!ELEMENT Interceptor EMPTY>\n"
+                        + "<!ATTLIST Interceptor\n"
+                        + "    className NMTOKEN #REQUIRED\n"
+                        + "    docBase   CDATA #REQUIRED>\n"
+                        + "\n"
+                        + "<!ELEMENT Connector (Parameter*)>\n"
+                        + "<!ATTLIST Connector\n"
+                        + "    className NMTOKEN #REQUIRED>\n"
+                        + "\n"
+                        + "<!ELEMENT Parameter EMPTY>\n"
+                        + "<!ATTLIST Parameter\n"
+                        + "    name CDATA #REQUIRED\n"
+                        + "    value CDATA \"\">\n"
+                );
+            } finally {
+                out.flush();
+                out.close();
+            }
+            copyResource("test-tomcat.xml", siteDir+"/conf/test-tomcat.xml", uid, gid, 0660);
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(siteDir+"/conf/tomcat-users.xml").getSecureOutputStream(uid, gid, 0660, false)
+                )
+            );
+            try {
+                out.print("<tomcat-users>\n"
+                        + "  <user name=\"tomcat\" password=\"tomcat\" roles=\"tomcat\" />\n"
+                        + "</tomcat-users>\n"
+                );
+            } finally {
+                out.flush();
+                out.close();
+            }
+            copyResource("web.dtd-3.1", siteDir+"/conf/web.dtd", uid, gid, 0660);
+            copyResource("web.xml-3.1", siteDir+"/conf/web.xml", uid, gid, 0660);
+            for(int c=0;c<tomcatLogFiles.length;c++) {
+                String filename=siteDir+"/var/log/"+tomcatLogFiles[c];
+                new UnixFile(filename).getSecureOutputStream(uid, gid, 0660, false).close();
+            }
+            new ChainWriter(
+                new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF/MANIFEST.MF").getSecureOutputStream(uid, gid, 0664, false)
+            ).print("Manifest-Version: 1.0").flush().close();
+
+            /*
+             * Write the cocoon.properties file.
+             */
+            OutputStream fileOut=new BufferedOutputStream(new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties").getSecureOutputStream(uid, gid, 0660, false));
+            try {
+                copyResource("cocoon.properties.1", fileOut);
+                out=new ChainWriter(fileOut);
+                try {
+                    out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon\n");
+                    out.flush();
+                    copyResource("cocoon.properties.2", fileOut);
+                } finally {
+                    out.flush();
+                }
+            } finally {
+                fileOut.flush();
+                fileOut.close();
+            }
+
+            /*
+             * Write the ROOT/WEB-INF/web.xml file.
+             */
+            out=new ChainWriter(new BufferedOutputStream(new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/web.xml").getSecureOutputStream(uid, gid, 0664, false)));
+            try {
+                out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+                        + "\n"
+                        + "<!DOCTYPE web-app\n"
+                        + "    PUBLIC \"-//Sun Microsystems, Inc.//DTD Web Application 2.2//EN\"\n"
+                        + "    \"http://java.sun.com/j2ee/dtds/web-app_2.2.dtd\">\n"
+                        + "\n"
+                        + "<web-app>\n"
+                        + "\n"
+                        + " <servlet>\n"
+                        + "  <servlet-name>org.apache.cocoon.Cocoon</servlet-name>\n"
+                        + "  <servlet-class>org.apache.cocoon.Cocoon</servlet-class>\n"
+                        + "  <init-param>\n"
+                        + "   <param-name>properties</param-name>\n"
+                        + "   <param-value>\n"
+                        + "    WEB-INF/conf/cocoon.properties\n"
+                        + "   </param-value>\n"
+                        + "  </init-param>\n"
+                        + " </servlet>\n"
+                        + "\n"
+                        + " <servlet-mapping>\n"
+                        + "  <servlet-name>org.apache.cocoon.Cocoon</servlet-name>\n"
+                        + "  <url-pattern>*.xml</url-pattern>\n"
+                        + " </servlet-mapping>\n"
+                        + "\n"
+                        + "</web-app>\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            createCgiPhpScript(site);
+            createTestCGI(site);
+            createTestIndex(site);
+
+            /*
+             * Create the test.php file.
+             */
+            new ChainWriter(new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php")
+                .getSecureOutputStream(uid, gid, 0664, false))
+                .print("<?phpinfo()?>\n")
+                .flush()
+                .close();
+        } finally {
+            Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
+
+    /**
+     * Builds a standard install for Tomcat 3.2.4
+     */
+    private static void buildHttpdTomcatStdSite_3_2_4(HttpdTomcatStdSite stdSite) throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "buildHttpdTomcatStdSite_3_2_4(HttpdTomcatStdSite)", null);
+        try {
+            /*
+             * Resolve and allocate stuff used throughout the method
+             */
+            final AOServConnector connector=AOServDaemon.getConnector();
+            final HttpdTomcatSite tomcatSite = stdSite.getHttpdTomcatSite();
+            final HttpdSite site = tomcatSite.getHttpdSite();
+            final LinuxServerAccount lsa = site.getLinuxServerAccount();
+            final LinuxServerGroup lsg = site.getLinuxServerGroup();
+            final int uid = lsa.getUID().getID();
+            final int gid = lsg.getGID().getID();
+            final String laUsername=lsa.getLinuxAccount().getUsername().getUsername();
+            final String laGroupname = lsg.getLinuxGroup().getName();
+            final String siteName=site.getSiteName();
+            final String siteDir=HttpdSite.WWW_DIRECTORY+'/'+siteName;
+            final String tomcatDirectory=tomcatSite.getHttpdTomcatVersion().getInstallDirectory();
+            final String primaryUrl=site.getPrimaryHttpdSiteURL().getHostname();
+            final AOServer thisAOServer = AOServDaemon.getThisAOServer();
+            final Server server = thisAOServer.getServer();
+            final String hostname = server.getHostname();
+            final int osv = server.getOperatingSystemVersion().getPKey();
+            final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
+            final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
+
+            /*
+             * Create the skeleton of the site, the directories and links.
+             */
+            mkdir(siteDir+"/bin", 0770, lsa, lsg);
+            ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
+            mkdir(siteDir+"/conf", 0775, lsa, lsg);
+            mkdir(siteDir+"/daemon", 0770, lsa, lsg);
+            if (site.getDisableLog()==null) ln("../bin/tomcat", siteDir+"/daemon/tomcat", uid, gid);
+            ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
+            mkdir(siteDir+"/lib", 0770, lsa, lsg);
+            ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", siteDir+"/servlet", uid, gid);
+            mkdir(siteDir+"/var", 0770, lsa, lsg);
+            mkdir(siteDir+"/var/log", 0770, lsa, lsg);
+            mkdir(siteDir+"/var/run", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps", 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF", 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, lsa, lsg);	
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", 0755, lsa, lsg);
+            mkdir(siteDir+"/work", 0750, lsa, lsg);
+            final String profileFile=siteDir+"/bin/profile";
+            LinuxAccountManager.setBashProfile(lsa, profileFile);
+
+            /*
+             * Write the profile script for standard only
+             */
+            ChainWriter out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(profileFile).getSecureOutputStream(uid, gid, 0750, false)
+                )
+            );
+            try {
+                out.print("#!/bin/sh\n"
+                        + "\n"
+                        + ". /etc/profile\n"
+                        + ". /usr/aoserv/etc/").print(getDefaultJdkVersion(osv)).print(".sh\n"
+                        + ". /usr/aoserv/etc/jakarta-oro-2.0.sh\n"
+                        + ". /usr/aoserv/etc/jakarta-regexp-1.1.sh\n"
+                        + ". /usr/aoserv/etc/jakarta-servletapi-3.2.sh\n"
+                        + ". /usr/aoserv/etc/jakarta-tomcat-3.2.sh\n"
+                        + ". /usr/aoserv/etc/jetspeed-1.1.sh\n"
+                        + ". /usr/aoserv/etc/cocoon-1.8.2.sh\n"
+                        + ". /usr/aoserv/etc/xerces-1.2.0.sh\n"
+                        + ". /usr/aoserv/etc/ant-1.6.2.sh\n"
+                        + ". /usr/aoserv/etc/xalan-1.2.d02.sh\n"
+                        + ". /usr/aoserv/etc/php-").print(getDefaultPhpVersion(osv)).print(".sh\n");
+                if(postgresServerMinorVersion!=null) out.print(". /usr/aoserv/etc/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
+                out.print(". /usr/aoserv/etc/profile\n"
+                        + ". /usr/aoserv/etc/fop-0.15.0.sh\n"
+                        + "\n"
+                        + "export PATH=${PATH}:").print(siteDir).print("/bin\n"
+                        + "\n"
+                        + "CLASSPATH=${CLASSPATH}:").print(siteDir).print("/classes\n"
+                        + "\n"
+                        + "for i in ").print(siteDir).print("/lib/* ; do\n"
+                        + "    if [ -f $i ]; then\n"
+                        + "        CLASSPATH=${CLASSPATH}:$i\n"
+                        + "    fi\n"
+                        + "done\n"
+                        + "\n"
+                        + "export CLASSPATH\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            /*
+             * Write the bin/tomcat script.
+             */
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(siteDir+"/bin/tomcat").getSecureOutputStream(uid, gid, 0700, false)
+                )
+            );
+            try {
+                out.print("#!/bin/sh\n"
+                        + "\n"
+                        + "TOMCAT_HOME=").print(siteDir).print("\n"
+                        + "\n"
+                        + "if [ \"$1\" = \"start\" ]; then\n"
+                        + "    $0 stop\n"
+                        + "    $0 daemon &\n"
+                        + "    echo $! >${TOMCAT_HOME}/var/run/tomcat.pid\n"
+                        + "elif [ \"$1\" = \"stop\" ]; then\n"
+                        + "    if [ -f ${TOMCAT_HOME}/var/run/tomcat.pid ]; then\n"
+                        + "        kill `cat ${TOMCAT_HOME}/var/run/tomcat.pid`\n"
+                        + "        rm -f ${TOMCAT_HOME}/var/run/tomcat.pid\n"
+                        + "    fi\n"
+                        + "    if [ -f ${TOMCAT_HOME}/var/run/java.pid ]; then\n"
+                        + "        cd $TOMCAT_HOME\n"
+                        + "        . $TOMCAT_HOME/bin/profile\n"
+                        + "        umask 002\n"
+                        + "        export DISPLAY=:0.0\n"
+                        + "        ulimit -S -m 196608 -v 400000\n"
+                        + "        ulimit -H -m 196608 -v 400000\n"
+                        + "        java -Dmail.smtp.host=").print(hostname).print(" org.apache.tomcat.startup.Tomcat -f ${TOMCAT_HOME}/conf/server.xml -stop &>/dev/null\n"
+                        + "        kill `cat ${TOMCAT_HOME}/var/run/java.pid` &>/dev/null\n"
+                        + "        rm -f ${TOMCAT_HOME}/var/run/java.pid\n"
+                        + "    fi\n"
+                        + "elif [ \"$1\" = \"daemon\" ]; then\n"
+                        + "    cd $TOMCAT_HOME\n"
+                        + "    . $TOMCAT_HOME/bin/profile\n"
+                        + "\n"
+                        + "    while [ 1 ]; do\n"
+                        + "        ulimit -S -m 196608 -v 400000\n"
+                        + "        ulimit -H -m 196608 -v 400000\n"
+                        + "        umask 002\n"
+                        + "        export DISPLAY=:0.0\n"
+                        + "        java -Dmail.smtp.host=").print(hostname).print(" org.apache.tomcat.startup.Tomcat -f ${TOMCAT_HOME}/conf/server.xml &>var/log/servlet_err &\n"
+                        + "        echo $! >${TOMCAT_HOME}/var/run/java.pid\n"
+                        + "        wait\n"
+                        + "        RETCODE=$?\n"
+                        + "        echo \"`date`: JVM died with a return code of $RETCODE, restarting in 5 seconds\" >>${TOMCAT_HOME}/var/log/jvm_crashes.log\n"
+                        + "        sleep 5\n"
+                        + "    done\n"
+                        + "else\n"
+                        + "    echo \"Usage:\"\n"
+                        + "    echo \"tomcat {start|stop}\"\n"
+                        + "    echo \"        start - start tomcat\"\n"
+                        + "    echo \"        stop  - stop tomcat\"\n"
+                        + "fi\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            /*
+             * The classes directory
+             */
+            mkdir(siteDir+"/classes", 0770, lsa, lsg);
+
+            /*
+             * Write the manifest.servlet file.
+             */
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(siteDir+"/conf/manifest.servlet").getSecureOutputStream(uid, gid, 0660, false)
+                )
+            );
+            try {
+                out.print("Manifest-version: 1.0\n"
+                        + "Name: javax/servlet\n"
+                        + "Sealed: true\n"
+                        + "Specification-Title: \"Java Servlet API\"\n"
+                        + "Specification-Version: \"2.1.1\"\n"
+                        + "Specification-Vendor: \"Sun Microsystems, Inc.\"\n"
+                        + "Implementation-Title: \"javax.servlet\"\n"
+                        + "Implementation-Version: \"2.1.1\"\n"
+                        + "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n"
+                        + "\n"
+                        + "Name: javax/servlet/http\n"
+                        + "Sealed: true\n"
+                        + "Specification-Title: \"Java Servlet API\"\n"
+                        + "Specification-Version: \"2.1.1\"\n"
+                        + "Specification-Vendor: \"Sun Microsystems, Inc.\"\n"
+                        + "Implementation-Title: \"javax.servlet\"\n"
+                        + "Implementation-Version: \"2.1.1\"\n"
+                        + "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            /*
+             * Create the conf/server.dtd file.
+             */
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(siteDir+"/conf/server.dtd").getSecureOutputStream(uid, gid, 0660, false)
+                )
+            );
+            try {
+                out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+                        + "\n"
+                        + "<!ELEMENT Server (ContextManager+)>\n"
+                        + "<!ATTLIST Server\n"
+                        + "    adminPort NMTOKEN \"-1\"\n"
+                        + "    workDir CDATA \"work\">\n"
+                        + "\n"
+                        + "<!ELEMENT ContextManager (Context+, Interceptor*, Connector+)>\n"
+                        + "<!ATTLIST ContextManager\n"
+                        + "    port NMTOKEN \"8080\"\n"
+                        + "    hostName NMTOKEN \"\"\n"
+                        + "    inet NMTOKEN \"\">\n"
+                        + "\n"
+                        + "<!ELEMENT Context EMPTY>\n"
+                        + "<!ATTLIST Context\n"
+                        + "    path CDATA #REQUIRED\n"
+                        + "    docBase CDATA #REQUIRED\n"
+                        + "    defaultSessionTimeOut NMTOKEN \"30\"\n"
+                        + "    isWARExpanded (true | false) \"true\"\n"
+                        + "    isWARValidated (false | true) \"false\"\n"
+                        + "    isInvokerEnabled (true | false) \"true\"\n"
+                        + "    isWorkDirPersistent (false | true) \"false\">\n"
+                        + "\n"
+                        + "<!ELEMENT Interceptor EMPTY>\n"
+                        + "<!ATTLIST Interceptor\n"
+                        + "    className NMTOKEN #REQUIRED\n"
+                        + "    docBase   CDATA #REQUIRED>\n"
+                        + "\n"
+                        + "<!ELEMENT Connector (Parameter*)>\n"
+                        + "<!ATTLIST Connector\n"
+                        + "    className NMTOKEN #REQUIRED>\n"
+                        + "\n"
+                        + "<!ELEMENT Parameter EMPTY>\n"
+                        + "<!ATTLIST Parameter\n"
+                        + "    name CDATA #REQUIRED\n"
+                        + "    value CDATA \"\">\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            copyResource("test-tomcat.xml", siteDir+"/conf/test-tomcat.xml", uid, gid, 0660);
+
+            /*
+             * Create the tomcat-users.xml file
+             */
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(siteDir+"/conf/tomcat-users.xml").getSecureOutputStream(uid, gid, 0660, false)
+                )
+            );
+            try {
+                out.print("<tomcat-users>\n"
+                        + "  <user name=\"tomcat\" password=\"tomcat\" roles=\"tomcat\" />\n"
+                        + "  <user name=\"role1\"  password=\"tomcat\" roles=\"role1\" />\n"
+                        + "  <user name=\"both\"   password=\"tomcat\" roles=\"tomcat,role1\" />\n"
+                        + "</tomcat-users>\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            copyResource("web.dtd-3.2.4", siteDir+"/conf/web.dtd", uid, gid, 0660);
+            copyResource("web.xml-3,2,4", siteDir+"/conf/web.xml", uid, gid, 0660);
+
+            /*
+             * Create the empty log files.
+             */
+            for(int c=0;c<tomcatLogFiles.length;c++) {
+                String filename=siteDir+"/var/log/"+tomcatLogFiles[c];
+                new UnixFile(filename).getSecureOutputStream(uid, gid, 0660, false).close();
+            }
+
+            /*
+             * Create the manifest file.
+             */
+            final String manifestFile=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF/MANIFEST.MF";
+            new ChainWriter(new UnixFile(manifestFile).getSecureOutputStream(uid, gid, 0664, false)).print("Manifest-Version: 1.0").flush().close();
+
+            /*
+             * Write the cocoon.properties file.
+             */
+            OutputStream fileOut=new BufferedOutputStream(new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties").getSecureOutputStream(uid, gid, 0660, false));
+            try {
+                copyResource("cocoon.properties.1", fileOut);
+                out=new ChainWriter(fileOut);
+                try {
+                    out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon\n");
+                    out.flush();
+                    copyResource("cocoon.properties.2", fileOut);
+                } finally {
+                    out.flush();
+                }
+            } finally {
+                fileOut.flush();
+                fileOut.close();
+            }
+
+            /*
+             * Write the ROOT/WEB-INF/web.xml file.
+             */
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/web.xml").getSecureOutputStream(uid, gid, 0664, false)
+                )
+            );
+            try {
+                out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+                        + "\n"
+                        + "<!DOCTYPE web-app\n"
+                        + "    PUBLIC \"-//Sun Microsystems, Inc.//DTD Web Application 2.2//EN\"\n"
+                        + "    \"http://java.sun.com/j2ee/dtds/web-app_2.2.dtd\">\n"
+                        + "\n"
+                        + "<web-app>\n"
+                        + "\n"
+                        + " <servlet>\n"
+                        + "  <servlet-name>org.apache.cocoon.Cocoon</servlet-name>\n"
+                        + "  <servlet-class>org.apache.cocoon.Cocoon</servlet-class>\n"
+                        + "  <init-param>\n"
+                        + "   <param-name>properties</param-name>\n"
+                        + "   <param-value>\n"
+                        + "    WEB-INF/conf/cocoon.properties\n"
+                        + "   </param-value>\n"
+                        + "  </init-param>\n"
+                        + " </servlet>\n"
+                        + "\n"
+                        + " <servlet-mapping>\n"
+                        + "  <servlet-name>org.apache.cocoon.Cocoon</servlet-name>\n"
+                        + "  <url-pattern>*.xml</url-pattern>\n"
+                        + " </servlet-mapping>\n"
+                        + "\n"
+                        + "</web-app>\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            createCgiPhpScript(site);
+            createTestCGI(site);
+            createTestIndex(site);
+
+            /*
+             * Create the test.php file.
+             */
+            new ChainWriter(new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php").getSecureOutputStream(uid, gid, 0664, false))
+                .print("<?phpinfo()?>\n")
+                .flush()
+                .close()
+            ;
+        } finally {
+            Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
+
+    /**
+     * Builds a standard install for Tomcat 4.1.X
+     */
+    private static void buildHttpdTomcatStdSite_4_1_X(HttpdTomcatStdSite stdSite) throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "buildHttpdTomcatStdSite_4_1_X(HttpdTomcatStdSite)", null);
+        try {
+            /*
+             * Resolve and allocate stuff used throughout the method
+             */
+            final AOServConnector connector=AOServDaemon.getConnector();
+            final HttpdTomcatSite tomcatSite = stdSite.getHttpdTomcatSite();
+            final HttpdSite site = tomcatSite.getHttpdSite();
+            final LinuxServerAccount lsa = site.getLinuxServerAccount();
+            final LinuxServerGroup lsg = site.getLinuxServerGroup();
+            final int uid = lsa.getUID().getID();
+            final int gid = lsg.getGID().getID();
+            final String laUsername=lsa.getLinuxAccount().getUsername().getUsername();
+            final String laGroupname = lsg.getLinuxGroup().getName();
+            final String siteName=site.getSiteName();
+            final String siteDir=HttpdSite.WWW_DIRECTORY+'/'+siteName;
+            final String tomcatDirectory=tomcatSite.getHttpdTomcatVersion().getInstallDirectory();
+            final String primaryUrl=site.getPrimaryHttpdSiteURL().getHostname();
+            final AOServer thisAOServer = AOServDaemon.getThisAOServer();
+            final Server server = thisAOServer.getServer();
+            final String hostname = server.getHostname();
+            final int osv = server.getOperatingSystemVersion().getPKey();
+            final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
+            final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
+            /*
+             * Create the skeleton of the site, the directories and links.
+             */
+            mkdir(siteDir+"/bin", 0770, lsa, lsg);
+            ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
+            mkdir(siteDir+"/conf", 0775, lsa, lsg);
+            mkdir(siteDir+"/daemon", 0770, lsa, lsg);
+            if (site.getDisableLog()==null) ln("../bin/tomcat", siteDir+"/daemon/tomcat", uid, gid);
+            mkdir(siteDir+"/temp", 0770, lsa, lsg);
+            ln("var/log", siteDir+"/logs", uid, gid);
+            mkdir(siteDir+"/var", 0770, lsa, lsg);
+            mkdir(siteDir+"/var/log", 0770, lsa, lsg);
+            mkdir(siteDir+"/var/run", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps", 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, lsa, lsg);	
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", 0755, lsa, lsg);
+            mkdir(siteDir+"/work", 0750, lsa, lsg);
+            ln("../../.."+tomcatDirectory+"/bin/bootstrap.jar", siteDir+"/bin/bootstrap.jar", uid, gid);
+            ln("../../.."+tomcatDirectory+"/bin/catalina.sh", siteDir+"/bin/catalina.sh", uid, gid);
+            ln("../../.."+tomcatDirectory+"/bin/commons-daemon.jar", siteDir+"/bin/commons-daemon.jar", uid, gid);
+            ln("../../.."+tomcatDirectory+"/bin/digest.sh", siteDir+"/bin/digest.sh", uid, gid);
+            ln("../../.."+tomcatDirectory+"/bin/jasper.sh", siteDir+"/bin/jasper.sh", uid, gid);
+            ln("../../.."+tomcatDirectory+"/bin/jspc.sh", siteDir+"/bin/jspc.sh", uid, gid);
+
+            /*
+             * Set up the bash profile
+             */
+            final String profileFile=siteDir+"/bin/profile";
+            LinuxAccountManager.setBashProfile(lsa, profileFile);
+            ChainWriter out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(profileFile).getSecureOutputStream(uid, gid, 0750, false )
+                )
+            );
+            try {
+                out.print("#!/bin/sh\n"
+                        + "\n"
+                        + ". /etc/profile\n"
+                        + ". /usr/aoserv/etc/").print(getDefaultJdkVersion(osv)).print(".sh\n");
+                final String defaultPhpVersion = getDefaultPhpVersion(osv);
+                if(defaultPhpVersion!=null) out.print(". /usr/aoserv/etc/php-").print(defaultPhpVersion).print(".sh\n");
+                if(postgresServerMinorVersion!=null) {
+                    if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                        out.print(". /opt/aoserv-client/scripts/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
+                    } else {
+                        out.print(". /usr/aoserv/etc/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
+                    }
+                }
+                if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                    out.print(". /opt/aoserv-client/scripts/aoserv-client.sh\n");
+                } else {
+                    out.print(". /usr/aoserv/etc/aoserv.sh\n");
+                }
+                out.print("\n"
+                        + "umask 002\n"
+                        + "export DISPLAY=:0.0\n"
+                        + "\n"
+                        + "export CATALINA_HOME=\"").print(siteDir).print("\"\n"
+                        + "export CATALINA_BASE=\"").print(siteDir).print("\"\n"
+                        + "export CATALINA_TEMP=\"").print(siteDir).print("/temp\"\n"
+                        + "\n"
+                        + "export PATH=${PATH}:").print(siteDir).print("/bin\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            /*
+             * Write the bin/tomcat script.
+             */
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(siteDir+"/bin/tomcat").getSecureOutputStream(uid, gid, 0700, false)
+                )
+            );
+            try {
+                out.print("#!/bin/sh\n"
+                        + "\n"
+                        + "TOMCAT_HOME=").print(siteDir).print("\n"
+                        + "\n"
+                        + "if [ \"$1\" = \"start\" ]; then\n"
+                        + "    $0 stop\n"
+                        + "    $0 daemon &\n"
+                        + "    echo $! >${TOMCAT_HOME}/var/run/tomcat.pid\n"
+                        + "elif [ \"$1\" = \"stop\" ]; then\n"
+                        + "    if [ -f ${TOMCAT_HOME}/var/run/tomcat.pid ]; then\n"
+                        + "        kill `cat ${TOMCAT_HOME}/var/run/tomcat.pid`\n"
+                        + "        rm -f ${TOMCAT_HOME}/var/run/tomcat.pid\n"
+                        + "    fi\n"
+                        + "    if [ -f ${TOMCAT_HOME}/var/run/java.pid ]; then\n"
+                        + "        cd $TOMCAT_HOME\n"
+                        + "        . $TOMCAT_HOME/bin/profile\n"
+                        + "        umask 002\n"
+                        + "        export DISPLAY=:0.0\n"
+                        + "        ${TOMCAT_HOME}/bin/catalina.sh stop 2>&1 >>${TOMCAT_HOME}/var/log/tomcat_err\n"
+                        + "        kill `cat ${TOMCAT_HOME}/var/run/java.pid` &>/dev/null\n"
+                        + "        rm -f ${TOMCAT_HOME}/var/run/java.pid\n"
+                        + "    fi\n"
+                        + "elif [ \"$1\" = \"daemon\" ]; then\n"
+                        + "    cd $TOMCAT_HOME\n"
+                        + "    . $TOMCAT_HOME/bin/profile\n"
+                        + "\n"
+                        + "    while [ 1 ]; do\n"
+                        + "        umask 002\n"
+                        + "        export DISPLAY=:0.0\n"
+                        + "        mv -f ${TOMCAT_HOME}/var/log/tomcat_err ${TOMCAT_HOME}/var/log/tomcat_err.old\n"
+                        + "        ${TOMCAT_HOME}/bin/catalina.sh run >&${TOMCAT_HOME}/var/log/tomcat_err &\n"
+                        + "        echo $! >${TOMCAT_HOME}/var/run/java.pid\n"
+                        + "        wait\n"
+                        + "        RETCODE=$?\n"
+                        + "        echo \"`date`: JVM died with a return code of $RETCODE, restarting in 5 seconds\" >>${TOMCAT_HOME}/var/log/jvm_crashes.log\n"
+                        + "        sleep 5\n"
+                        + "    done\n"
+                        + "else\n"
+                        + "    echo \"Usage:\"\n"
+                        + "    echo \"tomcat {start|stop}\"\n"
+                        + "    echo \"        start - start tomcat\"\n"
+                        + "    echo \"        stop  - stop tomcat\"\n"
+                        + "fi\n"
+                );
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            ln("../../.."+tomcatDirectory+"/bin/setclasspath.sh", siteDir+"/bin/setclasspath.sh", uid, gid);
+
+            out=new ChainWriter(new UnixFile(siteDir+"/bin/shutdown.sh").getSecureOutputStream(uid, gid, 0700, true));
+            try {
+                out.print("#!/bin/sh\n"
+                        + "exec ").print(siteDir).print("/bin/tomcat stop\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            out=new ChainWriter(new UnixFile(siteDir+"/bin/startup.sh").getSecureOutputStream(uid, gid, 0700, true));
+            try {
+                out.print("#!/bin/sh\n"
+                        + "exec ").print(siteDir).print("/bin/tomcat start\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            ln("../../.."+tomcatDirectory+"/bin/tomcat-jni.jar", siteDir+"/bin/tomcat-jni.jar", uid, gid);
+            ln("../../.."+tomcatDirectory+"/bin/tool-wrapper.sh", siteDir+"/bin/tool-wrapper.sh", uid, gid);
+            mkdir(siteDir+"/common", 0775, lsa, lsg);
+            mkdir(siteDir+"/common/classes", 0775, lsa, lsg);
+            mkdir(siteDir+"/common/endorsed", 0775, lsa, lsg);
+            lnAll("../../../.."+tomcatDirectory+"/common/endorsed/", siteDir+"/common/endorsed/", uid, gid);
+            mkdir(siteDir+"/common/lib", 0775, lsa, lsg);
+            lnAll("../../../.."+tomcatDirectory+"/common/lib/", siteDir+"/common/lib/", uid, gid);
+
+            if(postgresServerMinorVersion!=null) {
+                if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                    ln("../../../../usr/postgresql/"+postgresServerMinorVersion+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
+                } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                    ln("../../../../opt/postgresql-"+postgresServerMinorVersion+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
+                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            }
+            if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                ln("../../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", siteDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", uid, gid);
+            } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                ln("../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar", siteDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", uid, gid);
+            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+
+            /*
+             * Write the conf/catalina.policy file
+             */
+            {
+                UnixFile cp=new UnixFile(siteDir+"/conf/catalina.policy");
+                new UnixFile(tomcatDirectory+"/conf/catalina.policy").copyTo(cp, false);
+                cp.chown(uid, gid).setMode(0660);
+            }
+
+            /*
+             * Create the tomcat-users.xml file
+             */
+            final UnixFile tu=new UnixFile(siteDir+"/conf/tomcat-users.xml");
+            new UnixFile(tomcatDirectory+"/conf/tomcat-users.xml").copyTo(tu, false);
+            tu.chown(uid, gid).setMode(0660);
+
+            final UnixFile wx=new UnixFile(siteDir+"/conf/web.xml");
+            new UnixFile(tomcatDirectory+"/conf/web.xml").copyTo(wx, false);
+            wx.chown(uid, gid).setMode(0660);
+
+            mkdir(siteDir+"/server", 0775, lsa, lsg);
+            mkdir(siteDir+"/server/classes", 0775, lsa, lsg);
+            mkdir(siteDir+"/server/lib", 0775, lsa, lsg);
+            lnAll("../../../.."+tomcatDirectory+"/server/lib/", siteDir+"/server/lib/", uid, gid);
+            mkdir(siteDir+"/server/webapps", 0775, lsa, lsg);
+            mkdir(siteDir+"/shared", 0775, lsa, lsg);
+            mkdir(siteDir+"/shared/classes", 0775, lsa, lsg);
+            mkdir(siteDir+"/shared/lib", 0775, lsa, lsg);
+
+            /*
+             * Write the ROOT/WEB-INF/web.xml file.
+             */
+            String webXML=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/web.xml";
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false)
+                )
+            );
+            try {
+                out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+                        + "\n"
+                        + "<!DOCTYPE web-app\n"
+                        + "    PUBLIC \"-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN\"\n"
+                        + "    \"http://java.sun.com/j2ee/dtds/web-app_2_3.dtd\">\n"
+                        + "\n"
+                        + "<web-app>\n"
+                        + "  <display-name>Welcome to Tomcat</display-name>\n"
+                        + "  <description>\n"
+                        + "    Welcome to Tomcat\n"
+                        + "  </description>\n"
+                        + "</web-app>\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            createCgiPhpScript(site);
+            createTestCGI(site);
+            createTestIndex(site);
+
+            /*
+             * Create the test.php file.
+             */
+            String testPHP=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php";
+            new ChainWriter(
+                new UnixFile(testPHP).getSecureOutputStream(uid, gid, 0664, false)
+            ).print("<?phpinfo()?>\n").flush().close();
+        } finally {
+            Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
+
+    /**
+     * Builds a standard install for Tomcat 5.5.X
+     */
+    private static void buildHttpdTomcatStdSite_5_5_X(HttpdTomcatStdSite stdSite) throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "buildHttpdTomcatStdSite_5_5_X(HttpdTomcatStdSite)", null);
+        try {
+            /*
+             * Resolve and allocate stuff used throughout the method
+             */
+            final AOServConnector connector=AOServDaemon.getConnector();
+            final HttpdTomcatSite tomcatSite = stdSite.getHttpdTomcatSite();
+            final HttpdSite site = tomcatSite.getHttpdSite();
+            final LinuxServerAccount lsa = site.getLinuxServerAccount();
+            final LinuxServerGroup lsg = site.getLinuxServerGroup();
+            final int uid = lsa.getUID().getID();
+            final int gid = lsg.getGID().getID();
+            final String laUsername=lsa.getLinuxAccount().getUsername().getUsername();
+            final String laGroupname = lsg.getLinuxGroup().getName();
+            final String siteName=site.getSiteName();
+            final String siteDir=HttpdSite.WWW_DIRECTORY+'/'+siteName;
+            final String tomcatDirectory=tomcatSite.getHttpdTomcatVersion().getInstallDirectory();
+            final String primaryUrl=site.getPrimaryHttpdSiteURL().getHostname();
+            final AOServer thisAOServer = AOServDaemon.getThisAOServer();
+            final Server server = thisAOServer.getServer();
+            final String hostname = server.getHostname();
+            final int osv = server.getOperatingSystemVersion().getPKey();
+            final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
+            final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
+
+            /*
+             * Create the skeleton of the site, the directories and links.
+             */
+            mkdir(siteDir+"/bin", 0770, lsa, lsg);
+            mkdir(siteDir+"/conf", 0775, lsa, lsg);
+            mkdir(siteDir+"/daemon", 0770, lsa, lsg);
+            if (site.getDisableLog()==null) ln("../bin/tomcat", siteDir+"/daemon/tomcat", uid, gid);
+            mkdir(siteDir+"/temp", 0770, lsa, lsg);
+            ln("var/log", siteDir+"/logs", uid, gid);
+            mkdir(siteDir+"/var", 0770, lsa, lsg);
+            mkdir(siteDir+"/var/log", 0770, lsa, lsg);
+            mkdir(siteDir+"/var/run", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps", 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, lsa, lsg);	
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", 0755, lsa, lsg);
+            mkdir(siteDir+"/work", 0750, lsa, lsg);
+            ln("../../.."+tomcatDirectory+"/bin/bootstrap.jar", siteDir+"/bin/bootstrap.jar", uid, gid);
+            ln("../../.."+tomcatDirectory+"/bin/catalina.sh", siteDir+"/bin/catalina.sh", uid, gid);
+            ln("../../.."+tomcatDirectory+"/bin/commons-daemon.jar", siteDir+"/bin/commons-daemon.jar", uid, gid);
+            ln("../../.."+tomcatDirectory+"/bin/commons-logging-api.jar", siteDir+"/bin/commons-logging-api.jar", uid, gid);
+            ln("../../.."+tomcatDirectory+"/bin/digest.sh", siteDir+"/bin/digest.sh", uid, gid);
+
+            /*
+             * Set up the bash profile source
+             */
+            String profileFile=siteDir+"/bin/profile";
+            LinuxAccountManager.setBashProfile(lsa, profileFile);
+            ChainWriter out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(profileFile).getSecureOutputStream(
+                        uid,
+                        gid,
+                        0750,
+                        false
+                    )
+                )
+            );
+            try {
+                out.print("#!/bin/sh\n"
+                        + "\n"
+                        + ". /etc/profile\n");
+                if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                    out.print(". /opt/aoserv-client/scripts/").print(DEFAULT_TOMCAT_5_JDK_VERSION).print(".sh\n");
+                } else {
+                    out.print(". /usr/aoserv/etc/").print(DEFAULT_TOMCAT_5_JDK_VERSION).print(".sh\n");
+                }
+                String defaultPhpVersion = getDefaultPhpVersion(osv);
+                if(defaultPhpVersion!=null) out.print(". /usr/aoserv/etc/php-").print(defaultPhpVersion).print(".sh\n");
+                if(postgresServerMinorVersion!=null) {
+                    if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                        out.print(". /opt/aoserv-client/scripts/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
+                    } else {
+                        out.print(". /usr/aoserv/etc/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
+                    }
+                }
+                if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                    out.print(". /opt/aoserv-client/scripts/aoserv-client.sh\n");
+                } else {
+                    out.print(". /usr/aoserv/etc/aoserv.sh\n");
+                }
+                out.print("\n"
+                        + "umask 002\n"
+                        + "export DISPLAY=:0.0\n"
+                        + "\n"
+                        + "export CATALINA_HOME=\"").print(siteDir).print("\"\n"
+                        + "export CATALINA_BASE=\"").print(siteDir).print("\"\n"
+                        + "export CATALINA_TEMP=\"").print(siteDir).print("/temp\"\n"
+                        + "\n"
+                        + "export PATH=${PATH}:").print(siteDir).print("/bin\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            /*
+             * Write the bin/tomcat script.
+             */
+            String tomcatScript=siteDir+"/bin/tomcat";
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(tomcatScript).getSecureOutputStream(
+                        uid,
+                        gid,
+                        0700,
+                        false
+                    )
+                )
+            );
+            try {
+                out.print("#!/bin/sh\n"
+                        + "\n"
+                        + "TOMCAT_HOME=").print(siteDir).print("\n"
+                        + "\n"
+                        + "if [ \"$1\" = \"start\" ]; then\n"
+                        + "    $0 stop\n"
+                        + "    $0 daemon &\n"
+                        + "    echo $! >${TOMCAT_HOME}/var/run/tomcat.pid\n"
+                        + "elif [ \"$1\" = \"stop\" ]; then\n"
+                        + "    if [ -f ${TOMCAT_HOME}/var/run/tomcat.pid ]; then\n"
+                        + "        kill `cat ${TOMCAT_HOME}/var/run/tomcat.pid`\n"
+                        + "        rm -f ${TOMCAT_HOME}/var/run/tomcat.pid\n"
+                        + "    fi\n"
+                        + "    if [ -f ${TOMCAT_HOME}/var/run/java.pid ]; then\n"
+                        + "        cd $TOMCAT_HOME\n"
+                        + "        . $TOMCAT_HOME/bin/profile\n"
+                        + "        umask 002\n"
+                        + "        export DISPLAY=:0.0\n"
+                        + "        ${TOMCAT_HOME}/bin/catalina.sh stop 2>&1 >>${TOMCAT_HOME}/var/log/tomcat_err\n"
+                        + "        kill `cat ${TOMCAT_HOME}/var/run/java.pid` &>/dev/null\n"
+                        + "        rm -f ${TOMCAT_HOME}/var/run/java.pid\n"
+                        + "    fi\n"
+                        + "elif [ \"$1\" = \"daemon\" ]; then\n"
+                        + "    cd $TOMCAT_HOME\n"
+                        + "    . $TOMCAT_HOME/bin/profile\n"
+                        + "\n"
+                        + "    while [ 1 ]; do\n"
+                        + "        umask 002\n"
+                        + "        export DISPLAY=:0.0\n"
+                        + "        mv -f ${TOMCAT_HOME}/var/log/tomcat_err ${TOMCAT_HOME}/var/log/tomcat_err.old\n"
+                        + "        ${TOMCAT_HOME}/bin/catalina.sh run >&${TOMCAT_HOME}/var/log/tomcat_err &\n"
+                        + "        echo $! >${TOMCAT_HOME}/var/run/java.pid\n"
+                        + "        wait\n"
+                        + "        RETCODE=$?\n"
+                        + "        echo \"`date`: JVM died with a return code of $RETCODE, restarting in 5 seconds\" >>${TOMCAT_HOME}/var/log/jvm_crashes.log\n"
+                        + "        sleep 5\n"
+                        + "    done\n"
+                        + "else\n"
+                        + "    echo \"Usage:\"\n"
+                        + "    echo \"tomcat {start|stop}\"\n"
+                        + "    echo \"        start - start tomcat\"\n"
+                        + "    echo \"        stop  - stop tomcat\"\n"
+                        + "fi\n"
+                );
+            } finally {
+                out.flush();
+                out.close();
+            }
+            ln("../../.."+tomcatDirectory+"/bin/setclasspath.sh", siteDir+"/bin/setclasspath.sh", uid, gid);
+
+            out=new ChainWriter(new UnixFile(siteDir+"/bin/shutdown.sh").getSecureOutputStream(uid, gid, 0700, true));
+            try {
+                out.print("#!/bin/sh\n"
+                        + "exec ").print(siteDir).print("/bin/tomcat stop\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            out=new ChainWriter(new UnixFile(siteDir+"/bin/startup.sh").getSecureOutputStream(uid, gid, 0700, true));
+            try {
+                out.print("#!/bin/sh\n"
+                        + "exec ").print(siteDir).print("/bin/tomcat start\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            ln("../../.."+tomcatDirectory+"/bin/tomcat-juli.jar", siteDir+"/bin/tomcat-juli.jar", uid, gid);
+            ln("../../.."+tomcatDirectory+"/bin/tool-wrapper.sh", siteDir+"/bin/tool-wrapper.sh", uid, gid);
+            ln("../../.."+tomcatDirectory+"/bin/version.sh", siteDir+"/bin/version.sh", uid, gid);
+            mkdir(siteDir+"/common", 0775, lsa, lsg);
+            mkdir(siteDir+"/common/classes", 0775, lsa, lsg);
+            mkdir(siteDir+"/common/endorsed", 0775, lsa, lsg);
+            lnAll("../../../.."+tomcatDirectory+"/common/endorsed/", siteDir+"/common/endorsed/", uid, gid);
+            mkdir(siteDir+"/common/i18n", 0775, lsa, lsg);
+            lnAll("../../../.."+tomcatDirectory+"/common/i18n/", siteDir+"/common/i18n/", uid, gid);
+            mkdir(siteDir+"/common/lib", 0775, lsa, lsg);
+            lnAll("../../../.."+tomcatDirectory+"/common/lib/", siteDir+"/common/lib/", uid, gid);
+
+            if(postgresServerMinorVersion!=null) {
+                if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                    ln("../../../../usr/postgresql/"+postgresServerMinorVersion+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
+                } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                    ln("../../../../opt/postgresql-"+postgresServerMinorVersion+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
+                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            }
+            if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                ln("../../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", siteDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", uid, gid);
+            } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                ln("../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar", siteDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", uid, gid);
+            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+
+            /*
+             * Write the conf/catalina.policy file
+             */
+            {
+                UnixFile cp=new UnixFile(siteDir+"/conf/catalina.policy");
+                new UnixFile(tomcatDirectory+"/conf/catalina.policy").copyTo(cp, false);
+                cp.chown(uid, gid).setMode(0660);
+            }
+
+            {
+                UnixFile cp=new UnixFile(siteDir+"/conf/catalina.properties");
+                new UnixFile(tomcatDirectory+"/conf/catalina.properties").copyTo(cp, false);
+                cp.chown(uid, gid).setMode(0660);
+            }
+
+            {
+                UnixFile cp=new UnixFile(siteDir+"/conf/context.xml");
+                new UnixFile(tomcatDirectory+"/conf/context.xml").copyTo(cp, false);
+                cp.chown(uid, gid).setMode(0660);
+            }
+
+            {
+                UnixFile cp=new UnixFile(siteDir+"/conf/logging.properties");
+                new UnixFile(tomcatDirectory+"/conf/logging.properties").copyTo(cp, false);
+                cp.chown(uid, gid).setMode(0660);
+            }
+
+            /*
+             * Create the tomcat-users.xml file
+             */
+            UnixFile tu=new UnixFile(siteDir+"/conf/tomcat-users.xml");
+            new UnixFile(tomcatDirectory+"/conf/tomcat-users.xml").copyTo(tu, false);
+            tu.chown(uid, gid).setMode(0660);
+
+            /*
+             * Create the web.xml file.
+             */
+            UnixFile wx=new UnixFile(siteDir+"/conf/web.xml");
+            new UnixFile(tomcatDirectory+"/conf/web.xml").copyTo(wx, false);
+            wx.chown(uid, gid).setMode(0660);
+
+            mkdir(siteDir+"/server", 0775, lsa, lsg);
+            mkdir(siteDir+"/server/classes", 0775, lsa, lsg);
+            mkdir(siteDir+"/server/lib", 0775, lsa, lsg);
+            lnAll("../../../.."+tomcatDirectory+"/server/lib/", siteDir+"/server/lib/", uid, gid);
+            mkdir(siteDir+"/server/webapps", 0775, lsa, lsg);
+            mkdir(siteDir+"/shared", 0775, lsa, lsg);
+            mkdir(siteDir+"/shared/classes", 0775, lsa, lsg);
+            mkdir(siteDir+"/shared/lib", 0775, lsa, lsg);
+
+            /*
+             * Write the ROOT/WEB-INF/web.xml file.
+             */
+            String webXML=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/web.xml";
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false)
+                )
+            );
+            try {
+                out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+                        + "<web-app xmlns=\"http://java.sun.com/xml/ns/j2ee\"\n"
+                        + "    xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
+                        + "    xsi:schemaLocation=\"http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd\"\n"
+                        + "    version=\"2.4\">\n"
+                        + "  <display-name>Welcome to Tomcat</display-name>\n"
+                        + "  <description>\n"
+                        + "     Welcome to Tomcat\n"
+                        + "  </description>\n"
+                        + "</web-app>\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            createCgiPhpScript(site);
+            createTestCGI(site);
+            createTestIndex(site);
+
+            /*
+             * Create the test.php file.
+             */
+            String testPHP=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php";
+            new ChainWriter(
+                new UnixFile(testPHP).getSecureOutputStream(uid, gid, 0664, false)
+            ).print("<?phpinfo()?>\n").flush().close();
+        } finally {
+            Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
+
+    /**
+     * Builds a JBoss 2.2.2 installation
+     */
+    private static void buildHttpdJBossSite_2_2_2(HttpdJBossSite jbossSite) throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "buildHttpdJBossSite_2_2_2(HttpdJBossSite)", null);
+        try {
+            /*
+             * Resolve and allocate stuff used throughout the method
+             */
+            final AOServConnector connector=AOServDaemon.getConnector();
+            final HttpdTomcatSite tomcatSite = jbossSite.getHttpdTomcatSite();
+            final HttpdSite site = tomcatSite.getHttpdSite();
+            final LinuxServerAccount lsa = site.getLinuxServerAccount();
+            final LinuxServerGroup lsg = site.getLinuxServerGroup();
+            final int uid = lsa.getUID().getID();
+            final int gid = lsg.getGID().getID();
+            final String laUsername=lsa.getLinuxAccount().getUsername().getUsername();
+            final String laGroupname = lsg.getLinuxGroup().getName();
+            final String siteName=site.getSiteName();
+            final String siteDir=HttpdSite.WWW_DIRECTORY+'/'+siteName;
+            final String tomcatDirectory=tomcatSite.getHttpdTomcatVersion().getInstallDirectory();
+            final String primaryUrl=site.getPrimaryHttpdSiteURL().getHostname();
+            final AOServer thisAOServer = AOServDaemon.getThisAOServer();
+            final Server server = thisAOServer.getServer();
+            final String hostname = server.getHostname();
+            final int osv = server.getOperatingSystemVersion().getPKey();
+            final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
+            final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
+
+            /*
+             * Create the skeleton of the site, the directories and links.
+             */
+            mkdir(siteDir+"/bin", 0770, lsa, lsg);
+            ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
+            mkdir(siteDir+"/conf", 0775, lsa, lsg);
+            mkdir(siteDir+"/daemon", 0770, lsa, lsg);
+            ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
+            mkdir(siteDir+"/lib", 0770, lsa, lsg);
+            ln("var/log", siteDir+"/logs", uid, gid);
+            ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", siteDir+"/servlet", uid, gid);
+            mkdir(siteDir+"/var", 0770, lsa, lsg);
+            mkdir(siteDir+"/var/log", 0770, lsa, lsg);
+            mkdir(siteDir+"/var/run", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps", 0775, lsa, lsg);
+
+            String templateDir = jbossSite.getHttpdJBossVersion().getTemplateDirectory();
+            File f = new File(templateDir);
+            String[] contents = f.list();
+            String[] command = new String[contents.length+3];
+            command[0] = "/bin/cp";
+            command[1] = "-rdp";
+            command[command.length-1] = siteDir;
+            for (int i = 0; i < contents.length; i++) command[i+2] = templateDir+"/"+contents[i];
+            AOServDaemon.exec(command);
+            String[] command2 = {
+                "/bin/chown", 
+                "-R", 
+                laUsername+"."+laGroupname,
+                siteDir+"/jboss",
+                siteDir+"/bin",
+                siteDir+"/lib",
+                siteDir+"/daemon"
+            };
+            AOServDaemon.exec(command2);
+
+            String jbossConfDir = siteDir+"/jboss/conf/tomcat";
+            File f2 = new File(jbossConfDir);
+            String[] f2contents = f2.list();
+
+            String[] command3 = new String[5];
+            command3[0] = "/usr/mysql/4.1/bin/replace";
+            command3[3] = "--";
+            for (int i = 0; i < 5; i++) {
+                for (int j = 0; j < f2contents.length; j++) {
+                    switch (i) {
+                        case 0: command3[1] = "2222"; command3[2] = String.valueOf(jbossSite.getJnpBind().getPort().getPort()); break;
+                        case 1: command3[1] = "3333"; command3[2] = String.valueOf(jbossSite.getWebserverBind().getPort().getPort()); break;
+                        case 2: command3[1] = "4444"; command3[2] = String.valueOf(jbossSite.getRmiBind().getPort().getPort()); break;
+                        case 3: command3[1] = "5555"; command3[2] = String.valueOf(jbossSite.getHypersonicBind().getPort().getPort()); break;
+                        case 4: command3[1] = "6666"; command3[2] = String.valueOf(jbossSite.getJmxBind().getPort().getPort()); break;
+                    }
+                    command3[4] = jbossConfDir+"/"+f2contents[j];
+                    AOServDaemon.exec(command3);
+                }
+            }
+            String[] command4 = {
+                "/usr/mysql/4.1/bin/replace",
+                "site_name",
+                siteName,
+                "--",
+                siteDir+"/bin/jboss",
+                siteDir+"/bin/profile.jboss",
+                siteDir+"/bin/profile.user"
+            };
+            AOServDaemon.exec(command4);
+            ln(".", siteDir+"/tomcat", uid, gid);
+
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF", 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, lsa, lsg);	
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", 0755, lsa, lsg);
+            mkdir(siteDir+"/work", 0750, lsa, lsg);
+
+            /*
+             * Set up the bash profile source
+             */
+            String profileFile=siteDir+"/bin/profile.jboss";
+            LinuxAccountManager.setBashProfile(lsa, profileFile);
+
+            /*
+             * The classes directory
+             */
+            mkdir(siteDir+"/classes", 0770, lsa, lsg);
+
+            /*
+             * Write the manifest.servlet file.
+             */
+            String confManifestServlet=siteDir+"/conf/manifest.servlet";
+            ChainWriter out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false)
+                )
+            );
+            try {
+                out.print("Manifest-version: 1.0\n"
+                          + "Name: javax/servlet\n"
+                          + "Sealed: true\n"
+                          + "Specification-Title: \"Java Servlet API\"\n"
+                          + "Specification-Version: \"2.1.1\"\n"
+                          + "Specification-Vendor: \"Sun Microsystems, Inc.\"\n"
+                          + "Implementation-Title: \"javax.servlet\"\n"
+                          + "Implementation-Version: \"2.1.1\"\n"
+                          + "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n"
+                          + "\n"
+                          + "Name: javax/servlet/http\n"
+                          + "Sealed: true\n"
+                          + "Specification-Title: \"Java Servlet API\"\n"
+                          + "Specification-Version: \"2.1.1\"\n"
+                          + "Specification-Vendor: \"Sun Microsystems, Inc.\"\n"
+                          + "Implementation-Title: \"javax.servlet\"\n"
+                          + "Implementation-Version: \"2.1.1\"\n"
+                          + "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n"
+                          );
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            /*
+             * Create the conf/server.dtd file.
+             */
+            String confServerDTD=siteDir+"/conf/server.dtd";
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false)
+                )
+            );
+            try {
+                out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+                          + "\n"
+                          + "<!ELEMENT Server (ContextManager+)>\n"
+                          + "<!ATTLIST Server\n"
+                          + "    adminPort NMTOKEN \"-1\"\n"
+                          + "    workDir CDATA \"work\">\n"
+                          + "\n"
+                          + "<!ELEMENT ContextManager (Context+, Interceptor*, Connector+)>\n"
+                          + "<!ATTLIST ContextManager\n"
+                          + "    port NMTOKEN \"8080\"\n"
+                          + "    hostName NMTOKEN \"\"\n"
+                          + "    inet NMTOKEN \"\">\n"
+                          + "\n"
+                          + "<!ELEMENT Context EMPTY>\n"
+                          + "<!ATTLIST Context\n"
+                          + "    path CDATA #REQUIRED\n"
+                          + "    docBase CDATA #REQUIRED\n"
+                          + "    defaultSessionTimeOut NMTOKEN \"30\"\n"
+                          + "    isWARExpanded (true | false) \"true\"\n"
+                          + "    isWARValidated (false | true) \"false\"\n"
+                          + "    isInvokerEnabled (true | false) \"true\"\n"
+                          + "    isWorkDirPersistent (false | true) \"false\">\n"
+                          + "\n"
+                          + "<!ELEMENT Interceptor EMPTY>\n"
+                          + "<!ATTLIST Interceptor\n"
+                          + "    className NMTOKEN #REQUIRED\n"
+                          + "    docBase   CDATA #REQUIRED>\n"
+                          + "\n"
+                          + "<!ELEMENT Connector (Parameter*)>\n"
+                          + "<!ATTLIST Connector\n"
+                          + "    className NMTOKEN #REQUIRED>\n"
+                          + "\n"
+                          + "<!ELEMENT Parameter EMPTY>\n"
+                          + "<!ATTLIST Parameter\n"
+                          + "    name CDATA #REQUIRED\n"
+                          + "    value CDATA \"\">\n"
+                          );
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            /*
+             * Create the test-tomcat.xml file.
+             */
+            copyResource("test-tomcat.xml", siteDir+"/conf/test-tomcat.xml", uid, gid, 0660);
+
+            /*
+             * Create the tomcat-users.xml file
+             */
+            String confTomcatUsers=siteDir+"/conf/tomcat-users.xml";
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(confTomcatUsers).getSecureOutputStream(uid, gid, 0660, false)
+                )
+            );
+            try {
+                out.print("<tomcat-users>\n"
+                          + "  <user name=\"tomcat\" password=\"tomcat\" roles=\"tomcat\" />\n"
+                          + "  <user name=\"role1\"  password=\"tomcat\" roles=\"role1\" />\n"
+                          + "  <user name=\"both\"   password=\"tomcat\" roles=\"tomcat,role1\" />\n"
+                          + "</tomcat-users>\n"
+                          );
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            /*
+             * Create the web.dtd file.
+             */
+            copyResource("web.dtd-3.2.4", siteDir+"/conf/web.dtd", uid, gid, 0660);
+
+            /*
+             * Create the web.xml file.
+             */
+            copyResource("web.xml-3.2.4", siteDir+"/conf/web.xml", uid, gid, 0660);
+
+            /*
+             * Create the empty log files.
+             */
+            for(int c=0;c<tomcatLogFiles.length;c++) {
+                String filename=siteDir+"/var/log/"+tomcatLogFiles[c];
+                new UnixFile(filename).getSecureOutputStream(uid, gid, 0660, false).close();
+            }
+
+            /*
+             * Create the manifest file.
+             */
+            String manifestFile=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF/MANIFEST.MF";
+            new ChainWriter(
+                new UnixFile(manifestFile).getSecureOutputStream(
+                    uid,
+                    gid,
+                    0664,
+                    false
+                )
+            ).print("Manifest-Version: 1.0").flush().close();
+
+            /*
+             * Write the cocoon.properties file.
+             */
+            String cocoonProps=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties";
+            OutputStream fileOut=new BufferedOutputStream(new UnixFile(cocoonProps).getSecureOutputStream(uid, gid, 0660, false));
+            try {
+                copyResource("cocoon.properties.1", fileOut);
+                out=new ChainWriter(fileOut);
+                try {
+                    out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon\n");
+                    out.flush();
+                    copyResource("cocoon.properties.2", fileOut);
+                } finally {
+                    out.flush();
+                }
+            } finally {
+                fileOut.flush();
+                fileOut.close();
+            }
+
+            /*
+             * Write the ROOT/WEB-INF/web.xml file.
+             */
+            String webXML=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/web.xml";
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false)
+                )
+            );
+            try {
+                out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+                          + "\n"
+                          + "<!DOCTYPE web-app\n"
+                          + "    PUBLIC \"-//Sun Microsystems, Inc.//DTD Web Application 2.2//EN\"\n"
+                          + "    \"http://java.sun.com/j2ee/dtds/web-app_2.2.dtd\">\n"
+                          + "\n"
+                          + "<web-app>\n"
+                          + "\n"
+                          + " <servlet>\n"
+                          + "  <servlet-name>org.apache.cocoon.Cocoon</servlet-name>\n"
+                          + "  <servlet-class>org.apache.cocoon.Cocoon</servlet-class>\n"
+                          + "  <init-param>\n"
+                          + "   <param-name>properties</param-name>\n"
+                          + "   <param-value>\n"
+                          + "    WEB-INF/conf/cocoon.properties\n"
+                          + "   </param-value>\n"
+                          + "  </init-param>\n"
+                          + " </servlet>\n"
+                          + "\n"
+                          + " <servlet-mapping>\n"
+                          + "  <servlet-name>org.apache.cocoon.Cocoon</servlet-name>\n"
+                          + "  <url-pattern>*.xml</url-pattern>\n"
+                          + " </servlet-mapping>\n"
+                          + "\n"
+                          + "</web-app>\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            createCgiPhpScript(site);
+            createTestCGI(site);
+            createTestIndex(site);
+
+            /*
+             * Create the test.php file.
+             */
+            String testPHP=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php";
+            new ChainWriter(
+                new UnixFile(testPHP).getSecureOutputStream(uid, gid, 0664, false)
+            ).print("<?phpinfo()?>\n").flush().close();
+        } finally {
+            Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
+
+    /**
+     * Builds a shared site for Tomcat 3.1
+     */
+    private static void buildHttpdTomcatSharedSite_3_1(HttpdTomcatSharedSite sharedSite) throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "buildHttpdTomcatSharedSite_3_1(HttpdTomcatSharedSite)", null);
+        try {
+            /*
+             * We no longer support secure JVMs.
+             */
+            final HttpdSharedTomcat sharedTomcat = sharedSite.getHttpdSharedTomcat();
+            if(sharedTomcat.isSecure()) throw new SQLException("We no longer support secure Multi-Site Tomcat installations: "+sharedTomcat);
+
+            /*
+             * Resolve and allocate stuff used throughout the method
+             */
+            final AOServConnector connector=AOServDaemon.getConnector();
+            final HttpdTomcatSite tomcatSite = sharedSite.getHttpdTomcatSite();
+            final HttpdSite site = tomcatSite.getHttpdSite();
+            final LinuxServerAccount lsa = site.getLinuxServerAccount();
+            final LinuxServerGroup lsg = site.getLinuxServerGroup();
+            final int uid = lsa.getUID().getID();
+            final int gid = lsg.getGID().getID();
+            final String laUsername=lsa.getLinuxAccount().getUsername().getUsername();
+            final String laGroupname = lsg.getLinuxGroup().getName();
+            final String siteName=site.getSiteName();
+            final String siteDir=HttpdSite.WWW_DIRECTORY+'/'+siteName;
+            final String tomcatDirectory=tomcatSite.getHttpdTomcatVersion().getInstallDirectory();
+            final String primaryUrl=site.getPrimaryHttpdSiteURL().getHostname();
+            final AOServer thisAOServer = AOServDaemon.getThisAOServer();
+            final Server server = thisAOServer.getServer();
+            final String hostname = server.getHostname();
+            final int osv = server.getOperatingSystemVersion().getPKey();
+            final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
+            final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
+
+            /*
+             * Create the skeleton of the site, the directories and links.
+             */
+            mkdir(siteDir+"/bin", 0770, lsa, lsg);
+            ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
+            mkdir(siteDir+"/conf", 0775, lsa, lsg);
+            mkdir(siteDir+"/daemon", 0770, lsa, lsg);
+            ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
+            mkdir(siteDir+"/lib", 0770, lsa, lsg);
+            ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", siteDir+"/servlet", uid, gid);
+            mkdir(siteDir+"/var", 0770, lsa, lsg);
+            mkdir(siteDir+"/var/log", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps", 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF", 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, lsa, lsg);	
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", 0755, lsa, lsg);
+
+            /*
+             * Write the manifest.servlet file.
+             */
+            String confManifestServlet=siteDir+"/conf/manifest.servlet";
+            ChainWriter out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false)
+                )
+            );
+            try {
+                out.print("Manifest-version: 1.0\n"
+                          + "Name: javax/servlet\n"
+                          + "Sealed: true\n"
+                          + "Specification-Title: \"Java Servlet API\"\n"
+                          + "Specification-Version: \"2.1.1\"\n"
+                          + "Specification-Vendor: \"Sun Microsystems, Inc.\"\n"
+                          + "Implementation-Title: \"javax.servlet\"\n"
+                          + "Implementation-Version: \"2.1.1\"\n"
+                          + "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n"
+                          + "\n"
+                          + "Name: javax/servlet/http\n"
+                          + "Sealed: true\n"
+                          + "Specification-Title: \"Java Servlet API\"\n"
+                          + "Specification-Version: \"2.1.1\"\n"
+                          + "Specification-Vendor: \"Sun Microsystems, Inc.\"\n"
+                          + "Implementation-Title: \"javax.servlet\"\n"
+                          + "Implementation-Version: \"2.1.1\"\n"
+                          + "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n"
+                          );
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            /*
+             * Create the conf/server.dtd file.
+             */
+            String confServerDTD=siteDir+"/conf/server.dtd";
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false)
+                )
+            );
+            try {
+                out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+                          + "\n"
+                          + "<!ELEMENT Server (ContextManager+)>\n"
+                          + "<!ATTLIST Server\n"
+                          + "    adminPort NMTOKEN \"-1\"\n"
+                          + "    workDir CDATA \"work\">\n"
+                          + "\n"
+                          + "<!ELEMENT ContextManager (Context+, Interceptor*, Connector+)>\n"
+                          + "<!ATTLIST ContextManager\n"
+                          + "    port NMTOKEN \"8080\"\n"
+                          + "    hostName NMTOKEN \"\"\n"
+                          + "    inet NMTOKEN \"\">\n"
+                          + "\n"
+                          + "<!ELEMENT Context EMPTY>\n"
+                          + "<!ATTLIST Context\n"
+                          + "    path CDATA #REQUIRED\n"
+                          + "    docBase CDATA #REQUIRED\n"
+                          + "    defaultSessionTimeOut NMTOKEN \"30\"\n"
+                          + "    isWARExpanded (true | false) \"true\"\n"
+                          + "    isWARValidated (false | true) \"false\"\n"
+                          + "    isInvokerEnabled (true | false) \"true\"\n"
+                          + "    isWorkDirPersistent (false | true) \"false\">\n"
+                          + "\n"
+                          + "<!ELEMENT Interceptor EMPTY>\n"
+                          + "<!ATTLIST Interceptor\n"
+                          + "    className NMTOKEN #REQUIRED\n"
+                          + "    docBase   CDATA #REQUIRED>\n"
+                          + "\n"
+                          + "<!ELEMENT Connector (Parameter*)>\n"
+                          + "<!ATTLIST Connector\n"
+                          + "    className NMTOKEN #REQUIRED>\n"
+                          + "\n"
+                          + "<!ELEMENT Parameter EMPTY>\n"
+                          + "<!ATTLIST Parameter\n"
+                          + "    name CDATA #REQUIRED\n"
+                          + "    value CDATA \"\">\n"
+                          );
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            /*
+             * Create the test-tomcat.xml file.
+             */
+            copyResource("test-tomcat.xml", siteDir+"/conf/test-tomcat.xml", uid, gid, 0660);
+
+            /*
+             * Create the tomcat-users.xml file
+             */
+            String confTomcatUsers=siteDir+"/conf/tomcat-users.xml";
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(confTomcatUsers).getSecureOutputStream(uid, gid, 0660, false)
+                )
+            );
+            try {
+                out.print("<tomcat-users>\n"
+                        + "  <user name=\"tomcat\" password=\"tomcat\" roles=\"tomcat\" />\n"
+                        + "</tomcat-users>\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            /*
+             * Create the web.dtd file.
+             */
+            copyResource("web.dtd-3.1", siteDir+"/conf/web.dtd", uid, gid, 0660);
+
+            /*
+             * Create the web.xml file.
+             */
+            copyResource("web.xml-3.1", siteDir+"/conf/web.xml", uid, gid, 0660);
+
+            /*
+             * Create the empty log files.
+             */
+            for(int c=0;c<tomcatLogFiles.length;c++) {
+                String filename=siteDir+"/var/log/"+tomcatLogFiles[c];
+                new UnixFile(filename).getSecureOutputStream(uid, gid, 0660, false).close();
+            }
+
+            /*
+             * Create the manifest file.
+             */
+            String manifestFile=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF/MANIFEST.MF";
+            new ChainWriter(
+                new UnixFile(manifestFile).getSecureOutputStream(
+                    uid,
+                    gid,
+                    0664,
+                    false
+                )
+            ).print("Manifest-Version: 1.0").flush().close();
+
+            /*
+             * Write the cocoon.properties file.
+             */
+            String cocoonProps=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties";
+            OutputStream fileOut=new BufferedOutputStream(new UnixFile(cocoonProps).getSecureOutputStream(uid, gid, 0660, false));
+            try {
+                copyResource("cocoon.properties.1", fileOut);
+                out=new ChainWriter(fileOut);
+                try {
+                    out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon\n");
+                    out.flush();
+                    copyResource("cocoon.properties.2", fileOut);
+                } finally {
+                    out.flush();
+                }
+            } finally {
+                fileOut.flush();
+                fileOut.close();
+            }
+
+            /*
+             * Write the ROOT/WEB-INF/web.xml file.
+             */
+            String webXML=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/web.xml";
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false)
+                )
+            );
+            try {
+                out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+                          + "\n"
+                          + "<!DOCTYPE web-app\n"
+                          + "    PUBLIC \"-//Sun Microsystems, Inc.//DTD Web Application 2.2//EN\"\n"
+                          + "    \"http://java.sun.com/j2ee/dtds/web-app_2.2.dtd\">\n"
+                          + "\n"
+                          + "<web-app>\n"
+                          + "\n"
+                          + " <servlet>\n"
+                          + "  <servlet-name>org.apache.cocoon.Cocoon</servlet-name>\n"
+                          + "  <servlet-class>org.apache.cocoon.Cocoon</servlet-class>\n"
+                          + "  <init-param>\n"
+                          + "   <param-name>properties</param-name>\n"
+                          + "   <param-value>\n"
+                          + "    WEB-INF/conf/cocoon.properties\n"
+                          + "   </param-value>\n"
+                          + "  </init-param>\n"
+                          + " </servlet>\n"
+                          + "\n"
+                          + " <servlet-mapping>\n"
+                          + "  <servlet-name>org.apache.cocoon.Cocoon</servlet-name>\n"
+                          + "  <url-pattern>*.xml</url-pattern>\n"
+                          + " </servlet-mapping>\n"
+                          + "\n"
+                          + "</web-app>\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            createCgiPhpScript(site);
+            createTestCGI(site);
+            createTestIndex(site);
+
+            /*
+             * Create the test.php file.
+             */
+            String testPHP=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php";
+            new ChainWriter(
+                new UnixFile(testPHP).getSecureOutputStream(uid, gid, 0664, false)
+            ).print("<?phpinfo()?>\n").flush().close();
+        } finally {
+            Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
+
+    /**
+     * Builds a shared site for Tomcat 3.2.4
+     */
+    private static void buildHttpdTomcatSharedSite_3_2_4(HttpdTomcatSharedSite sharedSite) throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "buildHttpdTomcatSharedSite_3_2_4(HttpdTomcatSharedSite)", null);
+        try {
+            /*
+             * We no longer support secure JVMs.
+             */
+            final HttpdSharedTomcat sharedTomcat = sharedSite.getHttpdSharedTomcat();
+            if(sharedTomcat.isSecure()) throw new SQLException("We no longer support secure Multi-Site Tomcat installations: "+sharedTomcat);
+
+            /*
+             * Resolve and allocate stuff used throughout the method
+             */
+            final AOServConnector connector=AOServDaemon.getConnector();
+            final HttpdTomcatSite tomcatSite = sharedSite.getHttpdTomcatSite();
+            final HttpdSite site = tomcatSite.getHttpdSite();
+            final LinuxServerAccount lsa = site.getLinuxServerAccount();
+            final LinuxServerGroup lsg = site.getLinuxServerGroup();
+            final int uid = lsa.getUID().getID();
+            final int gid = lsg.getGID().getID();
+            final String laUsername=lsa.getLinuxAccount().getUsername().getUsername();
+            final String laGroupname = lsg.getLinuxGroup().getName();
+            final String siteName=site.getSiteName();
+            final String siteDir=HttpdSite.WWW_DIRECTORY+'/'+siteName;
+            final String tomcatDirectory=tomcatSite.getHttpdTomcatVersion().getInstallDirectory();
+            final String primaryUrl=site.getPrimaryHttpdSiteURL().getHostname();
+            final AOServer thisAOServer = AOServDaemon.getThisAOServer();
+            final Server server = thisAOServer.getServer();
+            final String hostname = server.getHostname();
+            final int osv = server.getOperatingSystemVersion().getPKey();
+            final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
+            final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
+
+            /*
+             * Create the skeleton of the site, the directories and links.
+             */
+            mkdir(siteDir+"/bin", 0770, lsa, lsg);
+            ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
+            mkdir(siteDir+"/conf", 0775, lsa, lsg);
+            mkdir(siteDir+"/daemon", 0770, lsa, lsg);
+            ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
+            mkdir(siteDir+"/lib", 0770, lsa, lsg);
+            ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", siteDir+"/servlet", uid, gid);
+            mkdir(siteDir+"/var", 0770, lsa, lsg);
+            mkdir(siteDir+"/var/log", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps", 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF", 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, lsa, lsg);	
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", 0755, lsa, lsg);
+
+            /*
+             * Write the manifest.servlet file.
+             */
+            String confManifestServlet=siteDir+"/conf/manifest.servlet";
+            ChainWriter out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false)
+                )
+            );
+            try {
+                out.print("Manifest-version: 1.0\n"
+                          + "Name: javax/servlet\n"
+                          + "Sealed: true\n"
+                          + "Specification-Title: \"Java Servlet API\"\n"
+                          + "Specification-Version: \"2.1.1\"\n"
+                          + "Specification-Vendor: \"Sun Microsystems, Inc.\"\n"
+                          + "Implementation-Title: \"javax.servlet\"\n"
+                          + "Implementation-Version: \"2.1.1\"\n"
+                          + "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n"
+                          + "\n"
+                          + "Name: javax/servlet/http\n"
+                          + "Sealed: true\n"
+                          + "Specification-Title: \"Java Servlet API\"\n"
+                          + "Specification-Version: \"2.1.1\"\n"
+                          + "Specification-Vendor: \"Sun Microsystems, Inc.\"\n"
+                          + "Implementation-Title: \"javax.servlet\"\n"
+                          + "Implementation-Version: \"2.1.1\"\n"
+                          + "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n"
+                          );
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            /*
+             * Create the conf/server.dtd file.
+             */
+            String confServerDTD=siteDir+"/conf/server.dtd";
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false)
+                )
+            );
+            try {
+                out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+                          + "\n"
+                          + "<!ELEMENT Server (ContextManager+)>\n"
+                          + "<!ATTLIST Server\n"
+                          + "    adminPort NMTOKEN \"-1\"\n"
+                          + "    workDir CDATA \"work\">\n"
+                          + "\n"
+                          + "<!ELEMENT ContextManager (Context+, Interceptor*, Connector+)>\n"
+                          + "<!ATTLIST ContextManager\n"
+                          + "    port NMTOKEN \"8080\"\n"
+                          + "    hostName NMTOKEN \"\"\n"
+                          + "    inet NMTOKEN \"\">\n"
+                          + "\n"
+                          + "<!ELEMENT Context EMPTY>\n"
+                          + "<!ATTLIST Context\n"
+                          + "    path CDATA #REQUIRED\n"
+                          + "    docBase CDATA #REQUIRED\n"
+                          + "    defaultSessionTimeOut NMTOKEN \"30\"\n"
+                          + "    isWARExpanded (true | false) \"true\"\n"
+                          + "    isWARValidated (false | true) \"false\"\n"
+                          + "    isInvokerEnabled (true | false) \"true\"\n"
+                          + "    isWorkDirPersistent (false | true) \"false\">\n"
+                          + "\n"
+                          + "<!ELEMENT Interceptor EMPTY>\n"
+                          + "<!ATTLIST Interceptor\n"
+                          + "    className NMTOKEN #REQUIRED\n"
+                          + "    docBase   CDATA #REQUIRED>\n"
+                          + "\n"
+                          + "<!ELEMENT Connector (Parameter*)>\n"
+                          + "<!ATTLIST Connector\n"
+                          + "    className NMTOKEN #REQUIRED>\n"
+                          + "\n"
+                          + "<!ELEMENT Parameter EMPTY>\n"
+                          + "<!ATTLIST Parameter\n"
+                          + "    name CDATA #REQUIRED\n"
+                          + "    value CDATA \"\">\n"
+                          );
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            /*
+             * Create the test-tomcat.xml file.
+             */
+            copyResource("test-tomcat.xml", siteDir+"/conf/test-tomcat.xml", uid, gid, 0660);
+
+            /*
+             * Create the tomcat-users.xml file
+             */
+            String confTomcatUsers=siteDir+"/conf/tomcat-users.xml";
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(confTomcatUsers).getSecureOutputStream(uid, gid, 0660, false)
+                )
+            );
+            try {
+                out.print("<tomcat-users>\n"
+                          + "  <user name=\"tomcat\" password=\"tomcat\" roles=\"tomcat\" />\n"
+                          + "  <user name=\"role1\"  password=\"tomcat\" roles=\"role1\" />\n"
+                          + "  <user name=\"both\"   password=\"tomcat\" roles=\"tomcat,role1\" />\n"
+                          + "</tomcat-users>\n"
+                          );
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            /*
+             * Create the web.dtd file.
+             */
+            copyResource("web.dtd-3.2.4", siteDir+"/conf/web.dtd", uid, gid, 0660);
+
+            /*
+             * Create the web.xml file.
+             */
+            copyResource("web.xml-3.2.4", siteDir+"/conf/web.xml", uid, gid, 0660);
+
+            /*
+             * Create the empty log files.
+             */
+            for(int c=0;c<tomcatLogFiles.length;c++) {
+                String filename=siteDir+"/var/log/"+tomcatLogFiles[c];
+                new UnixFile(filename).getSecureOutputStream(
+                    uid,
+                    gid,
+                    0660,
+                    false
+                ).close();
+            }
+
+            /*
+             * Create the manifest file.
+             */
+            String manifestFile=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF/MANIFEST.MF";
+            new ChainWriter(
+                new UnixFile(manifestFile).getSecureOutputStream(
+                    uid,
+                    gid,
+                    0664,
+                    false
+                )
+            ).print("Manifest-Version: 1.0").flush().close();
+
+            /*
+             * Write the cocoon.properties file.
+             */
+            String cocoonProps=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties";
+            OutputStream fileOut=new BufferedOutputStream(new UnixFile(cocoonProps).getSecureOutputStream(uid, gid, 0660, false));
+            try {
+                copyResource("cocoon.properties.1", fileOut);
+                out=new ChainWriter(fileOut);
+                try {
+                    out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon\n");
+                    out.flush();
+                    copyResource("cocoon.properties.2", fileOut);
+                } finally {
+                    out.flush();
+                }
+            } finally {
+                fileOut.flush();
+                fileOut.close();
+            }
+
+            /*
+             * Write the ROOT/WEB-INF/web.xml file.
+             */
+            String webXML=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/web.xml";
+            out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false)
+                )
+            );
+            try {
+                out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+                          + "\n"
+                          + "<!DOCTYPE web-app\n"
+                          + "    PUBLIC \"-//Sun Microsystems, Inc.//DTD Web Application 2.2//EN\"\n"
+                          + "    \"http://java.sun.com/j2ee/dtds/web-app_2.2.dtd\">\n"
+                          + "\n"
+                          + "<web-app>\n"
+                          + "\n"
+                          + " <servlet>\n"
+                          + "  <servlet-name>org.apache.cocoon.Cocoon</servlet-name>\n"
+                          + "  <servlet-class>org.apache.cocoon.Cocoon</servlet-class>\n"
+                          + "  <init-param>\n"
+                          + "   <param-name>properties</param-name>\n"
+                          + "   <param-value>\n"
+                          + "    WEB-INF/conf/cocoon.properties\n"
+                          + "   </param-value>\n"
+                          + "  </init-param>\n"
+                          + " </servlet>\n"
+                          + "\n"
+                          + " <servlet-mapping>\n"
+                          + "  <servlet-name>org.apache.cocoon.Cocoon</servlet-name>\n"
+                          + "  <url-pattern>*.xml</url-pattern>\n"
+                          + " </servlet-mapping>\n"
+                          + "\n"
+                          + "</web-app>\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            createCgiPhpScript(site);
+            createTestCGI(site);
+            createTestIndex(site);
+
+            /*
+             * Create the test.php file.
+             */
+            String testPHP=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php";
+            new ChainWriter(
+                new UnixFile(testPHP).getSecureOutputStream(uid, gid, 0664, false)
+            ).print("<?phpinfo()?>\n").flush().close();
+        } finally {
+            Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
+    
+    /**
+     * Builds a shared site for Tomcat 4.1.X
+     */
+    private static void buildHttpdTomcatSharedSite_4_1_X(HttpdTomcatSharedSite sharedSite) throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "buildHttpdTomcatSharedSite_4_1_X(HttpdTomcatSharedSite,LinuxServerAccount,LinuxServerGroup)", null);
+        try {
+            /*
+             * We no longer support secure JVMs.
+             */
+            final HttpdSharedTomcat sharedTomcat = sharedSite.getHttpdSharedTomcat();
+            if(sharedTomcat.isSecure()) throw new SQLException("We no longer support secure Multi-Site Tomcat installations: "+sharedTomcat);
+
+            /*
+             * Resolve and allocate stuff used throughout the method
+             */
+            final AOServConnector connector=AOServDaemon.getConnector();
+            final HttpdTomcatSite tomcatSite = sharedSite.getHttpdTomcatSite();
+            final HttpdSite site = tomcatSite.getHttpdSite();
+            final LinuxServerAccount lsa = site.getLinuxServerAccount();
+            final LinuxServerGroup lsg = site.getLinuxServerGroup();
+            final int uid = lsa.getUID().getID();
+            final int gid = lsg.getGID().getID();
+            final String laUsername=lsa.getLinuxAccount().getUsername().getUsername();
+            final String laGroupname = lsg.getLinuxGroup().getName();
+            final String siteName=site.getSiteName();
+            final String siteDir=HttpdSite.WWW_DIRECTORY+'/'+siteName;
+            final String tomcatDirectory=tomcatSite.getHttpdTomcatVersion().getInstallDirectory();
+            final String primaryUrl=site.getPrimaryHttpdSiteURL().getHostname();
+            final AOServer thisAOServer = AOServDaemon.getThisAOServer();
+            final Server server = thisAOServer.getServer();
+            final String hostname = server.getHostname();
+            final int osv = server.getOperatingSystemVersion().getPKey();
+            final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
+            final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
+
+            /*
+             * Create the skeleton of the site, the directories and links.
+             */
+            mkdir(siteDir+"/bin", 0770, lsa, lsg);
+            ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
+            mkdir(siteDir+"/conf", 0775, lsa, lsg);
+            mkdir(siteDir+"/daemon", 0770, lsa, lsg);
+            ln("var/log", siteDir+"/logs", uid, gid);
+            mkdir(siteDir+"/var", 0770, lsa, lsg);
+            mkdir(siteDir+"/var/log", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps", 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, lsa, lsg);	
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", 0755, lsa, lsg);
+
+            /*
+             * Write the ROOT/WEB-INF/web.xml file.
+             */
+            String webXML=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/web.xml";
+            ChainWriter out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false)
+                )
+            );
+            try {
+                    out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+                            + "\n"
+                            + "<!DOCTYPE web-app\n"
+                            + "    PUBLIC \"-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN\"\n"
+                            + "    \"http://java.sun.com/j2ee/dtds/web-app_2_3.dtd\">\n"
+                            + "\n"
+                            + "<web-app>\n"
+                            + "  <display-name>Welcome to Tomcat</display-name>\n"
+                            + "  <description>\n"
+                            + "    Welcome to Tomcat\n"
+                            + "  </description>\n"
+                            + "</web-app>\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            createCgiPhpScript(site);
+            createTestCGI(site);
+            createTestIndex(site);
+
+            /*
+             * Create the test.php file.
+             */
+            String testPHP=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php";
+            new ChainWriter(
+                new UnixFile(testPHP).getSecureOutputStream(uid, gid, 0664, false)
+            ).print("<?phpinfo()?>\n").flush().close();
+        } finally {
+            Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
+
+    /**
+     * Builds a shared site for Tomcat 5.5.X
+     */
+    private static void buildHttpdTomcatSharedSite_5_5_X(HttpdTomcatSharedSite sharedSite) throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "buildHttpdTomcatSharedSite_5_5_X(HttpdTomcatSharedSite)", null);
+        try {
+            /*
+             * We no longer support secure JVMs.
+             */
+            final HttpdSharedTomcat sharedTomcat = sharedSite.getHttpdSharedTomcat();
+            if(sharedTomcat.isSecure()) throw new SQLException("We no longer support secure Multi-Site Tomcat installations: "+sharedTomcat);
+
+            /*
+             * Resolve and allocate stuff used throughout the method
+             */
+            final AOServConnector connector=AOServDaemon.getConnector();
+            final HttpdTomcatSite tomcatSite = sharedSite.getHttpdTomcatSite();
+            final HttpdSite site = tomcatSite.getHttpdSite();
+            final LinuxServerAccount lsa = site.getLinuxServerAccount();
+            final LinuxServerGroup lsg = site.getLinuxServerGroup();
+            final int uid = lsa.getUID().getID();
+            final int gid = lsg.getGID().getID();
+            final String laUsername=lsa.getLinuxAccount().getUsername().getUsername();
+            final String laGroupname = lsg.getLinuxGroup().getName();
+            final String siteName=site.getSiteName();
+            final String siteDir=HttpdSite.WWW_DIRECTORY+'/'+siteName;
+            final String tomcatDirectory=tomcatSite.getHttpdTomcatVersion().getInstallDirectory();
+            final String primaryUrl=site.getPrimaryHttpdSiteURL().getHostname();
+            final AOServer thisAOServer = AOServDaemon.getThisAOServer();
+            final Server server = thisAOServer.getServer();
+            final String hostname = server.getHostname();
+            final int osv = server.getOperatingSystemVersion().getPKey();
+            final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
+            final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
+
+            /*
+             * Create the skeleton of the site, the directories and links.
+             */
+            mkdir(siteDir+"/bin", 0770, lsa, lsg);
+            mkdir(siteDir+"/conf", 0775, lsa, lsg);
+            mkdir(siteDir+"/daemon", 0770, lsa, lsg);
+            ln("var/log", siteDir+"/logs", uid, gid);
+            mkdir(siteDir+"/var", 0770, lsa, lsg);
+            mkdir(siteDir+"/var/log", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps", 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, lsa, lsg);
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, lsa, lsg);	
+            mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", 0755, lsa, lsg);
+
+            /*
+             * Write the ROOT/WEB-INF/web.xml file.
+             */
+            String webXML=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/web.xml";
+            ChainWriter out=new ChainWriter(
+                new BufferedOutputStream(
+                    new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false)
+                )
+            );
+            try {
+                out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+                        + "<web-app xmlns=\"http://java.sun.com/xml/ns/j2ee\"\n"
+                        + "    xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
+                        + "    xsi:schemaLocation=\"http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd\"\n"
+                        + "    version=\"2.4\">\n"
+                        + "  <display-name>Welcome to Tomcat</display-name>\n"
+                        + "  <description>\n"
+                        + "     Welcome to Tomcat\n"
+                        + "  </description>\n"
+                        + "</web-app>\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            createCgiPhpScript(site);
+            createTestCGI(site);
+            createTestIndex(site);
+
+            /*
+             * Create the test.php file.
+             */
+            String testPHP=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php";
+            new ChainWriter(
+                new UnixFile(testPHP).getSecureOutputStream(uid, gid, 0664, false)
+            ).print("<?phpinfo()?>\n").flush().close();
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);
         }
@@ -1080,6 +2567,97 @@ final public class HttpdManager extends BuilderThread {
             }
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
+
+    /**
+     * Creates the CGI php script.
+     */
+    private static void createCgiPhpScript(HttpdSite hs) throws IOException, SQLException {
+        int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+        String defaultPhpVersion = getDefaultPhpVersion(osv);
+        if(defaultPhpVersion!=null) {
+            ChainWriter out=new ChainWriter(
+                new UnixFile(
+                    "/www/"+hs.getSiteName()+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin/php"
+                ).getSecureOutputStream(
+                    hs.getLinuxServerAccount().getUID().getID(),
+                    hs.getLinuxServerGroup().getGID().getID(),
+                    0755,
+                    false
+                )
+            );
+            try {
+                out.print("#!/bin/sh\n"
+                          + ". /usr/aoserv/etc/postgresql-"+PHP_POSTGRES_MINOR_VERSION+".sh\n"
+                          + "exec /usr/php/").print(defaultPhpVersion).print("/bin/php \"$@\"\n");
+            } finally {
+                out.flush();
+                out.close();
+            }
+        }
+    }
+
+    /**
+     * Creates the test CGI script.
+     */
+    private static void createTestCGI(HttpdSite hs) throws IOException, SQLException {
+        ChainWriter out=new ChainWriter(
+            new BufferedOutputStream(
+                new UnixFile(
+                    "/www/"+hs.getSiteName()+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin/test"
+                ).getSecureOutputStream(
+                    hs.getLinuxServerAccount().getUID().getID(),
+                    hs.getLinuxServerGroup().getGID().getID(),
+                    0755,
+                    false
+                )
+            )
+        );
+        try {
+            out.print("#!/usr/bin/perl\n"
+                    + "print \"Content-type: text/html\\n\";\n"
+                    + "print \"\\n\";\n"
+                    + "print \"<HTML>\\n\";\n"
+                    + "print \"  <BODY>\\n\";\n"
+                    + "print \"    <H1>Test CGI Script for ").print(hs.getPrimaryHttpdSiteURL().getHostname()).print("</H1>\\n\";\n"
+                    + "print \"  </BODY>\\n\";\n"
+                    + "print \"</HTML>\\n\";\n"
+            );
+        } finally {
+            out.flush();
+            out.close();
+        }
+    }
+
+    /**
+     * Creates the test index.html file.
+     */
+    private static void createTestIndex(HttpdSite hs) throws IOException, SQLException {
+        String primaryUrl = hs.getPrimaryHttpdSiteURL().getHostname();
+        ChainWriter out=new ChainWriter(
+            new BufferedOutputStream(
+                new UnixFile(
+                    "/www/"+hs.getSiteName()+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/index.html"
+                ).getSecureOutputStream(
+                    hs.getLinuxServerAccount().getUID().getID(),
+                    hs.getLinuxServerGroup().getGID().getID(),
+                    0664,
+                    false
+                )
+            )
+        );
+        try {
+            out.print("<HTML>\n"
+                    + "  <HEAD><TITLE>Test HTML Page for ").print(primaryUrl).print("</TITLE></HEAD>\n"
+                    + "  <BODY>\n"
+                    + "    Test HTML Page for ").print(primaryUrl).print("\n"
+                    + "  </BODY>\n"
+                    + "</HTML>\n"
+            );
+        } finally {
+            out.flush();
+            out.close();
         }
     }
 
@@ -1427,8 +3005,8 @@ final public class HttpdManager extends BuilderThread {
                                 + "LoadModule alias_module modules/mod_alias.so\n"
                                 + "LoadModule rewrite_module modules/mod_rewrite.so\n"
                                 + "LoadModule jk_module modules/mod_jk-apache-2.0.49-linux-i686.so\n"
-                                + "LoadModule ssl_module extramodules/mod_ssl.so\n"
-                                + "LoadModule suexec_module extramodules/mod_suexec.so\n");
+                                + "LoadModule ssl_module extramodules/mod_ssl.so\n");
+                        if(hs.useSuexec()) out.print("LoadModule suexec_module extramodules/mod_suexec.so\n");
                         if(isEnabled && phpVersion!=null) {
                             String version = phpVersion.getVersion();
                             out.print("\n"
@@ -1527,9 +3105,9 @@ final public class HttpdManager extends BuilderThread {
                                 + "# LoadModule proxy_ftp_module modules/mod_proxy_ftp.so\n"
                                 + "LoadModule proxy_http_module modules/mod_proxy_http.so\n"
                                 + "# LoadModule proxy_connect_module modules/mod_proxy_connect.so\n"
-                                + "# LoadModule cache_module modules/mod_cache.so\n"
-                                + "LoadModule suexec_module modules/mod_suexec.so\n"
-                                + "# LoadModule disk_cache_module modules/mod_disk_cache.so\n"
+                                + "# LoadModule cache_module modules/mod_cache.so\n");
+                        if(hs.useSuexec()) out.print("LoadModule suexec_module modules/mod_suexec.so\n");
+                        out.print("# LoadModule disk_cache_module modules/mod_disk_cache.so\n"
                                 + "# LoadModule file_cache_module modules/mod_file_cache.so\n"
                                 + "# LoadModule mem_cache_module modules/mod_mem_cache.so\n"
                                 + "LoadModule cgi_module modules/mod_cgi.so\n"
@@ -1795,8 +3373,10 @@ final public class HttpdManager extends BuilderThread {
                         buildStaticSite(staticSite, lsa, lsg);
                         isCreated=true;
                     } else {
-                        if(tomcatSite!=null) isCreated=buildTomcatSite(tomcatSite, lsa, lsg);
-                        else {
+                        if(tomcatSite!=null) {
+                            buildTomcatSite(tomcatSite, lsa, lsg);
+                            isCreated=true;
+                        } else {
                             // If caught in the middle of account creation, this might occur
                             isCreated=false;
                         }
@@ -2233,26 +3813,28 @@ final public class HttpdManager extends BuilderThread {
 			    } else throw new IllegalArgumentException("Unsupported HttpdTomcatSite type: "+site.getPKey());
 			    
 			    // The CGI user info
-			    // Only add this if any of the HttpdServers uses suexec, default to on for safety
-			    boolean useSuexec=false;
-			    boolean foundOne=false;
-			    for(HttpdSiteBind hsb : site.getHttpdSiteBinds()) {
-				if(hsb.getHttpdBind().getHttpdServer().useSuexec()) {
-				    useSuexec=true;
-				    foundOne=true;
-				    break;
-				}
-			    }
-			    if(useSuexec || !foundOne) {
-                                if(osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                            if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) {
+                                // Only add this if any of the HttpdServers uses suexec, default to on for safety
+                                boolean useSuexec=false;
+                                boolean foundOne=false;
+                                for(HttpdSiteBind hsb : site.getHttpdSiteBinds()) {
+                                    if(hsb.getHttpdBind().getHttpdServer().useSuexec()) {
+                                        useSuexec=true;
+                                        foundOne=true;
+                                        break;
+                                    }
+                                }
+                                if(useSuexec || !foundOne) {
                                     out.print("    User ").print(lsa.getLinuxAccount().getUsername()).print("\n"
                                             + "    Group ").print(lsg.getLinuxGroup().getName()).print("\n"
                                             + "\n");
-                                } else {
-                                    out.print("    SuexecUserGroup ").print(lsa.getLinuxAccount().getUsername()).print(' ').print(lsg.getLinuxGroup().getName()).print("\n"
-                                            + "\n");
                                 }
-			    }
+                            } else {
+                                out.print("    <IfModule mod_suexec.c>\n"
+                                        + "        SuexecUserGroup ").print(lsa.getLinuxAccount().getUsername()).print(' ').print(lsg.getLinuxGroup().getName()).print("\n"
+                                        + "    </IfModule>\n"
+                                        + "\n");
+                            }
 
                             // Write the standard restricted URL patterns
                             out.print("    # Standard protected URLs\n");
@@ -2430,7 +4012,8 @@ final public class HttpdManager extends BuilderThread {
 			    } else {
 				out.print("        JkMount /* ").print(jkCode).print("\n");
                                 if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                                    out.print("        JkUnMount /*.php ").print(jkCode).print("\n");
+                                    out.print("        JkUnMount /*.php ").print(jkCode).print("\n"
+                                            + "        JkUnMount /cgi-bin/* ").print(jkCode).print("\n");
                                 }
 			    }
                             out.print("        # Remove jsessionid for non-jk requests\n"
@@ -2510,6 +4093,9 @@ final public class HttpdManager extends BuilderThread {
             int port=netBind.getPort().getPort();
             int lsgGID=bind.getHttpdSite().getLinuxServerGroup().getGID().getID();
             int osv=netBind.getAOServer().getServer().getOperatingSystemVersion().getPKey();
+            String ipAddress = netBind.getIPAddress().getIPAddress();
+            HttpdSiteURL primaryHSU = bind.getPrimaryHttpdSiteURL();
+            String primaryHostname = primaryHSU.getHostname();
 
             ChainWriter out=new ChainWriter(
                 new BufferedOutputStream(
@@ -2517,8 +4103,8 @@ final public class HttpdManager extends BuilderThread {
                 )
             );
 	    try {
-                out.print("<VirtualHost ").print(netBind.getIPAddress().getIPAddress()).print(':').print(port).print(">\n"
-                        + "    ServerName ").print(bind.getPrimaryHttpdSiteURL().getHostname()).print('\n'
+                out.print("<VirtualHost ").print(ipAddress).print(':').print(port).print(">\n"
+                        + "    ServerName ").print(primaryHostname).print('\n'
                 );
                 List<HttpdSiteURL> altURLs=bind.getAltHttpdSiteURLs();
                 if(!altURLs.isEmpty()) {
@@ -2551,6 +4137,14 @@ final public class HttpdManager extends BuilderThread {
                             + "    </IfModule>\n"
                             + "\n"
                     );
+                }
+                if(bind.getRedirectToPrimaryHostname()) {
+                    out.print("    # Redirect requests that are not to either the IP address or the primary hostname to the primary hostname\n"
+                            + "    RewriteEngine on\n"
+                            + "    RewriteCond %{HTTP_HOST} !=").print(primaryHostname).print(" [NC]\n"
+                            + "    RewriteCond %{HTTP_HOST} !=").print(ipAddress).print("\n"
+                            + "    RewriteRule ^(.*)$ ").print(primaryHSU.getURLNoSlash()).print("$1 [L,R]\n"
+                            + "    \n");
                 }
                 out.print("    Include conf/hosts/").print(siteInclude).print("\n"
                         + "\n"
@@ -3170,8 +4764,6 @@ final public class HttpdManager extends BuilderThread {
                                           + "    </IfModule>\n"
                                           + "</IfModule>\n"
                                           + "\n");
-                                if (version.startsWith(HttpdTomcatVersion.VERSION_3_1_PREFIX)) out.print("Include conf/webapps/examples\n");
-                                else out.print("Include conf/webapps/examples-").print(version).print('\n');
                             }
                         } finally {
                             out.flush();

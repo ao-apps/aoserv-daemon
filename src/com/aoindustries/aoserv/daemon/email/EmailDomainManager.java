@@ -57,6 +57,7 @@ public final class EmailDomainManager extends BuilderThread {
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(rebuildLock) {
@@ -103,16 +104,11 @@ public final class EmailDomainManager extends BuilderThread {
         "/var/qmail/bin/qmailctl",
         "reload"
     };
-    /*private static final String[] reloadSendmailCommandRedHat7_2={
+    private static final String[] reloadSendmailCommandRedHat={
         "/usr/bin/killall",
         "-HUP",
         "sendmail"
-    };*/
-    /*private static final String[] reloadSendmailCommandMandrake9_2={
-        "/usr/bin/killall",
-        "-HUP",
-        "sendmail.sendmail"
-    };*/
+    };
     private static final String[] reloadSendmailCommandMandrake10_1={
         "/usr/bin/killall",
         "-HUP",
@@ -132,8 +128,11 @@ public final class EmailDomainManager extends BuilderThread {
                     if(
                         osv==OperatingSystemVersion.MANDRAKE_10_1_I586
                         || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-                    ) cmd=reloadSendmailCommandMandrake10_1;
-                    else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                    ) {
+                        cmd=reloadSendmailCommandMandrake10_1;
+                    } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                        cmd=reloadSendmailCommandRedHat;
+                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                     AOServDaemon.exec(cmd);
                 }
             }

@@ -42,6 +42,7 @@ import com.aoindustries.util.BufferManager;
 import com.aoindustries.util.LongArrayList;
 import com.aoindustries.util.LongList;
 import com.aoindustries.util.SortedArrayList;
+import com.aoindustries.util.WrappedException;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -77,9 +78,13 @@ import org.apache.commons.logging.LogFactory;
 /**
  * Handles the replication of data for the failover system.
  *
+ * TODO: Some files are being named one day in advance (Still, seems to be problem on client-side)
+ *
  * TODO: Handle hard links (pertinence space savings)
  *
  * TODO: Actually do chunkAlways mode
+ *
+ * TODO: Need to do mysqldump and postgresql dump
  *
  * @author  AO Industries, Inc.
  */
@@ -169,6 +174,12 @@ final public class FailoverFileReplicationManager {
     static {
         // Please note that the map was initialized with the number of these in mind, please update
         // the initialization parameter for best performance.
+        encryptedLoopFilePaths.add("/ao.aes128.img");
+        encryptedLoopFilePaths.add("/ao.aes256.img");
+        encryptedLoopFilePaths.add("/ao.copy.aes128.img");
+        encryptedLoopFilePaths.add("/ao.copy.aes256.img");
+        encryptedLoopFilePaths.add("/encrypted.aes128.img");
+        encryptedLoopFilePaths.add("/encrypted.aes256.img");
         encryptedLoopFilePaths.add("/home.aes128.img");
         encryptedLoopFilePaths.add("/home.aes256.img");
         encryptedLoopFilePaths.add("/logs.aes128.img");
@@ -195,24 +206,23 @@ final public class FailoverFileReplicationManager {
         final short retention,
         final String toPath,
         final boolean chunkAlways,
-        final long fromServerTime
+        final short fromServerYear,
+        final short fromServerMonth,
+        final short fromServerDay
     ) throws IOException {
-        Profiler.startProfile(Profiler.IO, FailoverFileReplicationManager.class, "failoverServer(Socket,CompressedDataInputStream,CompressedDataOutputStream,String,boolean,short,String,boolean,long)", null);
+        Profiler.startProfile(Profiler.IO, FailoverFileReplicationManager.class, "failoverServer(Socket,CompressedDataInputStream,CompressedDataOutputStream,String,boolean,short,String,boolean,short,short,short)", null);
         try {
             try {
+                if(fromServerYear<1000 || fromServerYear>9999) throw new IOException("Invalid fromServerYear (1000-9999): "+fromServerYear);
+                if(fromServerMonth<1 || fromServerMonth>12) throw new IOException("Invalid fromServerMonth (1-12): "+fromServerMonth);
+                if(fromServerDay<1 || fromServerDay>31) throw new IOException("Invalid fromServerDay (1-31): "+fromServerDay);
+
                 // This Stat may be used for any short-term tempStat
                 final Stat tempStat = new Stat();
 
                 // Tell the client it is OK to continue
                 rawOut.write(AOServDaemonProtocol.NEXT);
                 rawOut.flush();
-
-                // Determine the date on the from server
-                Calendar cal = Calendar.getInstance();
-                cal.setTimeInMillis(fromServerTime);
-                final int year = cal.get(Calendar.YEAR);
-                final int month = cal.get(Calendar.MONTH)+1;
-                final int day = cal.get(Calendar.DAY_OF_MONTH);
 
                 // Determine the directory that is/will be storing the mirror
                 String partialMirrorRoot;
@@ -240,11 +250,11 @@ final public class FailoverFileReplicationManager {
                     else if(tempStat.getMode()!=0700) serverRootUF.setMode(0700);
 
                     // The directory including the date
-                    SB.append('/').append(year).append('-');
-                    if(month<10) SB.append('0');
-                    SB.append(month).append('-');
-                    if(day<10) SB.append('0');
-                    SB.append(day);
+                    SB.append('/').append(fromServerYear).append('-');
+                    if(fromServerMonth<10) SB.append('0');
+                    SB.append(fromServerMonth).append('-');
+                    if(fromServerDay<10) SB.append('0');
+                    SB.append(fromServerDay);
                     finalMirrorRoot = SB.toString();
                     // The partial directory name used during the transfer
                     SB.append(PARTIAL_EXTENSION);
@@ -466,6 +476,7 @@ final public class FailoverFileReplicationManager {
                                 int uid=in.readCompressedInt();
                                 int gid=in.readCompressedInt();
                                 long modifyTime=modifyTimes[c]=UnixFile.isSymLink(mode)?-1:in.readLong();
+                                //if(modifyTime<1000 && !UnixFile.isSymLink(mode) && log.isWarnEnabled()) log.warn("Non-symlink modifyTime<1000: "+relativePath+": "+modifyTime);
                                 String symlinkTarget;
                                 if(UnixFile.isSymLink(mode)) symlinkTarget=in.readCompressedUTF();
                                 else symlinkTarget=null;
@@ -633,6 +644,11 @@ final public class FailoverFileReplicationManager {
                                      * we will try the current directory and then the linkTo directory.
                                      */
 
+                                    // If there is a symlink that has now been replaced with a regular file, just delete the symlink to avoid confusion in the following code
+                                    if(ufStat.exists() && ufStat.isSymLink()) {
+                                        uf.delete();
+                                        uf.getStat(ufStat);
+                                    }
                                     // Look in the current directory for an exact match
                                     final boolean isEncryptedLoopFile = isEncryptedLoopFile(relativePath);
                                     if(
@@ -937,8 +953,11 @@ final public class FailoverFileReplicationManager {
                                     effectiveUF.getStat(effectiveUFStat);
                                 }
                                 if(
-                                    (effectiveUFStat.getRawMode() & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
-                                    != (mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
+                                    !UnixFile.isSymLink(mode)
+                                    && (
+                                        (effectiveUFStat.getRawMode() & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
+                                        != (mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
+                                    )
                                 ) {
                                     try {
                                         if(retention!=1) copyIfHardLinked(effectiveUF, effectiveUFStat);
@@ -993,8 +1012,12 @@ final public class FailoverFileReplicationManager {
                                     && effectiveUFStat.getModifyTime()!=modifyTime
                                 ) {
                                     if(retention!=1) copyIfHardLinked(effectiveUF, effectiveUFStat);
-                                    effectiveUF.utime(effectiveUFStat.getAccessTime(), modifyTime);
-                                    effectiveUF.getStat(effectiveUFStat);
+                                    try {
+                                        effectiveUF.utime(effectiveUFStat.getAccessTime(), modifyTime);
+                                        effectiveUF.getStat(effectiveUFStat);
+                                    } catch(IOException err) {
+                                        throw new WrappedException(err, new Object[] {"effectiveUF="+effectiveUF.getFilename()});
+                                    }
                                     if(result==NO_CHANGE) {
                                         if(linkToUF!=null) {
                                             // Only modified if not in last backup set, too
@@ -1124,14 +1147,16 @@ final public class FailoverFileReplicationManager {
                             String dirPath=dirUF.getFilename();
                             if(!dirPath.endsWith("/")) dirPath=dirPath+'/';
                             String[] list=dirUF.list();
-                            for(int d=0;d<list.length;d++) {
-                                String fullpath=dirPath+list[d];
-                                if(!dirContents.contains(fullpath)) {
-                                    if(log.isTraceEnabled()) log.trace("Deleting extra file: "+fullpath);
-                                    try {
-                                        new UnixFile(fullpath).deleteRecursive();
-                                    } catch(FileNotFoundException err) {
-                                        AOServDaemon.reportError(err, new Object[] {"fullpath="+fullpath});
+                            if(list!=null) {
+                                for(int d=0;d<list.length;d++) {
+                                    String fullpath=dirPath+list[d];
+                                    if(!dirContents.contains(fullpath)) {
+                                        if(log.isTraceEnabled()) log.trace("Deleting extra file: "+fullpath);
+                                        try {
+                                            new UnixFile(fullpath).deleteRecursive();
+                                        } catch(FileNotFoundException err) {
+                                            AOServDaemon.reportError(err, new Object[] {"fullpath="+fullpath});
+                                        }
                                     }
                                 }
                             }
@@ -1151,11 +1176,13 @@ final public class FailoverFileReplicationManager {
                         long dirModifyTime=directoryModifyTimes.pop().longValue();
                         Set<String> dirContents=directoryContents.pop();
                         String[] list=dirUF.list();
-                        for(int c=0;c<list.length;c++) {
-                            String fullpath=dirPath+list[c];
-                            if(!dirContents.contains(fullpath)) {
-                                if(log.isTraceEnabled()) log.trace("Deleting final clean-up: "+fullpath);
-                                new UnixFile(fullpath).deleteRecursive();
+                        if(list!=null) {
+                            for(int c=0;c<list.length;c++) {
+                                String fullpath=dirPath+list[c];
+                                if(!dirContents.contains(fullpath)) {
+                                    if(log.isTraceEnabled()) log.trace("Deleting final clean-up: "+fullpath);
+                                    new UnixFile(fullpath).deleteRecursive();
+                                }
                             }
                         }
                         dirUF.getStat(tempStat);
@@ -1170,7 +1197,7 @@ final public class FailoverFileReplicationManager {
                     }
 
                     // The pass was successful, now cleanup old directories based on retention settings
-                    if(retention>1) cleanAndRecycleBackups(retention, serverRootUF, tempStat);
+                    if(retention>1) cleanAndRecycleBackups(retention, serverRootUF, tempStat, fromServerYear, fromServerMonth, fromServerDay);
 
                     // Tell the client we are done OK
                     out.write(AOServDaemonProtocol.DONE);
@@ -1190,56 +1217,61 @@ final public class FailoverFileReplicationManager {
         }
     }
 
-    private static void cleanAndRecycleBackups(short retention, UnixFile serverRootUF, Stat tempStat) {
+    private static void cleanAndRecycleBackups(short retention, UnixFile serverRootUF, Stat tempStat, short fromServerYear, short fromServerMonth, short fromServerDay) {
         try {
             // Build the lists of directories based on age, skipping safe deleted and recycled directories
             Calendar cal = Calendar.getInstance();
+            cal.set(Calendar.YEAR, fromServerYear);
+            cal.set(Calendar.MONTH, fromServerMonth-1);
+            cal.set(Calendar.DAY_OF_MONTH, fromServerDay);
             cal.set(Calendar.HOUR_OF_DAY, 0);
             cal.set(Calendar.MINUTE, 0);
             cal.set(Calendar.SECOND, 0);
             cal.set(Calendar.MILLISECOND, 0);
-            long currentDate = cal.getTimeInMillis();
+            long fromServerDate = cal.getTimeInMillis();
             Map<Integer,List<String>> directoriesByAge;
             {
                 String[] list = serverRootUF.list();
                 directoriesByAge = new HashMap<Integer,List<String>>(list.length*4/3 + 1);
-                for(String filename : list) {
-                    if(!filename.endsWith(SAFE_DELETE_EXTENSION) && !filename.endsWith(RECYCLED_EXTENSION)) {
-                        if(filename.length()>=10) {
-                            try {
-                                int year = Integer.parseInt(filename.substring(0, 4));
-                                if(filename.charAt(4)=='-') {
-                                    int month = Integer.parseInt(filename.substring(5, 7));
-                                    if(filename.charAt(7)=='-') {
-                                        int day = Integer.parseInt(filename.substring(8, 10));
-                                        cal.set(Calendar.YEAR, year);
-                                        cal.set(Calendar.MONTH, month-1);
-                                        cal.set(Calendar.DAY_OF_MONTH, day);
-                                        cal.set(Calendar.HOUR_OF_DAY, 0);
-                                        cal.set(Calendar.MINUTE, 0);
-                                        cal.set(Calendar.SECOND, 0);
-                                        cal.set(Calendar.MILLISECOND, 0);
-                                        long ageL = (currentDate-cal.getTimeInMillis())/(24l*60*60*1000);
-                                        if(ageL<Integer.MIN_VALUE || ageL>Integer.MAX_VALUE) throw new IOException("Can't convert long to int without loss of data: "+ageL);
-                                        int age = (int)ageL;
-                                        if(age>=0) {
-                                            List<String> directories = directoriesByAge.get(age);
-                                            if(directories==null) directoriesByAge.put(age, directories=new ArrayList<String>());
-                                            directories.add(filename);
+                if(list!=null) {
+                    for(String filename : list) {
+                        if(!filename.endsWith(SAFE_DELETE_EXTENSION) && !filename.endsWith(RECYCLED_EXTENSION)) {
+                            if(filename.length()>=10) {
+                                try {
+                                    int year = Integer.parseInt(filename.substring(0, 4));
+                                    if(filename.charAt(4)=='-') {
+                                        int month = Integer.parseInt(filename.substring(5, 7));
+                                        if(filename.charAt(7)=='-') {
+                                            int day = Integer.parseInt(filename.substring(8, 10));
+                                            cal.set(Calendar.YEAR, year);
+                                            cal.set(Calendar.MONTH, month-1);
+                                            cal.set(Calendar.DAY_OF_MONTH, day);
+                                            cal.set(Calendar.HOUR_OF_DAY, 0);
+                                            cal.set(Calendar.MINUTE, 0);
+                                            cal.set(Calendar.SECOND, 0);
+                                            cal.set(Calendar.MILLISECOND, 0);
+                                            long ageL = (fromServerDate-cal.getTimeInMillis())/(24l*60*60*1000);
+                                            if(ageL<Integer.MIN_VALUE || ageL>Integer.MAX_VALUE) throw new IOException("Can't convert long to int without loss of data: "+ageL);
+                                            int age = (int)ageL;
+                                            if(age>=0) {
+                                                List<String> directories = directoriesByAge.get(age);
+                                                if(directories==null) directoriesByAge.put(age, directories=new ArrayList<String>());
+                                                directories.add(filename);
+                                            } else {
+                                                AOServDaemon.reportWarning(new IOException("Directory date in future: "+filename), null);
+                                            }
                                         } else {
-                                            AOServDaemon.reportWarning(new IOException("Directory date in future: "+filename), null);
+                                            AOServDaemon.reportWarning(new IOException("Unable to parse filename: "+filename), null);
                                         }
                                     } else {
                                         AOServDaemon.reportWarning(new IOException("Unable to parse filename: "+filename), null);
                                     }
-                                } else {
+                                } catch(NumberFormatException err) {
                                     AOServDaemon.reportWarning(new IOException("Unable to parse filename: "+filename), null);
                                 }
-                            } catch(NumberFormatException err) {
-                                AOServDaemon.reportWarning(new IOException("Unable to parse filename: "+filename), null);
+                            } else {
+                                AOServDaemon.reportWarning(new IOException("Filename too short: "+filename), null);
                             }
-                        } else {
-                            AOServDaemon.reportWarning(new IOException("Filename too short: "+filename), null);
                         }
                     }
                 }
@@ -1708,8 +1740,15 @@ final public class FailoverFileReplicationManager {
             );
             try {
                 timer.start();
+                Calendar cal = Calendar.getInstance();
+                final long startTime=cal.getTimeInMillis();
                 // Flag that we have started
-                ffr.setLastStartTime(System.currentTimeMillis());
+                ffr.setLastStartTime(startTime);
+
+                boolean useCompression = ffr.getUseCompression();
+                if(log.isTraceEnabled()) log.trace((backupMode ? "Backup: " : "Failover: ") + "useCompression="+useCompression);
+                short retention = ffr.getRetention().getDays();
+                if(log.isTraceEnabled()) log.trace((backupMode ? "Backup: " : "Failover: ") + "retention="+retention);
 
                 // Build the skip list
                 Map<String,FilesystemIteratorRule> filesystemRules=new HashMap<String,FilesystemIteratorRule>();
@@ -1723,6 +1762,34 @@ final public class FailoverFileReplicationManager {
                 filesystemRules.put("/dev/shm", FilesystemIteratorRule.NO_RECURSE);
                 //filesystemRules.put("/distro", FilesystemIteratorRule.NO_RECURSE);
                 filesystemRules.put("/etc/mail/statistics", FilesystemIteratorRule.SKIP);
+
+                // Don't send /etc/lilo.conf for failovers - it can cause severe problems if a nested server has its kernel RPMs upgraded
+                if(retention==1) filesystemRules.put("/etc/lilo.conf", FilesystemIteratorRule.SKIP);
+
+                filesystemRules.put(
+                    "/ao",
+                    new FileExistsRule(
+                        new String[] {"/ao.aes128.img", "/ao.aes256.img", "/ao.copy.aes128.img", "/ao.copy.aes256.img"},
+                        FilesystemIteratorRule.NO_RECURSE,
+                        FilesystemIteratorRule.OK
+                    )
+                );
+                filesystemRules.put(
+                    "/ao.copy",
+                    new FileExistsRule(
+                        new String[] {"/ao.aes128.img", "/ao.aes256.img", "/ao.copy.aes128.img", "/ao.copy.aes256.img"},
+                        FilesystemIteratorRule.NO_RECURSE,
+                        FilesystemIteratorRule.OK
+                    )
+                );
+                filesystemRules.put(
+                    "/encrypted",
+                    new FileExistsRule(
+                        new String[] {"/encrypted.aes128.img", "/encrypted.aes256.img"},
+                        FilesystemIteratorRule.NO_RECURSE,
+                        FilesystemIteratorRule.OK
+                    )
+                );
                 filesystemRules.put(
                     "/home",
                     new FileExistsRule(
@@ -1764,6 +1831,7 @@ final public class FailoverFileReplicationManager {
                     )
                 );
                 filesystemRules.put("/var/lib/mysql/.journal", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lib/mysql/5.0/mysql-bin", FilesystemIteratorRule.NO_RECURSE);
                 filesystemRules.put(
                     "/var/lib/pgsql",
                     new FileExistsRule(
@@ -1857,7 +1925,6 @@ final public class FailoverFileReplicationManager {
                 // TODO: Matching the set hard-coded here
 
                 // Keep statistics during the replication
-                final long startTime=System.currentTimeMillis();
                 int scanned=0;
                 // TODO: int added=0;
                 int updated=0;
@@ -1879,6 +1946,7 @@ final public class FailoverFileReplicationManager {
                     AOServDaemonConnector daemonConnector=AOServDaemonConnector.getConnector(
                         toServer.getServer().getPKey(),
                         connectAddress,
+                        thisServer.getDaemonBind().getIPAddress().getIPAddress(),
                         daemonBindPort.getPort(),
                         daemonBindProtocol.getProtocol(),
                         null,
@@ -1886,26 +1954,29 @@ final public class FailoverFileReplicationManager {
                         AOPool.DEFAULT_MAX_CONNECTION_AGE,
                         SSLConnector.class,
                         SSLConnector.sslProviderLoaded,
-                        AOServClientConfiguration.getProperty("aoserv.client.ssl.truststore.path"),
-                        AOServClientConfiguration.getProperty("aoserv.client.ssl.truststore.password"),
+                        AOServClientConfiguration.getSslTruststorePath(),
+                        AOServClientConfiguration.getSslTruststorePassword(),
                         AOServDaemon.getErrorHandler()
                     );
                     AOServDaemonConnection daemonConn=daemonConnector.getConnection();
                     try {
                         // Start the replication
                         CompressedDataOutputStream rawOut=daemonConn.getOutputStream();
-                        boolean useCompression = ffr.getUseCompression();
-                        if(log.isTraceEnabled()) log.trace((backupMode ? "Backup: " : "Failover: ") + "useCompression="+useCompression);
-                        short retention = ffr.getRetention().getDays();
-                        if(log.isTraceEnabled()) log.trace((backupMode ? "Backup: " : "Failover: ") + "retention="+retention);
-                        
+
                         MD5 md5 = useCompression ? new MD5() : null;
 
                         rawOut.writeCompressedInt(AOServDaemonProtocol.FAILOVER_FILE_REPLICATION);
                         rawOut.writeLong(key);
                         rawOut.writeBoolean(useCompression);
                         rawOut.writeShort(retention);
-                        rawOut.writeLong(System.currentTimeMillis());
+
+                        // Determine the date on the from server
+                        final int year = cal.get(Calendar.YEAR);
+                        final int month = cal.get(Calendar.MONTH)+1;
+                        final int day = cal.get(Calendar.DAY_OF_MONTH);
+                        rawOut.writeShort(year);
+                        rawOut.writeShort(month);
+                        rawOut.writeShort(day);
                         rawOut.flush();
 
                         CompressedDataInputStream rawIn=daemonConn.getInputStream();
@@ -1982,6 +2053,7 @@ final public class FailoverFileReplicationManager {
                                                     int gid=ufStat.getGID();
                                                     boolean isSymLink=UnixFile.isSymLink(mode);
                                                     long modifyTime=isSymLink?-1:ufStat.getModifyTime();
+                                                    //if(modifyTime<1000 && !isSymLink && log.isWarnEnabled()) log.warn("Non-symlink modifyTime<1000: "+filename+": "+modifyTime);
                                                     String symLinkTarget=isSymLink?uf.readLink():null;
                                                     boolean isDevice=UnixFile.isBlockDevice(mode) || UnixFile.isCharacterDevice(mode);
                                                     long deviceID=isDevice?ufStat.getDeviceIdentifier():-1;

@@ -44,6 +44,9 @@ abstract public class BuilderThread implements TableListener {
         }
     }
 
+    /**
+     * Will wait a random amount of time and then call doRebuild()
+     */
     public void delayAndRebuild() {
         Profiler.startProfile(Profiler.UNKNOWN, BuilderThread.class, "delayAndRebuild()", null);
         try {

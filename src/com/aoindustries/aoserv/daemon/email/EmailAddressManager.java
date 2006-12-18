@@ -65,6 +65,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             List<EmailAddress> eas=aoServer.getEmailAddresses();
@@ -122,9 +123,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
                     );
                     try {
                         aliasesOut.print(
-                            "#\n"
-                            + "#       @(#)aliases     8.2 (Berkeley) 3/5/94\n"
-                            + "#\n"
+                              "#\n"
                             + "#  Aliases in this file will NOT be expanded in the header from\n"
                             + "#  Mail, but WILL be visible over networks or from /bin/mail.\n"
                             + "#\n"
@@ -144,10 +143,18 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
                         }
 
                         // Hide the Linux account usernames, so support@tantrix.com does not go to support@aoindustries.com
+                        String ex_nouser;
+                        if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                            ex_nouser="/usr/aoserv/bin/ex_nouser";
+                        } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                            ex_nouser="/opt/aoserv-client/sbin/ex_nouser";
+                        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                         for(LinuxServerAccount lsa : aoServer.getLinuxServerAccounts()) {
                             String username=lsa.getLinuxAccount().getUsername().getUsername();
                             if(!usernamesUsed.contains(username)) {
-                                if(username.indexOf('@')==-1) aliasesOut.print(username).println(": |/usr/aoserv/bin/ex_nouser");
+                                if(username.indexOf('@')==-1) {
+                                    aliasesOut.print(username).print(": |").println(ex_nouser);
+                                }
                                 usernamesUsed.add(username);
                             }
                         }
@@ -214,7 +221,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
 
                             // Block all other email_domains that have not been explicitly configured as an email address.
                             // This had a dead.letter problem and was commented for a while
-                            if(aoServer.getRestrictOutboundEmail()) {
+                            if(osv!=OperatingSystemVersion.MANDRAKE_10_1_I586 && aoServer.getRestrictOutboundEmail()) {
                                 for(EmailDomain ed : aoServer.getEmailDomains()) {
                                     String domain=ed.getDomain();
                                     if(ed.getEmailAddress("")==null) usersOut.print("@").print(domain).print("\terror:5.1.1:550 No such email address here\n");
@@ -563,6 +570,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
                 if(
                     osv==OperatingSystemVersion.MANDRAKE_10_1_I586
                     || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+                    || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                 ) makemap="/usr/sbin/makemap";
                 else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
@@ -621,6 +629,8 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
                         connector.systemEmailAliases.addTableListener(emailAddressManager, 0);
                         // Register in CronDaemon
                         CronDaemon.addCronJob(emailAddressManager, AOServDaemon.getErrorHandler());
+                        // Run once automatically on startup
+                        emailAddressManager.delayAndRebuild();
                         System.out.println("Done");
                     }
                 }

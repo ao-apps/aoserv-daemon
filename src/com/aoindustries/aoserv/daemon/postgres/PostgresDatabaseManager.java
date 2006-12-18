@@ -120,6 +120,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                             AOServDaemonConnector daemonConnector=AOServDaemonConnector.getConnector(
                                 toAOServer,
                                 toIpAddress,
+                                AOServDaemon.getThisAOServer().getDaemonBind().getIPAddress().getIPAddress(),
                                 toPort,
                                 toProtocol,
                                 null,
@@ -127,8 +128,8 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                 AOPool.DEFAULT_MAX_CONNECTION_AGE,
                                 SSLConnector.class,
                                 SSLConnector.sslProviderLoaded,
-                                AOServClientConfiguration.getProperty("aoserv.client.ssl.truststore.path"),
-                                AOServClientConfiguration.getProperty("aoserv.client.ssl.truststore.password"),
+                                AOServClientConfiguration.getSslTruststorePath(),
+                                AOServClientConfiguration.getSslTruststorePassword(),
                                 AOServDaemon.getErrorHandler()
                             );
                             AOServDaemonConnection daemonConn=daemonConnector.getConnection();

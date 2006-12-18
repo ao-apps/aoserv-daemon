@@ -265,20 +265,31 @@ final public class PostgresUserManager extends BuilderThread {
                         midStatement=" with password ";
                     }
                 }
+                String alterCommand;
+                if(version.startsWith(PostgresVersion.VERSION_8_1+'.')) {
+                    alterCommand = "alter role ";
+                } else {
+                    alterCommand = "alter user ";
+                }
                 if(password==PostgresUser.NO_PASSWORD) {
                     // Disable the account
                     Statement stmt = conn.createStatement();
+                    String sqlString = alterCommand+username+midStatement+"'"+PostgresUser.NO_PASSWORD_DB_VALUE+'\'';
                     try {
-                        stmt.executeUpdate("alter user "+username+midStatement+"'"+PostgresUser.NO_PASSWORD_DB_VALUE+'\'');
+                        stmt.executeUpdate(sqlString);
+                    } catch(SQLException err) {
+                        throw new WrappedSQLException(err, sqlString);
                     } finally {
                         stmt.close();
                     }
                 } else {
                     // Reset the password
-                    PreparedStatement pstmt = conn.prepareStatement("alter user "+username+midStatement+'?');
+                    PreparedStatement pstmt = conn.prepareStatement(alterCommand+username+midStatement+'?');
                     try {
                         pstmt.setString(1, password);
                         pstmt.executeUpdate();
+                    } catch(SQLException err) {
+                        throw new WrappedSQLException(err, pstmt);
                     } finally {
                         pstmt.close();
                     }

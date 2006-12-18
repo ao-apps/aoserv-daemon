@@ -128,6 +128,7 @@ final public class FTPManager extends BuilderThread {
             synchronized(rebuildLock) {
                 if(
                     osv==OperatingSystemVersion.MANDRAKE_10_1_I586
+                    || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
                 ) {
                     // Rebuild the /etc/proftpd.conf file
 		    int bindCount=0;
@@ -146,7 +147,7 @@ final public class FTPManager extends BuilderThread {
                                 + "Port 0\n"
                                 + "SocketBindTight on\n"
                                 + "PassivePorts 49152 50175\n"
-                                + "Umask 022\n"
+                                + "Umask 002\n"
                                 + "MaxInstances 100\n"
                                 + "User "+LinuxAccount.NOBODY+"\n"
                                 + "Group "+LinuxGroup.NOGROUP+"\n"

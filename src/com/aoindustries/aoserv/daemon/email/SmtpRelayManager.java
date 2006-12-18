@@ -64,6 +64,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             EmailSmtpRelayType allowRelay=connector.emailSmtpRelayTypes.get(EmailSmtpRelayType.ALLOW_RELAY);

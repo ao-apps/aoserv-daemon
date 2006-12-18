@@ -75,7 +75,62 @@ final public class MySQLUserManager extends BuilderThread {
                             || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
                             || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                         ) {
-                            if(version.startsWith("4.1.")) {
+                            if(version.startsWith("4.0.")) {
+                                updateSQL="update user set\n"
+                                        + "  Select_priv=?,\n"
+                                        + "  Insert_priv=?,\n"
+                                        + "  Update_priv=?,\n"
+                                        + "  Delete_priv=?,\n"
+                                        + "  Create_priv=?,\n"
+                                        + "  Drop_priv=?,\n"
+                                        + "  Reload_priv=?,\n"
+                                        + "  Shutdown_priv=?,\n"
+                                        + "  Process_priv=?,\n"
+                                        + "  File_priv=?,\n"
+                                        + "  Grant_priv=?,\n"
+                                        + "  References_priv=?,\n"
+                                        + "  Index_priv=?,\n"
+                                        + "  Alter_priv=?,\n"
+                                        + "  Show_db_priv=?,\n"
+                                        + "  Super_priv=?,\n"
+                                        + "  Create_tmp_table_priv=?,\n"
+                                        + "  Lock_tables_priv=?,\n"
+                                        + "  Execute_priv=?,\n"
+                                        + "  Repl_slave_priv=?,\n"
+                                        + "  Repl_client_priv=?,\n"
+                                        + "  max_questions=?,\n"
+                                        + "  max_updates=?,\n"
+                                        + "  max_connections=?\n"
+                                        + "where\n"
+                                        + "  Host=?\n"
+                                        + "  and User=?\n"
+                                        + "  and (\n"
+                                        + "    Select_priv!=?\n"
+                                        + "    or Insert_priv!=?\n"
+                                        + "    or Update_priv!=?\n"
+                                        + "    or Delete_priv!=?\n"
+                                        + "    or Create_priv!=?\n"
+                                        + "    or Drop_priv!=?\n"
+                                        + "    or Reload_priv!=?\n"
+                                        + "    or Shutdown_priv!=?\n"
+                                        + "    or Process_priv!=?\n"
+                                        + "    or File_priv!=?\n"
+                                        + "    or Grant_priv!=?\n"
+                                        + "    or References_priv!=?\n"
+                                        + "    or Index_priv!=?\n"
+                                        + "    or Alter_priv!=?\n"
+                                        + "    or Show_db_priv!=?\n"
+                                        + "    or Super_priv!=?\n"
+                                        + "    or Create_tmp_table_priv!=?\n"
+                                        + "    or Lock_tables_priv!=?\n"
+                                        + "    or Execute_priv!=?\n"
+                                        + "    or Repl_slave_priv!=?\n"
+                                        + "    or Repl_client_priv!=?\n"
+                                        + "    or max_questions!=?\n"
+                                        + "    or max_updates!=?\n"
+                                        + "    or max_connections!=?\n"
+                                        + "  )";
+                            } else if(version.startsWith("4.1.")) {
                                 updateSQL="update user set\n"
                                         + "  Select_priv=?,\n"
                                         + "  Insert_priv=?,\n"
@@ -293,7 +348,8 @@ final public class MySQLUserManager extends BuilderThread {
                             || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
                             || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                         ) {
-                            if(version.startsWith("4.1.")) insertSQL="insert into user values(?,?,'"+MySQLUser.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?)";
+                            if(version.startsWith("4.0.")) insertSQL="insert into user values(?,?,'"+MySQLUser.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?)";
+                            else if(version.startsWith("4.1.")) insertSQL="insert into user values(?,?,'"+MySQLUser.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?)";
                             else if(version.startsWith("5.0.")) insertSQL="insert into user values(?,?,'"+MySQLUser.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?,?)";
                             else throw new SQLException("Unsupported MySQL version: "+version);
                         } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
