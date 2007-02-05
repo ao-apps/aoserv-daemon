@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.failover;
 
 /*
- * Copyright 2003-2006 by AO Industries, Inc.,
+ * Copyright 2003-2007 by AO Industries, Inc.,
  * 816 Azalea Rd, Mobile, Alabama, 36693, U.S.A.
  * All rights reserved.
  */
@@ -644,10 +644,16 @@ final public class FailoverFileReplicationManager {
                                      * we will try the current directory and then the linkTo directory.
                                      */
 
-                                    // If there is a symlink that has now been replaced with a regular file, just delete the symlink to avoid confusion in the following code
-                                    if(ufStat.exists() && ufStat.isSymLink()) {
-                                        uf.delete();
-                                        uf.getStat(ufStat);
+                                    if(ufStat.exists()) {
+                                        // If there is a symlink that has now been replaced with a regular file, just delete the symlink to avoid confusion in the following code
+                                        if(ufStat.isSymLink()) {
+                                            uf.delete();
+                                            uf.getStat(ufStat);
+                                        } else if(ufStat.isDirectory()) {
+                                            // If there is a directory that has now been replaced with a regular file, just delete the directory recursively to avoid confusion in the following code
+                                            uf.deleteRecursive();
+                                            uf.getStat(ufStat);
+                                        }
                                     }
                                     // Look in the current directory for an exact match
                                     final boolean isEncryptedLoopFile = isEncryptedLoopFile(relativePath);

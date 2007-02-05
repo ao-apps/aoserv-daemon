@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.httpd;
 
 /*
- * Copyright 2005-2006 by AO Industries, Inc.,
+ * Copyright 2005-2007 by AO Industries, Inc.,
  * 816 Azalea Rd, Mobile, Alabama, 36693, U.S.A.
  * All rights reserved.
  */
@@ -28,9 +28,14 @@ import java.util.*;
 final public class AWStatsManager extends BuilderThread {
 
     private static final File configDirectory=new File("/etc/awstats");
-    private static final File awstatsDirectory=new File("/var/lib/awstats");
-    private static final File hostsDirectory=new File(awstatsDirectory, "hosts");
-    private static final File iconDirectory=new File("/usr/awstats/current/wwwroot/icon");
+    private static final File mandrivaAwstatsDirectory=new File("/var/lib/awstats");
+    private static final File redhatAwstatsDirectory=new File("/var/opt/awstats-6");
+    private static final File mandrivaHostsDirectory=new File("/var/lib/awstats/hosts");
+    private static final File redhatHostsDirectory=new File("/var/opt/awstats-6/hosts");
+    private static final File mandrivaBinDirectory=new File("/usr/awstats/current");
+    private static final File redhatBinDirectory=new File("/opt/awstats-6");
+    private static final File mandrivaIconDirectory=new File("/usr/awstats/current/wwwroot/icon");
+    private static final File redhatIconDirectory=new File("/opt/awstats-6/wwwroot/icon");
 
     private static AWStatsManager awstatsManager;
 
@@ -46,12 +51,22 @@ final public class AWStatsManager extends BuilderThread {
             AOServConnector connector=AOServDaemon.getConnector();
             AOServer aoServer=AOServDaemon.getThisAOServer();
 
+            final File awstatsDirectory;
+            final File hostsDirectory;
+            final File binDirectory;
             int osv=aoServer.getServer().getOperatingSystemVersion().getPKey();
-            // Currently only Mandrake 10.1 supported
             if(
-                osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
-                && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                osv==OperatingSystemVersion.MANDRAKE_10_1_I586
+                || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+            ) {
+                awstatsDirectory = mandrivaAwstatsDirectory;
+                hostsDirectory = mandrivaHostsDirectory;
+                binDirectory = mandrivaBinDirectory;
+            } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                awstatsDirectory = redhatAwstatsDirectory;
+                hostsDirectory = redhatHostsDirectory;
+                binDirectory = redhatBinDirectory;
+            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             // Resolve the UID and GID before obtaining the lock
             int awstatsUID=aoServer.getLinuxServerAccount(LinuxAccount.AWSTATS).getUID().getID();
@@ -93,13 +108,13 @@ final public class AWStatsManager extends BuilderThread {
                     String primaryURL=primaryHttpdSiteURL==null ? siteName : primaryHttpdSiteURL.getHostname();
                     usedHostnames.clear();
                     usedHostnames.put(primaryURL, null);
-                    
+
                     // Verify the /etc/awstats config file
                     byteBuff.reset();
                     out.print("#\n"
-                            + "# See /usr/awstats/current/wwwroot/cgi-bin/awstats.model.conf\n"
+                            + "# See ").print(binDirectory.getPath()).print("/wwwroot/cgi-bin/awstats.model.conf\n"
                             + "#\n"
-                            + "LogFile=\"/var/lib/awstats/hosts/").print(siteName).print("/logview.sh |\"\n"
+                            + "LogFile=\"").print(hostsDirectory.getPath()).print('/').print(siteName).print("/logview.sh |\"\n"
                             + "LogType=W\n"
                             + "LogFormat=1\n"
                             + "LogSeparator=\" \"\n"
@@ -137,14 +152,14 @@ final public class AWStatsManager extends BuilderThread {
                     if(count==0) out.print(primaryHttpdSiteURL);
                     out.print("\"\n"
                             + "DNSLookup=2\n"
-                            + "DirData=\"/var/lib/awstats/hosts/").print(siteName).print("/data\"\n"
-                            + "DirCgi=\"/usr/awstats/current/wwwroot/cgi-bin\"\n"
+                            + "DirData=\"").print(hostsDirectory.getPath()).print('/').print(siteName).print("/data\"\n"
+                            + "DirCgi=\"").print(binDirectory.getPath()).print("/wwwroot/cgi-bin\"\n"
                             + "DirIcons=\"https://secure.aoindustries.com/clientarea/control/httpd/awstats_icons\"\n"
                             + "AllowToUpdateStatsFromBrowser=0\n"
                             + "AllowFullYearView=0\n"
                             + "EnableLockForUpdate=1\n"
-                            + "DNSStaticCacheFile=\"/var/lib/awstats/dnscache.txt\"\n"
-                            + "DNSLastUpdateCacheFile=\"/var/lib/awstats/hosts/").print(siteName).print("/dnscachelastupdate.txt\"\n"
+                            + "DNSStaticCacheFile=\"").print(awstatsDirectory.getPath()).print("/dnscache.txt\"\n"
+                            + "DNSLastUpdateCacheFile=\"").print(hostsDirectory.getPath()).print('/').print(siteName).print("/dnscachelastupdate.txt\"\n"
                             + "SkipDNSLookupFor=\"\"\n"
                             + "AllowAccessFromWebToAuthenticatedUsersOnly=0\n"
                             + "AllowAccessFromWebToFollowingAuthenticatedUsers=\"\"\n"
@@ -197,7 +212,7 @@ final public class AWStatsManager extends BuilderThread {
                             + "Expires=0\n"
                             + "MaxRowsInHTMLOutput=1000\n"
                             + "Lang=\"auto\"\n"
-                            + "DirLang=\"/usr/awstats/current/wwwroot/cgi-bin/lang\"\n"
+                            + "DirLang=\"").print(binDirectory.getPath()).print("/wwwroot/cgi-bin/lang\"\n"
                             + "ShowMenu=1\n"
                             + "ShowSummary=UVPHB\n"
                             + "ShowMonthStats=UVPHB\n"
@@ -354,8 +369,8 @@ final public class AWStatsManager extends BuilderThread {
 
                     // logview.sh
                     byteBuff.reset();
-                    out.print("#!/bin/bash\n"
-                            + "/usr/awstats/current/tools/logresolvemerge.pl");
+                    out.print("#!/bin/bash\n");
+                    out.print(binDirectory.getPath()).print("/tools/logresolvemerge.pl");
                     usedLogs.clear();
                     for(HttpdSiteBind bind : binds) {
                         String access_log=bind.getAccessLog();
@@ -397,8 +412,8 @@ final public class AWStatsManager extends BuilderThread {
                     // runascgi.sh
                     byteBuff.reset();
                     out.print("#!/bin/bash\n"
-                            + "cd /usr/awstats/current/wwwroot/cgi-bin\n"
-                            + "export DOCUMENT_ROOT=/var/lib/awstats\n"
+                            + "cd ").print(binDirectory.getPath()).print("/wwwroot/cgi-bin\n"
+                            + "export DOCUMENT_ROOT=").print(awstatsDirectory.getPath()).print("\n"
                             + "export GATEWAY_INTERFACE=CGI/1.1\n"
                             + "export HTTP_ACCEPT='text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5'\n"
                             + "export HTTP_ACCEPT_CHARSET='ISO-8859-1,utf-8;q=0.7,*;q=0.7'\n"
@@ -418,7 +433,7 @@ final public class AWStatsManager extends BuilderThread {
                             + "else\n"
                             + "\texport REQUEST_URI=\"/cgi-bin/awstats.pl?${QUERY_STRING}\"\n"
                             + "fi\n"
-                            + "export SCRIPT_FILENAME='/usr/awstats/current/wwwroot/cgi-bin/awstats.pl'\n"
+                            + "export SCRIPT_FILENAME='").print(binDirectory.getPath()).print("/wwwroot/cgi-bin/awstats.pl'\n"
                             + "export SCRIPT_NAME='/cgi-bin/awstats.pl'\n"
                             + "export SCRIPT_URI='http://aoindustries.com/cgi-bin/awstats.pl'\n"
                             + "export SCRIPT_URL='/cgi-bin/awstats.pl'\n"
@@ -427,8 +442,8 @@ final public class AWStatsManager extends BuilderThread {
                             + "export SERVER_NAME='").print(siteName).print("'\n"
                             + "export SERVER_PORT='80'\n"
                             + "export SERVER_PROTOCOL='HTTP/1.1'\n"
-                            + "export SERVER_SOFTWARE='Apache-AdvancedExtranetServer/1.3.31'\n"
-                            + "/usr/awstats/current/wwwroot/cgi-bin/awstats.pl -config='").print(siteName).print("'\n");
+                            + "export SERVER_SOFTWARE='Apache-AdvancedExtranetServer/1.3.31'\n")
+                            .print(binDirectory.getPath()).print("/wwwroot/cgi-bin/awstats.pl -config='").print(siteName).print("'\n");
                     out.flush();
                     newFileContent=byteBuff.toByteArray();
 
@@ -458,8 +473,8 @@ final public class AWStatsManager extends BuilderThread {
                     // update.sh
                     byteBuff.reset();
                     out.print("#!/bin/bash\n"
-                            + "cd '/var/lib/awstats/hosts/").print(siteName).print("'\n"
-                            + "/usr/bin/perl /usr/awstats/current/wwwroot/cgi-bin/awstats.pl -config='").print(siteName).print("' -update\n");
+                            + "cd '").print(hostsDirectory.getPath()).print('/').print(siteName).print("'\n"
+                            + "/usr/bin/perl ").print(binDirectory.getPath()).print("/wwwroot/cgi-bin/awstats.pl -config='").print(siteName).print("' -update\n");
                     out.flush();
                     newFileContent=byteBuff.toByteArray();
 
@@ -565,6 +580,7 @@ final public class AWStatsManager extends BuilderThread {
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             ) throw new SQLException("Unsupport OperatingSystemVersion: "+osv);
 
             if("awstats.pl".equals(path)) {
@@ -584,12 +600,18 @@ final public class AWStatsManager extends BuilderThread {
                     || queryString.matches("^urlfilter=(\\w|\\.)*&urlfilterex=(\\w|\\.)*&output=\\w*&config="+escapedSiteName+"&framename=\\w*$")
                     || queryString.matches("^month=\\d*&year=\\d*&output=\\w*&config="+escapedSiteName+"&framename=\\w*$")
                 ) {
+                    String runascgi;
+                    if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                        runascgi = "/var/lib/awstats/hosts/"+siteName+"/runascgi.sh";
+                    } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                        runascgi = "/var/opt/awstats-6/hosts/"+siteName+"/runascgi.sh";
+                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                     String[] cmd={
                         "/bin/su",
                         "-s",
                         Shell.BASH,
                         "-c",
-                        "/var/lib/awstats/hosts/"+siteName+"/runascgi.sh '"+queryString+"'",
+                        runascgi+" '"+queryString+"'",
                         LinuxAccount.AWSTATS
                     };
                     Process P = Runtime.getRuntime().exec(cmd);
@@ -627,6 +649,15 @@ final public class AWStatsManager extends BuilderThread {
                 }
             } else {
                 if(path.startsWith("icon/") && path.indexOf("..")==-1) {
+                    final File iconDirectory;
+                    if(
+                        osv==OperatingSystemVersion.MANDRAKE_10_1_I586
+                        || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+                    ) {
+                        iconDirectory = mandrivaIconDirectory;
+                    } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                        iconDirectory = redhatIconDirectory;
+                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                     File file=new File(iconDirectory, path.substring(5));
                     FileInputStream in=new FileInputStream(file);
                     try {

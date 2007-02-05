@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.distro;
 
 /*
- * Copyright 2001-2006 by AO Industries, Inc.,
+ * Copyright 2001-2007 by AO Industries, Inc.,
  * 816 Azalea Rd, Mobile, Alabama, 36693, U.S.A.
  * All rights reserved.
  */
@@ -18,6 +18,8 @@ import com.oreilly.servlet.*;
 import java.io.*;
 import java.sql.*;
 import java.util.*;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * Verifies the server distribution.
@@ -25,6 +27,8 @@ import java.util.*;
  * @author  AO Industries, Inc.
  */
 final public class DistroManager implements Runnable {
+
+    private static final Log log = LogFactory.getLog(DistroManager.class);
 
     /**
      * The number of entries in a directory that will be reported as a warning.
@@ -102,11 +106,21 @@ final public class DistroManager implements Runnable {
                         AOServer thisAOServer=AOServDaemon.getThisAOServer();
                         long distroStartTime=System.currentTimeMillis();
                         long lastDistroTime=thisAOServer.getLastDistroTime();
-                        if(runNow || lastDistroTime>distroStartTime || (distroStartTime-lastDistroTime)>=2L*60*60*1000) {
+                        if(log.isDebugEnabled()) {
+                            log.debug("runNow="+runNow);
+                            log.debug("distroStartTime="+distroStartTime);
+                            log.debug("lastDistroTime="+lastDistroTime);
+                        }
+                        if(runNow || lastDistroTime>distroStartTime || (distroStartTime-lastDistroTime)>=12L*60*60*1000) {
                             int distroHour=thisAOServer.getDistroHour();
                             Calendar cal=Calendar.getInstance();
                             cal.setTimeInMillis(distroStartTime);
-                            if(runNow || cal.get(Calendar.HOUR_OF_DAY)==distroHour) {
+                            int currentHour = cal.get(Calendar.HOUR_OF_DAY);
+                            if(log.isDebugEnabled()) {
+                                log.debug("distroHour="+distroHour);
+                                log.debug("currentHour="+currentHour);
+                            }
+                            if(runNow || currentHour==distroHour) {
                                 ProcessTimer timer=new ProcessTimer(
                                     AOServDaemon.getRandom(),
                                     AOServDaemonConfiguration.getWarningSmtpServer(),
@@ -266,15 +280,18 @@ final public class DistroManager implements Runnable {
                     int fileUID=fileStat.getUID();
                     LinuxAccount la=distroFile.getLinuxAccount();
                     LinuxServerAccount lsa=la.getLinuxServerAccount(aoServer);
-                    if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount for "+la+" on "+aoServer);
-                    int distroUID=lsa.getUID().getID();
+                    if(lsa==null) AOServDaemon.reportWarning(new SQLException("Unable to find LinuxServerAccount for "+la+" on "+aoServer), new Object[] {"filename="+filename});
+                    int distroUID=lsa==null ? 65535 : lsa.getUID().getID();
                     if(fileUID!=distroUID) {
                         results.add("chown "+distroUID+" '"+filename+"' #"+fileUID+"!="+distroUID);
                     }
 
                     // Check group
                     int fileGID=fileStat.getGID();
-                    int distroGID=distroFile.getLinuxGroup().getLinuxServerGroup(aoServer).getGID().getID();
+                    LinuxGroup lg = distroFile.getLinuxGroup();
+                    LinuxServerGroup lsg = lg.getLinuxServerGroup(aoServer);
+                    if(lsg==null) AOServDaemon.reportWarning(new SQLException("Unable to find LinuxServerGroup for "+lg+" on "+aoServer), new Object[] {"filename="+filename});
+                    int distroGID=lsg==null ? 65535 : lsg.getGID().getID();
                     if(fileGID!=distroGID) {
                         results.add("chgrp "+distroGID+" '"+filename+"' #"+fileGID+"!="+distroGID);
                     }
@@ -496,7 +513,7 @@ final public class DistroManager implements Runnable {
                                 checkUserDirectory(aoServer, uf, results, recursionLevel+1);
                             }
                         } catch(RuntimeException err) {
-                            System.err.println("RuntimeException while accessing: "+uf.getFilename());
+                            if(log.isErrorEnabled()) log.error("RuntimeException while accessing: "+uf.getFilename());
                             throw err;
                         }
                     } catch(FileNotFoundException err) {
@@ -514,8 +531,10 @@ final public class DistroManager implements Runnable {
         try {
             int size=results.size();
             if(size>0) {
-                // Full version to System.err
-                for(int c=0;c<size;c++) System.err.println(results.get(c));
+                // Log full version
+                if(log.isInfoEnabled()) {
+                    for(int c=0;c<size;c++) log.info(results.get(c));
+                }
 
                 // Compile the counters for each of the different codes
                 /*
