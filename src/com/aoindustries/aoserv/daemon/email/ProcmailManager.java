@@ -24,6 +24,8 @@ import java.util.*;
  */
 public final class ProcmailManager extends BuilderThread {
 
+    /** Disable email attachment type blocks here. */
+    public static final boolean EMAIL_ATTACHMENT_TYPES_ENABLED = false;
     
     /** The file that stores the procmail configuration */
     public static final String PROCMAILRC=".procmailrc";
@@ -78,7 +80,9 @@ public final class ProcmailManager extends BuilderThread {
                             Stat procmailrcStat = procmailrc.getStat();
                             boolean isAutoresponderEnabled=lsa.isAutoresponderEnabled();
                             boolean useInbox=lsa.useInbox();
-                            List<EmailAttachmentBlock> eabs=lsa.getEmailAttachmentBlocks();
+                            List<EmailAttachmentBlock> eabs;
+                            if(EMAIL_ATTACHMENT_TYPES_ENABLED) eabs = lsa.getEmailAttachmentBlocks();
+                            else eabs = Collections.emptyList();
                             if(isAutoresponderEnabled || !useInbox || !eabs.isEmpty()) {
                                 // Build the file in RAM, first
                                 ByteArrayOutputStream bout=new ByteArrayOutputStream(4096);
@@ -358,7 +362,7 @@ public final class ProcmailManager extends BuilderThread {
                         System.out.print("Starting ProcmailManager: ");
                         AOServConnector connector=AOServDaemon.getConnector();
                         procmailManager=new ProcmailManager();
-                        connector.emailAttachmentBlocks.addTableListener(procmailManager, 0);
+                        if(EMAIL_ATTACHMENT_TYPES_ENABLED) connector.emailAttachmentBlocks.addTableListener(procmailManager, 0);
                         connector.ipAddresses.addTableListener(procmailManager, 0);
                         connector.linuxServerAccounts.addTableListener(procmailManager, 0);
                         System.out.println("Done");
