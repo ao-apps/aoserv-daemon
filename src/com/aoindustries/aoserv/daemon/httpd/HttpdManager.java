@@ -33,12 +33,14 @@ final public class HttpdManager extends BuilderThread {
      */
     public static final String DEFAULT_MANDRAKE_10_1_PHP_VERSION="4";
     public static final String DEFAULT_MANDRIVA_2006_0_PHP_VERSION="4";
-    public static final String DEFAULT_REDHAT_ES_4_PHP_VERSION=null;
+    public static final String DEFAULT_REDHAT_ES_4_PHP_VERSION="5";
 
     /**
      * The version of PostgreSQL minor version used by the default PHP version.
      */
-    public static final String PHP_POSTGRES_MINOR_VERSION="7.3";
+    public static final String MANDRAKE_10_1_PHP_POSTGRES_MINOR_VERSION="7.3";
+    public static final String MANDRIVA_2006_0_PHP_POSTGRES_MINOR_VERSION="7.3";
+    public static final String REDHAT_ES_4_PHP_POSTGRES_MINOR_VERSION="8.1";
 
     /**
      * The default JDK version.
@@ -2588,9 +2590,19 @@ final public class HttpdManager extends BuilderThread {
                 )
             );
             try {
-                out.print("#!/bin/sh\n"
-                          + ". /usr/aoserv/etc/postgresql-"+PHP_POSTGRES_MINOR_VERSION+".sh\n"
-                          + "exec /usr/php/").print(defaultPhpVersion).print("/bin/php \"$@\"\n");
+                if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                    out.print("#!/bin/sh\n"
+                              + ". /opt/aoserv-client/scripts/postgresql-"+REDHAT_ES_4_PHP_POSTGRES_MINOR_VERSION+".sh\n"
+                              + "exec /opt/php-").print(defaultPhpVersion).print("/bin/php \"$@\"\n");
+                } else if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) {
+                    out.print("#!/bin/sh\n"
+                              + ". /usr/aoserv/etc/postgresql-"+MANDRAKE_10_1_PHP_POSTGRES_MINOR_VERSION+".sh\n"
+                              + "exec /usr/php/").print(defaultPhpVersion).print("/bin/php \"$@\"\n");
+                } else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                    out.print("#!/bin/sh\n"
+                              + ". /usr/aoserv/etc/postgresql-"+MANDRIVA_2006_0_PHP_POSTGRES_MINOR_VERSION+".sh\n"
+                              + "exec /usr/php/").print(defaultPhpVersion).print("/bin/php \"$@\"\n");
+                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
             } finally {
                 out.flush();
                 out.close();
@@ -3107,6 +3119,14 @@ final public class HttpdManager extends BuilderThread {
                                 + "# LoadModule proxy_connect_module modules/mod_proxy_connect.so\n"
                                 + "# LoadModule cache_module modules/mod_cache.so\n");
                         if(hs.useSuexec()) out.print("LoadModule suexec_module modules/mod_suexec.so\n");
+                        if(isEnabled && phpVersion!=null) {
+                            String version = phpVersion.getVersion();
+                            out.print("\n"
+                                    + "# Enable mod_php\n"
+                                    + "LoadModule php").print(version.charAt(0)).print("_module /opt/php-").print(getMajorPhpVersion(version)).print("/lib/apache/").print(getPhpLib(phpVersion)).print("\n"
+                                    + "AddType application/x-httpd-php .php4 .php3 .phtml .php\n"
+                                    + "AddType application/x-httpd-php-source .phps\n");
+                        }
                         out.print("# LoadModule disk_cache_module modules/mod_disk_cache.so\n"
                                 + "# LoadModule file_cache_module modules/mod_file_cache.so\n"
                                 + "# LoadModule mem_cache_module modules/mod_mem_cache.so\n"
@@ -3759,28 +3779,26 @@ final public class HttpdManager extends BuilderThread {
 			    HttpdTomcatSharedSite sharedSite=tomcatSite.getHttpdTomcatSharedSite();
 			    
 			    boolean useApache=tomcatSite.useApache();
-                            if(osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-                                if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                                    out.print("    <IfModule !sapi_apache2.c>\n"
-                                            + "        <IfModule !mod_php5.c>\n"
-                                            + "            Action php4-script /cgi-bin/php\n"
-                                            + "            AddHandler php4-script .php .php3 .php4\n"
-                                            + "        </IfModule>\n"
-                                            + "    </IfModule>\n");
-                                } else {
-                                    out.print("    <IfModule !mod_php4.c>\n"
-                                            + "        <IfModule !mod_php5.c>\n"
-                                            + "            Include conf/options/cgi_php4\n"
-                                            + "        </IfModule>\n"
-                                            + "    </IfModule>\n");
-                                }
+                            if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586 || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                                out.print("    <IfModule !sapi_apache2.c>\n"
+                                        + "        <IfModule !mod_php5.c>\n"
+                                        + "            Action php4-script /cgi-bin/php\n"
+                                        + "            AddHandler php4-script .php .php3 .php4\n"
+                                        + "        </IfModule>\n"
+                                        + "    </IfModule>\n");
+                            } else {
+                                out.print("    <IfModule !mod_php4.c>\n"
+                                        + "        <IfModule !mod_php5.c>\n"
+                                        + "            Include conf/options/cgi_php4\n"
+                                        + "        </IfModule>\n"
+                                        + "    </IfModule>\n");
+                            }
 
-                                if(useApache) {
-                                    if(osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                                        out.print("    Include conf/options/shtml_standard\n"
-                                                  + "    Include conf/options/mod_rewrite\n"
-                                                  + "\n");
-                                    }
+                            if(useApache) {
+                                if(osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586 && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                                    out.print("    Include conf/options/shtml_standard\n"
+                                              + "    Include conf/options/mod_rewrite\n"
+                                              + "\n");
                                 }
                             }
 			    if(stdSite!=null || jbossSite!=null) {
@@ -4303,7 +4321,13 @@ final public class HttpdManager extends BuilderThread {
                                 out.print(". /usr/aoserv/etc/").print(getDefaultJdkVersion(osv)).print(".sh\n");
                             }
                             String defaultPhpVersion = getDefaultPhpVersion(osv);
-                            if(defaultPhpVersion!=null) out.print(". /usr/aoserv/etc/php-").print(defaultPhpVersion).print(".sh\n");
+                            if(defaultPhpVersion!=null) {
+                                if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                                    out.print(". /opt/aoserv-client/scripts/php-").print(defaultPhpVersion).print(".sh\n");
+                                } else {
+                                    out.print(". /usr/aoserv/etc/php-").print(defaultPhpVersion).print(".sh\n");
+                                }
+                            }
 			    if(postgresServerMinorVersion!=null) {
                                 if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                                     out.print(". /opt/aoserv-client/scripts/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
@@ -4341,7 +4365,13 @@ final public class HttpdManager extends BuilderThread {
                                     + ". /usr/aoserv/etc/ant-1.6.2.sh\n"
                                     + ". /usr/aoserv/etc/xalan-1.2.d02.sh\n");
                             String defaultPhpVersion = getDefaultPhpVersion(osv);
-                            if(defaultPhpVersion!=null) out.print(". /usr/aoserv/etc/php-").print(defaultPhpVersion).print(".sh\n");
+                            if(defaultPhpVersion!=null) {
+                                if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                                    out.print(". /opt/aoserv-client/scripts/php-").print(defaultPhpVersion).print(".sh\n");
+                                } else {
+                                    out.print(". /usr/aoserv/etc/php-").print(defaultPhpVersion).print(".sh\n");
+                                }
+                            }
                             if(postgresServerMinorVersion!=null) out.print(". /usr/aoserv/etc/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
                             out.print(". /usr/aoserv/etc/profile\n"
                                     + ". /usr/aoserv/etc/fop-0.15.0.sh\n");
