@@ -63,14 +63,23 @@ final public class CvsManager extends BuilderThread {
                     Stat cvsStat = cvsUF.getStat();
                     long cvsMode=cvs.getMode();
                     // Make the directory
-                    if(!cvsStat.exists()) cvsUF.mkdir(true, cvsMode);
+                    if(!cvsStat.exists()) {
+                        cvsUF.mkdir(true, cvsMode);
+                        cvsUF.getStat(cvsStat);
+                    }
                     // Set the mode
-                    if(cvsStat.getMode()!=cvsMode) cvsUF.setMode(cvsMode);
+                    if(cvsStat.getMode()!=cvsMode) {
+                        cvsUF.setMode(cvsMode);
+                        cvsUF.getStat(cvsStat);
+                    }
                     // Set the owner and group
                     LinuxServerAccount lsa=cvs.getLinuxServerAccount();
                     int uid=lsa.getUID().getID();
                     int gid=cvs.getLinuxServerGroup().getGID().getID();
-                    if(uid!=cvsStat.getUID() || gid!=cvsStat.getGID()) cvsUF.chown(uid, gid);
+                    if(uid!=cvsStat.getUID() || gid!=cvsStat.getGID()) {
+                        cvsUF.chown(uid, gid);
+                        cvsUF.getStat(cvsStat);
+                    }
                     // Init if needed
                     UnixFile cvsRootUF=new UnixFile(cvsUF, "CVSROOT", false);
                     if(!cvsRootUF.getStat().exists()) {
