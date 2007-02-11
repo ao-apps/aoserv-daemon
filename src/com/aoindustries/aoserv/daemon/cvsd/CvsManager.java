@@ -91,7 +91,7 @@ final public class CvsManager extends BuilderThread {
                     // Remove from list
                     if(sv.contains(path)) sv.remove(path);
                 }
-                
+
                 /*
                  * Back up the files scheduled for removal.
                  */
