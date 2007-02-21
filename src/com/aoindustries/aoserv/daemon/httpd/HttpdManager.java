@@ -5,21 +5,70 @@ package com.aoindustries.aoserv.daemon.httpd;
  * 816 Azalea Rd, Mobile, Alabama, 36693, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.*;
-import com.aoindustries.aoserv.daemon.*;
-import com.aoindustries.aoserv.daemon.backup.*;
-import com.aoindustries.aoserv.daemon.ftp.*;
-import com.aoindustries.aoserv.daemon.unix.linux.*;
-import com.aoindustries.aoserv.daemon.util.*;
-import com.aoindustries.io.*;
-import com.aoindustries.io.unix.*;
-import com.aoindustries.profiler.*;
-import com.aoindustries.sql.*;
-import com.aoindustries.util.*;
-import com.aoindustries.util.sort.*;
-import java.io.*;
-import java.sql.*;
-import java.util.*;
+import com.aoindustries.aoserv.client.AOSHCommand;
+import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.HttpdBind;
+import com.aoindustries.aoserv.client.HttpdJBossSite;
+import com.aoindustries.aoserv.client.HttpdJKProtocol;
+import com.aoindustries.aoserv.client.HttpdServer;
+import com.aoindustries.aoserv.client.HttpdServerTable;
+import com.aoindustries.aoserv.client.HttpdSharedTomcat;
+import com.aoindustries.aoserv.client.HttpdSite;
+import com.aoindustries.aoserv.client.HttpdSiteAuthenticatedLocation;
+import com.aoindustries.aoserv.client.HttpdSiteBind;
+import com.aoindustries.aoserv.client.HttpdSiteURL;
+import com.aoindustries.aoserv.client.HttpdStaticSite;
+import com.aoindustries.aoserv.client.HttpdTomcatContext;
+import com.aoindustries.aoserv.client.HttpdTomcatDataSource;
+import com.aoindustries.aoserv.client.HttpdTomcatParameter;
+import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
+import com.aoindustries.aoserv.client.HttpdTomcatSite;
+import com.aoindustries.aoserv.client.HttpdTomcatStdSite;
+import com.aoindustries.aoserv.client.HttpdTomcatVersion;
+import com.aoindustries.aoserv.client.HttpdWorker;
+import com.aoindustries.aoserv.client.IPAddress;
+import com.aoindustries.aoserv.client.LinuxAccount;
+import com.aoindustries.aoserv.client.LinuxGroup;
+import com.aoindustries.aoserv.client.LinuxServerAccount;
+import com.aoindustries.aoserv.client.LinuxServerGroup;
+import com.aoindustries.aoserv.client.NetBind;
+import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.PostgresServer;
+import com.aoindustries.aoserv.client.Server;
+import com.aoindustries.aoserv.client.TechnologyVersion;
+import com.aoindustries.aoserv.client.Username;
+import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.backup.BackupManager;
+import com.aoindustries.aoserv.daemon.ftp.FTPManager;
+import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
+import com.aoindustries.aoserv.daemon.util.BuilderThread;
+import com.aoindustries.io.ChainWriter;
+import com.aoindustries.io.unix.Stat;
+import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.profiler.Profiler;
+import com.aoindustries.sql.SQLUtility;
+import com.aoindustries.util.BufferManager;
+import com.aoindustries.util.IntList;
+import com.aoindustries.util.SortedArrayList;
+import com.aoindustries.util.SortedIntArrayList;
+import com.aoindustries.util.UnixCrypt;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * The configuration for all AOServ processes is stored in a properties file.
@@ -2705,7 +2754,7 @@ final public class HttpdManager extends BuilderThread {
                 disableAndEnableSiteBinds(aoServer, connector);
 
                 // Control the /etc/logrotate.d and /etc/httpd/conf/logrotate.d files
-                doRebuildLogrotate(aoServer, deleteFileList, connector, tempStat);
+                doRebuildLogrotate(osv, aoServer, deleteFileList, connector, tempStat);
 
                 // Reload the server configs
                 reload(serversNeedingRestarted);
@@ -3449,7 +3498,7 @@ final public class HttpdManager extends BuilderThread {
                                 );
 				try {
                                     String tomcatVersion=tomcatSite.getHttpdTomcatVersion().getTechnologyVersion(conn).getVersion();
-                                    if(tomcatVersion.startsWith(HttpdTomcatVersion.VERSION_3_1_PREFIX)) {
+                                    if(tomcatVersion.equals("3.1") || tomcatVersion.startsWith(HttpdTomcatVersion.VERSION_3_1_PREFIX)) {
                                         out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n");
                                         if(!site.isManual()) out.print(autoWarning);
                                         out.print("<Server>\n"
@@ -5950,12 +5999,13 @@ final public class HttpdManager extends BuilderThread {
     }
     
     private static final void doRebuildLogrotate(
+        int osv,
         AOServer aoServer,
         List<File> deleteFileList,
         AOServConnector conn,
         Stat tempStat
     ) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "doRebuildLogrotate(AOServer,List<File>,AOServConnector,Stat)", null);
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "doRebuildLogrotate(int,AOServer,List<File>,AOServConnector,Stat)", null);
         try {
             // The log rotations that exist but are not used will be removed
             String[] list=new File(LOG_ROTATION_DIR).list();
@@ -5968,18 +6018,73 @@ final public class HttpdManager extends BuilderThread {
             // For each site, build/rebuild the logrotate.d file as necessary and create any necessary log files
             ByteArrayOutputStream byteOut=new ByteArrayOutputStream();
             ChainWriter chainOut=new ChainWriter(byteOut);
+            Set<HttpdServer> httpdServers = new HashSet<HttpdServer>();
             List<HttpdSite> sites=aoServer.getHttpdSites();
             for(int c=0;c<sites.size();c++) {
                 HttpdSite site=sites.get(c);
 
                 // Write the new file to RAM first
                 byteOut.reset();
+                boolean wroteOne = false;
+                // Build the list of all related httpdservers
+                httpdServers.clear();
                 List<HttpdSiteBind> binds=site.getHttpdSiteBinds();
                 for(int d=0;d<binds.size();d++) {
                     HttpdSiteBind bind=binds.get(d);
-                    writeLogRotateAndMakeLogFiles(site, chainOut, bind, bind.getAccessLog(), deleteFileList, completedPaths, tempStat);
-                    writeLogRotateAndMakeLogFiles(site, chainOut, bind, bind.getErrorLog(), deleteFileList, completedPaths, tempStat);
+                    HttpdServer hs = bind.getHttpdBind().getHttpdServer();
+                    if(!httpdServers.contains(hs)) httpdServers.add(hs);
+                    String access_log = bind.getAccessLog();
+                    // Each unique path is only rotated once
+                    if(!completedPaths.containsKey(access_log)) {
+                        completedPaths.put(access_log, null);
+                        // Add to the site log rotation
+                        if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) {
+                            chainOut.print(access_log).print(" {\n    daily\n    rotate 379\n}\n");
+                        } else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586 || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                            if(wroteOne) chainOut.print(' ');
+                            else wroteOne = true;
+                            chainOut.print(access_log);
+                        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        makeLogFiles(site, bind, access_log, deleteFileList, completedPaths, tempStat);
+                    }
+                    String error_log = bind.getErrorLog();
+                    if(!completedPaths.containsKey(error_log)) {
+                        completedPaths.put(error_log, null);
+                        // Add to the site log rotation
+                        if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) {
+                            chainOut.print(error_log).print(" {\n    daily\n    rotate 379\n}\n");
+                        } else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586 || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                            if(wroteOne) chainOut.print(' ');
+                            else wroteOne = true;
+                            chainOut.print(error_log);
+                        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        makeLogFiles(site, bind, error_log, deleteFileList, completedPaths, tempStat);
+                    }
                 }
+                // Finish the file
+                if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) {
+                    // Do nothing
+                } else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586 || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                    if(wroteOne) {
+                        chainOut.print(" {\n"
+                                     + "    daily\n"
+                                     + "    rotate 379\n"
+                                     + "    sharedscripts\n");
+                        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                            chainOut.print("    prerotate\n");
+                            for(HttpdServer httpdServer : httpdServers) {
+                                chainOut.print("        /bin/kill -HUP `cat /var/run/httpd").print(httpdServer.getNumber()).print(".pid 2>/dev/null` 2> /dev/null || true\n");
+                            }
+                            chainOut.print("    endscript\n");
+                        }
+                        chainOut.print("    postrotate\n");
+                        for(HttpdServer httpdServer : httpdServers) {
+                            chainOut.print("        /bin/kill -HUP `cat /var/run/httpd").print(httpdServer.getNumber()).print(".pid 2>/dev/null` 2> /dev/null || true\n");
+                        }
+                        chainOut.print("    endscript\n"
+                                     + "}\n");
+                    }
+                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                 chainOut.flush();
                 byte[] newFileContent=byteOut.toByteArray();
 
@@ -6009,47 +6114,38 @@ final public class HttpdManager extends BuilderThread {
         }
     }
     
-    private static void writeLogRotateAndMakeLogFiles(
+    private static void makeLogFiles(
         HttpdSite site,
-        ChainWriter out,
         HttpdSiteBind siteBind,
         String path,
         List<File> deleteFileList,
         Map<String,Object> completedPaths,
         Stat tempStat
     ) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "writeLogRotateAndMakeLogFiles(HttpdSite,ChainWriter,HttpdSiteBind,String,List<File>,Map<String,Object>,Stat)", null);
+        Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "makeLogFiles(HttpdSite,HttpdSiteBind,String,List<File>,Map<String,Object>,Stat)", null);
         try {
-            // Each unique path is only rotated once
-            if(!completedPaths.containsKey(path)) {
-                completedPaths.put(path, null);
-                
-                AOServer aoServer=AOServDaemon.getThisAOServer();
-                LinuxServerAccount awstatsLSA=aoServer.getLinuxServerAccount(LinuxAccount.AWSTATS);
-                if(awstatsLSA==null) throw new SQLException("Unable to find LinuxServerAccount: "+LinuxAccount.AWSTATS+" on "+aoServer.getServer().getHostname());
-                int awstatsUID=awstatsLSA.getUID().getID();
-                int lsgGID=site.getLinuxServerGroup().getGID().getID();
+            AOServer aoServer=AOServDaemon.getThisAOServer();
+            LinuxServerAccount awstatsLSA=aoServer.getLinuxServerAccount(LinuxAccount.AWSTATS);
+            if(awstatsLSA==null) throw new SQLException("Unable to find LinuxServerAccount: "+LinuxAccount.AWSTATS+" on "+aoServer.getServer().getHostname());
+            int awstatsUID=awstatsLSA.getUID().getID();
+            int lsgGID=site.getLinuxServerGroup().getGID().getID();
 
-                UnixFile logFile=new UnixFile(path);
-                UnixFile logFileParent=logFile.getParent();
-                
-                // Make sure the parent directory exists and has the correct permissions
-                logFileParent.getStat(tempStat);
-                if(!tempStat.exists()) logFileParent.mkdir(true, 0750, awstatsUID, lsgGID);
-                else {
-                    if(tempStat.getMode()!=0750) logFileParent.setMode(0750);
-                    if(
-                        tempStat.getUID()!=awstatsUID
-                        || tempStat.getGID()!=lsgGID
-                    ) logFileParent.chown(awstatsUID, lsgGID);
-                }
+            UnixFile logFile=new UnixFile(path);
+            UnixFile logFileParent=logFile.getParent();
 
-                // Make sure the log file exists
-                if(!logFile.getStat(tempStat).exists()) logFile.getSecureOutputStream(awstatsUID, lsgGID, 0640, false).close();
-
-                // Add to the site log rotation
-                out.print(path).print(" {\n    daily\n    rotate 379\n}\n");
+            // Make sure the parent directory exists and has the correct permissions
+            logFileParent.getStat(tempStat);
+            if(!tempStat.exists()) logFileParent.mkdir(true, 0750, awstatsUID, lsgGID);
+            else {
+                if(tempStat.getMode()!=0750) logFileParent.setMode(0750);
+                if(
+                    tempStat.getUID()!=awstatsUID
+                    || tempStat.getGID()!=lsgGID
+                ) logFileParent.chown(awstatsUID, lsgGID);
             }
+
+            // Make sure the log file exists
+            if(!logFile.getStat(tempStat).exists()) logFile.getSecureOutputStream(awstatsUID, lsgGID, 0640, false).close();
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);
         }
