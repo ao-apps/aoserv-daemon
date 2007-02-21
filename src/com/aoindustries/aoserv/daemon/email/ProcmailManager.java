@@ -83,7 +83,8 @@ public final class ProcmailManager extends BuilderThread {
                             List<EmailAttachmentBlock> eabs;
                             if(EMAIL_ATTACHMENT_TYPES_ENABLED) eabs = lsa.getEmailAttachmentBlocks();
                             else eabs = Collections.emptyList();
-                            if(isAutoresponderEnabled || !useInbox || !eabs.isEmpty()) {
+                            String spamAssassinMode = lsa.getEmailSpamAssassinIntegrationMode().getName();
+                            if(isAutoresponderEnabled || !useInbox || !eabs.isEmpty() || !spamAssassinMode.equals(EmailSpamAssassinIntegrationMode.NONE)) {
                                 // Build the file in RAM, first
                                 ByteArrayOutputStream bout=new ByteArrayOutputStream(4096);
                                 ChainWriter out=new ChainWriter(bout);
@@ -117,7 +118,6 @@ public final class ProcmailManager extends BuilderThread {
                                             + "* ^X-Loop: ").print(xloopAddress).print("\n"
                                             + "/dev/null\n");
 
-                                    String spamAssassinMode = lsa.getEmailSpamAssassinIntegrationMode().getName();
                                     if(!spamAssassinMode.equals(EmailSpamAssassinIntegrationMode.NONE)) {
                                         out.print("\n"
                                                 + "# Filter through spamassassin\n"
