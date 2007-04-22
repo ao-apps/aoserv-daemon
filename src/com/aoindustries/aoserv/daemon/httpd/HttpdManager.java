@@ -206,10 +206,10 @@ final public class HttpdManager extends BuilderThread {
                 else if(tomcatVersion.equals("3.2.4")) buildHttpdTomcatStdSite_3_2_4(stdSite);
                 else if(tomcatVersion.equals("4.1.31")) buildHttpdTomcatStdSite_4_1_X(stdSite);
                 else if(tomcatVersion.equals("4.1.34")) buildHttpdTomcatStdSite_4_1_X(stdSite);
-                else if(tomcatVersion.equals("4.1.Latest")) buildHttpdTomcatStdSite_4_1_X(stdSite);
+                else if(tomcatVersion.equals("4.1.Newest")) buildHttpdTomcatStdSite_4_1_X(stdSite);
                 else if(tomcatVersion.equals("5.5.17")) buildHttpdTomcatStdSite_5_5_X(stdSite);
                 else if(tomcatVersion.equals("5.5.20")) buildHttpdTomcatStdSite_5_5_X(stdSite);
-                else if(tomcatVersion.equals("5.5.Latest")) buildHttpdTomcatStdSite_5_5_X(stdSite);
+                else if(tomcatVersion.equals("5.5.Newest")) buildHttpdTomcatStdSite_5_5_X(stdSite);
                 else throw new SQLException("Unsupported version of standard Tomcat: "+tomcatVersion+" on "+stdSite);
             } else if(jbossSite!=null) {
                 String jbossVersion = jbossSite.getHttpdJBossVersion().getTechnologyVersion(connector).getVersion();
@@ -219,10 +219,10 @@ final public class HttpdManager extends BuilderThread {
                 else if(tomcatVersion.equals("3.2.4")) buildHttpdTomcatSharedSite_3_2_4(shrSite);
                 else if(tomcatVersion.equals("4.1.31")) buildHttpdTomcatSharedSite_4_1_X(shrSite);
                 else if(tomcatVersion.equals("4.1.34")) buildHttpdTomcatSharedSite_4_1_X(shrSite);
-                else if(tomcatVersion.equals("4.1.Latest")) buildHttpdTomcatSharedSite_4_1_X(shrSite);
+                else if(tomcatVersion.equals("4.1.Newest")) buildHttpdTomcatSharedSite_4_1_X(shrSite);
                 else if(tomcatVersion.equals("5.5.17")) buildHttpdTomcatSharedSite_5_5_X(shrSite);
                 else if(tomcatVersion.equals("5.5.20")) buildHttpdTomcatSharedSite_5_5_X(shrSite);
-                else if(tomcatVersion.equals("5.5.Latest")) buildHttpdTomcatSharedSite_5_5_X(shrSite);
+                else if(tomcatVersion.equals("5.5.Newest")) buildHttpdTomcatSharedSite_5_5_X(shrSite);
                 else throw new SQLException("Unsupported version of shared Tomcat: "+tomcatVersion+" on "+stdSite);
             } else throw new SQLException("HttpdTomcatSite must be one of HttpdTomcatStdSite, HttpdTomcatSharedSite, or HttpdJBossSite: "+tomcatSite);
         } finally {
@@ -3080,6 +3080,7 @@ final public class HttpdManager extends BuilderThread {
                                 + "Include conf/modules_conf/mod_log_config\n"
                                 + "Include conf/modules_conf/mod_mime_magic\n"
                                 + "Include conf/modules_conf/mod_setenvif\n"
+                                + "Include conf/modules_conf/mod_proxy\n"
                                 + "Include conf/modules_conf/mod_mime\n"
                                 + "Include conf/modules_conf/mod_dav\n"
                                 + "Include conf/modules_conf/mod_status\n"
@@ -3192,6 +3193,7 @@ final public class HttpdManager extends BuilderThread {
                                 + "Include conf/modules_conf/mod_negotiation\n"
                                 + "Include conf/modules_conf/mod_dir\n"
                                 + "Include conf/modules_conf/mod_userdir\n"
+                                + "Include conf/modules_conf/mod_proxy\n"
                                 + "Include conf/modules_conf/mod_ssl\n"
                                 + "Include conf/modules_conf/mod_jk\n"
                                 + "\n"
@@ -6068,7 +6070,8 @@ final public class HttpdManager extends BuilderThread {
                     if(wroteOne) {
                         chainOut.print(" {\n"
                                      + "    daily\n"
-                                     + "    rotate 379\n"
+                                     + "    rotate 379\n");
+                        /*
                                      + "    sharedscripts\n");
                         if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                             chainOut.print("    prerotate\n");
@@ -6081,8 +6084,8 @@ final public class HttpdManager extends BuilderThread {
                         for(HttpdServer httpdServer : httpdServers) {
                             chainOut.print("        /bin/kill -HUP `cat /var/run/httpd").print(httpdServer.getNumber()).print(".pid 2>/dev/null` 2> /dev/null || true\n");
                         }
-                        chainOut.print("    endscript\n"
-                                     + "}\n");
+                        chainOut.print("    endscript\n"*/
+                        chainOut.print("}\n");
                     }
                 } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                 chainOut.flush();
