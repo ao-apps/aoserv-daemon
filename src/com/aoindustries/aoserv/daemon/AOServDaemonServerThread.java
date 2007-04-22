@@ -14,6 +14,7 @@ import com.aoindustries.aoserv.daemon.failover.*;
 import com.aoindustries.aoserv.daemon.ftp.*;
 import com.aoindustries.aoserv.daemon.httpd.*;
 import com.aoindustries.aoserv.daemon.interbase.*;
+import com.aoindustries.aoserv.daemon.monitor.MrtgManager;
 import com.aoindustries.aoserv.daemon.mysql.*;
 import com.aoindustries.aoserv.daemon.postgres.*;
 import com.aoindustries.aoserv.daemon.server.*;
@@ -400,7 +401,7 @@ final public class AOServDaemonServerThread extends Thread {
                                     if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_MRTG_FILE, Thread="+toString());
                                     String filename=in.readUTF();
                                     if(key==null) throw new IOException("Only the master server may GET_MRTG_FILE");
-                                    ServerManager.getMrtgFile(filename, out);
+                                    MrtgManager.getMrtgFile(filename, out);
                                     out.write(AOServDaemonProtocol.DONE);
                                 }
                                 break;

@@ -50,40 +50,6 @@ final public class ServerManager {
         }
     }
 
-    public static final File mrtgDirectory=new File("/var/www/html/mrtg");
-
-    public static void getMrtgFile(String filename, CompressedDataOutputStream out) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.IO, ServerManager.class, "getMrtgFile(String,CompressedDataOutputStream)", null);
-        try {
-            // Currently only Mandrake 10.1 supported
-            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
-            if(
-                osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
-                && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-            ) throw new SQLException("Unsupport OperatingSystemVersion: "+osv);
-
-            File file=new File(mrtgDirectory, filename);
-            FileInputStream in=new FileInputStream(file);
-            try {
-                byte[] buff=BufferManager.getBytes();
-                try {
-                    int ret;
-                    while((ret=in.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
-                        out.write(AOServDaemonProtocol.NEXT);
-                        out.writeShort(ret);
-                        out.write(buff, 0, ret);
-                    }
-                } finally {
-                    BufferManager.release(buff);
-                }
-            } finally {
-                in.close();
-            }
-        } finally {
-            Profiler.endProfile(Profiler.IO);
-        }
-    }
-
     public static void restartCron() throws IOException, SQLException {
         Profiler.startProfile(Profiler.INSTANTANEOUS, ServerManager.class, "restartCron()", null);
         try {
