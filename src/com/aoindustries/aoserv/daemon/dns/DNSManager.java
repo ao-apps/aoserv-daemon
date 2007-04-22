@@ -42,12 +42,11 @@ final public class DNSManager extends BuilderThread {
         // Loopbackup IP
         + " 127.0.0.0/8;"
         // Kansas City
-        + " 65.77.181.128/29;" // Firewalls
-        + " 65.77.211.0/24;"   // Hosts
+        + " 207.126.57.0/24;"   // Hosts
         // Fremont
         + " 64.71.143.176/29;" // Firewalls
         + " 66.160.183.0/24;"  // Hosts
-        + " 64.62.174.0/24;"   // ultimateshoppingcart.com
+        + " 64.62.174.0/24;"   // More Hosts
         // Amsterdam
         + " 64.62.145.40/29;"  // Firewalls
         + " 64.71.144.0/25;"   // Hosts
@@ -176,8 +175,16 @@ final public class DNSManager extends BuilderThread {
                              + "\talso-notify { 216.218.130.2; 216.218.131.2; 216.218.132.2; };\n"
                              + "\tallow-query { " + ACL + " };\n"
                              + "\tallow-recursion { " + ACL + " };\n");
+                    Map<Integer,Set<String>> alreadyAddedIPs = new HashMap<Integer,Set<String>>();
 		    for(NetBind nb : AOServDaemon.getThisAOServer().getNetBinds(connector.protocols.get(Protocol.DNS))) {
-			out.print("\tlisten-on port ").print(nb.getPort().getPort()).print(" { ").print(nb.getIPAddress().getIPAddress()).print("; };\n");
+                        int port = nb.getPort().getPort();
+                        String ip = nb.getIPAddress().getIPAddress();
+                        Set<String> ips = alreadyAddedIPs.get(port);
+                        if(ips==null) alreadyAddedIPs.put(port, ips = new HashSet<String>());
+                        if(!ips.contains(ip)) {
+                            out.print("\tlisten-on port ").print(port).print(" { ").print(ip).print("; };\n");
+                            ips.add(ip);
+                        }
 		    }
 		    out.print("\tquery-source address * port 53;\n"
 			      + "};\n"
