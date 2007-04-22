@@ -18,6 +18,8 @@ import java.util.*;
 
 /**
  * Handles the building of xinetd configs and files.
+ *
+ * TODO: RedHat ES 4 will always have authd launched by xinetd.
  */
 public final class XinetdManager extends BuilderThread {
 
@@ -67,7 +69,7 @@ public final class XinetdManager extends BuilderThread {
                     String protocol=protocolObj.getProtocol();
                     if(
                         redirect!=null
-                        || protocol.equals(Protocol.AUTH)
+                        //|| protocol.equals(Protocol.AUTH)
                         || protocol.equals(Protocol.CVSPSERVER)
                         || protocol.equals(Protocol.IMAP2)
                         || protocol.equals(Protocol.INTERSERVER)
@@ -106,7 +108,7 @@ public final class XinetdManager extends BuilderThread {
                             );
                         } else {
                             boolean portMatches=protocolObj.getPort(connector).equals(port);
-                            if(protocol.equals(Protocol.AUTH)) {
+                            /*if(protocol.equals(Protocol.AUTH)) {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1,
@@ -127,7 +129,7 @@ public final class XinetdManager extends BuilderThread {
                                     null,
                                     null
                                 );
-                            } else if(protocol.equals(Protocol.CVSPSERVER)) {
+                            } else */if(protocol.equals(Protocol.CVSPSERVER)) {
                                 List<CvsRepository> repos=aoServer.getCvsRepositories();
                                 StringBuilder server_args=new StringBuilder();
                                 for(int d=0;d<repos.size();d++) {
