@@ -12,6 +12,8 @@ import com.aoindustries.aoserv.client.BackupRetention;
 import com.aoindustries.aoserv.client.FailoverFileLog;
 import com.aoindustries.aoserv.client.FailoverFileReplication;
 import com.aoindustries.aoserv.client.FailoverFileSchedule;
+import com.aoindustries.aoserv.client.HttpdServer;
+import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.NetPort;
 import com.aoindustries.aoserv.client.Protocol;
@@ -1731,6 +1733,7 @@ final public class FailoverFileReplicationManager {
         Profiler.startProfile(Profiler.UNKNOWN, FailoverFileReplicationManager.class, "runFailoverCopy(FailoverFileReplication)", null);
         try {
             AOServer thisServer=AOServDaemon.getThisAOServer();
+            String hostname = thisServer.getServer().getHostname();
             final int failoverBatchSize = thisServer.getFailoverBatchSize();
             AOServer toServer=ffr.getToAOServer();
             if(log.isInfoEnabled()) log.info((backupMode ? "Backup: " : "Failover: ") + "Running failover from "+thisServer+" to "+toServer);
@@ -1740,7 +1743,7 @@ final public class FailoverFileReplicationManager {
                 AOServDaemonConfiguration.getWarningEmailFrom(),
                 AOServDaemonConfiguration.getWarningEmailTo(),
                 "Failover Replication Taking Too Long",
-                "Failover Replication from "+thisServer.getServer().getHostname()+" to "+toServer.getServer().getHostname(),
+                "Failover Replication from "+hostname+" to "+toServer.getServer().getHostname(),
                 6L*60*60*1000,
                 6L*60*60*1000
             );
@@ -1766,7 +1769,10 @@ final public class FailoverFileReplicationManager {
                 filesystemRules.put("/dev/log", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/dev/pts", FilesystemIteratorRule.NO_RECURSE);
                 filesystemRules.put("/dev/shm", FilesystemIteratorRule.NO_RECURSE);
-                //filesystemRules.put("/distro", FilesystemIteratorRule.NO_RECURSE);
+                filesystemRules.put("/distro/mandrake/10.1/i586/proc", FilesystemIteratorRule.NO_RECURSE);
+                filesystemRules.put("/distro/mandrake/10.1/i586/sys", FilesystemIteratorRule.NO_RECURSE);
+                filesystemRules.put("/distro/mandriva/2006.0/i586/proc", FilesystemIteratorRule.NO_RECURSE);
+                filesystemRules.put("/distro/mandriva/2006.0/i586/sys", FilesystemIteratorRule.NO_RECURSE);
                 filesystemRules.put("/etc/mail/statistics", FilesystemIteratorRule.SKIP);
 
                 // Don't send /etc/lilo.conf for failovers - it can cause severe problems if a nested server has its kernel RPMs upgraded
@@ -1837,6 +1843,8 @@ final public class FailoverFileReplicationManager {
                     )
                 );
                 filesystemRules.put("/var/lib/mysql/.journal", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lib/mysql/4.0/"+hostname+".pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lib/mysql/4.1/"+hostname+".pid", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lib/mysql/5.0/mysql-bin", FilesystemIteratorRule.NO_RECURSE);
                 filesystemRules.put(
                     "/var/lib/pgsql",
@@ -1853,12 +1861,14 @@ final public class FailoverFileReplicationManager {
                 filesystemRules.put("/var/lib/pgsql/8.0/postmaster.pid", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lib/pgsql/8.1/postmaster.pid", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lib/sasl2/saslauthd.pid", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lib/sasl2/mux.accept", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/aoserv-daemon", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/clear_jvm_stats", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/clear_postgresql_pid", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/crond", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/daemons", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/kheader", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/identd", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/local", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/mysql", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/network", FilesystemIteratorRule.SKIP);
@@ -1878,16 +1888,18 @@ final public class FailoverFileReplicationManager {
                 filesystemRules.put("/var/lock/subsys/xfs", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/xinetd", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/xvfb", FilesystemIteratorRule.SKIP);
+                List<HttpdServer> httpdServers = thisServer.getHttpdServers();
+                for(HttpdServer hs : httpdServers) {
+                    filesystemRules.put("/var/log/httpd"+hs.getNumber()+"/ssl_scache.sem", FilesystemIteratorRule.SKIP);
+                }
                 filesystemRules.put("/var/oldaccounts", FilesystemIteratorRule.NO_RECURSE);
                 filesystemRules.put("/var/run/aoserv-daemon-java.pid", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/run/aoserv-daemon.pid", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/run/crond.pid", FilesystemIteratorRule.SKIP);
-                filesystemRules.put("/var/run/httpd1.pid", FilesystemIteratorRule.SKIP);
-                filesystemRules.put("/var/run/httpd2.pid", FilesystemIteratorRule.SKIP);
-                filesystemRules.put("/var/run/httpd3.pid", FilesystemIteratorRule.SKIP);
-                filesystemRules.put("/var/run/httpd4.pid", FilesystemIteratorRule.SKIP);
-                filesystemRules.put("/var/run/httpd5.pid", FilesystemIteratorRule.SKIP);
-                filesystemRules.put("/var/run/httpd6.pid", FilesystemIteratorRule.SKIP);
+                for(HttpdServer hs : httpdServers) {
+                    filesystemRules.put("/var/run/httpd"+hs.getNumber()+".pid", FilesystemIteratorRule.SKIP);
+                }
+                filesystemRules.put("/var/run/identd.pid", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/run/klogd.pid", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/run/proftpd.pid", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/run/proftpd/proftpd.scoreboard", FilesystemIteratorRule.SKIP);
@@ -1949,10 +1961,20 @@ final public class FailoverFileReplicationManager {
                     NetBind daemonBind = toServer.getDaemonConnectBind();
                     NetPort daemonBindPort = daemonBind.getPort();
                     Protocol daemonBindProtocol = daemonBind.getAppProtocol();
+
+                    // First, the specific source address from ffr is used
+                    String sourceIPAddress = ffr.getConnectFrom();
+                    if(sourceIPAddress==null) {
+                        // Next, it will use the daemon bind address
+                        sourceIPAddress = thisServer.getDaemonBind().getIPAddress().getIPAddress();
+                        // If daemon is binding to wildcard, then use source IP address of primary IP
+                        if(sourceIPAddress.equals(IPAddress.WILDCARD_IP)) sourceIPAddress = thisServer.getPrimaryIPAddress().getIPAddress();
+                    }
+
                     AOServDaemonConnector daemonConnector=AOServDaemonConnector.getConnector(
                         toServer.getServer().getPKey(),
                         connectAddress,
-                        thisServer.getDaemonBind().getIPAddress().getIPAddress(),
+                        sourceIPAddress,
                         daemonBindPort.getPort(),
                         daemonBindProtocol.getProtocol(),
                         null,
