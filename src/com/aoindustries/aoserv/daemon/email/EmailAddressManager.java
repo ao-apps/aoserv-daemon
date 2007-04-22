@@ -195,10 +195,8 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
                                 String domain=ed.getDomain();
                                 if(ed.getEmailAddress("abuse")==null) usersOut.print("abuse@").print(domain).print("\tabuse\n");
                                 if(ed.getEmailAddress("devnull")==null) usersOut.print("devnull@").print(domain).print("\tdevnull\n");
-                                if(ed.getEmailAddress("hostmaster")==null) usersOut.print("hostmaster@").print(domain).print("\thostmaster\n");
                                 if(ed.getEmailAddress("mailer-daemon")==null) usersOut.print("mailer-daemon@").print(domain).print("\tmailer-daemon\n");
                                 if(ed.getEmailAddress("postmaster")==null) usersOut.print("postmaster@").print(domain).print("\tpostmaster\n");
-                                if(ed.getEmailAddress("root")==null) usersOut.print("root@").print(domain).print("\troot\n");
                             }
 
                             // Process the wildcard entries
@@ -221,12 +219,12 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
 
                             // Block all other email_domains that have not been explicitly configured as an email address.
                             // This had a dead.letter problem and was commented for a while
-                            if(osv!=OperatingSystemVersion.MANDRAKE_10_1_I586 && aoServer.getRestrictOutboundEmail()) {
+                            /*if(osv!=OperatingSystemVersion.MANDRAKE_10_1_I586 && aoServer.getRestrictOutboundEmail()) {
                                 for(EmailDomain ed : aoServer.getEmailDomains()) {
                                     String domain=ed.getDomain();
                                     if(ed.getEmailAddress("")==null) usersOut.print("@").print(domain).print("\terror:5.1.1:550 No such email address here\n");
                                 }
-                            }
+                            }*/
                         } finally {
                             // Close the virtusertable
                             usersOut.flush();

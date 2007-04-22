@@ -172,7 +172,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
         Profiler.startProfile(Profiler.IO, SmtpRelayManager.class, "writeAccessLine(ChainWriter,String,EmailSmtpRelayType,boolean)", null);
         try {
             if(isQmail) out.print(host).print(':').print(StringUtility.replace(type.getQmailConfig(), "%h", host)).print('\n');
-            else out.print(host).print('\t').print(StringUtility.replace(type.getSendmailConfig(), "%h", host)).print('\n');
+            else out.print("Connect:").print(host).print('\t').print(StringUtility.replace(type.getSendmailConfig(), "%h", host)).print('\n');
         } finally {
             Profiler.endProfile(Profiler.IO);
         }

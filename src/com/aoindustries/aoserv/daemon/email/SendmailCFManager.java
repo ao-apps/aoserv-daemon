@@ -7,7 +7,9 @@ package com.aoindustries.aoserv.daemon.email;
  */
 import com.aoindustries.aoserv.client.*;
 import com.aoindustries.aoserv.daemon.*;
+import com.aoindustries.aoserv.daemon.email.jilter.JilterConfigurationWriter;
 import com.aoindustries.aoserv.daemon.util.*;
+import com.aoindustries.aoserv.jilter.config.JilterConfiguration;
 import com.aoindustries.io.*;
 import com.aoindustries.io.unix.*;
 import com.aoindustries.profiler.*;
@@ -154,8 +156,14 @@ final public class SendmailCFManager extends BuilderThread {
                                 + "define(`confMIN_FREE_BLOCKS',`65536')dnl\n"
                                 + "define(`confNICE_QUEUE_RUN',`10')dnl\n"
                                 + "define(`confPROCESS_TITLE_PREFIX',`").print(aoServer.getServer().getHostname()).print("')dnl\n"
-                                + "dnl\n"
-                                + "dnl Only listen to the IP addresses of this logical server\n"
+                                + "dnl\n");
+                        if(AOServDaemonConfiguration.isManagerEnabled(JilterConfigurationWriter.class)) {
+                            out.print("dnl Enable Jilter\n"
+                                    + "dnl\n"
+                                    + "INPUT_MAIL_FILTER(`jilter',`S=inet:"+JilterConfiguration.MILTER_PORT+"@").print(aoServer.getPrimaryIPAddress().getIPAddress()).print(", F=R, T=S:60s;R:60s')\n"
+                                    + "dnl\n");
+                        }
+                        out.print("dnl Only listen to the IP addresses of this logical server\n"
                                 + "dnl\n"
                                 + "FEATURE(`no_default_msa')dnl\n");
                         List<String> finishedIPs=new SortedArrayList<String>();
@@ -207,7 +215,8 @@ final public class SendmailCFManager extends BuilderThread {
                             }
                         }
                         out.print("dnl\n"
-                                + "dnl Disable IDENT lookups\n"
+                                + "dnl Enable IDENT lookups\n"
+                                // TO_IDENT set to 10s was causing normally 1 second email to become 30 second email on www.keepandshare.com
                                 + "define(`confTO_IDENT',`0s')dnl\n"
                                 + "MAILER(smtp)dnl\n"
                                 + "MAILER(procmail)dnl\n"

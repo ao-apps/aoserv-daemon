@@ -25,6 +25,7 @@ import com.aoindustries.aoserv.daemon.email.SendmailCFManager;
 import com.aoindustries.aoserv.daemon.email.SmtpRelayManager;
 import com.aoindustries.aoserv.daemon.email.SmtpStatManager;
 import com.aoindustries.aoserv.daemon.email.SpamAssassinManager;
+import com.aoindustries.aoserv.daemon.email.jilter.JilterConfigurationWriter;
 import com.aoindustries.aoserv.daemon.email.maillog.MailLogReader;
 import com.aoindustries.aoserv.daemon.failover.FailoverFileReplicationManager;
 import com.aoindustries.aoserv.daemon.ftp.FTPManager;
@@ -236,6 +237,7 @@ final public class AOServDaemon {
                 FTPManager.start();
                 HttpdManager.start();
                 // TODO: Enable once data is created InterBaseManager.start();
+                JilterConfigurationWriter.start();
                 LinuxAccountManager.start();
                 MajordomoManager.start();
                 MrtgManager.start();
