@@ -121,7 +121,8 @@ public final class ProcmailManager extends BuilderThread {
                                     if(!spamAssassinMode.equals(EmailSpamAssassinIntegrationMode.NONE)) {
                                         out.print("\n"
                                                 + "# Filter through spamassassin\n"
-                                                + ":0fw: spamassassin.lock\n"
+// BUGNUGGER - next line too                    + ":0fw: spamassassin.lock\n"
+                                                + ":0fw \n"
                                                 + "* < 256000\n"
                                                 + "| /usr/bin/spamc -d ").print(primaryIP).print('\n');
                                     }
