@@ -122,7 +122,7 @@ public final class ProcmailManager extends BuilderThread {
                                         out.print("\n"
                                                 + "# Filter through spamassassin\n"
 // BUGNUGGER - next line too                    + ":0fw: spamassassin.lock\n"
-                                                + ":0fw \n"
+                                                + ":0fw\n"
                                                 + "* < 256000\n"
                                                 + "| /usr/bin/spamc -d ").print(primaryIP).print('\n');
                                     }
