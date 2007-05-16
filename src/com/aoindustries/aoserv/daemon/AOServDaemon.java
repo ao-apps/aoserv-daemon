@@ -384,15 +384,15 @@ final public class AOServDaemon {
      * Logs a security message to <code>System.err</code>.
      * Also sends email messages to <code>aoserv.daemon.security.email.to</code>.
      */
-    public static void reportMonitoringMessage(String message) {
-        Profiler.startProfile(Profiler.UNKNOWN, AOServDaemon.class, "reportMonitoringMessage(String)", null);
+    public static void reportFullMonitoringMessage(String message) {
+        Profiler.startProfile(Profiler.UNKNOWN, AOServDaemon.class, "reportFullMonitoringMessage(String)", null);
         try {
             System.err.println(message);
             try {
                 String smtp=AOServDaemonConfiguration.getMonitorSmtpServer();
                 if(smtp!=null && smtp.length()>0) {
-                    String from=AOServDaemonConfiguration.getMonitorEmailSummaryFrom();
-                    List<String> addys=StringUtility.splitStringCommaSpace(AOServDaemonConfiguration.getMonitorEmailSummaryTo());
+                    String from=AOServDaemonConfiguration.getMonitorEmailFullFrom();
+                    List<String> addys=StringUtility.splitStringCommaSpace(AOServDaemonConfiguration.getMonitorEmailFullTo());
                     for(int c=0;c<addys.size();c++) {
                         ErrorMailer.reportError(
                             getRandom(),

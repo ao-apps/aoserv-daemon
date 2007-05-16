@@ -140,7 +140,7 @@ final public class NetStatMonitor implements Runnable {
                                 NetStat ns=extraBinds.get(c);
                                 SB.append("Extra: ").append(ns.net_protocol).append(' ').append(ns.ip_address).append(':').append(ns.port).append('\n');
                             }
-                            AOServDaemon.reportMonitoringMessage(SB.toString());
+                            AOServDaemon.reportFullMonitoringMessage(SB.toString());
                         }
                     }
                 } catch(ThreadDeath TD) {

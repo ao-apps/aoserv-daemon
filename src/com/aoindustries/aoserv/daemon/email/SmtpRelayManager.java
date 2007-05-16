@@ -202,17 +202,26 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
         "cdb"
     };
 
-    private static final String[] sendmailMakemapCommand={
+    private static final String[] mandrivaSendmailMakemapCommand={
         "/usr/aoserv/daemon/bin/make_sendmail_access_map"
+    };
+
+    private static final String[] redhatSendmailMakemapCommand={
+        "/opt/aoserv-daemon/bin/make_sendmail_access_map"
     };
 
     private static void makeAccessMap() throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, SmtpRelayManager.class, "makeAccessMap()", null);
         try {
-            AOServDaemon.exec(
-                AOServDaemon.getThisAOServer().isQmail()?qmailctlCdbCommand
-                :sendmailMakemapCommand
-            );
+            String[] command;
+            if(AOServDaemon.getThisAOServer().isQmail()) command = qmailctlCdbCommand;
+            else {
+                int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+                if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) command = mandrivaSendmailMakemapCommand;
+                else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) command = redhatSendmailMakemapCommand;
+                else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            }
+            AOServDaemon.exec(command);
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);
         }

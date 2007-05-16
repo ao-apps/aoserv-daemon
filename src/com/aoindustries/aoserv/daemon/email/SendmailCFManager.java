@@ -109,7 +109,7 @@ final public class SendmailCFManager extends BuilderThread {
                         } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                             out.print("FEATURE(local_procmail,`',`procmail -t -Y -a $h -d $u')dnl\n");
                         } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-                        out.print("FEATURE(`access_db',`btree -T<TMPF> /etc/mail/access.db')dnl\n"
+                        out.print("FEATURE(`access_db',`hash -T<TMPF> /etc/mail/access.db')dnl\n"
                                 + "FEATURE(`delay_checks')dnl\n"
                                 + "FEATURE(`blacklist_recipients')dnl\n"
                                 + "dnl\n"
@@ -119,8 +119,8 @@ final public class SendmailCFManager extends BuilderThread {
                             out.print("TRUST_AUTH_MECH(`GSSAPI DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n"
                                     + "define(`confAUTH_MECHANISMS', `GSSAPI DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n");
                         } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-                            out.print("dnl TRUST_AUTH_MECH(`EXTERNAL DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n"
-                                    + "dnl define(`confAUTH_MECHANISMS', `EXTERNAL GSSAPI DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n");
+                            out.print("TRUST_AUTH_MECH(`EXTERNAL DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n"
+                                    + "define(`confAUTH_MECHANISMS', `EXTERNAL GSSAPI DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n");
                         } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                         out.print("dnl\n"
                                 + "dnl STARTTLS configuration\n"
@@ -218,6 +218,10 @@ final public class SendmailCFManager extends BuilderThread {
                                 + "dnl Enable IDENT lookups\n"
                                 // TO_IDENT set to 10s was causing normally 1 second email to become 30 second email on www.keepandshare.com
                                 + "define(`confTO_IDENT',`0s')dnl\n"
+                                + "MODIFY_MAILER_FLAGS(`SMTP',`+R')dnl\n"
+                                + "MODIFY_MAILER_FLAGS(`ESMTP',`+R')dnl\n"
+                                + "MODIFY_MAILER_FLAGS(`SMTP8',`+R')dnl\n"
+                                + "MODIFY_MAILER_FLAGS(`DSMTP',`+R')dnl\n"
                                 + "MAILER(smtp)dnl\n"
                                 + "MAILER(procmail)dnl\n"
                                 + "Dj").print(aoServer.getServer().getHostname()).print("\n" // AO added
