@@ -217,12 +217,14 @@ final public class SendmailCFManager extends BuilderThread {
                         out.print("dnl\n"
                                 + "dnl Enable IDENT lookups\n"
                                 // TO_IDENT set to 10s was causing normally 1 second email to become 30 second email on www.keepandshare.com
-                                + "define(`confTO_IDENT',`0s')dnl\n"
-                                + "MODIFY_MAILER_FLAGS(`SMTP',`+R')dnl\n"
-                                + "MODIFY_MAILER_FLAGS(`ESMTP',`+R')dnl\n"
-                                + "MODIFY_MAILER_FLAGS(`SMTP8',`+R')dnl\n"
-                                + "MODIFY_MAILER_FLAGS(`DSMTP',`+R')dnl\n"
-                                + "MAILER(smtp)dnl\n"
+                                + "define(`confTO_IDENT',`0s')dnl\n");
+                        if(aoServer.getServer().getServerFarm().useRestrictedSmtpPort()) {
+                            out.print("MODIFY_MAILER_FLAGS(`SMTP',`+R')dnl\n"
+                                    + "MODIFY_MAILER_FLAGS(`ESMTP',`+R')dnl\n"
+                                    + "MODIFY_MAILER_FLAGS(`SMTP8',`+R')dnl\n"
+                                    + "MODIFY_MAILER_FLAGS(`DSMTP',`+R')dnl\n");
+                        }
+                        out.print("MAILER(smtp)dnl\n"
                                 + "MAILER(procmail)dnl\n"
                                 + "Dj").print(aoServer.getServer().getHostname()).print("\n" // AO added
                                 + "\n"
@@ -283,6 +285,7 @@ final public class SendmailCFManager extends BuilderThread {
                         connector.ipAddresses.addTableListener(sendmailCFManager, 0);
                         connector.netBinds.addTableListener(sendmailCFManager, 0);
                         connector.aoServers.addTableListener(sendmailCFManager, 0);
+                        connector.serverFarms.addTableListener(sendmailCFManager, 0);
                         System.out.println("Done");
                     }
                 }

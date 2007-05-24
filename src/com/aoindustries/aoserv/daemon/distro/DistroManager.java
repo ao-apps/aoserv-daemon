@@ -223,6 +223,7 @@ final public class DistroManager implements Runnable {
      * SY Symlink
      * TY Type
      */
+    @SuppressWarnings({"unchecked"})
     private static void checkDistroFile(
         AOServer aoServer,
         Integer osVersionPKey,

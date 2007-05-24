@@ -75,7 +75,7 @@ public class JilterConfigurationWriter extends BuilderThread {
         boolean restrict_outbound_email = aoServer.getRestrictOutboundEmail();
 
         // domainPackages and domainAddresses
-        Map<String,String> domainPackages = new HashMap();
+        Map<String,String> domainPackages = new HashMap<String,String>();
         Map<String,Set<String>> domainAddresses = new HashMap<String,Set<String>>();
         for(EmailDomain ed : aoServer.getEmailDomains()) {
             String domain = ed.getDomain();
