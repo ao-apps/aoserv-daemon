@@ -33,6 +33,7 @@ import com.aoindustries.aoserv.daemon.httpd.AWStatsManager;
 import com.aoindustries.aoserv.daemon.httpd.HttpdManager;
 import com.aoindustries.aoserv.daemon.monitor.MrtgManager;
 import com.aoindustries.aoserv.daemon.monitor.NetStatMonitor;
+import com.aoindustries.aoserv.daemon.mysql.MySQLCreditCardScanner;
 import com.aoindustries.aoserv.daemon.mysql.MySQLDBUserManager;
 import com.aoindustries.aoserv.daemon.mysql.MySQLDatabaseManager;
 import com.aoindustries.aoserv.daemon.mysql.MySQLHostManager;
@@ -241,6 +242,7 @@ final public class AOServDaemon {
                 LinuxAccountManager.start();
                 MajordomoManager.start();
                 MrtgManager.start();
+                MySQLCreditCardScanner.start();
                 MySQLDatabaseManager.start();
                 MySQLDBUserManager.start();
                 MySQLHostManager.start();
