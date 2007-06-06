@@ -80,21 +80,18 @@ final public class HttpdManager extends BuilderThread {
     /**
      * The default PHP version.
      */
-    public static final String DEFAULT_MANDRAKE_10_1_PHP_VERSION="4";
     public static final String DEFAULT_MANDRIVA_2006_0_PHP_VERSION="4";
     public static final String DEFAULT_REDHAT_ES_4_PHP_VERSION="5";
 
     /**
      * The version of PostgreSQL minor version used by the default PHP version.
      */
-    public static final String MANDRAKE_10_1_PHP_POSTGRES_MINOR_VERSION="7.3";
     public static final String MANDRIVA_2006_0_PHP_POSTGRES_MINOR_VERSION="7.3";
     public static final String REDHAT_ES_4_PHP_POSTGRES_MINOR_VERSION="8.1";
 
     /**
      * The default JDK version.
      */
-    public static final String DEFAULT_MANDRAKE_10_1_JDK_VERSION="jdk1.5.0";
     public static final String DEFAULT_MANDRIVA_2006_0_JDK_VERSION="jdk1.5.0";
     public static final String DEFAULT_REDHAT_ES_4_JDK_VERSION="jdk1.5.0";
     public static final String DEFAULT_TOMCAT_5_JDK_VERSION="jdk1.5.0";
@@ -102,7 +99,6 @@ final public class HttpdManager extends BuilderThread {
     /**
      * The default JDK paths.
      */
-    public static final String DEFAULT_MANDRAKE_10_1_JDK_PATH="/usr/j2sdk/1.4.2_08";
     public static final String DEFAULT_MANDRIVA_2006_0_JDK_PATH="/usr/jdk/1.5.0";
     public static final String DEFAULT_REDHAT_ES_4_JDK_PATH="/opt/jdk1.5.0";
     public static final String DEFAULT_TOMCAT_5_JDK_PATH="/usr/jdk/1.5.0";
@@ -1118,13 +1114,13 @@ final public class HttpdManager extends BuilderThread {
             lnAll("../../../.."+tomcatDirectory+"/common/lib/", siteDir+"/common/lib/", uid, gid);
 
             if(postgresServerMinorVersion!=null) {
-                if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                     ln("../../../../usr/postgresql/"+postgresServerMinorVersion+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
                 } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                     ln("../../../../opt/postgresql-"+postgresServerMinorVersion+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
                 } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
             }
-            if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+            if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                 ln("../../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", siteDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", uid, gid);
             } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                 ln("../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar", siteDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", uid, gid);
@@ -1404,13 +1400,13 @@ final public class HttpdManager extends BuilderThread {
             lnAll("../../../.."+tomcatDirectory+"/common/lib/", siteDir+"/common/lib/", uid, gid);
 
             if(postgresServerMinorVersion!=null) {
-                if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                     ln("../../../../usr/postgresql/"+postgresServerMinorVersion+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
                 } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                     ln("../../../../opt/postgresql-"+postgresServerMinorVersion+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
                 } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
             }
-            if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+            if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                 ln("../../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", siteDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", uid, gid);
             } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                 ln("../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar", siteDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", uid, gid);
@@ -2642,11 +2638,7 @@ final public class HttpdManager extends BuilderThread {
                 if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                     out.print("#!/bin/sh\n"
                               + ". /opt/aoserv-client/scripts/postgresql-"+REDHAT_ES_4_PHP_POSTGRES_MINOR_VERSION+".sh\n"
-                              + "exec /opt/php-").print(defaultPhpVersion).print("/bin/php \"$@\"\n");
-                } else if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) {
-                    out.print("#!/bin/sh\n"
-                              + ". /usr/aoserv/etc/postgresql-"+MANDRAKE_10_1_PHP_POSTGRES_MINOR_VERSION+".sh\n"
-                              + "exec /usr/php/").print(defaultPhpVersion).print("/bin/php \"$@\"\n");
+                              + "exec /opt/php-").print(defaultPhpVersion).print("/bin/php-cgi \"$@\"\n");
                 } else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                     out.print("#!/bin/sh\n"
                               + ". /usr/aoserv/etc/postgresql-"+MANDRIVA_2006_0_PHP_POSTGRES_MINOR_VERSION+".sh\n"
@@ -2730,10 +2722,9 @@ final public class HttpdManager extends BuilderThread {
             AOServer aoServer=AOServDaemon.getThisAOServer();
 
             int osv=aoServer.getServer().getOperatingSystemVersion().getPKey();
-            // Currently only Mandrake 10.1, Mandriva 2006.0, and RedHat ES4 supported
+            // Currently only Mandriva 2006.0 and RedHat ES4 supported
             if(
-                osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
-                && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
                 && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
@@ -2811,199 +2802,7 @@ final public class HttpdManager extends BuilderThread {
                     boolean isEnabled=lsa.getDisableLog()==null;
                     // The version of PHP module to run
                     TechnologyVersion phpVersion=hs.getModPhpVersion();
-                    if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) {
-                        // Standard beginning
-                        out.print("PidFile /var/run/httpd").print(serverNum).print(".pid\n"
-                                + "ScoreBoardFile /var/run/httpd").print(serverNum).print(".scoreboard\n"
-                                + "ServerName 127.0.0.1\n"
-                                + "ErrorLog /var/log/httpd").print(serverNum).print("/error_log\n"
-                                + "\n"
-                                + "ServerType standalone\n"
-                                + "ServerRoot \"/etc/httpd\"\n"
-                                + "LockFile /var/lock/httpd.lock\n"
-                                + "ResourceConfig conf/srm.conf\n"
-                                + "AccessConfig conf/access.conf\n"
-                                + "TimeOut ").print(hs.getTimeOut()).print("\n"
-                                + "KeepAlive On\n"
-                                + "MaxKeepAliveRequests 100\n"
-                                + "KeepAliveTimeout 15\n"
-                                + "MinSpareServers ").print(10).print("\n" //(servers.length==1 || hs.isShared())?10:2).print("\n" // TODO: Make column for this
-                                + "MaxSpareServers ").print(20).print("\n" //(servers.length==1 || hs.isShared())?20:10).print("\n" // TODO: Make column for this
-                                + "StartServers ").print(20).print("\n" //(servers.length==1 || hs.isShared())?20:10).print("\n" // TODO: Make column for this
-                                + "MaxClients ").print(200).print("\n" //(servers.length==1 || hs.isShared())?200:50).print("\n" // TODO: Make column for this
-                                + "MaxRequestsPerChild 0\n"
-                                + "\n"
-                                + "Include conf/modules_load/mod_vhost_alias\n"
-                                + "Include conf/modules_load/mod_env\n"
-                                + "Include conf/modules_load/mod_log_config\n"
-                                + "Include conf/modules_load/mod_log_agent\n"
-                                + "Include conf/modules_load/mod_log_referer\n"
-                                + "Include conf/modules_load/mod_mime\n"
-                                + "Include conf/modules_load/mod_negotiation\n"
-                                + "Include conf/modules_load/mod_status\n"
-                                + "Include conf/modules_load/mod_info\n"
-                                + "Include conf/modules_load/mod_include\n"
-                                + "Include conf/modules_load/mod_autoindex\n"
-                                + "Include conf/modules_load/mod_dir\n"
-                                + "Include conf/modules_load/mod_cgi\n"
-                                + "Include conf/modules_load/mod_asis\n"
-                                + "Include conf/modules_load/mod_imap\n"
-                                + "Include conf/modules_load/mod_actions\n"
-                                //+ "Include conf/modules_load/mod_userdir\n"
-                                + "Include conf/modules_load/mod_alias\n"
-                                + "Include conf/modules_load/mod_rewrite\n"
-                                + "Include conf/modules_load/mod_access\n"
-                                + "Include conf/modules_load/mod_auth\n"
-                                + "Include conf/modules_load/mod_auth_anon\n"
-                                + "Include conf/modules_load/mod_auth_db\n"
-                                + "Include conf/modules_load/libproxy\n"
-                                + "Include conf/modules_load/mod_expires\n"
-                                + "Include conf/modules_load/mod_headers\n"
-                                + "Include conf/modules_load/mod_setenvif\n"
-                                + "Include conf/modules_load/libssl\n"
-                                + "Include conf/modules_load/libdav\n"
-                                //+ "Include conf/modules_load/mod_fastcgi\n"
-                                + "Include conf/modules_load/mod_").print(hs.isModJK()?"jk":"jserv").print("\n");
-                        if(isEnabled && hs.useModPERL()) out.print("Include conf/modules_load/mod_perl\n");
-                        if(isEnabled && phpVersion!=null) {
-                            String version = phpVersion.getVersion();
-                            out.print("LoadModule php"+version.charAt(0)+"_module /usr/php/"+getMajorPhpVersion(version)+"/lib/apache/"+getPhpLib(phpVersion)+"\n");
-                        }
-                        out.print("\n"
-                                + "ClearModuleList\n"
-                                + "AddModule mod_so.c\n"
-                                + "\n"
-                                + "Include conf/modules_init/mod_vhost_alias\n"
-                                + "Include conf/modules_init/mod_env\n"
-                                + "Include conf/modules_init/mod_log_config\n"
-                                + "Include conf/modules_init/mod_log_agent\n"
-                                + "Include conf/modules_init/mod_log_referer\n"
-                                + "Include conf/modules_init/mod_mime\n"
-                                + "Include conf/modules_init/mod_negotiation\n"
-                                + "Include conf/modules_init/mod_status\n"
-                                + "Include conf/modules_init/mod_info\n"
-                                + "Include conf/modules_init/mod_include\n"
-                                + "Include conf/modules_init/mod_autoindex\n"
-                                + "Include conf/modules_init/mod_dir\n"
-                                + "Include conf/modules_init/mod_cgi\n"
-                                + "Include conf/modules_init/mod_asis\n"
-                                + "Include conf/modules_init/mod_imap\n"
-                                + "Include conf/modules_init/mod_actions\n"
-                                //+ "Include conf/modules_init/mod_userdir\n"
-                                + "Include conf/modules_init/mod_alias\n"
-                                + "Include conf/modules_init/mod_rewrite\n"
-                                + "Include conf/modules_init/mod_access\n"
-                                + "Include conf/modules_init/mod_auth\n"
-                                + "Include conf/modules_init/mod_auth_anon\n"
-                                + "Include conf/modules_init/mod_auth_db\n"
-                                + "Include conf/modules_init/libproxy\n"
-                                + "Include conf/modules_init/mod_expires\n"
-                                + "Include conf/modules_init/mod_headers\n"
-                                + "Include conf/modules_init/mod_setenvif\n"
-                                + "Include conf/modules_init/libssl\n"
-                                + "Include conf/modules_init/libdav\n"
-                                //+ "Include conf/modules_init/mod_fastcgi\n"
-                                + "Include conf/modules_init/mod_").print(hs.isModJK()?"jk":"jserv").print("\n");
-                        if(isEnabled && hs.useModPERL()) out.print("Include conf/modules_init/mod_perl\n");
-                        if(isEnabled && phpVersion!=null) out.print("Include conf/modules_init/mod_php").print(getMajorPhpVersion(phpVersion.getVersion())).print('\n');
-                        out.print("\n"
-                                + "Include conf/modules_conf/mod_vhost_alias\n"
-                                + "Include conf/modules_conf/mod_env\n"
-                                + "Include conf/modules_conf/mod_log_config\n"
-                                + "Include conf/modules_conf/mod_log_agent\n"
-                                + "Include conf/modules_conf/mod_log_referer\n"
-                                + "Include conf/modules_conf/mod_mime\n"
-                                + "Include conf/modules_conf/mod_negotiation\n"
-                                + "Include conf/modules_conf/mod_status\n"
-                                + "Include conf/modules_conf/mod_info\n"
-                                + "Include conf/modules_conf/mod_include\n"
-                                + "Include conf/modules_conf/mod_autoindex\n"
-                                + "Include conf/modules_conf/mod_dir\n"
-                                + "Include conf/modules_conf/mod_cgi\n"
-                                + "Include conf/modules_conf/mod_asis\n"
-                                + "Include conf/modules_conf/mod_imap\n"
-                                + "Include conf/modules_conf/mod_actions\n"
-                                //+ "Include conf/modules_conf/mod_userdir\n"
-                                + "Include conf/modules_conf/mod_alias\n"
-                                + "Include conf/modules_conf/mod_rewrite\n"
-                                + "Include conf/modules_conf/mod_access\n"
-                                + "Include conf/modules_conf/mod_auth\n"
-                                + "Include conf/modules_conf/mod_auth_anon\n"
-                                + "Include conf/modules_conf/mod_auth_db\n"
-                                + "Include conf/modules_conf/libproxy\n"
-                                + "Include conf/modules_conf/mod_expires\n"
-                                + "Include conf/modules_conf/mod_headers\n"
-                                + "Include conf/modules_conf/mod_setenvif\n"
-                                + "Include conf/modules_conf/libssl\n"
-                                + "Include conf/modules_conf/libdav\n"
-                                //+ "Include conf/modules_conf/mod_fastcgi\n"
-                                + "Include conf/modules_conf/mod_").print(hs.isModJK()?"jk":"jserv").print("\n");
-                        if(isEnabled && hs.useModPERL()) out.print("Include conf/modules_conf/mod_perl\n");
-                        if(isEnabled && phpVersion!=null) out.print("Include conf/modules_conf/mod_php").print(getMajorPhpVersion(phpVersion.getVersion())).print('\n');
-                        out.print("\n");
-                        // Use httpd if the account is disabled
-                        if(isEnabled) {
-                            out.print("User ").print(lsa.getLinuxAccount().getUsername().getUsername()).print("\n"
-                                    + "Group ").print(hs.getLinuxServerGroup().getLinuxGroup().getName()).print("\n");
-                        } else {
-                            out.print("User "+LinuxAccount.HTTPD+"\n"
-                                    + "Group "+LinuxGroup.HTTPD+"\n");
-                        }
-                        out.print("ServerAdmin support@aoindustries.com\n"
-                                + "DocumentRoot \"/var/www/html\"\n"
-                                + "<Directory />\n"
-                                + "    AllowOverride None\n"
-                                + "    Deny from All\n"
-                                + "    Order deny,allow\n"
-                                + "    Options None\n"
-                                + "    AuthType Basic\n"
-                                + "</Directory>\n"
-                                + "<Directory /var/www/html>\n"
-                                + "    Allow from All\n"
-                                + "    Order allow,deny\n"
-                                + "</Directory>\n"
-                                + "AccessFileName .htaccess\n"
-                                + "<Files ~ \"^\\.ht\">\n"
-                                + "    Order allow,deny\n"
-                                + "    Deny from all\n"
-                                + "</Files>\n"
-                                + "\n"
-                                + "UseCanonicalName On\n"
-                                + "DefaultType text/plain\n"
-                                + "HostnameLookups Off\n"
-                                + "LogLevel error\n"
-                                + "ServerSignature Off\n"
-                                + "ServerTokens Minimal\n"
-                                + "\n"
-                                + "<Location />\n"
-                                + "    AuthType Basic\n"
-                                + "</Location>\n"
-                                + "\n"
-                                + "CustomLog /var/log/httpd").print(serverNum).print("/access_log common\n"
-                                + "RewriteLog /var/log/httpd").print(serverNum).print("/rewrite.log\n"
-                                + "\n"
-                                + "<IfModule mod_dav.c>\n"
-                                + "    DAVLockDB /var/lock/libdav/httpd").print(serverNum).print("\n"
-                                + "</IfModule>"
-                                + "\n"
-                                + "<IfModule mod_ssl.c>\n"
-                                + "    SSLRandomSeed startup file:/dev/urandom 1024\n"
-                                + "    SSLRandomSeed connect file:/dev/urandom 1024\n"
-                                + "    SSLSessionCache shm:/var/log/httpd").print(serverNum).print("/ssl_scache(512000)\n"
-                                + "    SSLLog /var/log/httpd").print(serverNum).print("/ssl_engine_log\n"
-                                + "</IfModule>\n"
-                                + "\n"
-                                + "<IfModule mod_jserv.c>\n"
-                                + "    ApJServLogFile /var/log/httpd").print(serverNum).print("/jserv.log\n"
-                                + "</IfModule>\n"
-                                + "\n"
-                                + "<IfModule mod_jk.c>\n"
-                                + "    JkWorkersFile /etc/httpd/conf/workers").print(serverNum).print(".properties\n"
-                                + "    JkLogFile /var/log/httpd").print(serverNum).print("/mod_jk.log\n"
-                                + "</IfModule>\n"
-                                + "\n"
-                        );
-                    } else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                    if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                         out.print("ServerRoot \"/etc/httpd\"\n"
                                 + "Include conf/modules_conf/core\n"
                                 + "PidFile /var/run/httpd").print(serverNum).print(".pid\n"
@@ -3882,28 +3681,10 @@ final public class HttpdManager extends BuilderThread {
 			    } else throw new IllegalArgumentException("Unsupported HttpdTomcatSite type: "+site.getPKey());
 			    
 			    // The CGI user info
-                            if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) {
-                                // Only add this if any of the HttpdServers uses suexec, default to on for safety
-                                boolean useSuexec=false;
-                                boolean foundOne=false;
-                                for(HttpdSiteBind hsb : site.getHttpdSiteBinds()) {
-                                    if(hsb.getHttpdBind().getHttpdServer().useSuexec()) {
-                                        useSuexec=true;
-                                        foundOne=true;
-                                        break;
-                                    }
-                                }
-                                if(useSuexec || !foundOne) {
-                                    out.print("    User ").print(lsa.getLinuxAccount().getUsername()).print("\n"
-                                            + "    Group ").print(lsg.getLinuxGroup().getName()).print("\n"
-                                            + "\n");
-                                }
-                            } else {
-                                out.print("    <IfModule mod_suexec.c>\n"
-                                        + "        SuexecUserGroup ").print(lsa.getLinuxAccount().getUsername()).print(' ').print(lsg.getLinuxGroup().getName()).print("\n"
-                                        + "    </IfModule>\n"
-                                        + "\n");
-                            }
+                            out.print("    <IfModule mod_suexec.c>\n"
+                                    + "        SuexecUserGroup ").print(lsa.getLinuxAccount().getUsername()).print(' ').print(lsg.getLinuxGroup().getName()).print("\n"
+                                    + "    </IfModule>\n"
+                                    + "\n");
 
                             // Write the standard restricted URL patterns
                             out.print("    # Standard protected URLs\n");
@@ -4595,13 +4376,13 @@ final public class HttpdManager extends BuilderThread {
                         lnAll("../../../.."+tomcatDirectory+"/common/lib/", wwwGroupDir+"/common/lib/", lsaUID, lsgGID);
                         
                         if(postgresServerMinorVersion!=null) {
-                            if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                            if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                                 ln("../../../../usr/postgresql/"+postgresServerMinorVersion+"/share/java/postgresql.jar", wwwGroupDir+"/common/lib/postgresql.jar", lsaUID, lsgGID);
                             } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                                 ln("../../../../opt/postgresql-"+postgresServerMinorVersion+"/share/java/postgresql.jar", wwwGroupDir+"/common/lib/postgresql.jar", lsaUID, lsgGID);
                             } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                         }
-                        if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                             ln("../../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", wwwGroupDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", lsaUID, lsgGID);
                         } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                             ln("../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar", wwwGroupDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", lsaUID, lsgGID);
@@ -4655,13 +4436,13 @@ final public class HttpdManager extends BuilderThread {
                             lnAll("../../.."+tomcatDirectory+"/lib/", wwwGroupDir+"/lib/", lsaUID, lsgGID);
                             ln("../../.."+tomcatDirectory+"/lib/jasper-runtime.jar", wwwGroupDir+"/lib/jasper-runtime.jar", lsaUID, lsgGID);
                             if(postgresServerMinorVersion!=null) {
-                                if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                                     ln("../../../usr/postgresql/"+postgresServerMinorVersion+"/share/java/postgresql.jar", wwwGroupDir+"/lib/postgresql.jar", lsaUID, lsgGID);
                                 } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                                     ln("../../../opt/postgresql-"+postgresServerMinorVersion+"/share/java/postgresql.jar", wwwGroupDir+"/lib/postgresql.jar", lsaUID, lsgGID);
                                 } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                             }
-                            if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                            if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                                 ln("../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", wwwGroupDir+"/lib/mysql-connector-java-3.1.12-bin.jar", lsaUID, lsgGID);
                             } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                                 ln("../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar", wwwGroupDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", lsaUID, lsgGID);
@@ -5952,8 +5733,7 @@ final public class HttpdManager extends BuilderThread {
     private static final String getDefaultPhpVersion(int operatingSystemVersion) {
         Profiler.startProfile(Profiler.FAST, HttpdManager.class, "getDefaultPhpVersion(int)", null);
         try {
-            if(operatingSystemVersion==OperatingSystemVersion.MANDRAKE_10_1_I586) return DEFAULT_MANDRAKE_10_1_PHP_VERSION;
-            else if(operatingSystemVersion==OperatingSystemVersion.MANDRIVA_2006_0_I586) return DEFAULT_MANDRIVA_2006_0_PHP_VERSION;
+            if(operatingSystemVersion==OperatingSystemVersion.MANDRIVA_2006_0_I586) return DEFAULT_MANDRIVA_2006_0_PHP_VERSION;
             else if(operatingSystemVersion==OperatingSystemVersion.REDHAT_ES_4_X86_64) return DEFAULT_REDHAT_ES_4_PHP_VERSION;
             else throw new RuntimeException("Unsupported OperatingSystemVersion: "+operatingSystemVersion);
         } finally {
@@ -5964,8 +5744,7 @@ final public class HttpdManager extends BuilderThread {
     private static final String getDefaultJdkVersion(int operatingSystemVersion) {
         Profiler.startProfile(Profiler.FAST, HttpdManager.class, "getDefaultJdkVersion(int)", null);
         try {
-            if(operatingSystemVersion==OperatingSystemVersion.MANDRAKE_10_1_I586) return DEFAULT_MANDRAKE_10_1_JDK_VERSION;
-            else if(operatingSystemVersion==OperatingSystemVersion.MANDRIVA_2006_0_I586) return DEFAULT_MANDRIVA_2006_0_JDK_VERSION;
+            if(operatingSystemVersion==OperatingSystemVersion.MANDRIVA_2006_0_I586) return DEFAULT_MANDRIVA_2006_0_JDK_VERSION;
             else if(operatingSystemVersion==OperatingSystemVersion.REDHAT_ES_4_X86_64) return DEFAULT_REDHAT_ES_4_JDK_VERSION;
             else throw new RuntimeException("Unsupported OperatingSystemVersion: "+operatingSystemVersion);
         } finally {
@@ -5976,8 +5755,7 @@ final public class HttpdManager extends BuilderThread {
     private static final String getDefaultJdkPath(int operatingSystemVersion) {
         Profiler.startProfile(Profiler.FAST, HttpdManager.class, "getDefaultJdkPath(int)", null);
         try {
-            if(operatingSystemVersion==OperatingSystemVersion.MANDRAKE_10_1_I586) return DEFAULT_MANDRAKE_10_1_JDK_PATH;
-            else if(operatingSystemVersion==OperatingSystemVersion.MANDRIVA_2006_0_I586) return DEFAULT_MANDRIVA_2006_0_JDK_PATH;
+            if(operatingSystemVersion==OperatingSystemVersion.MANDRIVA_2006_0_I586) return DEFAULT_MANDRIVA_2006_0_JDK_PATH;
             else if(operatingSystemVersion==OperatingSystemVersion.REDHAT_ES_4_X86_64) return DEFAULT_REDHAT_ES_4_JDK_PATH;
             else throw new RuntimeException("Unsupported OperatingSystemVersion: "+operatingSystemVersion);
         } finally {
@@ -6040,9 +5818,7 @@ final public class HttpdManager extends BuilderThread {
                     if(!completedPaths.containsKey(access_log)) {
                         completedPaths.put(access_log, null);
                         // Add to the site log rotation
-                        if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) {
-                            chainOut.print(access_log).print(" {\n    daily\n    rotate 379\n}\n");
-                        } else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586 || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586 || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                             if(wroteOne) chainOut.print(' ');
                             else wroteOne = true;
                             chainOut.print(access_log);
@@ -6053,9 +5829,7 @@ final public class HttpdManager extends BuilderThread {
                     if(!completedPaths.containsKey(error_log)) {
                         completedPaths.put(error_log, null);
                         // Add to the site log rotation
-                        if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) {
-                            chainOut.print(error_log).print(" {\n    daily\n    rotate 379\n}\n");
-                        } else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586 || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586 || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                             if(wroteOne) chainOut.print(' ');
                             else wroteOne = true;
                             chainOut.print(error_log);
@@ -6064,9 +5838,7 @@ final public class HttpdManager extends BuilderThread {
                     }
                 }
                 // Finish the file
-                if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) {
-                    // Do nothing
-                } else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586 || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586 || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                     if(wroteOne) {
                         chainOut.print(" {\n"
                                      + "    daily\n"
