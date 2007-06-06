@@ -251,54 +251,148 @@ final public class PostgresUserManager extends BuilderThread {
             Connection conn = pool.getConnection(false);
             try {
                 String version=ps.getPostgresVersion().getTechnologyVersion(aoservConn).getVersion();
-                String midStatement;
-                if(forceUnencrypted) {
-                    if(version.startsWith(PostgresVersion.VERSION_7_1+'.')) midStatement=" with password ";
-                    else midStatement=" with unencrypted password ";
-                } else {
-                    if(
-                        version.startsWith(PostgresVersion.VERSION_7_2+'.')
-                        || version.startsWith(PostgresVersion.VERSION_7_3+'.')
-                    ) {
-                        midStatement=" with unencrypted password ";
+                if(version.startsWith(PostgresVersion.VERSION_7_1+'.')) {
+                    if(password==PostgresUser.NO_PASSWORD) {
+                        // Remove the password
+                        Statement stmt = conn.createStatement();
+                        String sqlString = "alter user " + username + " with password '"+PostgresUser.NO_PASSWORD_DB_VALUE+'\'';
+                        try {
+                            stmt.executeUpdate(sqlString);
+                        } catch(SQLException err) {
+                            throw new WrappedSQLException(err, sqlString);
+                        } finally {
+                            stmt.close();
+                        }
                     } else {
-                        midStatement=" with password ";
+                        // Reset the password
+                        PreparedStatement pstmt = conn.prepareStatement("alter user " + username + " with password ?");
+                        try {
+                            pstmt.setString(1, password);
+                            pstmt.executeUpdate();
+                        } catch(SQLException err) {
+                            throw new WrappedSQLException(err, pstmt);
+                        } finally {
+                            pstmt.close();
+                        }
                     }
-                }
-                String alterCommand;
-                if(version.startsWith(PostgresVersion.VERSION_8_1+'.')) {
-                    alterCommand = "alter role ";
+                } else if(version.startsWith(PostgresVersion.VERSION_7_2+'.') || version.startsWith(PostgresVersion.VERSION_7_3+'.')) {
+                    if(password==PostgresUser.NO_PASSWORD) {
+                        // Remove the password
+                        Statement stmt = conn.createStatement();
+                        String sqlString = "alter user " + username + " with unencrypted password '"+PostgresUser.NO_PASSWORD_DB_VALUE+'\'';
+                        try {
+                            stmt.executeUpdate(sqlString);
+                        } catch(SQLException err) {
+                            throw new WrappedSQLException(err, sqlString);
+                        } finally {
+                            stmt.close();
+                        }
+                    } else {
+                        // Reset the password
+                        PreparedStatement pstmt = conn.prepareStatement("alter user " + username + " with unencrypted password ?");
+                        try {
+                            pstmt.setString(1, password);
+                            pstmt.executeUpdate();
+                        } catch(SQLException err) {
+                            throw new WrappedSQLException(err, pstmt);
+                        } finally {
+                            pstmt.close();
+                        }
+                    }
+                } else if(version.startsWith(PostgresVersion.VERSION_8_1+'.')) {
+                    if(password==PostgresUser.NO_PASSWORD) {
+                        // Remove the password
+                        Statement stmt = conn.createStatement();
+                        String sqlString = "alter role " + username + " with unencrypted password '"+PostgresUser.NO_PASSWORD_DB_VALUE+'\'';
+                        try {
+                            stmt.executeUpdate(sqlString);
+                        } catch(SQLException err) {
+                            throw new WrappedSQLException(err, sqlString);
+                        } finally {
+                            stmt.close();
+                        }
+                    } else {
+                        // TODO: Find a way to use PreparedStatement here for PostgreSQL 8.1
+                        checkPasswordChars(password);
+                        if(forceUnencrypted) {
+                            // Reset the password (unencrypted)
+                            Statement stmt = conn.createStatement();
+                            String sqlString = "alter role " + username + " with unencrypted password '"+password+'\'';
+                            try {
+                                stmt.executeUpdate(sqlString);
+                            } catch(SQLException err) {
+                                throw new WrappedSQLException(err, sqlString);
+                            } finally {
+                                stmt.close();
+                            }
+                        } else {
+                            // Reset the password (encrypted)
+                            Statement stmt = conn.createStatement();
+                            String sqlString = "alter role " + username + " with password '"+password+'\'';
+                            try {
+                                stmt.executeUpdate(sqlString);
+                            } catch(SQLException err) {
+                                throw new WrappedSQLException(err, sqlString);
+                            } finally {
+                                stmt.close();
+                            }
+                        }
+                    }
                 } else {
-                    alterCommand = "alter user ";
-                }
-                if(password==PostgresUser.NO_PASSWORD) {
-                    // Disable the account
-                    Statement stmt = conn.createStatement();
-                    String sqlString = alterCommand+username+midStatement+"'"+PostgresUser.NO_PASSWORD_DB_VALUE+'\'';
-                    try {
-                        stmt.executeUpdate(sqlString);
-                    } catch(SQLException err) {
-                        throw new WrappedSQLException(err, sqlString);
-                    } finally {
-                        stmt.close();
-                    }
-                } else {
-                    // Reset the password
-                    PreparedStatement pstmt = conn.prepareStatement(alterCommand+username+midStatement+'?');
-                    try {
-                        pstmt.setString(1, password);
-                        pstmt.executeUpdate();
-                    } catch(SQLException err) {
-                        throw new WrappedSQLException(err, pstmt);
-                    } finally {
-                        pstmt.close();
-                    }
+                    throw new SQLException("Unsupported version of PostgreSQL: "+version);
                 }
             } finally {
                 pool.releaseConnection(conn);
             }
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
+
+    /**
+     * Makes sure a password is safe for direct concatenation for PostgreSQL 8.1.
+     *
+     * Throw SQLException if not acceptable
+     */
+    private static void checkPasswordChars(String password) throws SQLException {
+        if(password==null) throw new SQLException("password is null");
+        if(password.length()==0) throw new SQLException("password is empty");
+        for(int c=0;c<password.length();c++) {
+            char ch = password.charAt(c);
+            if(
+                (ch<'a' || ch>'z')
+                && (ch<'A' || ch>'Z')
+                && (ch<'0' || ch>'9')
+                && ch!=' '
+                && ch!='!'
+                && ch!='@'
+                && ch!='#'
+                && ch!='$'
+                && ch!='%'
+                && ch!='^'
+                && ch!='&'
+                && ch!='*'
+                && ch!='('
+                && ch!=')'
+                && ch!='-'
+                && ch!='_'
+                && ch!='='
+                && ch!='+'
+                && ch!='['
+                && ch!=']'
+                && ch!='{'
+                && ch!='}'
+                && ch!='|'
+                && ch!=';'
+                && ch!=':'
+                && ch!='"'
+                && ch!=','
+                && ch!='.'
+                && ch!='<'
+                && ch!='>'
+                && ch!='/'
+                && ch!='?'
+            ) throw new SQLException("Invalid character in password, may only contain a-z, A-Z, 0-9, (space), !@#$%^&*()-_=+[]{}|;:\",.<>/?");
         }
     }
 
