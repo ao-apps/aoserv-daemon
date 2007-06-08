@@ -230,6 +230,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                         || version.startsWith(PostgresVersion.VERSION_8_1+'.')
                                     ) {
                                         stmt.executeUpdate("create database "+name+" with owner="+datdba.getPostgresUser().getUsername().getUsername()+" encoding='"+database.getPostgresEncoding().getEncoding()+'\'');
+                                        conn.commit();
                                     } else if(
                                         version.startsWith(PostgresVersion.VERSION_7_1+'.')
                                         || version.startsWith(PostgresVersion.VERSION_7_2+'.')
@@ -237,25 +238,55 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                         // Create the database
                                         stmt.executeUpdate("create database "+name+" with encoding='"+database.getPostgresEncoding().getEncoding()+"'");
                                         stmt.executeUpdate("update pg_database set datdba=(select usesysid from pg_user where usename='"+datdba.getPostgresUser().getUsername().getUsername()+"') where datname='"+name+"'");
+                                        conn.commit();
                                     } else throw new SQLException("Unsupported version of PostgreSQL: "+version);
 
                                     // Automatically add plpgsql support
-                                    String createlang;
-                                    String psql;
-                                    String lib;
-                                    if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-                                        createlang = "/opt/postgresql-"+minorVersion+"/bin/createlang";
-                                        psql = "/opt/postgresql-"+minorVersion+"/bin/psql";
-                                        lib = "/opt/postgresql-"+minorVersion+"/lib";
-                                    } else if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                                        createlang = "/usr/postgresql/"+minorVersion+"/bin/createlang";
-                                        psql = "/usr/postgresql/"+minorVersion+"/bin/psql";
-                                        lib = "/usr/postgresql/"+minorVersion+"/lib";
-                                    } else {
-                                        throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                                    try {
+                                        String createlang;
+                                        String psql;
+                                        String lib;
+                                        String share;
+                                        if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                                            createlang = "/opt/postgresql-"+minorVersion+"/bin/createlang";
+                                            psql = "/opt/postgresql-"+minorVersion+"/bin/psql";
+                                            lib = "/opt/postgresql-"+minorVersion+"/lib";
+                                            share = "/opt/postgresql-"+minorVersion+"/share";
+                                        } else if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                            createlang = "/usr/postgresql/"+minorVersion+"/bin/createlang";
+                                            psql = "/usr/postgresql/"+minorVersion+"/bin/psql";
+                                            lib = "/usr/postgresql/"+minorVersion+"/lib";
+                                            share = "/usr/postgresql/"+minorVersion+"/share";
+                                        } else {
+                                            throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                                        }
+                                        AOServDaemon.suexec(LinuxAccount.POSTGRES, createlang+" -p "+port+" plpgsql "+name);
+                                        AOServDaemon.suexec(LinuxAccount.POSTGRES, psql+" -p "+port+" -c \"create function fti() returns opaque as '"+lib+"/mfti.so' language 'c';\" "+name);
+                                        if(database.getEnablePostgis()) {
+                                            AOServDaemon.suexec(LinuxAccount.POSTGRES, psql+" -p "+port+" "+name+" -f "+share+"/lwpostgis.sql");
+                                            AOServDaemon.suexec(LinuxAccount.POSTGRES, psql+" -p "+port+" "+name+" -f "+share+"/spatial_ref_sys.sql");
+                                        }
+                                    } catch(IOException err) {
+                                        try {
+                                            // Drop the new database if not fully configured
+                                            stmt.executeUpdate("drop database "+name);
+                                            conn.commit();
+                                        } catch(SQLException err2) {
+                                            AOServDaemon.reportError(err2, null);
+                                            throw err2;
+                                        }
+                                        throw err;
+                                    } catch(SQLException err) {
+                                        try {
+                                            // Drop the new database if not fully configured
+                                            stmt.executeUpdate("drop database "+name);
+                                            conn.commit();
+                                        } catch(SQLException err2) {
+                                            AOServDaemon.reportError(err2, null);
+                                            throw err2;
+                                        }
+                                        throw err;
                                     }
-                                    AOServDaemon.suexec(LinuxAccount.POSTGRES, createlang+" -p "+port+" plpgsql "+name);
-                                    AOServDaemon.suexec(LinuxAccount.POSTGRES, psql+" -p "+port+" -c \"create function fti() returns opaque as '"+lib+"/mfti.so' language 'c';\" "+name);
                                 }
                             }
 
@@ -272,6 +303,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                     || dbName.equals(PostgresDatabase.AOWEB)
                                 ) throw new SQLException("AOServ Daemon will not automatically drop database, please drop manually: "+dbName);
                                 stmt.executeUpdate("drop database "+dbName);
+                                conn.commit();
                             }
                         } finally {
                             stmt.close();

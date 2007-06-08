@@ -960,7 +960,6 @@ final public class HttpdManager extends BuilderThread {
              * Create the skeleton of the site, the directories and links.
              */
             mkdir(siteDir+"/bin", 0770, lsa, lsg);
-            ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
             mkdir(siteDir+"/conf", 0775, lsa, lsg);
             mkdir(siteDir+"/daemon", 0770, lsa, lsg);
             if (site.getDisableLog()==null) ln("../bin/tomcat", siteDir+"/daemon/tomcat", uid, gid);
@@ -2433,7 +2432,6 @@ final public class HttpdManager extends BuilderThread {
              * Create the skeleton of the site, the directories and links.
              */
             mkdir(siteDir+"/bin", 0770, lsa, lsg);
-            ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
             mkdir(siteDir+"/conf", 0775, lsa, lsg);
             mkdir(siteDir+"/daemon", 0770, lsa, lsg);
             ln("var/log", siteDir+"/logs", uid, gid);
