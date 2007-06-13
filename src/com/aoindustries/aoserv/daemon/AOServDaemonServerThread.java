@@ -218,6 +218,20 @@ final public class AOServDaemonServerThread extends Thread {
                                     short fromServerYear = in.readShort();
                                     short fromServerMonth = in.readShort();
                                     short fromServerDay = in.readShort();
+                                    List<String> replicatedMySQLServers;
+                                    List<String> replicatedMySQLMinorVersions;
+                                    if(retention!=1) {
+                                        int len=in.readCompressedInt();
+                                        replicatedMySQLServers=new ArrayList<String>(len);
+                                        replicatedMySQLMinorVersions=new ArrayList<String>(len);
+                                        for(int c=0;c<len;c++) {
+                                            replicatedMySQLServers.add(in.readUTF());
+                                            replicatedMySQLMinorVersions.add(in.readUTF());
+                                        }
+                                    } else {
+                                        replicatedMySQLServers=Collections.emptyList();
+                                        replicatedMySQLMinorVersions=Collections.emptyList();
+                                    }
                                     DaemonAccessEntry dae=AOServDaemonServer.getDaemonAccessEntry(daemonKey);
                                     if(dae.command!=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION) throw new IOException("Mismatched DaemonAccessEntry command, dae.command!="+AOServDaemonProtocol.FAILOVER_FILE_REPLICATION);
                                     FailoverFileReplicationManager.failoverServer(
@@ -231,7 +245,9 @@ final public class AOServDaemonServerThread extends Thread {
                                         "t".equals(dae.param3),
                                         fromServerYear,
                                         fromServerMonth,
-                                        fromServerDay
+                                        fromServerDay,
+                                        replicatedMySQLServers,
+                                        replicatedMySQLMinorVersions
                                     );
                                 }
                                 break;

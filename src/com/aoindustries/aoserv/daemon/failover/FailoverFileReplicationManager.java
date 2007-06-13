@@ -12,8 +12,10 @@ import com.aoindustries.aoserv.client.BackupRetention;
 import com.aoindustries.aoserv.client.FailoverFileLog;
 import com.aoindustries.aoserv.client.FailoverFileReplication;
 import com.aoindustries.aoserv.client.FailoverFileSchedule;
+import com.aoindustries.aoserv.client.FailoverMySQLReplication;
 import com.aoindustries.aoserv.client.HttpdServer;
 import com.aoindustries.aoserv.client.IPAddress;
+import com.aoindustries.aoserv.client.MySQLServer;
 import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.NetPort;
 import com.aoindustries.aoserv.client.Protocol;
@@ -199,6 +201,28 @@ final public class FailoverFileReplicationManager {
         return encryptedLoopFilePaths.contains(path);
     }
 
+    /**
+     * Keeps track of things that will need to be done after a successful replication pass.
+     */
+    private static class PostPassChecklist {
+        boolean restartMySQLs = false;
+    }
+
+    private static void updated(int retention, PostPassChecklist postPassChecklist, String relativePath) {
+        if(
+            retention==1
+            && !postPassChecklist.restartMySQLs
+            && (
+                relativePath.startsWith("/etc/rc.d/init.d/mysql-")
+                || relativePath.startsWith("/usr/mysql/")
+                || relativePath.startsWith("/opt/mysql-")
+            )
+        ) {
+            if(log.isDebugEnabled()) log.debug("Flagging postPassChecklist.restartMySQLs=true for path="+relativePath);
+            postPassChecklist.restartMySQLs=true;
+        }
+    }
+
     public static void failoverServer(
         final Socket socket,
         final CompressedDataInputStream rawIn,
@@ -210,14 +234,27 @@ final public class FailoverFileReplicationManager {
         final boolean chunkAlways,
         final short fromServerYear,
         final short fromServerMonth,
-        final short fromServerDay
+        final short fromServerDay,
+        final List<String> replicatedMySQLServers,
+        final List<String> replicatedMySQLMinorVersions
     ) throws IOException {
-        Profiler.startProfile(Profiler.IO, FailoverFileReplicationManager.class, "failoverServer(Socket,CompressedDataInputStream,CompressedDataOutputStream,String,boolean,short,String,boolean,short,short,short)", null);
+        Profiler.startProfile(Profiler.IO, FailoverFileReplicationManager.class, "failoverServer(Socket,CompressedDataInputStream,CompressedDataOutputStream,String,boolean,short,String,boolean,short,short,short,List<String>,List<String>)", null);
         try {
+            final PostPassChecklist postPassChecklist = new PostPassChecklist();
             try {
                 if(fromServerYear<1000 || fromServerYear>9999) throw new IOException("Invalid fromServerYear (1000-9999): "+fromServerYear);
                 if(fromServerMonth<1 || fromServerMonth>12) throw new IOException("Invalid fromServerMonth (1-12): "+fromServerMonth);
                 if(fromServerDay<1 || fromServerDay>31) throw new IOException("Invalid fromServerDay (1-31): "+fromServerDay);
+
+                // Make sure no / or .. in these names, so calls as root to the chroot /etc/rc.d/init.d/mysql-... restart aren't exploitable
+                for(String replicatedMySQLServer : replicatedMySQLServers) {
+                    if(log.isDebugEnabled()) log.debug("failoverServer from "+fromServer+", replicatedMySQLServer: "+replicatedMySQLServer);
+                    if(replicatedMySQLServer.indexOf('/')!=-1 || replicatedMySQLServer.indexOf("..")!=-1) throw new IOException("Invalid replicatedMySQLServer: "+replicatedMySQLServer);
+                }
+                for(String replicatedMySQLMinorVersion : replicatedMySQLMinorVersions) {
+                    if(log.isDebugEnabled()) log.debug("failoverServer from "+fromServer+", replicatedMySQLMinorVersion: "+replicatedMySQLMinorVersion);
+                    if(replicatedMySQLMinorVersion.indexOf('/')!=-1 || replicatedMySQLMinorVersion.indexOf("..")!=-1) throw new IOException("Invalid replicatedMySQLMinorVersion: "+replicatedMySQLMinorVersion);
+                }
 
                 // This Stat may be used for any short-term tempStat
                 final Stat tempStat = new Stat();
@@ -421,12 +458,14 @@ final public class FailoverFileReplicationManager {
                 try {
                     // The extra files in directories are cleaned once the directory is done
                     Stack<UnixFile> directoryUFs=new Stack<UnixFile>();
+                    Stack<String> directoryUFRelativePaths=new Stack<String>();
                     Stack<Long> directoryModifyTimes=new Stack<Long>();
                     Stack<Set<String>> directoryContents=new Stack<Set<String>>();
 
-                    // The actually cleaning and modify time setting is delayed to the end of the batch by adding
+                    // The actual cleaning and modify time setting is delayed to the end of the batch by adding
                     // the lists of things to do here.
                     List<UnixFile> directoryFinalizeUFs = new ArrayList<UnixFile>();
+                    List<String> directoryFinalizeUFRelativePaths = new ArrayList<String>();
                     List<Long> directoryFinalizeModifyTimes = new ArrayList<Long>();
                     List<Set<String>> directoryFinalizeContents = new ArrayList<Set<String>>();
 
@@ -444,6 +483,7 @@ final public class FailoverFileReplicationManager {
                         }
                         // Reset the directory finalization for each batch
                         directoryFinalizeUFs.clear();
+                        directoryFinalizeUFRelativePaths.clear();
                         directoryFinalizeModifyTimes.clear();
                         directoryFinalizeContents.clear();
 
@@ -501,6 +541,7 @@ final public class FailoverFileReplicationManager {
                                     // Otherwise, schedule to clean and complete the directory at the end of this batch
                                     directoryUFs.pop();
                                     directoryFinalizeUFs.add(dirUF);
+                                    directoryFinalizeUFRelativePaths.add(directoryUFRelativePaths.pop());
                                     directoryFinalizeModifyTimes.add(directoryModifyTimes.pop());
                                     directoryFinalizeContents.add(directoryContents.pop());
                                 }
@@ -538,9 +579,11 @@ final public class FailoverFileReplicationManager {
                                                 || linkToUFStat.getDeviceIdentifier()!=deviceID
                                             ) {
                                                 result=MODIFIED;
+                                                updated(retention, postPassChecklist, relativePath);
                                             }
                                         } else {
                                             result=MODIFIED;
+                                            updated(retention, postPassChecklist, relativePath);
                                         }
                                     }
                                 } else if(UnixFile.isCharacterDevice(mode)) {
@@ -566,9 +609,11 @@ final public class FailoverFileReplicationManager {
                                                 || linkToUFStat.getDeviceIdentifier()!=deviceID
                                             ) {
                                                 result=MODIFIED;
+                                                updated(retention, postPassChecklist, relativePath);
                                             }
                                         } else {
                                             result=MODIFIED;
+                                            updated(retention, postPassChecklist, relativePath);
                                         }
                                     }
                                 } else if(UnixFile.isDirectory(mode)) {
@@ -590,14 +635,18 @@ final public class FailoverFileReplicationManager {
                                                 || !linkToUFStat.isDirectory()
                                             ) {
                                                 result=MODIFIED;
+                                                updated(retention, postPassChecklist, relativePath);
                                             }
                                         } else {
                                             result=MODIFIED;
+                                            updated(retention, postPassChecklist, relativePath);
                                         }
                                     } else if(ufStat.getModifyTime()!=modifyTime) {
                                         result=MODIFIED;
+                                        updated(retention, postPassChecklist, relativePath);
                                     }
                                     directoryUFs.push(uf);
+                                    directoryUFRelativePaths.push(relativePath);
                                     directoryModifyTimes.push(Long.valueOf(modifyTime));
                                     directoryContents.push(new HashSet<String>());
                                 } else if(UnixFile.isFIFO(mode)) {
@@ -619,9 +668,11 @@ final public class FailoverFileReplicationManager {
                                                 || !linkToUFStat.isFIFO()
                                             ) {
                                                 result=MODIFIED;
+                                                updated(retention, postPassChecklist, relativePath);
                                             }
                                         } else {
                                             result=MODIFIED;
+                                            updated(retention, postPassChecklist, relativePath);
                                         }
                                     }
                                 } else if(UnixFile.isRegularFile(mode)) {
@@ -780,6 +831,7 @@ final public class FailoverFileReplicationManager {
                                                     }
                                                     uf.getStat(ufStat);
                                                     result = MODIFIED;
+                                                    updated(retention, postPassChecklist, relativePath);
                                                     linkedOldLogFile = true;
                                                 }
                                             }
@@ -907,10 +959,12 @@ final public class FailoverFileReplicationManager {
                                                         chunkingFroms[c]=chunkingFrom;
                                                         chunkingFile = true;
                                                         result = MODIFIED_REQUEST_DATA_CHUNKED;
+                                                        updated(retention, postPassChecklist, relativePath);
                                                     }
                                                 }
                                                 if(!chunkingFile) {
                                                     result = MODIFIED_REQUEST_DATA;
+                                                    updated(retention, postPassChecklist, relativePath);
                                                     if(!ufStat.exists()) {
                                                         new FileOutputStream(uf.getFile()).close();
                                                         uf.getStat(ufStat);
@@ -942,9 +996,11 @@ final public class FailoverFileReplicationManager {
                                                 || !linkToUF.readLink().equals(symlinkTarget)
                                             ) {
                                                 result=MODIFIED;
+                                                updated(retention, postPassChecklist, relativePath);
                                             }
                                         } else {
                                             result=MODIFIED;
+                                            updated(retention, postPassChecklist, relativePath);
                                         }
                                     }
                                 } else throw new IOException("Unknown mode type: "+Long.toOctalString(mode&UnixFile.TYPE_MASK));
@@ -985,9 +1041,11 @@ final public class FailoverFileReplicationManager {
                                                 )
                                             ) {
                                                 result=MODIFIED;
+                                                updated(retention, postPassChecklist, relativePath);
                                             }
                                         } else {
                                             result=MODIFIED;
+                                            updated(retention, postPassChecklist, relativePath);
                                         }
                                     }
                                 }
@@ -1006,9 +1064,11 @@ final public class FailoverFileReplicationManager {
                                                 || linkToUFStat.getGID()!=gid
                                             ) {
                                                 result=MODIFIED;
+                                                updated(retention, postPassChecklist, relativePath);
                                             }
                                         } else {
                                             result=MODIFIED;
+                                            updated(retention, postPassChecklist, relativePath);
                                         }
                                     }
                                 }
@@ -1034,11 +1094,13 @@ final public class FailoverFileReplicationManager {
                                                 || linkToUFStat.getModifyTime()!=modifyTime
                                             ) {
                                                 result=MODIFIED;
+                                                updated(retention, postPassChecklist, relativePath);
                                             }
                                         } else {
                                             result=MODIFIED;
+                                            updated(retention, postPassChecklist, relativePath);
                                         }
-                                        result=MODIFIED;
+                                        //result=MODIFIED;
                                     }
                                 }
                                 results[c]=result;
@@ -1150,6 +1212,7 @@ final public class FailoverFileReplicationManager {
                         // For any directories that were completed during this batch, clean extra files and set its modify time
                         for(int c=0;c<directoryFinalizeUFs.size();c++) {
                             UnixFile dirUF = directoryFinalizeUFs.get(c);
+                            String relativePath = directoryFinalizeUFRelativePaths.get(c);
                             long dirModifyTime = directoryFinalizeModifyTimes.get(c).longValue();
                             Set<String> dirContents = directoryFinalizeContents.get(c);
                             String dirPath=dirUF.getFilename();
@@ -1159,11 +1222,13 @@ final public class FailoverFileReplicationManager {
                                 for(int d=0;d<list.length;d++) {
                                     String fullpath=dirPath+list[d];
                                     if(!dirContents.contains(fullpath)) {
-                                        if(log.isTraceEnabled()) log.trace("Deleting extra file: "+fullpath);
-                                        try {
-                                            new UnixFile(fullpath).deleteRecursive();
-                                        } catch(FileNotFoundException err) {
-                                            AOServDaemon.reportError(err, new Object[] {"fullpath="+fullpath});
+                                        if(deleteOnCleanup(fromServer, retention, relativePath, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
+                                            if(log.isTraceEnabled()) log.trace("Deleting extra file: "+fullpath);
+                                            try {
+                                                new UnixFile(fullpath).deleteRecursive();
+                                            } catch(FileNotFoundException err) {
+                                                AOServDaemon.reportError(err, new Object[] {"fullpath="+fullpath});
+                                            }
                                         }
                                     }
                                 }
@@ -1181,6 +1246,7 @@ final public class FailoverFileReplicationManager {
 
                         // Otherwise, clean and complete the directory
                         directoryUFs.pop();
+                        String relativePath = directoryUFRelativePaths.pop();
                         long dirModifyTime=directoryModifyTimes.pop().longValue();
                         Set<String> dirContents=directoryContents.pop();
                         String[] list=dirUF.list();
@@ -1188,8 +1254,14 @@ final public class FailoverFileReplicationManager {
                             for(int c=0;c<list.length;c++) {
                                 String fullpath=dirPath+list[c];
                                 if(!dirContents.contains(fullpath)) {
-                                    if(log.isTraceEnabled()) log.trace("Deleting final clean-up: "+fullpath);
-                                    new UnixFile(fullpath).deleteRecursive();
+                                    if(deleteOnCleanup(fromServer, retention, relativePath, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
+                                        if(log.isTraceEnabled()) log.trace("Deleting final clean-up: "+fullpath);
+                                        try {
+                                            new UnixFile(fullpath).deleteRecursive();
+                                        } catch(FileNotFoundException err) {
+                                            AOServDaemon.reportError(err, new Object[] {"fullpath="+fullpath});
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1219,10 +1291,64 @@ final public class FailoverFileReplicationManager {
             } catch(IOException err) {
                 socket.close();
                 throw err;
+            } finally {
+                if(postPassChecklist.restartMySQLs && retention==1) {
+                    for(String mysqlServer : replicatedMySQLServers) {
+                        if(log.isDebugEnabled()) log.debug("Restarting MySQL "+mysqlServer+" in "+toPath+"/"+fromServer);
+                        String[] command = {
+                            "/usr/sbin/chroot",
+                            toPath+"/"+fromServer,
+                            "/etc/rc.d/init.d/mysql-"+mysqlServer,
+                            "restart"
+                        };
+                        try {
+                            AOServDaemon.exec(
+                                command
+                            );
+                        } catch(IOException err) {
+                            AOServDaemon.reportError(err, command);
+                        }
+                    }
+                }
             }
         } finally {
             Profiler.endProfile(Profiler.IO);
         }
+    }
+
+    /**
+     * Determines if a specific file may be deleted on clean-up.
+     * Don't delete anything in /proc/*, /sys/*, /dev/pts/*, or MySQL replication-related files
+     */
+    private static boolean deleteOnCleanup(String fromServer, int retention, String relativePath, List<String> replicatedMySQLServers, List<String> replicatedMySQLMinorVersions) {
+        if(
+            relativePath.equals("/proc")
+            || relativePath.startsWith("/proc/")
+            || relativePath.equals("/sys")
+            || relativePath.startsWith("/sys/")
+            || relativePath.equals("/dev/pts")
+            || relativePath.startsWith("/dev/pts/")
+        ) {
+            if(log.isDebugEnabled()) log.debug("Skipping delete on cleanup: "+fromServer+":"+relativePath);
+            return false;
+        }
+        if(retention!=-1) {
+            for(String name : replicatedMySQLServers) {
+                if(
+                    relativePath.equals("/var/lib/mysql/"+name)
+                    || relativePath.startsWith("/var/lib/mysql/"+name+"/")
+                ) {
+                    if(log.isDebugEnabled()) log.debug("Skipping delete on cleanup: "+fromServer+":"+relativePath);
+                    return false;
+                }
+            }
+            for(String minorVersion : replicatedMySQLMinorVersions) {
+                if(relativePath.equals("/var/lock/subsys/mysql-"+minorVersion)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     private static void cleanAndRecycleBackups(short retention, UnixFile serverRootUF, Stat tempStat, short fromServerYear, short fromServerMonth, short fromServerDay) {
@@ -1759,8 +1885,33 @@ final public class FailoverFileReplicationManager {
                 short retention = ffr.getRetention().getDays();
                 if(log.isTraceEnabled()) log.trace((backupMode ? "Backup: " : "Failover: ") + "retention="+retention);
 
+                // Determine which MySQL Servers are replicated (not mirrored with failover code)
+                List<String> replicatedMySQLServers;
+                List<String> replicatedMySQLMinorVersions;
+                if(retention!=1) {
+                    List<FailoverMySQLReplication> fmrs = ffr.getFailoverMySQLReplications();
+                    replicatedMySQLServers = new ArrayList<String>(fmrs.size());
+                    replicatedMySQLMinorVersions = new ArrayList<String>(fmrs.size());
+                    for(FailoverMySQLReplication fmr : fmrs) {
+                        MySQLServer mysqlServer = fmr.getMySQLServer();
+                        String name = mysqlServer.getName();
+                        String minorVersion = mysqlServer.getMinorVersion();
+                        replicatedMySQLServers.add(name);
+                        replicatedMySQLMinorVersions.add(minorVersion);
+                        if(log.isDebugEnabled()) {
+                            log.debug("runFailoverCopy to "+toServer+", replicatedMySQLServer: "+name);
+                            log.debug("runFailoverCopy to "+toServer+", replicatedMySQLMinorVersion: "+minorVersion);
+                        }
+                    }
+                } else {
+                    replicatedMySQLServers=Collections.emptyList();
+                    replicatedMySQLMinorVersions=Collections.emptyList();
+                    if(log.isDebugEnabled()) log.debug("runFailoverCopy to "+toServer+", retention==1, using empty replicatedMySQLServer and replicatedMySQLMinorVersion");
+                }
+
                 // Build the skip list
                 Map<String,FilesystemIteratorRule> filesystemRules=new HashMap<String,FilesystemIteratorRule>();
+                Map<String,FilesystemIteratorRule> filesystemPrefixRules=new HashMap<String,FilesystemIteratorRule>();
                 filesystemRules.put("/.journal", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/aquota.user", FilesystemIteratorRule.SKIP);
                 //filesystemRules.put("/backup", FilesystemIteratorRule.NO_RECURSE);
@@ -1845,7 +1996,15 @@ final public class FailoverFileReplicationManager {
                 filesystemRules.put("/var/lib/mysql/.journal", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lib/mysql/4.0/"+hostname+".pid", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lib/mysql/4.1/"+hostname+".pid", FilesystemIteratorRule.SKIP);
-                filesystemRules.put("/var/lib/mysql/5.0/mysql-bin", FilesystemIteratorRule.NO_RECURSE);
+                filesystemRules.put("/var/lib/mysql/5.0/"+hostname+".pid", FilesystemIteratorRule.SKIP);
+                filesystemPrefixRules.put("/var/lib/mysql/5.0/mysql-bin.", FilesystemIteratorRule.SKIP);
+
+                // Skip files for any MySQL Server that is being replicated through MySQL replication
+                for(String name : replicatedMySQLServers) {
+                    String path = "/var/lib/mysql/"+name;
+                    filesystemRules.put(path, FilesystemIteratorRule.SKIP);
+                    if(log.isDebugEnabled()) log.debug("runFailoverCopy to "+toServer+", added skip rule for "+path);
+                }
                 filesystemRules.put(
                     "/var/lib/pgsql",
                     new FileExistsRule(
@@ -1870,7 +2029,11 @@ final public class FailoverFileReplicationManager {
                 filesystemRules.put("/var/lock/subsys/kheader", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/identd", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/local", FilesystemIteratorRule.SKIP);
-                filesystemRules.put("/var/lock/subsys/mysql", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/mysql-4.0-max", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/mysql-4.1", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/mysql-4.1-max", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/mysql-5.0", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/mysql-5.0-max", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/network", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/postgresql-7.1", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/postgresql-7.2", FilesystemIteratorRule.SKIP);
@@ -2005,6 +2168,14 @@ final public class FailoverFileReplicationManager {
                         rawOut.writeShort(year);
                         rawOut.writeShort(month);
                         rawOut.writeShort(day);
+                        if(retention!=1) {
+                            int len = replicatedMySQLServers.size();
+                            rawOut.writeCompressedInt(len);
+                            for(int c=0;c<len;c++) {
+                                rawOut.writeUTF(replicatedMySQLServers.get(c));
+                                rawOut.writeUTF(replicatedMySQLMinorVersions.get(c));
+                            }
+                        }
                         rawOut.flush();
 
                         CompressedDataInputStream rawIn=daemonConn.getInputStream();
@@ -2039,7 +2210,7 @@ final public class FailoverFileReplicationManager {
                                 )
                             );
                             try {
-                                FilesystemIterator fileIterator=new FilesystemIterator(filesystemRules, CONVERT_PATHS_TO_ASCII);
+                                FilesystemIterator fileIterator=new FilesystemIterator(filesystemRules, filesystemPrefixRules, CONVERT_PATHS_TO_ASCII);
 
                                 // Do requests in batches
                                 FilesystemIteratorResult[] filesystemIteratorResults=new FilesystemIteratorResult[failoverBatchSize];
