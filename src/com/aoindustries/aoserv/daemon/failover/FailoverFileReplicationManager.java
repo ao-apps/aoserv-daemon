@@ -2023,19 +2023,31 @@ final public class FailoverFileReplicationManager {
                 filesystemRules.put("/var/lib/sasl2/saslauthd.pid", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lib/sasl2/mux.accept", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/aoserv-daemon", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/aoserv-jilter", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/clear_jvm_stats", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/clear_postgresql_pid", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/crond", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/daemons", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/kheader", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/httpd", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/httpd1", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/httpd2", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/httpd3", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/httpd4", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/httpd5", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/httpd6", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/httpd7", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/httpd8", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/identd", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/local", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/messagebus", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/mysql-4.0-max", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/mysql-4.1", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/mysql-4.1-max", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/mysql-5.0", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/mysql-5.0-max", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/network", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/numlock", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/postgresql-7.1", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/postgresql-7.2", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/postgresql-7.3", FilesystemIteratorRule.SKIP);
@@ -2047,11 +2059,13 @@ final public class FailoverFileReplicationManager {
                 filesystemRules.put("/var/lock/subsys/sendmail", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/sm-client", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/spamd", FilesystemIteratorRule.SKIP);
+                filesystemRules.put("/var/lock/subsys/spamassassin", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/sshd1", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/syslog", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/xfs", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/xinetd", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lock/subsys/xvfb", FilesystemIteratorRule.SKIP);
+
                 List<HttpdServer> httpdServers = thisServer.getHttpdServers();
                 for(HttpdServer hs : httpdServers) {
                     filesystemRules.put("/var/log/httpd"+hs.getNumber()+"/ssl_scache.sem", FilesystemIteratorRule.SKIP);
