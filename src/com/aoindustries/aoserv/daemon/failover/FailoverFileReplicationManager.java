@@ -1332,7 +1332,7 @@ final public class FailoverFileReplicationManager {
             if(log.isDebugEnabled()) log.debug("Skipping delete on cleanup: "+fromServer+":"+relativePath);
             return false;
         }
-        if(retention!=-1) {
+        if(retention==1) {
             for(String name : replicatedMySQLServers) {
                 if(
                     relativePath.equals("/var/lib/mysql/"+name)
@@ -1888,7 +1888,7 @@ final public class FailoverFileReplicationManager {
                 // Determine which MySQL Servers are replicated (not mirrored with failover code)
                 List<String> replicatedMySQLServers;
                 List<String> replicatedMySQLMinorVersions;
-                if(retention!=1) {
+                if(retention==1) {
                     List<FailoverMySQLReplication> fmrs = ffr.getFailoverMySQLReplications();
                     replicatedMySQLServers = new ArrayList<String>(fmrs.size());
                     replicatedMySQLMinorVersions = new ArrayList<String>(fmrs.size());
@@ -1906,7 +1906,7 @@ final public class FailoverFileReplicationManager {
                 } else {
                     replicatedMySQLServers=Collections.emptyList();
                     replicatedMySQLMinorVersions=Collections.emptyList();
-                    if(log.isDebugEnabled()) log.debug("runFailoverCopy to "+toServer+", retention==1, using empty replicatedMySQLServer and replicatedMySQLMinorVersion");
+                    if(log.isDebugEnabled()) log.debug("runFailoverCopy to "+toServer+", retention!=1, using empty replicatedMySQLServer and replicatedMySQLMinorVersion");
                 }
 
                 // Build the skip list
@@ -1998,6 +1998,7 @@ final public class FailoverFileReplicationManager {
                 filesystemRules.put("/var/lib/mysql/4.1/"+hostname+".pid", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/var/lib/mysql/5.0/"+hostname+".pid", FilesystemIteratorRule.SKIP);
                 filesystemPrefixRules.put("/var/lib/mysql/5.0/mysql-bin.", FilesystemIteratorRule.SKIP);
+                filesystemPrefixRules.put("/var/lib/mysql/5.0/relay-log.", FilesystemIteratorRule.SKIP);
 
                 // Skip files for any MySQL Server that is being replicated through MySQL replication
                 for(String name : replicatedMySQLServers) {
@@ -2168,7 +2169,7 @@ final public class FailoverFileReplicationManager {
                         rawOut.writeShort(year);
                         rawOut.writeShort(month);
                         rawOut.writeShort(day);
-                        if(retention!=1) {
+                        if(retention==1) {
                             int len = replicatedMySQLServers.size();
                             rawOut.writeCompressedInt(len);
                             for(int c=0;c<len;c++) {
@@ -2253,7 +2254,20 @@ final public class FailoverFileReplicationManager {
                                                     boolean isSymLink=UnixFile.isSymLink(mode);
                                                     long modifyTime=isSymLink?-1:ufStat.getModifyTime();
                                                     //if(modifyTime<1000 && !isSymLink && log.isWarnEnabled()) log.warn("Non-symlink modifyTime<1000: "+filename+": "+modifyTime);
-                                                    String symLinkTarget=isSymLink?uf.readLink():null;
+                                                    String symLinkTarget;
+                                                    if(isSymLink) {
+                                                        try {
+                                                            symLinkTarget = uf.readLink();
+                                                        } catch(SecurityException err) {
+                                                            System.err.println("SecurityException trying to readlink: "+uf.getFilename());
+                                                            throw err;
+                                                        } catch(IOException err) {
+                                                            System.err.println("IOException trying to readlink: "+uf.getFilename());
+                                                            throw err;
+                                                        }
+                                                    } else {
+                                                        symLinkTarget = null;
+                                                    }
                                                     boolean isDevice=UnixFile.isBlockDevice(mode) || UnixFile.isCharacterDevice(mode);
                                                     long deviceID=isDevice?ufStat.getDeviceIdentifier():-1;
 
@@ -2331,12 +2345,12 @@ final public class FailoverFileReplicationManager {
                                                 UnixFile uf=filesystemIteratorResult.getUnixFile();
                                                 result=results[d];
                                                 if(result==MODIFIED) {
-                                                    if(log.isDebugEnabled()) log.debug((backupMode ? "Backup: " : "Failover: ") + "File modified: "+uf.getFilename());
+                                                    if(log.isTraceEnabled()) log.trace((backupMode ? "Backup: " : "Failover: ") + "File modified: "+uf.getFilename());
                                                     updated++;
                                                 } else if(result==MODIFIED_REQUEST_DATA) {
                                                     updated++;
                                                     try {
-                                                        if(log.isDebugEnabled()) log.debug((backupMode ? "Backup: " : "Failover: ") + "Sending file contents: "+uf.getFilename());
+                                                        if(log.isTraceEnabled()) log.trace((backupMode ? "Backup: " : "Failover: ") + "Sending file contents: "+uf.getFilename());
                                                         // Shortcut for 0 length files (don't open for reading)
                                                         if(uf.getStat(ufStat).getSize()!=0) {
                                                             InputStream fileIn=new FileInputStream(uf.getFile());
@@ -2361,7 +2375,7 @@ final public class FailoverFileReplicationManager {
                                                 } else if(result==MODIFIED_REQUEST_DATA_CHUNKED) {
                                                     updated++;
                                                     try {
-                                                        if(log.isDebugEnabled()) log.debug((backupMode ? "Backup: " : "Failover: ") + "Chunking file contents: "+uf.getFilename());
+                                                        if(log.isTraceEnabled()) log.trace((backupMode ? "Backup: " : "Failover: ") + "Chunking file contents: "+uf.getFilename());
                                                         long[] md5Hi = md5His[d];
                                                         long[] md5Lo = md5Los[d];
                                                         InputStream fileIn=new FileInputStream(uf.getFile());
@@ -2403,7 +2417,7 @@ final public class FailoverFileReplicationManager {
                                                                 // Increment chunk number for next iteration
                                                                 chunkNumber++;
                                                             }
-                                                            if(log.isDebugEnabled()) log.debug((backupMode ? "Backup: " : "Failover: ") + "Chunking file contents: "+uf.getFilename()+": Sent "+sendChunkCount+" out of "+chunkNumber+" chunks");
+                                                            if(log.isTraceEnabled()) log.trace((backupMode ? "Backup: " : "Failover: ") + "Chunking file contents: "+uf.getFilename()+": Sent "+sendChunkCount+" out of "+chunkNumber+" chunks");
                                                         } finally {
                                                             fileIn.close();
                                                         }

@@ -220,7 +220,7 @@ final public class AOServDaemonServerThread extends Thread {
                                     short fromServerDay = in.readShort();
                                     List<String> replicatedMySQLServers;
                                     List<String> replicatedMySQLMinorVersions;
-                                    if(retention!=1) {
+                                    if(retention==1) {
                                         int len=in.readCompressedInt();
                                         replicatedMySQLServers=new ArrayList<String>(len);
                                         replicatedMySQLMinorVersions=new ArrayList<String>(len);

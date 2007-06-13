@@ -116,8 +116,9 @@ final public class HardLinkVarBackup {
                                 if(ufStat.isDirectory()) {
                                     out.print("Scanning "); out.println(path);
                                     Map<String,FilesystemIteratorRule> rules = Collections.emptyMap();
+                                    Map<String,FilesystemIteratorRule> prefixRules = Collections.emptyMap();
                                     iteratorStartsList.add(path);
-                                    iteratorList.add(new FilesystemIterator(rules, false, path));
+                                    iteratorList.add(new FilesystemIterator(rules, prefixRules, false, path));
                                 }
                             } catch(IOException ioExc) {
                                 ioExc.printStackTrace(err);
