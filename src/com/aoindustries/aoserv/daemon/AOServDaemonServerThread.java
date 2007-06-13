@@ -421,6 +421,16 @@ final public class AOServDaemonServerThread extends Thread {
                                     out.write(AOServDaemonProtocol.DONE);
                                 }
                                 break;
+                            case AOServDaemonProtocol.GET_MYSQL_SLAVE_STATUS :
+                                {
+                                    if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_MYSQL_SLAVE_STATUS, Thread="+toString());
+                                    String failoverRoot = in.readUTF();
+                                    int nestedOperatingSystemVersion = in.readCompressedInt();
+                                    int port = in.readCompressedInt();
+                                    if(key==null) throw new IOException("Only the master server may GET_MYSQL_SLAVE_STATUS");
+                                    MySQLDatabaseManager.getSlaveStatus(failoverRoot, nestedOperatingSystemVersion, port, out);
+                                }
+                                break;
                             case AOServDaemonProtocol.GET_POSTGRES_PASSWORD :
                                 {
                                     if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_POSTGRES_PASSWORD, Thread="+toString());

@@ -21,6 +21,7 @@ import com.aoindustries.util.zip.*;
 import java.io.*;
 import java.sql.*;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * Controls the MySQL databases.
@@ -285,6 +286,87 @@ final public class MySQLDatabaseManager extends BuilderThread {
             return "Rebuild MySQL Databases";
         } finally {
             Profiler.endProfile(Profiler.INSTANTANEOUS);
+        }
+    }
+    
+    public static void getSlaveStatus(String failoverRoot, int nestedOperatingSystemVersion, int port, CompressedDataOutputStream out) throws IOException, SQLException {
+        // Load the properties from the failover image
+        File file;
+        if(nestedOperatingSystemVersion==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+            file = new File(failoverRoot+"/etc/aoserv/daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
+        } else if(nestedOperatingSystemVersion==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+            file = new File(failoverRoot+"/etc/opt/aoserv-daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
+        } else throw new SQLException("Unsupport OperatingSystemVersion: "+nestedOperatingSystemVersion);
+        if(!file.exists()) throw new SQLException("Properties file doesn't exist: "+file.getPath());
+        Properties nestedProps = new Properties();
+        InputStream in = new FileInputStream(file);
+        try {
+            nestedProps.load(in);
+        } finally {
+            in.close();
+        }
+        String user = nestedProps.getProperty("aoserv.daemon.mysql.user");
+        String password = nestedProps.getProperty("aoserv.daemon.mysql.password");
+
+        // For simplicity, doesn't use connection pools
+        try {
+            Class.forName(AOServDaemonConfiguration.getMySqlDriver()).newInstance();
+        } catch(ClassNotFoundException err) {
+            SQLException sqlErr = new SQLException();
+            sqlErr.initCause(err);
+            throw sqlErr;
+        } catch(InstantiationException err) {
+            SQLException sqlErr = new SQLException();
+            sqlErr.initCause(err);
+            throw sqlErr;
+        } catch(IllegalAccessException err) {
+            SQLException sqlErr = new SQLException();
+            sqlErr.initCause(err);
+            throw sqlErr;
+        }
+        Connection conn;
+        try {
+            conn = DriverManager.getConnection(
+                "jdbc:mysql://127.0.0.1:"+port+"/mysql",
+                user,
+                password
+            );
+        } catch(SQLException err) {
+            AOServDaemon.reportError(err, null);
+            throw new SQLException("Unable to connect to slave.");
+        }
+        try {
+            Statement stmt = conn.createStatement();
+            try {
+                ResultSet results = stmt.executeQuery("SHOW SLAVE STATUS");
+                try {
+                    if(results.next()) {
+                        out.write(AOServDaemonProtocol.NEXT);
+                        out.writeNullUTF(results.getString("Slave_IO_State"));
+                        out.writeNullUTF(results.getString("Master_Log_File"));
+                        out.writeNullUTF(results.getString("Read_Master_Log_Pos"));
+                        out.writeNullUTF(results.getString("Relay_Log_File"));
+                        out.writeNullUTF(results.getString("Relay_Log_Pos"));
+                        out.writeNullUTF(results.getString("Relay_Master_Log_File"));
+                        out.writeNullUTF(results.getString("Slave_IO_Running"));
+                        out.writeNullUTF(results.getString("Slave_SQL_Running"));
+                        out.writeNullUTF(results.getString("Last_Errno"));
+                        out.writeNullUTF(results.getString("Last_Error"));
+                        out.writeNullUTF(results.getString("Skip_Counter"));
+                        out.writeNullUTF(results.getString("Exec_Master_Log_Pos"));
+                        out.writeNullUTF(results.getString("Relay_Log_Space"));
+                        out.writeNullUTF(results.getString("Seconds_Behind_Master"));
+                    } else {
+                        out.write(AOServDaemonProtocol.DONE);
+                    }
+                } finally {
+                    results.close();
+                }
+            } finally {
+                stmt.close();
+            }
+        } finally {
+            conn.close();
         }
     }
 }
