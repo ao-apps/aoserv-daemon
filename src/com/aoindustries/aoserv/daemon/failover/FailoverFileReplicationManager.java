@@ -1220,9 +1220,10 @@ final public class FailoverFileReplicationManager {
                             String[] list=dirUF.list();
                             if(list!=null) {
                                 for(int d=0;d<list.length;d++) {
-                                    String fullpath=dirPath+list[d];
+                                    String filename = list[d];
+                                    String fullpath=dirPath+filename;
                                     if(!dirContents.contains(fullpath)) {
-                                        if(deleteOnCleanup(fromServer, retention, relativePath, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
+                                        if(deleteOnCleanup(fromServer, retention, relativePath+filename, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
                                             if(log.isTraceEnabled()) log.trace("Deleting extra file: "+fullpath);
                                             try {
                                                 new UnixFile(fullpath).deleteRecursive();
@@ -1252,9 +1253,10 @@ final public class FailoverFileReplicationManager {
                         String[] list=dirUF.list();
                         if(list!=null) {
                             for(int c=0;c<list.length;c++) {
-                                String fullpath=dirPath+list[c];
+                                String filename = list[c];
+                                String fullpath=dirPath+filename;
                                 if(!dirContents.contains(fullpath)) {
-                                    if(deleteOnCleanup(fromServer, retention, relativePath, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
+                                    if(deleteOnCleanup(fromServer, retention, relativePath+filename, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
                                         if(log.isTraceEnabled()) log.trace("Deleting final clean-up: "+fullpath);
                                         try {
                                             new UnixFile(fullpath).deleteRecursive();
@@ -1344,6 +1346,7 @@ final public class FailoverFileReplicationManager {
             }
             for(String minorVersion : replicatedMySQLMinorVersions) {
                 if(relativePath.equals("/var/lock/subsys/mysql-"+minorVersion)) {
+                    if(log.isDebugEnabled()) log.debug("Skipping delete on cleanup: "+fromServer+":"+relativePath);
                     return false;
                 }
             }
