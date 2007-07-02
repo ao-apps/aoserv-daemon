@@ -1223,7 +1223,7 @@ final public class FailoverFileReplicationManager {
                                     String filename = list[d];
                                     String fullpath=dirPath+filename;
                                     if(!dirContents.contains(fullpath)) {
-                                        if(deleteOnCleanup(fromServer, retention, relativePath+filename, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
+                                        if(deleteOnCleanup(fromServer, retention, relativePath+'/'+filename, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
                                             if(log.isTraceEnabled()) log.trace("Deleting extra file: "+fullpath);
                                             try {
                                                 new UnixFile(fullpath).deleteRecursive();
@@ -1256,7 +1256,7 @@ final public class FailoverFileReplicationManager {
                                 String filename = list[c];
                                 String fullpath=dirPath+filename;
                                 if(!dirContents.contains(fullpath)) {
-                                    if(deleteOnCleanup(fromServer, retention, relativePath+filename, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
+                                    if(deleteOnCleanup(fromServer, retention, relativePath+'/'+filename, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
                                         if(log.isTraceEnabled()) log.trace("Deleting final clean-up: "+fullpath);
                                         try {
                                             new UnixFile(fullpath).deleteRecursive();

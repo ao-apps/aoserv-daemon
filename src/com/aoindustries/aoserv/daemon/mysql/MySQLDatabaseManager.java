@@ -289,6 +289,36 @@ final public class MySQLDatabaseManager extends BuilderThread {
         }
     }
     
+    public static void getMasterStatus(int mysqlServer, CompressedDataOutputStream out) throws IOException, SQLException {
+        // Use the existing pools
+        MySQLServer ms = AOServDaemon.getConnector().mysqlServers.get(mysqlServer);
+        if(ms==null) throw new SQLException("Unable to find MySQLServer: "+mysqlServer);
+
+        AOConnectionPool pool=MySQLServerManager.getPool(ms);
+        Connection conn=pool.getConnection(true);
+        try {
+            Statement stmt = conn.createStatement();
+            try {
+                ResultSet results = stmt.executeQuery("SHOW MASTER STATUS");
+                try {
+                    if(results.next()) {
+                        out.write(AOServDaemonProtocol.NEXT);
+                        out.writeNullUTF(results.getString("File"));
+                        out.writeNullUTF(results.getString("Position"));
+                    } else {
+                        out.write(AOServDaemonProtocol.DONE);
+                    }
+                } finally {
+                    results.close();
+                }
+            } finally {
+                stmt.close();
+            }
+        } finally {
+            pool.releaseConnection(conn);
+        }
+    }
+
     public static void getSlaveStatus(String failoverRoot, int nestedOperatingSystemVersion, int port, CompressedDataOutputStream out) throws IOException, SQLException {
         // Load the properties from the failover image
         File file;

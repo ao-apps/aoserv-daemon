@@ -421,6 +421,14 @@ final public class AOServDaemonServerThread extends Thread {
                                     out.write(AOServDaemonProtocol.DONE);
                                 }
                                 break;
+                            case AOServDaemonProtocol.GET_MYSQL_MASTER_STATUS :
+                                {
+                                    if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_MYSQL_MASTER_STATUS, Thread="+toString());
+                                    int mysqlServer = in.readCompressedInt();
+                                    if(key==null) throw new IOException("Only the master server may GET_MYSQL_MASTER_STATUS");
+                                    MySQLDatabaseManager.getMasterStatus(mysqlServer, out);
+                                }
+                                break;
                             case AOServDaemonProtocol.GET_MYSQL_SLAVE_STATUS :
                                 {
                                     if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_MYSQL_SLAVE_STATUS, Thread="+toString());
@@ -873,38 +881,38 @@ final public class AOServDaemonServerThread extends Thread {
                             case AOServDaemonProtocol.WAIT_FOR_REBUILD :
                                 {
                                     if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing WAIT_FOR_REBUILD, Thread="+toString());
-                                    int tableID=in.readCompressedInt();
+                                    SchemaTable.TableID tableID=SchemaTable.TableID.values()[in.readCompressedInt()];
                                     if(key==null) throw new IOException("Only the master server may WAIT_FOR_REBUILD");
                                     switch(tableID) {
-                                        case SchemaTable.HTTPD_SITES :
+                                        case HTTPD_SITES :
                                             HttpdManager.waitForRebuild();
                                             break;
-                                        case SchemaTable.LINUX_ACCOUNTS :
+                                        case LINUX_ACCOUNTS :
                                             LinuxAccountManager.waitForRebuild();
                                             break;
-                                        case SchemaTable.INTERBASE_USERS :
+                                        case INTERBASE_USERS :
                                             InterBaseManager.waitForRebuild();
                                             break;
-                                        case SchemaTable.MYSQL_DATABASES :
+                                        case MYSQL_DATABASES :
                                             MySQLDatabaseManager.waitForRebuild();
                                             break;
-                                        case SchemaTable.MYSQL_DB_USERS :
+                                        case MYSQL_DB_USERS :
                                             MySQLDBUserManager.waitForRebuild();
                                             break;
-                                        case SchemaTable.MYSQL_USERS :
+                                        case MYSQL_USERS :
                                             MySQLUserManager.waitForRebuild();
                                             break;
-                                        case SchemaTable.POSTGRES_DATABASES :
+                                        case POSTGRES_DATABASES :
                                             PostgresDatabaseManager.waitForRebuild();
                                             break;
-                                        case SchemaTable.POSTGRES_SERVERS :
+                                        case POSTGRES_SERVERS :
                                             MySQLServerManager.waitForRebuild();
                                             break;
-                                        case SchemaTable.POSTGRES_USERS :
+                                        case POSTGRES_USERS :
                                             PostgresUserManager.waitForRebuild();
                                             break;
                                         default :
-                                            throw new IOException("Unable to wait for rebuild on table #"+tableID);
+                                            throw new IOException("Unable to wait for rebuild on table "+tableID);
                                     }
                                     out.write(AOServDaemonProtocol.DONE);
                                 }
