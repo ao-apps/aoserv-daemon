@@ -61,6 +61,9 @@ final public class AOServDaemonServerThread extends Thread {
      */
     private final CompressedDataOutputStream out;
 
+    /** Keeps a copy to avoid multiple copies on each access. */
+    private static final SchemaTable.TableID[] tableIDs = SchemaTable.TableID.values();
+
     /**
      * Creates a new, running <code>AOServServerThread</code>.
      */
@@ -881,7 +884,7 @@ final public class AOServDaemonServerThread extends Thread {
                             case AOServDaemonProtocol.WAIT_FOR_REBUILD :
                                 {
                                     if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing WAIT_FOR_REBUILD, Thread="+toString());
-                                    SchemaTable.TableID tableID=SchemaTable.TableID.values()[in.readCompressedInt()];
+                                    SchemaTable.TableID tableID=tableIDs[in.readCompressedInt()];
                                     if(key==null) throw new IOException("Only the master server may WAIT_FOR_REBUILD");
                                     switch(tableID) {
                                         case HTTPD_SITES :
