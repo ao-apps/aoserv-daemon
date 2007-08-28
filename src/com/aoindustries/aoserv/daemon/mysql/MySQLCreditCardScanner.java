@@ -199,7 +199,7 @@ final public class MySQLCreditCardScanner implements CronJob {
      * Performs the scheduled task.
      */
     public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek) {
-        scanForCards();
+        scanMySQLForCards();
     }
     
     public int getCronJobThreadPriority() {
@@ -207,27 +207,69 @@ final public class MySQLCreditCardScanner implements CronJob {
     }
     
     public static void main(String[] args) {
-        scanForCards();
+// XXX       for(int i : new int[] {1, 2, 3, 4}) {
+// XXX           System.out.println(i);
+// XXX       }
+        scanMySQLForCards();
     }
 
-    private static void scanForCards() {
+    private static void scanMySQLForCards() {
         try {
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
-            for(MySQLServer mysqlServer : thisAOServer.getMySQLServers()) {
+            List<MySQLServer> mysqlServers = thisAOServer.getMySQLServers();
+            for(MySQLServer mysqlServer : mysqlServers) {
                 System.out.print("mysqlServer=");
                 //System.out.println(mysqlServer==null ? "null" : mysqlServer.toString());
                 System.out.println(mysqlServer);
-                for(MySQLDatabase database : mysqlServer.getMySQLDatabases()) {
+                List<MySQLDatabase> mysqlDatabases = mysqlServer.getMySQLDatabases();
+                for(MySQLDatabase database : mysqlDatabases) {
                     String name=database.getName();
                     System.out.print("    database=");
                     System.out.println(database);
+                    
+                    // Get connection to the database
+                    Class.forName(AOServDaemonConfiguration.getMySqlDriver()).newInstance();
+                    Connection conn = DriverManager.getConnection(
+                        "jdbc:mysql://"+thisAOServer.getPrimaryIPAddress().getIPAddress()+":"+database.getMySQLServer().getNetBind().getPort().getPort()+"/"+database.getName(),
+                        AOServDaemonConfiguration.getMySqlUser(),
+                        AOServDaemonConfiguration.getMySqlPassword()
+                    );
+                    try {
+                        scanForCards(conn);
+                    } finally {
+                        
+                        conn.close();
+                    }
                 }
             }
+        } catch(ClassNotFoundException err) {
+            AOServDaemon.reportError(err, null);
+        } catch(InstantiationException err) {
+            AOServDaemon.reportError(err, null);
+        } catch(IllegalAccessException err) {
+            AOServDaemon.reportError(err, null);
         } catch(IOException err) {
             AOServDaemon.reportError(err, null);
         } catch(SQLException err) {
             AOServDaemon.reportError(err, null);
+        }
+    }
+    
+    public static void scanForCards(Connection conn) throws SQLException {
+        DatabaseMetaData metaData = conn.getMetaData();
+        ResultSet catalogs = metaData.getCatalogs();
+        
+        try {
+            while(catalogs.next()) {
+                String tableName = catalogs.getString(1);
+                System.out.println("        tableName="+tableName);
+                // TODO: Scan for both PostgreSQL and MySQL here
+                
+                
+            }
+        } finally {
+            catalogs.close();
         }
     }
 }
