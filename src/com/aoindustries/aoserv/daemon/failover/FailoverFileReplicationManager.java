@@ -1976,6 +1976,7 @@ final public class FailoverFileReplicationManager {
                 filesystemRules.put("/mnt/cdrom", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/mnt/floppy", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/proc", FilesystemIteratorRule.NO_RECURSE);
+                filesystemRules.put("/swapfile.img", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/swapfile.aes128.img", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/swapfile.aes256.img", FilesystemIteratorRule.SKIP);
                 filesystemRules.put("/sys", FilesystemIteratorRule.NO_RECURSE);
