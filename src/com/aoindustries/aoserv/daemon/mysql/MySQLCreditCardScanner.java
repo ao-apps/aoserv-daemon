@@ -13,8 +13,10 @@ import java.io.*;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 import java.lang.StringBuilder;
+import java.util.Map;
 
 /**
  * Controls the MySQL databases.
@@ -25,135 +27,6 @@ final public class MySQLCreditCardScanner implements CronJob {
 
     private MySQLCreditCardScanner() {
     }
-
-    /*
-    protected void doRebuild() throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, MySQLDatabaseManager.class, "doRebuild()", null);
-        try {
-            AOServConnector connector=AOServDaemon.getConnector();
-            AOServer thisAOServer=AOServDaemon.getThisAOServer();
-
-            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPKey();
-            if(
-                osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
-                && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-
-            synchronized(rebuildLock) {
-                for(MySQLServer mysqlServer : thisAOServer.getMySQLServers()) {
-                    String version=mysqlServer.getVersion().getVersion();
-                    boolean modified=false;
-                    // Get the connection to work through
-                    AOConnectionPool pool=MySQLServerManager.getPool(mysqlServer);
-                    Connection conn=pool.getConnection(false);
-                    try {
-                        // Get the list of all existing databases
-                        List<String> existing=new SortedArrayList<String>();
-                        Statement stmt=conn.createStatement();
-                        try {
-                            ResultSet results=stmt.executeQuery("show databases");
-                            try {
-                                while(results.next()) existing.add(results.getString(1));
-                            } finally {
-                                results.close();
-                            }
-
-                            // Create the databases that do not exist and should
-                            for(MySQLDatabase database : mysqlServer.getMySQLDatabases()) {
-                                String name=database.getName();
-                                if(existing.contains(name)) existing.remove(name);
-                                else {
-                                    // Create the database
-                                    stmt.executeUpdate("create database "+name);
-
-                                    modified=true;
-                                }
-                            }
-
-                            // Remove the extra databases
-                            for(int c=0;c<existing.size();c++) {
-                                String dbName=existing.get(c);
-                                if(
-                                    dbName.equals(MySQLDatabase.MYSQL)
-                                    || (version.startsWith("5.0.") && dbName.equals(MySQLDatabase.INFORMATION_SCHEMA))
-                                ) {
-                                    AOServDaemon.reportWarning(new SQLException("Refusing to drop critical MySQL Database: "+dbName+" on "+mysqlServer), null);
-                                } else {
-                                    // Remove the extra database
-                                    stmt.executeUpdate("drop database "+dbName);
-
-                                    modified=true;
-                                }
-                            }
-                        } finally {
-                            stmt.close();
-                        }
-                    } finally {
-                        pool.releaseConnection(conn);
-                    }
-                    if(modified) MySQLServerManager.flushPrivileges(mysqlServer);
-                }
-            }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
-        }
-    }
-
-    public static void backupDatabase(CompressedDataInputStream masterIn, CompressedDataOutputStream masterOut) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.IO, MySQLDatabaseManager.class, "backupDatabase(CompressedDataInputStream,CompressedDataOutputStream)", null);
-        try {
-            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
-            int pkey=masterIn.readCompressedInt();
-            MySQLDatabase md=AOServDaemon.getConnector().mysqlDatabases.get(pkey);
-            if(md==null) throw new SQLException("Unable to find MySQLDatabase: "+pkey);
-            String dbName=md.getName();
-            MySQLServer ms=md.getMySQLServer();
-            UnixFile tempFile=UnixFile.mktemp("/tmp/backup_mysql_database.sql.gz.");
-            tempFile.getFile().deleteOnExit();
-            try {
-                // Dump, count raw bytes, create MD5, and compress to a temp file
-                String path;
-                if(
-                    osv==OperatingSystemVersion.MANDRAKE_10_1_I586
-                    || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-                ) {
-                    path="/usr/aoserv/daemon/bin/backup_mysql_database";
-                } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-                    path="/opt/aoserv-daemon/bin/backup_mysql_database";
-                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-
-                String[] command={
-                    path,
-                    dbName,
-                    ms.getMinorVersion(),
-                    Integer.toString(ms.getNetBind().getPort().getPort()),
-                    tempFile.getFilename()
-                };
-                Process P=Runtime.getRuntime().exec(command);
-                long dataSize;
-                BufferedReader dumpIn=new BufferedReader(new InputStreamReader(P.getInputStream()));
-                try {
-                    dataSize=Long.parseLong(dumpIn.readLine());
-                } finally {
-                    dumpIn.close();
-                }
-                try {
-                    int retCode=P.waitFor();
-                    if(retCode!=0) throw new IOException("backup_mysql_database exited with non-zero return code: "+retCode);
-                } catch(InterruptedException err) {
-                    InterruptedIOException ioErr=new InterruptedIOException();
-                    ioErr.initCause(err);
-                    throw ioErr;
-                }
-            } finally {
-                if(tempFile.getStat().exists()) tempFile.delete();
-            }
-        } finally {
-            Profiler.endProfile(Profiler.IO);
-        }
-    }
-*/
 
     private static MySQLCreditCardScanner mySQLCreditCardScanner;
 
@@ -198,17 +71,14 @@ final public class MySQLCreditCardScanner implements CronJob {
     }
     
     public static void main(String[] args) {
-        long startTime = System.currentTimeMillis();
-// XXX       for(int i : new int[] {1, 2, 3, 4}) {
-// XXX           System.out.println(i);
-// XXX       }
         scanMySQLForCards();
-        System.out.println("Took a total of "+(System.currentTimeMillis()-startTime)+" ms");
     }
 
     private static void scanMySQLForCards() {
         try {
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
+
+            Map<Business,StringBuilder> reports = new HashMap<Business,StringBuilder>();
 
             List<MySQLServer> mysqlServers = thisAOServer.getMySQLServers();
             for(MySQLServer mysqlServer : mysqlServers) {
@@ -229,11 +99,30 @@ final public class MySQLCreditCardScanner implements CronJob {
                         AOServDaemonConfiguration.getMySqlPassword()
                     );
                     try {
-                        scanForCards(conn, name);
+                        Business business = database.getPackage().getBusiness();
+                        StringBuilder report = reports.get(business);
+                        if(report==null) reports.put(business, report=new StringBuilder());
+                        scanForCards(thisAOServer, mysqlServer, database, conn, name, report);
                     } finally {
-                        
                         conn.close();
                     }
+                }
+            }
+            for(Business business : reports.keySet()) {
+                StringBuilder report = reports.get(business);
+                if(report!=null && report.length()>0) {
+                    AOServDaemon.getConnector().getThisBusinessAdministrator().addTicket(
+                        business,
+                        TicketType.TODO_SECURITY,
+                        report.toString(),
+                        Ticket.NO_DEADLINE,
+                        TicketPriority.HIGH,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                    );
                 }
             }
         } catch(ClassNotFoundException err) {
@@ -249,7 +138,7 @@ final public class MySQLCreditCardScanner implements CronJob {
         }
     }
     
-    public static void scanForCards(Connection conn, String catalog) throws SQLException {
+    public static void scanForCards(AOServer aoServer, MySQLServer mysqlServer, MySQLDatabase database, Connection conn, String catalog, StringBuilder report) throws SQLException {
         DatabaseMetaData metaData = conn.getMetaData();
         String[] tableTypes = new String[] {"TABLE"};
         ResultSet tables = metaData.getTables(catalog, null, null, tableTypes);
@@ -259,25 +148,13 @@ final public class MySQLCreditCardScanner implements CronJob {
                 StringBuilder buffer = new StringBuilder();
                 buffer.append("select count(*) from " + table + " where ");
                 ResultSet columns = metaData.getColumns(catalog, null, table, null);
-                
-          
-                long ccCount = 0;
                 try {
                     boolean isFirst = true;
                     while(columns.next()) {
                         String column = columns.getString(4);
                         if(isFirst) isFirst = false;
                         else buffer.append(" OR ");
-                        //System.out.println("                        columnName:" +  column);
-                        // ####-####-####-####
                         
-                        /* Patterns:
-                         *  4XXX XXXX XXXX XXXX Visa
-                         *  5[0-4]XX XXXX XXXX XXXX MC
-                         *  3XXX XX XXXX XXXXX Visa (Check)
-                         *  37XX XXX XXXX XXXX
-                         *  6011 XXXX XXXX XXXX Discover
-                         */
                         buffer.append("(length(").append(column).append(")<25 && ").append(column).append(" regexp '^\\w*(");
                         
                         // AmEx
@@ -288,36 +165,15 @@ final public class MySQLCreditCardScanner implements CronJob {
                         buffer.append("|").append("5[1-5][0-9]{2}[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}");
                         //Discover
                         buffer.append("|").append("6011[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}");
-                        /*
-                        // AmEx
-                        buffer.append("3[47][0-9]{2}[\\w-][0-9]{2}[\\w-][0-9]{4}[\\w-][0-9]{5}");
-                        buffer.append("|").append("3[47][0-9]{13}");
-                        // Visa
-                        //buffer.append("|").append("..");
-                        buffer.append("|").append("4[0-9]{3}[\\w-][0-9]{4}[\\w-][0-9]{4}[\\w-][0-9]{4}");
-                        buffer.append("|").append("4[0-9]{15}");
-                        //MasterCard
-                        buffer.append("|").append("5[1-5][0-9]{2}[\\w-][0-9]{4}[\\w-][0-9]{4}[\\w-][0-9]{4}");
-                        buffer.append("|").append("5[1-5][0-9]{14}");
-                        //Discover
-                        buffer.append("|").append("6011[\\w-][0-9]{4}[\\w-][0-9]{4}[\\w-][0-9]{4}");
-                        buffer.append("|").append("6011[\\w-][0-9]{12}");
-                        */buffer.append(")\\w*$')");
-                    }
-                    //System.out.println(buffer.toString());
-                    Statement stmnt = conn.createStatement();
-                    ResultSet cardnumbers = stmnt.executeQuery(buffer.toString());
-                     try {
-                        if(!cardnumbers.next()) throw new SQLException("No results returned!");
-                        ccCount = cardnumbers.getLong(1);
-                    } finally {
-                        cardnumbers.close();
+
+                        buffer.append(")\\w*$')");
                     }
                 } finally {
                     columns.close();
                 }
                 // Find total number of rows
                 long rowCount;
+                long ccCount;
                 Statement stmt = conn.createStatement();
                 try {
                     ResultSet results = stmt.executeQuery("select count(*) from "+table);
@@ -327,27 +183,28 @@ final public class MySQLCreditCardScanner implements CronJob {
                     } finally {
                         results.close();
                     }
-                    //int matches = select count(*) from tablename where column1 like ... or column2 like ...
-                    //if(matches*10>total) alert.
+                    ResultSet cardnumbers = stmt.executeQuery(buffer.toString());
+                    try {
+                        if(!cardnumbers.next()) throw new SQLException("No results returned!");
+                        ccCount = cardnumbers.getLong(1);
+                    } finally {
+                        cardnumbers.close();
+                    }
                 } finally {
                     stmt.close();
                 }
-                // TODO : log ccCount and count to the database
-                if(ccCount>0) {
-                    System.out.println("          tableName:" +  table);
-                    System.out.println("                        rowCount:" +  rowCount);
-                    System.out.println("                        rows with ccNumbers: " + ccCount);
+                if(ccCount>50 && (ccCount*2)>=rowCount) {
+                    report.append('\n')
+                        .append("MySQL Server..: ").append(mysqlServer.toString()).append('\n')
+                        .append("Database......: ").append(database.getName()).append('\n')
+                        .append("Table.........: ").append(table).append('\n')
+                        .append("Row Count.....: ").append(rowCount).append('\n')
+                        .append("Credit Cards..: ").append(ccCount).append('\n');
                 }
             }
         } finally {
             tables.close();
         }
         // TODO: Scan for both PostgreSQL and MySQL here
-        // for loop through each table
-        // Some select statement to find credit card patterns
-        // If more X% of rows match the credit card pattern, notify admin and customer
-        // credit card pattern will be on specific types, and such
-        // try to query each table only once, where (column1 like pattern or column2 like pattern or ...)
-        // TODO: end for loop
     }
 }
