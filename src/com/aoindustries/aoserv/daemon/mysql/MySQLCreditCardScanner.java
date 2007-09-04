@@ -275,8 +275,16 @@ final public class MySQLCreditCardScanner implements CronJob {
                          *  37XX XXX XXXX XXXX
                          *  6011 XXXX XXXX XXXX Discover
                          */
-                        buffer.append("(length(").append(column).append(")<30 AND ").append(column).append(" regexp '^(\\w*[0-9]{4}[\\w-]*[0-9]{4}[\\w-]*[0-9]{4}[\\w-]*[0-9]{4}\\w*|\\w*[0-9]{3}[\\w-]*[0-9]{4}[\\w-]*[0-9]{4}[\\w-]*[0-9]{4}\\w*|\\w*[0-9]{4}[\\w-]*[0-9]{2}[\\w-]*[0-9]{4}[\\w-]*[0-9]{5}\\w*)$')");
-                        // TODO: Add other patterns
+                        buffer.append("(length(").append(column).append(")<25 AND ").append(column).append(" regexp '^\\w*(");
+                        // AmEx
+                        buffer.append("3[47][0-9]{2}[\\w-]?[0-9]{2}[\\w-]?[0-9]{4}[\\w-]?[0-9]{5}");
+                        // Visa
+                        //buffer.append("|").append("..");
+                        
+                        /*buffer.append(" regexp '^(\\w*[0-9]{4}[\\w-]*[0-9]{4}[\\w-]*[0-9]{4}[\\w-]*[0-9]{4}\\w*|\\w*[0-9]{3}[\\w-]*");
+                        buffer.append("[0-9]{4}[\\w-]*[0-9]{4}[\\w-]*[0-9]{4}\\w*|\\w*[0-9]{4}[\\w-]*[0-9]{2}[\\w-]*[0-9]{4}[\\w-]*[0-9]{5}\\w*)$')");
+                        */// TODO: Add other patterns
+                        buffer.append(")\\w*$')");
                     }
                     //System.out.println("select count(*) from " + table + " where " + buffer.toString());
                     Statement stmnt = conn.createStatement();
