@@ -85,14 +85,9 @@ final public class MySQLCreditCardScanner implements CronJob {
 
             List<MySQLServer> mysqlServers = thisAOServer.getMySQLServers();
             for(MySQLServer mysqlServer : mysqlServers) {
-                System.out.print("mysqlServer=");
-                //System.out.println(mysqlServer==null ? "null" : mysqlServer.toString());
-                System.out.println(mysqlServer);
                 List<MySQLDatabase> mysqlDatabases = mysqlServer.getMySQLDatabases();
                 for(MySQLDatabase database : mysqlDatabases) {
                     String name=database.getName();
-                    System.out.print("    database=");
-                    System.out.println(database);
                     
                     // Get connection to the database
                     Class.forName(AOServDaemonConfiguration.getMySqlDriver()).newInstance();
