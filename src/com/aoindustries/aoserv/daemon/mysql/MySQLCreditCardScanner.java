@@ -7,23 +7,14 @@ package com.aoindustries.aoserv.daemon.mysql;
  */
 import com.aoindustries.aoserv.client.*;
 import com.aoindustries.aoserv.daemon.*;
-import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
-import com.aoindustries.aoserv.daemon.server.*;
-import com.aoindustries.aoserv.daemon.util.*;
 import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
-import com.aoindustries.io.*;
-import com.aoindustries.io.unix.*;
-import com.aoindustries.md5.*;
-import com.aoindustries.profiler.*;
-import com.aoindustries.sql.*;
-import com.aoindustries.table.*;
-import com.aoindustries.util.*;
-import com.aoindustries.util.zip.*;
 import java.io.*;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.lang.StringBuilder;
 
 /**
  * Controls the MySQL databases.
@@ -236,7 +227,7 @@ final public class MySQLCreditCardScanner implements CronJob {
                         AOServDaemonConfiguration.getMySqlPassword()
                     );
                     try {
-                        scanForCards(conn);
+                        scanForCards(conn, name);
                     } finally {
                         
                         conn.close();
@@ -256,20 +247,73 @@ final public class MySQLCreditCardScanner implements CronJob {
         }
     }
     
-    public static void scanForCards(Connection conn) throws SQLException {
+    public static void scanForCards(Connection conn, String catalog) throws SQLException {
         DatabaseMetaData metaData = conn.getMetaData();
-        ResultSet catalogs = metaData.getCatalogs();
-        
+        String[] tableTypes = new String[] {"TABLE"};
+        ResultSet tables = metaData.getTables(catalog, null, null, tableTypes);
         try {
-            while(catalogs.next()) {
-                String tableName = catalogs.getString(1);
-                System.out.println("        tableName="+tableName);
-                // TODO: Scan for both PostgreSQL and MySQL here
+            while(tables.next()) {
+                String table = tables.getString(3);
+                StringBuilder buffer = new StringBuilder();
+                ResultSet columns = metaData.getColumns(catalog, null, table, null);
                 
-                
+          
+                long ccCount = 0;
+                try {
+                    boolean isFirst = true;
+                    while(columns.next()) {
+                        String column = columns.getString(4);
+                        if(isFirst) isFirst = false;
+                        else buffer.append(" OR ");
+                        //System.out.println("                        columnName:" +  column);
+                        // ####-####-####-####
+                        buffer.append("(length(").append(column).append(")<30 AND ").append(column).append(" regexp '^\\w*[0-9]{4}[\\w-]*[0-9]{4}[\\w-]*[0-9]{4}[\\w-]*[0-9]{4}\\w*$')");
+                        // TODO: Add other patterns
+                    }
+                    //System.out.println("select count(*) from " + table + " where " + buffer.toString());
+                    Statement stmnt = conn.createStatement();
+                    ResultSet cardnumbers = stmnt.executeQuery("select count(*) from " + table + " where " + buffer.toString());
+                     try {
+                        if(!cardnumbers.next()) throw new SQLException("No results returned!");
+                        ccCount = cardnumbers.getLong(1);
+                    } finally {
+                        cardnumbers.close();
+                    }
+                } finally {
+                    columns.close();
+                }
+                // Find total number of rows
+                long rowCount;
+                Statement stmt = conn.createStatement();
+                try {
+                    ResultSet results = stmt.executeQuery("select count(*) from "+table);
+                    try {
+                        if(!results.next()) throw new SQLException("No results returned!");
+                        rowCount = results.getLong(1);
+                    } finally {
+                        results.close();
+                    }
+                    //int matches = select count(*) from tablename where column1 like ... or column2 like ...
+                    //if(matches*10>total) alert.
+                } finally {
+                    stmt.close();
+                }
+                // TODO : log ccCount and count to the database
+                if(ccCount>0) {
+                    System.out.println("          tableName:" +  table);
+                    System.out.println("                        rowCount:" +  rowCount);
+                    System.out.println("                        rows with ccNumbers: " + ccCount);
+                }
             }
         } finally {
-            catalogs.close();
+            tables.close();
         }
+        // TODO: Scan for both PostgreSQL and MySQL here
+        // for loop through each table
+        // Some select statement to find credit card patterns
+        // If more X% of rows match the credit card pattern, notify admin and customer
+        // credit card pattern will be on specific types, and such
+        // try to query each table only once, where (column1 like pattern or column2 like pattern or ...)
+        // TODO: end for loop
     }
 }
