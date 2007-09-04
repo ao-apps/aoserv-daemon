@@ -267,7 +267,15 @@ final public class MySQLCreditCardScanner implements CronJob {
                         else buffer.append(" OR ");
                         //System.out.println("                        columnName:" +  column);
                         // ####-####-####-####
-                        buffer.append("(length(").append(column).append(")<30 AND ").append(column).append(" regexp '^\\w*[0-9]{4}[\\w-]*[0-9]{4}[\\w-]*[0-9]{4}[\\w-]*[0-9]{4}\\w*$')");
+                        
+                        /* Patterns:
+                         *  4XXX XXXX XXXX XXXX Visa
+                         *  5[0-4]XX XXXX XXXX XXXX MC
+                         *  3XXX XX XXXX XXXXX Visa (Check)
+                         *  37XX XXX XXXX XXXX
+                         *  6011 XXXX XXXX XXXX Discover
+                         */
+                        buffer.append("(length(").append(column).append(")<30 AND ").append(column).append(" regexp '^(\\w*[0-9]{4}[\\w-]*[0-9]{4}[\\w-]*[0-9]{4}[\\w-]*[0-9]{4}\\w*|\\w*[0-9]{3}[\\w-]*[0-9]{4}[\\w-]*[0-9]{4}[\\w-]*[0-9]{4}\\w*|\\w*[0-9]{4}[\\w-]*[0-9]{2}[\\w-]*[0-9]{4}[\\w-]*[0-9]{5}\\w*)$')");
                         // TODO: Add other patterns
                     }
                     //System.out.println("select count(*) from " + table + " where " + buffer.toString());
