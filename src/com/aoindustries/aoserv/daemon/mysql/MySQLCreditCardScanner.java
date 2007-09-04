@@ -77,6 +77,9 @@ final public class MySQLCreditCardScanner implements CronJob {
     private static void scanMySQLForCards() {
         try {
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
+            List<MySQLReservedWord> mrws = AOServDaemon.getConnector().mysqlReservedWords.getRows();
+            List<String> reservedWords = new ArrayList<String>(mrws.size());
+            for(MySQLReservedWord mrw : mrws) reservedWords.add(mrw.getWord());
 
             Map<Business,StringBuilder> reports = new HashMap<Business,StringBuilder>();
 
@@ -102,7 +105,7 @@ final public class MySQLCreditCardScanner implements CronJob {
                         Business business = database.getPackage().getBusiness();
                         StringBuilder report = reports.get(business);
                         if(report==null) reports.put(business, report=new StringBuilder());
-                        scanForCards(thisAOServer, mysqlServer, database, conn, name, report);
+                        scanForCards(thisAOServer, mysqlServer, database, conn, name, report, reservedWords);
                     } finally {
                         conn.close();
                     }
@@ -138,73 +141,121 @@ final public class MySQLCreditCardScanner implements CronJob {
         }
     }
     
-    public static void scanForCards(AOServer aoServer, MySQLServer mysqlServer, MySQLDatabase database, Connection conn, String catalog, StringBuilder report) throws SQLException {
+    public static void scanForCards(AOServer aoServer, MySQLServer mysqlServer, MySQLDatabase database, Connection conn, String catalog, StringBuilder report, List<String> reservedWords) throws SQLException {
         DatabaseMetaData metaData = conn.getMetaData();
         String[] tableTypes = new String[] {"TABLE"};
         ResultSet tables = metaData.getTables(catalog, null, null, tableTypes);
         try {
             while(tables.next()) {
                 String table = tables.getString(3);
-                StringBuilder buffer = new StringBuilder();
-                buffer.append("select count(*) from " + table + " where ");
-                ResultSet columns = metaData.getColumns(catalog, null, table, null);
-                try {
-                    boolean isFirst = true;
-                    while(columns.next()) {
-                        String column = columns.getString(4);
-                        if(isFirst) isFirst = false;
-                        else buffer.append(" OR ");
-                        
-                        buffer.append("(length(").append(column).append(")<25 && ").append(column).append(" regexp '^\\w*(");
-                        
-                        // AmEx
-                        buffer.append("3[47][0-9]{2}[\\w-]?[0-9]{2}[\\w-]?[0-9]{4}[\\w-]?[0-9]{5}");
-                        // Visa
-                        buffer.append("|").append("4[0-9]{3}[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}");
-                        //MasterCard
-                        buffer.append("|").append("5[1-5][0-9]{2}[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}");
-                        //Discover
-                        buffer.append("|").append("6011[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}");
+                if(isSafeName(table, reservedWords)) {
+                    StringBuilder buffer = new StringBuilder();
+                    buffer.append("select count(*) from " + table + " where ");
+                    ResultSet columns = metaData.getColumns(catalog, null, table, null);
+                    try {
+                        boolean isFirst = true;
+                        while(columns.next()) {
+                            String column = columns.getString(4);
+                            if(isSafeName(column, reservedWords)) {
+                                if(isFirst) isFirst = false;
+                                else buffer.append(" OR ");
 
-                        buffer.append(")\\w*$')");
-                    }
-                } finally {
-                    columns.close();
-                }
-                // Find total number of rows
-                long rowCount;
-                long ccCount;
-                Statement stmt = conn.createStatement();
-                try {
-                    ResultSet results = stmt.executeQuery("select count(*) from "+table);
-                    try {
-                        if(!results.next()) throw new SQLException("No results returned!");
-                        rowCount = results.getLong(1);
+                                buffer.append("(length(").append(column).append(")<25 && ").append(column).append(" regexp '^\\w*(");
+
+                                // AmEx
+                                buffer.append("3[47][0-9]{2}[\\w-]?[0-9]{2}[\\w-]?[0-9]{4}[\\w-]?[0-9]{5}");
+                                // Visa
+                                buffer.append("|").append("4[0-9]{3}[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}");
+                                //MasterCard
+                                buffer.append("|").append("5[1-5][0-9]{2}[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}");
+                                //Discover
+                                buffer.append("|").append("6011[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}");
+
+                                buffer.append(")\\w*$')");
+                            } else {
+                                report.append('\n')
+                                    .append("Unable to scan column, unsafe name\n")
+                                    .append('\n')
+                                    .append("Server........: ").append(aoServer.getServer().getHostname()).append('\n')
+                                    .append("MySQL Server..: ").append(mysqlServer.toString()).append('\n')
+                                    .append("Database......: ").append(database.getName()).append('\n')
+                                    .append("Table.........: ").append(table).append('\n')
+                                    .append("Column........: ").append(column).append('\n');
+                            }
+                        }
                     } finally {
-                        results.close();
+                        columns.close();
                     }
-                    ResultSet cardnumbers = stmt.executeQuery(buffer.toString());
+                    // Find total number of rows
+                    long rowCount;
+                    long ccCount;
+                    Statement stmt = conn.createStatement();
                     try {
-                        if(!cardnumbers.next()) throw new SQLException("No results returned!");
-                        ccCount = cardnumbers.getLong(1);
+                        ResultSet results = stmt.executeQuery("select count(*) from "+table);
+                        try {
+                            if(!results.next()) throw new SQLException("No results returned!");
+                            rowCount = results.getLong(1);
+                        } finally {
+                            results.close();
+                        }
+                        ResultSet cardnumbers = stmt.executeQuery(buffer.toString());
+                        try {
+                            if(!cardnumbers.next()) throw new SQLException("No results returned!");
+                            ccCount = cardnumbers.getLong(1);
+                        } finally {
+                            cardnumbers.close();
+                        }
                     } finally {
-                        cardnumbers.close();
+                        stmt.close();
                     }
-                } finally {
-                    stmt.close();
-                }
-                if(ccCount>50 && (ccCount*2)>=rowCount) {
+                    if(ccCount>50 && (ccCount*2)>=rowCount) {
+                        report.append('\n')
+                            .append("Credit cards found in database\n")
+                            .append('\n')
+                            .append("Server........: ").append(aoServer.getServer().getHostname()).append('\n')
+                            .append("MySQL Server..: ").append(mysqlServer.toString()).append('\n')
+                            .append("Database......: ").append(database.getName()).append('\n')
+                            .append("Table.........: ").append(table).append('\n')
+                            .append("Row Count.....: ").append(rowCount).append('\n')
+                            .append("Credit Cards..: ").append(ccCount).append('\n');
+                    }
+                } else {
                     report.append('\n')
+                        .append("Unable to scan table, unsafe name\n")
+                        .append('\n')
+                        .append("Server........: ").append(aoServer.getServer().getHostname()).append('\n')
                         .append("MySQL Server..: ").append(mysqlServer.toString()).append('\n')
                         .append("Database......: ").append(database.getName()).append('\n')
-                        .append("Table.........: ").append(table).append('\n')
-                        .append("Row Count.....: ").append(rowCount).append('\n')
-                        .append("Credit Cards..: ").append(ccCount).append('\n');
+                        .append("Table.........: ").append(table).append('\n');
                 }
             }
         } finally {
             tables.close();
         }
         // TODO: Scan for both PostgreSQL and MySQL here
+    }
+    
+    /**
+     * Determines if a name is safe for use as a table/column name.
+     */
+    public static boolean isSafeName(String name, List<String> reservedWords) {
+	// Must be a-z first, then a-z or 0-9 or _ or -
+	int len = name.length();
+	if (len == 0) return false;
+	// The first character must be [a-z] or [A-Z]
+	char ch = name.charAt(0);
+	if ((ch < 'a' || ch > 'z') && (ch < 'A' || ch > 'Z')) return false;
+	// The rest may have additional characters
+	for (int c = 1; c < len; c++) {
+            ch = name.charAt(c);
+            if ((ch < 'a' || ch > 'z') && (ch < 'A' || ch > 'Z') && (ch < '0' || ch > '9') && ch != '_' && ch != '-') return false;
+	}
+
+	// Also must not be a reserved word
+	int size=reservedWords.size();
+	for(int c=0;c<size;c++) {
+            if(name.equalsIgnoreCase(reservedWords.get(c).toString())) return false;
+	}
+	return true;
     }
 }
