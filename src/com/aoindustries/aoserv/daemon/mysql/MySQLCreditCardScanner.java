@@ -198,10 +198,12 @@ final public class MySQLCreditCardScanner implements CronJob {
     }
     
     public static void main(String[] args) {
+        long startTime = System.currentTimeMillis();
 // XXX       for(int i : new int[] {1, 2, 3, 4}) {
 // XXX           System.out.println(i);
 // XXX       }
         scanMySQLForCards();
+        System.out.println("Took a total of "+(System.currentTimeMillis()-startTime)+" ms");
     }
 
     private static void scanMySQLForCards() {
@@ -255,6 +257,7 @@ final public class MySQLCreditCardScanner implements CronJob {
             while(tables.next()) {
                 String table = tables.getString(3);
                 StringBuilder buffer = new StringBuilder();
+                buffer.append("select count(*) from " + table + " where ");
                 ResultSet columns = metaData.getColumns(catalog, null, table, null);
                 
           
@@ -275,20 +278,35 @@ final public class MySQLCreditCardScanner implements CronJob {
                          *  37XX XXX XXXX XXXX
                          *  6011 XXXX XXXX XXXX Discover
                          */
-                        buffer.append("(length(").append(column).append(")<25 AND ").append(column).append(" regexp '^\\w*(");
+                        buffer.append("(length(").append(column).append(")<25 && ").append(column).append(" regexp '^\\w*(");
+                        
                         // AmEx
                         buffer.append("3[47][0-9]{2}[\\w-]?[0-9]{2}[\\w-]?[0-9]{4}[\\w-]?[0-9]{5}");
                         // Visa
+                        buffer.append("|").append("4[0-9]{3}[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}");
+                        //MasterCard
+                        buffer.append("|").append("5[1-5][0-9]{2}[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}");
+                        //Discover
+                        buffer.append("|").append("6011[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}");
+                        /*
+                        // AmEx
+                        buffer.append("3[47][0-9]{2}[\\w-][0-9]{2}[\\w-][0-9]{4}[\\w-][0-9]{5}");
+                        buffer.append("|").append("3[47][0-9]{13}");
+                        // Visa
                         //buffer.append("|").append("..");
-                        
-                        /*buffer.append(" regexp '^(\\w*[0-9]{4}[\\w-]*[0-9]{4}[\\w-]*[0-9]{4}[\\w-]*[0-9]{4}\\w*|\\w*[0-9]{3}[\\w-]*");
-                        buffer.append("[0-9]{4}[\\w-]*[0-9]{4}[\\w-]*[0-9]{4}\\w*|\\w*[0-9]{4}[\\w-]*[0-9]{2}[\\w-]*[0-9]{4}[\\w-]*[0-9]{5}\\w*)$')");
-                        */// TODO: Add other patterns
-                        buffer.append(")\\w*$')");
+                        buffer.append("|").append("4[0-9]{3}[\\w-][0-9]{4}[\\w-][0-9]{4}[\\w-][0-9]{4}");
+                        buffer.append("|").append("4[0-9]{15}");
+                        //MasterCard
+                        buffer.append("|").append("5[1-5][0-9]{2}[\\w-][0-9]{4}[\\w-][0-9]{4}[\\w-][0-9]{4}");
+                        buffer.append("|").append("5[1-5][0-9]{14}");
+                        //Discover
+                        buffer.append("|").append("6011[\\w-][0-9]{4}[\\w-][0-9]{4}[\\w-][0-9]{4}");
+                        buffer.append("|").append("6011[\\w-][0-9]{12}");
+                        */buffer.append(")\\w*$')");
                     }
-                    //System.out.println("select count(*) from " + table + " where " + buffer.toString());
+                    //System.out.println(buffer.toString());
                     Statement stmnt = conn.createStatement();
-                    ResultSet cardnumbers = stmnt.executeQuery("select count(*) from " + table + " where " + buffer.toString());
+                    ResultSet cardnumbers = stmnt.executeQuery(buffer.toString());
                      try {
                         if(!cardnumbers.next()) throw new SQLException("No results returned!");
                         ccCount = cardnumbers.getLong(1);
