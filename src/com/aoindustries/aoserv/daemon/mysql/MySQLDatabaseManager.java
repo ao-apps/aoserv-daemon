@@ -42,7 +42,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
             AOServConnector connector=AOServDaemon.getConnector();
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
-            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPKey();
+            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -114,7 +114,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
     public static void backupDatabase(CompressedDataInputStream masterIn, CompressedDataOutputStream masterOut) throws IOException, SQLException {
         Profiler.startProfile(Profiler.IO, MySQLDatabaseManager.class, "backupDatabase(CompressedDataInputStream,CompressedDataOutputStream)", null);
         try {
-            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
             int pkey=masterIn.readCompressedInt();
             MySQLDatabase md=AOServDaemon.getConnector().mysqlDatabases.get(pkey);
             if(md==null) throw new SQLException("Unable to find MySQLDatabase: "+pkey);
@@ -204,7 +204,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
     public static void dumpDatabase(MySQLDatabase md, CompressedDataOutputStream masterOut) throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, MySQLDatabaseManager.class, "dumpDatabase(MySQLDatabase,CompressedDataOutputStream)", null);
         try {
-            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
             UnixFile tempFile=UnixFile.mktemp("/tmp/dump_mysql_database.sql.");
             tempFile.getFile().deleteOnExit();
             try {

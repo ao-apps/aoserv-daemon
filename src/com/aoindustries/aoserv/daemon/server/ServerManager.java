@@ -27,7 +27,7 @@ final public class ServerManager {
     public static void controlProcess(String process, String command) throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, ServerManager.class, "controlProcess(String,String)", null);
         try {
-            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586

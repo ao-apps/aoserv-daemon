@@ -270,7 +270,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
             AOServConnector connector=AOServDaemon.getConnector();
             AOServer server=AOServDaemon.getThisAOServer();
 
-            int osv=server.getServer().getOperatingSystemVersion().getPKey();
+            int osv=server.getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -479,7 +479,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
     }
     
     private static String[] getSpamdRestartCommand() throws IOException, SQLException {
-        int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+        int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
         if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) {
             return new String[] {"/etc/rc.d/init.d/spamd", "restart"};
         } else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
@@ -488,7 +488,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
     }
 
     private static UnixFile getSpamdConfigFile() throws IOException, SQLException {
-        int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+        int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
         if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) {
             return new UnixFile("/etc/sysconfig/spamd");
         } else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {

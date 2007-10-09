@@ -128,7 +128,7 @@ final public class AOServDaemonServer extends Thread {
                         System.out.println(')');
                     }
                     if(protocol.equals(Protocol.AOSERV_DAEMON)) {
-                        ServerSocket SS = new ServerSocket(serverPort, 50, address);
+                        ServerSocket SS = new ServerSocket(serverPort, 50, address.getHostAddress().equals("0.0.0.0") ? null : address);
                         try {
                             while(true) {
                                 Socket socket=SS.accept();

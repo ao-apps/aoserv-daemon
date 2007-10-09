@@ -37,7 +37,7 @@ final public class MajordomoManager extends BuilderThread {
             AOServer aoServer=AOServDaemon.getThisAOServer();
             AOServConnector connector=AOServDaemon.getConnector();
 
-            int osv=aoServer.getServer().getOperatingSystemVersion().getPKey();
+            int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586

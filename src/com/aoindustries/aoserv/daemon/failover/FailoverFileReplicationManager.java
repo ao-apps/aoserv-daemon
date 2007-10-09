@@ -2134,7 +2134,7 @@ final public class FailoverFileReplicationManager {
                 boolean isSuccessful=false;
                 try {
                     // Get the connection to the daemon
-                    long key=toServer.requestDaemonAccess(AOServDaemonProtocol.FAILOVER_FILE_REPLICATION, ffr.getPKey());
+                    long key=toServer.requestDaemonAccess(AOServDaemonProtocol.FAILOVER_FILE_REPLICATION, ffr.getPkey());
                     // Allow the failover connect address to be overridden
                     String ffrConnectAddress = ffr.getConnectAddress();
                     // Allow the address to be overridden
@@ -2154,7 +2154,7 @@ final public class FailoverFileReplicationManager {
                     }
 
                     AOServDaemonConnector daemonConnector=AOServDaemonConnector.getConnector(
-                        toServer.getServer().getPKey(),
+                        toServer.getServer().getPkey(),
                         connectAddress,
                         sourceIPAddress,
                         daemonBindPort.getPort(),

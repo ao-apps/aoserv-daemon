@@ -47,7 +47,7 @@ final public class ShadowFile {
     public static String getEncryptedPassword(String username) throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, ShadowFile.class, "getEncryptedPassword(String)", null);
         try {
-            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -81,7 +81,7 @@ final public class ShadowFile {
     public static void rebuildShadowFile(List<LinuxServerAccount> accounts) throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, ShadowFile.class, "rebuildShadowFile(List<LinuxServerAccount>)", null);
         try {
-            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -169,7 +169,7 @@ final public class ShadowFile {
     public static void setEncryptedPassword(String username, String encryptedPassword) throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, ShadowFile.class, "setEncryptedPassword(String,String)", null);
         try {
-            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586

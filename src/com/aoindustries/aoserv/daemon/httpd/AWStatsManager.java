@@ -54,7 +54,7 @@ final public class AWStatsManager extends BuilderThread {
             final File awstatsDirectory;
             final File hostsDirectory;
             final File binDirectory;
-            int osv=aoServer.getServer().getOperatingSystemVersion().getPKey();
+            int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv==OperatingSystemVersion.MANDRAKE_10_1_I586
                 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -576,7 +576,7 @@ final public class AWStatsManager extends BuilderThread {
         Profiler.startProfile(Profiler.IO, AWStatsManager.class, "getAWStatsFile(String,String,String,CompressedDataOutputStream)", null);
         try {
             // Currently only Mandrake 10.1 is supported
-            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586

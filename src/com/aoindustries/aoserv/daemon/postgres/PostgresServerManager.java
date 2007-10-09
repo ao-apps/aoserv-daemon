@@ -56,7 +56,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
         Profiler.startProfile(Profiler.UNKNOWN, PostgresServerManager.class, "getPool(PostgresServer)", null);
         try {
 	    synchronized(pools) {
-                Integer I=Integer.valueOf(ps.getPKey());
+                Integer I=Integer.valueOf(ps.getPkey());
                 AOConnectionPool pool=pools.get(I);
 		if(pool==null) {
                     PostgresDatabase pd=ps.getPostgresDatabase(PostgresDatabase.AOSERV);

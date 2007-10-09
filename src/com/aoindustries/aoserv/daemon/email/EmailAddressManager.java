@@ -61,7 +61,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
             AOServer aoServer=AOServDaemon.getThisAOServer();
             AOServConnector connector=AOServDaemon.getConnector();
 
-            int osv=aoServer.getServer().getOperatingSystemVersion().getPKey();
+            int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -428,7 +428,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
         Profiler.startProfile(Profiler.IO, EmailAddressManager.class, "getImapFolderSizes(String,String[])", null);
         try {
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
-            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPKey();
+            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
             LinuxServerAccount lsa=thisAOServer.getLinuxServerAccount(username);
             if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+username+" on "+thisAOServer);
             long[] sizes=new long[folderNames.length];
@@ -460,7 +460,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
         Profiler.startProfile(Profiler.IO, EmailAddressManager.class, "setImapFolderSubscribed(String,String,boolean)", null);
         try {
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
-            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPKey();
+            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
             LinuxServerAccount lsa=thisAOServer.getLinuxServerAccount(username);
             if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+username+" on "+thisAOServer);
             UnixFile mailboxlist=new UnixFile(lsa.getHome(), ".mailboxlist");
@@ -564,7 +564,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
             synchronized(makeMapLock) {
                 // Run the command
                 String makemap;
-                int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+                int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
                 if(
                     osv==OperatingSystemVersion.MANDRAKE_10_1_I586
                     || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586

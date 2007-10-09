@@ -81,7 +81,7 @@ public class LinuxAccountManager extends BuilderThread {
             AOServConnector connector=AOServDaemon.getConnector();
             AOServer aoServer=AOServDaemon.getThisAOServer();
 
-            int osv=aoServer.getServer().getOperatingSystemVersion().getPKey();
+            int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -592,7 +592,7 @@ public class LinuxAccountManager extends BuilderThread {
                 }
                 if(groupName.equals(LinuxGroup.PROFTPD_JAILED)) {
                     AOServer aoServer=group.getAOServer();
-                    int osv=aoServer.getServer().getOperatingSystemVersion().getPKey();
+                    int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
                     boolean addJailed;
                     if(
                         osv==OperatingSystemVersion.MANDRAKE_10_1_I586

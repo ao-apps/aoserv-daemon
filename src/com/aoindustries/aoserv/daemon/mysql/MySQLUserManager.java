@@ -35,7 +35,7 @@ final public class MySQLUserManager extends BuilderThread {
             AOServConnector connector = AOServDaemon.getConnector();
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
-            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPKey();
+            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586

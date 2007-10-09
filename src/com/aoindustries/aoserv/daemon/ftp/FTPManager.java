@@ -123,7 +123,7 @@ final public class FTPManager extends BuilderThread {
             AOServConnector conn=AOServDaemon.getConnector();
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
-            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPKey();
+            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
             final Stat tempStat = new Stat();
             synchronized(rebuildLock) {
                 if(
@@ -168,10 +168,10 @@ final public class FTPManager extends BuilderThread {
                             NetTcpRedirect redirect=bind.getNetTcpRedirect();
                             PrivateFTPServer privateServer=bind.getPrivateFTPServer();
                             if(redirect!=null) {
-                                if(privateServer!=null) throw new SQLException("NetBind allocated as both NetTcpRedirect and PrivateFTPServer: "+bind.getPKey());
+                                if(privateServer!=null) throw new SQLException("NetBind allocated as both NetTcpRedirect and PrivateFTPServer: "+bind.getPkey());
                             } else {
                                 String netProtocol=bind.getNetProtocol().getProtocol();
-                                if(!netProtocol.equals(NetProtocol.TCP)) throw new SQLException("ProFTPD may only be configured for TCP service:  (net_binds.pkey="+bind.getPKey()+").net_protocol="+netProtocol);
+                                if(!netProtocol.equals(NetProtocol.TCP)) throw new SQLException("ProFTPD may only be configured for TCP service:  (net_binds.pkey="+bind.getPkey()+").net_protocol="+netProtocol);
 
                                 IPAddress ia=bind.getIPAddress();
                                 bindCount++;

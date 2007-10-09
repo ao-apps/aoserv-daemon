@@ -525,7 +525,7 @@ final public class BackupReplicator implements Runnable {
                                                 decGettingData();
                                             }
                                         } catch(RuntimeException err) {
-                                            System.err.println("Error trying to get backup data for pkey="+bd.getPKey());
+                                            System.err.println("Error trying to get backup data for pkey="+bd.getPkey());
                                             throw err;
                                         } finally {
 					    out.flush();
@@ -561,7 +561,7 @@ final public class BackupReplicator implements Runnable {
                                                     decGettingData();
                                                 }
                                             } catch(RuntimeException err) {
-                                                System.err.println("Error trying to get backup data for pkey="+bd.getPKey());
+                                                System.err.println("Error trying to get backup data for pkey="+bd.getPkey());
                                                 throw err;
                                             } finally {
                                                 raf.close();

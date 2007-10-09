@@ -37,7 +37,7 @@ final public class NetDeviceManager extends BuilderThread {
             AOServConnector connector=AOServDaemon.getConnector();
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
             
-            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPKey();
+            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
@@ -75,9 +75,9 @@ final public class NetDeviceManager extends BuilderThread {
                                             + "MII_NOT_SUPPORTED=yes\n");
                                 } else {
                                     String network=device.getNetwork();
-                                    if(network==null) throw new SQLException("(net_devices.pkey="+device.getPKey()+").network may not be null");
+                                    if(network==null) throw new SQLException("(net_devices.pkey="+device.getPkey()+").network may not be null");
                                     String broadcast=device.getBroadcast();
-                                    if(broadcast==null) throw new SQLException("(net_devices.pkey="+device.getPKey()+").broadcast may not be null");
+                                    if(broadcast==null) throw new SQLException("(net_devices.pkey="+device.getPkey()+").broadcast may not be null");
                                     out.print("BOOTPROTO=static\n"
                                             + "IPADDR=").print(primaryIP.getIPAddress()).print("\n"
                                             + "NETMASK=").print(device.getNetMask()).print("\n"
@@ -110,7 +110,7 @@ final public class NetDeviceManager extends BuilderThread {
                                 for(int e=0;e<ips.size();e++) {
                                     IPAddress ip=ips.get(e);
                                     if(d!=-1 || ip.isAlias()) {
-                                        if(ip.isDHCP()) throw new SQLException("DHCP IP Aliases are not allowed for IPAddress #"+ip.getPKey());
+                                        if(ip.isDHCP()) throw new SQLException("DHCP IP Aliases are not allowed for IPAddress #"+ip.getPkey());
                                         
                                         String filename=aliasBeginning+(num++);
                                         cfgFilenames.add(filename);

@@ -28,7 +28,7 @@ final public class EmailListManager {
     public static String getEmailListFile(String path) throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, EmailListManager.class, "getEmailListFile(String)", null);
         try {
-            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -54,7 +54,7 @@ final public class EmailListManager {
     public static void removeEmailListAddresses(String path) throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, EmailListManager.class, "removeEmailListAddresses(String)", null);
         try {
-            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -80,7 +80,7 @@ final public class EmailListManager {
     ) throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, EmailListManager.class, "setEmailListAddresses(String,String,int,int,int)", null);
         try {
-            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586

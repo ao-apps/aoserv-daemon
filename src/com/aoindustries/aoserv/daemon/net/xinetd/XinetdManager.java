@@ -44,7 +44,7 @@ public final class XinetdManager extends BuilderThread {
             AOServConnector connector=AOServDaemon.getConnector();
             AOServer aoServer=AOServDaemon.getThisAOServer();
 
-            int osv=aoServer.getServer().getOperatingSystemVersion().getPKey();
+            int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -84,7 +84,7 @@ public final class XinetdManager extends BuilderThread {
                         Service service;
                         if(redirect!=null) {
                             NetProtocol netProtocol=bind.getNetProtocol();
-                            if(!netProtocol.getProtocol().equals(NetProtocol.TCP)) throw new SQLException("Only TCP ports may be redirected: (net_binds.pkey="+bind.getPKey()+").net_protocol="+netProtocol.getProtocol());
+                            if(!netProtocol.getProtocol().equals(NetProtocol.TCP)) throw new SQLException("Only TCP ports may be redirected: (net_binds.pkey="+bind.getPkey()+").net_protocol="+netProtocol.getProtocol());
 
                             service=new Service(
                                 UNLISTED,

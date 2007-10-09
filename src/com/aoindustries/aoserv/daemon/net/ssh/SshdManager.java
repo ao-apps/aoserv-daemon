@@ -40,7 +40,7 @@ final public class SshdManager extends BuilderThread {
             AOServConnector connector=AOServDaemon.getConnector();
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
-            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPKey();
+            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);

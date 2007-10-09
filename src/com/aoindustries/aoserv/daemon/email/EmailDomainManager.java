@@ -53,7 +53,7 @@ public final class EmailDomainManager extends BuilderThread {
             AOServConnector connector=AOServDaemon.getConnector();
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
-            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPKey();
+            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -121,7 +121,7 @@ public final class EmailDomainManager extends BuilderThread {
                 if(AOServDaemon.getThisAOServer().isQmail()) {
                     AOServDaemon.exec(reloadQmailCommand);
                 } else {
-                    int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+                    int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
                     String[] cmd;
                     //if(osv==OperatingSystemVersion.REDHAT_7_2_I686) cmd=reloadSendmailCommandRedHat7_2;
                     //else if(osv==OperatingSystemVersion.MANDRAKE_9_2_I586) cmd=reloadSendmailCommandMandrake9_2;

@@ -44,7 +44,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
             int port=masterIn.readCompressedInt();
 
             // Dump, count raw bytes, create MD5, and compress to a temp file
-            int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+            int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
             String commandPath;
             if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                 commandPath = "/opt/aoserv-daemon/bin/backup_postgres_database";
@@ -189,7 +189,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
             AOServConnector connector=AOServDaemon.getConnector();
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
-            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPKey();
+            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -330,7 +330,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                 int port=ps.getNetBind().getPort().getPort();
                 String dbName=pd.getName();
 
-                int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+                int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
                 String commandPath;
                 if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                     commandPath = "/opt/aoserv-daemon/bin/dump_postgres_database";

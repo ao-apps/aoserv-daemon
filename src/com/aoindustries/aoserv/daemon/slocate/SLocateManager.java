@@ -39,7 +39,7 @@ final public class SLocateManager extends BuilderThread {
             AOServConnector connector = AOServDaemon.getConnector();
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
             List<BackupPartition> bps=thisAOServer.getBackupPartitions();
-            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPKey();
+            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
 
             synchronized (rebuildLock) {
                 if(

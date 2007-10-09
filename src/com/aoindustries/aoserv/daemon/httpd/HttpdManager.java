@@ -251,7 +251,7 @@ final public class HttpdManager extends BuilderThread {
             final AOServer thisAOServer = AOServDaemon.getThisAOServer();
             final Server server = thisAOServer.getServer();
             final String hostname = server.getHostname();
-            final int osv = server.getOperatingSystemVersion().getPKey();
+            final int osv = server.getOperatingSystemVersion().getPkey();
             final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
             final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
 
@@ -594,7 +594,7 @@ final public class HttpdManager extends BuilderThread {
             final AOServer thisAOServer = AOServDaemon.getThisAOServer();
             final Server server = thisAOServer.getServer();
             final String hostname = server.getHostname();
-            final int osv = server.getOperatingSystemVersion().getPKey();
+            final int osv = server.getOperatingSystemVersion().getPkey();
             final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
             final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
 
@@ -953,7 +953,7 @@ final public class HttpdManager extends BuilderThread {
             final AOServer thisAOServer = AOServDaemon.getThisAOServer();
             final Server server = thisAOServer.getServer();
             final String hostname = server.getHostname();
-            final int osv = server.getOperatingSystemVersion().getPKey();
+            final int osv = server.getOperatingSystemVersion().getPkey();
             final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
             final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
             /*
@@ -1222,7 +1222,7 @@ final public class HttpdManager extends BuilderThread {
             final AOServer thisAOServer = AOServDaemon.getThisAOServer();
             final Server server = thisAOServer.getServer();
             final String hostname = server.getHostname();
-            final int osv = server.getOperatingSystemVersion().getPKey();
+            final int osv = server.getOperatingSystemVersion().getPkey();
             final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
             final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
 
@@ -1527,7 +1527,7 @@ final public class HttpdManager extends BuilderThread {
             final AOServer thisAOServer = AOServDaemon.getThisAOServer();
             final Server server = thisAOServer.getServer();
             final String hostname = server.getHostname();
-            final int osv = server.getOperatingSystemVersion().getPKey();
+            final int osv = server.getOperatingSystemVersion().getPkey();
             final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
             final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
 
@@ -1870,7 +1870,7 @@ final public class HttpdManager extends BuilderThread {
             final AOServer thisAOServer = AOServDaemon.getThisAOServer();
             final Server server = thisAOServer.getServer();
             final String hostname = server.getHostname();
-            final int osv = server.getOperatingSystemVersion().getPKey();
+            final int osv = server.getOperatingSystemVersion().getPkey();
             final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
             final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
 
@@ -2143,7 +2143,7 @@ final public class HttpdManager extends BuilderThread {
             final AOServer thisAOServer = AOServDaemon.getThisAOServer();
             final Server server = thisAOServer.getServer();
             final String hostname = server.getHostname();
-            final int osv = server.getOperatingSystemVersion().getPKey();
+            final int osv = server.getOperatingSystemVersion().getPkey();
             final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
             final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
 
@@ -2424,7 +2424,7 @@ final public class HttpdManager extends BuilderThread {
             final AOServer thisAOServer = AOServDaemon.getThisAOServer();
             final Server server = thisAOServer.getServer();
             final String hostname = server.getHostname();
-            final int osv = server.getOperatingSystemVersion().getPKey();
+            final int osv = server.getOperatingSystemVersion().getPkey();
             final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
             final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
 
@@ -2518,7 +2518,7 @@ final public class HttpdManager extends BuilderThread {
             final AOServer thisAOServer = AOServDaemon.getThisAOServer();
             final Server server = thisAOServer.getServer();
             final String hostname = server.getHostname();
-            final int osv = server.getOperatingSystemVersion().getPKey();
+            final int osv = server.getOperatingSystemVersion().getPkey();
             final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
             final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
 
@@ -2619,7 +2619,7 @@ final public class HttpdManager extends BuilderThread {
      * Creates the CGI php script.
      */
     private static void createCgiPhpScript(HttpdSite hs) throws IOException, SQLException {
-        int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+        int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
         String defaultPhpVersion = getDefaultPhpVersion(osv);
         if(defaultPhpVersion!=null) {
             ChainWriter out=new ChainWriter(
@@ -2719,7 +2719,7 @@ final public class HttpdManager extends BuilderThread {
             AOServConnector connector=AOServDaemon.getConnector();
             AOServer aoServer=AOServDaemon.getThisAOServer();
 
-            int osv=aoServer.getServer().getOperatingSystemVersion().getPKey();
+            int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
             // Currently only Mandriva 2006.0 and RedHat ES4 supported
             if(
                 osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -2779,7 +2779,7 @@ final public class HttpdManager extends BuilderThread {
         try {
             for(HttpdServer hs : aoServer.getHttpdServers()) {
                 final int serverNum=hs.getNumber();
-                final int osv = aoServer.getServer().getOperatingSystemVersion().getPKey();
+                final int osv = aoServer.getServer().getOperatingSystemVersion().getPkey();
 
                 /*
                  * Rebuild the httpd.conf file
@@ -3095,7 +3095,7 @@ final public class HttpdManager extends BuilderThread {
                 boolean httpdConfFileExists=httpdConfFile.getStat(tempStat).exists();
                 UnixFile httpdConfFileOld=new UnixFile(HTTPD_CONF_BEGINNING+serverNum+HTTPD_CONF_ENDING_OLD);
                 if(!httpdConfFileExists || !httpdConfFile.contentEquals(httpdConfFileNew)) {
-                    int hsPKey=hs.getPKey();
+                    int hsPKey=hs.getPkey();
                     if(!serversNeedingRestarted.contains(hsPKey)) serversNeedingRestarted.add(hsPKey);
                     if(httpdConfFileExists) httpdConfFile.renameTo(httpdConfFileOld);
                     httpdConfFileNew.renameTo(httpdConfFile);
@@ -3105,7 +3105,7 @@ final public class HttpdManager extends BuilderThread {
                 boolean workersFileExists=workersFile.getStat(tempStat).exists();
                 UnixFile workersFileOld=new UnixFile(WORKERS_BEGINNING+serverNum+WORKERS_ENDING_OLD);
                 if(!workersFileExists || !workersFile.contentEquals(workersFileNew)) {
-                    int hsPKey=hs.getPKey();
+                    int hsPKey=hs.getPkey();
                     if(!serversNeedingRestarted.contains(hsPKey)) serversNeedingRestarted.add(hsPKey);
                     if(workersFileExists) workersFile.renameTo(workersFileOld);
                     workersFileNew.renameTo(workersFile);
@@ -3130,7 +3130,7 @@ final public class HttpdManager extends BuilderThread {
     ) throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "doRebuildHttpdSites(AOServer,List<File>,AOServConnector,IntList,IntList,IntList,Stat)", null);
         try {
-            int osv=aoServer.getServer().getOperatingSystemVersion().getPKey();
+            int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
 
             /*
              * Get values used in the rest of the method.
@@ -3412,11 +3412,11 @@ final public class HttpdManager extends BuilderThread {
                                                 + "</Server>\n");
                                     } else if(isTomcat4) {
                                         List<HttpdWorker> hws=tomcatSite.getHttpdWorkers();
-                                        if(hws.size()!=1) throw new SQLException("Expected to only find one HttpdWorker for HttpdTomcatStdSite #"+site.getPKey()+", found "+hws.size());
+                                        if(hws.size()!=1) throw new SQLException("Expected to only find one HttpdWorker for HttpdTomcatStdSite #"+site.getPkey()+", found "+hws.size());
                                         HttpdWorker hw=hws.get(0);
                                         String hwProtocol=hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
                                         if(!hwProtocol.equals(HttpdJKProtocol.AJP13)) {
-                                            throw new SQLException("HttpdWorker #"+hw.getPKey()+" for HttpdTomcatStdSite #"+site.getPKey()+" must be AJP13 but it is "+hwProtocol);
+                                            throw new SQLException("HttpdWorker #"+hw.getPkey()+" for HttpdTomcatStdSite #"+site.getPkey()+" must be AJP13 but it is "+hwProtocol);
                                         }
                                         if(!site.isManual()) out.print(autoWarning);
                                         NetBind shutdownPort=stdSite.getTomcat4ShutdownPort();
@@ -3565,9 +3565,9 @@ final public class HttpdManager extends BuilderThread {
                                         needsRestart=!confServerXMLFile.contentEquals(newConfServerXML);
                                     } else needsRestart=true;
                                     if(needsRestart) {
-                                        int pkey=site.getPKey();
+                                        int pkey=site.getPkey();
                                         if(isShared) {
-                                            if(!sharedTomcatsNeedingRestarted.contains(pkey)) sharedTomcatsNeedingRestarted.add(shrSite.getHttpdSharedTomcat().getPKey());
+                                            if(!sharedTomcatsNeedingRestarted.contains(pkey)) sharedTomcatsNeedingRestarted.add(shrSite.getHttpdSharedTomcat().getPkey());
                                         } else {
                                             if(!sitesNeedingRestarted.contains(pkey)) sitesNeedingRestarted.add(pkey);
                                         }
@@ -3676,7 +3676,7 @@ final public class HttpdManager extends BuilderThread {
                                     out.print("    Include conf/wwwgroup/").print(sharedSite.getHttpdSharedTomcat().getName()).print("\n"
                                             + "\n");
                                 }
-			    } else throw new IllegalArgumentException("Unsupported HttpdTomcatSite type: "+site.getPKey());
+			    } else throw new IllegalArgumentException("Unsupported HttpdTomcatSite type: "+site.getPkey());
 			    
 			    // The CGI user info
                             out.print("    <IfModule mod_suexec.c>\n"
@@ -3871,7 +3871,7 @@ final public class HttpdManager extends BuilderThread {
                                     + "        </IfModule>\n"
 			            + "    </IfModule>\n"
                                     + "\n");
-			} else throw new IllegalArgumentException("Unsupported HttpdSite type for HttpdSite #"+site.getPKey());
+			} else throw new IllegalArgumentException("Unsupported HttpdSite type for HttpdSite #"+site.getPkey());
 		    } finally {
 			out.flush();
 			out.close();
@@ -3879,7 +3879,7 @@ final public class HttpdManager extends BuilderThread {
                     
                     if(!sharedFile.getStat(tempStat).exists() || !sharedFile.contentEquals(newSharedFile)) {
                         for(HttpdSiteBind hsb : site.getHttpdSiteBinds()) {
-                            int hsPKey=hsb.getHttpdBind().getHttpdServer().getPKey();
+                            int hsPKey=hsb.getHttpdBind().getHttpdServer().getPkey();
                             if(!serversNeedingRestarted.contains(hsPKey)) serversNeedingRestarted.add(hsPKey);
                         }
                         newSharedFile.renameTo(sharedFile);
@@ -3898,7 +3898,7 @@ final public class HttpdManager extends BuilderThread {
                         UnixFile newBindFile=new UnixFile(newBindConfig);
                         writeHttpdSiteBindFile(bind, newBindFile, bind.getDisableLog()!=null?HttpdSite.DISABLED:siteName);
                         if(!bindFile.getStat(tempStat).exists() || !bindFile.contentEquals(newBindFile)) {
-                            int hsPKey=bind.getHttpdBind().getHttpdServer().getPKey();
+                            int hsPKey=bind.getHttpdBind().getHttpdServer().getPkey();
                             if(!serversNeedingRestarted.contains(hsPKey)) serversNeedingRestarted.add(hsPKey);
                             newBindFile.renameTo(bindFile);
                         } else newBindFile.delete();
@@ -3940,7 +3940,7 @@ final public class HttpdManager extends BuilderThread {
             NetBind netBind=bind.getHttpdBind().getNetBind();
             int port=netBind.getPort().getPort();
             int lsgGID=bind.getHttpdSite().getLinuxServerGroup().getGID().getID();
-            int osv=netBind.getAOServer().getServer().getOperatingSystemVersion().getPKey();
+            int osv=netBind.getAOServer().getServer().getOperatingSystemVersion().getPkey();
             String ipAddress = netBind.getIPAddress().getIPAddress();
             HttpdSiteURL primaryHSU = bind.getPrimaryHttpdSiteURL();
             String primaryHostname = primaryHSU.getHostname();
@@ -4018,7 +4018,7 @@ final public class HttpdManager extends BuilderThread {
     ) throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, HttpdManager.class, "doRebuildSharedTomcats(AOServer,List<File>,AOServConnector,IntList,Stat)", null);
         try {
-            int osv=aoServer.getServer().getOperatingSystemVersion().getPKey();
+            int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
 
             // get shared tomcats
             List<HttpdSharedTomcat> tomcats = aoServer.getHttpdSharedTomcats();
@@ -4838,7 +4838,7 @@ final public class HttpdManager extends BuilderThread {
                 
                 // Start if needed
                 if(needRestart && tomcat.getDisableLog()==null) {
-                    int pkey=tomcat.getPKey();
+                    int pkey=tomcat.getPkey();
                     if(!sharedTomcatsNeedingRestarted.contains(pkey)) sharedTomcatsNeedingRestarted.add(pkey);
                 }
             }
@@ -5244,7 +5244,7 @@ final public class HttpdManager extends BuilderThread {
                 UnixFile daemonUF=new UnixFile(HttpdSharedTomcat.WWW_GROUP_DIR+'/'+tomcatName+"/daemon/tomcat");
                 if(hst.getDisableLog()==null) {
                     // Enabled, make sure running and auto
-                    if(needStarted.contains(hst.getPKey()) || !pidUF.getStat(tempStat).exists()) startSharedTomcat(hst);
+                    if(needStarted.contains(hst.getPkey()) || !pidUF.getStat(tempStat).exists()) startSharedTomcat(hst);
                     if(!daemonUF.getStat(tempStat).exists()) enableSharedTomcat(hst, tempStat);
                 } else {
                     // Disabled, make sure stopped and not auto
@@ -5274,7 +5274,7 @@ final public class HttpdManager extends BuilderThread {
                         ).setMode(0775);
                         UnixFile pidUF=getPIDUnixFile(hs);
                         UnixFile daemonUF=getDaemonUnixFile(hs);
-                        if(pidUF!=null && (needStarted.contains(hs.getPKey()) || !pidUF.getStat(tempStat).exists())) {
+                        if(pidUF!=null && (needStarted.contains(hs.getPkey()) || !pidUF.getStat(tempStat).exists())) {
                             startHttpdSite(hs);
                         }
                         if(daemonUF!=null && !daemonUF.getStat(tempStat).exists()) enableHttpdSite(hs, tempStat);
@@ -5645,7 +5645,7 @@ final public class HttpdManager extends BuilderThread {
                 + "  to this file will be overwritten.  Please set the is_manual flag for this website\n"
                 + "  to be able to make permanent changes to this file.\n"
                 + "\n"
-                + "  Control Panel: https://secure.aoindustries.com/clientarea/control/httpd/HttpdSiteCP?pkey="+hs.getPKey()+"\n"
+                + "  Control Panel: https://secure.aoindustries.com/clientarea/control/httpd/HttpdSiteCP?pkey="+hs.getPkey()+"\n"
                 + "\n"
                 + "  AOSH: "+AOSHCommand.SET_HTTPD_SITE_IS_MANUAL+" "+hs.getSiteName()+' '+hs.getAOServer().getServer().getHostname()+" true\n"
                 + "\n"
@@ -5667,7 +5667,7 @@ final public class HttpdManager extends BuilderThread {
                 + "  to this file will be overwritten.  Please set the is_manual flag for this multi-site\n"
                 + "  JVM to be able to make permanent changes to this file.\n"
                 + "\n"
-                + "  Control Panel: https://secure.aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP?pkey="+hst.getPKey()+"\n"
+                + "  Control Panel: https://secure.aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP?pkey="+hst.getPkey()+"\n"
                 + "\n"
                 + "  AOSH: "+AOSHCommand.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+hst.getName()+' '+hst.getAOServer().getServer().getHostname()+" true\n"
                 + "\n"

@@ -54,7 +54,7 @@ final public class MySQLServerManager extends BuilderThread {
         Profiler.startProfile(Profiler.UNKNOWN, MySQLServerManager.class, "getPool(MySQLServer)", null);
         try {
 	    synchronized(pools) {
-                Integer I=Integer.valueOf(ms.getPKey());
+                Integer I=Integer.valueOf(ms.getPkey());
                 AOConnectionPool pool=pools.get(I);
 		if(pool==null) {
                     MySQLDatabase md=ms.getMySQLDatabase(MySQLDatabase.MYSQL);
@@ -121,7 +121,7 @@ final public class MySQLServerManager extends BuilderThread {
     static void flushPrivileges(MySQLServer mysqlServer) throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, MySQLServerManager.class, "flushPrivileges(MySQLServer)", null);
         try {
-            int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+            int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
 
             synchronized(flushLock) {
                 /*

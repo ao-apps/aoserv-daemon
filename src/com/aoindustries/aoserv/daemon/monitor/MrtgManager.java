@@ -62,7 +62,7 @@ final public class MrtgManager extends BuilderThread {
             AOServConnector connector=AOServDaemon.getConnector();
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
-            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPKey();
+            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -526,7 +526,7 @@ final public class MrtgManager extends BuilderThread {
     public static List<String> getDFDevices() throws IOException, SQLException {
         AOServer thisAOServer = AOServDaemon.getThisAOServer();
         if(thisAOServer.getFailoverServer()!=null) return Collections.emptyList();
-        int osv = thisAOServer.getServer().getOperatingSystemVersion().getPKey();
+        int osv = thisAOServer.getServer().getOperatingSystemVersion().getPkey();
         List<String> devices = new ArrayList<String>();
         Process P = Runtime.getRuntime().exec(
             new String[] {
@@ -593,7 +593,7 @@ final public class MrtgManager extends BuilderThread {
 
     public static void getMrtgFile(String filename, CompressedDataOutputStream out) throws IOException, SQLException {
         // Currently only Mandrake 10.1 supported
-        int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+        int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
         File mrtgDirectory;
         if(
             osv==OperatingSystemVersion.MANDRAKE_10_1_I586

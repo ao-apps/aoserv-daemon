@@ -158,7 +158,7 @@ final public class DistroManager implements Runnable {
                                     results=new ArrayList<String>();
                                     checkDistroFile(
                                         AOServDaemon.getThisAOServer(),
-                                        Integer.valueOf(AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey()),
+                                        Integer.valueOf(AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey()),
                                         distroFiles,
                                         foundFiles,
                                         pathComparator,

@@ -61,7 +61,7 @@ public class TimeZoneManager extends BuilderThread {
             AOServConnector connector=AOServDaemon.getConnector();
             AOServer server=AOServDaemon.getThisAOServer();
 
-            int osv=server.getServer().getOperatingSystemVersion().getPKey();
+            int osv=server.getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586

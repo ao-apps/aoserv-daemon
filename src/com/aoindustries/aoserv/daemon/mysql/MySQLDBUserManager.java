@@ -35,7 +35,7 @@ final public class MySQLDBUserManager extends BuilderThread {
             AOServConnector connector=AOServDaemon.getConnector();
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
-            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPKey();
+            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -91,15 +91,15 @@ final public class MySQLDBUserManager extends BuilderThread {
                                 // These must both be on the same server !!!
                                 if(!md.getMySQLServer().equals(msu.getMySQLServer())) throw new SQLException(
                                     "Server mismatch in mysql_db_users.pkey="
-                                    +mdu.getPKey()
+                                    +mdu.getPkey()
                                     +": ((mysql_databases.pkey="
-                                    +md.getPKey()
+                                    +md.getPkey()
                                     +").mysql_server="
-                                    +md.getMySQLServer().getPKey()
+                                    +md.getMySQLServer().getPkey()
                                     +")!=((mysql_server_users.pkey="
-                                    +msu.getPKey()
+                                    +msu.getPkey()
                                     +").mysql_server="
-                                    +msu.getMySQLServer().getPKey()
+                                    +msu.getMySQLServer().getPkey()
                                     +')'
                                 );
 

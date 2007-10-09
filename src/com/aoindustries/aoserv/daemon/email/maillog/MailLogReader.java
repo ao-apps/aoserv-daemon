@@ -39,7 +39,7 @@ public class MailLogReader implements Runnable {
             while(true) {
                 try {
                     String maillog;
-                    int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+                    int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
                     //if(osv==OperatingSystemVersion.REDHAT_7_2_I686) maillog=REDHAT_MAILLOG;
                     if(
                         osv==OperatingSystemVersion.MANDRAKE_10_1_I586

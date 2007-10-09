@@ -60,7 +60,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
             AOServConnector connector=AOServDaemon.getConnector();
             AOServer server=AOServDaemon.getThisAOServer();
 
-            int osv=server.getServer().getOperatingSystemVersion().getPKey();
+            int osv=server.getServer().getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -216,7 +216,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
             String[] command;
             if(AOServDaemon.getThisAOServer().isQmail()) command = qmailctlCdbCommand;
             else {
-                int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPKey();
+                int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
                 if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) command = mandrivaSendmailMakemapCommand;
                 else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) command = redhatSendmailMakemapCommand;
                 else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
