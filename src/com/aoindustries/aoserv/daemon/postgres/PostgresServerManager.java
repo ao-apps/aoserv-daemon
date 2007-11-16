@@ -157,7 +157,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
     /**
      * This task will be ran once per day at 1:30am.
      */
-    public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek) {
+    public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
         return
             minute==30
             && hour==1
@@ -171,7 +171,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
     /**
      * Rotates PostgreSQL log files.  Those older than one month are removed.
      */
-    public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek) {
+    public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
         Profiler.startProfile(Profiler.UNKNOWN, PostgresServerManager.class, "runCronJob(int,int,int,int,int)", null);
         try {
             try {

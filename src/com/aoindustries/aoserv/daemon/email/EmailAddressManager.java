@@ -669,7 +669,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
         return CRON_JOB_SCHEDULE_SKIP;
     }
     
-    public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek) {
+    public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
         return
             minute==30
             && hour==1
@@ -678,7 +678,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
         ;
     }
 
-    public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek) {
+    public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
         rebuildEmailCertificates();
     }
     

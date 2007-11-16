@@ -43,7 +43,7 @@ final public class MySQLCreditCardScanner implements CronJob {
         }
     }
 
-    public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek) {
+    public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
         return
             minute==30
             && hour==2
@@ -62,7 +62,7 @@ final public class MySQLCreditCardScanner implements CronJob {
     /**
      * Performs the scheduled task.
      */
-    public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek) {
+    public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
         scanMySQLForCards();
     }
     

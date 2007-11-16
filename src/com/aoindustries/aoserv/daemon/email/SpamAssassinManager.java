@@ -404,7 +404,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
         
         private static final int NUM_LINES_RETAINED = 1000;
 
-        public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek) {
+        public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
             return minute==5 && hour==1;
         }
 
@@ -419,7 +419,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
         /**
          * Once a day, all of the razor-agent.log files are cleaned to only include the last 1000 lines.
          */
-        public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek) {
+        public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
             try {
                 Queue<String> queuedLines = new LinkedList<String>();
                 for(LinuxServerAccount lsa : AOServDaemon.getThisAOServer().getLinuxServerAccounts()) {

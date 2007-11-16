@@ -421,7 +421,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
      * Runs once a month for automatic vacuuming and reindexing of all user tables, at 1:05 every Sunday.
      * REINDEX is only called on the first Sunday of the month.
      */
-    public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek) {
+    public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
         return
             minute==5
             && hour==1
@@ -444,8 +444,8 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
         return Thread.NORM_PRIORITY+2;
     }
 
-    public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek) {
-        Profiler.startProfile(Profiler.UNKNOWN, PostgresDatabaseManager.class, "runCronJob(int,int,int,int,int)", null);
+    public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
+        Profiler.startProfile(Profiler.UNKNOWN, PostgresDatabaseManager.class, "runCronJob(int,int,int,int,int,int)", null);
         try {
             try {
                 AOServConnector aoservConn = AOServDaemon.getConnector();
