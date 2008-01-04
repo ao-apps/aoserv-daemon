@@ -78,14 +78,23 @@ public class LinuxAccountManager extends BuilderThread {
     protected void doRebuild() throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, LinuxAccountManager.class, "doRebuild()", null);
         try {
+            rebuildLinuxAccountSettings();
+        } finally {
+            Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
+
+    private static void rebuildLinuxAccountSettings() throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, LinuxAccountManager.class, "rebuildLinuxAccountSettings()", null);
+        try {
             AOServConnector connector=AOServDaemon.getConnector();
             AOServer aoServer=AOServDaemon.getThisAOServer();
 
             int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
             if(
-                osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
-                && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
                 && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+                && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(rebuildLock) {
@@ -104,8 +113,12 @@ public class LinuxAccountManager extends BuilderThread {
                 for(int c=0;c<accountsLen;c++) {
                     LinuxServerAccount lsa=accounts.get(c);
                     usernames.add(lsa.getLinuxAccount().getUsername().getUsername());
-                    uids.add(lsa.getUID().getID());
-                    homeDirs.add(lsa.getHome());
+                    // UIDs are not always unique, only need to store once in the list
+                    int uid = lsa.getUID().getID();
+                    if(!uids.contains(uid)) uids.add(uid);
+                    // Home directories are not always unique, only need to store once in the list
+                    String home = lsa.getHome();
+                    if(!homeDirs.contains(home)) homeDirs.add(home);
                 }
 
                 /*
@@ -224,44 +237,48 @@ public class LinuxAccountManager extends BuilderThread {
                     newGShadow.renameTo(gshadow);
                 } else throw new IOException(newGShadow.getPath()+" is zero or unknown length");
 
-                /*
-                 * Create any inboxes that need to exist.
-                 */
-                LinuxServerGroup mailGroup=connector.linuxGroups.get(LinuxGroup.MAIL).getLinuxServerGroup(aoServer);
-                if(mailGroup==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+aoServer.getServer().getHostname());
-                for (int c = 0; c < accounts.size(); c++) {
-                    LinuxServerAccount account = accounts.get(c);
-                    LinuxAccount linuxAccount = account.getLinuxAccount();
-                    if(linuxAccount.getType().isEmail()) {
-                        String username=linuxAccount.getUsername().getUsername();
-                        File file=new File(EmailAddressManager.mailSpool, username);
-                        if(!file.exists()) {
-                            UnixFile unixFile=new UnixFile(file.getPath());
-                            unixFile.getSecureOutputStream(
-                                account.getUID().getID(),
-                                mailGroup.getGID().getID(),
-                                0660,
-                                false
-                            ).close();
+                if(
+                    osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+                ) {
+                    /*
+                     * Create any inboxes that need to exist.
+                     */
+                    LinuxServerGroup mailGroup=connector.linuxGroups.get(LinuxGroup.MAIL).getLinuxServerGroup(aoServer);
+                    if(mailGroup==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+aoServer.getServer().getHostname());
+                    for (int c = 0; c < accounts.size(); c++) {
+                        LinuxServerAccount account = accounts.get(c);
+                        LinuxAccount linuxAccount = account.getLinuxAccount();
+                        if(linuxAccount.getType().isEmail()) {
+                            String username=linuxAccount.getUsername().getUsername();
+                            File file=new File(EmailAddressManager.mailSpool, username);
+                            if(!file.exists()) {
+                                UnixFile unixFile=new UnixFile(file.getPath());
+                                unixFile.getSecureOutputStream(
+                                    account.getUID().getID(),
+                                    mailGroup.getGID().getID(),
+                                    0660,
+                                    false
+                                ).close();
+                            }
                         }
                     }
-                }
-                /*
-                 * Remove any inboxes that should not exist.
-                 */
-                String[] list=EmailAddressManager.mailSpool.list();
-                if(list!=null) {
-                    int len=list.length;
-                    for(int c=0;c<len;c++) {
-                        String filename=list[c];
-                        if(!usernames.contains(filename)) {
-                            // Also allow a username.lock file to remain
-                            if(
-                                !filename.endsWith(".lock")
-                                || !usernames.contains(filename.substring(0, filename.length()-5))
-                            ) {
-                                File spoolFile=new File(EmailAddressManager.mailSpool, filename);
-                                deleteFileList.add(spoolFile);
+                    /*
+                     * Remove any inboxes that should not exist.
+                     */
+                    String[] list=EmailAddressManager.mailSpool.list();
+                    if(list!=null) {
+                        int len=list.length;
+                        for(int c=0;c<len;c++) {
+                            String filename=list[c];
+                            if(!usernames.contains(filename)) {
+                                // Also allow a username.lock file to remain
+                                if(
+                                    !filename.endsWith(".lock")
+                                    || !usernames.contains(filename.substring(0, filename.length()-5))
+                                ) {
+                                    File spoolFile=new File(EmailAddressManager.mailSpool, filename);
+                                    deleteFileList.add(spoolFile);
+                                }
                             }
                         }
                     }
@@ -303,7 +320,7 @@ public class LinuxAccountManager extends BuilderThread {
                         && (type.equals(LinuxAccountType.USER) || type.equals(LinuxAccountType.APPLICATION))
                         && linuxAccount.getFTPGuestUser()==null
                     ;
-                    // Only build directories for accounts that are in /home/
+                    // Only build directories for accounts that are in /home/ or user account in /www/
                     if(
                         isWWWAndUser
                         || (th.length()>6 && th.substring(0, 6).equals("/home/"))
@@ -329,22 +346,8 @@ public class LinuxAccountManager extends BuilderThread {
                             for(int d=0;d<len;d++) {
                                 // Copy the file
                                 String filename=skelList[d];
-                                boolean copyFile;
-                                if(filename.equals(".qmail-default")) {
-                                    // Only do the .qmail-default file for qmail servers
-                                    copyFile=
-                                        aoServer.isQmail()
-                                        && (
-                                            type.equals(LinuxAccountType.USER)
-                                            || type.equals(LinuxAccountType.APPLICATION)
-                                            || type.equals(LinuxAccountType.EMAIL)
-                                        )
-                                    ;
-                                } else {
-                                    // Only do the rest of the files for user accounts
-                                    copyFile=type.equals(LinuxAccountType.USER) || type.equals(LinuxAccountType.APPLICATION);
-                                }
-                                if(copyFile) {
+                                // Only copy the files for user accounts
+                                if(type.equals(LinuxAccountType.USER) || type.equals(LinuxAccountType.APPLICATION)) {
                                     // Only do the rest of the files for user accounts
                                     UnixFile skelFile=new UnixFile(skel, filename);
                                     UnixFile homeFile=new UnixFile(homeDir, filename);
@@ -474,7 +477,7 @@ public class LinuxAccountManager extends BuilderThread {
                     AOServDaemon.findUnownedFiles(new File("/tmp"), uids, deleteFileList, 0);
                     AOServDaemon.findUnownedFiles(new File("/var/tmp"), uids, deleteFileList, 0);
                 } catch(FileNotFoundException err) {
-                    // This may normally occur becuase of the dynamic nature of the temp directory
+                    // This may normally occur because of the dynamic nature of the tmp directories
                 }
 
                 /*
@@ -595,11 +598,13 @@ public class LinuxAccountManager extends BuilderThread {
                     int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
                     boolean addJailed;
                     if(
-                        osv==OperatingSystemVersion.MANDRAKE_10_1_I586
-                        || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+                        osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
                         || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
-                    ) addJailed=true;
-                    else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                    ) {
+                        addJailed = true;
+                    } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                        addJailed = false;
+                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                     if(addJailed) {
                         for(FTPGuestUser guestUser : aoServer.getFTPGuestUsers()) {
                             String username=guestUser.getLinuxAccount().getUsername().getUsername();
@@ -917,6 +922,19 @@ public class LinuxAccountManager extends BuilderThread {
             return 15*60*1000;
         } finally {
             Profiler.endProfile(Profiler.INSTANTANEOUS);
+        }
+    }
+    
+    /**
+     * Allows manual rebuild without the necessity of running the entire daemon (use carefully, only when main daemon not running).
+     */
+    public static void main(String[] args) {
+        try {
+            rebuildLinuxAccountSettings();
+        } catch(IOException err) {
+            ErrorPrinter.printStackTraces(err);
+        } catch(SQLException err) {
+            ErrorPrinter.printStackTraces(err);
         }
     }
 }
