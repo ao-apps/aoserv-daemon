@@ -124,18 +124,18 @@ final public class DistroGenerator extends Thread {
 	    try {
 		String line;
 		while((line=in.readLine())!=null) {
-		    int pos1=line.indexOf(',');
-		    if(pos1==-1) throw new IOException("cannot find first comma (,) in distro file named "+name+", line="+line);
-		    int pos2=line.indexOf(',', pos1+1);
-		    if(pos2==-1) throw new IOException("cannot find second comma (,) in distro file named "+name+", line="+line);
-		    int pos3=line.indexOf(',', pos2+1);
-		    if(pos3==-1) throw new IOException("cannot find third comma (,) in distro file named "+name+", line="+line);
+		    int pos1=line.indexOf('/');
+		    if(pos1==-1) throw new IOException("cannot find first slash (/) in distro file named "+name+", line="+line);
+		    int pos2=line.indexOf('/', pos1+1);
+		    if(pos2==-1) throw new IOException("cannot find second slash (/) in distro file named "+name+", line="+line);
+		    int pos3=line.indexOf('/', pos2+1);
+		    if(pos3==-1) throw new IOException("cannot find third slash (/) in distro file named "+name+", line="+line);
 		    int osVersion=getOperatingSystemVersion(
                         line.substring(0, pos1),
                         line.substring(pos1+1, pos2),
                         line.substring(pos2+1, pos3)
                     );
-		    String filename=line.substring(pos3+1);
+		    String filename=line.substring(pos3);
 		    Integer I=Integer.valueOf(osVersion);
 		    Map<String,Boolean> filenames=osVersions.get(I);
 		    if(filenames==null) osVersions.put(I, filenames=new HashMap<String,Boolean>());
@@ -543,11 +543,6 @@ final public class DistroGenerator extends Thread {
     
     public static int getOperatingSystemVersion(String name, String version, String architecture) {
         if(
-            name.equals(OperatingSystem.MANDRAKE)
-            && version.equals(OperatingSystemVersion.VERSION_10_1)
-            && architecture.equals(Architecture.I586)
-        ) return OperatingSystemVersion.MANDRAKE_10_1_I586;
-        if(
             name.equals(OperatingSystem.MANDRIVA)
             && version.equals(OperatingSystemVersion.VERSION_2006_0)
             && architecture.equals(Architecture.I586)
@@ -557,6 +552,11 @@ final public class DistroGenerator extends Thread {
             && version.equals(OperatingSystemVersion.VERSION_ES_4)
             && architecture.equals(Architecture.X86_64)
         ) return OperatingSystemVersion.REDHAT_ES_4_X86_64;
+        if(
+            name.equals(OperatingSystem.CENTOS)
+            && version.equals(OperatingSystemVersion.VERSION_5)
+            && architecture.equals(Architecture.I686_AND_X86_64)
+        ) return OperatingSystemVersion.CENTOS_5_I686_AND_X86_64;
         throw new RuntimeException("Unsupported operating system: name="+name+", version="+version+", architecture="+architecture);
     }
     
@@ -581,9 +581,9 @@ final public class DistroGenerator extends Thread {
                         System.err.println("* but not found in the distribution template");
                         System.err.println("*************************************************************************");
                     }
-                    if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) System.err.print("mandrake,10.1,i586,");
-                    else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) System.err.print("mandriva,2006.0,i586,");
-                    else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) System.err.print("redhat,ES 4,x86_64,");
+                    if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) System.err.print("centos/5/i686,x86_64");
+                    else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) System.err.print("mandriva/2006.0/i586");
+                    else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) System.err.print("redhat/ES 4/x86_64");
                     else throw new RuntimeException("Unknown value for osv: "+osv);
                     System.err.println(path);
                 }
@@ -592,7 +592,7 @@ final public class DistroGenerator extends Thread {
     }
     
     private static String getOperatingSystemPath(int osv) {
-        if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586) return root+"/mandrake/10.1/i586";
+        if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) return root+"/centos/5/i686,x86_64";
         if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) return root+"/mandriva/2006.0/i586";
         if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) return root+"/redhat/ES 4/x86_64";
         else throw new RuntimeException("Unknown value for osv: "+osv);

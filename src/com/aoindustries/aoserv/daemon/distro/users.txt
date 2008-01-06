@@ -1,127 +1,33 @@
-mandrake,10.1,i586,/dev/pts
-mandrake,10.1,i586,/etc/httpd/conf/hosts
-mandrake,10.1,i586,/etc/httpd/conf/logrotate.d
-mandrake,10.1,i586,/etc/httpd/conf/wwwgroup
-mandrake,10.1,i586,/etc/mail/lists/_
-mandrake,10.1,i586,/etc/mail/lists/a
-mandrake,10.1,i586,/etc/mail/lists/b
-mandrake,10.1,i586,/etc/mail/lists/c
-mandrake,10.1,i586,/etc/mail/lists/d
-mandrake,10.1,i586,/etc/mail/lists/e
-mandrake,10.1,i586,/etc/mail/lists/f
-mandrake,10.1,i586,/etc/mail/lists/g
-mandrake,10.1,i586,/etc/mail/lists/h
-mandrake,10.1,i586,/etc/mail/lists/i
-mandrake,10.1,i586,/etc/mail/lists/j
-mandrake,10.1,i586,/etc/mail/lists/k
-mandrake,10.1,i586,/etc/mail/lists/l
-mandrake,10.1,i586,/etc/mail/lists/m
-mandrake,10.1,i586,/etc/mail/lists/n
-mandrake,10.1,i586,/etc/mail/lists/o
-mandrake,10.1,i586,/etc/mail/lists/p
-mandrake,10.1,i586,/etc/mail/lists/q
-mandrake,10.1,i586,/etc/mail/lists/r
-mandrake,10.1,i586,/etc/mail/lists/s
-mandrake,10.1,i586,/etc/mail/lists/t
-mandrake,10.1,i586,/etc/mail/lists/u
-mandrake,10.1,i586,/etc/mail/lists/v
-mandrake,10.1,i586,/etc/mail/lists/w
-mandrake,10.1,i586,/etc/mail/lists/x
-mandrake,10.1,i586,/etc/mail/lists/y
-mandrake,10.1,i586,/etc/mail/lists/z
-mandrake,10.1,i586,/etc/mail/majordomo
-mandrake,10.1,i586,/etc/ssl/certs
-mandrake,10.1,i586,/etc/ssl/private
-mandrake,10.1,i586,/home/a
-mandrake,10.1,i586,/home/b
-mandrake,10.1,i586,/home/c
-mandrake,10.1,i586,/home/d
-mandrake,10.1,i586,/home/e
-mandrake,10.1,i586,/home/f
-mandrake,10.1,i586,/home/g
-mandrake,10.1,i586,/home/h
-mandrake,10.1,i586,/home/i
-mandrake,10.1,i586,/home/j
-mandrake,10.1,i586,/home/k
-mandrake,10.1,i586,/home/l
-mandrake,10.1,i586,/home/lost+found
-mandrake,10.1,i586,/home/m
-mandrake,10.1,i586,/home/n
-mandrake,10.1,i586,/home/o
-mandrake,10.1,i586,/home/p
-mandrake,10.1,i586,/home/q
-mandrake,10.1,i586,/home/r
-mandrake,10.1,i586,/home/s
-mandrake,10.1,i586,/home/t
-mandrake,10.1,i586,/home/u
-mandrake,10.1,i586,/home/v
-mandrake,10.1,i586,/home/w
-mandrake,10.1,i586,/home/x
-mandrake,10.1,i586,/home/y
-mandrake,10.1,i586,/home/z
-mandrake,10.1,i586,/logs
-mandrake,10.1,i586,/lost+found
-mandrake,10.1,i586,/tmp
-mandrake,10.1,i586,/var/analog/reports
-mandrake,10.1,i586,/var/apache-mm
-mandrake,10.1,i586,/var/cvs
-mandrake,10.1,i586,/var/ftp/pub
-mandrake,10.1,i586,/var/lib/interbase
-mandrake,10.1,i586,/var/lib/mysql
-mandrake,10.1,i586,/var/lib/pgsql/7.1/base
-mandrake,10.1,i586,/var/lib/pgsql/7.1/global
-mandrake,10.1,i586,/var/lib/pgsql/7.1/pg_xlog
-mandrake,10.1,i586,/var/lib/pgsql/7.2/base
-mandrake,10.1,i586,/var/lib/pgsql/7.2/global
-mandrake,10.1,i586,/var/lib/pgsql/7.2/pg_clog
-mandrake,10.1,i586,/var/lib/pgsql/7.2/pg_xlog
-mandrake,10.1,i586,/var/lib/pgsql/7.3/base
-mandrake,10.1,i586,/var/lib/pgsql/7.3/global
-mandrake,10.1,i586,/var/lib/pgsql/7.3/pg_clog
-mandrake,10.1,i586,/var/lib/pgsql/7.3/pg_xlog
-mandrake,10.1,i586,/var/lib/pgsql/lost+found
-mandrake,10.1,i586,/var/lib/sasl2
-mandrake,10.1,i586,/var/named
-mandrake,10.1,i586,/var/oldaccounts
-mandrake,10.1,i586,/var/spool/clientmqueue
-mandrake,10.1,i586,/var/spool/cron
-mandrake,10.1,i586,/var/spool/mail
-mandrake,10.1,i586,/var/spool/mqueue
-mandrake,10.1,i586,/var/tmp
-mandrake,10.1,i586,/www
-mandrake,10.1,i586,/wwwgroup
-mandrake,10.1,i586,/usr/serverlocal
-mandrake,10.1,i586,/var/log/qmail
-redhat,ES 4,x86_64,/dev/pts
-redhat,ES 4,x86_64,/home/a
-redhat,ES 4,x86_64,/home/b
-redhat,ES 4,x86_64,/home/c
-redhat,ES 4,x86_64,/home/d
-redhat,ES 4,x86_64,/home/e
-redhat,ES 4,x86_64,/home/f
-redhat,ES 4,x86_64,/home/g
-redhat,ES 4,x86_64,/home/h
-redhat,ES 4,x86_64,/home/i
-redhat,ES 4,x86_64,/home/j
-redhat,ES 4,x86_64,/home/k
-redhat,ES 4,x86_64,/home/l
-redhat,ES 4,x86_64,/home/m
-redhat,ES 4,x86_64,/home/n
-redhat,ES 4,x86_64,/home/o
-redhat,ES 4,x86_64,/home/p
-redhat,ES 4,x86_64,/home/q
-redhat,ES 4,x86_64,/home/r
-redhat,ES 4,x86_64,/home/s
-redhat,ES 4,x86_64,/home/t
-redhat,ES 4,x86_64,/home/u
-redhat,ES 4,x86_64,/home/v
-redhat,ES 4,x86_64,/home/w
-redhat,ES 4,x86_64,/home/x
-redhat,ES 4,x86_64,/home/y
-redhat,ES 4,x86_64,/home/z
-redhat,ES 4,x86_64,/tmp
-redhat,ES 4,x86_64,/var/lib/pgsql/8.1/pg_clog
-redhat,ES 4,x86_64,/var/lib/pgsql/8.1/pg_xlog
-redhat,ES 4,x86_64,/var/opt/postgresql-8.1/log
-redhat,ES 4,x86_64,/var/spool/mail
-redhat,ES 4,x86_64,/var/spool/mqueue
+redhat/ES 4/x86_64/dev/pts
+redhat/ES 4/x86_64/home/a
+redhat/ES 4/x86_64/home/b
+redhat/ES 4/x86_64/home/c
+redhat/ES 4/x86_64/home/d
+redhat/ES 4/x86_64/home/e
+redhat/ES 4/x86_64/home/f
+redhat/ES 4/x86_64/home/g
+redhat/ES 4/x86_64/home/h
+redhat/ES 4/x86_64/home/i
+redhat/ES 4/x86_64/home/j
+redhat/ES 4/x86_64/home/k
+redhat/ES 4/x86_64/home/l
+redhat/ES 4/x86_64/home/m
+redhat/ES 4/x86_64/home/n
+redhat/ES 4/x86_64/home/o
+redhat/ES 4/x86_64/home/p
+redhat/ES 4/x86_64/home/q
+redhat/ES 4/x86_64/home/r
+redhat/ES 4/x86_64/home/s
+redhat/ES 4/x86_64/home/t
+redhat/ES 4/x86_64/home/u
+redhat/ES 4/x86_64/home/v
+redhat/ES 4/x86_64/home/w
+redhat/ES 4/x86_64/home/x
+redhat/ES 4/x86_64/home/y
+redhat/ES 4/x86_64/home/z
+redhat/ES 4/x86_64/tmp
+redhat/ES 4/x86_64/var/lib/pgsql/8.1/pg_clog
+redhat/ES 4/x86_64/var/lib/pgsql/8.1/pg_xlog
+redhat/ES 4/x86_64/var/opt/postgresql-8.1/log
+redhat/ES 4/x86_64/var/spool/mail
+redhat/ES 4/x86_64/var/spool/mqueue
