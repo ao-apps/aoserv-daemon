@@ -5,19 +5,46 @@ package com.aoindustries.aoserv.daemon.distro;
  * 816 Azalea Rd, Mobile, Alabama, 36693, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.*;
-import com.aoindustries.aoserv.daemon.*;
-import com.aoindustries.email.*;
-import com.aoindustries.io.*;
-import com.aoindustries.io.unix.*;
-import com.aoindustries.md5.*;
-import com.aoindustries.profiler.*;
-import com.aoindustries.util.*;
-import com.aoindustries.util.sort.*;
-import com.oreilly.servlet.*;
-import java.io.*;
-import java.sql.*;
-import java.util.*;
+import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AOServObject;
+import com.aoindustries.aoserv.client.AOServTable;
+import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.DistroFile;
+import com.aoindustries.aoserv.client.DistroFileTable;
+import com.aoindustries.aoserv.client.DistroFileType;
+import com.aoindustries.aoserv.client.LinuxAccount;
+import com.aoindustries.aoserv.client.LinuxGroup;
+import com.aoindustries.aoserv.client.LinuxServerAccount;
+import com.aoindustries.aoserv.client.LinuxServerGroup;
+import com.aoindustries.aoserv.client.SQLColumnValue;
+import com.aoindustries.aoserv.client.SQLComparator;
+import com.aoindustries.aoserv.client.SQLExpression;
+import com.aoindustries.aoserv.client.SchemaType;
+import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.email.ProcessTimer;
+import com.aoindustries.io.unix.Stat;
+import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.md5.MD5;
+import com.aoindustries.md5.MD5InputStream;
+import com.aoindustries.profiler.Profiler;
+import com.aoindustries.util.BufferManager;
+import com.aoindustries.util.ErrorPrinter;
+import com.aoindustries.util.StringUtility;
+import com.aoindustries.util.sort.AutoSort;
+import com.oreilly.servlet.MailMessage;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.InterruptedIOException;
+import java.io.PrintStream;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -362,19 +389,41 @@ final public class DistroManager implements Runnable {
                         String type=distroFile.getType().getType();
                         if(!fileStat.isDirectory()) {
                             if(!type.equals(DistroFileType.CONFIG)) {
-                                // Length
-                                long fileLen=file.getFile().length();
-                                long distroLen=distroFile.getSize();
-                                if(fileLen!=distroLen) {
-                                    results.add("LE "+filename+" "+fileLen+"!="+distroLen);
-                                    if(displayResults) System.out.println(results.get(results.size()-1));
-                                } else {
-                                    // MD5
+                                if(type.equals(DistroFileType.PRELINK)) {
+                                    // Prelink MD5
                                     long startTime=System.currentTimeMillis();
 
-                                    byte[] fileHash=hashFile(file.getFilename());
-                                    long file_md5_hi=MD5.getMD5Hi(fileHash);
-                                    long file_md5_lo=MD5.getMD5Lo(fileHash);
+                                    String md5;
+                                    {
+                                        String[] command = {
+                                            "/usr/sbin/prelink",
+                                            "--verify",
+                                            "--md5",
+                                            file.getFilename()
+                                        };
+                                        Process P = Runtime.getRuntime().exec(command);
+                                        try {
+                                            BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()));
+                                            try {
+                                                String line = in.readLine();
+                                                if(line.length()<32) throw new IOException("Line too short, must be at least 32 characters: "+line);
+                                                md5 = line.substring(0, 32);
+                                            } finally {
+                                                in.close();
+                                            }
+                                        } finally {
+                                            try {
+                                                int retCode = P.waitFor();
+                                                if(retCode!=0) throw new IOException("Non-zero response from command: "+AOServDaemon.getCommandString(command));
+                                            } catch(InterruptedException err) {
+                                                IOException ioErr = new InterruptedIOException();
+                                                ioErr.initCause(err);
+                                                throw ioErr;
+                                            }
+                                        }
+                                    }
+                                    long file_md5_hi=MD5.getMD5Hi(md5);
+                                    long file_md5_lo=MD5.getMD5Lo(md5);
                                     long distro_md5_hi=distroFile.getFileMD5Hi();
                                     long distro_md5_lo=distroFile.getFileMD5Lo();
                                     if(
@@ -396,7 +445,43 @@ final public class DistroManager implements Runnable {
                                             AOServDaemon.reportWarning(err, null);
                                         }
                                     }
-                                }
+                                } else if(type.equals(DistroFileType.SYSTEM)) {
+                                    // Length
+                                    long fileLen=file.getFile().length();
+                                    long distroLen=distroFile.getSize();
+                                    if(fileLen!=distroLen) {
+                                        results.add("LE "+filename+" "+fileLen+"!="+distroLen);
+                                        if(displayResults) System.out.println(results.get(results.size()-1));
+                                    } else {
+                                        // MD5
+                                        long startTime=System.currentTimeMillis();
+
+                                        byte[] fileHash=hashFile(file.getFilename());
+                                        long file_md5_hi=MD5.getMD5Hi(fileHash);
+                                        long file_md5_lo=MD5.getMD5Lo(fileHash);
+                                        long distro_md5_hi=distroFile.getFileMD5Hi();
+                                        long distro_md5_lo=distroFile.getFileMD5Lo();
+                                        if(
+                                            file_md5_hi!=distro_md5_hi
+                                            || file_md5_lo!=distro_md5_lo
+                                        ) {
+                                            results.add("M5 "+filename+" "+MD5.getMD5String(file_md5_hi, file_md5_lo)+"!="+MD5.getMD5String(distro_md5_hi, distro_md5_lo));
+                                            if(displayResults) System.out.println(results.get(results.size()-1));
+                                        }
+
+                                        // Sleep for an amount of time equivilent to half the time it took to process this file
+                                        long timeSpan=(System.currentTimeMillis()-startTime)/2;
+                                        if(timeSpan<0) timeSpan=0;
+                                        else if(timeSpan>MAX_SLEEP_TIME) timeSpan=MAX_SLEEP_TIME;
+                                        if(timeSpan!=0) {
+                                            try {
+                                                Thread.sleep(timeSpan);
+                                            } catch(InterruptedException err) {
+                                                AOServDaemon.reportWarning(err, null);
+                                            }
+                                        }
+                                    }
+                                } else throw new RuntimeException("Unexpected value for type: "+type);
                             }
                         } else {
                             if(type.equals(DistroFileType.USER)) {

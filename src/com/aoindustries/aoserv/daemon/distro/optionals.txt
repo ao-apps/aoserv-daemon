@@ -1,0 +1,10 @@
+centos/5/i686,x86_64/.autorelabel
+centos/5/i686,x86_64/aquota.user
+centos/5/i686,x86_64/dev/.udev/db/class@cpuid@cpu0
+centos/5/i686,x86_64/dev/.udev/db/class@graphics@fb0
+centos/5/i686,x86_64/dev/.udev/db/class@input@input0@mouse0
+centos/5/i686,x86_64/dev/.udev/db/class@input@input1@event1
+centos/5/i686,x86_64/dev/.udev/db/class@msr@msr0
+centos/5/i686,x86_64/dev/.udev/failed/class@input@input1
+centos/5/i686,x86_64/etc/aliases.old
+centos/5/i686,x86_64/var/run/xfs.pid

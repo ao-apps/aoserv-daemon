@@ -14,3 +14,7 @@ redhat/ES 4/x86_64/var/backup2
 redhat/ES 4/x86_64/var/backup3
 redhat/ES 4/x86_64/var/backup4
 redhat/ES 4/x86_64/var/failover
+centos/5/i686,x86_64/dev/disk/by-uuid
+centos/5/i686,x86_64/proc
+centos/5/i686,x86_64/selinux
+centos/5/i686,x86_64/sys

@@ -5,16 +5,34 @@ package com.aoindustries.aoserv.daemon.distro;
  * 816 Azalea Rd, Mobile, Alabama, 36693, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.*;
-import com.aoindustries.io.*;
-import com.aoindustries.io.unix.*;
-import com.aoindustries.md5.*;
-import com.aoindustries.profiler.*;
-import com.aoindustries.sql.*;
-import com.aoindustries.util.*;
-import com.aoindustries.util.sort.*;
-import java.io.*;
-import java.util.*;
+import com.aoindustries.aoserv.client.Architecture;
+import com.aoindustries.aoserv.client.DistroFileType;
+import com.aoindustries.aoserv.client.OperatingSystem;
+import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.io.ChainWriter;
+import com.aoindustries.io.unix.Stat;
+import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.md5.MD5;
+import com.aoindustries.profiler.Profiler;
+import com.aoindustries.sql.SQLUtility;
+import com.aoindustries.util.ErrorPrinter;
+import com.aoindustries.util.StringUtility;
+import com.aoindustries.util.sort.AutoSort;
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.InterruptedIOException;
+import java.util.ArrayList;
+import java.util.EmptyStackException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Stack;
 
 /**
  * Creates the server distribution database contents.
@@ -42,77 +60,55 @@ final public class DistroGenerator extends Thread {
         sortedNevers,
         sortedNo_recurses,
         sortedOptionals,
+        sortedPrelinks,
         sortedUsers
     ;
     
     private static boolean isConfig(OSFilename osFilename) throws IOException {
-        Profiler.startProfile(Profiler.FAST, DistroGenerator.class, "isConfig(OSFilename)", null);
-        try {
-	    synchronized(DistroGenerator.class) {
-		if(sortedConfigs==null) sortedConfigs=loadFileList("configs");
-		return containsFile(sortedConfigs, osFilename);
-	    }
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
+        synchronized(DistroGenerator.class) {
+            if(sortedConfigs==null) sortedConfigs=loadFileList("configs");
+            return containsFile(sortedConfigs, osFilename);
         }
     }
 
     private static Map<Integer,Map<String,Boolean>> getNevers() throws IOException {
-        Profiler.startProfile(Profiler.FAST, DistroGenerator.class, "getNevers()", null);
-        try {
-	    synchronized(DistroGenerator.class) {
-		if(sortedNevers==null) sortedNevers=loadFileList("nevers");
-                return sortedNevers;
-	    }
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
+        synchronized(DistroGenerator.class) {
+            if(sortedNevers==null) sortedNevers=loadFileList("nevers");
+            return sortedNevers;
         }
     }
 
     private static boolean isNever(OSFilename osFilename) throws IOException {
-        Profiler.startProfile(Profiler.FAST, DistroGenerator.class, "isNever(OSFilename)", null);
-        try {
-            return containsFile(getNevers(), osFilename);
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return containsFile(getNevers(), osFilename);
     }
 
     private static boolean isNoRecurse(OSFilename osFilename) throws IOException {
-        Profiler.startProfile(Profiler.FAST, DistroGenerator.class, "isNoRecurse(OSFilename)", null);
-        try {
-            if(osFilename.operating_system_version==-1 || osFilename.filename==null) return false;
-	    synchronized(DistroGenerator.class) {
-		if(sortedNo_recurses==null) sortedNo_recurses=loadFileList("no_recurses");
-		return containsFile(sortedNo_recurses, osFilename);
-	    }
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
+        if(osFilename.operating_system_version==-1 || osFilename.filename==null) return false;
+        synchronized(DistroGenerator.class) {
+            if(sortedNo_recurses==null) sortedNo_recurses=loadFileList("no_recurses");
+            return containsFile(sortedNo_recurses, osFilename);
         }
     }
 
     private static boolean isOptional(OSFilename osFilename) throws IOException {
-        Profiler.startProfile(Profiler.FAST, DistroGenerator.class, "isOptional(OSFilename)", null);
-        try {
-	    synchronized(DistroGenerator.class) {
-		if(sortedOptionals==null) sortedOptionals=loadFileList("optionals");
-		return containsFile(sortedOptionals, osFilename);
-	    }
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
+        synchronized(DistroGenerator.class) {
+            if(sortedOptionals==null) sortedOptionals=loadFileList("optionals");
+            return containsFile(sortedOptionals, osFilename);
+        }
+    }
+
+    private static boolean isPrelink(OSFilename osFilename) throws IOException {
+        synchronized(DistroGenerator.class) {
+            if(sortedPrelinks==null) sortedPrelinks=loadFileList("prelinks");
+            return containsFile(sortedPrelinks, osFilename);
         }
     }
 
     private static boolean isUser(OSFilename osFilename) throws IOException {
-        Profiler.startProfile(Profiler.FAST, DistroGenerator.class, "isUser(OSFilename)", null);
-        try {
-            if(osFilename.operating_system_version==-1 || osFilename.filename==null) return false;
-            synchronized(DistroGenerator.class) {
-		if(sortedUsers==null) sortedUsers=loadFileList("users");
-		return containsFile(sortedUsers, osFilename);
-	    }
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
+        if(osFilename.operating_system_version==-1 || osFilename.filename==null) return false;
+        synchronized(DistroGenerator.class) {
+            if(sortedUsers==null) sortedUsers=loadFileList("users");
+            return containsFile(sortedUsers, osFilename);
         }
     }
 
@@ -450,6 +446,7 @@ final public class DistroGenerator extends Thread {
                         String type=isUser(osFilename)?DistroFileType.USER
                             :isConfig(osFilename)?DistroFileType.CONFIG
                             :isNoRecurse(osFilename)?DistroFileType.NO_RECURSE
+                            :isPrelink(osFilename)?DistroFileType.PRELINK
                             :DistroFileType.SYSTEM
                         ;
 
@@ -461,7 +458,7 @@ final public class DistroGenerator extends Thread {
                         boolean storeSize=isRegularFile && !isConfig(osFilename);
 
                         // Only hash system regular files
-                        boolean doHash=isRegularFile && type.equals(DistroFileType.SYSTEM);
+                        boolean doHash=isRegularFile && (type.equals(DistroFileType.SYSTEM) || type.equals(DistroFileType.PRELINK));
 
                         try {
                             StringBuilder SB=new StringBuilder();
@@ -485,8 +482,40 @@ final public class DistroGenerator extends Thread {
                             else SB.append("null");
                             SB.append(", ");
                             if(doHash) {
-                                byte[] md5=DistroManager.hashFile(osFilename.getFullPath(root));
-                                SB.append(MD5.getMD5Hi(md5)).append("::int8, ").append(MD5.getMD5Lo(md5)).append("::int8");
+                                if(type.equals(DistroFileType.SYSTEM)) {
+                                    byte[] md5=DistroManager.hashFile(osFilename.getFullPath(root));
+                                    SB.append(MD5.getMD5Hi(md5)).append("::int8, ").append(MD5.getMD5Lo(md5)).append("::int8");
+                                } else if(type.equals(DistroFileType.PRELINK)) {
+                                    String[] command = {
+                                        "/usr/sbin/chroot",
+                                        root+'/'+osFilename.getOSName()+'/'+osFilename.getOSVersion()+'/'+osFilename.getOSArchitecture(),
+                                        "/usr/sbin/prelink",
+                                        "--verify",
+                                        "--md5",
+                                        osFilename.filename
+                                    };
+                                    Process P = Runtime.getRuntime().exec(command);
+                                    try {
+                                        BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()));
+                                        try {
+                                            String line = in.readLine();
+                                            if(line.length()<32) throw new IOException("Line too short, must be at least 32 characters: "+line);
+                                            String md5 = line.substring(0, 32);
+                                            SB.append(MD5.getMD5Hi(md5)).append("::int8, ").append(MD5.getMD5Lo(md5)).append("::int8");
+                                        } finally {
+                                            in.close();
+                                        }
+                                    } finally {
+                                        try {
+                                            int retCode = P.waitFor();
+                                            if(retCode!=0) throw new IOException("Non-zero response from command: "+AOServDaemon.getCommandString(command));
+                                        } catch(InterruptedException err) {
+                                            IOException ioErr = new InterruptedIOException();
+                                            ioErr.initCause(err);
+                                            throw ioErr;
+                                        }
+                                    }
+                                } else throw new RuntimeException("Unexpected value for type: "+type);
                             } else SB.append("null, null");
                             SB.append(", ");
                             if(UnixFile.isSymLink(statMode)) SB.append('\'').append(SQLUtility.escapeSQL(file.readLink())).append('\'');
@@ -525,10 +554,11 @@ final public class DistroGenerator extends Thread {
                                 + "vacuum full analyze distro_files;\n");
                         out.flush();
 
-                        // Report files that in are configs but now found in template
+                        // Report files that in are configs but not found in template
                         reportMissingTemplateFiles("configs.txt", sortedConfigs);
                         reportMissingTemplateFiles("no_recurses.txt", sortedNo_recurses);
                         reportMissingTemplateFiles("optionals.txt", sortedOptionals);
+                        reportMissingTemplateFiles("prelinks.txt", sortedPrelinks);
                         reportMissingTemplateFiles("users.txt", sortedUsers);
                     }
                 }

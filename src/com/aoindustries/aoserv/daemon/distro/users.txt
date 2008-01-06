@@ -31,3 +31,34 @@ redhat/ES 4/x86_64/var/lib/pgsql/8.1/pg_xlog
 redhat/ES 4/x86_64/var/opt/postgresql-8.1/log
 redhat/ES 4/x86_64/var/spool/mail
 redhat/ES 4/x86_64/var/spool/mqueue
+centos/5/i686,x86_64/dev/pts
+centos/5/i686,x86_64/etc/awstats
+centos/5/i686,x86_64/home/a
+centos/5/i686,x86_64/home/b
+centos/5/i686,x86_64/home/c
+centos/5/i686,x86_64/home/d
+centos/5/i686,x86_64/home/e
+centos/5/i686,x86_64/home/f
+centos/5/i686,x86_64/home/g
+centos/5/i686,x86_64/home/h
+centos/5/i686,x86_64/home/i
+centos/5/i686,x86_64/home/j
+centos/5/i686,x86_64/home/k
+centos/5/i686,x86_64/home/l
+centos/5/i686,x86_64/home/m
+centos/5/i686,x86_64/home/n
+centos/5/i686,x86_64/home/o
+centos/5/i686,x86_64/home/p
+centos/5/i686,x86_64/home/q
+centos/5/i686,x86_64/home/r
+centos/5/i686,x86_64/home/s
+centos/5/i686,x86_64/home/t
+centos/5/i686,x86_64/home/u
+centos/5/i686,x86_64/home/v
+centos/5/i686,x86_64/home/w
+centos/5/i686,x86_64/home/x
+centos/5/i686,x86_64/home/y
+centos/5/i686,x86_64/home/z
+centos/5/i686,x86_64/tmp
+centos/5/i686,x86_64/var/spool/clientmqueue
+centos/5/i686,x86_64/var/spool/mqueue

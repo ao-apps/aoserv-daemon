@@ -467,20 +467,29 @@ final public class AOServDaemon {
         }
     }
 
+    /**
+     * Gets a single-String representation of the command.  This should be used
+     * for display purposes only, because it doesn't quote things in a shell-safe way.
+     */
+    public static String getCommandString(String[] command) {
+        StringBuilder SB = new StringBuilder();
+        for(int c=0;c<command.length;c++) {
+            if(c>0) SB.append(' ');
+            String cmd=command[c];
+            boolean needQuote=cmd.indexOf(' ')!=-1;
+            if(needQuote) SB.append('"');
+            SB.append(command[c]);
+            if(needQuote) SB.append('"');
+        };
+        return SB.toString();
+    }
+    
     public static void exec(String[] command) throws IOException {
         Profiler.startProfile(Profiler.UNKNOWN, AOServDaemon.class, "exec(String[])", null);
         try {
             if(DEBUG) {
                 System.out.print("DEBUG: AOServDaemon.exec(): ");
-                for(int c=0;c<command.length;c++) {
-                    if(c>0) System.out.print(' ');
-                    String cmd=command[c];
-                    boolean needQuote=cmd.indexOf(' ')!=-1;
-                    if(needQuote) System.out.print('"');
-                    System.out.print(command[c]);
-                    if(needQuote) System.out.print('"');
-                };
-                System.out.println();
+                System.out.println(getCommandString(command));
             }
             Process P = Runtime.getRuntime().exec(command);
             waitFor(command, P);
@@ -503,14 +512,7 @@ final public class AOServDaemon {
             if(exit!=0) {
                 StringBuilder SB=new StringBuilder();
                 SB.append("Non-zero exit status from '");
-                for(int c=0;c<command.length;c++) {
-                    if(c>0) SB.append(' ');
-                    String cmd=command[c];
-                    boolean needQuote=cmd.indexOf(' ')!=-1;
-                    if(needQuote) SB.append('"');
-                    SB.append(command[c]);
-                    if(needQuote) SB.append('"');
-                };
+                SB.append(getCommandString(command));
                 SB.append("': ").append(exit);
                 throw new IOException(SB.toString());
             }

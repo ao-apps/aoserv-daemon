@@ -189,9 +189,10 @@ public class LinuxAccountManager extends BuilderThread {
                 /*
                  * Write the new /etc/gshadow file.
                  */
+                UnixFile newGShadowUF = new UnixFile(newGShadow);
                 out = new ChainWriter(
                     new BufferedOutputStream(
-                        new UnixFile(newGShadow).getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true)
+                        newGShadowUF.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true)
                     )
                 );
 		try {
@@ -233,6 +234,13 @@ public class LinuxAccountManager extends BuilderThread {
                 } else throw new IOException(newGroup.getPath()+" is zero or unknown length");
 
                 if(newGShadow.length()>0) {
+                    if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                        // Do nothing
+                    } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                        // Do nothing
+                    } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                        newGShadowUF.setMode(0400);
+                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                     gshadow.renameTo(backupGShadow);
                     newGShadow.renameTo(gshadow);
                 } else throw new IOException(newGShadow.getPath()+" is zero or unknown length");

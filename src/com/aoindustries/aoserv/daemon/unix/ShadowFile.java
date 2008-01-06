@@ -150,6 +150,13 @@ final public class ShadowFile {
                 }
 
                 if(newShadowFile.getStat().getSize()>0) {
+                    if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                        // Do nothing
+                    } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                        // Do nothing
+                    } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                        newShadowFile.setMode(0400);
+                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                     shadowFile.renameTo(backupShadowFile);
                     newShadowFile.renameTo(shadowFile);
                 } else throw new IOException(newShadowFile.getFilename()+" has zero or unknown length");

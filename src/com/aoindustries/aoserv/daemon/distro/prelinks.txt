@@ -1,0 +1,2 @@
+centos/5/i686,x86_64/bin/arch
+centos/5/i686,x86_64/bin/bash
