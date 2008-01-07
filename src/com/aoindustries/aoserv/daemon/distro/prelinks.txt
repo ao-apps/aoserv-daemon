@@ -211,10 +211,6 @@ centos/5/i686,x86_64/sbin/parted
 centos/5/i686,x86_64/sbin/partprobe
 centos/5/i686,x86_64/sbin/plipconfig
 centos/5/i686,x86_64/sbin/ppp-watch
-centos/5/i686,x86_64/sbin/pppoe
-centos/5/i686,x86_64/sbin/pppoe-relay
-centos/5/i686,x86_64/sbin/pppoe-server
-centos/5/i686,x86_64/sbin/pppoe-sniff
 centos/5/i686,x86_64/sbin/quotacheck
 centos/5/i686,x86_64/sbin/quotaon
 centos/5/i686,x86_64/sbin/reiserfsck
@@ -1079,8 +1075,6 @@ centos/5/i686,x86_64/usr/bin/wmf2x
 centos/5/i686,x86_64/usr/bin/word-list-compress
 centos/5/i686,x86_64/usr/bin/wrjpgcom
 centos/5/i686,x86_64/usr/bin/wtpt
-centos/5/i686,x86_64/usr/bin/wvdial
-centos/5/i686,x86_64/usr/bin/wvdialconf
 centos/5/i686,x86_64/usr/bin/x86_64
 centos/5/i686,x86_64/usr/bin/xargs
 centos/5/i686,x86_64/usr/bin/xbmtopbm

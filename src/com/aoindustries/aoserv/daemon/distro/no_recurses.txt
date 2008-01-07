@@ -1,18 +1,10 @@
 mandriva/2006.0/i586/proc
 mandriva/2006.0/i586/sys
 mandriva/2006.0/i586/var/backup
-mandriva/2006.0/i586/var/backup1
-mandriva/2006.0/i586/var/backup2
-mandriva/2006.0/i586/var/backup3
-mandriva/2006.0/i586/var/backup4
 mandriva/2006.0/i586/var/failover
 redhat/ES 4/x86_64/proc
 redhat/ES 4/x86_64/sys
 redhat/ES 4/x86_64/var/backup
-redhat/ES 4/x86_64/var/backup1
-redhat/ES 4/x86_64/var/backup2
-redhat/ES 4/x86_64/var/backup3
-redhat/ES 4/x86_64/var/backup4
 redhat/ES 4/x86_64/var/failover
 centos/5/i686,x86_64/dev/disk/by-uuid
 centos/5/i686,x86_64/proc

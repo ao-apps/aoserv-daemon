@@ -264,6 +264,7 @@ final public class DistroGenerator extends Thread {
                         UnixFile uf=new UnixFile(filename);
                         if(uf.getStat().exists()) {
                             System.err.println("File exists but is listed in nevers: "+filename);
+                            System.err.flush();
                             foundNever=true;
                         }
                     }
@@ -294,6 +295,7 @@ final public class DistroGenerator extends Thread {
                             + "  symlink_target text\n"
                             + ") without oids;\n"
                             + "begin;\n");
+                    out.flush();
                     synchronized(DistroGenerator.class) {
                         for(int c=0;c<NUM_THREADS;c++) generators[c]=new DistroGenerator(c);
                         activeGeneratorCount=NUM_THREADS;
@@ -384,6 +386,7 @@ final public class DistroGenerator extends Thread {
                         }
                     } catch(FileNotFoundException err) {
                         System.err.println("Error trying to access file: "+root+filename);
+                        System.err.flush();
                         throw err;
                     }
                 }
@@ -440,6 +443,7 @@ final public class DistroGenerator extends Thread {
                     if(osFilename.operating_system_version!=-1 && osFilename.filename!=null) {
                         if(isNever(osFilename)) {
                             System.err.println("Found a file in the distribution template that should never exist: "+osFilename);
+                            System.err.flush();
                             System.exit(1);
                         }
                         // Determine the type
@@ -524,6 +528,7 @@ final public class DistroGenerator extends Thread {
                             print(SB.toString());
                         } catch(IOException err) {
                             System.err.println("Error on file: "+osFilename.getFullPath(root));
+                            System.err.flush();
                             throw err;
                         }
                     }
@@ -616,6 +621,7 @@ final public class DistroGenerator extends Thread {
                     else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) System.err.print("redhat/ES 4/x86_64");
                     else throw new RuntimeException("Unknown value for osv: "+osv);
                     System.err.println(path);
+                    System.err.flush();
                 }
             }
         }

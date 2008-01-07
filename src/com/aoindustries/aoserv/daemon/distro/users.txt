@@ -107,7 +107,7 @@ centos/5/i686,x86_64/var/cache/man/cat8
 centos/5/i686,x86_64/var/cache/yum/base/headers
 centos/5/i686,x86_64/var/cache/yum/base/packages
 centos/5/i686,x86_64/var/ftp/pub
-centos/5/i686,x86_64/var/lib/awstats/hosts
+centos/5/i686,x86_64/var/opt/awstats-6/hosts
 centos/5/i686,x86_64/var/run/screen/S-root
 centos/5/i686,x86_64/var/spool/clientmqueue
 centos/5/i686,x86_64/var/spool/mqueue

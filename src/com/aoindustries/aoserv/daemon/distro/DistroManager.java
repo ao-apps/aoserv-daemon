@@ -232,7 +232,10 @@ final public class DistroManager implements Runnable {
                     String path=distroFile.getPath();
                     if(lastPath==null || !path.startsWith(lastPath)) {
                         results.add("MI "+path);
-                        if(displayResults) System.out.println(results.get(results.size()-1));
+                        if(displayResults) {
+                            System.out.println(results.get(results.size()-1));
+                            System.out.flush();
+                        }
                         lastPath=path;
                     }
                 }
@@ -278,7 +281,10 @@ final public class DistroManager implements Runnable {
                 || allSpace(name)
             ) {
                 results.add("3D "+file);
-                if(displayResults) System.out.println(results.get(results.size()-1));
+                if(displayResults) {
+                    System.out.println(results.get(results.size()-1));
+                    System.out.flush();
+                }
             }
             String filename=file.getFilename();
             int index=Collections.binarySearch(distroFiles, new Object[] {filename, osVersionPKey}, pathComparator);
@@ -303,16 +309,19 @@ final public class DistroManager implements Runnable {
                 }
             }
 
+            // Stat here for use below
+            Stat fileStat = file.getStat();
+
             if(distroFile==null) {
                 // Should not be here
-                results.add("EX "+filename);
-                if(displayResults) System.out.println(results.get(results.size()-1));
+                results.add((fileStat.isDirectory() ? "rm -rf '" : "rm -f '") + filename + '\'');
+                if(displayResults) {
+                    System.out.println(results.get(results.size()-1));
+                    System.out.flush();
+                }
             } else {
                 // Flag as found
                 foundFiles[index]=true;
-
-                // Stat here for use below
-                Stat fileStat = file.getStat();
 
                 // Do not check the ownership of the /usr/serverlocal directory
                 if(!filename.equals("/usr/serverlocal")) {
@@ -324,7 +333,10 @@ final public class DistroManager implements Runnable {
                     int distroUID=lsa==null ? 65535 : lsa.getUID().getID();
                     if(fileUID!=distroUID) {
                         results.add("chown "+distroUID+" '"+filename+"' #"+fileUID+"!="+distroUID);
-                        if(displayResults) System.out.println(results.get(results.size()-1));
+                        if(displayResults) {
+                            System.out.println(results.get(results.size()-1));
+                            System.out.flush();
+                        }
                     }
 
                     // Check group
@@ -335,7 +347,10 @@ final public class DistroManager implements Runnable {
                     int distroGID=lsg==null ? 65535 : lsg.getGID().getID();
                     if(fileGID!=distroGID) {
                         results.add("chgrp "+distroGID+" '"+filename+"' #"+fileGID+"!="+distroGID);
-                        if(displayResults) System.out.println(results.get(results.size()-1));
+                        if(displayResults) {
+                            System.out.println(results.get(results.size()-1));
+                            System.out.flush();
+                        }
                     }
                 }
 
@@ -346,7 +361,10 @@ final public class DistroManager implements Runnable {
                 long distroType=distroMode&UnixFile.TYPE_MASK;
                 if(fileType!=distroType) {
                     results.add("TY "+filename+" "+fileType+"!="+distroType);
-                    if(displayResults) System.out.println(results.get(results.size()-1));
+                    if(displayResults) {
+                        System.out.println(results.get(results.size()-1));
+                        System.out.flush();
+                    }
                 } else {
                     // Do not check the permissions of the /usr/serverlocal directory"
                     if(!filename.equals("/usr/serverlocal")) {
@@ -355,7 +373,10 @@ final public class DistroManager implements Runnable {
                         long distroPerms=distroMode&UnixFile.PERMISSION_MASK;
                         if(filePerms!=distroPerms) {
                             results.add("chmod "+Long.toOctalString(distroPerms)+" '"+filename+"' #"+Long.toOctalString(filePerms)+"!="+Long.toOctalString(distroPerms));
-                            if(displayResults) System.out.println(results.get(results.size()-1));
+                            if(displayResults) {
+                                System.out.println(results.get(results.size()-1));
+                                System.out.flush();
+                            }
                         }
                     }
                 }
@@ -376,7 +397,10 @@ final public class DistroManager implements Runnable {
                         }
                         if(!found) {
                             results.add("rm -f '"+filename+"'; ln -s '"+distroLink+"' '"+filename+"' # "+fileLink+"!="+distroLink);
-                            if(displayResults) System.out.println(results.get(results.size()-1));
+                            if(displayResults) {
+                                System.out.println(results.get(results.size()-1));
+                                System.out.flush();
+                            }
                         }
                     }
                 } else {
@@ -431,7 +455,10 @@ final public class DistroManager implements Runnable {
                                         || file_md5_lo!=distro_md5_lo
                                     ) {
                                         results.add("M5 "+filename+" "+MD5.getMD5String(file_md5_hi, file_md5_lo)+"!="+MD5.getMD5String(distro_md5_hi, distro_md5_lo));
-                                        if(displayResults) System.out.println(results.get(results.size()-1));
+                                        if(displayResults) {
+                                            System.out.println(results.get(results.size()-1));
+                                            System.out.flush();
+                                        }
                                     }
 
                                     // Sleep for an amount of time equivilent to half the time it took to process this file
@@ -451,7 +478,10 @@ final public class DistroManager implements Runnable {
                                     long distroLen=distroFile.getSize();
                                     if(fileLen!=distroLen) {
                                         results.add("LE "+filename+" "+fileLen+"!="+distroLen);
-                                        if(displayResults) System.out.println(results.get(results.size()-1));
+                                        if(displayResults) {
+                                            System.out.println(results.get(results.size()-1));
+                                            System.out.flush();
+                                        }
                                     } else {
                                         // MD5
                                         long startTime=System.currentTimeMillis();
@@ -466,7 +496,10 @@ final public class DistroManager implements Runnable {
                                             || file_md5_lo!=distro_md5_lo
                                         ) {
                                             results.add("M5 "+filename+" "+MD5.getMD5String(file_md5_hi, file_md5_lo)+"!="+MD5.getMD5String(distro_md5_hi, distro_md5_lo));
-                                            if(displayResults) System.out.println(results.get(results.size()-1));
+                                            if(displayResults) {
+                                                System.out.println(results.get(results.size()-1));
+                                                System.out.flush();
+                                            }
                                         }
 
                                         // Sleep for an amount of time equivilent to half the time it took to process this file
@@ -497,7 +530,10 @@ final public class DistroManager implements Runnable {
                                         int len=list.length;
                                         if(len>=DIRECTORY_LENGTH_WARNING) {
                                             results.add("BD "+filename+" "+len+">="+DIRECTORY_LENGTH_WARNING);
-                                            if(displayResults) System.out.println(results.get(results.size()-1));
+                                            if(displayResults) {
+                                                System.out.println(results.get(results.size()-1));
+                                                System.out.flush();
+                                            }
                                         }
                                         for(int c=0;c<len;c++) {
                                             checkDistroFile(
@@ -560,7 +596,10 @@ final public class DistroManager implements Runnable {
                 int len=list.length;
                 if(len>=DIRECTORY_LENGTH_WARNING) {
                     results.add("BD "+file+" "+len+">="+DIRECTORY_LENGTH_WARNING);
-                    if(displayResults) System.out.println(results.get(results.size()-1));
+                    if(displayResults) {
+                        System.out.println(results.get(results.size()-1));
+                        System.out.flush();
+                    }
                 }
                 for(int c=0;c<len;c++) {
                     try {
@@ -573,7 +612,10 @@ final public class DistroManager implements Runnable {
                                 || (name.length()>0 && name.charAt(0)==' ')
                             ) {
                                 results.add("3D "+uf);
-                                if(displayResults) System.out.println(results.get(results.size()-1));
+                                if(displayResults) {
+                                    System.out.println(results.get(results.size()-1));
+                                    System.out.flush();
+                                }
                             }
 
                             // Stat here for use below
@@ -583,14 +625,20 @@ final public class DistroManager implements Runnable {
                             int uid=ufStat.getUID();
                             if(aoServer.getLinuxServerAccount(uid)==null) {
                                 results.add("NO "+uf+" "+uid);
-                                if(displayResults) System.out.println(results.get(results.size()-1));
+                                if(displayResults) {
+                                    System.out.println(results.get(results.size()-1));
+                                    System.out.flush();
+                                }
                             }
 
                             // Make sure is a valid group
                             int gid=ufStat.getGID();
                             if(aoServer.getLinuxServerGroup(gid)==null) {
                                 results.add("NG "+uf+" "+gid);
-                                if(displayResults) System.out.println(results.get(results.size()-1));
+                                if(displayResults) {
+                                    System.out.println(results.get(results.size()-1));
+                                    System.out.flush();
+                                }
                             }
 
                             // Make sure not setUID or setGID
@@ -622,14 +670,20 @@ final public class DistroManager implements Runnable {
                                 }
                                 if(!found) {
                                     results.add("SU "+uf+" "+Long.toOctalString(fileMode));
-                                    if(displayResults) System.out.println(results.get(results.size()-1));
+                                    if(displayResults) {
+                                        System.out.println(results.get(results.size()-1));
+                                        System.out.flush();
+                                    }
                                 }
                             }
 
                             // Make sure not world writable
                             //if((fileMode&UnixFile.OTHER_WRITE)==UnixFile.OTHER_WRITE) {
                             //    results.add("PR "+uf+" "+Integer.toOctalString(fileMode));
-                            //    if(displayResults) System.out.println(results.get(results.size()-1));
+                            //    if(displayResults) {
+                            //        System.out.println(results.get(results.size()-1));
+                            //        System.out.flush();
+                            //    }
                             //}
 
                             // Recurse
