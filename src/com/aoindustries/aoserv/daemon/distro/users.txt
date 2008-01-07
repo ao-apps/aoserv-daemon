@@ -72,6 +72,7 @@ centos/5/i686,x86_64/etc/mail/lists/w
 centos/5/i686,x86_64/etc/mail/lists/x
 centos/5/i686,x86_64/etc/mail/lists/y
 centos/5/i686,x86_64/etc/mail/lists/z
+centos/5/i686,x86_64/etc/xinetd.d
 centos/5/i686,x86_64/home/a
 centos/5/i686,x86_64/home/b
 centos/5/i686,x86_64/home/c
@@ -100,5 +101,13 @@ centos/5/i686,x86_64/home/y
 centos/5/i686,x86_64/home/z
 centos/5/i686,x86_64/logs
 centos/5/i686,x86_64/tmp
+centos/5/i686,x86_64/var/cache/man/cat1
+centos/5/i686,x86_64/var/cache/man/cat5
+centos/5/i686,x86_64/var/cache/man/cat8
+centos/5/i686,x86_64/var/cache/yum/base/headers
+centos/5/i686,x86_64/var/cache/yum/base/packages
+centos/5/i686,x86_64/var/ftp/pub
+centos/5/i686,x86_64/var/lib/awstats/hosts
+centos/5/i686,x86_64/var/run/screen/S-root
 centos/5/i686,x86_64/var/spool/clientmqueue
 centos/5/i686,x86_64/var/spool/mqueue

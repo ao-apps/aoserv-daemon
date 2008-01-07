@@ -28,3 +28,5 @@ redhat/ES 4/x86_64/etc/rc.d/rc5.d/K15httpd
 redhat/ES 4/x86_64/etc/rc.d/rc6.d/K15httpd
 centos/5/i686,x86_64/.bash_history
 centos/5/i686,x86_64/.lesshst
+centos/5/i686,x86_64/etc/localtime.rpmnew
+centos/5/i686,x86_64/etc/logrotate.conf.rpmnew
