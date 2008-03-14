@@ -18,9 +18,9 @@ import java.util.*;
 final public class NetDeviceManager extends BuilderThread {
     
     public static final UnixFile
-    netScriptDirectory=new UnixFile("/etc/sysconfig/network-scripts"),
-    networkScript=new UnixFile("/etc/sysconfig/network"),
-    networkScriptNew=new UnixFile("/etc/sysconfig/network.new")
+        netScriptDirectory=new UnixFile("/etc/sysconfig/network-scripts"),
+        networkScript=new UnixFile("/etc/sysconfig/network"),
+        networkScriptNew=new UnixFile("/etc/sysconfig/network.new")
     ;
     
     private static NetDeviceManager netDeviceManager;
@@ -277,6 +277,38 @@ final public class NetDeviceManager extends BuilderThread {
             return "Rebuild Net Devices";
         } finally {
             Profiler.endProfile(Profiler.INSTANTANEOUS);
+        }
+    }
+    
+    public static String getNetDeviceBondingReport(NetDevice netDevice) throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, NetDeviceManager.class, "getNetDeviceBondingReport(NetDevice)", null);
+        try {
+            File procFile;
+            int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
+            if(
+                osv==OperatingSystemVersion.CENTOS_5DOM0_I686
+                || osv==OperatingSystemVersion.CENTOS_5DOM0_X86_64
+            ) {
+                // Xen adds a "p" to the name
+                procFile = new File("/proc/net/bonding/p"+netDevice.getNetDeviceID().getName());
+            } else {
+                procFile = new File("/proc/net/bonding/"+netDevice.getNetDeviceID().getName());
+            }
+            String report;
+            if(procFile.exists()) {
+		StringBuilder SB=new StringBuilder();
+                InputStream in=new BufferedInputStream(new FileInputStream(procFile));
+		try {
+		    int ch;
+		    while((ch=in.read())!=-1) SB.append((char)ch);
+		} finally {
+		    in.close();
+		}
+                report = SB.toString();
+            } else report="";
+            return report;
+        } finally {
+            Profiler.endProfile(Profiler.UNKNOWN);
         }
     }
 }

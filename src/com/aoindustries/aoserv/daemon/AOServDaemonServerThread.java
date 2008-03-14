@@ -16,6 +16,7 @@ import com.aoindustries.aoserv.daemon.httpd.*;
 import com.aoindustries.aoserv.daemon.interbase.*;
 import com.aoindustries.aoserv.daemon.monitor.MrtgManager;
 import com.aoindustries.aoserv.daemon.mysql.*;
+import com.aoindustries.aoserv.daemon.net.NetDeviceManager;
 import com.aoindustries.aoserv.daemon.postgres.*;
 import com.aoindustries.aoserv.daemon.server.*;
 import com.aoindustries.aoserv.daemon.unix.*;
@@ -290,9 +291,21 @@ final public class AOServDaemonServerThread extends Thread {
                                     if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_CRON_TABLE, Thread="+toString());
                                     String username=in.readUTF();
                                     if(key==null) throw new IOException("Only the master server may GET_CRON_TABLE");
-                                    String cronTable=LinuxAccountManager.getCronTable(out, username);
+                                    String cronTable=LinuxAccountManager.getCronTable(username);
                                     out.write(AOServDaemonProtocol.DONE);
                                     out.writeUTF(cronTable);
+                                }
+                                break;
+                            case AOServDaemonProtocol.GET_NET_DEVICE_BONDING_REPORT :
+                                {
+                                    if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_NET_DEVICE_BONDING_REPORT, Thread="+toString());
+                                    int pkey = in.readCompressedInt();
+                                    if(key==null) throw new IOException("Only the master server may GET_NET_DEVICE_BONDING_REPORT");
+                                    NetDevice netDevice = connector.netDevices.get(pkey);
+                                    if(netDevice==null) throw new SQLException("Unable to find NetDevice: "+pkey);
+                                    String report = NetDeviceManager.getNetDeviceBondingReport(netDevice);
+                                    out.write(AOServDaemonProtocol.DONE);
+                                    out.writeUTF(report);
                                 }
                                 break;
                             case AOServDaemonProtocol.IS_PROCMAIL_MANUAL :

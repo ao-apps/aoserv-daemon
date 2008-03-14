@@ -533,8 +533,8 @@ public class LinuxAccountManager extends BuilderThread {
         }
     }
 
-    public static String getCronTable(CompressedDataOutputStream out, String username) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, LinuxAccountManager.class, "getCronTable(CompressedDataOutputStream,String)", null);
+    public static String getCronTable(String username) throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, LinuxAccountManager.class, "getCronTable(String)", null);
         try {
             File cronFile=new File(cronDirectory, username);
             String cronTable;

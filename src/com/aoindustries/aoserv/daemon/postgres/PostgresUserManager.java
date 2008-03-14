@@ -105,7 +105,11 @@ final public class PostgresUserManager extends BuilderThread {
                                 StringBuilder sql=new StringBuilder();
                                 sql
                                     .append(
-                                        version.startsWith(PostgresVersion.VERSION_8_1+'.')
+                                        (
+                                            version.startsWith(PostgresVersion.VERSION_8_1+'.')
+                                            || version.startsWith(PostgresVersion.VERSION_8_3+'.')
+                                            || version.startsWith(PostgresVersion.VERSION_8_3+'R')
+                                        )
                                         ? "CREATE ROLE "
                                         : "CREATE USER "
                                     )
@@ -122,15 +126,22 @@ final public class PostgresUserManager extends BuilderThread {
                                     .append(pu.canCreateDB()?"CREATEDB":"NOCREATEDB")
                                     .append(' ')
                                     .append(
-                                        version.startsWith(PostgresVersion.VERSION_8_1+'.')
+                                        (
+                                            version.startsWith(PostgresVersion.VERSION_8_1+'.')
+                                            || version.startsWith(PostgresVersion.VERSION_8_3+'.')
+                                            || version.startsWith(PostgresVersion.VERSION_8_3+'R')
+                                        )
                                         ? (pu.canCatUPD()?"CREATEROLE":"NOCREATEROLE")
                                         : (pu.canCatUPD()?"CREATEUSER":"NOCREATEUSER")
                                     ).append(
-                                        version.startsWith(PostgresVersion.VERSION_8_1+'.')
+                                        (
+                                            version.startsWith(PostgresVersion.VERSION_8_1+'.')
+                                            || version.startsWith(PostgresVersion.VERSION_8_3+'.')
+                                            || version.startsWith(PostgresVersion.VERSION_8_3+'R')
+                                        )
                                         ? " LOGIN"
                                         : ""
                                     )
-                                        
                                 ;
                                 stmt.executeUpdate(sql.toString());
                             }
@@ -299,7 +310,11 @@ final public class PostgresUserManager extends BuilderThread {
                             pstmt.close();
                         }
                     }
-                } else if(version.startsWith(PostgresVersion.VERSION_8_1+'.')) {
+                } else if(
+                    version.startsWith(PostgresVersion.VERSION_8_1+'.')
+                    || version.startsWith(PostgresVersion.VERSION_8_3+'.')
+                    || version.startsWith(PostgresVersion.VERSION_8_3+'R')
+                ) {
                     if(password==PostgresUser.NO_PASSWORD) {
                         // Remove the password
                         Statement stmt = conn.createStatement();
@@ -312,7 +327,7 @@ final public class PostgresUserManager extends BuilderThread {
                             stmt.close();
                         }
                     } else {
-                        // TODO: Find a way to use PreparedStatement here for PostgreSQL 8.1
+                        // TODO: Find a way to use PreparedStatement here for PostgreSQL 8.1 and PostgreSQL 8.3
                         checkPasswordChars(password);
                         if(forceUnencrypted) {
                             // Reset the password (unencrypted)

@@ -117,7 +117,11 @@ public final class PgHbaManager extends BuilderThread {
                                 }
                                 out.print(" 0.0.0.0 0.0.0.0 password\n");
                             }
-                        } else if(version.startsWith(PostgresVersion.VERSION_8_1+'.')) {
+                        } else if(
+                            version.startsWith(PostgresVersion.VERSION_8_1+'.')
+                            || version.startsWith(PostgresVersion.VERSION_8_3+'.')
+                            || version.startsWith(PostgresVersion.VERSION_8_3+'R')
+                        ) {
                             List<PostgresServerUser> users=ps.getPostgresServerUsers();
                             for(PostgresDatabase db : ps.getPostgresDatabases()) {
                                 // ident used from local

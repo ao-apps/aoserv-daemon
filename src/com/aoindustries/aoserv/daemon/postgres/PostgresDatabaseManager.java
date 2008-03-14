@@ -228,6 +228,8 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                         version.startsWith(PostgresVersion.VERSION_7_3+'.')
                                         || version.startsWith(PostgresVersion.VERSION_8_0+'.')
                                         || version.startsWith(PostgresVersion.VERSION_8_1+'.')
+                                        || version.startsWith(PostgresVersion.VERSION_8_3+'.')
+                                        || version.startsWith(PostgresVersion.VERSION_8_3+'R')
                                     ) {
                                         stmt.executeUpdate("create database "+name+" with owner="+datdba.getPostgresUser().getUsername().getUsername()+" encoding='"+database.getPostgresEncoding().getEncoding()+'\'');
                                         conn.commit();
@@ -266,7 +268,16 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                             throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                                         }
                                         AOServDaemon.suexec(LinuxAccount.POSTGRES, createlang+" -p "+port+" plpgsql "+name);
-                                        AOServDaemon.suexec(LinuxAccount.POSTGRES, psql+" -p "+port+" -c \"create function fti() returns opaque as '"+lib+"/mfti.so' language 'c';\" "+name);
+                                        if(
+                                            version.startsWith(PostgresVersion.VERSION_7_1+'.')
+                                            || version.startsWith(PostgresVersion.VERSION_7_2+'.')
+                                            || version.startsWith(PostgresVersion.VERSION_7_3+'.')
+                                            || version.startsWith(PostgresVersion.VERSION_8_0+'.')
+                                            || version.startsWith(PostgresVersion.VERSION_8_1+'.')
+                                            // Not supported as of 8.3 - it has built-in full text indexing
+                                        ) {
+                                            AOServDaemon.suexec(LinuxAccount.POSTGRES, psql+" -p "+port+" -c \"create function fti() returns opaque as '"+lib+"/mfti.so' language 'c';\" "+name);
+                                        }
                                         if(database.getEnablePostgis()) {
                                             AOServDaemon.suexec(LinuxAccount.POSTGRES, psql+" -p "+port+" "+name+" -f "+share+"/lwpostgis.sql");
                                             AOServDaemon.suexec(LinuxAccount.POSTGRES, psql+" -p "+port+" "+name+" -f "+share+"/spatial_ref_sys.sql");
