@@ -236,7 +236,7 @@ final public class AWStatsManager extends BuilderThread {
                             + "ShowOriginStats=PH\n"
                             + "ShowKeyphrasesStats=1\n"
                             + "ShowKeywordsStats=1\n"
-                            + "ShowMiscStats=a\n"
+                            + "ShowMiscStats=anjdfrqwp\n"
                             + "ShowHTTPErrorsStats=1\n"
                             + "ShowSMTPErrorsStats=0\n"
                             + "ShowClusterStats=0\n"
