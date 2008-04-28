@@ -252,7 +252,7 @@ public class LinuxAccountManager extends BuilderThread {
                      * Create any inboxes that need to exist.
                      */
                     LinuxServerGroup mailGroup=connector.linuxGroups.get(LinuxGroup.MAIL).getLinuxServerGroup(aoServer);
-                    if(mailGroup==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+aoServer.getServer().getHostname());
+                    if(mailGroup==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+aoServer.getHostname());
                     for (int c = 0; c < accounts.size(); c++) {
                         LinuxServerAccount account = accounts.get(c);
                         LinuxAccount linuxAccount = account.getLinuxAccount();
@@ -656,7 +656,7 @@ public class LinuxAccountManager extends BuilderThread {
             LinuxAccount linuxAccount = account.getLinuxAccount();
             String username=linuxAccount.getUsername().getUsername();
             LinuxServerGroup primaryGroup = account.getPrimaryLinuxServerGroup();
-            if(primaryGroup==null) throw new SQLException("Unable to find primary LinuxServerGroup for username="+username+" on "+account.getAOServer().getServer().getHostname());
+            if(primaryGroup==null) throw new SQLException("Unable to find primary LinuxServerGroup for username="+username+" on "+account.getAOServer().getHostname());
             out
                 .print(username)
                 .print(":x:")
@@ -779,7 +779,7 @@ public class LinuxAccountManager extends BuilderThread {
         try {
             AOServer aoServer=AOServDaemon.getThisAOServer();
             LinuxServerAccount lsa=aoServer.getLinuxServerAccount(username);
-            if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+username+" on "+aoServer.getServer().getHostname());
+            if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+username+" on "+aoServer.getHostname());
             ShadowFile.setEncryptedPassword(username, encryptedPassword);
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);
@@ -791,7 +791,7 @@ public class LinuxAccountManager extends BuilderThread {
         try {
             AOServer aoServer=AOServDaemon.getThisAOServer();
             LinuxServerAccount lsa=aoServer.getLinuxServerAccount(username);
-            if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+username+" on "+aoServer.getServer().getHostname());
+            if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+username+" on "+aoServer.getHostname());
             ShadowFile.setPassword(username, plain_password);
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);

@@ -13,7 +13,6 @@ import com.aoindustries.aoserv.daemon.email.*;
 import com.aoindustries.aoserv.daemon.failover.*;
 import com.aoindustries.aoserv.daemon.ftp.*;
 import com.aoindustries.aoserv.daemon.httpd.*;
-import com.aoindustries.aoserv.daemon.interbase.*;
 import com.aoindustries.aoserv.daemon.monitor.MrtgManager;
 import com.aoindustries.aoserv.daemon.mysql.*;
 import com.aoindustries.aoserv.daemon.net.NetDeviceManager;
@@ -138,37 +137,6 @@ final public class AOServDaemonServerThread extends Thread {
                 while ((taskCode = in.readCompressedInt()) != AOServDaemonProtocol.QUIT) {
                     try {
                         switch (taskCode) {
-                            case AOServDaemonProtocol.BACKUP_INTERBASE_DATABASE :
-                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing BACKUP_INTERBASE_DATABASE, Thread="+toString());
-                                if(key==null) throw new IOException("Only the master server may BACKUP_INTERBASE_DATABASE");
-                                InterBaseManager.backupDatabase(in, out);
-                                break;
-                            case AOServDaemonProtocol.BACKUP_MYSQL_DATABASE :
-                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing BACKUP_MYSQL_DATABASE, Thread="+toString());
-                                if(key==null) throw new IOException("Only the master server may BACKUP_MYSQL_DATABASE");
-                                MySQLDatabaseManager.backupDatabase(in, out);
-                                break;
-                            case AOServDaemonProtocol.BACKUP_POSTGRES_DATABASE :
-                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing BACKUP_POSTGRES_DATABASE, Thread="+toString());
-                                if(key==null) throw new IOException("Only the master server may BACKUP_POSTGRES_DATABASE");
-                                PostgresDatabaseManager.backupDatabase(in, out);
-                                break;
-                            case AOServDaemonProtocol.BACKUP_POSTGRES_DATABASE_SEND_DATA :
-                                {
-                                    if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing BACKUP_POSTGRES_DATABASE_SEND_DATA, Thread="+toString());
-                                    long daemonKey=in.readLong();
-                                    DaemonAccessEntry dae=AOServDaemonServer.getDaemonAccessEntry(daemonKey);
-                                    if(dae.command!=AOServDaemonProtocol.BACKUP_POSTGRES_DATABASE_SEND_DATA) throw new IOException("Mismatched DaemonAccessEntry command, dae.command!="+AOServDaemonProtocol.BACKUP_POSTGRES_DATABASE_SEND_DATA);
-                                    String relativePath = dae.param1;
-                                    int backupPartitionPKey = Integer.parseInt(dae.param2);
-                                    String expectedMD5 = dae.param3;
-                                    BackupPartition bp=connector.backupPartitions.get(backupPartitionPKey);
-                                    if(bp==null) throw new SQLException("Unable to find BackupPartition: "+backupPartitionPKey);
-                                    String md5 = BackupManager.storeBackupData(bp, relativePath, true, in, null);
-                                    if(!expectedMD5.equals(md5)) throw new IOException("Unexpected MD5 digest: "+md5);
-                                    out.write(AOServDaemonProtocol.DONE);
-                                }
-                                break;
                             case AOServDaemonProtocol.COMPARE_LINUX_ACCOUNT_PASSWORD :
                                 {
                                     if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing COMPARE_LINUX_ACCOUNT_PASSWORD, Thread="+toString());
@@ -178,17 +146,6 @@ final public class AOServDaemonServerThread extends Thread {
                                     boolean matches=LinuxAccountManager.comparePassword(username, password);
                                     out.write(AOServDaemonProtocol.DONE);
                                     out.writeBoolean(matches);
-                                }
-                                break;
-                            case AOServDaemonProtocol.DUMP_INTERBASE_DATABASE :
-                                {
-                                    if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing DUMP_INTERBASE_DATABASE, Thread="+toString());
-                                    int pkey=in.readCompressedInt();
-                                    if(key==null) throw new IOException("Only the master server may DUMP_INTERBASE_DATABASE");
-                                    InterBaseDatabase id=connector.interBaseDatabases.get(pkey);
-                                    if(id==null) throw new SQLException("Unable to find InterBaseDatabase: "+pkey);
-                                    InterBaseManager.dumpDatabase(id, out);
-                                    out.write(AOServDaemonProtocol.DONE);
                                 }
                                 break;
                             case AOServDaemonProtocol.DUMP_MYSQL_DATABASE :
@@ -242,16 +199,16 @@ final public class AOServDaemonServerThread extends Thread {
                                         socket,
                                         in,
                                         out,
-                                        dae.param1,
+                                        dae.param1, // fromServer
                                         useCompression,
                                         retention,
-                                        dae.param2,
-                                        "t".equals(dae.param3),
+                                        dae.param2, // toPath (complete with server hostname and other path stuff)
                                         fromServerYear,
                                         fromServerMonth,
                                         fromServerDay,
                                         replicatedMySQLServers,
-                                        replicatedMySQLMinorVersions
+                                        replicatedMySQLMinorVersions,
+                                        dae.param3==null ? -1 : Integer.parseInt(dae.param3) // quota_gid
                                     );
                                 }
                                 break;
@@ -273,16 +230,6 @@ final public class AOServDaemonServerThread extends Thread {
                                     String queryString=in.readUTF();
                                     if(key==null) throw new IOException("Only the master server may GET_AWSTATS_FILE");
                                     AWStatsManager.getAWStatsFile(siteName, path, queryString, out);
-                                    out.write(AOServDaemonProtocol.DONE);
-                                }
-                                break;
-                            case AOServDaemonProtocol.GET_BACKUP_DATA :
-                                {
-                                    if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_BACKUP_DATA, Thread="+toString());
-                                    String path=in.readUTF();
-                                    long skipBytes=in.readLong();
-                                    if(key==null) throw new IOException("Only the master server may GET_BACKUP_DATA");
-                                    BackupManager.getBackupData(path, out, skipBytes);
                                     out.write(AOServDaemonProtocol.DONE);
                                 }
                                 break;
@@ -308,6 +255,33 @@ final public class AOServDaemonServerThread extends Thread {
                                     out.writeUTF(report);
                                 }
                                 break;
+                            case AOServDaemonProtocol.GET_3WARE_RAID_REPORT :
+                                {
+                                    if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_3WARE_RAID_REPORT, Thread="+toString());
+                                    if(key==null) throw new IOException("Only the master server may GET_3WARE_RAID_REPORT");
+                                    String report = ServerManager.get3wareRaidReport();
+                                    out.write(AOServDaemonProtocol.DONE);
+                                    out.writeUTF(report);
+                                }
+                                break;
+                            case AOServDaemonProtocol.GET_MD_RAID_REPORT :
+                                {
+                                    if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_MD_RAID_REPORT, Thread="+toString());
+                                    if(key==null) throw new IOException("Only the master server may GET_MD_RAID_REPORT");
+                                    String report = ServerManager.getMdRaidReport();
+                                    out.write(AOServDaemonProtocol.DONE);
+                                    out.writeUTF(report);
+                                }
+                                break;
+                            case AOServDaemonProtocol.GET_DRBD_REPORT :
+                                {
+                                    if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_DRBD_REPORT, Thread="+toString());
+                                    if(key==null) throw new IOException("Only the master server may GET_DRBD_REPORT");
+                                    String report = ServerManager.getDrbdReport();
+                                    out.write(AOServDaemonProtocol.DONE);
+                                    out.writeUTF(report);
+                                }
+                                break;
                             case AOServDaemonProtocol.IS_PROCMAIL_MANUAL :
                                 {
                                     if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing IS_PROCMAIL_MANUAL, Thread="+toString());
@@ -325,7 +299,7 @@ final public class AOServDaemonServerThread extends Thread {
                                     if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_DAEMON_PROFILE, Thread="+toString());
                                     if(key==null) throw new IOException("Only the master server may GET_DAEMON_PROFILE");
                                     if(Profiler.getProfilerLevel()>Profiler.NONE) {
-                                        String hostname=AOServDaemon.getThisAOServer().getServer().getHostname();
+                                        String hostname=AOServDaemon.getThisAOServer().getHostname();
                                         MethodProfile[] profs=Profiler.getMethodProfiles();
                                         int len=profs.length;
                                         for(int c=0;c<len;c++) {
@@ -343,9 +317,9 @@ final public class AOServDaemonServerThread extends Thread {
                             case AOServDaemonProtocol.GET_DISK_DEVICE_TOTAL_SIZE :
                                 {
                                     if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_DISK_DEVICE_TOTAL_SIZE, Thread="+toString());
-                                    String device=in.readUTF();
+                                    String path=in.readUTF();
                                     if(key==null) throw new IOException("Only the master server may GET_DISK_DEVICE_TOTAL_SIZE");
-                                    long bytes=BackupManager.getDiskDeviceTotalSize(device);
+                                    long bytes=BackupManager.getDiskDeviceTotalSize(path);
                                     out.write(AOServDaemonProtocol.DONE);
                                     out.writeLong(bytes);
                                 }
@@ -353,9 +327,9 @@ final public class AOServDaemonServerThread extends Thread {
                             case AOServDaemonProtocol.GET_DISK_DEVICE_USED_SIZE :
                                 {
                                     if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_DISK_DEVICE_USED_SIZE, Thread="+toString());
-                                    String device=in.readUTF();
+                                    String path=in.readUTF();
                                     if(key==null) throw new IOException("Only the master server may GET_DISK_DEVICE_USED_SIZE");
-                                    long bytes=BackupManager.getDiskDeviceUsedSize(device);
+                                    long bytes=BackupManager.getDiskDeviceUsedSize(path);
                                     out.write(AOServDaemonProtocol.DONE);
                                     out.writeLong(bytes);
                                 }
@@ -368,16 +342,6 @@ final public class AOServDaemonServerThread extends Thread {
                                     String file=EmailListManager.getEmailListFile(path);
                                     out.write(AOServDaemonProtocol.DONE);
                                     out.writeUTF(file);
-                                }
-                                break;
-                            case AOServDaemonProtocol.GET_ENCRYPTED_INTERBASE_USER_PASSWORD :
-                                {
-                                    if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_ENCRYPTED_INTERBASE_USER_PASSWORD, Thread="+toString());
-                                    String username=in.readUTF();
-                                    if(key==null) throw new IOException("Only the master server may GET_ENCRYPTED_INTERBASE_USER_PASSWORD");
-                                    String encryptedPassword=InterBaseManager.getEncryptedPassword(username);
-                                    out.write(AOServDaemonProtocol.DONE);
-                                    out.writeUTF(encryptedPassword);
                                 }
                                 break;
                             case AOServDaemonProtocol.GET_ENCRYPTED_LINUX_ACCOUNT_PASSWORD :
@@ -496,18 +460,6 @@ final public class AOServDaemonServerThread extends Thread {
                                 }
                                 break;
                              */
-                            case AOServDaemonProtocol.REMOVE_BACKUP_DATA :
-                                {
-                                    if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing REMOVE_BACKUP_DATA, Thread="+toString());
-                                    int backupPartitionPKey=in.readCompressedInt();
-                                    BackupPartition bp=connector.backupPartitions.get(backupPartitionPKey);
-                                    if(bp==null) throw new SQLException("Unable to find BackupPartition: "+backupPartitionPKey);
-                                    String relativePath=in.readUTF();
-                                    if(key==null) throw new IOException("Only the master server may REMOVE_BACKUP_DATA");
-                                    BackupManager.removeBackupData(bp, relativePath);
-                                    out.write(AOServDaemonProtocol.DONE);
-                                }
-                                break;
                             case AOServDaemonProtocol.REMOVE_EMAIL_LIST :
                                 {
                                     if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing REMOVE_EMAIL_LIST, Thread="+toString());
@@ -529,12 +481,6 @@ final public class AOServDaemonServerThread extends Thread {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing RESTART_CRON, Thread="+toString());
                                 if(key==null) throw new IOException("Only the master server may RESTART_CRON");
                                 ServerManager.restartCron();
-                                out.write(AOServDaemonProtocol.DONE);
-                                break;
-                            case AOServDaemonProtocol.RESTART_INTERBASE :
-                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing RESTART_INTERBASE, Thread="+toString());
-                                if(key==null) throw new IOException("Only the master server may RESTART_INTERBASE");
-                                InterBaseManager.restartInterBase();
                                 out.write(AOServDaemonProtocol.DONE);
                                 break;
                             case AOServDaemonProtocol.RESTART_MYSQL :
@@ -638,16 +584,6 @@ final public class AOServDaemonServerThread extends Thread {
                                     out.write(AOServDaemonProtocol.DONE);
                                 }
                                 break;
-                            case AOServDaemonProtocol.SET_INTERBASE_USER_PASSWORD :
-                                {
-                                    if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing SET_INTERBASE_USER_PASSWORD, Thread="+toString());
-                                    String username=in.readUTF();
-                                    String password=in.readBoolean()?in.readUTF():null;
-                                    if(key==null) throw new IOException("Only the master server may SET_INTERBASE_USER_PASSWORD");
-                                    InterBaseManager.setPassword(username, password);
-                                    out.write(AOServDaemonProtocol.DONE);
-                                }
-                                break;
                             case AOServDaemonProtocol.SET_LINUX_SERVER_ACCOUNT_PASSWORD :
                                 {
                                     if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing SET_LINUX_SERVER_ACCOUNT_PASSWORD, Thread="+toString());
@@ -702,12 +638,6 @@ final public class AOServDaemonServerThread extends Thread {
                                     DistroManager.startDistro(includeUser);
                                     out.write(AOServDaemonProtocol.DONE);
                                 }
-                                break;
-                            case AOServDaemonProtocol.START_INTERBASE :
-                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing START_INTERBASE, Thread="+toString());
-                                if(key==null) throw new IOException("Only the master server may START_INTERBASE");
-                                InterBaseManager.startInterBase();
-                                out.write(AOServDaemonProtocol.DONE);
                                 break;
                             case AOServDaemonProtocol.START_JVM :
                                 {
@@ -766,12 +696,6 @@ final public class AOServDaemonServerThread extends Thread {
                                 ServerManager.stopCron();
                                 out.write(AOServDaemonProtocol.DONE);
                                 break;
-                            case AOServDaemonProtocol.STOP_INTERBASE :
-                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing STOP_INTERBASE, Thread="+toString());
-                                if(key==null) throw new IOException("Only the master server may STOP_INTERBASE");
-                                InterBaseManager.stopInterBase();
-                                out.write(AOServDaemonProtocol.DONE);
-                                break;
                             case AOServDaemonProtocol.STOP_JVM :
                                 {
                                     if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing STOP_JVM, Thread="+toString());
@@ -817,65 +741,6 @@ final public class AOServDaemonServerThread extends Thread {
                                 ServerManager.stopXvfb();
                                 out.write(AOServDaemonProtocol.DONE);
                                 break;
-                            case AOServDaemonProtocol.STORE_BACKUP_DATA :
-                                {
-                                    if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing STORE_BACKUP_DATA, Thread="+toString());
-                                    int backupPartitionPKey=in.readCompressedInt();
-                                    BackupPartition bp=connector.backupPartitions.get(backupPartitionPKey);
-                                    if(bp==null) throw new SQLException("Unable to find BackupPartition: "+backupPartitionPKey);
-                                    String relativePath=in.readUTF();
-                                    boolean isCompressed = in.readBoolean();
-                                    long expectedMD5Hi = in.readLong();
-                                    long expectedMD5Lo = in.readLong();
-                                    if(key==null) throw new IOException("Only the master server may STORE_BACKUP_DATA");
-                                    String expectedMD5 = MD5.getMD5String(expectedMD5Hi, expectedMD5Lo);
-                                    String md5 = BackupManager.storeBackupData(bp, relativePath, isCompressed, in, null);
-                                    boolean isGood=in.readBoolean();
-                                    if(!isGood) {
-                                        // If the MD5 hash did not match during the file upload, then this backup is canceled
-                                        BackupManager.removeBackupData(bp, relativePath);
-                                    } else {
-                                        // Otherwise, make sure the MD5 is still matching
-                                        if(!expectedMD5.equals(md5)) throw new IOException("Unexpected MD5 digest: "+md5);
-                                    }
-                                    out.write(AOServDaemonProtocol.DONE);
-                                }
-                                break;
-                            case AOServDaemonProtocol.STORE_BACKUP_DATA_DIRECT_ACCESS :
-                                {
-                                    if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing STORE_BACKUP_DATA_DIRECT_ACCESS, Thread="+toString());
-                                    // Read the parameters from the client
-                                    long daemonKey=in.readLong();
-                                    String filename=in.readUTF();
-                                    boolean isCompressed = in.readBoolean();
-                                    // Get the values provided by the master
-                                    DaemonAccessEntry dae=AOServDaemonServer.getDaemonAccessEntry(daemonKey);
-                                    if(dae.command!=AOServDaemonProtocol.STORE_BACKUP_DATA_DIRECT_ACCESS) throw new IOException("Mismatched DaemonAccessEntry command, dae.command!="+AOServDaemonProtocol.STORE_BACKUP_DATA_DIRECT_ACCESS);
-                                    int backupPartitionPKey=Integer.parseInt(dae.param1);
-                                    int backupData=Integer.parseInt(dae.param2);
-                                    String expectedMD5=dae.param3;
-                                    // Calculate other necessary parameters
-                                    BackupPartition bp=connector.backupPartitions.get(backupPartitionPKey);
-                                    if(bp==null) throw new SQLException("Unable to find BackupPartition: "+backupPartitionPKey);
-                                    String relativePath=
-                                        isCompressed
-                                        ? (BackupData.getRelativePathPrefix(backupData) + filename + ".gz")
-                                        : (BackupData.getRelativePathPrefix(backupData) + filename)
-                                    ;
-                                    // Store the data
-                                    long[] byteCount = new long[1];
-                                    String md5 = BackupManager.storeBackupData(bp, relativePath, isCompressed, in, byteCount);
-                                    if(!md5.equals(expectedMD5)) {
-                                        // If the MD5 hash did not match during the file upload, then this backup is canceled
-                                        BackupManager.removeBackupData(bp, relativePath);
-                                        throw new IOException("Unexpected MD5 digest: "+md5);
-                                    } else {
-                                        // Otherwise, tell the master server that it is now stored
-                                        connector.backupDatas.flagAsStored(backupData, isCompressed, byteCount[0]);
-                                    }
-                                    out.write(AOServDaemonProtocol.DONE);
-                                }
-                                break;
                             case AOServDaemonProtocol.TAR_HOME_DIRECTORY :
                                 {
                                     if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing TAR_HOME_DIRECTORY, Thread="+toString());
@@ -905,9 +770,6 @@ final public class AOServDaemonServerThread extends Thread {
                                             break;
                                         case LINUX_ACCOUNTS :
                                             LinuxAccountManager.waitForRebuild();
-                                            break;
-                                        case INTERBASE_USERS :
-                                            InterBaseManager.waitForRebuild();
                                             break;
                                         case MYSQL_DATABASES :
                                             MySQLDatabaseManager.waitForRebuild();

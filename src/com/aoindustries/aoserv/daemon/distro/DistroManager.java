@@ -291,7 +291,7 @@ final public class DistroManager implements Runnable {
             DistroFile distroFile=index<0?null:distroFiles.get(index);
 
             // Check for hostname substitution
-            String hostname=aoServer.getServer().getHostname();
+            String hostname=aoServer.getHostname();
             int pos=filename.indexOf(hostname);
             if(pos>=0) {
                 String newFilename=filename.substring(0, pos)+"$h"+filename.substring(pos+hostname.length());
@@ -427,6 +427,7 @@ final public class DistroManager implements Runnable {
                                         };
                                         Process P = Runtime.getRuntime().exec(command);
                                         try {
+                                            P.getOutputStream().close();
                                             BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()));
                                             try {
                                                 String line = in.readLine();
@@ -726,7 +727,7 @@ final public class DistroManager implements Runnable {
 
                 // Generate from address
                 AOServer aoServer=AOServDaemon.getThisAOServer();
-                String from="distro@"+aoServer.getServer().getHostname();
+                String from="distro@"+aoServer.getHostname();
 
                 // Send to cell phones
                 /*

@@ -41,11 +41,11 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
     /**
      * qmail files.
      */
-    private static final UnixFile
+    /*private static final UnixFile
         newVirtualDomains=new UnixFile("/etc/qmail/virtualdomains.new"),
         virtualDomains=new UnixFile("/etc/qmail/virtualdomains"),
         oldVirtualDomains=new UnixFile("/etc/qmail/virtualdomains.old")
-    ;
+    ;*/
         
     private static EmailAddressManager emailAddressManager;
 
@@ -70,7 +70,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
 
             List<EmailAddress> eas=aoServer.getEmailAddresses();
             synchronized(rebuildLock) {
-                if(aoServer.isQmail()) {
+                /*if(aoServer.isQmail()) {
                     // Write the /etc/qmail/virtualdomains.new
                     ChainWriter out = new ChainWriter(
                         new BufferedOutputStream(
@@ -109,7 +109,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
                     newVirtualDomains.renameTo(virtualDomains);
 
                     EmailDomainManager.reloadMTA();
-                } else {
+                } else {*/
                     //
                     // Write the new /etc/aliases file.
                     //
@@ -247,13 +247,14 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
 
                     // Call newaliases
                     newAliases();
-                }
+                /*}*/
             }
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);
         }
     }
     
+    /*
     private static void writeQmailVirtualDomainLine(EmailAddress ea, ChainWriter out) throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, EmailAddressManager.class, "writeQmailVirtualDomainLine(EmailAddress,ChainWriter)", null);
         try {
@@ -270,7 +271,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);
         }
-    }
+    }*/
 
     private static void writeEmailAddressConfigs(
         EmailAddress ea,
@@ -370,9 +371,9 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
                 && epas.isEmpty()
                 && laas.size()==1
             ) {
-                LinuxAccount la=laas.get(0).getLinuxAccount();
-                if(la!=null) {
-                    Username un=la.getUsername();
+                LinuxServerAccount lsa=laas.get(0).getLinuxServerAccount();
+                if(lsa!=null) {
+                    Username un=lsa.getLinuxAccount().getUsername();
                     if(un!=null) {
                         String username=un.getUsername();
                         tieUsername=singleInboxTies.get(username);
@@ -411,7 +412,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
                 for(LinuxAccAddress laa : laas) {
                     if(done) aliasesOut.print(",\n\t");
                     else done=true;
-                    aliasesOut.print('\\').print(StringUtility.replace(laa.getLinuxAccount().getUsername().getUsername(),'@',"\\@"));
+                    aliasesOut.print('\\').print(StringUtility.replace(laa.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername(),'@',"\\@"));
                 }
                 aliasesOut.println();
 
@@ -574,27 +575,29 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
 
                 String[] cmd = { makemap, "hash", userTable.getFilename() };
                 Process P = Runtime.getRuntime().exec(cmd);
-
-                // Pipe the file into the process
-                InputStream in = new BufferedInputStream(new FileInputStream(userTable.getFilename()));
                 try {
-                    OutputStream out = P.getOutputStream();
+                    // Pipe the file into the process
+                    InputStream in = new BufferedInputStream(new FileInputStream(userTable.getFilename()));
                     try {
-                        int ch;
-                        while ((ch = in.read()) != -1) out.write(ch);
+                        OutputStream out = P.getOutputStream();
+                        try {
+                            int ch;
+                            while ((ch = in.read()) != -1) out.write(ch);
+                        } finally {
+                            out.flush();
+                            out.close();
+                        }
                     } finally {
-                        out.flush();
-                        out.close();
+                        in.close();
                     }
                 } finally {
-                    in.close();
-                }
-
-                // Wait for the process to complete
-                try {
-                    P.waitFor();
-                } catch (InterruptedException err) {
-                    AOServDaemon.reportWarning(err, null);
+                    // Wait for the process to complete
+                    try {
+                        int retCode = P.waitFor();
+                        if(retCode!=0) throw new IOException("Non-zero return status: "+retCode);
+                    } catch (InterruptedException err) {
+                        AOServDaemon.reportWarning(err, null);
+                    }
                 }
 
                 // Check for error exit code

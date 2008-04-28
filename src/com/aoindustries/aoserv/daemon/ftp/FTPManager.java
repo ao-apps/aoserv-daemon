@@ -139,7 +139,7 @@ final public class FTPManager extends BuilderThread {
                                 + "#\n"
                                 // Overall server settings
                                 + "ServerName \"ProFTPD Server\"\n"
-                                + "ServerIdent on \"ProFTPD Server [").print(thisAOServer.getServer().getHostname()).print("]\"\n"
+                                + "ServerIdent on \"ProFTPD Server [").print(thisAOServer.getHostname()).print("]\"\n"
                                 + "ServerAdmin \"support@aoindustries.com\"\n"
                                 + "ServerType standalone\n"
                                 + "DefaultServer off\n"
@@ -178,7 +178,7 @@ final public class FTPManager extends BuilderThread {
                                 out.print("<VirtualHost ").print(ia.getIPAddress()).print(">\n"
                                         + "  Port ").print(bind.getPort().getPort()).print('\n');
                                 if(privateServer!=null) out.print("  TransferLog \"").print(privateServer.getLogfile()).print("\"\n");
-                                out.print("  ServerIdent on \"ProFTPD Server [").print(privateServer!=null?privateServer.getHostname():ia.isWildcard()?thisAOServer.getServer().getHostname():ia.getHostname()).print("]\"\n"
+                                out.print("  ServerIdent on \"ProFTPD Server [").print(privateServer!=null?privateServer.getHostname():ia.isWildcard()?thisAOServer.getHostname():ia.getHostname()).print("]\"\n"
 																						     + "  AllowOverwrite on\n");
                                 if(privateServer!=null) out.print("  ServerAdmin \"").print(privateServer.getEmail()).print("\"\n");
                                 if(privateServer==null || privateServer.allowAnonymous()) {

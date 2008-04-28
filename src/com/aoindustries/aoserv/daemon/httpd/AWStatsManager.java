@@ -615,34 +615,45 @@ final public class AWStatsManager extends BuilderThread {
                         LinuxAccount.AWSTATS
                     };
                     Process P = Runtime.getRuntime().exec(cmd);
-                    BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
                     try {
-                        // Skip the headers
-                        String line;
-                        while((line=in.readLine())!=null && line.length()>0);
-
-                        // Write the rest in blocks
-                        byte[] buff=BufferManager.getBytes();
+                        P.getOutputStream().close();
+                        BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
                         try {
-                            char[] chars=BufferManager.getChars();
-                            try {
-                                int ret;
-                                while((ret=in.read(chars, 0, BufferManager.BUFFER_SIZE))!=-1) {
-                                    // Convert to bytes by simple cast
-                                    for(int c=0;c<ret;c++) buff[c]=(byte)chars[c];
+                            // Skip the headers
+                            String line;
+                            while((line=in.readLine())!=null && line.length()>0);
 
-                                    out.write(AOServDaemonProtocol.NEXT);
-                                    out.writeShort(ret);
-                                    out.write(buff, 0, ret);
+                            // Write the rest in blocks
+                            byte[] buff=BufferManager.getBytes();
+                            try {
+                                char[] chars=BufferManager.getChars();
+                                try {
+                                    int ret;
+                                    while((ret=in.read(chars, 0, BufferManager.BUFFER_SIZE))!=-1) {
+                                        // Convert to bytes by simple cast
+                                        for(int c=0;c<ret;c++) buff[c]=(byte)chars[c];
+
+                                        out.write(AOServDaemonProtocol.NEXT);
+                                        out.writeShort(ret);
+                                        out.write(buff, 0, ret);
+                                    }
+                                } finally {
+                                    BufferManager.release(chars);
                                 }
                             } finally {
-                                BufferManager.release(chars);
+                                BufferManager.release(buff);
                             }
                         } finally {
-                            BufferManager.release(buff);
+                            in.close();
                         }
                     } finally {
-                        in.close();
+                        // Wait for the process to complete
+                        try {
+                            int retCode = P.waitFor();
+                            if(retCode!=0) throw new IOException("Non-zero return status: "+retCode);
+                        } catch (InterruptedException err) {
+                            AOServDaemon.reportWarning(err, null);
+                        }
                     }
                 } else {
                     throw new IOException("Unsupported queryString for awstats.pl: "+queryString);

@@ -49,7 +49,7 @@ final public class MajordomoManager extends BuilderThread {
                 LinuxGroup mailLG=connector.linuxGroups.get(LinuxGroup.MAIL);
                 if(mailLG==null) throw new SQLException("Unable to find LinuxGroup: "+LinuxGroup.MAIL);
                 LinuxServerGroup mailLSG=mailLG.getLinuxServerGroup(aoServer);
-                if(mailLSG==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+aoServer.getServer().getHostname());
+                if(mailLSG==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+aoServer.getHostname());
                 int mailGID=mailLSG.getGID().getID();
 
                 // A list of things to be deleted is maintained

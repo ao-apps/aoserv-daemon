@@ -77,42 +77,46 @@ final public class NetStatMonitor implements Runnable {
                         
                         // Parse through each net bind returned by netstat
                         Process P=Runtime.getRuntime().exec(netstat);
-                        BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
-			try {
-			    List<NetStat> allNetStats=new SortedArrayList<NetStat>();
-			    String line;
-			    while((line=in.readLine())!=null) {
-				NetStat netStat=NetStat.parseNetStat(line);
-				if(netStat!=null) {
-                                    // Skip port 1 raw
-				    if(netStat.port!=1 || !netStat.net_protocol.equals(NetProtocol.RAW)) {
-					// Must be unique to continue
-					if(!allNetStats.contains(netStat)) {
-					    allNetStats.add(netStat);
-					    // Find one or more matches and remove, otherwise add to extra bind info
-					    boolean found=false;
-					    for(int c=0;c<dbBinds.size();c++) {
-						NetBind nb=dbBinds.get(c);
-						if(
-						   nb.getIPAddress().getIPAddress().equals(netStat.ip_address)
-						   && nb.getNetProtocol().getProtocol().equals(netStat.net_protocol)
-						   && nb.getPort().getPort()==netStat.port
-						   ) {
-						    dbBinds.remove(c);
-						    c--;
-						    found=true;
-						}
-					    }
-					    if(!found) extraBinds.add(netStat);
-					}
-				    }
-				}
-			    }
-			} finally {
-			    in.close();
-			}
-                        int retCode=P.waitFor();
-                        if(retCode!=0) throw new IOException("Non-zero return code from /bin/netstat: "+retCode);
+                        try {
+                            P.getOutputStream().close();
+                            BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
+                            try {
+                                List<NetStat> allNetStats=new SortedArrayList<NetStat>();
+                                String line;
+                                while((line=in.readLine())!=null) {
+                                    NetStat netStat=NetStat.parseNetStat(line);
+                                    if(netStat!=null) {
+                                        // Skip port 1 raw
+                                        if(netStat.port!=1 || !netStat.net_protocol.equals(NetProtocol.RAW)) {
+                                            // Must be unique to continue
+                                            if(!allNetStats.contains(netStat)) {
+                                                allNetStats.add(netStat);
+                                                // Find one or more matches and remove, otherwise add to extra bind info
+                                                boolean found=false;
+                                                for(int c=0;c<dbBinds.size();c++) {
+                                                    NetBind nb=dbBinds.get(c);
+                                                    if(
+                                                       nb.getIPAddress().getIPAddress().equals(netStat.ip_address)
+                                                       && nb.getNetProtocol().getProtocol().equals(netStat.net_protocol)
+                                                       && nb.getPort().getPort()==netStat.port
+                                                       ) {
+                                                        dbBinds.remove(c);
+                                                        c--;
+                                                        found=true;
+                                                    }
+                                                }
+                                                if(!found) extraBinds.add(netStat);
+                                            }
+                                        }
+                                    }
+                                }
+                            } finally {
+                                in.close();
+                            }
+                        } finally {
+                            int retCode=P.waitFor();
+                            if(retCode!=0) throw new IOException("Non-zero return code from /bin/netstat: "+retCode);
+                        }
                         
                         // Report and discrepancy
                         int missing=0;

@@ -130,4 +130,51 @@ final public class ServerManager {
             Profiler.endProfile(Profiler.INSTANTANEOUS);
         }
     }
+
+    public static String get3wareRaidReport() throws IOException {
+        Profiler.startProfile(Profiler.UNKNOWN, ServerManager.class, "get3wareRaidReport()", null);
+        try {
+            String[] command = {
+                "/opt/tw_cli/tw_cli",
+                "show"
+            };
+            return AOServDaemon.execAndCapture(command);
+        } finally {
+            Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
+
+    public static String getMdRaidReport() throws IOException {
+        Profiler.startProfile(Profiler.UNKNOWN, ServerManager.class, "getMdRaidReport()", null);
+        try {
+            File procFile = new File("/proc/mdstat");
+            String report;
+            if(procFile.exists()) {
+		StringBuilder SB=new StringBuilder();
+                InputStream in=new BufferedInputStream(new FileInputStream(procFile));
+		try {
+		    int ch;
+		    while((ch=in.read())!=-1) SB.append((char)ch);
+		} finally {
+		    in.close();
+		}
+                report = SB.toString();
+            } else report="";
+            return report;
+        } finally {
+            Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
+
+    public static String getDrbdReport() throws IOException {
+        Profiler.startProfile(Profiler.UNKNOWN, ServerManager.class, "getDrbdReport()", null);
+        try {
+            String[] command = {
+                "/opt/aoserv-daemon/bin/drbdcstate"
+            };
+            return AOServDaemon.execAndCapture(command);
+        } finally {
+            Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
 }

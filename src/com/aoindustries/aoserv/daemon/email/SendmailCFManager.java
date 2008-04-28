@@ -155,7 +155,7 @@ final public class SendmailCFManager extends BuilderThread {
                                 + "define(`confMAX_QUEUE_CHILDREN',`100')dnl\n"
                                 + "define(`confMIN_FREE_BLOCKS',`65536')dnl\n"
                                 + "define(`confNICE_QUEUE_RUN',`10')dnl\n"
-                                + "define(`confPROCESS_TITLE_PREFIX',`").print(aoServer.getServer().getHostname()).print("')dnl\n"
+                                + "define(`confPROCESS_TITLE_PREFIX',`").print(aoServer.getHostname()).print("')dnl\n"
                                 + "dnl\n");
                         if(AOServDaemonConfiguration.isManagerEnabled(JilterConfigurationWriter.class)) {
                             out.print("dnl Enable Jilter\n"
@@ -175,7 +175,7 @@ final public class SendmailCFManager extends BuilderThread {
                                 !ip.equals(IPAddress.LOOPBACK_IP)
                                 && !finishedIPs.contains(ip)
                             ) {
-                                out.print("DAEMON_OPTIONS(`Addr=").print(ip).print(", Family=inet, Port=").print(nb.getPort().getPort()).print(", Name=").print(ia.isWildcard()?aoServer.getServer().getHostname():ia.getHostname()).print("-MTA, Modifiers=");
+                                out.print("DAEMON_OPTIONS(`Addr=").print(ip).print(", Family=inet, Port=").print(nb.getPort().getPort()).print(", Name=").print(ia.isWildcard()?aoServer.getHostname():ia.getHostname()).print("-MTA, Modifiers=");
                                 if(ia.isWildcard()) out.print("h");
                                 else out.print("bh");
                                 out.print("')dnl\n"); // AO added
@@ -191,7 +191,7 @@ final public class SendmailCFManager extends BuilderThread {
                                 !ip.equals(IPAddress.LOOPBACK_IP)
                                 && !finishedIPs.contains(ip)
                             ) {
-                                out.print("DAEMON_OPTIONS(`Addr=").print(ip).print(", Family=inet, Port=").print(nb.getPort().getPort()).print(", Name=").print(ia.isWildcard()?aoServer.getServer().getHostname():ia.getHostname()).print("-TLSMSA, Modifiers=");
+                                out.print("DAEMON_OPTIONS(`Addr=").print(ip).print(", Family=inet, Port=").print(nb.getPort().getPort()).print(", Name=").print(ia.isWildcard()?aoServer.getHostname():ia.getHostname()).print("-TLSMSA, Modifiers=");
                                 if(ia.isWildcard()) out.print("hs");
                                 else out.print("bhs");
                                 out.print("')dnl\n"); // AO added
@@ -207,7 +207,7 @@ final public class SendmailCFManager extends BuilderThread {
                                 !ip.equals(IPAddress.LOOPBACK_IP)
                                 && !finishedIPs.contains(ip)
                             ) {
-                                out.print("DAEMON_OPTIONS(`Addr=").print(ip).print(", Family=inet, Port=").print(nb.getPort().getPort()).print(", Name=").print(ia.isWildcard()?aoServer.getServer().getHostname():ia.getHostname()).print("-MSA, Modifiers=");
+                                out.print("DAEMON_OPTIONS(`Addr=").print(ip).print(", Family=inet, Port=").print(nb.getPort().getPort()).print(", Name=").print(ia.isWildcard()?aoServer.getHostname():ia.getHostname()).print("-MSA, Modifiers=");
                                 if(ia.isWildcard()) out.print("Eh");
                                 else out.print("Ebh");
                                 out.print("')dnl\n"); // AO added
@@ -226,7 +226,7 @@ final public class SendmailCFManager extends BuilderThread {
                         }
                         out.print("MAILER(smtp)dnl\n"
                                 + "MAILER(procmail)dnl\n"
-                                + "Dj").print(aoServer.getServer().getHostname()).print("\n" // AO added
+                                + "Dj").print(aoServer.getHostname()).print("\n" // AO added
                                 + "\n"
                         );
                     } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
@@ -264,7 +264,7 @@ final public class SendmailCFManager extends BuilderThread {
                     if(!newCF.contentEquals(oldCF)) {
                         newCF.renameTo(oldCF);
 
-                        if(!aoServer.isQmail()) reloadSendmail();
+                        /*if(!aoServer.isQmail())*/ reloadSendmail();
                     } else newCF.delete();
                 } else newMC.delete();
             }

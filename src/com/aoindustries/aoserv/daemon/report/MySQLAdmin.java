@@ -40,21 +40,25 @@ final public class MySQLAdmin extends DBReportData {
                     "--password="+password,
                     "status"
                 };
+                String line;
                 Process P=Runtime.getRuntime().exec(cmd);
-                BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
-		String line;
-		try {
-		    line=in.readLine();
-		} finally {
-		    in.close();
-		}
                 try {
-                    int retCode=P.waitFor();
-                    if(retCode!=0) throw new IOException("/usr/bin/mysqladmin returned with non-zero status: "+retCode);
-                } catch(InterruptedException err) {
-                    InterruptedIOException ioErr=new InterruptedIOException();
-                    ioErr.initCause(err);
-                    throw ioErr;
+                    P.getOutputStream().close();
+                    BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
+                    try {
+                        line=in.readLine();
+                    } finally {
+                        in.close();
+                    }
+                } finally {
+                    try {
+                        int retCode=P.waitFor();
+                        if(retCode!=0) throw new IOException("/usr/bin/mysqladmin returned with non-zero status: "+retCode);
+                    } catch(InterruptedException err) {
+                        InterruptedIOException ioErr=new InterruptedIOException();
+                        ioErr.initCause(err);
+                        throw ioErr;
+                    }
                 }
 
                 // Parse out the number of users

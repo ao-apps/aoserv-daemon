@@ -36,6 +36,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
         Profiler.endProfile(Profiler.INSTANTANEOUS);
     }
 
+    /*
     public static void backupDatabase(CompressedDataInputStream masterIn, CompressedDataOutputStream masterOut) throws IOException, SQLException {
         Profiler.startProfile(Profiler.IO, PostgresDatabaseManager.class, "backupDatabase(CompressedDataInputStream,CompressedDataOutputStream)", null);
         try {
@@ -60,6 +61,8 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                 dbName
             };
             Process P=Runtime.getRuntime().exec(command);
+     * try.. finally on P
+     * P.getOutputStream().close();
             BufferedReader dumpIn=new BufferedReader(new InputStreamReader(P.getInputStream()));
             long dataSize=Long.parseLong(dumpIn.readLine());
             List<UnixFile> unixFiles=new ArrayList<UnixFile>();
@@ -181,7 +184,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
             Profiler.endProfile(Profiler.IO);
         }
     }
-
+*/
     private static final Object rebuildLock=new Object();
     protected void doRebuild() throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, PostgresDatabaseManager.class, "doRebuild()", null);
@@ -314,7 +317,6 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                     dbName.equals(PostgresDatabase.TEMPLATE0)
                                     || dbName.equals(PostgresDatabase.TEMPLATE1)
                                     || dbName.equals(PostgresDatabase.AOSERV)
-                                    || dbName.equals(PostgresDatabase.AOSERV_BACKUP)
                                     || dbName.equals(PostgresDatabase.AOINDUSTRIES)
                                     || dbName.equals(PostgresDatabase.AOWEB)
                                 ) throw new SQLException("AOServ Daemon will not automatically drop database, please drop manually: "+dbName);

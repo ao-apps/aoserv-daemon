@@ -101,7 +101,7 @@ public final class ProcmailManager extends BuilderThread {
                                     List<LinuxAccAddress> addresses=lsa.getLinuxAccAddresses();
 
                                     // The same X-Loop is used for attachment filters and autoresponders
-                                    String xloopAddress=username+'@'+lsa.getAOServer().getServer().getHostname();
+                                    String xloopAddress=username+'@'+lsa.getAOServer().getHostname();
 
                                     // The default from address
                                     String defaultFromAddress;

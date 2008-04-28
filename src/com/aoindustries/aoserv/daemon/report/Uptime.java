@@ -27,21 +27,25 @@ final public class Uptime {
     public Uptime() throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, Uptime.class, "<init>()", null);
         try {
+            String line;
             Process P=Runtime.getRuntime().exec(cmd);
-            BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
-	    String line;
-	    try {
-		line=in.readLine();
-	    } finally {
-		in.close();
-	    }
             try {
-                int retCode=P.waitFor();
-                if(retCode!=0) throw new IOException("/usr/bin/uptime exited with non-zero status: "+retCode);
-            } catch(InterruptedException err) {
-                InterruptedIOException ioErr=new InterruptedIOException();
-                ioErr.initCause(err);
-                throw ioErr;
+                P.getOutputStream().close();
+                BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
+                try {
+                    line=in.readLine();
+                } finally {
+                    in.close();
+                }
+            } finally {
+                try {
+                    int retCode=P.waitFor();
+                    if(retCode!=0) throw new IOException("/usr/bin/uptime exited with non-zero status: "+retCode);
+                } catch(InterruptedException err) {
+                    InterruptedIOException ioErr=new InterruptedIOException();
+                    ioErr.initCause(err);
+                    throw ioErr;
+                }
             }
             if(line==null) throw new EOFException("Nothing output by /usr/bin/uptime");
 

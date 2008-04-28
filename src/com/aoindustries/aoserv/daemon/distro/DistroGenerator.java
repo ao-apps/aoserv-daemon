@@ -500,6 +500,7 @@ final public class DistroGenerator extends Thread {
                                     };
                                     Process P = Runtime.getRuntime().exec(command);
                                     try {
+                                        P.getOutputStream().close();
                                         BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()));
                                         try {
                                             String line = in.readLine();

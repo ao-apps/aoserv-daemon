@@ -5,9 +5,8 @@ package com.aoindustries.aoserv.daemon.failover;
  * 816 Azalea Rd, Mobile, Alabama, 36693, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.io.unix.FilesystemIterator;
-import com.aoindustries.io.unix.FilesystemIteratorResult;
-import com.aoindustries.io.unix.FilesystemIteratorRule;
+import com.aoindustries.io.FilesystemIterator;
+import com.aoindustries.io.FilesystemIteratorRule;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.util.StringUtility;
@@ -115,10 +114,10 @@ final public class HardLinkVarBackup {
                                 uf.getStat(ufStat);
                                 if(ufStat.isDirectory()) {
                                     out.print("Scanning "); out.println(path);
-                                    Map<String,FilesystemIteratorRule> rules = Collections.emptyMap();
+                                    Map<String,FilesystemIteratorRule> rules = Collections.singletonMap(path, FilesystemIteratorRule.OK);
                                     Map<String,FilesystemIteratorRule> prefixRules = Collections.emptyMap();
                                     iteratorStartsList.add(path);
-                                    iteratorList.add(new FilesystemIterator(rules, prefixRules, false, path));
+                                    iteratorList.add(new FilesystemIterator(rules, prefixRules, path));
                                 }
                             } catch(IOException ioExc) {
                                 ioExc.printStackTrace(err);
@@ -141,14 +140,11 @@ final public class HardLinkVarBackup {
             varBackup=null;
             iteratorList=null;
 
-            // One instance used for all calls
-            final FilesystemIteratorResult result = new FilesystemIteratorResult();
-
             // Start all on first path
             for(int c=0;c<numIterators;c++) {
                 try {
-                    FilesystemIteratorResult currentResult = iterators[c].getNextResult(result);
-                    UnixFile uf = currentResult==null ? null : currentResult.getUnixFile();
+                    File file = iterators[c].getNextFile();
+                    UnixFile uf = file==null ? null : new UnixFile(file);
                     unixFiles[c]=uf;
                     relativePaths[c]=uf==null ? null : uf.getFilename().substring(iteratorStarts[c].length());
                 } catch(IOException ioExc) {
@@ -300,8 +296,8 @@ final public class HardLinkVarBackup {
                         if(isLowestRelativePaths[c]) {
                         //if(relativePaths[c].equals(lowestRelativePath)) {
                             try {
-                                FilesystemIteratorResult currentResult = iterators[c].getNextResult(result);
-                                UnixFile newUf = currentResult==null ? null : currentResult.getUnixFile();
+                                File file = iterators[c].getNextFile();
+                                UnixFile newUf = file==null ? null : new UnixFile(file);
                                 unixFiles[c]=newUf;
                                 relativePaths[c]=newUf==null ? null : newUf.getFilename().substring(iteratorStarts[c].length());
                             } catch(IOException ioExc) {

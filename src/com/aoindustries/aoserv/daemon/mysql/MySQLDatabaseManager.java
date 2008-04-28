@@ -141,21 +141,25 @@ final public class MySQLDatabaseManager extends BuilderThread {
                     Integer.toString(ms.getNetBind().getPort().getPort()),
                     tempFile.getFilename()
                 };
-                Process P=Runtime.getRuntime().exec(command);
                 long dataSize;
-                BufferedReader dumpIn=new BufferedReader(new InputStreamReader(P.getInputStream()));
+                Process P=Runtime.getRuntime().exec(command);
                 try {
-                    dataSize=Long.parseLong(dumpIn.readLine());
+                    P.getOutputStream().close();
+                    BufferedReader dumpIn=new BufferedReader(new InputStreamReader(P.getInputStream()));
+                    try {
+                        dataSize=Long.parseLong(dumpIn.readLine());
+                    } finally {
+                        dumpIn.close();
+                    }
                 } finally {
-                    dumpIn.close();
-                }
-                try {
-                    int retCode=P.waitFor();
-                    if(retCode!=0) throw new IOException("backup_mysql_database exited with non-zero return code: "+retCode);
-                } catch(InterruptedException err) {
-                    InterruptedIOException ioErr=new InterruptedIOException();
-                    ioErr.initCause(err);
-                    throw ioErr;
+                    try {
+                        int retCode=P.waitFor();
+                        if(retCode!=0) throw new IOException("backup_mysql_database exited with non-zero return code: "+retCode);
+                    } catch(InterruptedException err) {
+                        InterruptedIOException ioErr=new InterruptedIOException();
+                        ioErr.initCause(err);
+                        throw ioErr;
+                    }
                 }
 
                 MD5InputStream md5In=new MD5InputStream(new CorrectedGZIPInputStream(new BufferedInputStream(new FileInputStream(tempFile.getFilename()))));

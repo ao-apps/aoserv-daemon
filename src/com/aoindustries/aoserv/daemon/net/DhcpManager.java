@@ -35,13 +35,17 @@ final public class DhcpManager implements Runnable {
             };
 	    String ip;
             Process P=Runtime.getRuntime().exec(cmd);
-            BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
             try {
-                ip=in.readLine();
+                P.getOutputStream().close();
+                BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
+                try {
+                    ip=in.readLine();
+                } finally {
+                    in.close();
+                }
             } finally {
-                in.close();
+                AOServDaemon.waitFor(cmd, P);
             }
-            AOServDaemon.waitFor(cmd, P);
             if(ip==null || (ip=ip.trim()).length()==0) throw new IOException("Unable to find IP address for device: "+device);
             return ip;
         } finally {

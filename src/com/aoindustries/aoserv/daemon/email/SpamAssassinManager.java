@@ -222,7 +222,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 
                         // Find the account based on UID
                         LinuxServerAccount lsa=aoServer.getLinuxServerAccount(currentUID);
-                        if(lsa==null) AOServDaemon.reportWarning(new SQLException("Unable to find LinuxServerAccount"), new Object[] {"aoServer="+aoServer.getServer().getHostname(), "currentUID="+currentUID});
+                        if(lsa==null) AOServDaemon.reportWarning(new SQLException("Unable to find LinuxServerAccount"), new Object[] {"aoServer="+aoServer.getHostname(), "currentUID="+currentUID});
                         else {
                             String username=lsa.getLinuxAccount().getUsername().getUsername();
 

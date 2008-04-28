@@ -46,10 +46,10 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
     /**
      * qmail configs
      */
-    private static final String
+    /*private static final String
         qmailFile="/etc/tcp.smtp",
         newQmailFile="/etc/tcp.smtp.new"
-    ;
+    ;*/
 
     private static SmtpRelayManager smtpRelayManager;
 
@@ -68,7 +68,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             EmailSmtpRelayType allowRelay=connector.emailSmtpRelayTypes.get(EmailSmtpRelayType.ALLOW_RELAY);
-            boolean isQmail=server.isQmail();
+            //boolean isQmail=server.isQmail();
 
             synchronized(rebuildLock) {
                 // The IP addresses that have been used
@@ -77,7 +77,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
                 UnixFile access, newFile;
                 ChainWriter out=null;
                 try {
-                    if(isQmail) {
+                    /*if(isQmail) {
                         out=new ChainWriter(
                             new BufferedOutputStream(
                                 new UnixFile(newQmailFile).getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)
@@ -86,7 +86,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 
                         access=new UnixFile(qmailFile);
                         newFile=new UnixFile(newQmailFile);
-                    } else {
+                    } else {*/
                         // Rebuild the new config file
                         out=new ChainWriter(
                             new BufferedOutputStream(
@@ -97,14 +97,14 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 
                         access=new UnixFile(ACCESS_FILENAME);
                         newFile=new UnixFile(NEW_FILE);
-                    }
+                    //}
 
                     // Allow all of the local IP addresses
                     for(NetDevice nd : server.getNetDevices()) {
                         for(IPAddress ia : nd.getIPAddresses()) {
                             String ip=ia.getIPAddress();
                             if(!usedIPs.contains(ip)) {
-                                writeAccessLine(out, ip, allowRelay, isQmail);
+                                writeAccessLine(out, ip, allowRelay/*, isQmail*/);
                                 usedIPs.add(ip);
                             }
                         }
@@ -124,7 +124,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
                                 if(expiration==EmailSmtpRelay.NO_EXPIRATION || expiration>System.currentTimeMillis()) {
                                     String ip=ssr.getHost();
                                     if(!usedIPs.contains(ip)) {
-                                        writeAccessLine(out, ip, esrt, isQmail);
+                                        writeAccessLine(out, ip, esrt/*, isQmail*/);
                                         usedIPs.add(ip);
                                     }
                                 }
@@ -145,7 +145,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
                                 if(expiration==EmailSmtpRelay.NO_EXPIRATION || expiration>System.currentTimeMillis()) {
                                     String ip=ssr.getHost();
                                     if(!usedIPs.contains(ip)) {
-                                        writeAccessLine(out, ip, esrt, isQmail);
+                                        writeAccessLine(out, ip, esrt/*, isQmail*/);
                                         usedIPs.add(ip);
                                     }
                                 }
@@ -168,11 +168,11 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
             Profiler.endProfile(Profiler.UNKNOWN);
         }
     }
-    private static void writeAccessLine(ChainWriter out, String host, EmailSmtpRelayType type, boolean isQmail) throws IOException, SQLException {
+    private static void writeAccessLine(ChainWriter out, String host, EmailSmtpRelayType type/*, boolean isQmail*/) throws IOException, SQLException {
         Profiler.startProfile(Profiler.IO, SmtpRelayManager.class, "writeAccessLine(ChainWriter,String,EmailSmtpRelayType,boolean)", null);
         try {
-            if(isQmail) out.print(host).print(':').print(StringUtility.replace(type.getQmailConfig(), "%h", host)).print('\n');
-            else out.print("Connect:").print(host).print('\t').print(StringUtility.replace(type.getSendmailConfig(), "%h", host)).print('\n');
+            /*if(isQmail) out.print(host).print(':').print(StringUtility.replace(type.getQmailConfig(), "%h", host)).print('\n');
+            else*/ out.print("Connect:").print(host).print('\t').print(StringUtility.replace(type.getSendmailConfig(), "%h", host)).print('\n');
         } finally {
             Profiler.endProfile(Profiler.IO);
         }
@@ -197,10 +197,10 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
         }
     }
 
-    private static final String[] qmailctlCdbCommand={
+    /*private static final String[] qmailctlCdbCommand={
         "/var/qmail/bin/qmailctl",
         "cdb"
-    };
+    };*/
 
     private static final String[] mandrivaSendmailMakemapCommand={
         "/usr/aoserv/daemon/bin/make_sendmail_access_map"
@@ -214,13 +214,13 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
         Profiler.startProfile(Profiler.UNKNOWN, SmtpRelayManager.class, "makeAccessMap()", null);
         try {
             String[] command;
-            if(AOServDaemon.getThisAOServer().isQmail()) command = qmailctlCdbCommand;
-            else {
+            /*if(AOServDaemon.getThisAOServer().isQmail()) command = qmailctlCdbCommand;
+            else {*/
                 int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
                 if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) command = mandrivaSendmailMakemapCommand;
                 else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) command = redhatSendmailMakemapCommand;
                 else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-            }
+            //}
             AOServDaemon.exec(command);
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);

@@ -5,7 +5,6 @@ package com.aoindustries.aoserv.daemon;
  * 816 Azalea Rd, Mobile, Alabama, 36693, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.backup.BackupDaemon;
 import com.aoindustries.aoserv.client.AOServClientConfiguration;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
@@ -13,7 +12,6 @@ import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.SSLConnector;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.client.Shell;
-import com.aoindustries.aoserv.daemon.backup.AOServerEnvironment;
 import com.aoindustries.aoserv.daemon.cvsd.CvsManager;
 import com.aoindustries.aoserv.daemon.distro.DistroManager;
 import com.aoindustries.aoserv.daemon.dns.DNSManager;
@@ -23,10 +21,8 @@ import com.aoindustries.aoserv.daemon.email.MajordomoManager;
 import com.aoindustries.aoserv.daemon.email.ProcmailManager;
 import com.aoindustries.aoserv.daemon.email.SendmailCFManager;
 import com.aoindustries.aoserv.daemon.email.SmtpRelayManager;
-import com.aoindustries.aoserv.daemon.email.SmtpStatManager;
 import com.aoindustries.aoserv.daemon.email.SpamAssassinManager;
 import com.aoindustries.aoserv.daemon.email.jilter.JilterConfigurationWriter;
-import com.aoindustries.aoserv.daemon.email.maillog.MailLogReader;
 import com.aoindustries.aoserv.daemon.failover.FailoverFileReplicationManager;
 import com.aoindustries.aoserv.daemon.ftp.FTPManager;
 import com.aoindustries.aoserv.daemon.httpd.AWStatsManager;
@@ -48,14 +44,13 @@ import com.aoindustries.aoserv.daemon.postgres.PostgresDatabaseManager;
 import com.aoindustries.aoserv.daemon.postgres.PostgresServerManager;
 import com.aoindustries.aoserv.daemon.postgres.PostgresUserManager;
 import com.aoindustries.aoserv.daemon.random.RandomEntropyManager;
-import com.aoindustries.aoserv.daemon.report.ServerReportThread;
-import com.aoindustries.aoserv.daemon.slocate.SLocateManager;
 import com.aoindustries.aoserv.daemon.timezone.TimeZoneManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.email.ErrorMailer;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.profiler.Profiler;
+import com.aoindustries.util.BufferManager;
 import com.aoindustries.util.ErrorHandler;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.IntList;
@@ -63,7 +58,9 @@ import com.aoindustries.util.StringUtility;
 import com.aoindustries.util.WrappedException;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
+import java.io.Reader;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.Security;
@@ -220,14 +217,8 @@ final public class AOServDaemon {
                     }
                 }
 
-                // Start up the resource monitoring
-                ServerReportThread.startThread();
-                SmtpStatManager.start();
-                MailLogReader.start();
-
                 // Start up the managers
                 AWStatsManager.start();
-                if(AOServDaemonConfiguration.isManagerEnabled(AOServerEnvironment.class)) BackupDaemon.start(new AOServerEnvironment());
                 CvsManager.start();
                 DhcpManager.start();
                 DistroManager.start();
@@ -258,7 +249,6 @@ final public class AOServDaemon {
                 SendmailCFManager.start();
                 SpamAssassinManager.start();
                 SshdManager.start();
-                SLocateManager.start();
                 SmtpRelayManager.start();
                 XinetdManager.start();
                 TimeZoneManager.start();
@@ -492,19 +482,26 @@ final public class AOServDaemon {
                 System.out.println(getCommandString(command));
             }
             Process P = Runtime.getRuntime().exec(command);
-            waitFor(command, P);
+            try {
+                P.getOutputStream().close();
+            } finally {
+                waitFor(command, P);
+            }
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);
         }
     }
 
+    /**
+     * TODO: Capture error stream
+     */
     public static void waitFor(String[] command, Process P) throws IOException {
         Profiler.startProfile(Profiler.UNKNOWN, AOServDaemon.class, "waitFor(String[],Process)", null);
         try {
             try {
                 P.waitFor();
             } catch (InterruptedException err) {
-                InterruptedIOException ioErr=new InterruptedIOException();
+                InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
                 ioErr.initCause(err);
                 throw ioErr;
             }
@@ -518,6 +515,61 @@ final public class AOServDaemon {
             }
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
+
+    /**
+     * Executes a command and captures the output.
+     */
+    public static String execAndCapture(String[] command) throws IOException {
+        Process P = Runtime.getRuntime().exec(command);
+        try {
+            P.getOutputStream().close();
+            // Read the results
+            Reader in = new InputStreamReader(P.getInputStream());
+            try {
+                StringBuilder sb = new StringBuilder();
+                char[] buff = BufferManager.getChars();
+                try {
+                    int count;
+                    while((count=in.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
+                        sb.append(buff, 0, count);
+                    }
+                    return sb.toString();
+                } finally {
+                    BufferManager.release(buff);
+                }
+            } finally {
+                in.close();
+            }
+        } finally {
+            // TODO: Put into waitFor and use here
+            
+            // Read the standard error
+            StringBuilder errorSB = new StringBuilder();
+            Reader errIn = new InputStreamReader(P.getErrorStream());
+            try {
+                char[] buff = BufferManager.getChars();
+                try {
+                    int ret;
+                    while((ret=errIn.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) errorSB.append(buff, 0, ret);
+                } finally {
+                    BufferManager.release(buff);
+                }
+            } finally {
+                errIn.close();
+            }
+            // Write any standard error to standard error
+            String errorString = errorSB.toString();
+            if(errorString.length()>0) System.err.println("'"+getCommandString(command)+"': "+errorString);
+            try {
+                int retCode = P.waitFor();
+                if(retCode!=0) throw new IOException("Non-zero exit status from '"+getCommandString(command)+"': "+retCode+", standard error was: "+errorString);
+            } catch(InterruptedException err) {
+                InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
+                ioErr.initCause(err);
+                throw ioErr;
+            }
         }
     }
 

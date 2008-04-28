@@ -63,7 +63,6 @@ abstract public class UnixProcess {
     public void killProc() throws IOException {
         Profiler.startProfile(Profiler.UNKNOWN, UnixProcess.class, "killProc()", null);
         try {
-            Runtime runtime=Runtime.getRuntime();
             String pidS=String.valueOf(pid);
             if(isRunning()) {
                 String[] cmd={"/bin/kill", "-SIGTERM", pidS};

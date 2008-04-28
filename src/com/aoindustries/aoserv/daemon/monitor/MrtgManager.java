@@ -110,8 +110,8 @@ final public class MrtgManager extends BuilderThread {
                                 + "  <center>\n"
                                 + "  <h1>\n"
                                 + "  <img src=\"https://www.aoindustries.com/images/clientarea/accounting/SendInvoices.jpg\"><br>\n"
-                                + "  <font color=\"000000\">").print(thisAOServer.getServer().getHostname());
-                        if(failoverServer!=null) out.print(" on ").print(failoverServer.getServer().getHostname());
+                                + "  <font color=\"000000\">").print(thisAOServer.getHostname());
+                        if(failoverServer!=null) out.print(" on ").print(failoverServer.getHostname());
                         out.print("</font>\n"
                                 + "  </h1>\n"
                                 + "  <hr><font size=\"1\">\n"
@@ -334,8 +334,8 @@ final public class MrtgManager extends BuilderThread {
                                 + "      <center>\n"
                                 + "        <h1>\n"
                                 + "          <img src=\"https://www.aoindustries.com/images/clientarea/accounting/SendInvoices.jpg\"><br>\n"
-                                + "	  <font color=\"000000\">").print(thisAOServer.getServer().getHostname());
-                        if(failoverServer!=null) out.print(" on ").print(failoverServer.getServer().getHostname());
+                                + "	  <font color=\"000000\">").print(thisAOServer.getHostname());
+                        if(failoverServer!=null) out.print(" on ").print(failoverServer.getHostname());
                         out.print("</font>\n"
                                 + "        </h1>\n"
                                 + "        <hr>\n"
@@ -535,21 +535,28 @@ final public class MrtgManager extends BuilderThread {
                 : "/usr/aoserv/daemon/bin/list_partitions"
             }
         );
-        BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()));
-        String line;
-        while((line=in.readLine())!=null) {
-            if(devices.contains(line)) {
-                AOServDaemon.reportWarning(new Throwable("Warning: duplicate device from list_partitions: "+line), null);
-            } else {
-                devices.add(line);
-            }
-        }
-        in.close();
         try {
-            int retCode = P.waitFor();
-            if(retCode!=0) throw new IOException("Non-zero return value from list_partitions: "+retCode);
-        } catch(InterruptedException err) {
-            AOServDaemon.reportWarning(err, null);
+            P.getOutputStream().close();
+            BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()));
+            try {
+                String line;
+                while((line=in.readLine())!=null) {
+                    if(devices.contains(line)) {
+                        AOServDaemon.reportWarning(new Throwable("Warning: duplicate device from list_partitions: "+line), null);
+                    } else {
+                        devices.add(line);
+                    }
+                }
+            } finally {
+                in.close();
+            }
+        } finally {
+            try {
+                int retCode = P.waitFor();
+                if(retCode!=0) throw new IOException("Non-zero return value from list_partitions: "+retCode);
+            } catch(InterruptedException err) {
+                AOServDaemon.reportWarning(err, null);
+            }
         }
 
         Collections.sort(devices);

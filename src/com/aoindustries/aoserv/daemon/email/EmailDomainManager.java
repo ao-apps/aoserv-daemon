@@ -33,11 +33,11 @@ public final class EmailDomainManager extends BuilderThread {
     /**
      * qmail configs.
      */
-    private static final UnixFile
+    /*private static final UnixFile
         newRcptHosts=new UnixFile("/etc/qmail/rcpthosts.new"),
         rcptHosts=new UnixFile("/etc/qmail/rcpthosts"),
         oldRcptHosts=new UnixFile("/etc/qmail/rcpthosts.old")
-    ;
+    ;*/
 
     private static EmailDomainManager emailDomainManager;
 
@@ -65,8 +65,8 @@ public final class EmailDomainManager extends BuilderThread {
                 List<EmailDomain> domains = thisAOServer.getEmailDomains();
 
                 // Create the new file
-                boolean isQmail=thisAOServer.isQmail();
-                UnixFile unixFile=isQmail?newRcptHosts:newFile;
+                //boolean isQmail=thisAOServer.isQmail();
+                UnixFile unixFile=/*isQmail?newRcptHosts:*/newFile;
                 ChainWriter out = new ChainWriter(
                     new BufferedOutputStream(
                         unixFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, false)
@@ -74,7 +74,7 @@ public final class EmailDomainManager extends BuilderThread {
                 );
 		try {
 		    // qmail always lists localhost
-		    if(isQmail) out.print("localhost\n");
+		    // if(isQmail) out.print("localhost\n");
 
 		    for (EmailDomain domain : domains) out.println(domain.getDomain());
 		} finally {
@@ -83,13 +83,13 @@ public final class EmailDomainManager extends BuilderThread {
 		}
 
                 // Move the old one to be backup
-                if(isQmail) {
+                /*if(isQmail) {
                     rcptHosts.renameTo(oldRcptHosts);
                     newRcptHosts.renameTo(rcptHosts);
-                } else {
+                } else {*/
                     configFile.renameTo(backupFile);
                     newFile.renameTo(configFile);
-                }
+                //}
 
                 // Reload the MTA
                 reloadMTA();
@@ -118,9 +118,9 @@ public final class EmailDomainManager extends BuilderThread {
         Profiler.startProfile(Profiler.UNKNOWN, EmailDomainManager.class, "reloadMTA()", null);
         try {
             synchronized(reloadLock) {
-                if(AOServDaemon.getThisAOServer().isQmail()) {
+                /*if(AOServDaemon.getThisAOServer().isQmail()) {
                     AOServDaemon.exec(reloadQmailCommand);
-                } else {
+                } else {*/
                     int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
                     String[] cmd;
                     //if(osv==OperatingSystemVersion.REDHAT_7_2_I686) cmd=reloadSendmailCommandRedHat7_2;
@@ -134,7 +134,7 @@ public final class EmailDomainManager extends BuilderThread {
                         cmd=reloadSendmailCommandRedHat;
                     } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                     AOServDaemon.exec(cmd);
-                }
+                //}
             }
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);

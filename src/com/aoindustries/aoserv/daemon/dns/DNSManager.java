@@ -292,7 +292,7 @@ final public class DNSManager extends BuilderThread {
                     newOut = newConfFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true);
                 } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                     LinuxServerGroup lsg = thisAOServer.getLinuxServerGroup(LinuxGroup.NAMED);
-                    if(lsg==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.NAMED+" on "+thisAOServer.getServer().getHostname());
+                    if(lsg==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.NAMED+" on "+thisAOServer.getHostname());
                     newOut = newConfFile.getSecureOutputStream(UnixFile.ROOT_UID, lsg.getGID().getID(), 0640, true);
                 } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                 try {
@@ -424,7 +424,9 @@ final public class DNSManager extends BuilderThread {
 
     private static final Object restartLock=new Object();
     private static void restart() throws IOException, SQLException {
-        if(AOServDaemon.getThisAOServer().isDNS()) {
+        Protocol dns = AOServDaemon.getConnector().protocols.get(Protocol.DNS);
+        if(dns==null) throw new SQLException("Unable to find Protocol: "+Protocol.DNS);
+        if(!AOServDaemon.getThisAOServer().getNetBinds(dns).isEmpty()) {
             synchronized(restartLock) {
                 AOServDaemon.exec(restartCommand);
             }
@@ -433,7 +435,9 @@ final public class DNSManager extends BuilderThread {
 
     public static void start() throws IOException, SQLException {
         if(AOServDaemonConfiguration.isManagerEnabled(DNSManager.class) && dnsManager==null) {
-            if(AOServDaemon.getThisAOServer().isDNS()) {
+            Protocol dns = AOServDaemon.getConnector().protocols.get(Protocol.DNS);
+            if(dns==null) throw new SQLException("Unable to find Protocol: "+Protocol.DNS);
+            if(!AOServDaemon.getThisAOServer().getNetBinds(dns).isEmpty()) {
                 synchronized(System.out) {
                     if(dnsManager==null) {
                         System.out.print("Starting DNSManager: ");
