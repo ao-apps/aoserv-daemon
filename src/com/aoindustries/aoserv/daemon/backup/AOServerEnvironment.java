@@ -21,7 +21,6 @@ import com.aoindustries.io.FilesystemIteratorRule;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -124,7 +123,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
         AOServer thisServer = AOServDaemon.getThisAOServer();
         short retention = ffr.getRetention().getDays();
         Map<String,FilesystemIteratorRule> filesystemRules=new HashMap<String,FilesystemIteratorRule>();
-        filesystemRules.put("/", FilesystemIteratorRule.OK);
+        filesystemRules.put("", FilesystemIteratorRule.OK); // Default to being included unless explicitely excluded
         filesystemRules.put("/.journal", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/aquota.user", FilesystemIteratorRule.SKIP);
         //filesystemRules.put("/backup", FilesystemIteratorRule.NO_RECURSE);
@@ -208,7 +207,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
             )
         );
         filesystemRules.put("/var/lib/mysql/.journal", FilesystemIteratorRule.SKIP);
-        String hostname = thisServer.getHostname();
+        final String hostname = thisServer.getHostname();
         filesystemRules.put("/var/lib/mysql/4.0/"+hostname+".pid", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lib/mysql/4.1/"+hostname+".pid", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lib/mysql/5.0/"+hostname+".pid", FilesystemIteratorRule.SKIP);
