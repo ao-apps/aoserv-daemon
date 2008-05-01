@@ -656,7 +656,6 @@ final public class FailoverFileReplicationManager {
                                  * When recycling, we will first try the linkTo file then the current directory.  When not recycling
                                  * we will try the current directory and then the linkTo directory.
                                  */
-
                                 if(ufStat.exists()) {
                                     // If there is a symlink that has now been replaced with a regular file, just delete the symlink to avoid confusion in the following code
                                     if(ufStat.isSymLink()) {
@@ -724,6 +723,7 @@ final public class FailoverFileReplicationManager {
                                         boolean linkedOldLogFile = false;
                                         if(!isEncryptedLoopFile && isLogDir) {
                                             // Look for another file with the same size and modify time in this partial directory
+                                            // TODO: CPU: This log directory stuff is taking a LOT of CPU time O(n^2)?
                                             UnixFile oldLogUF = null;
                                             String[] list = ufParent.list();
                                             if(list!=null) {
@@ -743,6 +743,7 @@ final public class FailoverFileReplicationManager {
                                             }
                                             if(oldLogUF==null && linkToUF!=null) {
                                                 // Look for another file with the same size and modify time in the link to directory (previous backup pass).
+                                                // TODO: CPU: This log directory stuff is taking a LOT of CPU time O(n^2)?
                                                 String[] linkToList = linkToParent.list();
                                                 if(linkToList!=null) {
                                                     for(int d=0;d<linkToList.length;d++) {
