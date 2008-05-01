@@ -211,15 +211,17 @@ public class AOServerEnvironment extends UnixFileEnvironment {
         filesystemRules.put("/var/lib/mysql/4.0/"+hostname+".pid", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lib/mysql/4.1/"+hostname+".pid", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lib/mysql/5.0/"+hostname+".pid", FilesystemIteratorRule.SKIP);
-        // Skip files for any MySQL Server that is being replicated through MySQL replication
-        List<String> replicatedMySQLServers;
-        synchronized(replicatedMySQLServerses) {
-            replicatedMySQLServers = replicatedMySQLServerses.get(ffr);
-        }
-        for(String name : replicatedMySQLServers) {
-            String path = "/var/lib/mysql/"+name;
-            filesystemRules.put(path, FilesystemIteratorRule.SKIP);
-            //if(log.isDebugEnabled()) log.debug("runFailoverCopy to "+toServer+", added skip rule for "+path);
+        if(retention==1) {
+            // Skip files for any MySQL Server that is being replicated through MySQL replication
+            List<String> replicatedMySQLServers;
+            synchronized(replicatedMySQLServerses) {
+                replicatedMySQLServers = replicatedMySQLServerses.get(ffr);
+            }
+            for(String name : replicatedMySQLServers) {
+                String path = "/var/lib/mysql/"+name;
+                filesystemRules.put(path, FilesystemIteratorRule.SKIP);
+                //if(log.isDebugEnabled()) log.debug("runFailoverCopy to "+toServer+", added skip rule for "+path);
+            }
         }
         filesystemRules.put(
             "/var/lib/pgsql/",
