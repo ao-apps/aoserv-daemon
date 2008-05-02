@@ -41,7 +41,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 //import java.util.zip.DeflaterOutputStream;
-import org.apache.commons.collections.map.LRUMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -406,7 +405,7 @@ final public class FailoverFileReplicationManager {
 
             String[] paths=null;
             boolean[] isLogDirs=null;
-            Map<UnixFile,ModifyTimeAndSizeCache> modifyTimeAndSizeCaches = getLRUMap();
+            Map<UnixFile,ModifyTimeAndSizeCache> modifyTimeAndSizeCaches = new HashMap<UnixFile,ModifyTimeAndSizeCache>();
             long totalNewLogDirNanos = 0;
             long totalOldLogDirNanos = 0;
             long lastLogDirNanosDisplayTime = -1;
@@ -429,6 +428,7 @@ final public class FailoverFileReplicationManager {
             try {
                 // The extra files in directories are cleaned once the directory is done
                 Stack<UnixFile> directoryUFs=new Stack<UnixFile>();
+                Stack<UnixFile> directoryLinkToUFs = linkToRoot==null ? null : new Stack<UnixFile>();
                 Stack<String> directoryUFRelativePaths=new Stack<String>();
                 Stack<Long> directoryModifyTimes=new Stack<Long>();
                 Stack<Set<String>> directoryContents=new Stack<Set<String>>();
@@ -436,6 +436,7 @@ final public class FailoverFileReplicationManager {
                 // The actual cleaning and modify time setting is delayed to the end of the batch by adding
                 // the lists of things to do here.
                 List<UnixFile> directoryFinalizeUFs = new ArrayList<UnixFile>();
+                List<UnixFile> directoryFinalizeLinkToUFs = linkToRoot==null ? null : new ArrayList<UnixFile>();
                 List<String> directoryFinalizeUFRelativePaths = new ArrayList<String>();
                 List<Long> directoryFinalizeModifyTimes = new ArrayList<Long>();
                 List<Set<String>> directoryFinalizeContents = new ArrayList<Set<String>>();
@@ -454,6 +455,7 @@ final public class FailoverFileReplicationManager {
                     }
                     // Reset the directory finalization for each batch
                     directoryFinalizeUFs.clear();
+                    if(directoryFinalizeLinkToUFs!=null) directoryFinalizeLinkToUFs.clear();
                     directoryFinalizeUFRelativePaths.clear();
                     directoryFinalizeModifyTimes.clear();
                     directoryFinalizeContents.clear();
@@ -463,6 +465,7 @@ final public class FailoverFileReplicationManager {
                             if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING && log.isInfoEnabled()) {
                                 long currentTime = System.currentTimeMillis();
                                 if(lastLogDirNanosDisplayTime==-1 || Math.abs(currentTime-lastLogDirNanosDisplayTime)>60000) {
+                                    log.info("modifyTimeAndSizeCachesSize="+modifyTimeAndSizeCaches.size());
                                     log.info("totalNewLogDirNanos="+totalNewLogDirNanos);
                                     log.info("totalOldLogDirNanos="+totalOldLogDirNanos);
                                     lastLogDirNanosDisplayTime = currentTime;
@@ -520,6 +523,7 @@ final public class FailoverFileReplicationManager {
                                 // Otherwise, schedule to clean and complete the directory at the end of this batch
                                 directoryUFs.pop();
                                 directoryFinalizeUFs.add(dirUF);
+                                if(directoryFinalizeLinkToUFs!=null) directoryFinalizeLinkToUFs.add(directoryLinkToUFs.pop());
                                 directoryFinalizeUFRelativePaths.add(directoryUFRelativePaths.pop());
                                 directoryFinalizeModifyTimes.add(directoryModifyTimes.pop());
                                 directoryFinalizeContents.add(directoryContents.pop());
@@ -640,6 +644,7 @@ final public class FailoverFileReplicationManager {
                                     updated(retention, postPassChecklist, relativePath);
                                 }
                                 directoryUFs.push(uf);
+                                if(directoryLinkToUFs!=null) directoryLinkToUFs.push(linkToUF);
                                 directoryUFRelativePaths.push(relativePath);
                                 directoryModifyTimes.push(Long.valueOf(modifyTime));
                                 directoryContents.push(new HashSet<String>());
@@ -1384,11 +1389,13 @@ final public class FailoverFileReplicationManager {
                     // For any directories that were completed during this batch, remove caches, clean extra files and set its modify time
                     for(int c=0;c<directoryFinalizeUFs.size();c++) {
                         UnixFile dirUF = directoryFinalizeUFs.get(c);
+                        UnixFile dirLinkToUF = directoryFinalizeLinkToUFs==null ? null : directoryFinalizeLinkToUFs.get(c);
                         String relativePath = directoryFinalizeUFRelativePaths.get(c);
                         long dirModifyTime = directoryFinalizeModifyTimes.get(c).longValue();
                         Set<String> dirContents = directoryFinalizeContents.get(c);
                         // Remove from the caches since we are done with the directory entirely for this pass
                         modifyTimeAndSizeCaches.remove(dirUF);
+                        if(dirLinkToUF!=null) modifyTimeAndSizeCaches.remove(dirLinkToUF);
                         // Remove extra files
                         String dirPath=dirUF.getPath();
                         if(!dirPath.endsWith("/")) dirPath=dirPath+'/';
@@ -1416,6 +1423,7 @@ final public class FailoverFileReplicationManager {
                 }
 
                 // modifyTimeAndSizeCaches is no longer used after this, this makes sure
+                int modifyTimeAndSizeCachesSize = modifyTimeAndSizeCaches.size();
                 modifyTimeAndSizeCaches = null;
 
                 // Clean all remaining directories all the way to /, setting modifyTime on the directories
@@ -1426,6 +1434,7 @@ final public class FailoverFileReplicationManager {
 
                     // Otherwise, clean and complete the directory
                     directoryUFs.pop();
+                    directoryLinkToUFs.pop(); // Just to keep the stacks uniform between them
                     String relativePath = directoryUFRelativePaths.pop();
                     long dirModifyTime=directoryModifyTimes.pop().longValue();
                     Set<String> dirContents=directoryContents.pop();
@@ -1452,6 +1461,7 @@ final public class FailoverFileReplicationManager {
                 
                 // Log the final timings
                 if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) {
+                    log.info("modifyTimeAndSizeCachesSize="+modifyTimeAndSizeCachesSize);
                     log.info("totalNewLogDirNanos="+totalNewLogDirNanos+" (successful pass completed)");
                     log.info("totalOldLogDirNanos="+totalOldLogDirNanos+" (successful pass completed)");
                 }
@@ -1498,14 +1508,6 @@ final public class FailoverFileReplicationManager {
                 }
             }
         }
-    }
-
-    /**
-     * This is performed in a different method to annotate just this one step.
-     */
-    @SuppressWarnings({"unchecked"})
-    private static Map<UnixFile,ModifyTimeAndSizeCache> getLRUMap() {
-        return new LRUMap(32);
     }
 
     /**
