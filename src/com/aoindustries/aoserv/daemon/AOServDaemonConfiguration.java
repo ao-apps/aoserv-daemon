@@ -6,7 +6,7 @@ package com.aoindustries.aoserv.daemon;
  * All rights reserved.
  */
 import com.aoindustries.io.AOPool;
-import com.aoindustries.profiler.*;
+import com.aoindustries.profiler.Profiler;
 import java.io.*;
 import java.util.*;
 
@@ -20,343 +20,168 @@ final public class AOServDaemonConfiguration {
     private static Properties props;
 
     private static String getProperty(String name) throws IOException {
-        Profiler.startProfile(Profiler.IO, AOServDaemonConfiguration.class, "getProperty(String)", null);
-        try {
-	    synchronized(AOServDaemonConfiguration.class) {
-		Properties newProps = new Properties();
-		if (props == null) {
-		    InputStream in = new BufferedInputStream(AOServDaemonConfiguration.class.getResourceAsStream("aoserv-daemon.properties"));
-		    try {
-			newProps.load(in);
-		    } finally {
-			in.close();
-		    }
-		    props = newProps;
-		}
-		return props.getProperty("aoserv.daemon."+name);
-	    }
-        } finally {
-            Profiler.endProfile(Profiler.IO);
+        synchronized(AOServDaemonConfiguration.class) {
+            Properties newProps = new Properties();
+            if (props == null) {
+                InputStream in = new BufferedInputStream(AOServDaemonConfiguration.class.getResourceAsStream("aoserv-daemon.properties"));
+                try {
+                    newProps.load(in);
+                } finally {
+                    in.close();
+                }
+                props = newProps;
+            }
+            return props.getProperty("aoserv.daemon."+name);
         }
     }
     
     public static int getProfilerLevel() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getProfilerLevel()", null);
-        try {
-            return Profiler.parseProfilerLevel(getProperty("profiler.level"));
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return Profiler.parseProfilerLevel(getProperty("profiler.level"));
     }
 
     public static boolean isNested() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "isNested()", null);
-        try {
-            return "true".equalsIgnoreCase(getProperty("nested"));
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return "true".equalsIgnoreCase(getProperty("nested"));
     }
 
     public static String getErrorEmailTo() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getErrorEmailTo()", null);
-        try {
-            return getProperty("error.email.to");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("error.email.to");
     }
 
     public static String getErrorEmailFrom() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getErrorEmailFrom()", null);
-        try {
-            return getProperty("error.email.from");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("error.email.from");
     }
 
     public static String getErrorSmtpServer() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getErrorSmtpServer()", null);
-        try {
-            return getProperty("error.smtp.server");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("error.smtp.server");
     }
 
     public static String getWarningEmailTo() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getWarningEmailTo()", null);
-        try {
-            return getProperty("warning.email.to");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("warning.email.to");
     }
 
     public static String getWarningEmailFrom() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getWarningEmailFrom()", null);
-        try {
-            return getProperty("warning.email.from");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("warning.email.from");
     }
 
     public static String getWarningSmtpServer() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getWarningSmtpServer()", null);
-        try {
-            return getProperty("warning.smtp.server");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("warning.smtp.server");
     }
 
     public static String getSecurityEmailTo() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getSecurityEmailTo()", null);
-        try {
-            return getProperty("security.email.to");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("security.email.to");
     }
 
     public static String getSecurityEmailFrom() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getSecurityEmailFrom()", null);
-        try {
-            return getProperty("security.email.from");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("security.email.from");
     }
 
     public static String getSecuritySmtpServer() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getSecuritySmtpServer()", null);
-        try {
-            return getProperty("security.smtp.server");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("security.smtp.server");
     }
 
     public static String getMonitorEmailFullTo() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getMonitorEmailFullTo()", null);
-        try {
-            return getProperty("monitor.email.full.to");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("monitor.email.full.to");
     }
 
     public static String getMonitorEmailFullFrom() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getMonitorEmailFullFrom()", null);
-        try {
-            return getProperty("monitor.email.full.from");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("monitor.email.full.from");
     }
 
     public static String getMonitorEmailSummaryTo() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getMonitorEmailSummaryTo()", null);
-        try {
-            return getProperty("monitor.email.summary.to");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("monitor.email.summary.to");
     }
 
     public static String getMonitorEmailSummaryFrom() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getMonitorEmailSummaryFrom()", null);
-        try {
-            return getProperty("monitor.email.summary.from");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("monitor.email.summary.from");
     }
 
     public static String getMonitorSmtpServer() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getMonitorSmtpServer()", null);
-        try {
-            return getProperty("monitor.smtp.server");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("monitor.smtp.server");
     }
 
     public static String getServerHostname() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getServerHostname()", null);
-        try {
-            return getProperty("server.hostname");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("server.hostname");
     }
 
     public static String getSSLKeystorePassword() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getSSLKeystorePassword()", null);
-        try {
-            return getProperty("ssl.keystore.password");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("ssl.keystore.password");
     }
 
     public static String getSSLKeystorePath() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getSSLKeystorePath()", null);
-        try {
-            return getProperty("ssl.keystore.path");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("ssl.keystore.path");
     }
 
     /**
      * Gets the maximum backup bandwidth in bits per second or <code>-1</code> if unlimited.
      */
     public static int getBackupBandwidthLimit() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getBackupBandwidthLimit()", null);
-        try {
-            String S=getProperty("backup.bandwidth.limit");
-            return S==null || S.length()==0 ? -1 : Integer.parseInt(S);
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        String S=getProperty("backup.bandwidth.limit");
+        return S==null || S.length()==0 ? -1 : Integer.parseInt(S);
     }
 
     public static int getBackupReplicatorConcurrency() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getBackupReplicatorConcurrency()", null);
-        try {
-            return Integer.parseInt(getProperty("backup.replicator.concurrency"));
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return Integer.parseInt(getProperty("backup.replicator.concurrency"));
     }
 
     public static String getBackupReplicatorPath() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getBackupReplicatorPath()", null);
-        try {
-            return getProperty("backup.replicator.path");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("backup.replicator.path");
     }
 
     public static String getPostgresPassword() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getPostgresPassword()", null);
-        try {
-            return getProperty("postgres.password");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("postgres.password");
     }
 
     public static int getPostgresConnections() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getPostgresConnections()", null);
-        try {
-            return Integer.parseInt(getProperty("postgres.connections"));
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return Integer.parseInt(getProperty("postgres.connections"));
     }
 
     public static long getPostgresMaxConnectionAge() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getPostgresMaxConnectionAge()", null);
-        try {
-            String S=getProperty("postgres.max_connection_age");
-            return S==null || S.length()==0 ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(S);
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        String S=getProperty("postgres.max_connection_age");
+        return S==null || S.length()==0 ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(S);
     }
 
     public static String getMySqlDriver() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getMySqlDriver()", null);
-        try {
-            return getProperty("mysql.driver");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("mysql.driver");
     }
 
     public static String getMySqlUser() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getMySqlUser()", null);
-        try {
-            return getProperty("mysql.user");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("mysql.user");
     }
 
     public static String getMySqlPassword() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getMySqlPassword()", null);
-        try {
-            return getProperty("mysql.password");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("mysql.password");
     }
 
     public static int getMySqlConnections() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getMySqlConnections()", null);
-        try {
-            return Integer.parseInt(getProperty("mysql.connections"));
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return Integer.parseInt(getProperty("mysql.connections"));
     }
 
     public static long getMySqlMaxConnectionAge() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getMySqlMaxConnectionAge()", null);
-        try {
-            String S=getProperty("mysql.max_connection_age");
-            return S==null || S.length()==0 ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(S);
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        String S=getProperty("mysql.max_connection_age");
+        return S==null || S.length()==0 ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(S);
     }
 
     public static String getInterBasePassword() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getInterBasePassword()", null);
-        try {
-            return getProperty("interbase.password");
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProperty("interbase.password");
     }
 
     public static int getInterBaseConnections() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getInterBaseConnections()", null);
-        try {
-            return Integer.parseInt(getProperty("interbase.connections"));
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return Integer.parseInt(getProperty("interbase.connections"));
     }
 
     public static long getInterBaseMaxConnectionAge() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "getInterBaseMaxConnectionAge()", null);
-        try {
-            String S=getProperty("interbase.max_connection_age");
-            return S==null || S.length()==0 ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(S);
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        String S=getProperty("interbase.max_connection_age");
+        return S==null || S.length()==0 ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(S);
     }
 
     public static boolean isManagerEnabled(Class clazz) throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemonConfiguration.class, "isManagerEnabled(Class)", null);
-        try {
-            final String stripPrefix="com.aoindustries.aoserv.daemon.";
-            String key=clazz.getName();
-            if(key.startsWith(stripPrefix)) key=key.substring(stripPrefix.length());
-            key=key+".enabled";
-            String value=getProperty(key);
-            if("true".equalsIgnoreCase(value)) return true;
-            if("false".equalsIgnoreCase(value)) return false;
-            throw new IOException("Value in aoserv-daemon.properties must be either \"true\" or \"false\": "+key);
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        final String stripPrefix="com.aoindustries.aoserv.daemon.";
+        String key=clazz.getName();
+        if(key.startsWith(stripPrefix)) key=key.substring(stripPrefix.length());
+        key=key+".enabled";
+        String value=getProperty(key);
+        if("true".equalsIgnoreCase(value)) return true;
+        if("false".equalsIgnoreCase(value)) return false;
+        throw new IOException("Value in aoserv-daemon.properties must be either \"true\" or \"false\": "+key);
     }
 }

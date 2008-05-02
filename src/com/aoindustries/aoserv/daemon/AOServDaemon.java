@@ -79,23 +79,19 @@ final public class AOServDaemon {
 
     /**
      * A single random number generator is shared by all daemon resources to provide better randomness.
+     * Not synchronized because multiple instantiation is acceptable.
      */
     private static Random random;
     public static Random getRandom() {
-	Profiler.startProfile(Profiler.FAST, AOServDaemon.class, "getRandom()", null);
-	try {
-	    synchronized(AOServDaemon.class) {
-                String algorithm="SHA1PRNG";
-		try {
-		    if(random==null) random=SecureRandom.getInstance(algorithm);
-		    return random;
-		} catch(NoSuchAlgorithmException err) {
-		    throw new WrappedException(err, new Object[] {"algorithm="+algorithm});
-		}
-	    }
-	} finally {
-	    Profiler.endProfile(Profiler.FAST);
-	}
+        if(random==null) {
+            final String algorithm="SHA1PRNG";
+            try {
+                random=SecureRandom.getInstance(algorithm);
+            } catch(NoSuchAlgorithmException err) {
+                throw new WrappedException(err, new Object[] {"algorithm="+algorithm});
+            }
+        }
+        return random;
     }
 
     /**
@@ -107,8 +103,6 @@ final public class AOServDaemon {
      * Create no instances.
      */
     private AOServDaemon() {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, AOServDaemon.class, "<init>()", null);
-        Profiler.endProfile(Profiler.INSTANTANEOUS);
     }
 
     /**
@@ -121,57 +115,42 @@ final public class AOServDaemon {
      * @param  uids  the <code>IntList</code> containing the list of uids
      */
     public static void findUnownedFiles(File file, IntList uids, List<File> deleteFileList, int recursionLevel) throws IOException {
-        Profiler.startProfile(Profiler.IO, AOServDaemon.class, "findUnownedFiles(File,IntList,List<File>,int)", recursionLevel==0?null:Integer.valueOf(recursionLevel));
-        try {
-            if(file.exists()) {
-                // Figure out the ownership
-                UnixFile unixFile=new UnixFile(file.getPath());
-                Stat stat = unixFile.getStat();
-                int uid=stat.getUID();
-                if(uids.contains(uid)) {
-                    if(!stat.isSymLink()) {
-                        // Search any children files
-                        String[] list=file.list();
-                        if(list!=null) {
-                            int newRecursionLevel=recursionLevel+1;
-                            int len=list.length;
-                            for(int c=0;c<len;c++) findUnownedFiles(new File(file, list[c]), uids, deleteFileList, newRecursionLevel);
-                        }
+        if(file.exists()) {
+            // Figure out the ownership
+            UnixFile unixFile=new UnixFile(file.getPath());
+            Stat stat = unixFile.getStat();
+            int uid=stat.getUID();
+            if(uids.contains(uid)) {
+                if(!stat.isSymLink()) {
+                    // Search any children files
+                    String[] list=file.list();
+                    if(list!=null) {
+                        int newRecursionLevel=recursionLevel+1;
+                        int len=list.length;
+                        for(int c=0;c<len;c++) findUnownedFiles(new File(file, list[c]), uids, deleteFileList, newRecursionLevel);
                     }
-                } else deleteFileList.add(file);
-            }
-        } finally {
-            Profiler.endProfile(Profiler.IO);
+                }
+            } else deleteFileList.add(file);
         }
     }
 
     public static AOServConnector getConnector() throws IOException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemon.class, "getConnector()", null);
-        try {
-	    synchronized(AOServDaemon.class) {
-		if(conn==null) {
-		    // Get the connector that will be used
-		    conn=AOServConnector.getConnector(getErrorHandler());
-		}
-		return conn;
-	    }
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
+        synchronized(AOServDaemon.class) {
+            if(conn==null) {
+                // Get the connector that will be used
+                conn=AOServConnector.getConnector(getErrorHandler());
+            }
+            return conn;
         }
     }
 
     public static AOServer getThisAOServer() throws IOException, SQLException {
-        Profiler.startProfile(Profiler.FAST, AOServDaemon.class, "getThisAOServer()", null);
-        try {
-            String hostname=AOServDaemonConfiguration.getServerHostname();
-            Server server=getConnector().servers.get(hostname);
-            if(server==null) throw new SQLException("Unable to find Server: "+hostname);
-            AOServer ao=server.getAOServer();
-            if(ao==null) throw new SQLException("Server is not an AOServer: "+hostname);
-            return ao;
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        String hostname=AOServDaemonConfiguration.getServerHostname();
+        Server server=getConnector().servers.get(hostname);
+        if(server==null) throw new SQLException("Unable to find Server: "+hostname);
+        AOServer ao=server.getAOServer();
+        if(ao==null) throw new SQLException("Server is not an AOServer: "+hostname);
+        return ao;
     }
 
     /**
@@ -180,7 +159,6 @@ final public class AOServDaemon {
      * This will typically be called by the init scripts of the dedicated machine.
      */
     public static void main(String[] args) {
-        // Not profiled because the profiler is not enabled here
 	boolean done=false;
 	while(!done) {
             try {
@@ -279,31 +257,26 @@ final public class AOServDaemon {
      * Also sends email messages to <code>aoserv.daemon.error.email.to</code>.
      */
     public static void reportError(Throwable T, Object[] extraInfo) {
-        Profiler.startProfile(Profiler.UNKNOWN, AOServDaemon.class, "reportError(Throwable,Object[])", null);
+        ErrorPrinter.printStackTraces(T, extraInfo);
         try {
-            ErrorPrinter.printStackTraces(T, extraInfo);
-            try {
-                String smtp=AOServDaemonConfiguration.getErrorSmtpServer();
-                if(smtp!=null && smtp.length()>0) {
-                    List<String> addys=StringUtility.splitStringCommaSpace(AOServDaemonConfiguration.getErrorEmailTo());
-                    String from=AOServDaemonConfiguration.getErrorEmailFrom();
-                    for(int c=0;c<addys.size();c++) {
-                        ErrorMailer.reportError(
-                            getRandom(),
-                            T,
-                            extraInfo,
-                            smtp,
-                            from,
-                            addys.get(c),
-                            "AOServDaemon Error"
-                        );
-                    }
+            String smtp=AOServDaemonConfiguration.getErrorSmtpServer();
+            if(smtp!=null && smtp.length()>0) {
+                List<String> addys=StringUtility.splitStringCommaSpace(AOServDaemonConfiguration.getErrorEmailTo());
+                String from=AOServDaemonConfiguration.getErrorEmailFrom();
+                for(int c=0;c<addys.size();c++) {
+                    ErrorMailer.reportError(
+                        getRandom(),
+                        T,
+                        extraInfo,
+                        smtp,
+                        from,
+                        addys.get(c),
+                        "AOServDaemon Error"
+                    );
                 }
-            } catch(IOException err) {
-                ErrorPrinter.printStackTraces(err);
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
+        } catch(IOException err) {
+            ErrorPrinter.printStackTraces(err);
         }
     }
 
@@ -312,31 +285,26 @@ final public class AOServDaemon {
      * Also sends email messages to <code>aoserv.daemon.warning.email.to</code>.
      */
     public static void reportWarning(Throwable T, Object[] extraInfo) {
-        Profiler.startProfile(Profiler.UNKNOWN, AOServDaemon.class, "reportWarning(Throwable,Object[])", null);
+        ErrorPrinter.printStackTraces(T, extraInfo);
         try {
-            ErrorPrinter.printStackTraces(T, extraInfo);
-            try {
-                String smtp=AOServDaemonConfiguration.getWarningSmtpServer();
-                if(smtp!=null && smtp.length()>0) {
-                    List<String> addys=StringUtility.splitStringCommaSpace(AOServDaemonConfiguration.getWarningEmailTo());
-                    String from=AOServDaemonConfiguration.getWarningEmailFrom();
-                    for(int c=0;c<addys.size();c++) {
-                        ErrorMailer.reportError(
-                            getRandom(),
-                            T,
-                            extraInfo,
-                            smtp,
-                            from,
-                            addys.get(c),
-                            "AOServDaemon Warning"
-                        );
-                    }
+            String smtp=AOServDaemonConfiguration.getWarningSmtpServer();
+            if(smtp!=null && smtp.length()>0) {
+                List<String> addys=StringUtility.splitStringCommaSpace(AOServDaemonConfiguration.getWarningEmailTo());
+                String from=AOServDaemonConfiguration.getWarningEmailFrom();
+                for(int c=0;c<addys.size();c++) {
+                    ErrorMailer.reportError(
+                        getRandom(),
+                        T,
+                        extraInfo,
+                        smtp,
+                        from,
+                        addys.get(c),
+                        "AOServDaemon Warning"
+                    );
                 }
-            } catch(IOException err) {
-                ErrorPrinter.printStackTraces(err);
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
+        } catch(IOException err) {
+            ErrorPrinter.printStackTraces(err);
         }
     }
 
@@ -345,30 +313,25 @@ final public class AOServDaemon {
      * Also sends email messages to <code>aoserv.daemon.security.email.to</code>.
      */
     public static void reportErrorMessage(String message) {
-        Profiler.startProfile(Profiler.UNKNOWN, AOServDaemon.class, "reportErrorMessage(String)", null);
+        System.err.println(message);
         try {
-            System.err.println(message);
-            try {
-                String smtp=AOServDaemonConfiguration.getErrorSmtpServer();
-                if(smtp!=null && smtp.length()>0) {
-                    String from=AOServDaemonConfiguration.getErrorEmailFrom();
-                    List<String> addys=StringUtility.splitStringCommaSpace(AOServDaemonConfiguration.getErrorEmailTo());
-                    for(int c=0;c<addys.size();c++) {
-                        ErrorMailer.reportError(
-                            getRandom(),
-                            message,
-                            smtp,
-                            from,
-                            addys.get(c),
-                            "AOServDaemon Error"
-                        );
-                    }
+            String smtp=AOServDaemonConfiguration.getErrorSmtpServer();
+            if(smtp!=null && smtp.length()>0) {
+                String from=AOServDaemonConfiguration.getErrorEmailFrom();
+                List<String> addys=StringUtility.splitStringCommaSpace(AOServDaemonConfiguration.getErrorEmailTo());
+                for(int c=0;c<addys.size();c++) {
+                    ErrorMailer.reportError(
+                        getRandom(),
+                        message,
+                        smtp,
+                        from,
+                        addys.get(c),
+                        "AOServDaemon Error"
+                    );
                 }
-            } catch(IOException err) {
-                ErrorPrinter.printStackTraces(err);
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
+        } catch(IOException err) {
+            ErrorPrinter.printStackTraces(err);
         }
     }
 
@@ -377,30 +340,25 @@ final public class AOServDaemon {
      * Also sends email messages to <code>aoserv.daemon.security.email.to</code>.
      */
     public static void reportFullMonitoringMessage(String message) {
-        Profiler.startProfile(Profiler.UNKNOWN, AOServDaemon.class, "reportFullMonitoringMessage(String)", null);
+        System.err.println(message);
         try {
-            System.err.println(message);
-            try {
-                String smtp=AOServDaemonConfiguration.getMonitorSmtpServer();
-                if(smtp!=null && smtp.length()>0) {
-                    String from=AOServDaemonConfiguration.getMonitorEmailFullFrom();
-                    List<String> addys=StringUtility.splitStringCommaSpace(AOServDaemonConfiguration.getMonitorEmailFullTo());
-                    for(int c=0;c<addys.size();c++) {
-                        ErrorMailer.reportError(
-                            getRandom(),
-                            message,
-                            smtp,
-                            from,
-                            addys.get(c),
-                            "AOServMonitoring"
-                        );
-                    }
+            String smtp=AOServDaemonConfiguration.getMonitorSmtpServer();
+            if(smtp!=null && smtp.length()>0) {
+                String from=AOServDaemonConfiguration.getMonitorEmailFullFrom();
+                List<String> addys=StringUtility.splitStringCommaSpace(AOServDaemonConfiguration.getMonitorEmailFullTo());
+                for(int c=0;c<addys.size();c++) {
+                    ErrorMailer.reportError(
+                        getRandom(),
+                        message,
+                        smtp,
+                        from,
+                        addys.get(c),
+                        "AOServMonitoring"
+                    );
                 }
-            } catch(IOException err) {
-                ErrorPrinter.printStackTraces(err);
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
+        } catch(IOException err) {
+            ErrorPrinter.printStackTraces(err);
         }
     }
 
@@ -409,52 +367,42 @@ final public class AOServDaemon {
      * Also sends email messages to <code>aoserv.daemon.security.email.to</code>.
      */
     public static void reportSecurityMessage(String message) {
-        Profiler.startProfile(Profiler.UNKNOWN, AOServDaemon.class, "reportSecurityMessage(String)", null);
+        System.err.println(message);
         try {
-            System.err.println(message);
-            try {
-                String smtp=AOServDaemonConfiguration.getSecuritySmtpServer();
-                if(smtp!=null && smtp.length()>0) {
-                    String from=AOServDaemonConfiguration.getSecurityEmailFrom();
-                    List<String> addys=StringUtility.splitStringCommaSpace(AOServDaemonConfiguration.getSecurityEmailTo());
-                    for(int c=0;c<addys.size();c++) {
-                        ErrorMailer.reportError(
-                            getRandom(),
-                            message,
-                            smtp,
-                            from,
-                            addys.get(c),
-                            "AOServDaemonSec"
-                        );
-                    }
+            String smtp=AOServDaemonConfiguration.getSecuritySmtpServer();
+            if(smtp!=null && smtp.length()>0) {
+                String from=AOServDaemonConfiguration.getSecurityEmailFrom();
+                List<String> addys=StringUtility.splitStringCommaSpace(AOServDaemonConfiguration.getSecurityEmailTo());
+                for(int c=0;c<addys.size();c++) {
+                    ErrorMailer.reportError(
+                        getRandom(),
+                        message,
+                        smtp,
+                        from,
+                        addys.get(c),
+                        "AOServDaemonSec"
+                    );
                 }
-            } catch(IOException err) {
-                ErrorPrinter.printStackTraces(err);
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
+        } catch(IOException err) {
+            ErrorPrinter.printStackTraces(err);
         }
     }
 
     private static ErrorHandler errorHandler;
     public synchronized static ErrorHandler getErrorHandler() {
-        Profiler.startProfile(Profiler.FAST, AOServDaemon.class, "getErrorHandler()", null);
-        try {
-            if(errorHandler==null) {
-                errorHandler=new ErrorHandler() {
-                    public final void reportError(Throwable T, Object[] extraInfo) {
-                        AOServDaemon.reportError(T, extraInfo);
-                    }
+        if(errorHandler==null) {
+            errorHandler=new ErrorHandler() {
+                public final void reportError(Throwable T, Object[] extraInfo) {
+                    AOServDaemon.reportError(T, extraInfo);
+                }
 
-                    public final void reportWarning(Throwable T, Object[] extraInfo) {
-                        AOServDaemon.reportWarning(T, extraInfo);
-                    }
-                };
-            }
-            return errorHandler;
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
+                public final void reportWarning(Throwable T, Object[] extraInfo) {
+                    AOServDaemon.reportWarning(T, extraInfo);
+                }
+            };
         }
+        return errorHandler;
     }
 
     /**
@@ -475,20 +423,15 @@ final public class AOServDaemon {
     }
     
     public static void exec(String[] command) throws IOException {
-        Profiler.startProfile(Profiler.UNKNOWN, AOServDaemon.class, "exec(String[])", null);
+        if(DEBUG) {
+            System.out.print("DEBUG: AOServDaemon.exec(): ");
+            System.out.println(getCommandString(command));
+        }
+        Process P = Runtime.getRuntime().exec(command);
         try {
-            if(DEBUG) {
-                System.out.print("DEBUG: AOServDaemon.exec(): ");
-                System.out.println(getCommandString(command));
-            }
-            Process P = Runtime.getRuntime().exec(command);
-            try {
-                P.getOutputStream().close();
-            } finally {
-                waitFor(command, P);
-            }
+            P.getOutputStream().close();
         } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
+            waitFor(command, P);
         }
     }
 
@@ -496,25 +439,20 @@ final public class AOServDaemon {
      * TODO: Capture error stream
      */
     public static void waitFor(String[] command, Process P) throws IOException {
-        Profiler.startProfile(Profiler.UNKNOWN, AOServDaemon.class, "waitFor(String[],Process)", null);
         try {
-            try {
-                P.waitFor();
-            } catch (InterruptedException err) {
-                InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
-                ioErr.initCause(err);
-                throw ioErr;
-            }
-            int exit = P.exitValue();
-            if(exit!=0) {
-                StringBuilder SB=new StringBuilder();
-                SB.append("Non-zero exit status from '");
-                SB.append(getCommandString(command));
-                SB.append("': ").append(exit);
-                throw new IOException(SB.toString());
-            }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
+            P.waitFor();
+        } catch (InterruptedException err) {
+            InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
+            ioErr.initCause(err);
+            throw ioErr;
+        }
+        int exit = P.exitValue();
+        if(exit!=0) {
+            StringBuilder SB=new StringBuilder();
+            SB.append("Non-zero exit status from '");
+            SB.append(getCommandString(command));
+            SB.append("': ").append(exit);
+            throw new IOException(SB.toString());
         }
     }
 
@@ -577,19 +515,14 @@ final public class AOServDaemon {
      * Switches to the specified user and executes a command.
      */
     public static void suexec(String username, String command) throws IOException {
-        Profiler.startProfile(Profiler.UNKNOWN, AOServDaemon.class, "suexec(String,String)", null);
-        try {
-            String[] cmd={
-                "/bin/su",
-                "-s",
-                Shell.BASH,
-                "-c",
-                command,
-                username
-            };
-            exec(cmd);
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
-        }
+        String[] cmd={
+            "/bin/su",
+            "-s",
+            Shell.BASH,
+            "-c",
+            command,
+            username
+        };
+        exec(cmd);
     }
 }
