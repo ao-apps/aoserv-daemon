@@ -35,18 +35,18 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 //import java.util.zip.DeflaterOutputStream;
+import org.apache.commons.collections.map.LRUMap;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
  * Handles the replication of data for the failover system.
- *
- * TODO: Some files are being named one day in advance (Still, seems to be problem on client-side)
  *
  * TODO: Handle hard links (pertinence space savings)
  *
@@ -57,6 +57,12 @@ import org.apache.commons.logging.LogFactory;
 final public class FailoverFileReplicationManager {
 
     private static final Log log = LogFactory.getLog(FailoverFileReplicationManager.class);
+
+    /**
+     * When true, runs both the old and new implementations of log directory hard linking and verifies consistent behavior of the two.
+     * Also times their performance.
+     */
+    private static final boolean USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING = true;
 
     /**
      * The extension added to the directory name when it is a partial pass.
@@ -400,6 +406,11 @@ final public class FailoverFileReplicationManager {
 
             String[] paths=null;
             boolean[] isLogDirs=null;
+            Map<UnixFile,ModifyTimeAndSizeCache> modifyTimeAndSizeCaches = getLRUMap();
+            long totalNewLogDirNanos = 0;
+            long totalOldLogDirNanos = 0;
+            long lastLogDirNanosDisplayTime = -1;
+
             UnixFile[] tempNewFiles=null;
             UnixFile[] chunkingFroms=null;
             LongList[] chunksMD5s=null;
@@ -449,6 +460,14 @@ final public class FailoverFileReplicationManager {
 
                     for(int c=0;c<batchSize;c++) {
                         if(in.readBoolean()) {
+                            if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING && log.isInfoEnabled()) {
+                                long currentTime = System.currentTimeMillis();
+                                if(lastLogDirNanosDisplayTime==-1 || Math.abs(currentTime-lastLogDirNanosDisplayTime)>60000) {
+                                    log.info("totalNewLogDirNanos="+totalNewLogDirNanos);
+                                    log.info("totalOldLogDirNanos="+totalOldLogDirNanos);
+                                    lastLogDirNanosDisplayTime = currentTime;
+                                }
+                            }
                             // Read the current file
                             final String relativePath=paths[c]=in.readCompressedUTF();
                             isLogDirs[c]=relativePath.startsWith("/logs/") || relativePath.startsWith("/var/log/");
@@ -492,7 +511,7 @@ final public class FailoverFileReplicationManager {
                             // Cleanup extra entries in completed directories, setting modifyTime on the directories
                             while(!directoryUFs.isEmpty()) {
                                 UnixFile dirUF=directoryUFs.peek();
-                                String dirPath=dirUF.getFilename();
+                                String dirPath=dirUF.getPath();
                                 if(!dirPath.endsWith("/")) dirPath=dirPath+'/';
 
                                 // If the current file starts with the current directory, continue
@@ -524,7 +543,12 @@ final public class FailoverFileReplicationManager {
                                         || ufStat.getDeviceIdentifier()!=deviceID
                                     )
                                 ) {
-                                    if(log.isTraceEnabled()) log.trace("Deleting to create block device: "+uf.getFilename());
+                                    if(log.isTraceEnabled()) log.trace("Deleting to create block device: "+uf.getPath());
+                                    // Update caches
+                                    long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                    removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+                                    if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
+                                    // Update filesystem
                                     uf.deleteRecursive();
                                     uf.getStat(ufStat);
                                 }
@@ -554,7 +578,12 @@ final public class FailoverFileReplicationManager {
                                         || ufStat.getDeviceIdentifier()!=deviceID
                                     )
                                 ) {
-                                    if(log.isTraceEnabled()) log.trace("Deleting to create character device: "+uf.getFilename());
+                                    if(log.isTraceEnabled()) log.trace("Deleting to create character device: "+uf.getPath());
+                                    // Update caches
+                                    long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                    removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+                                    if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
+                                    // Update filesystem
                                     uf.deleteRecursive();
                                     uf.getStat(ufStat);
                                 }
@@ -581,7 +610,12 @@ final public class FailoverFileReplicationManager {
                                     ufStat.exists()
                                     && !ufStat.isDirectory()
                                 ) {
-                                    if(log.isTraceEnabled()) log.trace("Deleting to create directory: "+uf.getFilename());
+                                    if(log.isTraceEnabled()) log.trace("Deleting to create directory: "+uf.getPath());
+                                    // Update caches
+                                    long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                    removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+                                    if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
+                                    // Update filesystem
                                     uf.deleteRecursive();
                                     uf.getStat(ufStat);
                                 }
@@ -614,7 +648,12 @@ final public class FailoverFileReplicationManager {
                                     ufStat.exists()
                                     && !ufStat.isFIFO()
                                 ) {
-                                    if(log.isTraceEnabled()) log.trace("Deleting to create FIFO: "+uf.getFilename());
+                                    if(log.isTraceEnabled()) log.trace("Deleting to create FIFO: "+uf.getPath());
+                                    // Update caches
+                                    long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                    removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+                                    if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
+                                    // Update filesystem
                                     uf.deleteRecursive();
                                     uf.getStat(ufStat);
                                 }
@@ -659,9 +698,18 @@ final public class FailoverFileReplicationManager {
                                 if(ufStat.exists()) {
                                     // If there is a symlink that has now been replaced with a regular file, just delete the symlink to avoid confusion in the following code
                                     if(ufStat.isSymLink()) {
+                                        // Update caches
+                                        long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                        removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+                                        if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
+                                        // Update the filesystem
                                         uf.delete();
                                         uf.getStat(ufStat);
                                     } else if(ufStat.isDirectory()) {
+                                        // Update caches
+                                        long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                        removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+                                        if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
                                         // If there is a directory that has now been replaced with a regular file, just delete the directory recursively to avoid confusion in the following code
                                         uf.deleteRecursive();
                                         uf.getStat(ufStat);
@@ -698,23 +746,46 @@ final public class FailoverFileReplicationManager {
                                                     // Move to a new temp filename for later reuse
                                                     String name = uf.getFile().getName();
                                                     UnixFile templateUF = name.length()>64 ? new UnixFile(ufParent, name.substring(0, 64), false) : uf;
-                                                    UnixFile tempUF = UnixFile.mktemp(templateUF.getFilename()+'.');
+                                                    UnixFile tempUF = UnixFile.mktemp(templateUF.getPath()+'.');
+                                                    // Update caches
+                                                    long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                                    renaming(modifyTimeAndSizeCaches, uf, tempUF, ufParent);
+                                                    linking(modifyTimeAndSizeCaches, uf, linkToUF, ufParent);
+                                                    if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
+                                                    // Update the filesystem
                                                     uf.renameTo(tempUF);
-                                                    uf.link(linkToPath);
+                                                    uf.link(linkToUF);
                                                     uf.getStat(ufStat);
                                                 } else {
                                                     // Delete and link is OK because this is using a linkTo directory (therefore not in failover mode)
+                                                    // Update caches
+                                                    long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                                    removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+                                                    linking(modifyTimeAndSizeCaches, uf, linkToUF, ufParent);
+                                                    if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
+                                                    // Update the filesystem
                                                     uf.delete();
-                                                    uf.link(linkToPath);
+                                                    uf.link(linkToUF);
                                                     uf.getStat(ufStat);
                                                 }
                                             } else {
+                                                // Update caches
+                                                long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                                removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+                                                linking(modifyTimeAndSizeCaches, uf, linkToUF, ufParent);
+                                                if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
+                                                // Update the filesystem
                                                 uf.deleteRecursive();
-                                                uf.link(linkToPath);
+                                                uf.link(linkToUF);
                                                 uf.getStat(ufStat);
                                             }
                                         } else {
-                                            uf.link(linkToPath);
+                                            // Update caches
+                                            long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                            linking(modifyTimeAndSizeCaches, uf, linkToUF, ufParent);
+                                            if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
+                                            // Update the filesystem
+                                            uf.link(linkToUF);
                                             uf.getStat(ufStat);
                                         }
                                     } else {
@@ -723,31 +794,30 @@ final public class FailoverFileReplicationManager {
                                         boolean linkedOldLogFile = false;
                                         if(!isEncryptedLoopFile && isLogDir) {
                                             // Look for another file with the same size and modify time in this partial directory
-                                            // TODO: CPU: This log directory stuff is taking a LOT of CPU time O(n^2)?
+
+                                            // New implementation is used first because it will load the directory physically from
+                                            // disk first, thus the old implementation will have the advantage of the disk cache.
+                                            // Therefore, if the new implementation is still faster, it is clearly the winner.
+                                            long newStartNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                            final ModifyTimeAndSize modifyTimeAndSize = new ModifyTimeAndSize(modifyTime, length);
                                             UnixFile oldLogUF = null;
-                                            String[] list = ufParent.list();
-                                            if(list!=null) {
-                                                for(int d=0;d<list.length;d++) {
-                                                    UnixFile otherFile = new UnixFile(ufParent, list[d], false);
-                                                    otherFile.getStat(otherFileStat);
-                                                    if(
-                                                        otherFileStat.exists()
-                                                        && otherFileStat.isRegularFile()
-                                                        && otherFileStat.getSize()==length
-                                                        && otherFileStat.getModifyTime()==modifyTime
-                                                    ) {
-                                                        oldLogUF = otherFile;
-                                                        break;
-                                                    }
-                                                }
+                                            ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.get(ufParent);
+                                            if(modifyTimeAndSizeCache==null) {
+                                                // Not in cache, load from disk
+                                                modifyTimeAndSizeCaches.put(ufParent, modifyTimeAndSizeCache = new ModifyTimeAndSizeCache(ufParent, tempStat));
                                             }
-                                            if(oldLogUF==null && linkToUF!=null) {
-                                                // Look for another file with the same size and modify time in the link to directory (previous backup pass).
-                                                // TODO: CPU: This log directory stuff is taking a LOT of CPU time O(n^2)?
-                                                String[] linkToList = linkToParent.list();
-                                                if(linkToList!=null) {
-                                                    for(int d=0;d<linkToList.length;d++) {
-                                                        UnixFile otherFile = new UnixFile(linkToParent, linkToList[d], false);
+                                            List<String> matchedFilenames = modifyTimeAndSizeCache.getFilenamesByModifyTimeAndSize(modifyTimeAndSize);
+                                            if(matchedFilenames!=null && !matchedFilenames.isEmpty()) oldLogUF = new UnixFile(ufParent, matchedFilenames.get(0), false);
+                                            if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - newStartNanos;
+                                            
+                                            if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) {
+                                                // Old implementation
+                                                long oldStartNanos = System.nanoTime();
+                                                UnixFile oldOldLogUF = null;
+                                                String[] list = ufParent.list();
+                                                if(list!=null) {
+                                                    for(int d=0;d<list.length;d++) {
+                                                        UnixFile otherFile = new UnixFile(ufParent, list[d], false);
                                                         otherFile.getStat(otherFileStat);
                                                         if(
                                                             otherFileStat.exists()
@@ -755,9 +825,89 @@ final public class FailoverFileReplicationManager {
                                                             && otherFileStat.getSize()==length
                                                             && otherFileStat.getModifyTime()==modifyTime
                                                         ) {
-                                                            oldLogUF = otherFile;
+                                                            oldOldLogUF = otherFile;
                                                             break;
                                                         }
+                                                    }
+                                                }
+                                                totalOldLogDirNanos += System.nanoTime() - oldStartNanos;
+                                                // Verify compatible results between implementations between oldOldLogUF (old) and oldLogUF (new)
+                                                // Either both are null
+                                                if(oldOldLogUF==null && oldLogUF==null) {
+                                                    // This is acceptable
+                                                } else if(oldOldLogUF!=null && oldLogUF!=null) {
+                                                    // Or this is acceptable, but oldOldLogUF must be one of the options in matchedFilenames
+                                                    if(!matchedFilenames.contains(oldOldLogUF.getFile().getName())) {
+                                                        throw new IOException("matchedFilenames doesn't contain name for oldOldLogUF: oldOldLogUF="+oldOldLogUF);
+                                                    }
+                                                    // Verify that the file on disk actually matches the size and modifyTime
+                                                    oldLogUF.getStat(otherFileStat);
+                                                    if(otherFileStat.getModifyTime()!=modifyTime) {
+                                                        throw new IOException("oldLogUF.getModifyTime()!=modifyTime, oldLogUF="+oldLogUF);
+                                                    }
+                                                    if(otherFileStat.getSize()!=length) {
+                                                        throw new IOException("oldLogUF.getSize()!=length, oldLogUF="+oldLogUF);
+                                                    }
+                                                } else {
+                                                    throw new IOException("Incompatible results old and new logDir implementation: oldOldLogUF="+oldOldLogUF+" and oldLogUF="+oldLogUF);
+                                                }
+                                            }
+                                            if(oldLogUF==null && linkToUF!=null) {
+                                                // Look for another file with the same size and modify time in the link to directory (previous backup pass).
+                                                
+                                                // New implementation is used first because it will load the directory physically from
+                                                // disk first, thus the old implementation will have the advantage of the disk cache.
+                                                // Therefore, if the new implementation is still faster, it is clearly the winner.
+                                                long newStartNanos2 = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                                ModifyTimeAndSizeCache modifyTimeAndSizeCache2 = modifyTimeAndSizeCaches.get(linkToParent);
+                                                if(modifyTimeAndSizeCache2==null) {
+                                                    // Not in cache, load from disk
+                                                    modifyTimeAndSizeCaches.put(linkToParent, modifyTimeAndSizeCache2 = new ModifyTimeAndSizeCache(linkToParent, tempStat));
+                                                }
+                                                List<String> matchedFilenames2 = modifyTimeAndSizeCache2.getFilenamesByModifyTimeAndSize(modifyTimeAndSize);
+                                                if(matchedFilenames2!=null && !matchedFilenames2.isEmpty()) oldLogUF = new UnixFile(linkToParent, matchedFilenames2.get(0), false);
+                                                if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - newStartNanos2;
+                                                
+                                                if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) {
+                                                    // Old implementation
+                                                    long oldStartNanos = System.nanoTime();
+                                                    UnixFile oldOldLogUF = null;
+                                                    String[] linkToList = linkToParent.list();
+                                                    if(linkToList!=null) {
+                                                        for(int d=0;d<linkToList.length;d++) {
+                                                            UnixFile otherFile = new UnixFile(linkToParent, linkToList[d], false);
+                                                            otherFile.getStat(otherFileStat);
+                                                            if(
+                                                                otherFileStat.exists()
+                                                                && otherFileStat.isRegularFile()
+                                                                && otherFileStat.getSize()==length
+                                                                && otherFileStat.getModifyTime()==modifyTime
+                                                            ) {
+                                                                oldOldLogUF = otherFile;
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
+                                                    totalOldLogDirNanos += System.nanoTime() - oldStartNanos;
+                                                    // Verify compatible results between implementations between oldOldLogUF (old) and oldLogUF (new)
+                                                    // Either both are null
+                                                    if(oldOldLogUF==null && oldLogUF==null) {
+                                                        // This is acceptable
+                                                    } else if(oldOldLogUF!=null && oldLogUF!=null) {
+                                                        // Or this is acceptable, but oldOldLogUF must be one of the options in matchedFilenames
+                                                        if(!matchedFilenames2.contains(oldOldLogUF.getFile().getName())) {
+                                                            throw new IOException("matchedFilenames2 doesn't contain name for oldOldLogUF: oldOldLogUF="+oldOldLogUF);
+                                                        }
+                                                        // Verify that the file on disk actually matches the size and modifyTime
+                                                        oldLogUF.getStat(otherFileStat);
+                                                        if(otherFileStat.getModifyTime()!=modifyTime) {
+                                                            throw new IOException("oldLogUF.getModifyTime()!=modifyTime, oldLogUF="+oldLogUF);
+                                                        }
+                                                        if(otherFileStat.getSize()!=length) {
+                                                            throw new IOException("oldLogUF.getSize()!=length, oldLogUF="+oldLogUF);
+                                                        }
+                                                    } else {
+                                                        throw new IOException("Incompatible results old and new logDir implementation: oldOldLogUF="+oldOldLogUF+" and oldLogUF="+oldLogUF);
                                                     }
                                                 }
                                             }
@@ -767,8 +917,14 @@ final public class FailoverFileReplicationManager {
                                                         // Move to a new temp filename for later reuse
                                                         String name = uf.getFile().getName();
                                                         UnixFile templateUF = name.length()>64 ? new UnixFile(ufParent, name.substring(0, 64), false) : uf;
-                                                        String tempPath = templateUF.getFilename()+'.';
+                                                        String tempPath = templateUF.getPath()+'.';
                                                         UnixFile tempUF = UnixFile.mktemp(tempPath);
+                                                        // Update cache
+                                                        long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                                        renaming(modifyTimeAndSizeCaches, uf, tempUF, ufParent);
+                                                        linking(modifyTimeAndSizeCaches, uf, oldLogUF, ufParent);
+                                                        if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
+                                                        // Update filesystem
                                                         if(retention==1) {
                                                             // Failover mode does a more cautious link to temp and rename over to avoid
                                                             // any moment where there is no file in the path of uf
@@ -784,10 +940,21 @@ final public class FailoverFileReplicationManager {
                                                             uf.link(oldLogUF);
                                                         }
                                                     } else {
+                                                        // Update cache
+                                                        long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                                        removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+                                                        linking(modifyTimeAndSizeCaches, uf, oldLogUF, ufParent);
+                                                        if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
+                                                        // Update filesystem
                                                         uf.deleteRecursive();
                                                         uf.link(oldLogUF);
                                                     }
                                                 } else {
+                                                    // Update cache
+                                                    long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                                    linking(modifyTimeAndSizeCaches, uf, oldLogUF, ufParent);
+                                                    if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
+                                                    // Update filesystem
                                                     uf.link(oldLogUF);
                                                 }
                                                 uf.getStat(ufStat);
@@ -865,7 +1032,6 @@ final public class FailoverFileReplicationManager {
                                                 }
                                                 if(chunkingFrom!=null) {
                                                     // Now we figure out what we are chunking to.
-                                                    UnixFile chunkingTo;
                                                     if(
                                                         ufStat.exists()
                                                         || retention==1
@@ -874,22 +1040,22 @@ final public class FailoverFileReplicationManager {
                                                         // When uf exists, chunk to a temp file
                                                         String name = uf.getFile().getName();
                                                         UnixFile templateUF = name.length()>64 ? new UnixFile(ufParent, name.substring(0, 64), false) : uf;
-                                                        String tempPath = templateUF.getFilename()+'.';
+                                                        String tempPath = templateUF.getPath()+'.';
                                                         UnixFile tempUF = UnixFile.mktemp(tempPath);
                                                         tempNewFiles[c] = tempUF;
-                                                        if(log.isTraceEnabled()) log.trace("Using temp file: "+tempUF.getFilename());
-                                                        chunkingTo = tempUF;
+                                                        if(log.isTraceEnabled()) log.trace("Using temp file (chunked): "+tempUF.getPath());
+                                                        // modifyTimeAndSizeCaches is not updated here, it will be updated below when the data is received
                                                     } else {
-                                                        chunkingTo = uf;
                                                         if(!ufStat.exists()) {
                                                             new FileOutputStream(uf.getFile()).close();
                                                             uf.getStat(ufStat);
+                                                            // modifyTimeAndSizeCaches is not updated here, it will be updated below when the data is received
                                                         }
                                                     }
 
                                                     // Build the list of MD5 hashes per chunk
                                                     long sizeToChunk = Math.min(length, chunkingFromStat.getSize());
-                                                    LongList md5s = chunksMD5s[c] = new LongArrayList((int)(2*sizeToChunk/AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE));
+                                                    LongList md5s = chunksMD5s[c] = new LongArrayList((int)(2*(sizeToChunk/AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE)));
                                                     // Generate the MD5 hashes for the current file
                                                     InputStream fileIn = new FileInputStream(chunkingFrom.getFile());
                                                     try {
@@ -929,6 +1095,15 @@ final public class FailoverFileReplicationManager {
                                                 if(!ufStat.exists()) {
                                                     new FileOutputStream(uf.getFile()).close();
                                                     uf.getStat(ufStat);
+                                                } else {
+                                                    // When uf exists, build new temp file
+                                                    String name = uf.getFile().getName();
+                                                    UnixFile templateUF = name.length()>64 ? new UnixFile(ufParent, name.substring(0, 64), false) : uf;
+                                                    String tempPath = templateUF.getPath()+'.';
+                                                    UnixFile tempUF = UnixFile.mktemp(tempPath);
+                                                    tempNewFiles[c] = tempUF;
+                                                    if(log.isTraceEnabled()) log.trace("Using temp file (not chunked): "+tempUF.getPath());
+                                                    // modifyTimeAndSizeCaches is not updated here, it will be updated below when the data is received
                                                 }
                                             }
                                         }
@@ -942,7 +1117,12 @@ final public class FailoverFileReplicationManager {
                                         || !uf.readLink().equals(symlinkTarget)
                                     )
                                 ) {
-                                    if(log.isTraceEnabled()) log.trace("Deleting to create sybolic link: "+uf.getFilename());
+                                    if(log.isTraceEnabled()) log.trace("Deleting to create sybolic link: "+uf.getPath());
+                                    // Update cache
+                                    long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                    removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+                                    if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
+                                    // Update filesystem
                                     uf.deleteRecursive();
                                     uf.getStat(ufStat);
                                 }
@@ -1043,7 +1223,8 @@ final public class FailoverFileReplicationManager {
                             // Update the modified time
                             if(
                                 !UnixFile.isSymLink(mode)
-                                && !UnixFile.isDirectory(mode)
+                                && !UnixFile.isRegularFile(mode) // Regular files will be re-transferred below when their modified times don't match, so no need to set the modified time here
+                                && !UnixFile.isDirectory(mode) // Directory modification times are set on the way out of the directories
                                 && effectiveUFStat.getModifyTime()!=modifyTime
                             ) {
                                 if(retention!=1) copyIfHardLinked(effectiveUF, effectiveUFStat);
@@ -1051,7 +1232,7 @@ final public class FailoverFileReplicationManager {
                                     effectiveUF.utime(effectiveUFStat.getAccessTime(), modifyTime);
                                     effectiveUF.getStat(effectiveUFStat);
                                 } catch(IOException err) {
-                                    throw new WrappedException(err, new Object[] {"effectiveUF="+effectiveUF.getFilename()});
+                                    throw new WrappedException(err, new Object[] {"effectiveUF="+effectiveUF.getPath()});
                                 }
                                 if(result==AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_NO_CHANGE) {
                                     if(linkToUF!=null) {
@@ -1082,8 +1263,10 @@ final public class FailoverFileReplicationManager {
                             out.write(result);
                             if(result==AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA_CHUNKED) {
                                 LongList md5s = chunksMD5s[c];
-                                out.writeCompressedInt(md5s.size()/2);
-                                for(int d=0;d<md5s.size();d++) out.writeLong(md5s.getLong(d));
+                                int md5sSize = md5s.size();
+                                if((md5sSize&1)==1) throw new AssertionError("md5sSize has an odd value, should be even: md5sSize="+md5sSize);
+                                out.writeCompressedInt(md5sSize/2);
+                                for(int d=0;d<md5sSize;d++) out.writeLong(md5s.getLong(d));
                             }
                         }
                     }
@@ -1096,9 +1279,12 @@ final public class FailoverFileReplicationManager {
                         String path=paths[c];
                         if(path!=null) {
                             int result=results[c];
-                            UnixFile tempUF = tempNewFiles[c];
-                            UnixFile uf=new UnixFile(path);
                             if(result==AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA || result==AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA_CHUNKED) {
+                                // tempNewFiles[c] is only possibly set for the data transfer results
+                                UnixFile tempUF = tempNewFiles[c];
+                                UnixFile uf=new UnixFile(path);
+                                UnixFile ufParent = uf.getParent();
+
                                 // Load into the temporary file or directly to the file (based on above calculations)
                                 UnixFile fileOutUF = tempUF==null ? uf : tempUF;
                                 OutputStream fileOut = new FileOutputStream(fileOutUF.getFile());
@@ -1139,50 +1325,72 @@ final public class FailoverFileReplicationManager {
                                     fileOut.close();
                                 }
                                 fileOutUF.utime(fileOutUF.getStat(tempStat).getAccessTime(), modifyTimes[c]);
-                            }
-                            if(tempUF!=null) {
-                                uf.getStat(ufStat);
-                                if(ufStat.exists()) {
-                                    if(ufStat.isRegularFile()) {
-                                        if(isLogDirs[c]) {
-                                            // Move to a new temp filename for later reuse
-                                            String name = uf.getFile().getName();
-                                            UnixFile templateUF = name.length()>64 ? new UnixFile(uf.getParent(), name.substring(0, 64), false) : uf;
-                                            String tempPath = templateUF.getFilename()+'.';
-                                            UnixFile tempUFLog = UnixFile.mktemp(tempPath);
-                                            if(retention==1) {
-                                                // Failover mode does a more cautious link to temp and rename over to avoid
-                                                // any moment where there is no file in the path of uf
-                                                tempUFLog.delete();
-                                                tempUFLog.link(uf);
-                                                tempUF.renameTo(uf);
+                                if(tempUF!=null) {
+                                    uf.getStat(ufStat);
+                                    if(ufStat.exists()) {
+                                        if(ufStat.isRegularFile()) {
+                                            if(isLogDirs[c]) {
+                                                // Move to a new temp filename for later reuse
+                                                String name = uf.getFile().getName();
+                                                UnixFile templateUF = name.length()>64 ? new UnixFile(uf.getParent(), name.substring(0, 64), false) : uf;
+                                                String tempPath = templateUF.getPath()+'.';
+                                                UnixFile tempUFLog = UnixFile.mktemp(tempPath);
+                                                // Update cache (cache update counted as remove and then add because cache renaming method expects renameTo to not exist
+                                                long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                                renaming(modifyTimeAndSizeCaches, uf, tempUFLog, ufParent);
+                                                if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
+                                                // Update filesystem
+                                                if(retention==1) {
+                                                    // Failover mode does a more cautious link to temp and rename over to avoid
+                                                    // any moment where there is no file in the path of uf
+                                                    tempUFLog.delete();
+                                                    tempUFLog.link(uf);
+                                                    tempUF.renameTo(uf);
+                                                } else {
+                                                    // Backup mode uses a more efficient approach because partial states are OK
+                                                    uf.renameTo(tempUFLog);
+                                                    tempUF.renameTo(uf);
+                                                }
                                             } else {
-                                                // Backup mode uses a more efficient approach because partial states are OK
-                                                uf.renameTo(tempUFLog);
+                                                // Not a log directory, just replace old regular file
+                                                // Update cache (cache update counted as remove and then add because cache renaming method expects renameTo to not exist
+                                                long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                                removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+                                                if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
+                                                // Update filesystem
                                                 tempUF.renameTo(uf);
                                             }
                                         } else {
-                                            // Not a log directory, just replace old regular file
+                                            // Update cache
+                                            long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                            removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+                                            if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
+                                            // Update filesystem
+                                            uf.deleteRecursive();
                                             tempUF.renameTo(uf);
                                         }
                                     } else {
-                                        uf.deleteRecursive();
                                         tempUF.renameTo(uf);
                                     }
-                                } else {
-                                    tempUF.renameTo(uf);
                                 }
+                                // Update cache (cache update counted as remove and then add because cache renaming method expects renameTo to not exist
+                                long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                added(modifyTimeAndSizeCaches, uf, ufParent, tempStat);
+                                if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
                             }
                         }
                     }
 
-                    // For any directories that were completed during this batch, clean extra files and set its modify time
+                    // For any directories that were completed during this batch, remove caches, clean extra files and set its modify time
                     for(int c=0;c<directoryFinalizeUFs.size();c++) {
                         UnixFile dirUF = directoryFinalizeUFs.get(c);
                         String relativePath = directoryFinalizeUFRelativePaths.get(c);
                         long dirModifyTime = directoryFinalizeModifyTimes.get(c).longValue();
                         Set<String> dirContents = directoryFinalizeContents.get(c);
-                        String dirPath=dirUF.getFilename();
+                        // Remove from the caches since we are done with the directory entirely for this pass
+                        modifyTimeAndSizeCaches.remove(dirUF);
+                        // Remove extra files
+                        String dirPath=dirUF.getPath();
                         if(!dirPath.endsWith("/")) dirPath=dirPath+'/';
                         String[] list=dirUF.list();
                         if(list!=null) {
@@ -1201,15 +1409,19 @@ final public class FailoverFileReplicationManager {
                                 }
                             }
                         }
+                        // Set the modified time
                         dirUF.getStat(tempStat);
                         if(tempStat.getModifyTime()!=dirModifyTime) dirUF.utime(tempStat.getAccessTime(), dirModifyTime);
                     }
                 }
 
+                // modifyTimeAndSizeCaches is no longer used after this, this makes sure
+                modifyTimeAndSizeCaches = null;
+
                 // Clean all remaining directories all the way to /, setting modifyTime on the directories
                 while(!directoryUFs.isEmpty()) {
                     UnixFile dirUF=directoryUFs.peek();
-                    String dirPath=dirUF.getFilename();
+                    String dirPath=dirUF.getPath();
                     if(!dirPath.endsWith("/")) dirPath=dirPath+'/';
 
                     // Otherwise, clean and complete the directory
@@ -1237,16 +1449,22 @@ final public class FailoverFileReplicationManager {
                     dirUF.getStat(tempStat);
                     if(tempStat.getModifyTime()!=dirModifyTime) dirUF.utime(tempStat.getAccessTime(), dirModifyTime);
                 }
+                
+                // Log the final timings
+                if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) {
+                    log.info("totalNewLogDirNanos="+totalNewLogDirNanos+" (successful pass completed)");
+                    log.info("totalOldLogDirNanos="+totalOldLogDirNanos+" (successful pass completed)");
+                }
 
-                // The pass was successful, now rename partial to final
                 if(retention!=1) {
+                    // The pass was successful, now rename partial to final
                     String from = isRecycling ? recycledPartialMirrorRoot : partialMirrorRoot;
                     if(log.isDebugEnabled()) log.debug("Renaming "+from+" to "+finalMirrorRoot);
                     new UnixFile(from).renameTo(new UnixFile(finalMirrorRoot));
-                }
 
-                // The pass was successful, now cleanup old directories based on retention settings
-                if(retention>1) cleanAndRecycleBackups(retention, serverRootUF, tempStat, fromServerYear, fromServerMonth, fromServerDay);
+                    // The pass was successful, now cleanup old directories based on retention settings
+                    cleanAndRecycleBackups(retention, serverRootUF, tempStat, fromServerYear, fromServerMonth, fromServerDay);
+                }
 
                 // Tell the client we are done OK
                 out.write(AOServDaemonProtocol.DONE);
@@ -1279,6 +1497,231 @@ final public class FailoverFileReplicationManager {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * This is performed in a different method to annotate just this one step.
+     */
+    @SuppressWarnings({"unchecked"})
+    private static Map<UnixFile,ModifyTimeAndSizeCache> getLRUMap() {
+        return new LRUMap(32);
+    }
+
+    /**
+     * Called whenever something is removed, to keep the cache in sync.
+     */
+    private static void removing(Map<UnixFile,ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, UnixFile uf, Stat ufStat, UnixFile ufParent) throws FileNotFoundException {
+        if(ufStat.isRegularFile()) {
+            // For a regular file, just remove it from its parent, this is the fastest case
+            // because no scan for children directories is required.
+
+            ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.get(ufParent);
+            if(modifyTimeAndSizeCache!=null) modifyTimeAndSizeCache.removing(uf.getFile().getName());
+        } else if(ufStat.isDirectory()) {
+            // For a directory, remove it and any of the directories under it.
+            // This is more expensive because we need to search all caches for prefix matches (iteration).
+
+            // Remove any items that are this or are children of this
+            String prefix = uf.getPath();
+            if(!prefix.endsWith("/")) prefix = prefix+'/';
+            Iterator<Map.Entry<UnixFile,ModifyTimeAndSizeCache>> iter = modifyTimeAndSizeCaches.entrySet().iterator();
+            while(iter.hasNext()) {
+                Map.Entry<UnixFile,ModifyTimeAndSizeCache> entry = iter.next();
+                UnixFile key = entry.getKey();
+                if(
+                    key.equals(uf)
+                    || key.getPath().startsWith(prefix)
+                ) iter.remove();
+            }
+        }
+    }
+    
+    /**
+     * Called whenever a file is added, to keep the cache in sync.
+     */
+    private static void added(Map<UnixFile,ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, UnixFile uf, UnixFile ufParent, Stat tempStat) throws IOException {
+        ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.get(ufParent);
+        if(modifyTimeAndSizeCache!=null) {
+            uf.getStat(tempStat);
+            modifyTimeAndSizeCache.added(
+                uf.getFile().getName(),
+                new ModifyTimeAndSize(
+                    tempStat.getModifyTime(),
+                    tempStat.getSize()
+                )
+            );
+        }
+    }
+
+    /**
+     * Called whenever a file is renamed, to keep the cache in sync.
+     */
+    private static void renaming(Map<UnixFile,ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, UnixFile oldUF, UnixFile newUF, UnixFile ufParent) {
+        ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.get(ufParent);
+        if(modifyTimeAndSizeCache!=null) {
+            modifyTimeAndSizeCache.renaming(
+                oldUF.getFile().getName(),
+                newUF.getFile().getName()
+            );
+        }
+    }
+
+    /**
+     * Called whenever something is linked, to keep the cache in sync.
+     */
+    private static void linking(Map<UnixFile,ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, UnixFile uf, UnixFile linkToUF, UnixFile ufParent) {
+        ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.get(ufParent);
+        if(modifyTimeAndSizeCache!=null) {
+            modifyTimeAndSizeCache.linking(
+                uf.getFile().getName(),
+                linkToUF.getFile().getName()
+            );
+        }
+    }
+
+    /**
+     * Encapsulates a modified time and size.  Is immutable and may be used a as Map key.
+     */
+    final static class ModifyTimeAndSize {
+
+        final long modifyTime;
+        final long size;
+
+        ModifyTimeAndSize(long modifyTime, long size) {
+            this.modifyTime = modifyTime;
+            this.size = size;
+        }
+
+        @Override
+        public int hashCode() {
+            return (int)(modifyTime * 31 + size);
+        }
+
+        @Override
+        public boolean equals(Object O) {
+            if(O==null) return false;
+            if(!(O instanceof ModifyTimeAndSize)) return false;
+            ModifyTimeAndSize other = (ModifyTimeAndSize)O;
+            return
+                modifyTime==other.modifyTime
+                && size==other.size
+            ;
+        }
+    }
+
+    /**
+     * Caches the directory.
+     */
+    final static class ModifyTimeAndSizeCache {
+
+        final private UnixFile directory;
+        final private Map<String,ModifyTimeAndSize> filenameMap = new HashMap<String,ModifyTimeAndSize>();
+        final private Map<ModifyTimeAndSize,List<String>> modifyTimeAndSizeMap = new HashMap<ModifyTimeAndSize,List<String>>();
+
+        ModifyTimeAndSizeCache(UnixFile directory, Stat tempStat) throws IOException {
+            this.directory = directory;
+            // Read all files in the directory to populate the caches
+            String[] list = directory.list();
+            if(list!=null) {
+                for(int d=0, len=list.length;d<len;d++) {
+                    String filename = list[d];
+                    UnixFile file = new UnixFile(directory, filename, false);
+                    file.getStat(tempStat);
+                    if(
+                        tempStat.exists()
+                        && tempStat.isRegularFile()
+                    ) {
+                        ModifyTimeAndSize modifyTimeAndSize = new ModifyTimeAndSize(tempStat.getModifyTime(), tempStat.getSize());
+                        filenameMap.put(filename, modifyTimeAndSize);
+                        List<String> fileList = modifyTimeAndSizeMap.get(modifyTimeAndSize);
+                        if(fileList==null) modifyTimeAndSizeMap.put(modifyTimeAndSize, fileList = new ArrayList<String>());
+                        fileList.add(filename);
+                    }
+                }
+            }
+        }
+
+        UnixFile getDirectory() {
+            return directory;
+        }
+        
+        /**
+         * Gets the list of filenames in this directory that match the provided modified time and size or <code>null</code> if none.
+         */
+        List<String> getFilenamesByModifyTimeAndSize(ModifyTimeAndSize modifyTimeAndSize) {
+            return modifyTimeAndSizeMap.get(modifyTimeAndSize);
+        }
+
+        /**
+         * Gets the modified time and size for a specific filename within this directory.
+         */
+        /*ModifyTimeAndSize getModifyTimeAndSizeByFilename(String filename) {
+            return filenameMap.get(filename);
+        }*/
+        
+        /**
+         * To maintain correct cache state, this should be called whenever a regular file in this directory is deleted.
+         */
+        void removing(String filename) {
+            ModifyTimeAndSize modifyTimeAndSize = filenameMap.remove(filename);
+            if(modifyTimeAndSize==null) throw new AssertionError("filenameMap doesn't contain filename: filename="+filename);
+            List<String> filenames = modifyTimeAndSizeMap.get(modifyTimeAndSize);
+            if(filenames==null) throw new AssertionError("modifyTimeAndSizeMap doesn't contain modifyTimeAndSize");
+            if(!filenames.remove(filename)) throw new AssertionError("filenames didn't contain filename: filename="+filename);
+            if(filenames.isEmpty()) modifyTimeAndSizeMap.remove(modifyTimeAndSize);
+        }
+
+        /**
+         * To maintain correct cache state, this should be called whenever a regular file in this directory is renamed.
+         */
+        void renaming(String oldFilename, String newFilename) {
+            // The new filename must not exist
+            if(filenameMap.containsKey(newFilename)) throw new AssertionError("filenameMap already contains newFilename: newFilename="+newFilename);
+            // Move in the filenameMap
+            ModifyTimeAndSize modifyTimeAndSize = filenameMap.remove(oldFilename);
+            // The old filename must exist in the cache, otherwise we have a cache coherency problem
+            if(modifyTimeAndSize==null) throw new AssertionError("oldFilename not in filenameMap: oldFilename="+oldFilename);
+            filenameMap.put(newFilename, modifyTimeAndSize);
+            // Update in the modifyTimeAndSizeMap map
+            List<String> filenames = modifyTimeAndSizeMap.get(modifyTimeAndSize);
+            if(filenames==null) throw new AssertionError("filenames is null");
+            int index = filenames.indexOf(oldFilename);
+            if(index==-1) throw new AssertionError("index is -1, oldFilename not found in filenames");
+            filenames.set(index, newFilename);
+        }
+
+        /**
+         * To maintain correct cache state, this should be called whenever a regular file in this directory is linked.
+         */
+        void linking(String filename, String linkToFilename) {
+            // The filename must not exist in the cache
+            if(filenameMap.containsKey(filename)) throw new AssertionError("filenameMap already contains filename: filename="+filename);
+            // Add in the filenameMap as duplicate of linkToFilename
+            ModifyTimeAndSize modifyTimeAndSize = filenameMap.get(linkToFilename);
+            if(modifyTimeAndSize==null) throw new AssertionError("linkToFilename not in filenameMap: linkToFilename="+linkToFilename);
+            filenameMap.put(filename, modifyTimeAndSize);
+            // Update in the modifyTimeAndSizeMap map
+            List<String> filenames = modifyTimeAndSizeMap.get(modifyTimeAndSize);
+            if(filenames==null) throw new AssertionError("filenames is null");
+            if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) {
+                if(!filenames.contains(linkToFilename)) throw new AssertionError("filenames doesn't contain linkToFilename: linkToFilename="+linkToFilename);
+                if(filenames.contains(filename)) throw new AssertionError("filenames already contains filename: filename="+filename);
+            }
+            filenames.add(filename);
+        }
+
+        /**
+         * To maintain correct cache state, this should be called whenever a regular file is added to this directory.
+         */
+        void added(String filename, ModifyTimeAndSize modifyTimeAndSize) {
+            // The filename must not exist in the cache
+            if(filenameMap.containsKey(filename)) throw new AssertionError("filenameMap already contains filename: filename="+filename);
+            // Add to the maps
+            filenameMap.put(filename, modifyTimeAndSize);
+            List<String> fileList = modifyTimeAndSizeMap.get(modifyTimeAndSize);
+            if(fileList==null) modifyTimeAndSizeMap.put(modifyTimeAndSize, fileList = new ArrayList<String>());
+            fileList.add(filename);
         }
     }
 
@@ -1487,16 +1930,16 @@ final public class FailoverFileReplicationManager {
                     // 1) Flag all those that were completed as recycled
                     final UnixFile currentUF = new UnixFile(serverRootUF, directory, false);
                     final UnixFile newUF = new UnixFile(serverRootUF, directory+RECYCLED_EXTENSION, false);
-                    if(log.isDebugEnabled()) log.debug("Renaming "+currentUF.getFilename()+" to "+newUF.getFilename());
-                    if(newUF.getStat(tempStat).exists()) throw new IOException("newUF exists: "+newUF.getFilename());
+                    if(log.isDebugEnabled()) log.debug("Renaming "+currentUF.getPath()+" to "+newUF.getPath());
+                    if(newUF.getStat(tempStat).exists()) throw new IOException("newUF exists: "+newUF.getPath());
                     currentUF.renameTo(newUF);
                 } else {
                     // 2) Flag all those that where not completed directly as .deleted, schedule for delete
                     if(!directory.endsWith(SAFE_DELETE_EXTENSION)) {
                         final UnixFile currentUF = new UnixFile(serverRootUF, directory, false);
                         final UnixFile newUF = new UnixFile(serverRootUF, directory+SAFE_DELETE_EXTENSION, false);
-                        if(log.isDebugEnabled()) log.debug("Renaming "+currentUF.getFilename()+" to "+newUF.getFilename());
-                        if(newUF.getStat(tempStat).exists()) throw new IOException("newUF exists: "+newUF.getFilename());
+                        if(log.isDebugEnabled()) log.debug("Renaming "+currentUF.getPath()+" to "+newUF.getPath());
+                        if(newUF.getStat(tempStat).exists()) throw new IOException("newUF exists: "+newUF.getPath());
                         currentUF.renameTo(newUF);
                     }
                 }
@@ -1520,8 +1963,8 @@ final public class FailoverFileReplicationManager {
                                 String newFilename = directory.substring(0, directory.length()-RECYCLED_EXTENSION.length())+SAFE_DELETE_EXTENSION;
                                 final UnixFile currentUF = new UnixFile(serverRootUF, directory, false);
                                 final UnixFile newUF = new UnixFile(serverRootUF, newFilename, false);
-                                if(log.isDebugEnabled()) log.debug("Renaming "+currentUF.getFilename()+" to "+newUF.getFilename());
-                                if(newUF.getStat(tempStat).exists()) throw new IOException("newUF exists: "+newUF.getFilename());
+                                if(log.isDebugEnabled()) log.debug("Renaming "+currentUF.getPath()+" to "+newUF.getPath());
+                                if(newUF.getStat(tempStat).exists()) throw new IOException("newUF exists: "+newUF.getPath());
                                 currentUF.renameTo(newUF);
                             }
                         }
@@ -1542,7 +1985,7 @@ final public class FailoverFileReplicationManager {
                         String directory = list[c];
                         if(directory.endsWith(SAFE_DELETE_EXTENSION)) {
                             found=true;
-                            String fullPath = new UnixFile(serverRootUF, directory, false).getFilename();
+                            String fullPath = new UnixFile(serverRootUF, directory, false).getPath();
                             if(log.isDebugEnabled()) log.debug("Deleting: "+fullPath);
                             command.add(fullPath);
                         }
@@ -1620,12 +2063,17 @@ final public class FailoverFileReplicationManager {
 
     /**
      * If the file is a regular file and is hard-linked, copies the file and renames it over the original (to break the link).
+     * ufStat may no longer be correct after this method is called, if needed, restat after this call
+     * 
+     * @param  uf  the file we are checking
+     * @param  ufStat  the stat of the current file - it is assumed to match the correct state of uf
+     * 
+     * @return  true if any changes were made.  This could be combined with a restat if necessary
      */
-    private static void copyIfHardLinked(UnixFile uf, Stat ufStat) throws IOException {
-        uf.getStat(ufStat);
+    private static boolean copyIfHardLinked(UnixFile uf, Stat ufStat) throws IOException {
         if(ufStat.isRegularFile() && ufStat.getNumberLinks()>1) {
             if(log.isTraceEnabled()) log.trace("Copying file due to hard link: "+uf);
-            UnixFile temp = UnixFile.mktemp(uf.getFilename()+'.');
+            UnixFile temp = UnixFile.mktemp(uf.getPath()+'.');
             uf.copyTo(temp, true);
             temp.chown(ufStat.getUID(), ufStat.getGID());
             temp.setMode(ufStat.getMode());
@@ -1633,7 +2081,9 @@ final public class FailoverFileReplicationManager {
             long mtime = ufStat.getModifyTime();
             temp.renameTo(uf);
             uf.utime(atime, mtime);
-            uf.getStat(ufStat);
+            return true;
+        } else {
+            return false;
         }
     }
 
