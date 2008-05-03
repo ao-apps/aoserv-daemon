@@ -753,46 +753,52 @@ final public class FailoverFileReplicationManager {
                                                     String name = uf.getFile().getName();
                                                     UnixFile templateUF = name.length()>64 ? new UnixFile(ufParent, name.substring(0, 64), false) : uf;
                                                     UnixFile tempUF = UnixFile.mktemp(templateUF.getPath()+'.');
-                                                    // Update caches
-                                                    long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-                                                    renaming(modifyTimeAndSizeCaches, uf, tempUF, ufParent);
-                                                    added(modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
-                                                    if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
                                                     // Update the filesystem
                                                     uf.renameTo(tempUF);
                                                     uf.link(linkToUF);
                                                     uf.getStat(ufStat);
+                                                    // Update caches
+                                                    long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                                    renamed(modifyTimeAndSizeCaches, uf, tempUF, ufParent);
+                                                    added(modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
+                                                    if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
                                                 } else {
                                                     // Delete and link is OK because this is using a linkTo directory (therefore not in failover mode)
                                                     // Update caches
                                                     long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
                                                     removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
-                                                    added(modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
                                                     if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
                                                     // Update the filesystem
                                                     uf.delete();
                                                     uf.link(linkToUF);
                                                     uf.getStat(ufStat);
+                                                    // Update caches
+                                                    startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                                    added(modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
+                                                    if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
                                                 }
                                             } else {
                                                 // Update caches
                                                 long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
                                                 removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
-                                                added(modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
                                                 if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
                                                 // Update the filesystem
                                                 uf.deleteRecursive();
                                                 uf.link(linkToUF);
                                                 uf.getStat(ufStat);
+                                                // Update caches
+                                                startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                                added(modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
+                                                if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
                                             }
                                         } else {
+                                            // Update the filesystem
+                                            uf.link(linkToUF);
+                                            uf.getStat(ufStat);
                                             // Update caches
                                             long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
                                             added(modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
                                             if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
-                                            // Update the filesystem
-                                            uf.link(linkToUF);
-                                            uf.getStat(ufStat);
                                         }
                                     } else {
                                         // If we are in a log directory, search all regular files in current directory and linkTo directory for matching length and mtime
@@ -806,7 +812,7 @@ final public class FailoverFileReplicationManager {
                                             // Therefore, if the new implementation is still faster, it is clearly the winner.
                                             long newStartNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
                                             UnixFile oldLogUF = null;
-                                            ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.get(ufParent);
+                                            ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.isEmpty() ? null : modifyTimeAndSizeCaches.get(ufParent);
                                             if(modifyTimeAndSizeCache==null) {
                                                 // Not in cache, load from disk
                                                 modifyTimeAndSizeCaches.put(ufParent, modifyTimeAndSizeCache = new ModifyTimeAndSizeCache(ufParent, tempStat));
@@ -866,7 +872,7 @@ final public class FailoverFileReplicationManager {
                                                 // disk first, thus the old implementation will have the advantage of the disk cache.
                                                 // Therefore, if the new implementation is still faster, it is clearly the winner.
                                                 long newStartNanos2 = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-                                                ModifyTimeAndSizeCache modifyTimeAndSizeCache2 = modifyTimeAndSizeCaches.get(linkToParent);
+                                                ModifyTimeAndSizeCache modifyTimeAndSizeCache2 = modifyTimeAndSizeCaches.isEmpty() ? null : modifyTimeAndSizeCaches.get(linkToParent);
                                                 if(modifyTimeAndSizeCache2==null) {
                                                     // Not in cache, load from disk
                                                     modifyTimeAndSizeCaches.put(linkToParent, modifyTimeAndSizeCache2 = new ModifyTimeAndSizeCache(linkToParent, tempStat));
@@ -928,11 +934,6 @@ final public class FailoverFileReplicationManager {
                                                         UnixFile templateUF = name.length()>64 ? new UnixFile(ufParent, name.substring(0, 64), false) : uf;
                                                         String tempPath = templateUF.getPath()+'.';
                                                         UnixFile tempUF = UnixFile.mktemp(tempPath);
-                                                        // Update cache
-                                                        long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-                                                        renaming(modifyTimeAndSizeCaches, uf, tempUF, ufParent);
-                                                        added(modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
-                                                        if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
                                                         // Update filesystem
                                                         if(retention==1) {
                                                             // Failover mode does a more cautious link to temp and rename over to avoid
@@ -948,23 +949,31 @@ final public class FailoverFileReplicationManager {
                                                             uf.renameTo(tempUF);
                                                             uf.link(oldLogUF);
                                                         }
+                                                        // Update cache
+                                                        long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                                        renamed(modifyTimeAndSizeCaches, uf, tempUF, ufParent);
+                                                        added(modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
+                                                        if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
                                                     } else {
                                                         // Update cache
                                                         long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
                                                         removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
-                                                        added(modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
                                                         if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
                                                         // Update filesystem
                                                         uf.deleteRecursive();
                                                         uf.link(oldLogUF);
+                                                        // Update cache
+                                                        startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                                        added(modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
+                                                        if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
                                                     }
                                                 } else {
+                                                    // Update filesystem
+                                                    uf.link(oldLogUF);
                                                     // Update cache
                                                     long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
                                                     added(modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
                                                     if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
-                                                    // Update filesystem
-                                                    uf.link(oldLogUF);
                                                 }
                                                 uf.getStat(ufStat);
                                                 result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
@@ -1334,8 +1343,8 @@ final public class FailoverFileReplicationManager {
                                     fileOut.close();
                                 }
                                 fileOutUF.utime(fileOutUF.getStat(tempStat).getAccessTime(), modifyTimes[c]);
+                                uf.getStat(ufStat);
                                 if(tempUF!=null) {
-                                    uf.getStat(ufStat);
                                     if(ufStat.exists()) {
                                         if(ufStat.isRegularFile()) {
                                             if(isLogDirs[c]) {
@@ -1344,10 +1353,6 @@ final public class FailoverFileReplicationManager {
                                                 UnixFile templateUF = name.length()>64 ? new UnixFile(uf.getParent(), name.substring(0, 64), false) : uf;
                                                 String tempPath = templateUF.getPath()+'.';
                                                 UnixFile tempUFLog = UnixFile.mktemp(tempPath);
-                                                // Update cache (cache update counted as remove and then add because cache renaming method expects renameTo to not exist
-                                                long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-                                                renaming(modifyTimeAndSizeCaches, uf, tempUFLog, ufParent);
-                                                if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
                                                 // Update filesystem
                                                 if(retention==1) {
                                                     // Failover mode does a more cautious link to temp and rename over to avoid
@@ -1362,6 +1367,10 @@ final public class FailoverFileReplicationManager {
                                                     tempUF.renameTo(uf);
                                                     uf.getStat(ufStat);
                                                 }
+                                                // Update cache (cache update counted as remove and then add because cache renaming method expects renameTo to not exist
+                                                long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+                                                renamed(modifyTimeAndSizeCaches, uf, tempUFLog, ufParent);
+                                                if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
                                             } else {
                                                 // Not a log directory, just replace old regular file
                                                 // Update cache (cache update counted as remove and then add because cache renaming method expects renameTo to not exist
@@ -1403,8 +1412,8 @@ final public class FailoverFileReplicationManager {
                         long dirModifyTime = directoryFinalizeModifyTimes.get(c).longValue();
                         Set<String> dirContents = directoryFinalizeContents.get(c);
                         // Remove from the caches since we are done with the directory entirely for this pass
-                        modifyTimeAndSizeCaches.remove(dirUF);
-                        if(dirLinkToUF!=null) modifyTimeAndSizeCaches.remove(dirLinkToUF);
+                        if(!modifyTimeAndSizeCaches.isEmpty()) modifyTimeAndSizeCaches.remove(dirUF);
+                        if(dirLinkToUF!=null && !modifyTimeAndSizeCaches.isEmpty()) modifyTimeAndSizeCaches.remove(dirLinkToUF);
                         // Remove extra files
                         String dirPath=dirUF.getPath();
                         if(!dirPath.endsWith("/")) dirPath=dirPath+'/';
@@ -1520,57 +1529,68 @@ final public class FailoverFileReplicationManager {
     }
 
     /**
-     * Called whenever something is removed, to keep the cache in sync.
+     * Called before something is removed, to keep the cache in sync.
      */
     private static void removing(Map<UnixFile,ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, UnixFile uf, Stat ufStat, UnixFile ufParent) throws FileNotFoundException {
-        if(ufStat.isRegularFile()) {
-            // For a regular file, just remove it from its parent, this is the fastest case
-            // because no scan for children directories is required.
+        if(!modifyTimeAndSizeCaches.isEmpty()) {
+            if(ufStat.isRegularFile()) {
+                // For a regular file, just remove it from its parent, this is the fastest case
+                // because no scan for children directories is required.
 
-            ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.get(ufParent);
-            if(modifyTimeAndSizeCache!=null) modifyTimeAndSizeCache.removing(uf.getFile().getName());
-        } else if(ufStat.isDirectory()) {
-            // For a directory, remove it and any of the directories under it.
-            // This is more expensive because we need to search all caches for prefix matches (iteration).
+                ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.get(ufParent);
+                if(modifyTimeAndSizeCache!=null) modifyTimeAndSizeCache.removing(uf.getFile().getName());
+            } else if(ufStat.isDirectory()) {
+                // For a directory, remove it and any of the directories under it.
+                // This is more expensive because we need to search all caches for prefix matches (iteration).
 
-            // Remove any items that are this or are children of this
-            String prefix = uf.getPath();
-            if(!prefix.endsWith("/")) prefix = prefix+'/';
-            Iterator<Map.Entry<UnixFile,ModifyTimeAndSizeCache>> iter = modifyTimeAndSizeCaches.entrySet().iterator();
-            while(iter.hasNext()) {
-                Map.Entry<UnixFile,ModifyTimeAndSizeCache> entry = iter.next();
-                UnixFile key = entry.getKey();
-                if(
-                    key.equals(uf)
-                    || key.getPath().startsWith(prefix)
-                ) iter.remove();
+                // Remove any items that are this or are children of this
+                String prefix = uf.getPath();
+                if(!prefix.endsWith("/")) prefix = prefix+'/';
+                Iterator<Map.Entry<UnixFile,ModifyTimeAndSizeCache>> iter = modifyTimeAndSizeCaches.entrySet().iterator();
+                while(iter.hasNext()) {
+                    Map.Entry<UnixFile,ModifyTimeAndSizeCache> entry = iter.next();
+                    UnixFile key = entry.getKey();
+                    if(
+                        key.equals(uf)
+                        || key.getPath().startsWith(prefix)
+                    ) iter.remove();
+                }
             }
         }
     }
     
     /**
-     * Called whenever a file is added, to keep the cache in sync.
+     * Called after a file is added, to keep the cache in sync.
      */
     private static void added(Map<UnixFile,ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, UnixFile uf, UnixFile ufParent, ModifyTimeAndSize ufModifyTimeAndSize) throws IOException {
-        ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.get(ufParent);
-        if(modifyTimeAndSizeCache!=null) {
-            modifyTimeAndSizeCache.added(
-                uf.getFile().getName(),
-                ufModifyTimeAndSize
-            );
+        if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) {
+            Stat ufStat = uf.getStat();
+            if(ufStat.getModifyTime()!=ufModifyTimeAndSize.modifyTime) throw new AssertionError("uf.getStat().getModifyTime()!=ufModifyTimeAndSize.modifyTime");
+            if(ufStat.getSize()!=ufModifyTimeAndSize.size) throw new AssertionError("uf.getStat().getSize()!=ufModifyTimeAndSize.size");
+        }
+        if(!modifyTimeAndSizeCaches.isEmpty()) {
+            ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.get(ufParent);
+            if(modifyTimeAndSizeCache!=null) {
+                modifyTimeAndSizeCache.added(
+                    uf.getFile().getName(),
+                    ufModifyTimeAndSize
+                );
+            }
         }
     }
 
     /**
-     * Called whenever a file is renamed, to keep the cache in sync.
+     * Called after a file is renamed, to keep the cache in sync.
      */
-    private static void renaming(Map<UnixFile,ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, UnixFile oldUF, UnixFile newUF, UnixFile ufParent) {
-        ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.get(ufParent);
-        if(modifyTimeAndSizeCache!=null) {
-            modifyTimeAndSizeCache.renaming(
-                oldUF.getFile().getName(),
-                newUF.getFile().getName()
-            );
+    private static void renamed(Map<UnixFile,ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, UnixFile oldUF, UnixFile newUF, UnixFile ufParent) {
+        if(!modifyTimeAndSizeCaches.isEmpty()) {
+            ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.get(ufParent);
+            if(modifyTimeAndSizeCache!=null) {
+                modifyTimeAndSizeCache.renamed(
+                    oldUF.getFile().getName(),
+                    newUF.getFile().getName()
+                );
+            }
         }
     }
 
@@ -1655,7 +1675,7 @@ final public class FailoverFileReplicationManager {
         }
         
         /**
-         * To maintain correct cache state, this should be called whenever a regular file in this directory is deleted.
+         * To maintain correct cache state, this should be called before a regular file in this directory is deleted.
          */
         void removing(String filename) {
             ModifyTimeAndSize modifyTimeAndSize = filenameMap.remove(filename);
@@ -1667,9 +1687,9 @@ final public class FailoverFileReplicationManager {
         }
 
         /**
-         * To maintain correct cache state, this should be called whenever a regular file in this directory is renamed.
+         * To maintain correct cache state, this should be called after a regular file in this directory is renamed.
          */
-        void renaming(String oldFilename, String newFilename) {
+        void renamed(String oldFilename, String newFilename) {
             // The new filename must not exist
             if(filenameMap.containsKey(newFilename)) throw new AssertionError("filenameMap already contains newFilename: newFilename="+newFilename);
             // Move in the filenameMap
@@ -1708,7 +1728,7 @@ final public class FailoverFileReplicationManager {
         }*/
 
         /**
-         * To maintain correct cache state, this should be called whenever a regular file is added to this directory.
+         * To maintain correct cache state, this should be called after a regular file is added to this directory.
          */
         void added(String filename, ModifyTimeAndSize modifyTimeAndSize) {
             // The filename must not exist in the cache
