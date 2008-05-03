@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.failover;
 
 /*
- * Copyright 2003-2007 by AO Industries, Inc.,
+ * Copyright 2003-2008 by AO Industries, Inc.,
  * 816 Azalea Rd, Mobile, Alabama, 36693, U.S.A.
  * All rights reserved.
  */
@@ -51,6 +51,8 @@ import org.apache.commons.logging.LogFactory;
  *
  * TODO: Need to do mysqldump and postgresql dump on preBackup
  *
+ * TODO: Use more compression within the protocol (perhaps to byte[] in RAM and then across the network, or an OutputStream "wrapper")
+ *
  * @author  AO Industries, Inc.
  */
 final public class FailoverFileReplicationManager {
@@ -61,7 +63,7 @@ final public class FailoverFileReplicationManager {
      * When true, runs both the old and new implementations of log directory hard linking and verifies consistent behavior of the two.
      * Also times their performance.
      */
-    private static final boolean USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING = true;
+    private static final boolean USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING = false;
 
     /**
      * The extension added to the directory name when it is a partial pass.
