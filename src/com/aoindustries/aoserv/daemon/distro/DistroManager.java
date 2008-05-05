@@ -286,7 +286,7 @@ final public class DistroManager implements Runnable {
                     System.out.flush();
                 }
             }
-            String filename=file.getFilename();
+            String filename=file.getPath();
             int index=Collections.binarySearch(distroFiles, new Object[] {filename, osVersionPKey}, pathComparator);
             DistroFile distroFile=index<0?null:distroFiles.get(index);
 
@@ -423,7 +423,7 @@ final public class DistroManager implements Runnable {
                                             "/usr/sbin/prelink",
                                             "--verify",
                                             "--md5",
-                                            file.getFilename()
+                                            file.getPath()
                                         };
                                         Process P = Runtime.getRuntime().exec(command);
                                         try {
@@ -487,7 +487,7 @@ final public class DistroManager implements Runnable {
                                         // MD5
                                         long startTime=System.currentTimeMillis();
 
-                                        byte[] fileHash=hashFile(file.getFilename());
+                                        byte[] fileHash=hashFile(file.getPath());
                                         long file_md5_hi=MD5.getMD5Hi(fileHash);
                                         long file_md5_lo=MD5.getMD5Lo(fileHash);
                                         long distro_md5_hi=distroFile.getFileMD5Hi();
@@ -653,7 +653,7 @@ final public class DistroManager implements Runnable {
                             ) {
                                 // Allow setUID for /etc/mail/majordomo/*/wrapper 4750 root.mail
                                 boolean found=false;
-                                String filename=uf.getFilename();
+                                String filename=uf.getPath();
                                 if(
                                     filename.length()>20
                                     && filename.substring(0, 20).equals("/etc/mail/majordomo/")
@@ -692,7 +692,7 @@ final public class DistroManager implements Runnable {
                                 checkUserDirectory(aoServer, uf, results, displayResults, recursionLevel+1);
                             }
                         } catch(RuntimeException err) {
-                            if(log.isErrorEnabled()) log.error("RuntimeException while accessing: "+uf.getFilename());
+                            if(log.isErrorEnabled()) log.error("RuntimeException while accessing: "+uf.getPath());
                             throw err;
                         }
                     } catch(FileNotFoundException err) {

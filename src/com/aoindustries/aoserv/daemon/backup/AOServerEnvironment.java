@@ -83,8 +83,8 @@ public class AOServerEnvironment extends UnixFileEnvironment {
                 replicatedMySQLServers.add(name);
                 replicatedMySQLMinorVersions.add(minorVersion);
                 if(isDebugEnabled()) {
-                    debug("runFailoverCopy to "+toServer+", replicatedMySQLServer: "+name);
-                    debug("runFailoverCopy to "+toServer+", replicatedMySQLMinorVersion: "+minorVersion);
+                    debug(getClass(), "init", "runFailoverCopy to "+toServer+", replicatedMySQLServer: "+name, null);
+                    debug(getClass(), "init", "runFailoverCopy to "+toServer+", replicatedMySQLMinorVersion: "+minorVersion, null);
                 }
             }
             synchronized(replicatedMySQLServerses) {
@@ -382,13 +382,8 @@ public class AOServerEnvironment extends UnixFileEnvironment {
     }
 
     @Override
-    public void debug(Object message) {
-        log.debug(message);
-    }
-
-    @Override
-    public void debug(Object message, Throwable stack) {
-        log.debug(message, stack);
+    public void debug(Class clazz, String method, Object message, Throwable throwable) {
+        log.debug(message, throwable);
     }
 
     @Override
@@ -397,13 +392,8 @@ public class AOServerEnvironment extends UnixFileEnvironment {
     }
 
     @Override
-    public void error(Object message) {
-        log.error(message);
-    }
-
-    @Override
-    public void error(Object message, Throwable stack) {
-        log.error(message, stack);
+    public void error(Class clazz, String method, Object message, Throwable throwable) {
+        log.error(message, throwable);
     }
 
     @Override
@@ -412,12 +402,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
     }
 
     @Override
-    public void warn(Object message) {
-        log.warn(message);
-    }
-
-    @Override
-    public void warn(Object message, Throwable stack) {
-        log.warn(message, stack);
+    public void warn(Class clazz, String method, Object message, Throwable throwable) {
+        log.warn(message, throwable);
     }
 }

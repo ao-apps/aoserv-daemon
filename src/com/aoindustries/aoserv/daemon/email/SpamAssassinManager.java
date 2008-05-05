@@ -134,7 +134,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                         Stat ufStat = uf.getStat();
                         if(ufStat.isDirectory()) {
                             long mtime=ufStat.getModifyTime();
-                            if(mtime==-1) AOServDaemon.reportWarning(new IOException("getModify() returned -1"), new Object[] {"incomingDirectory="+incomingDirectory.getFilename(), "filename="+filename});
+                            if(mtime==-1) AOServDaemon.reportWarning(new IOException("getModify() returned -1"), new Object[] {"incomingDirectory="+incomingDirectory.getPath(), "filename="+filename});
                             else {
                                 long currentTime=System.currentTimeMillis();
                                 if(
@@ -159,11 +159,11 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                                         }
                                     }
                                     if(filenameOK) readyList.add(uf);
-                                    else AOServDaemon.reportWarning(new IOException("Invalid directory name"), new Object[] {"incomingDirectory="+incomingDirectory.getFilename(), "filename="+filename});
+                                    else AOServDaemon.reportWarning(new IOException("Invalid directory name"), new Object[] {"incomingDirectory="+incomingDirectory.getPath(), "filename="+filename});
                                 }
                             }
-                        } else AOServDaemon.reportWarning(new IOException("Not a directory"), new Object[] {"incomingDirectory="+incomingDirectory.getFilename(), "filename="+filename});
-                    } else AOServDaemon.reportWarning(new IOException("Unexpected filename, should start with spam_ or ham_"), new Object[] {"incomingDirectory="+incomingDirectory.getFilename(), "filename="+filename});
+                        } else AOServDaemon.reportWarning(new IOException("Not a directory"), new Object[] {"incomingDirectory="+incomingDirectory.getPath(), "filename="+filename});
+                    } else AOServDaemon.reportWarning(new IOException("Unexpected filename, should start with spam_ or ham_"), new Object[] {"incomingDirectory="+incomingDirectory.getPath(), "filename="+filename});
                 }
                 if(!readyList.isEmpty()) {
                     // Sort the list by oldest time first
@@ -183,8 +183,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                                     throw new WrappedException(
                                         err,
                                         new Object[] {
-                                            "uf1="+uf1.getFilename(),
-                                            "uf2="+uf2.getFilename()
+                                            "uf1="+uf1.getPath(),
+                                            "uf2="+uf2.getPath()
                                         }
                                     );
                                 }
@@ -234,7 +234,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                                 tempSB.append("/usr/bin/sa-learn ").append(currentIsHam?"--ham":"--spam").append(" --dir");
                                 for(int c=0;c<thisPass.size();c++) {
                                     UnixFile uf=thisPass.get(c);
-                                    tempSB.append(' ').append(uf.getFilename());
+                                    tempSB.append(' ').append(uf.getPath());
                                 }
                                 AOServDaemon.suexec(
                                     username,
@@ -446,7 +446,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                             if(removed) {
                                 int uid = lsa.getUID().getID();
                                 int gid = lsa.getPrimaryLinuxServerGroup().getGID().getID();
-                                UnixFile tempFile = UnixFile.mktemp(razorAgentLog.getFilename()+'.');
+                                UnixFile tempFile = UnixFile.mktemp(razorAgentLog.getPath()+'.');
                                 try {
                                     PrintWriter out = new PrintWriter(new BufferedOutputStream(tempFile.getSecureOutputStream(uid, gid, 0644, true)));
                                     try {

@@ -362,7 +362,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                     minorVersion,
                     Integer.toString(port),
                     dbName,
-                    tempFile.getFilename()
+                    tempFile.getPath()
                 };
                 AOServDaemon.exec(command);
 

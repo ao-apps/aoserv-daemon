@@ -917,7 +917,7 @@ final public class MajordomoManager extends BuilderThread {
 
                     // Delete the extra files
                     for(int d=0;d<existingListFiles.size();d++) {
-                        deleteFileList.add(new File(listsUF.getFilename(), existingListFiles.get(d)));
+                        deleteFileList.add(new File(listsUF.getPath(), existingListFiles.get(d)));
                     }
                 }
 

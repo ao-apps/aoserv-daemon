@@ -573,11 +573,11 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
                 ) makemap="/usr/sbin/makemap";
                 else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
-                String[] cmd = { makemap, "hash", userTable.getFilename() };
+                String[] cmd = { makemap, "hash", userTable.getPath() };
                 Process P = Runtime.getRuntime().exec(cmd);
                 try {
                     // Pipe the file into the process
-                    InputStream in = new BufferedInputStream(new FileInputStream(userTable.getFilename()));
+                    InputStream in = new BufferedInputStream(new FileInputStream(userTable.getPath()));
                     try {
                         OutputStream out = P.getOutputStream();
                         try {

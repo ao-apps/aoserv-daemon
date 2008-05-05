@@ -130,7 +130,7 @@ final public class ShadowFile {
                             break;
                         }
                     }
-                    if(!rootFound) throw new SQLException("root user not found while creating "+newShadowFile.getFilename());
+                    if(!rootFound) throw new SQLException("root user not found while creating "+newShadowFile.getPath());
                     for (int c = 0; c < accounts.size(); c++) {
                         String username = accounts.get(c)
                             .getLinuxAccount()
@@ -159,7 +159,7 @@ final public class ShadowFile {
                     } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                     shadowFile.renameTo(backupShadowFile);
                     newShadowFile.renameTo(shadowFile);
-                } else throw new IOException(newShadowFile.getFilename()+" has zero or unknown length");
+                } else throw new IOException(newShadowFile.getPath()+" has zero or unknown length");
             }
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);

@@ -139,7 +139,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
                     dbName,
                     ms.getMinorVersion(),
                     Integer.toString(ms.getNetBind().getPort().getPort()),
-                    tempFile.getFilename()
+                    tempFile.getPath()
                 };
                 long dataSize;
                 Process P=Runtime.getRuntime().exec(command);
@@ -162,7 +162,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
                     }
                 }
 
-                MD5InputStream md5In=new MD5InputStream(new CorrectedGZIPInputStream(new BufferedInputStream(new FileInputStream(tempFile.getFilename()))));
+                MD5InputStream md5In=new MD5InputStream(new CorrectedGZIPInputStream(new BufferedInputStream(new FileInputStream(tempFile.getPath()))));
                 try {
                     byte[] buff=BufferManager.getBytes();
                     try {
@@ -228,7 +228,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
                     dbName,
                     ms.getMinorVersion(),
                     Integer.toString(ms.getNetBind().getPort().getPort()),
-                    tempFile.getFilename()
+                    tempFile.getPath()
                 };
                 AOServDaemon.exec(command);
 

@@ -211,7 +211,7 @@ final public class DNSManager extends BuilderThread {
                     out.print("\tpid-file \"/var/run/named/named.pid\";\n"
                             + "\tquery-source address * port 53;\n");
                 }
-                out.print("\tdirectory \"").print(namedZoneDir.getFilename()).print("\";\n");
+                out.print("\tdirectory \"").print(namedZoneDir.getPath()).print("\";\n");
                 if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                     out.print("\tlisten-on-v6 port 53 { ::1; };\n"
                             + "\tdump-file \"/var/named/data/cache_dump.db\";\n"

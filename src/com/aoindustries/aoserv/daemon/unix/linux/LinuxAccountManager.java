@@ -836,7 +836,7 @@ public class LinuxAccountManager extends BuilderThread {
                     "-C",
                     home,
                     "-f",
-                    tempUF.getFilename(),
+                    tempUF.getPath(),
                     "."
                 };
                 AOServDaemon.exec(cmd);
@@ -894,7 +894,7 @@ public class LinuxAccountManager extends BuilderThread {
                         "-C",
                         home,
                         "-f",
-                        tempUF.getFilename()
+                        tempUF.getPath()
                     };
                     AOServDaemon.exec(cmd);
                 } finally {

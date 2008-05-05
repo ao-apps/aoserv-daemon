@@ -146,7 +146,7 @@ final public class HardLinkVarBackup {
                     File file = iterators[c].getNextFile();
                     UnixFile uf = file==null ? null : new UnixFile(file);
                     unixFiles[c]=uf;
-                    relativePaths[c]=uf==null ? null : uf.getFilename().substring(iteratorStarts[c].length());
+                    relativePaths[c]=uf==null ? null : uf.getPath().substring(iteratorStarts[c].length());
                 } catch(IOException ioExc) {
                     ioExc.printStackTrace(err);
                 }
@@ -240,14 +240,14 @@ final public class HardLinkVarBackup {
                                                     if(destination==null) {
                                                         if(!contentNotEquals.contains(linkKey)) {
                                                             // Have exactly matching file contents
-                                                            if(uf.contentEquals(otherUF)) destination=otherUF.getFilename();
+                                                            if(uf.contentEquals(otherUF)) destination=otherUF.getPath();
                                                             else contentNotEquals.add(linkKey);
                                                         }
                                                     }
                                                     if(destination!=null) {
                                                         if(debug) {
                                                             out.println("DEBUG: Would hard link:");
-                                                            out.println("    From: "+uf.getFilename());
+                                                            out.println("    From: "+uf.getPath());
                                                             out.println("    To..: "+destination);
                                                         } else {
                                                             // Do hard link
@@ -255,14 +255,14 @@ final public class HardLinkVarBackup {
                                                             // Find any available filename
                                                             UnixFile tempUF = null;
                                                             for(int e=0;e<Integer.MAX_VALUE;e++) {
-                                                                String tempPath=uf.getFilename()+'.'+e;
+                                                                String tempPath=uf.getPath()+'.'+e;
                                                                 UnixFile temp = new UnixFile(tempPath);
                                                                 if(!temp.getStat(tempStat).exists()) {
                                                                     tempUF=temp;
                                                                     break;
                                                                 }
                                                             }
-                                                            if(tempUF==null) throw new IOException("Unable to make temp file: "+uf.getFilename());
+                                                            if(tempUF==null) throw new IOException("Unable to make temp file: "+uf.getPath());
                                                             tempUF.link(destination);
                                                             tempUF.renameTo(uf);
                                                         }
@@ -299,7 +299,7 @@ final public class HardLinkVarBackup {
                                 File file = iterators[c].getNextFile();
                                 UnixFile newUf = file==null ? null : new UnixFile(file);
                                 unixFiles[c]=newUf;
-                                relativePaths[c]=newUf==null ? null : newUf.getFilename().substring(iteratorStarts[c].length());
+                                relativePaths[c]=newUf==null ? null : newUf.getPath().substring(iteratorStarts[c].length());
                             } catch(IOException ioExc) {
                                 ioExc.printStackTrace(err);
                                 unixFiles[c]=null;

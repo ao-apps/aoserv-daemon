@@ -95,11 +95,11 @@ final public class FTPManager extends BuilderThread {
                     if(destFileStat.exists()) destFile.delete();
                     destFile.symLink(linkTarget).chown(sourceFileStat.getUID(), sourceFileStat.getGID());
                 }
-            } else if(sourceFileStat.isBlockDevice()) throw new IOException("Cannot copy block device: "+sourceFile.getFilename());
-            else if(sourceFileStat.isCharacterDevice()) throw new IOException("Cannot copy character device: "+sourceFile.getFilename());
-            else if(sourceFileStat.isDirectory()) throw new IOException("Cannot copy directory: "+sourceFile.getFilename());
-            else if(sourceFileStat.isFIFO()) throw new IOException("Cannot copy fifo: "+sourceFile.getFilename());
-            else if(sourceFileStat.isSocket()) throw new IOException("Cannot copy socket: "+sourceFile.getFilename());
+            } else if(sourceFileStat.isBlockDevice()) throw new IOException("Cannot copy block device: "+sourceFile.getPath());
+            else if(sourceFileStat.isCharacterDevice()) throw new IOException("Cannot copy character device: "+sourceFile.getPath());
+            else if(sourceFileStat.isDirectory()) throw new IOException("Cannot copy directory: "+sourceFile.getPath());
+            else if(sourceFileStat.isFIFO()) throw new IOException("Cannot copy fifo: "+sourceFile.getPath());
+            else if(sourceFileStat.isSocket()) throw new IOException("Cannot copy socket: "+sourceFile.getPath());
             else {
                 // Copy as regular file
                 if(

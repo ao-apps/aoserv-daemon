@@ -140,7 +140,7 @@ final public class NetDeviceManager extends BuilderThread {
                                         
                                         UnixFile cfgUF=new UnixFile(netScriptDirectory, filename, false);
                                         if(!cfgUF.getStat(tempStat).exists() || !newCfgUF.contentEquals(cfgUF)) {
-                                            if(!newCfgUF.getFile().renameTo(cfgUF.getFile())) throw new IOException("Unable to move "+newCfgUF.getFilename()+" to "+cfgUF.getFilename());
+                                            if(!newCfgUF.getFile().renameTo(cfgUF.getFile())) throw new IOException("Unable to move "+newCfgUF.getPath()+" to "+cfgUF.getPath());
                                             if(!restartDeviceIDs.contains(deviceId)) restartDeviceIDs.add(deviceId);
                                         } else newCfgUF.delete();
                                     }
