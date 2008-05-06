@@ -1112,11 +1112,12 @@ final public class FailoverFileReplicationManager {
                                             if(!chunkingFile) {
                                                 result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA;
                                                 updated(retention, postPassChecklist, relativePath);
+                                                // If the file doesn't exist, will download in-place
                                                 if(!ufStat.exists()) {
                                                     new FileOutputStream(uf.getFile()).close();
                                                     uf.getStat(ufStat);
                                                 } else {
-                                                    // When uf exists, build new temp file
+                                                    // Build new temp file
                                                     String name = uf.getFile().getName();
                                                     UnixFile templateUF = name.length()>64 ? new UnixFile(ufParent, name.substring(0, 64), false) : uf;
                                                     String tempPath = templateUF.getPath()+'.';
@@ -1308,6 +1309,7 @@ final public class FailoverFileReplicationManager {
                                 // Load into the temporary file or directly to the file (based on above calculations)
                                 UnixFile fileOutUF = tempUF==null ? uf : tempUF;
                                 OutputStream fileOut = new FileOutputStream(fileOutUF.getFile());
+                                boolean newFileComplete = false;
                                 try {
                                     if(result==AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA) {
                                         int response;
@@ -1341,8 +1343,35 @@ final public class FailoverFileReplicationManager {
                                             raf.close();
                                         }
                                     } else throw new RuntimeException("Unexpected value for result: "+result);
+                                    newFileComplete = true;
                                 } finally {
                                     fileOut.close();
+                                    
+                                    // If the new file is incomplete for any reason (presumably due to an exception)
+                                    // and we are doing a backup to a temporary file, move the temp file over the old file
+                                    // if it is longer
+                                    if(
+                                        !newFileComplete
+                                        && retention!=1
+                                        && tempUF!=null
+                                    ) {
+                                        uf.getStat(ufStat);
+                                        if(!ufStat.exists()) {
+                                            // If it doesn't exist, can't compare file sizes, just rename
+                                            if(log.isDebugEnabled()) log.debug("Renaming partial temp file to final filename because final filename doesn't exist: "+uf.getPath());
+                                            tempUF.renameTo(uf);
+                                            // This should only happen during exceptions, so no need to keep directory caches synchronized
+                                        } else {
+                                            long ufSize = ufStat.getSize();
+                                            tempUF.getStat(tempStat);
+                                            long tempUFSize = tempStat.getSize();
+                                            if(tempUFSize>ufSize) {
+                                                if(log.isDebugEnabled()) log.debug("Renaming partial temp file to final filename because temp file is longer than the final file: "+uf.getPath());
+                                                tempUF.renameTo(uf);
+                                                // This should only happen during exceptions, so no need to keep directory caches synchronized
+                                            }
+                                        }
+                                    }
                                 }
                                 fileOutUF.utime(fileOutUF.getStat(tempStat).getAccessTime(), modifyTimes[c]);
                                 uf.getStat(ufStat);
