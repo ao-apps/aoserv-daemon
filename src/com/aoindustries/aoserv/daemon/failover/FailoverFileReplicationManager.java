@@ -1483,7 +1483,7 @@ final public class FailoverFileReplicationManager {
 
                     // Otherwise, clean and complete the directory
                     directoryUFs.pop();
-                    directoryLinkToUFs.pop(); // Just to keep the stacks uniform between them
+                    if(directoryLinkToUFs!=null) directoryLinkToUFs.pop(); // Just to keep the stacks uniform between them
                     String relativePath = directoryUFRelativePaths.pop();
                     long dirModifyTime=directoryModifyTimes.pop().longValue();
                     Set<String> dirContents=directoryContents.pop();
