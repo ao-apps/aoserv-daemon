@@ -300,12 +300,12 @@ final public class AOServDaemonServerThread extends Thread {
                                     if(key==null) throw new IOException("Only the master server may GET_DAEMON_PROFILE");
                                     if(Profiler.getProfilerLevel()>Profiler.NONE) {
                                         String hostname=AOServDaemon.getThisAOServer().getHostname();
-                                        MethodProfile[] profs=Profiler.getMethodProfiles();
-                                        int len=profs.length;
+                                        List<MethodProfile> profs=Profiler.getMethodProfiles();
+                                        int len=profs.size();
                                         for(int c=0;c<len;c++) {
                                             DaemonProfile dp=DaemonProfile.getDaemonProfile(
                                                 hostname,
-                                                profs[c]
+                                                profs.get(c)
                                             );
                                             out.write(AOServDaemonProtocol.NEXT);
                                             dp.write(out, AOServProtocol.CURRENT_VERSION);
