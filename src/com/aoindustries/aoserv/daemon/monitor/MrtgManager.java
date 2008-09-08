@@ -1,14 +1,15 @@
 package com.aoindustries.aoserv.daemon.monitor;
 
 /*
- * Copyright 2006-2007 by AO Industries, Inc.,
- * 816 Azalea Rd, Mobile, Alabama, 36693, U.S.A.
+ * Copyright 2006-2008 by AO Industries, Inc.,
+ * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.NetDevice;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
@@ -61,8 +62,9 @@ final public class MrtgManager extends BuilderThread {
         try {
             AOServConnector connector=AOServDaemon.getConnector();
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
+            Server thisServer = thisAOServer.getServer();
 
-            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+            int osv=thisServer.getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -125,7 +127,7 @@ final public class MrtgManager extends BuilderThread {
                         }
                         out.print("  <a href=\"mem.html\"> Memory</a> |\n");
                         // Add the network devices
-                        List<NetDevice> netDevices=thisAOServer.getNetDevices();
+                        List<NetDevice> netDevices=thisServer.getNetDevices();
                         for(NetDevice netDevice : netDevices) {
                             out.print("  <a href=\"").print(netDevice.getNetDeviceID().getName()).print(".html\"> ").print(netDevice.getDescription()).print("</a> |\n");
                         }
@@ -351,7 +353,7 @@ final public class MrtgManager extends BuilderThread {
                         }
                         out.print("        <a href=\"mem.html\"> Memory</a> |\n");
                         // Add the network devices
-                        List<NetDevice> netDevices=thisAOServer.getNetDevices();
+                        List<NetDevice> netDevices=thisServer.getNetDevices();
                         for(NetDevice netDevice : netDevices) {
                             out.print("        <a href=\"").print(netDevice.getNetDeviceID().getName()).print(".html\"> ").print(netDevice.getDescription()).print("</a> |\n");
                         }

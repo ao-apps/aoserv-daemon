@@ -47,7 +47,7 @@ final public class NetDeviceManager extends BuilderThread {
             synchronized(rebuildLock) {
                 List<NetDeviceID> restartDeviceIDs=new SortedArrayList<NetDeviceID>();
                 
-                List<NetDevice> devices=thisAOServer.getNetDevices();
+                List<NetDevice> devices=thisAOServer.getServer().getNetDevices();
                 for(int c=0;c<devices.size();c++) {
                     NetDevice device=devices.get(c);
                     NetDeviceID deviceId=device.getNetDeviceID();
@@ -103,8 +103,8 @@ final public class NetDeviceManager extends BuilderThread {
                         int num=0;
                         List<AOServer> children=thisAOServer.getNestedAOServers();
                         for(int d=-1;d<children.size();d++) {
-                            AOServer server=d==-1?thisAOServer:children.get(d).getServer().getAOServer();
-                            NetDevice curDevice=d==-1?device:server.getNetDevice(device.getNetDeviceID().getName());
+                            AOServer aoServer=d==-1?thisAOServer:children.get(d).getServer().getAOServer();
+                            NetDevice curDevice=d==-1?device:aoServer.getServer().getNetDevice(device.getNetDeviceID().getName());
                             if(curDevice!=null) {
                                 List<IPAddress> ips=curDevice.getIPAddresses();
                                 for(int e=0;e<ips.size();e++) {

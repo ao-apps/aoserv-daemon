@@ -61,7 +61,7 @@ final public class DhcpManager implements Runnable {
                     if(thread==null) {
                         // Only start if at least one IP Address on the server is DHCP-enabled
                         boolean found=false;
-                        for(IPAddress ia : AOServDaemon.getThisAOServer().getIPAddresses()) {
+                        for(IPAddress ia : AOServDaemon.getThisAOServer().getServer().getIPAddresses()) {
                             if(ia.isDHCP()) {
                                 found=true;
                                 break;
@@ -94,7 +94,7 @@ final public class DhcpManager implements Runnable {
                         } catch(InterruptedException err) {
                             AOServDaemon.reportWarning(err, null);
                         }
-                        for(NetDevice nd : AOServDaemon.getThisAOServer().getNetDevices()) {
+                        for(NetDevice nd : AOServDaemon.getThisAOServer().getServer().getNetDevices()) {
                             IPAddress primaryIP=nd.getPrimaryIPAddress();
                             if(primaryIP.isDHCP()) {
                                 String dhcpAddress=getDhcpAddress(nd.getNetDeviceID().getName());

@@ -1,8 +1,8 @@
 package com.aoindustries.aoserv.daemon.ftp;
 
 /*
- * Copyright 2001-2007 by AO Industries, Inc.,
- * 816 Azalea Rd, Mobile, Alabama, 36693, U.S.A.
+ * Copyright 2001-2008 by AO Industries, Inc.,
+ * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.*;
@@ -164,7 +164,7 @@ final public class FTPManager extends BuilderThread {
                                 + "</Global>\n"
                         );
 
-                        for(NetBind bind : thisAOServer.getNetBinds(conn.protocols.get(Protocol.FTP))) {
+                        for(NetBind bind : thisAOServer.getServer().getNetBinds(conn.protocols.get(Protocol.FTP))) {
                             NetTcpRedirect redirect=bind.getNetTcpRedirect();
                             PrivateFTPServer privateServer=bind.getPrivateFTPServer();
                             if(redirect!=null) {

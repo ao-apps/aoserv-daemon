@@ -1,8 +1,8 @@
 package com.aoindustries.aoserv.daemon.net.ssh;
 
 /*
- * Copyright 2001-2007 by AO Industries, Inc.,
- * 816 Azalea Rd, Mobile, Alabama, 36693, U.S.A.
+ * Copyright 2001-2008 by AO Industries, Inc.,
+ * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.*;
@@ -56,7 +56,7 @@ final public class SshdManager extends BuilderThread {
                 String[] ips;
                 {
                     Protocol sshProtocol=connector.protocols.get(Protocol.SSH);
-                    List<NetBind> nbs=thisAOServer.getNetBinds(sshProtocol);
+                    List<NetBind> nbs=thisAOServer.getServer().getNetBinds(sshProtocol);
                     List<String> uniqueIPs=new SortedArrayList<String>();
                     for(int c=0;c<nbs.size();c++) {
                         if(nbs.get(c).getNetTcpRedirect()==null) {

@@ -1,8 +1,8 @@
 package com.aoindustries.aoserv.daemon.net.xinetd;
 
 /*
- * Copyright 2003-2007 by AO Industries, Inc.,
- * 816 Azalea Rd, Mobile, Alabama, 36693, U.S.A.
+ * Copyright 2003-2008 by AO Industries, Inc.,
+ * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.*;
@@ -60,7 +60,7 @@ public final class XinetdManager extends BuilderThread {
 
                 // Build a list of services that should be running
                 List<Service> services=new ArrayList<Service>();
-                List<NetBind> binds=aoServer.getNetBinds();
+                List<NetBind> binds=aoServer.getServer().getNetBinds();
                 for(int c=0;c<binds.size();c++) {
                     NetBind bind=binds.get(c);
                     NetPort port=bind.getPort();

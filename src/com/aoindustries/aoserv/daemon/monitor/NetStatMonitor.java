@@ -1,8 +1,8 @@
 package com.aoindustries.aoserv.daemon.monitor;
 
 /*
- * Copyright 2000-2007 by AO Industries, Inc.,
- * 816 Azalea Rd, Mobile, Alabama, 36693, U.S.A.
+ * Copyright 2000-2008 by AO Industries, Inc.,
+ * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.*;
@@ -66,7 +66,7 @@ final public class NetStatMonitor implements Runnable {
                         }
                         
                         // Get the current list of binds for this server
-                        List<NetBind> nbs=AOServDaemon.getThisAOServer().getNetBinds();
+                        List<NetBind> nbs=AOServDaemon.getThisAOServer().getServer().getNetBinds();
                         
                         // Build a ArrayList that will be trimmed as matches are found
                         List<NetBind> dbBinds=new ArrayList<NetBind>(nbs.size());

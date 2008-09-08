@@ -1,8 +1,8 @@
 package com.aoindustries.aoserv.daemon.email;
 
 /*
- * Copyright 2001-2007 by AO Industries, Inc.,
- * 816 Azalea Rd, Mobile, Alabama, 36693, U.S.A.
+ * Copyright 2001-2008 by AO Industries, Inc.,
+ * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.Package;
@@ -58,9 +58,10 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
         Profiler.startProfile(Profiler.UNKNOWN, SmtpRelayManager.class, "doRebuild()", null);
         try {
             AOServConnector connector=AOServDaemon.getConnector();
-            AOServer server=AOServDaemon.getThisAOServer();
+            AOServer aoServer=AOServDaemon.getThisAOServer();
+            Server server = aoServer.getServer();
 
-            int osv=server.getServer().getOperatingSystemVersion().getPkey();
+            int osv=server.getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -111,7 +112,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
                     }
 
                     // Deny first
-                    List<EmailSmtpRelay> relays = server.getEmailSmtpRelays();
+                    List<EmailSmtpRelay> relays = aoServer.getEmailSmtpRelays();
                     for(EmailSmtpRelay ssr : relays) {
                         if(ssr.getDisableLog()==null) {
                             EmailSmtpRelayType esrt=ssr.getType();

@@ -1,8 +1,8 @@
 package com.aoindustries.aoserv.daemon.dns;
 
 /*
- * Copyright 2000-2007 by AO Industries, Inc.,
- * 816 Azalea Rd, Mobile, Alabama, 36693, U.S.A.
+ * Copyright 2000-2008 by AO Industries, Inc.,
+ * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.AOServConnector;
@@ -56,7 +56,7 @@ final public class DNSManager extends BuilderThread {
         // Loopback IP
         + " 127.0.0.0/8;"
         // Kansas City
-        + " 207.126.57.0/24;"   // Hosts
+        + " 207.126.57.0/24;"  // Hosts
         // Fremont
         + " 64.71.143.176/29;" // Firewalls
         + " 66.160.183.0/24;"  // Hosts
@@ -65,10 +65,12 @@ final public class DNSManager extends BuilderThread {
         + " 64.62.145.40/29;"  // Firewalls
         + " 64.71.144.0/25;"   // Hosts
         // Mobile
-        + " 70.91.161.42;"     // 816 Azalea Rd
+        + " 70.91.161.42;"     // 7262 Bull Pen Cir
         // Spain
         + " 81.19.103.96/28;"  // Firewalls
         + " 81.19.103.64/27;"  // Hosts
+        // Secure Medical
+        + " 66.17.86.0/24;"
     ;
 
     private static final UnixFile
@@ -227,7 +229,7 @@ final public class DNSManager extends BuilderThread {
                         + "\tallow-query { " + ACL + " };\n"
                         + "\tallow-recursion { " + ACL + " };\n");
                 Map<Integer,Set<String>> alreadyAddedIPs = new HashMap<Integer,Set<String>>();
-                for(NetBind nb : AOServDaemon.getThisAOServer().getNetBinds(connector.protocols.get(Protocol.DNS))) {
+                for(NetBind nb : AOServDaemon.getThisAOServer().getServer().getNetBinds(connector.protocols.get(Protocol.DNS))) {
                     int port = nb.getPort().getPort();
                     String ip = nb.getIPAddress().getIPAddress();
                     Set<String> ips = alreadyAddedIPs.get(port);
@@ -426,7 +428,7 @@ final public class DNSManager extends BuilderThread {
     private static void restart() throws IOException, SQLException {
         Protocol dns = AOServDaemon.getConnector().protocols.get(Protocol.DNS);
         if(dns==null) throw new SQLException("Unable to find Protocol: "+Protocol.DNS);
-        if(!AOServDaemon.getThisAOServer().getNetBinds(dns).isEmpty()) {
+        if(!AOServDaemon.getThisAOServer().getServer().getNetBinds(dns).isEmpty()) {
             synchronized(restartLock) {
                 AOServDaemon.exec(restartCommand);
             }
@@ -437,7 +439,7 @@ final public class DNSManager extends BuilderThread {
         if(AOServDaemonConfiguration.isManagerEnabled(DNSManager.class) && dnsManager==null) {
             Protocol dns = AOServDaemon.getConnector().protocols.get(Protocol.DNS);
             if(dns==null) throw new SQLException("Unable to find Protocol: "+Protocol.DNS);
-            if(!AOServDaemon.getThisAOServer().getNetBinds(dns).isEmpty()) {
+            if(!AOServDaemon.getThisAOServer().getServer().getNetBinds(dns).isEmpty()) {
                 synchronized(System.out) {
                     if(dnsManager==null) {
                         System.out.print("Starting DNSManager: ");

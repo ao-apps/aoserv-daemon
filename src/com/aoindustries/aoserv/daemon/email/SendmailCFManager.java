@@ -1,8 +1,8 @@
 package com.aoindustries.aoserv.daemon.email;
 
 /*
- * Copyright 2003-2007 by AO Industries, Inc.,
- * 816 Azalea Rd, Mobile, Alabama, 36693, U.S.A.
+ * Copyright 2003-2008 by AO Industries, Inc.,
+ * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.*;
@@ -38,9 +38,10 @@ final public class SendmailCFManager extends BuilderThread {
         Profiler.startProfile(Profiler.UNKNOWN, SendmailCFManager.class, "doRebuild()", null);
         try {
             AOServer aoServer=AOServDaemon.getThisAOServer();
+            Server server = aoServer.getServer();
             AOServConnector conn=AOServDaemon.getConnector();
 
-            int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
+            int osv=server.getOperatingSystemVersion().getPkey();
             if(
                 osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
                 && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -167,7 +168,7 @@ final public class SendmailCFManager extends BuilderThread {
                                 + "dnl\n"
                                 + "FEATURE(`no_default_msa')dnl\n");
                         List<String> finishedIPs=new SortedArrayList<String>();
-                        List<NetBind> nbs=aoServer.getNetBinds(conn.protocols.get(Protocol.SMTP));
+                        List<NetBind> nbs=server.getNetBinds(conn.protocols.get(Protocol.SMTP));
                         for(NetBind nb : nbs) {
                             IPAddress ia=nb.getIPAddress();
                             String ip=ia.getIPAddress();
@@ -183,7 +184,7 @@ final public class SendmailCFManager extends BuilderThread {
                             }
                         }
                         finishedIPs.clear();
-                        nbs=aoServer.getNetBinds(conn.protocols.get(Protocol.SMTPS));
+                        nbs=server.getNetBinds(conn.protocols.get(Protocol.SMTPS));
                         for(NetBind nb : nbs) {
                             IPAddress ia=nb.getIPAddress();
                             String ip=ia.getIPAddress();
@@ -199,7 +200,7 @@ final public class SendmailCFManager extends BuilderThread {
                             }
                         }
                         finishedIPs.clear();
-                        nbs=aoServer.getNetBinds(conn.protocols.get(Protocol.SUBMISSION));
+                        nbs=server.getNetBinds(conn.protocols.get(Protocol.SUBMISSION));
                         for(NetBind nb : nbs) {
                             IPAddress ia=nb.getIPAddress();
                             String ip=ia.getIPAddress();

@@ -1,8 +1,8 @@
 package com.aoindustries.aoserv.daemon.email.jilter;
 
 /*
- * Copyright 2007 by AO Industries, Inc.,
- * 816 Azalea Rd, Mobile, Alabama, 36693, U.S.A.
+ * Copyright 2007-2008 by AO Industries, Inc.,
+ * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.AOServConnector;
@@ -13,6 +13,7 @@ import com.aoindustries.aoserv.client.EmailSmtpRelay;
 import com.aoindustries.aoserv.client.EmailSmtpRelayType;
 import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.Package;
+import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
@@ -67,6 +68,7 @@ public class JilterConfigurationWriter extends BuilderThread {
 
     protected void doRebuild() throws IOException, SQLException {
         AOServer aoServer = AOServDaemon.getThisAOServer();
+        Server server = aoServer.getServer();
         
         // primaryIP
         String primaryIP = aoServer.getPrimaryIPAddress().getIPAddress();
@@ -89,7 +91,7 @@ public class JilterConfigurationWriter extends BuilderThread {
         }
 
         // ips
-        List<IPAddress> ias = aoServer.getIPAddresses();
+        List<IPAddress> ias = server.getIPAddresses();
         Set<String> ips = new HashSet<String>(ias.size()*4/3+1);
         for(IPAddress ia : ias) {
             if(!ia.isWildcard()) {
