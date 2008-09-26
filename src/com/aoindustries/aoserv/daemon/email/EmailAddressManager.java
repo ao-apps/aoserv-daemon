@@ -618,6 +618,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
                         System.out.print("Starting EmailAddressManager: ");
                         AOServConnector connector=AOServDaemon.getConnector();
                         emailAddressManager=new EmailAddressManager();
+                        connector.emailDomains.addTableListener(emailAddressManager, 0);
                         connector.blackholeEmailAddresses.addTableListener(emailAddressManager, 0);
                         connector.emailAddresses.addTableListener(emailAddressManager, 0);
                         connector.emailForwardings.addTableListener(emailAddressManager, 0);

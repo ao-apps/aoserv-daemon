@@ -13,6 +13,7 @@ import com.aoindustries.aoserv.daemon.backup.AOServerEnvironment;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
+import com.aoindustries.io.DontCloseInputStream;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.md5.MD5;
@@ -41,6 +42,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 //import java.util.zip.DeflaterOutputStream;
+import java.util.zip.GZIPInputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -174,7 +176,7 @@ final public class FailoverFileReplicationManager {
     public static void failoverServer(
         final Socket socket,
         final CompressedDataInputStream rawIn,
-        final CompressedDataOutputStream rawOut,
+        final CompressedDataOutputStream out,
         final String fromServer,
         final boolean useCompression,
         final short retention,
@@ -185,6 +187,7 @@ final public class FailoverFileReplicationManager {
         final List<String> replicatedMySQLServers,
         final List<String> replicatedMySQLMinorVersions,
         final int quota_gid
+    
     ) throws IOException {
         final PostPassChecklist postPassChecklist = new PostPassChecklist();
         try {
@@ -206,8 +209,8 @@ final public class FailoverFileReplicationManager {
             final Stat tempStat = new Stat();
 
             // Tell the client it is OK to continue
-            rawOut.write(AOServDaemonProtocol.NEXT);
-            rawOut.flush();
+            out.write(AOServDaemonProtocol.NEXT);
+            out.flush();
 
             // Determine the directory that is/will be storing the mirror
             String partialMirrorRoot;
@@ -402,8 +405,11 @@ final public class FailoverFileReplicationManager {
                 if(linkToRoot.equals(finalMirrorRoot)) throw new IOException("linkToRoot==finalMirrorRoot: "+linkToRoot);
             }
 
-            CompressedDataInputStream in = rawIn;
-            CompressedDataOutputStream out = rawOut;
+            CompressedDataInputStream in =
+                useCompression
+                ? new CompressedDataInputStream(new GZIPInputStream(new DontCloseInputStream(rawIn), BufferManager.BUFFER_SIZE))
+                : rawIn
+            ;
 
             String[] paths=null;
             boolean[] isLogDirs=null;
