@@ -5,7 +5,6 @@ package com.aoindustries.aoserv.daemon.report;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.profiler.*;
 import java.io.*;
 
 /**
@@ -22,12 +21,7 @@ final public class DF {
     public final long[] frees;
 
     public DF() {
-        Profiler.startProfile(Profiler.FAST, DF.class, "<init>()", null);
-        try {
-            device_majors=device_minors=new int[0];
-            totals=useds=frees=new long[0];
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        device_majors=device_minors=new int[0];
+        totals=useds=frees=new long[0];
     }
 }

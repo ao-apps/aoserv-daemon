@@ -5,15 +5,17 @@ package com.aoindustries.aoserv.daemon.server;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.*;
-import com.aoindustries.aoserv.daemon.*;
-import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
-import com.aoindustries.io.*;
-import com.aoindustries.util.*;
-import com.aoindustries.profiler.*;
-import java.io.*;
-import java.sql.*;
-import java.util.*;
+import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.profiler.Profiler;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * The <code>ServerManager</code> controls stuff at a server level.
@@ -21,6 +23,9 @@ import java.util.*;
  * @author  AO Industries, Inc.
  */
 final public class ServerManager {
+
+    private static final File procLoadavg = new File("/proc/loadavg");
+    private static final File procMeminfo = new File("/proc/meminfo");
 
     /** One lock per process name */
     private static final Map<String,Object> processLocks=new HashMap<String,Object>();
@@ -173,6 +178,128 @@ final public class ServerManager {
                 "/opt/aoserv-daemon/bin/drbdcstate"
             };
             return AOServDaemon.execAndCapture(command);
+        } finally {
+            Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
+
+    public static String getHddTempReport() throws IOException {
+        Profiler.startProfile(Profiler.UNKNOWN, ServerManager.class, "getHddTempReport()", null);
+        try {
+            /*List<String> command = new ArrayList<String>();
+            command.add("/opt/aoserv-daemon/bin/hddtemp");
+
+            Stat tempStat = new Stat();
+
+            // IDE hard drives
+            for(char ch='a'; ch<='z'; ch++) {
+                String devPath = "/dev/hd"+ch;
+                UnixFile uf = new UnixFile(devPath);
+                uf.getStat(tempStat);
+                if(
+                    tempStat.exists()
+                    && tempStat.isBlockDevice()
+                ) {
+                    command.add(devPath);
+                }
+            }
+            // SATA/USB/SCSI hard drives
+            for(char ch='a'; ch<='z'; ch++) {
+                String devPath = "/dev/sd"+ch;
+                UnixFile uf = new UnixFile(devPath);
+                uf.getStat(tempStat);
+                if(
+                    tempStat.exists()
+                    && tempStat.isBlockDevice()
+                ) {
+                    command.add(devPath);
+                }
+            }
+            
+            // Run the command
+            if(command.size()==1) {
+                // No hard drives detected
+                return "";
+            }
+            else {
+                String[] commandSA = command.toArray(new String[command.size()]);
+                return AOServDaemon.execAndCapture(commandSA);
+            }*/
+            return AOServDaemon.execAndCapture(
+                new String[] {
+                    "/opt/aoserv-daemon/bin/hddtemp"
+                }
+            );
+        } finally {
+            Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
+
+    public static String getFilesystemsCsvReport() throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, ServerManager.class, "getFilesystemsCsvReport()", null);
+        try {
+            OperatingSystemVersion osvObj = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+            if(osvObj==null) return "";
+            else {
+                int osv = osvObj.getPkey();
+                if(
+                    osv==OperatingSystemVersion.CENTOS_5DOM0_I686
+                    || osv==OperatingSystemVersion.CENTOS_5DOM0_X86_64
+                    || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                    || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+                ) {
+                    return AOServDaemon.execAndCapture(
+                        new String[] {
+                            "/opt/aoserv-daemon/bin/filesystemscsv"
+                        }
+                    );
+                } else if(
+                    osv==OperatingSystemVersion.MANDRAKE_10_1_I586
+                    || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+                ) {
+                    return AOServDaemon.execAndCapture(
+                        new String[] {
+                            "/usr/aoserv/daemon/bin/filesystemscsv"
+                        }
+                    );
+                } else {
+                    throw new IOException("Unexpected operating system version: "+osv);
+                }
+            }
+        } finally {
+            Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
+
+    public static String getLoadAvgReport() throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, ServerManager.class, "getLoadAvgReport()", null);
+        try {
+            StringBuilder report = new StringBuilder(40);
+            InputStream in=new BufferedInputStream(new FileInputStream(procLoadavg));
+            try {
+                int ch;
+                while((ch=in.read())!=-1) report.append((char)ch);
+            } finally {
+                in.close();
+            }
+            return report.toString();
+        } finally {
+            Profiler.endProfile(Profiler.UNKNOWN);
+        }
+    }
+
+    public static String getMemInfoReport() throws IOException, SQLException {
+        Profiler.startProfile(Profiler.UNKNOWN, ServerManager.class, "getMemInfoReport()", null);
+        try {
+            StringBuilder report = new StringBuilder(40);
+            InputStream in=new BufferedInputStream(new FileInputStream(procMeminfo));
+            try {
+                int ch;
+                while((ch=in.read())!=-1) report.append((char)ch);
+            } finally {
+                in.close();
+            }
+            return report.toString();
         } finally {
             Profiler.endProfile(Profiler.UNKNOWN);
         }

@@ -42,7 +42,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 //import java.util.zip.DeflaterOutputStream;
-import java.util.zip.GZIPInputStream;
+//import java.util.zip.GZIPInputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -406,9 +406,9 @@ final public class FailoverFileReplicationManager {
             }
 
             CompressedDataInputStream in =
-                useCompression
+                /*useCompression
                 ? new CompressedDataInputStream(new GZIPInputStream(new DontCloseInputStream(rawIn), BufferManager.BUFFER_SIZE))
-                : rawIn
+                :*/ rawIn
             ;
 
             String[] paths=null;

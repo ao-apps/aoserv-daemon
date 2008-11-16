@@ -5,7 +5,6 @@ package com.aoindustries.aoserv.daemon.report;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.profiler.*;
 import java.io.*;
 
 /**
@@ -21,11 +20,6 @@ final public class MDStat {
     final public int[] active_partitions;   // *** In data
 
     public MDStat() {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, MDStat.class, "<init>()", null);
-        try {
-            device_majors=device_minors=total_partitions=active_partitions=new int[0];
-        } finally {
-            Profiler.endProfile(Profiler.INSTANTANEOUS);
-        }
+        device_majors=device_minors=total_partitions=active_partitions=new int[0];
     }
 }

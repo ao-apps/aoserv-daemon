@@ -11,7 +11,6 @@ import com.aoindustries.email.*;
 import com.aoindustries.io.*;
 import com.aoindustries.io.unix.*;
 import com.aoindustries.md5.*;
-import com.aoindustries.profiler.*;
 import com.aoindustries.sql.*;
 import com.aoindustries.util.*;
 import com.aoindustries.util.sort.*;
@@ -47,182 +46,86 @@ final public class BackupManager {
      * Makes a tarball of the provided files into the provided file.
      */
     public static void backupFiles(List<File> files, File backupFile) throws IOException {
-        Profiler.startProfile(Profiler.UNKNOWN, BackupManager.class, "backupFiles(List<File>,File)", null);
-        try {
-            int len=files.size();
-            String[] cmd=new String[len+5];
-            cmd[0]="/bin/tar";
-            cmd[1]="-C";
-            cmd[2]="/";
-            cmd[3]="-czf";
-            cmd[4]=backupFile.getPath();
-            // strips the leading / as it builds the command
-            for(int c=0;c<len;c++) cmd[c+5]=files.get(c).getPath().substring(1);
+        int len=files.size();
+        String[] cmd=new String[len+5];
+        cmd[0]="/bin/tar";
+        cmd[1]="-C";
+        cmd[2]="/";
+        cmd[3]="-czf";
+        cmd[4]=backupFile.getPath();
+        // strips the leading / as it builds the command
+        for(int c=0;c<len;c++) cmd[c+5]=files.get(c).getPath().substring(1);
 
-            AOServDaemon.exec(cmd);
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
-        }
+        AOServDaemon.exec(cmd);
     }
 
     /*
     static void backupInterBaseDatabases() throws IOException, SQLException {
-        Profiler.startProfile(Profiler.SLOW, BackupManager.class, "backupInterBaseDatabases()", null);
-        try {
-            if(AOServDaemon.getThisAOServer().isInterBase()) {
-                ProcessTimer timer=new ProcessTimer(
-                    AOServDaemon.getRandom(),
-                    AOServDaemonConfiguration.getWarningSmtpServer(),
-                    AOServDaemonConfiguration.getWarningEmailFrom(),
-                    AOServDaemonConfiguration.getWarningEmailTo(),
-                    "InterBase backup taking too long",
-                    "InterBase Backup",
-                    3*60*60*1000,
-                    60*60*1000
-                );
+        if(AOServDaemon.getThisAOServer().isInterBase()) {
+            ProcessTimer timer=new ProcessTimer(
+                AOServDaemon.getRandom(),
+                AOServDaemonConfiguration.getWarningSmtpServer(),
+                AOServDaemonConfiguration.getWarningEmailFrom(),
+                AOServDaemonConfiguration.getWarningEmailTo(),
+                "InterBase backup taking too long",
+                "InterBase Backup",
+                3*60*60*1000,
+                60*60*1000
+            );
+            try {
+                timer.start();
                 try {
-                    timer.start();
-                    try {
-                        for(InterBaseDatabase id : AOServDaemon.getThisAOServer().getInterBaseDatabases()) {
-                            if(id.getBackupLevel().getLevel()>0) {
-                                long startTime=System.currentTimeMillis();
-                                try {
-                                    id.backup();
-                                } catch(RuntimeException err) {
-                                    AOServDaemon.reportError(
-                                        err,
-                                        new Object[] {"id="+id}
-                                    );
-                                }
+                    for(InterBaseDatabase id : AOServDaemon.getThisAOServer().getInterBaseDatabases()) {
+                        if(id.getBackupLevel().getLevel()>0) {
+                            long startTime=System.currentTimeMillis();
+                            try {
+                                id.backup();
+                            } catch(RuntimeException err) {
+                                AOServDaemon.reportError(
+                                    err,
+                                    new Object[] {"id="+id}
+                                );
                             }
                         }
-                    } catch(ThreadDeath TD) {
-                        throw TD;
-                    } catch(Throwable T) {
-                        AOServDaemon.reportError(T, null);
                     }
-                } finally {
-                    timer.stop();
+                } catch(ThreadDeath TD) {
+                    throw TD;
+                } catch(Throwable T) {
+                    AOServDaemon.reportError(T, null);
                 }
+            } finally {
+                timer.stop();
             }
-        } finally {
-            Profiler.endProfile(Profiler.SLOW);
         }
     }
 */
     /*
     static void backupMySQLDatabases() throws IOException, SQLException {
-        Profiler.startProfile(Profiler.SLOW, BackupManager.class, "backupMySQLDatabases()", null);
+        ProcessTimer timer=new ProcessTimer(
+            AOServDaemon.getRandom(),
+            AOServDaemonConfiguration.getWarningSmtpServer(),
+            AOServDaemonConfiguration.getWarningEmailFrom(),
+            AOServDaemonConfiguration.getWarningEmailTo(),
+            "MySQL backup taking too long",
+            "MySQL Backup",
+            3*60*60*1000,
+            60*60*1000
+        );
         try {
-            ProcessTimer timer=new ProcessTimer(
-                AOServDaemon.getRandom(),
-                AOServDaemonConfiguration.getWarningSmtpServer(),
-                AOServDaemonConfiguration.getWarningEmailFrom(),
-                AOServDaemonConfiguration.getWarningEmailTo(),
-                "MySQL backup taking too long",
-                "MySQL Backup",
-                3*60*60*1000,
-                60*60*1000
-            );
+            timer.start();
             try {
-                timer.start();
-                try {
-                    for(MySQLServer ms : AOServDaemon.getThisAOServer().getMySQLServers()) {
-                        for(MySQLDatabase md : ms.getMySQLDatabases()) {
-                            if(md.getBackupLevel().getLevel()>0) {
-                                long startTime=System.currentTimeMillis();
-                                try {
-                                    md.backup();
-                                } catch(RuntimeException err) {
-                                    AOServDaemon.reportError(
-                                        err,
-                                        new Object[] {"md="+md}
-                                    );
-                                }
+                for(MySQLServer ms : AOServDaemon.getThisAOServer().getMySQLServers()) {
+                    for(MySQLDatabase md : ms.getMySQLDatabases()) {
+                        if(md.getBackupLevel().getLevel()>0) {
+                            long startTime=System.currentTimeMillis();
+                            try {
+                                md.backup();
+                            } catch(RuntimeException err) {
+                                AOServDaemon.reportError(
+                                    err,
+                                    new Object[] {"md="+md}
+                                );
                             }
-                        }
-                    }
-                } catch(ThreadDeath TD) {
-                    throw TD;
-                } catch(Throwable T) {
-                    AOServDaemon.reportError(T, null);
-                }
-            } finally {
-                timer.stop();
-            }
-        } finally {
-            Profiler.endProfile(Profiler.SLOW);
-        }
-    }
-    */
-    
-    /*
-    static void backupPostgresDatabases() throws IOException, SQLException {
-        Profiler.startProfile(Profiler.SLOW, BackupManager.class, "backupPostgresDatabases()", null);
-        try {
-            ProcessTimer timer=new ProcessTimer(
-                AOServDaemon.getRandom(),
-                AOServDaemonConfiguration.getWarningSmtpServer(),
-                AOServDaemonConfiguration.getWarningEmailFrom(),
-                AOServDaemonConfiguration.getWarningEmailTo(),
-                "PostgreSQL backup taking too long",
-                "PostgreSQL Backup",
-                3*60*60*1000,
-                60*60*1000
-            );
-            try {
-                timer.start();
-                try {
-                    for(PostgresServer ps : AOServDaemon.getThisAOServer().getPostgresServers()) {
-                        for(PostgresDatabase pd : ps.getPostgresDatabases()) {
-                            if(pd.allowsConnections() && pd.getBackupLevel().getLevel()>0) {
-                                long startTime=System.currentTimeMillis();
-                                try {
-                                    pd.backup();
-                                } catch(RuntimeException err) {
-                                    AOServDaemon.reportError(
-                                        err,
-                                        new Object[] {"pd="+pd}
-                                    );
-                                }
-                            }
-                        }
-                    }
-                } catch(ThreadDeath TD) {
-                    throw TD;
-                } catch(Throwable T) {
-                    AOServDaemon.reportError(T, null);
-                }
-            } finally {
-                timer.stop();
-            }
-        } finally {
-            Profiler.endProfile(Profiler.SLOW);
-        }
-    }
-*/
-    
-    static void cleanVarOldaccounts() {
-        Profiler.startProfile(Profiler.UNKNOWN, BackupManager.class, "cleanVarOldaccounts()", null);
-        try {
-            try {
-                String[] files=oldaccountsDir.list();
-                if(files!=null) {
-                    int len=files.length;
-                    for(int c=0;c<len;c++) {
-                        String filename=files[c];
-                        // Construct the Calendar from the filename
-                        Calendar fileCal=Calendar.getInstance();
-                        fileCal.set(Calendar.YEAR, Integer.parseInt(filename.substring(0,4)));
-                        fileCal.set(Calendar.MONTH, Integer.parseInt(filename.substring(4,6))-1);
-                        fileCal.set(Calendar.DAY_OF_MONTH, Integer.parseInt(filename.substring(6,8)));
-                        fileCal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(filename.substring(9,11)));
-                        fileCal.set(Calendar.MINUTE, Integer.parseInt(filename.substring(11,13)));
-                        fileCal.set(Calendar.SECOND, Integer.parseInt(filename.substring(13,15)));
-
-                        if((System.currentTimeMillis()-fileCal.getTime().getTime())>=MAX_OLDACCOUNTS_AGE) {
-                            File file=new File(oldaccountsDir, filename);
-                            if(!file.delete()) throw new IOException("Unable to delete file: "+file.getPath());
                         }
                     }
                 }
@@ -232,7 +135,78 @@ final public class BackupManager {
                 AOServDaemon.reportError(T, null);
             }
         } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
+            timer.stop();
+        }
+    }
+    */
+    
+    /*
+    static void backupPostgresDatabases() throws IOException, SQLException {
+        ProcessTimer timer=new ProcessTimer(
+            AOServDaemon.getRandom(),
+            AOServDaemonConfiguration.getWarningSmtpServer(),
+            AOServDaemonConfiguration.getWarningEmailFrom(),
+            AOServDaemonConfiguration.getWarningEmailTo(),
+            "PostgreSQL backup taking too long",
+            "PostgreSQL Backup",
+            3*60*60*1000,
+            60*60*1000
+        );
+        try {
+            timer.start();
+            try {
+                for(PostgresServer ps : AOServDaemon.getThisAOServer().getPostgresServers()) {
+                    for(PostgresDatabase pd : ps.getPostgresDatabases()) {
+                        if(pd.allowsConnections() && pd.getBackupLevel().getLevel()>0) {
+                            long startTime=System.currentTimeMillis();
+                            try {
+                                pd.backup();
+                            } catch(RuntimeException err) {
+                                AOServDaemon.reportError(
+                                    err,
+                                    new Object[] {"pd="+pd}
+                                );
+                            }
+                        }
+                    }
+                }
+            } catch(ThreadDeath TD) {
+                throw TD;
+            } catch(Throwable T) {
+                AOServDaemon.reportError(T, null);
+            }
+        } finally {
+            timer.stop();
+        }
+    }
+*/
+    
+    static void cleanVarOldaccounts() {
+        try {
+            String[] files=oldaccountsDir.list();
+            if(files!=null) {
+                int len=files.length;
+                for(int c=0;c<len;c++) {
+                    String filename=files[c];
+                    // Construct the Calendar from the filename
+                    Calendar fileCal=Calendar.getInstance();
+                    fileCal.set(Calendar.YEAR, Integer.parseInt(filename.substring(0,4)));
+                    fileCal.set(Calendar.MONTH, Integer.parseInt(filename.substring(4,6))-1);
+                    fileCal.set(Calendar.DAY_OF_MONTH, Integer.parseInt(filename.substring(6,8)));
+                    fileCal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(filename.substring(9,11)));
+                    fileCal.set(Calendar.MINUTE, Integer.parseInt(filename.substring(11,13)));
+                    fileCal.set(Calendar.SECOND, Integer.parseInt(filename.substring(13,15)));
+
+                    if((System.currentTimeMillis()-fileCal.getTime().getTime())>=MAX_OLDACCOUNTS_AGE) {
+                        File file=new File(oldaccountsDir, filename);
+                        if(!file.delete()) throw new IOException("Unable to delete file: "+file.getPath());
+                    }
+                }
+            }
+        } catch(ThreadDeath TD) {
+            throw TD;
+        } catch(Throwable T) {
+            AOServDaemon.reportError(T, null);
         }
     }
 
@@ -242,62 +216,47 @@ final public class BackupManager {
     public static final String DF="/bin/df";
 
     public static long getDiskDeviceTotalSize(String path) throws IOException {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, BackupManager.class, "getDiskDeviceTotalSize(String)", null);
-        try {
-            return getDFColumn(path, 1);
-        } finally {
-            Profiler.endProfile(Profiler.INSTANTANEOUS);
-        }
+        return getDFColumn(path, 1);
     }
     
     public static long getDiskDeviceUsedSize(String path) throws IOException {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, BackupManager.class, "getDiskDeviceUsedSize(String)", null);
-        try {
-            return getDFColumn(path, 2);
-        } finally {
-            Profiler.endProfile(Profiler.INSTANTANEOUS);
-        }
+        return getDFColumn(path, 2);
     }
 
     private static long getDFColumn(String path, int column) throws IOException {
-        Profiler.startProfile(Profiler.UNKNOWN, BackupManager.class, "getDFColumn(String,int)", null);
+        String[] dfCommand={
+            DF,
+            "-k",
+            "-P",
+            path
+        };
+        long size;
+        Process P=Runtime.getRuntime().exec(dfCommand);
         try {
-            String[] dfCommand={
-                DF,
-                "-k",
-                "-P",
-                path
-            };
-            long size;
-            Process P=Runtime.getRuntime().exec(dfCommand);
+            P.getOutputStream().close();
+            BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
             try {
-                P.getOutputStream().close();
-                BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
-                try {
-                    // The first line is the column labels
-                    String line=in.readLine();
-                    if(line==null) throw new IOException("EOF when trying to read column labels");
-                    line=in.readLine();
-                    if(line==null) throw new IOException("EOF when trying to read values");
-                    String[] columns=StringUtility.splitString(line);
-                    size=1024*Long.parseLong(columns[column]);
-                } finally {
-                    in.close();
-                }
+                // The first line is the column labels
+                String line=in.readLine();
+                if(line==null) throw new IOException("EOF when trying to read column labels");
+                line=in.readLine();
+                if(line==null) throw new IOException("EOF when trying to read values");
+                String[] columns=StringUtility.splitString(line);
+                size=1024*Long.parseLong(columns[column]);
             } finally {
-                try {
-                    int retCode=P.waitFor();
-                    if(retCode!=0) throw new IOException(DF+" exited with non-zero return status: "+retCode);
-                } catch(InterruptedException err) {
-                    IOException ioErr = new InterruptedIOException();
-                    ioErr.initCause(err);
-                    throw ioErr;
-                }
+                in.close();
             }
-            return size;
         } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
+            try {
+                int retCode=P.waitFor();
+                if(retCode!=0) throw new IOException(DF+" exited with non-zero return status: "+retCode);
+            } catch(InterruptedException err) {
+                IOException ioErr = new InterruptedIOException();
+                ioErr.initCause(err);
+                throw ioErr;
+            }
         }
+        return size;
     }
 
     /**
@@ -306,46 +265,41 @@ final public class BackupManager {
      * starting at one.
      */
     public static File getNextBackupFile() throws IOException {
-        Profiler.startProfile(Profiler.UNKNOWN, BackupManager.class, "getNextBackupFile()", null);
-        try {
-	    synchronized(BackupManager.class) {
-		Calendar cal=Calendar.getInstance();
-		StringBuilder SB=new StringBuilder(11);
-		
-		SB.append(cal.get(Calendar.YEAR));
+        synchronized(BackupManager.class) {
+            Calendar cal=Calendar.getInstance();
+            StringBuilder SB=new StringBuilder(11);
 
-		int month=cal.get(Calendar.MONTH)+1;
-		if(month<10) SB.append('0');
-		SB.append(month);
+            SB.append(cal.get(Calendar.YEAR));
 
-		int day=cal.get(Calendar.DAY_OF_MONTH);
-		if(day<10) SB.append('0');
-		SB.append(day).append('_');
+            int month=cal.get(Calendar.MONTH)+1;
+            if(month<10) SB.append('0');
+            SB.append(month);
 
-		int hour=cal.get(Calendar.HOUR_OF_DAY);
-		if(hour<10) SB.append('0');
-		SB.append(hour);
+            int day=cal.get(Calendar.DAY_OF_MONTH);
+            if(day<10) SB.append('0');
+            SB.append(day).append('_');
 
-		int minute=cal.get(Calendar.MINUTE);
-		if(minute<10) SB.append('0');
-		SB.append(minute);
+            int hour=cal.get(Calendar.HOUR_OF_DAY);
+            if(hour<10) SB.append('0');
+            SB.append(hour);
 
-		int second=cal.get(Calendar.SECOND);
-		if(second<10) SB.append('0');
-		SB.append(second).append('_');
+            int minute=cal.get(Calendar.MINUTE);
+            if(minute<10) SB.append('0');
+            SB.append(minute);
 
-		String prefix=SB.toString();
-		for(int c=1;c<Integer.MAX_VALUE;c++) {
-		    File file=new File(oldaccountsDir, prefix+c+".tgz");
-		    if(!file.exists()) {
-			new FileOutputStream(file).close();
-			return file;
-		    }
-		}
-		throw new IOException("Unable to allocate backup file for "+oldaccountsDir.getPath()+'/'+prefix);
-	    }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
+            int second=cal.get(Calendar.SECOND);
+            if(second<10) SB.append('0');
+            SB.append(second).append('_');
+
+            String prefix=SB.toString();
+            for(int c=1;c<Integer.MAX_VALUE;c++) {
+                File file=new File(oldaccountsDir, prefix+c+".tgz");
+                if(!file.exists()) {
+                    new FileOutputStream(file).close();
+                    return file;
+                }
+            }
+            throw new IOException("Unable to allocate backup file for "+oldaccountsDir.getPath()+'/'+prefix);
         }
     }
 
@@ -355,28 +309,23 @@ final public class BackupManager {
     private static String[] cachedPaths;
     private static String[][] cachedLists;
     public static String[] getCachedDirectory(String path) throws IOException {
-        Profiler.startProfile(Profiler.IO, BackupManager.class, "getCachedDirectory(String)", null);
-        try {
-	    synchronized(cachedDirectoryLock) {
-		if(cachedPaths==null) {
-		    cachedPaths=new String[CACHED_DIRECTORY_SIZE];
-		    cachedLists=new String[CACHED_DIRECTORY_SIZE][];
-		}
-		for(int c=0;c<CACHED_DIRECTORY_SIZE;c++) {
-		    String cpath=cachedPaths[c];
-		    if(cpath==null) break;
-		    if(cpath.equals(path)) return cachedLists[c];
-		}
-		// Insert at the top of the cache
-		String[] list=new File(path).list();
-		System.arraycopy(cachedPaths, 0, cachedPaths, 1, CACHED_DIRECTORY_SIZE-1);
-		cachedPaths[0]=path;
-		System.arraycopy(cachedLists, 0, cachedLists, 1, CACHED_DIRECTORY_SIZE-1);
-		cachedLists[0]=list;
-		return list;
-	    }
-        } finally {
-            Profiler.endProfile(Profiler.IO);
+        synchronized(cachedDirectoryLock) {
+            if(cachedPaths==null) {
+                cachedPaths=new String[CACHED_DIRECTORY_SIZE];
+                cachedLists=new String[CACHED_DIRECTORY_SIZE][];
+            }
+            for(int c=0;c<CACHED_DIRECTORY_SIZE;c++) {
+                String cpath=cachedPaths[c];
+                if(cpath==null) break;
+                if(cpath.equals(path)) return cachedLists[c];
+            }
+            // Insert at the top of the cache
+            String[] list=new File(path).list();
+            System.arraycopy(cachedPaths, 0, cachedPaths, 1, CACHED_DIRECTORY_SIZE-1);
+            cachedPaths[0]=path;
+            System.arraycopy(cachedLists, 0, cachedLists, 1, CACHED_DIRECTORY_SIZE-1);
+            cachedLists[0]=list;
+            return list;
         }
     }*/
 }

@@ -5,7 +5,6 @@ package com.aoindustries.aoserv.daemon.report;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.profiler.*;
 import java.io.*;
 
 /**
@@ -43,35 +42,30 @@ public final class ProcSys {
     ;
 
     public ProcSys() {
-        Profiler.startProfile(Profiler.FAST, ProcSys.class, "<init>()", null);
-        try {
-            files_allocated
-            =files_used
-            =files_max
-            =nr_inodes
-            =nr_free_inodes
-            =inode_preshrink
-            =msgmax
-            =msgmnb
-            =msgmni
-            =nr_msg
-            =entropy_avail
-            =rtsig_max
-            =rtsig_nr
-            =semmsl
-            =semmns
-            =semopm
-            =semmni
-            =nr_sem
-            =shmall
-            =shmmax
-            =shmmni
-            =nr_shm
-            =shm_used
-            =threads_max
-            =0;
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        files_allocated
+        =files_used
+        =files_max
+        =nr_inodes
+        =nr_free_inodes
+        =inode_preshrink
+        =msgmax
+        =msgmnb
+        =msgmni
+        =nr_msg
+        =entropy_avail
+        =rtsig_max
+        =rtsig_nr
+        =semmsl
+        =semmns
+        =semopm
+        =semmni
+        =nr_sem
+        =shmall
+        =shmmax
+        =shmmni
+        =nr_shm
+        =shm_used
+        =threads_max
+        =0;
     }
 }

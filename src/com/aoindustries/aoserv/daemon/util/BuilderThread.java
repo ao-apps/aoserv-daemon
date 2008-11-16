@@ -8,7 +8,6 @@ package com.aoindustries.aoserv.daemon.util;
 import com.aoindustries.aoserv.client.*;
 import com.aoindustries.aoserv.daemon.*;
 import com.aoindustries.email.*;
-import com.aoindustries.profiler.*;
 import com.aoindustries.table.*;
 import com.aoindustries.util.*;
 import java.io.*;
@@ -36,93 +35,83 @@ abstract public class BuilderThread implements TableListener {
     private boolean isSleeping=false;
 
     public void tableUpdated(Table table) {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, BuilderThread.class, "tableUpdated(Table)", null);
-        try {
-            delayAndRebuild();
-        } finally {
-            Profiler.endProfile(Profiler.INSTANTANEOUS);
-        }
+        delayAndRebuild();
     }
 
     /**
      * Will wait a random amount of time and then call doRebuild()
      */
     public void delayAndRebuild() {
-        Profiler.startProfile(Profiler.UNKNOWN, BuilderThread.class, "delayAndRebuild()", null);
-        try {
-	    synchronized(this) {
-		lastUpdated = System.currentTimeMillis();
-		if (rebuildThread == null) {
-		    rebuildThread = new Thread() {
-			    public void run() {
-				try {
-				    long lastBuilt = -1;
-				    long updateCopy;
-				    synchronized (BuilderThread.this) {
-					updateCopy = lastUpdated;
-				    }
-				    int delay=getRandomDelay();
-				    while (lastBuilt == -1 || lastBuilt < updateCopy) {
-					if(waitForBuildCount==0) {
-					    try {
-						isSleeping=true;
-						sleep(delay);
-					    } catch (InterruptedException err) {
-						// Interrupted by waitForRebuild call
-					    }
-					    isSleeping=false;
-					}
-					try {
-                                            ProcessTimer timer=new ProcessTimer(
-                                                AOServDaemon.getRandom(),
-                                                AOServDaemonConfiguration.getWarningSmtpServer(),
-                                                AOServDaemonConfiguration.getWarningEmailFrom(),
-                                                AOServDaemonConfiguration.getWarningEmailTo(),
-                                                getProcessTimerSubject(),
-                                                getProcessTimerDescription(),
-                                                getProcessTimerMaximumTime(),
-                                                getProcessTimerReminderInterval()
-                                            );
-                                            try {
-                                                timer.start();
-                                                long buildStart=System.currentTimeMillis();
-                                                doRebuild();
-                                                lastBuilt = buildStart;
-                                                synchronized(BuilderThread.this) {
-                                                    lastRebuild=buildStart;
-                                                    BuilderThread.this.notify();
-                                                }
-                                            } finally {
-                                                timer.stop();
+        synchronized(this) {
+            lastUpdated = System.currentTimeMillis();
+            if (rebuildThread == null) {
+                rebuildThread = new Thread() {
+                        public void run() {
+                            try {
+                                long lastBuilt = -1;
+                                long updateCopy;
+                                synchronized (BuilderThread.this) {
+                                    updateCopy = lastUpdated;
+                                }
+                                int delay=getRandomDelay();
+                                while (lastBuilt == -1 || lastBuilt < updateCopy) {
+                                    if(waitForBuildCount==0) {
+                                        try {
+                                            isSleeping=true;
+                                            sleep(delay);
+                                        } catch (InterruptedException err) {
+                                            // Interrupted by waitForRebuild call
+                                        }
+                                        isSleeping=false;
+                                    }
+                                    try {
+                                        ProcessTimer timer=new ProcessTimer(
+                                            AOServDaemon.getRandom(),
+                                            AOServDaemonConfiguration.getWarningSmtpServer(),
+                                            AOServDaemonConfiguration.getWarningEmailFrom(),
+                                            AOServDaemonConfiguration.getWarningEmailTo(),
+                                            getProcessTimerSubject(),
+                                            getProcessTimerDescription(),
+                                            getProcessTimerMaximumTime(),
+                                            getProcessTimerReminderInterval()
+                                        );
+                                        try {
+                                            timer.start();
+                                            long buildStart=System.currentTimeMillis();
+                                            doRebuild();
+                                            lastBuilt = buildStart;
+                                            synchronized(BuilderThread.this) {
+                                                lastRebuild=buildStart;
+                                                BuilderThread.this.notify();
                                             }
-					} catch(ThreadDeath TD) {
-					    throw TD;
-					} catch(Throwable T) {
-					    AOServDaemon.reportError(T, null);
-					    try {
-						Thread.sleep(getRandomDelay());
-					    } catch(InterruptedException err) {
-                                                AOServDaemon.reportWarning(err, null);
-					    }
-					}
-					synchronized(BuilderThread.this) {
-					    updateCopy = lastUpdated;
-					}
-					delay=60000;
-				    }
-				    BuilderThread.this.rebuildThread = null;
-				} catch(ThreadDeath TD) {
-				    throw TD;
-				} catch(Throwable T) {
-				    AOServDaemon.reportError(T, null);
-				}
-			    }
-			};
-		    rebuildThread.start();
-		}
-	    }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
+                                        } finally {
+                                            timer.stop();
+                                        }
+                                    } catch(ThreadDeath TD) {
+                                        throw TD;
+                                    } catch(Throwable T) {
+                                        AOServDaemon.reportError(T, null);
+                                        try {
+                                            Thread.sleep(getRandomDelay());
+                                        } catch(InterruptedException err) {
+                                            AOServDaemon.reportWarning(err, null);
+                                        }
+                                    }
+                                    synchronized(BuilderThread.this) {
+                                        updateCopy = lastUpdated;
+                                    }
+                                    delay=60000;
+                                }
+                                BuilderThread.this.rebuildThread = null;
+                            } catch(ThreadDeath TD) {
+                                throw TD;
+                            } catch(Throwable T) {
+                                AOServDaemon.reportError(T, null);
+                            }
+                        }
+                    };
+                rebuildThread.start();
+            }
         }
     }
     
@@ -130,97 +119,62 @@ abstract public class BuilderThread implements TableListener {
 
     private int waitForBuildCount=0;
     public void waitForBuild() {
-        Profiler.startProfile(Profiler.UNKNOWN, BuilderThread.class, "waitForRebuild()", null);
-        try {
-	    synchronized(this) {
-		waitForBuildCount++;
-		try {
-		    // Interrupt rebuild thread if it is waiting on the batch
-		    Thread T=rebuildThread;
-		    if(T!=null && isSleeping) T.interrupt();
-		    
-		    long updated=lastUpdated;
-		    while(updated<=lastUpdated && updated>lastRebuild) {
-			try {
-			    wait();
-			} catch(InterruptedException err) {
-			    AOServDaemon.reportWarning(err, null);
-			}
-		    }
-		} finally {
-		    waitForBuildCount--;
-		    notify();
-		}
-	    }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
+        synchronized(this) {
+            waitForBuildCount++;
+            try {
+                // Interrupt rebuild thread if it is waiting on the batch
+                Thread T=rebuildThread;
+                if(T!=null && isSleeping) T.interrupt();
+
+                long updated=lastUpdated;
+                while(updated<=lastUpdated && updated>lastRebuild) {
+                    try {
+                        wait();
+                    } catch(InterruptedException err) {
+                        AOServDaemon.reportWarning(err, null);
+                    }
+                }
+            } finally {
+                waitForBuildCount--;
+                notify();
+            }
         }
     }
     
     public String getProcessTimerSubject() {
-        Profiler.startProfile(Profiler.FAST, BuilderThread.class, "getProcessTimerSubject()", null);
-        try {
-            return getProcessTimerDescription()+" is taking too long";
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getProcessTimerDescription()+" is taking too long";
     }
 
     abstract public String getProcessTimerDescription();
 
     public long getProcessTimerMaximumTime() {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, BuilderThread.class, "getProcessTimerMaximumTime()", null);
-        try {
-            return DEFAULT_PROCESS_TIMER_MAXIMUM_TIME;
-        } finally {
-            Profiler.endProfile(Profiler.INSTANTANEOUS);
-        }
+        return DEFAULT_PROCESS_TIMER_MAXIMUM_TIME;
     }
     
     public long getProcessTimerReminderInterval() {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, BuilderThread.class, "getProcessTimerReminderInterval()", null);
-        try {
-            return DEFAULT_PROCESS_TIMER_REMINDER_INTERVAL;
-        } finally {
-            Profiler.endProfile(Profiler.INSTANTANEOUS);
-        }
+        return DEFAULT_PROCESS_TIMER_REMINDER_INTERVAL;
     }
  
     final public int getRandomDelay() {
-        Profiler.startProfile(Profiler.FAST, BuilderThread.class, "getRandomDelay()", null);
-        try {
-            int min=getMinimumDelay();
-            int max=getMaximumDelay();
-            if(min>max) throw new RuntimeException("getMinimumDelay() is greater than getMaximumDelay()");
-            int deviation=max-min;
-            if(deviation==0) return min;
-            return min+AOServDaemon.getRandom().nextInt(deviation);
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        int min=getMinimumDelay();
+        int max=getMaximumDelay();
+        if(min>max) throw new RuntimeException("getMinimumDelay() is greater than getMaximumDelay()");
+        int deviation=max-min;
+        if(deviation==0) return min;
+        return min+AOServDaemon.getRandom().nextInt(deviation);
     }
 
     /**
      * The delay is random between the minimum and maximum.
      */
     public int getMinimumDelay() {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, BuilderThread.class, "getMinimumDelay()", null);
-        try {
-            return DEFAULT_MINIMUM_DELAY;
-        } finally {
-            Profiler.endProfile(Profiler.INSTANTANEOUS);
-        }
+        return DEFAULT_MINIMUM_DELAY;
     }
 
     /**
      * The delay is random between the minimum and maximum.
      */
     public int getMaximumDelay() {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, BuilderThread.class, "getMaximumDelay()", null);
-        try {
-            return DEFAULT_MAXIMUM_DELAY;
-        } finally {
-            Profiler.endProfile(Profiler.INSTANTANEOUS);
-        }
+        return DEFAULT_MAXIMUM_DELAY;
     }
 }

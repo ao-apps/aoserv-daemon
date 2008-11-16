@@ -6,7 +6,6 @@ package com.aoindustries.aoserv.daemon.distro;
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.AOServObject;
 import com.aoindustries.aoserv.client.AOServTable;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.DistroFile;
@@ -19,7 +18,6 @@ import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.SQLColumnValue;
 import com.aoindustries.aoserv.client.SQLComparator;
 import com.aoindustries.aoserv.client.SQLExpression;
-import com.aoindustries.aoserv.client.SchemaType;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.email.ProcessTimer;
@@ -27,7 +25,6 @@ import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.md5.MD5;
 import com.aoindustries.md5.MD5InputStream;
-import com.aoindustries.profiler.Profiler;
 import com.aoindustries.util.BufferManager;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.StringUtility;
@@ -72,39 +69,27 @@ final public class DistroManager implements Runnable {
     private static Thread thread;
 
     public static void startDistro(boolean includeUser) {
-        Profiler.startProfile(Profiler.UNKNOWN, DistroManager.class, "startDistro(boolean)", null);
-        try {
-            DistroManager.includeUser=includeUser;
-            if(isSleeping && thread!=null) {
-                runNow=true;
-                thread.interrupt();
-            }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
+        DistroManager.includeUser=includeUser;
+        if(isSleeping && thread!=null) {
+            runNow=true;
+            thread.interrupt();
         }
     }
 
     private DistroManager() {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, DistroManager.class, "<init>()", null);
-        Profiler.endProfile(Profiler.INSTANTANEOUS);
     }
 
     public static void start() throws IOException {
-        Profiler.startProfile(Profiler.UNKNOWN, DistroManager.class, "start()", null);
-        try {
-            if(AOServDaemonConfiguration.isManagerEnabled(DistroManager.class) && thread==null) {
-                synchronized(System.out) {
-                    if(thread==null) {
-                        System.out.print("Starting DistroManager: ");
-                        thread=new Thread(new DistroManager());
-                        thread.setDaemon(true);
-                        thread.start();
-                        System.out.println("Done");
-                    }
+        if(AOServDaemonConfiguration.isManagerEnabled(DistroManager.class) && thread==null) {
+            synchronized(System.out) {
+                if(thread==null) {
+                    System.out.print("Starting DistroManager: ");
+                    thread=new Thread(new DistroManager());
+                    thread.setDaemon(true);
+                    thread.start();
+                    System.out.println("Done");
                 }
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
         }
     }
 
@@ -113,79 +98,74 @@ final public class DistroManager implements Runnable {
     private static boolean runNow=false;
 
     public void run() {
-        Profiler.startProfile(Profiler.UNKNOWN, DistroManager.class, "run()", null);
-        try {
-            while(true) {
-                try {
-                    while(true) {
-                        // Wait 10 minutes before checking again
-                        includeUser=true;
-                        isSleeping=true;
-                        runNow=false;
-                        try {
-                            Thread.sleep(10L*60*1000);
-                        } catch(InterruptedException err) {
-                            // Normal from startDistro method
-                        }
-                        isSleeping=false;
-                        
-                        // It is time to run if it is the backup hour and the backup has not been run for at least 12 hours
-                        AOServer thisAOServer=AOServDaemon.getThisAOServer();
-                        long distroStartTime=System.currentTimeMillis();
-                        long lastDistroTime=thisAOServer.getLastDistroTime();
-                        if(log.isDebugEnabled()) {
-                            log.debug("runNow="+runNow);
-                            log.debug("distroStartTime="+distroStartTime);
-                            log.debug("lastDistroTime="+lastDistroTime);
-                        }
-                        if(runNow || lastDistroTime>distroStartTime || (distroStartTime-lastDistroTime)>=12L*60*60*1000) {
-                            int distroHour=thisAOServer.getDistroHour();
-                            Calendar cal=Calendar.getInstance();
-                            cal.setTimeInMillis(distroStartTime);
-                            int currentHour = cal.get(Calendar.HOUR_OF_DAY);
-                            if(log.isDebugEnabled()) {
-                                log.debug("distroHour="+distroHour);
-                                log.debug("currentHour="+currentHour);
-                            }
-                            if(runNow || currentHour==distroHour) {
-                                ProcessTimer timer=new ProcessTimer(
-                                    AOServDaemon.getRandom(),
-                                    AOServDaemonConfiguration.getWarningSmtpServer(),
-                                    AOServDaemonConfiguration.getWarningEmailFrom(),
-                                    AOServDaemonConfiguration.getWarningEmailTo(),
-                                    "Distro verification taking too long",
-                                    "Distro Verification",
-                                    12*60*60*1000,
-                                    60*60*1000
-                                );
-                                try {
-                                    timer.start();
-
-                                    AOServDaemon.getThisAOServer().setLastDistroTime(distroStartTime);
-
-                                    List<String> results = checkFilesystem(false);
-
-                                    // Send the results
-                                    sendResults(results);
-                                } finally {
-                                    timer.stop();
-                                }
-                            }
-                        }
-                    }
-                } catch(ThreadDeath TD) {
-                    throw TD;
-                } catch(Throwable T) {
-                    AOServDaemon.reportError(T, null);
+        while(true) {
+            try {
+                while(true) {
+                    // Wait 10 minutes before checking again
+                    includeUser=true;
+                    isSleeping=true;
+                    runNow=false;
                     try {
-                        Thread.sleep(MAX_SLEEP_TIME);
+                        Thread.sleep(10L*60*1000);
                     } catch(InterruptedException err) {
-                        AOServDaemon.reportWarning(err, null);
+                        // Normal from startDistro method
+                    }
+                    isSleeping=false;
+
+                    // It is time to run if it is the backup hour and the backup has not been run for at least 12 hours
+                    AOServer thisAOServer=AOServDaemon.getThisAOServer();
+                    long distroStartTime=System.currentTimeMillis();
+                    long lastDistroTime=thisAOServer.getLastDistroTime();
+                    if(log.isDebugEnabled()) {
+                        log.debug("runNow="+runNow);
+                        log.debug("distroStartTime="+distroStartTime);
+                        log.debug("lastDistroTime="+lastDistroTime);
+                    }
+                    if(runNow || lastDistroTime>distroStartTime || (distroStartTime-lastDistroTime)>=12L*60*60*1000) {
+                        int distroHour=thisAOServer.getDistroHour();
+                        Calendar cal=Calendar.getInstance();
+                        cal.setTimeInMillis(distroStartTime);
+                        int currentHour = cal.get(Calendar.HOUR_OF_DAY);
+                        if(log.isDebugEnabled()) {
+                            log.debug("distroHour="+distroHour);
+                            log.debug("currentHour="+currentHour);
+                        }
+                        if(runNow || currentHour==distroHour) {
+                            ProcessTimer timer=new ProcessTimer(
+                                AOServDaemon.getRandom(),
+                                AOServDaemonConfiguration.getWarningSmtpServer(),
+                                AOServDaemonConfiguration.getWarningEmailFrom(),
+                                AOServDaemonConfiguration.getWarningEmailTo(),
+                                "Distro verification taking too long",
+                                "Distro Verification",
+                                12*60*60*1000,
+                                60*60*1000
+                            );
+                            try {
+                                timer.start();
+
+                                AOServDaemon.getThisAOServer().setLastDistroTime(distroStartTime);
+
+                                List<String> results = checkFilesystem(false);
+
+                                // Send the results
+                                sendResults(results);
+                            } finally {
+                                timer.stop();
+                            }
+                        }
                     }
                 }
+            } catch(ThreadDeath TD) {
+                throw TD;
+            } catch(Throwable T) {
+                AOServDaemon.reportError(T, null);
+                try {
+                    Thread.sleep(MAX_SLEEP_TIME);
+                } catch(InterruptedException err) {
+                    AOServDaemon.reportWarning(err, null);
+                }
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
         }
     }
 
@@ -272,183 +252,222 @@ final public class DistroManager implements Runnable {
         boolean displayResults,
         int recursionLevel
     ) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.IO, DistroManager.class, "checkDistroFile(AOServer,List<DistroFile>,boolean[],SQLComparator,UnixFile,List<String>,boolean,int)", recursionLevel==0?null:Integer.valueOf(recursionLevel));
-        try {
-            // Check for ...
-            String name=file.getFile().getName();
-            if(
-                name.startsWith("...")
-                || allSpace(name)
-            ) {
-                results.add("3D "+file);
-                if(displayResults) {
-                    System.out.println(results.get(results.size()-1));
-                    System.out.flush();
+        // Check for ...
+        String name=file.getFile().getName();
+        if(
+            name.startsWith("...")
+            || allSpace(name)
+        ) {
+            results.add("3D "+file);
+            if(displayResults) {
+                System.out.println(results.get(results.size()-1));
+                System.out.flush();
+            }
+        }
+        String filename=file.getPath();
+        int index=Collections.binarySearch(distroFiles, new Object[] {filename, osVersionPKey}, pathComparator);
+        DistroFile distroFile=index<0?null:distroFiles.get(index);
+
+        // Check for hostname substitution
+        String hostname=aoServer.getHostname();
+        int pos=filename.indexOf(hostname);
+        if(pos>=0) {
+            String newFilename=filename.substring(0, pos)+"$h"+filename.substring(pos+hostname.length());
+            int newIndex=Collections.binarySearch(distroFiles, new Object[] {newFilename, osVersionPKey}, pathComparator);
+            if(newIndex>=0) {
+                DistroFile newDistroFile=distroFiles.get(newIndex);
+
+                // Flag as found
+                if(index>=0) foundFiles[index]=true;
+
+                // Use the substituted filename
+                filename=newFilename;
+                index=newIndex;
+                distroFile=newDistroFile;
+            }
+        }
+
+        // Stat here for use below
+        Stat fileStat = file.getStat();
+
+        if(distroFile==null) {
+            // Should not be here
+            results.add((fileStat.isDirectory() ? "rm -rf '" : "rm -f '") + filename + '\'');
+            if(displayResults) {
+                System.out.println(results.get(results.size()-1));
+                System.out.flush();
+            }
+        } else {
+            // Flag as found
+            foundFiles[index]=true;
+
+            // Do not check the ownership of the /usr/serverlocal directory
+            if(!filename.equals("/usr/serverlocal")) {
+                // Check owner
+                int fileUID=fileStat.getUID();
+                LinuxAccount la=distroFile.getLinuxAccount();
+                LinuxServerAccount lsa=la.getLinuxServerAccount(aoServer);
+                if(lsa==null) AOServDaemon.reportWarning(new SQLException("Unable to find LinuxServerAccount for "+la+" on "+aoServer), new Object[] {"filename="+filename});
+                int distroUID=lsa==null ? 65535 : lsa.getUID().getID();
+                if(fileUID!=distroUID) {
+                    results.add("chown "+distroUID+" '"+filename+"' #"+fileUID+"!="+distroUID);
+                    if(displayResults) {
+                        System.out.println(results.get(results.size()-1));
+                        System.out.flush();
+                    }
+                }
+
+                // Check group
+                int fileGID=fileStat.getGID();
+                LinuxGroup lg = distroFile.getLinuxGroup();
+                LinuxServerGroup lsg = lg.getLinuxServerGroup(aoServer);
+                if(lsg==null) AOServDaemon.reportWarning(new SQLException("Unable to find LinuxServerGroup for "+lg+" on "+aoServer), new Object[] {"filename="+filename});
+                int distroGID=lsg==null ? 65535 : lsg.getGID().getID();
+                if(fileGID!=distroGID) {
+                    results.add("chgrp "+distroGID+" '"+filename+"' #"+fileGID+"!="+distroGID);
+                    if(displayResults) {
+                        System.out.println(results.get(results.size()-1));
+                        System.out.flush();
+                    }
                 }
             }
-            String filename=file.getPath();
-            int index=Collections.binarySearch(distroFiles, new Object[] {filename, osVersionPKey}, pathComparator);
-            DistroFile distroFile=index<0?null:distroFiles.get(index);
 
-            // Check for hostname substitution
-            String hostname=aoServer.getHostname();
-            int pos=filename.indexOf(hostname);
-            if(pos>=0) {
-                String newFilename=filename.substring(0, pos)+"$h"+filename.substring(pos+hostname.length());
-                int newIndex=Collections.binarySearch(distroFiles, new Object[] {newFilename, osVersionPKey}, pathComparator);
-                if(newIndex>=0) {
-                    DistroFile newDistroFile=distroFiles.get(newIndex);
-
-                    // Flag as found
-                    if(index>=0) foundFiles[index]=true;
-
-                    // Use the substituted filename
-                    filename=newFilename;
-                    index=newIndex;
-                    distroFile=newDistroFile;
-                }
-            }
-
-            // Stat here for use below
-            Stat fileStat = file.getStat();
-
-            if(distroFile==null) {
-                // Should not be here
-                results.add((fileStat.isDirectory() ? "rm -rf '" : "rm -f '") + filename + '\'');
+            // Type
+            long fileMode=fileStat.getRawMode();
+            long distroMode=distroFile.getMode();
+            long fileType=fileMode&UnixFile.TYPE_MASK;
+            long distroType=distroMode&UnixFile.TYPE_MASK;
+            if(fileType!=distroType) {
+                results.add("TY "+filename+" "+fileType+"!="+distroType);
                 if(displayResults) {
                     System.out.println(results.get(results.size()-1));
                     System.out.flush();
                 }
             } else {
-                // Flag as found
-                foundFiles[index]=true;
-
-                // Do not check the ownership of the /usr/serverlocal directory
+                // Do not check the permissions of the /usr/serverlocal directory"
                 if(!filename.equals("/usr/serverlocal")) {
-                    // Check owner
-                    int fileUID=fileStat.getUID();
-                    LinuxAccount la=distroFile.getLinuxAccount();
-                    LinuxServerAccount lsa=la.getLinuxServerAccount(aoServer);
-                    if(lsa==null) AOServDaemon.reportWarning(new SQLException("Unable to find LinuxServerAccount for "+la+" on "+aoServer), new Object[] {"filename="+filename});
-                    int distroUID=lsa==null ? 65535 : lsa.getUID().getID();
-                    if(fileUID!=distroUID) {
-                        results.add("chown "+distroUID+" '"+filename+"' #"+fileUID+"!="+distroUID);
-                        if(displayResults) {
-                            System.out.println(results.get(results.size()-1));
-                            System.out.flush();
-                        }
-                    }
-
-                    // Check group
-                    int fileGID=fileStat.getGID();
-                    LinuxGroup lg = distroFile.getLinuxGroup();
-                    LinuxServerGroup lsg = lg.getLinuxServerGroup(aoServer);
-                    if(lsg==null) AOServDaemon.reportWarning(new SQLException("Unable to find LinuxServerGroup for "+lg+" on "+aoServer), new Object[] {"filename="+filename});
-                    int distroGID=lsg==null ? 65535 : lsg.getGID().getID();
-                    if(fileGID!=distroGID) {
-                        results.add("chgrp "+distroGID+" '"+filename+"' #"+fileGID+"!="+distroGID);
+                    // Permissions
+                    long filePerms=fileMode&UnixFile.PERMISSION_MASK;
+                    long distroPerms=distroMode&UnixFile.PERMISSION_MASK;
+                    if(filePerms!=distroPerms) {
+                        results.add("chmod "+Long.toOctalString(distroPerms)+" '"+filename+"' #"+Long.toOctalString(filePerms)+"!="+Long.toOctalString(distroPerms));
                         if(displayResults) {
                             System.out.println(results.get(results.size()-1));
                             System.out.flush();
                         }
                     }
                 }
+            }
 
-                // Type
-                long fileMode=fileStat.getRawMode();
-                long distroMode=distroFile.getMode();
-                long fileType=fileMode&UnixFile.TYPE_MASK;
-                long distroType=distroMode&UnixFile.TYPE_MASK;
-                if(fileType!=distroType) {
-                    results.add("TY "+filename+" "+fileType+"!="+distroType);
-                    if(displayResults) {
-                        System.out.println(results.get(results.size()-1));
-                        System.out.flush();
+            // Symlinks
+            if(fileStat.isSymLink()) {
+                String distroLink=distroFile.getSymlinkTarget();
+                if(distroLink!=null) {
+                    String fileLink=file.readLink();
+                    // Allow multiple destinations separated by |
+                    String[] dests=StringUtility.splitString(distroLink, '|');
+                    boolean found=false;
+                    for(int c=0;c<dests.length;c++) {
+                        if(dests[c].equals(fileLink)) {
+                            found=true;
+                            break;
+                        }
                     }
-                } else {
-                    // Do not check the permissions of the /usr/serverlocal directory"
-                    if(!filename.equals("/usr/serverlocal")) {
-                        // Permissions
-                        long filePerms=fileMode&UnixFile.PERMISSION_MASK;
-                        long distroPerms=distroMode&UnixFile.PERMISSION_MASK;
-                        if(filePerms!=distroPerms) {
-                            results.add("chmod "+Long.toOctalString(distroPerms)+" '"+filename+"' #"+Long.toOctalString(filePerms)+"!="+Long.toOctalString(distroPerms));
-                            if(displayResults) {
-                                System.out.println(results.get(results.size()-1));
-                                System.out.flush();
-                            }
+                    if(!found) {
+                        results.add("rm -f '"+filename+"'; ln -s '"+distroLink+"' '"+filename+"' # "+fileLink+"!="+distroLink);
+                        if(displayResults) {
+                            System.out.println(results.get(results.size()-1));
+                            System.out.flush();
                         }
                     }
                 }
+            } else {
+                if(
+                    !fileStat.isBlockDevice()
+                    && !fileStat.isCharacterDevice()
+                    && !fileStat.isFIFO()
+                    && !fileStat.isSocket()
+                ) {
+                    String type=distroFile.getType().getType();
+                    if(!fileStat.isDirectory()) {
+                        if(!type.equals(DistroFileType.CONFIG)) {
+                            if(type.equals(DistroFileType.PRELINK)) {
+                                // Prelink MD5
+                                long startTime=System.currentTimeMillis();
 
-                // Symlinks
-                if(fileStat.isSymLink()) {
-                    String distroLink=distroFile.getSymlinkTarget();
-                    if(distroLink!=null) {
-                        String fileLink=file.readLink();
-                        // Allow multiple destinations separated by |
-                        String[] dests=StringUtility.splitString(distroLink, '|');
-                        boolean found=false;
-                        for(int c=0;c<dests.length;c++) {
-                            if(dests[c].equals(fileLink)) {
-                                found=true;
-                                break;
-                            }
-                        }
-                        if(!found) {
-                            results.add("rm -f '"+filename+"'; ln -s '"+distroLink+"' '"+filename+"' # "+fileLink+"!="+distroLink);
-                            if(displayResults) {
-                                System.out.println(results.get(results.size()-1));
-                                System.out.flush();
-                            }
-                        }
-                    }
-                } else {
-                    if(
-                        !fileStat.isBlockDevice()
-                        && !fileStat.isCharacterDevice()
-                        && !fileStat.isFIFO()
-                        && !fileStat.isSocket()
-                    ) {
-                        String type=distroFile.getType().getType();
-                        if(!fileStat.isDirectory()) {
-                            if(!type.equals(DistroFileType.CONFIG)) {
-                                if(type.equals(DistroFileType.PRELINK)) {
-                                    // Prelink MD5
-                                    long startTime=System.currentTimeMillis();
-
-                                    String md5;
-                                    {
-                                        String[] command = {
-                                            "/usr/sbin/prelink",
-                                            "--verify",
-                                            "--md5",
-                                            file.getPath()
-                                        };
-                                        Process P = Runtime.getRuntime().exec(command);
+                                String md5;
+                                {
+                                    String[] command = {
+                                        "/usr/sbin/prelink",
+                                        "--verify",
+                                        "--md5",
+                                        file.getPath()
+                                    };
+                                    Process P = Runtime.getRuntime().exec(command);
+                                    try {
+                                        P.getOutputStream().close();
+                                        BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()));
                                         try {
-                                            P.getOutputStream().close();
-                                            BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()));
-                                            try {
-                                                String line = in.readLine();
-                                                if(line.length()<32) throw new IOException("Line too short, must be at least 32 characters: "+line);
-                                                md5 = line.substring(0, 32);
-                                            } finally {
-                                                in.close();
-                                            }
+                                            String line = in.readLine();
+                                            if(line.length()<32) throw new IOException("Line too short, must be at least 32 characters: "+line);
+                                            md5 = line.substring(0, 32);
                                         } finally {
-                                            try {
-                                                int retCode = P.waitFor();
-                                                if(retCode!=0) throw new IOException("Non-zero response from command: "+AOServDaemon.getCommandString(command));
-                                            } catch(InterruptedException err) {
-                                                IOException ioErr = new InterruptedIOException();
-                                                ioErr.initCause(err);
-                                                throw ioErr;
-                                            }
+                                            in.close();
+                                        }
+                                    } finally {
+                                        try {
+                                            int retCode = P.waitFor();
+                                            if(retCode!=0) throw new IOException("Non-zero response from command: "+AOServDaemon.getCommandString(command));
+                                        } catch(InterruptedException err) {
+                                            IOException ioErr = new InterruptedIOException();
+                                            ioErr.initCause(err);
+                                            throw ioErr;
                                         }
                                     }
-                                    long file_md5_hi=MD5.getMD5Hi(md5);
-                                    long file_md5_lo=MD5.getMD5Lo(md5);
+                                }
+                                long file_md5_hi=MD5.getMD5Hi(md5);
+                                long file_md5_lo=MD5.getMD5Lo(md5);
+                                long distro_md5_hi=distroFile.getFileMD5Hi();
+                                long distro_md5_lo=distroFile.getFileMD5Lo();
+                                if(
+                                    file_md5_hi!=distro_md5_hi
+                                    || file_md5_lo!=distro_md5_lo
+                                ) {
+                                    results.add("M5 "+filename+" "+MD5.getMD5String(file_md5_hi, file_md5_lo)+"!="+MD5.getMD5String(distro_md5_hi, distro_md5_lo));
+                                    if(displayResults) {
+                                        System.out.println(results.get(results.size()-1));
+                                        System.out.flush();
+                                    }
+                                }
+
+                                // Sleep for an amount of time equivilent to half the time it took to process this file
+                                long timeSpan=(System.currentTimeMillis()-startTime)/2;
+                                if(timeSpan<0) timeSpan=0;
+                                else if(timeSpan>MAX_SLEEP_TIME) timeSpan=MAX_SLEEP_TIME;
+                                if(timeSpan!=0) {
+                                    try {
+                                        Thread.sleep(timeSpan);
+                                    } catch(InterruptedException err) {
+                                        AOServDaemon.reportWarning(err, null);
+                                    }
+                                }
+                            } else if(type.equals(DistroFileType.SYSTEM)) {
+                                // Length
+                                long fileLen=file.getFile().length();
+                                long distroLen=distroFile.getSize();
+                                if(fileLen!=distroLen) {
+                                    results.add("LE "+filename+" "+fileLen+"!="+distroLen);
+                                    if(displayResults) {
+                                        System.out.println(results.get(results.size()-1));
+                                        System.out.flush();
+                                    }
+                                } else {
+                                    // MD5
+                                    long startTime=System.currentTimeMillis();
+
+                                    byte[] fileHash=hashFile(file.getPath());
+                                    long file_md5_hi=MD5.getMD5Hi(fileHash);
+                                    long file_md5_lo=MD5.getMD5Lo(fileHash);
                                     long distro_md5_hi=distroFile.getFileMD5Hi();
                                     long distro_md5_lo=distroFile.getFileMD5Lo();
                                     if(
@@ -473,82 +492,40 @@ final public class DistroManager implements Runnable {
                                             AOServDaemon.reportWarning(err, null);
                                         }
                                     }
-                                } else if(type.equals(DistroFileType.SYSTEM)) {
-                                    // Length
-                                    long fileLen=file.getFile().length();
-                                    long distroLen=distroFile.getSize();
-                                    if(fileLen!=distroLen) {
-                                        results.add("LE "+filename+" "+fileLen+"!="+distroLen);
+                                }
+                            } else throw new RuntimeException("Unexpected value for type: "+type);
+                        }
+                    } else {
+                        if(type.equals(DistroFileType.USER)) {
+                            // Check as user directory
+                            if(includeUser) checkUserDirectory(aoServer, file, results, displayResults, 0);
+                        } else {
+                            if(!type.equals(DistroFileType.NO_RECURSE)) {
+                                // Recurse directory
+                                String[] list=file.list();
+                                if(list!=null) {
+                                    AutoSort.sortStatic(list);
+                                    int newRecursionLevel=recursionLevel+1;
+                                    int len=list.length;
+                                    if(len>=DIRECTORY_LENGTH_WARNING) {
+                                        results.add("BD "+filename+" "+len+">="+DIRECTORY_LENGTH_WARNING);
                                         if(displayResults) {
                                             System.out.println(results.get(results.size()-1));
                                             System.out.flush();
                                         }
-                                    } else {
-                                        // MD5
-                                        long startTime=System.currentTimeMillis();
-
-                                        byte[] fileHash=hashFile(file.getPath());
-                                        long file_md5_hi=MD5.getMD5Hi(fileHash);
-                                        long file_md5_lo=MD5.getMD5Lo(fileHash);
-                                        long distro_md5_hi=distroFile.getFileMD5Hi();
-                                        long distro_md5_lo=distroFile.getFileMD5Lo();
-                                        if(
-                                            file_md5_hi!=distro_md5_hi
-                                            || file_md5_lo!=distro_md5_lo
-                                        ) {
-                                            results.add("M5 "+filename+" "+MD5.getMD5String(file_md5_hi, file_md5_lo)+"!="+MD5.getMD5String(distro_md5_hi, distro_md5_lo));
-                                            if(displayResults) {
-                                                System.out.println(results.get(results.size()-1));
-                                                System.out.flush();
-                                            }
-                                        }
-
-                                        // Sleep for an amount of time equivilent to half the time it took to process this file
-                                        long timeSpan=(System.currentTimeMillis()-startTime)/2;
-                                        if(timeSpan<0) timeSpan=0;
-                                        else if(timeSpan>MAX_SLEEP_TIME) timeSpan=MAX_SLEEP_TIME;
-                                        if(timeSpan!=0) {
-                                            try {
-                                                Thread.sleep(timeSpan);
-                                            } catch(InterruptedException err) {
-                                                AOServDaemon.reportWarning(err, null);
-                                            }
-                                        }
                                     }
-                                } else throw new RuntimeException("Unexpected value for type: "+type);
-                            }
-                        } else {
-                            if(type.equals(DistroFileType.USER)) {
-                                // Check as user directory
-                                if(includeUser) checkUserDirectory(aoServer, file, results, displayResults, 0);
-                            } else {
-                                if(!type.equals(DistroFileType.NO_RECURSE)) {
-                                    // Recurse directory
-                                    String[] list=file.list();
-                                    if(list!=null) {
-                                        AutoSort.sortStatic(list);
-                                        int newRecursionLevel=recursionLevel+1;
-                                        int len=list.length;
-                                        if(len>=DIRECTORY_LENGTH_WARNING) {
-                                            results.add("BD "+filename+" "+len+">="+DIRECTORY_LENGTH_WARNING);
-                                            if(displayResults) {
-                                                System.out.println(results.get(results.size()-1));
-                                                System.out.flush();
-                                            }
-                                        }
-                                        for(int c=0;c<len;c++) {
-                                            checkDistroFile(
-                                                aoServer,
-                                                osVersionPKey,
-                                                distroFiles,
-                                                foundFiles,
-                                                pathComparator,
-                                                new UnixFile(file, list[c], false),
-                                                results,
-                                                displayResults,
-                                                newRecursionLevel
-                                            );
-                                        }
+                                    for(int c=0;c<len;c++) {
+                                        checkDistroFile(
+                                            aoServer,
+                                            osVersionPKey,
+                                            distroFiles,
+                                            foundFiles,
+                                            pathComparator,
+                                            new UnixFile(file, list[c], false),
+                                            results,
+                                            displayResults,
+                                            newRecursionLevel
+                                        );
                                     }
                                 }
                             }
@@ -556,30 +533,23 @@ final public class DistroManager implements Runnable {
                     }
                 }
             }
-        } finally {
-            Profiler.endProfile(Profiler.IO);
         }
     }
     
     public static byte[] hashFile(String filename) throws IOException {
-        Profiler.startProfile(Profiler.IO, DistroManager.class, "hashFile(String)", null);
+        MD5InputStream md5in=new MD5InputStream(new FileInputStream(filename));
         try {
-            MD5InputStream md5in=new MD5InputStream(new FileInputStream(filename));
+            byte[] trashBuffer=BufferManager.getBytes();
             try {
-                byte[] trashBuffer=BufferManager.getBytes();
-                try {
-                    int ret;
-                    while((ret=md5in.read(trashBuffer, 0, BufferManager.BUFFER_SIZE))!=-1);
-                } finally {
-                    BufferManager.release(trashBuffer);
-                }
+                int ret;
+                while((ret=md5in.read(trashBuffer, 0, BufferManager.BUFFER_SIZE))!=-1);
             } finally {
-                md5in.close();
+                BufferManager.release(trashBuffer);
             }
-            return md5in.hash();
         } finally {
-            Profiler.endProfile(Profiler.IO);
+            md5in.close();
         }
+        return md5in.hash();
     }
 
     private static void checkUserDirectory(
@@ -589,193 +559,178 @@ final public class DistroManager implements Runnable {
         boolean displayResults,
         int recursionLevel
     ) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.IO, DistroManager.class, "checkUserDirectory(AOServer,UnixFile,List<String>,boolean,int)", recursionLevel==0?null:Integer.valueOf(recursionLevel));
-        try {
-            String[] list=file.list();
-            if(list!=null) {
-                AutoSort.sortStatic(list);
-                int len=list.length;
-                if(len>=DIRECTORY_LENGTH_WARNING) {
-                    results.add("BD "+file+" "+len+">="+DIRECTORY_LENGTH_WARNING);
-                    if(displayResults) {
-                        System.out.println(results.get(results.size()-1));
-                        System.out.flush();
-                    }
-                }
-                for(int c=0;c<len;c++) {
-                    try {
-                        String name=list[c];
-                        UnixFile uf=new UnixFile(file, name, false);
-                        try {
-                            // Check for ...
-                            if(
-                                name.startsWith("...")
-                                || (name.length()>0 && name.charAt(0)==' ')
-                            ) {
-                                results.add("3D "+uf);
-                                if(displayResults) {
-                                    System.out.println(results.get(results.size()-1));
-                                    System.out.flush();
-                                }
-                            }
-
-                            // Stat here for use below
-                            Stat ufStat = uf.getStat();
-
-                            // Make sure is a valid user
-                            int uid=ufStat.getUID();
-                            if(aoServer.getLinuxServerAccount(uid)==null) {
-                                results.add("NO "+uf+" "+uid);
-                                if(displayResults) {
-                                    System.out.println(results.get(results.size()-1));
-                                    System.out.flush();
-                                }
-                            }
-
-                            // Make sure is a valid group
-                            int gid=ufStat.getGID();
-                            if(aoServer.getLinuxServerGroup(gid)==null) {
-                                results.add("NG "+uf+" "+gid);
-                                if(displayResults) {
-                                    System.out.println(results.get(results.size()-1));
-                                    System.out.flush();
-                                }
-                            }
-
-                            // Make sure not setUID or setGID
-                            long fileMode=ufStat.getMode();
-                            if(
-                                (fileMode&(UnixFile.SET_UID|UnixFile.SET_GID))!=0
-                                && (
-                                    uid<UnixFile.MINIMUM_USER_UID
-                                    || gid<UnixFile.MINIMUM_USER_GID
-                                )
-                            ) {
-                                // Allow setUID for /etc/mail/majordomo/*/wrapper 4750 root.mail
-                                boolean found=false;
-                                String filename=uf.getPath();
-                                if(
-                                    filename.length()>20
-                                    && filename.substring(0, 20).equals("/etc/mail/majordomo/")
-                                ) {
-                                    int pos=filename.indexOf('/', 20);
-                                    if(pos!=-1) {
-                                        String fname=filename.substring(pos+1);
-                                        if(
-                                            fname.equals("wrapper")
-                                            && fileMode==04750
-                                            && ufStat.getUID()==UnixFile.ROOT_UID
-                                            && aoServer.getLinuxServerGroup(ufStat.getGID()).getLinuxGroup().getName().equals(LinuxGroup.MAIL)
-                                        ) found=true;
-                                    }
-                                }
-                                if(!found) {
-                                    results.add("SU "+uf+" "+Long.toOctalString(fileMode));
-                                    if(displayResults) {
-                                        System.out.println(results.get(results.size()-1));
-                                        System.out.flush();
-                                    }
-                                }
-                            }
-
-                            // Make sure not world writable
-                            //if((fileMode&UnixFile.OTHER_WRITE)==UnixFile.OTHER_WRITE) {
-                            //    results.add("PR "+uf+" "+Integer.toOctalString(fileMode));
-                            //    if(displayResults) {
-                            //        System.out.println(results.get(results.size()-1));
-                            //        System.out.flush();
-                            //    }
-                            //}
-
-                            // Recurse
-                            if(includeUser && !ufStat.isSymLink() && ufStat.isDirectory()) {
-                                checkUserDirectory(aoServer, uf, results, displayResults, recursionLevel+1);
-                            }
-                        } catch(RuntimeException err) {
-                            if(log.isErrorEnabled()) log.error("RuntimeException while accessing: "+uf.getPath());
-                            throw err;
-                        }
-                    } catch(FileNotFoundException err) {
-                        // File might be removed during the scan
-                    }
+        String[] list=file.list();
+        if(list!=null) {
+            AutoSort.sortStatic(list);
+            int len=list.length;
+            if(len>=DIRECTORY_LENGTH_WARNING) {
+                results.add("BD "+file+" "+len+">="+DIRECTORY_LENGTH_WARNING);
+                if(displayResults) {
+                    System.out.println(results.get(results.size()-1));
+                    System.out.flush();
                 }
             }
-        } finally {
-            Profiler.endProfile(Profiler.IO);
+            for(int c=0;c<len;c++) {
+                try {
+                    String name=list[c];
+                    UnixFile uf=new UnixFile(file, name, false);
+                    try {
+                        // Check for ...
+                        if(
+                            name.startsWith("...")
+                            || (name.length()>0 && name.charAt(0)==' ')
+                        ) {
+                            results.add("3D "+uf);
+                            if(displayResults) {
+                                System.out.println(results.get(results.size()-1));
+                                System.out.flush();
+                            }
+                        }
+
+                        // Stat here for use below
+                        Stat ufStat = uf.getStat();
+
+                        // Make sure is a valid user
+                        int uid=ufStat.getUID();
+                        if(aoServer.getLinuxServerAccount(uid)==null) {
+                            results.add("NO "+uf+" "+uid);
+                            if(displayResults) {
+                                System.out.println(results.get(results.size()-1));
+                                System.out.flush();
+                            }
+                        }
+
+                        // Make sure is a valid group
+                        int gid=ufStat.getGID();
+                        if(aoServer.getLinuxServerGroup(gid)==null) {
+                            results.add("NG "+uf+" "+gid);
+                            if(displayResults) {
+                                System.out.println(results.get(results.size()-1));
+                                System.out.flush();
+                            }
+                        }
+
+                        // Make sure not setUID or setGID
+                        long fileMode=ufStat.getMode();
+                        if(
+                            (fileMode&(UnixFile.SET_UID|UnixFile.SET_GID))!=0
+                            && (
+                                uid<UnixFile.MINIMUM_USER_UID
+                                || gid<UnixFile.MINIMUM_USER_GID
+                            )
+                        ) {
+                            // Allow setUID for /etc/mail/majordomo/*/wrapper 4750 root.mail
+                            boolean found=false;
+                            String filename=uf.getPath();
+                            if(
+                                filename.length()>20
+                                && filename.substring(0, 20).equals("/etc/mail/majordomo/")
+                            ) {
+                                int pos=filename.indexOf('/', 20);
+                                if(pos!=-1) {
+                                    String fname=filename.substring(pos+1);
+                                    if(
+                                        fname.equals("wrapper")
+                                        && fileMode==04750
+                                        && ufStat.getUID()==UnixFile.ROOT_UID
+                                        && aoServer.getLinuxServerGroup(ufStat.getGID()).getLinuxGroup().getName().equals(LinuxGroup.MAIL)
+                                    ) found=true;
+                                }
+                            }
+                            if(!found) {
+                                results.add("SU "+uf+" "+Long.toOctalString(fileMode));
+                                if(displayResults) {
+                                    System.out.println(results.get(results.size()-1));
+                                    System.out.flush();
+                                }
+                            }
+                        }
+
+                        // Make sure not world writable
+                        //if((fileMode&UnixFile.OTHER_WRITE)==UnixFile.OTHER_WRITE) {
+                        //    results.add("PR "+uf+" "+Integer.toOctalString(fileMode));
+                        //    if(displayResults) {
+                        //        System.out.println(results.get(results.size()-1));
+                        //        System.out.flush();
+                        //    }
+                        //}
+
+                        // Recurse
+                        if(includeUser && !ufStat.isSymLink() && ufStat.isDirectory()) {
+                            checkUserDirectory(aoServer, uf, results, displayResults, recursionLevel+1);
+                        }
+                    } catch(RuntimeException err) {
+                        if(log.isErrorEnabled()) log.error("RuntimeException while accessing: "+uf.getPath());
+                        throw err;
+                    }
+                } catch(FileNotFoundException err) {
+                    // File might be removed during the scan
+                }
+            }
         }
     }
 
     private static void sendResults(List<String> results) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, DistroManager.class, "sendResults(List<String>)", null);
-        try {
-            int size=results.size();
-            if(size>0) {
-                // Log full version
-                if(log.isInfoEnabled()) {
-                    for(int c=0;c<size;c++) log.info(results.get(c));
-                }
+        int size=results.size();
+        if(size>0) {
+            // Log full version
+            if(log.isInfoEnabled()) {
+                for(int c=0;c<size;c++) log.info(results.get(c));
+            }
 
-                // Compile the counters for each of the different codes
-                /*
-                HashMap codes=new HashMap();
-                for(int c=0;c<size;c++) {
-                    String code=results.get(c).substring(0,2);
-                    int[] count=(int[])codes.get(code);
-                    if(count==null) codes.put(code, count=new int[1]);
-                    count[0]++;
-                }*/
+            // Compile the counters for each of the different codes
+            /*
+            HashMap codes=new HashMap();
+            for(int c=0;c<size;c++) {
+                String code=results.get(c).substring(0,2);
+                int[] count=(int[])codes.get(code);
+                if(count==null) codes.put(code, count=new int[1]);
+                count[0]++;
+            }*/
 
-                // Generate from address
-                AOServer aoServer=AOServDaemon.getThisAOServer();
-                String from="distro@"+aoServer.getHostname();
+            // Generate from address
+            AOServer aoServer=AOServDaemon.getThisAOServer();
+            String from="distro@"+aoServer.getHostname();
 
-                // Send to cell phones
-                /*
-                StringBuilder SB=new StringBuilder();
-                boolean did=false;
-                Iterator I=codes.keySet().iterator();
-                while(I.hasNext()) {
-                    if(did) SB.append(' ');
-                    else did=true;
-                    String code=(String)I.next();
-                    int count=((int[])codes.get(code))[0];
-                    SB.append(code).append('-').append(count);
-                }*/
-                // Send via email
-                String smtp=AOServDaemonConfiguration.getSecuritySmtpServer();
-                if(smtp!=null && smtp.length()>0) {
-                    try {
-                        // Full version to support
-                        MailMessage msg=new MailMessage(smtp);
-                        msg.from(from);
-                        msg.to("distro@aoindustries.com");
-                        msg.setSubject("Distro Check Failed");
-                        PrintStream email=msg.getPrintStream();
-                        for(int c=0;c<size;c++) email.println(results.get(c));
-                        msg.sendAndClose();
-                    } catch(IOException err) {
-                        AOServDaemon.reportError(err, null);
-                    }
+            // Send to cell phones
+            /*
+            StringBuilder SB=new StringBuilder();
+            boolean did=false;
+            Iterator I=codes.keySet().iterator();
+            while(I.hasNext()) {
+                if(did) SB.append(' ');
+                else did=true;
+                String code=(String)I.next();
+                int count=((int[])codes.get(code))[0];
+                SB.append(code).append('-').append(count);
+            }*/
+            // Send via email
+            String smtp=AOServDaemonConfiguration.getSecuritySmtpServer();
+            if(smtp!=null && smtp.length()>0) {
+                try {
+                    // Full version to support
+                    MailMessage msg=new MailMessage(smtp);
+                    msg.from(from);
+                    msg.to("distro@aoindustries.com");
+                    msg.setSubject("Distro Check Failed");
+                    PrintStream email=msg.getPrintStream();
+                    for(int c=0;c<size;c++) email.println(results.get(c));
+                    msg.sendAndClose();
+                } catch(IOException err) {
+                    AOServDaemon.reportError(err, null);
                 }
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
         }
     }
 
     private static boolean allSpace(String S) throws IOException {
-        Profiler.startProfile(Profiler.FAST, DistroManager.class, "allSpace(String)", null);
-        try {
-            int len=S.length();
-            if(len==0) return false;
-            for(int c=0;c<len;c++) {
-                char ch=S.charAt(c);
-                if(ch>' ') return false;
-            }
-            return true;
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
+        int len=S.length();
+        if(len==0) return false;
+        for(int c=0;c<len;c++) {
+            char ch=S.charAt(c);
+            if(ch>' ') return false;
         }
+        return true;
     }
     
     /**
