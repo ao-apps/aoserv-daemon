@@ -631,8 +631,6 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
                         connector.systemEmailAliases.addTableListener(emailAddressManager, 0);
                         // Register in CronDaemon
                         CronDaemon.addCronJob(emailAddressManager, AOServDaemon.getErrorHandler());
-                        // Run once automatically on startup
-                        emailAddressManager.delayAndRebuild();
                         System.out.println("Done");
                     }
                 }

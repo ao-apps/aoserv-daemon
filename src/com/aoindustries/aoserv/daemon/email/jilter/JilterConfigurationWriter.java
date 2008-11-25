@@ -53,9 +53,6 @@ public class JilterConfigurationWriter extends BuilderThread {
                     connector.emailSmtpRelays.addTableListener(configurationWriter, 0);
                     connector.packages.addTableListener(configurationWriter, 0);
                     System.out.println("Done");
-
-                    // Cause to rebuild on start-up
-                    configurationWriter.delayAndRebuild();
                 }
             }
         }

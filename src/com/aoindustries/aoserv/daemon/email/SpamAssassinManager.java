@@ -106,7 +106,6 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                         spamAssassinManager=new SpamAssassinManager();
                         connector.linuxServerAccounts.addTableListener(spamAssassinManager, 0);
                         connector.ipAddresses.addTableListener(spamAssassinManager, 0);
-                        spamAssassinManager.delayAndRebuild();
                         new Thread(spamAssassinManager, "SpamAssassinManager").start();
                         // Once per day, the razor logs will be trimmed to only include the last 1000 lines
                         CronDaemon.addCronJob(new RazorLogTrimmer(), AOServDaemon.getErrorHandler());

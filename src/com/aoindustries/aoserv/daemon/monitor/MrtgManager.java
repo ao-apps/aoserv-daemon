@@ -479,7 +479,6 @@ final public class MrtgManager extends BuilderThread {
                         conn.netDeviceIDs.addTableListener(mrtgManager, 0);
                         conn.servers.addTableListener(mrtgManager, 0);
                         conn.timeZones.addTableListener(mrtgManager, 0);
-                        mrtgManager.delayAndRebuild();
                         System.out.println("Done");
                     }
                 }

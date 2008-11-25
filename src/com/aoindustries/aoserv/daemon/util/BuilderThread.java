@@ -5,13 +5,13 @@ package com.aoindustries.aoserv.daemon.util;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.*;
-import com.aoindustries.aoserv.daemon.*;
-import com.aoindustries.email.*;
-import com.aoindustries.table.*;
-import com.aoindustries.util.*;
-import java.io.*;
-import java.sql.*;
+import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.email.ProcessTimer;
+import com.aoindustries.table.Table;
+import com.aoindustries.table.TableListener;
+import java.io.IOException;
+import java.sql.SQLException;
 
 /**
  * Handles the building of CVS repositories and configs.
@@ -34,6 +34,11 @@ abstract public class BuilderThread implements TableListener {
     private long lastRebuild;
     private boolean isSleeping=false;
 
+    public BuilderThread() {
+        // Always rebuild the configs after start-up
+        delayAndRebuild();
+    }
+
     public void tableUpdated(Table table) {
         delayAndRebuild();
     }
@@ -46,6 +51,7 @@ abstract public class BuilderThread implements TableListener {
             lastUpdated = System.currentTimeMillis();
             if (rebuildThread == null) {
                 rebuildThread = new Thread() {
+                        @Override
                         public void run() {
                             try {
                                 long lastBuilt = -1;
