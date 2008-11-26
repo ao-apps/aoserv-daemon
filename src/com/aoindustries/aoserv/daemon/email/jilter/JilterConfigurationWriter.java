@@ -12,6 +12,7 @@ import com.aoindustries.aoserv.client.EmailDomain;
 import com.aoindustries.aoserv.client.EmailSmtpRelay;
 import com.aoindustries.aoserv.client.EmailSmtpRelayType;
 import com.aoindustries.aoserv.client.IPAddress;
+import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Package;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -39,21 +40,29 @@ public class JilterConfigurationWriter extends BuilderThread {
     private static JilterConfigurationWriter configurationWriter;
 
     public static void start() throws IOException, SQLException {
-        if(AOServDaemonConfiguration.isManagerEnabled(JilterConfigurationWriter.class) && configurationWriter==null) {
-            synchronized(System.out) {
-                if(configurationWriter==null) {
-                    System.out.print("Starting JilterConfigurationWriter: ");
-                    AOServConnector connector=AOServDaemon.getConnector();
-                    configurationWriter=new JilterConfigurationWriter();
-                    connector.aoServers.addTableListener(configurationWriter, 0);
-                    connector.netDevices.addTableListener(configurationWriter, 0);
-                    connector.ipAddresses.addTableListener(configurationWriter, 0);
-                    connector.emailDomains.addTableListener(configurationWriter, 0);
-                    connector.emailAddresses.addTableListener(configurationWriter, 0);
-                    connector.emailSmtpRelays.addTableListener(configurationWriter, 0);
-                    connector.packages.addTableListener(configurationWriter, 0);
-                    System.out.println("Done");
-                }
+        AOServer thisAOServer=AOServDaemon.getThisAOServer();
+        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+
+        synchronized(System.out) {
+            if(
+                // Nothing is done for these operating systems
+                osv!=OperatingSystemVersion.CENTOS_5DOM0_I686
+                && osv!=OperatingSystemVersion.CENTOS_5DOM0_X86_64
+                // Check config after OS check so config entry not needed
+                && AOServDaemonConfiguration.isManagerEnabled(JilterConfigurationWriter.class)
+                && configurationWriter==null
+            ) {
+                System.out.print("Starting JilterConfigurationWriter: ");
+                AOServConnector connector=AOServDaemon.getConnector();
+                configurationWriter=new JilterConfigurationWriter();
+                connector.aoServers.addTableListener(configurationWriter, 0);
+                connector.netDevices.addTableListener(configurationWriter, 0);
+                connector.ipAddresses.addTableListener(configurationWriter, 0);
+                connector.emailDomains.addTableListener(configurationWriter, 0);
+                connector.emailAddresses.addTableListener(configurationWriter, 0);
+                connector.emailSmtpRelays.addTableListener(configurationWriter, 0);
+                connector.packages.addTableListener(configurationWriter, 0);
+                System.out.println("Done");
             }
         }
     }
