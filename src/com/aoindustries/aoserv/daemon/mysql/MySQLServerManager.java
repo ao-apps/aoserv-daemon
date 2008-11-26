@@ -6,6 +6,7 @@ package com.aoindustries.aoserv.daemon.mysql;
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.MySQLDatabase;
 import com.aoindustries.aoserv.client.MySQLServer;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
@@ -13,7 +14,6 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.server.ServerManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.profiler.Profiler;
 import com.aoindustries.sql.AOConnectionPool;
 import java.io.File;
 import java.io.IOException;
@@ -35,65 +35,58 @@ final public class MySQLServerManager extends BuilderThread {
 
     private static final Object rebuildLock=new Object();
     protected void doRebuild() throws IOException, SQLException {
-        Profiler.startProfile(Profiler.FAST, MySQLServerManager.class, "doRebuild()", null);
-        try {
-            AOServConnector connector=AOServDaemon.getConnector();
+        //AOServConnector connector=AOServDaemon.getConnector();
 
-            synchronized(rebuildLock) {
-                // TODO: Add and initialize any missing /var/lib/mysql/name
-                // TODO: Add/update any /etc/rc.d/init.d/mysql-name
-                // TODO: restart any that need started/restarted
-            }
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
+        synchronized(rebuildLock) {
+            // TODO: Add and initialize any missing /var/lib/mysql/name
+            // TODO: Add/update any /etc/rc.d/init.d/mysql-name
+            // TODO: restart any that need started/restarted
         }
     }
 
     private static final Map<Integer,AOConnectionPool> pools=new HashMap<Integer,AOConnectionPool>();
     static AOConnectionPool getPool(MySQLServer ms) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, MySQLServerManager.class, "getPool(MySQLServer)", null);
-        try {
-	    synchronized(pools) {
-                Integer I=Integer.valueOf(ms.getPkey());
-                AOConnectionPool pool=pools.get(I);
-		if(pool==null) {
-                    MySQLDatabase md=ms.getMySQLDatabase(MySQLDatabase.MYSQL);
-                    if(md==null) throw new SQLException("Unable to find MySQLDatabase: "+MySQLDatabase.MYSQL+" on "+ms.toString());
-		    pool=new AOConnectionPool(
-                        AOServDaemonConfiguration.getMySqlDriver(),
-                        "jdbc:mysql://127.0.0.1:"+md.getMySQLServer().getNetBind().getPort().getPort()+"/"+md.getName(),
-                        AOServDaemonConfiguration.getMySqlUser(),
-                        AOServDaemonConfiguration.getMySqlPassword(),
-                        AOServDaemonConfiguration.getMySqlConnections(),
-                        AOServDaemonConfiguration.getMySqlMaxConnectionAge(),
-                        AOServDaemon.getErrorHandler()
-                    );
-                    pools.put(I, pool);
-		}
-		return pool;
-	    }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
+        synchronized(pools) {
+            Integer I=Integer.valueOf(ms.getPkey());
+            AOConnectionPool pool=pools.get(I);
+            if(pool==null) {
+                MySQLDatabase md=ms.getMySQLDatabase(MySQLDatabase.MYSQL);
+                if(md==null) throw new SQLException("Unable to find MySQLDatabase: "+MySQLDatabase.MYSQL+" on "+ms.toString());
+                pool=new AOConnectionPool(
+                    AOServDaemonConfiguration.getMySqlDriver(),
+                    "jdbc:mysql://127.0.0.1:"+md.getMySQLServer().getNetBind().getPort().getPort()+"/"+md.getName(),
+                    AOServDaemonConfiguration.getMySqlUser(),
+                    AOServDaemonConfiguration.getMySqlPassword(),
+                    AOServDaemonConfiguration.getMySqlConnections(),
+                    AOServDaemonConfiguration.getMySqlMaxConnectionAge(),
+                    AOServDaemon.getErrorHandler()
+                );
+                pools.put(I, pool);
+            }
+            return pool;
         }
     }
 
     private static MySQLServerManager mysqlServerManager;
     public static void start() throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, MySQLServerManager.class, "start()", null);
-        try {
-            if(AOServDaemonConfiguration.isManagerEnabled(MySQLServerManager.class) && mysqlServerManager==null) {
-                synchronized(System.out) {
-                    if(mysqlServerManager==null) {
-                        System.out.print("Starting MySQLServerManager: ");
-                        AOServConnector conn=AOServDaemon.getConnector();
-                        mysqlServerManager=new MySQLServerManager();
-                        conn.mysqlServers.addTableListener(mysqlServerManager, 0);
-                        System.out.println("Done");
-                    }
-                }
+        AOServer thisAOServer=AOServDaemon.getThisAOServer();
+        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+
+        synchronized(System.out) {
+            if(
+                // Nothing is done for these operating systems
+                osv!=OperatingSystemVersion.CENTOS_5DOM0_I686
+                && osv!=OperatingSystemVersion.CENTOS_5DOM0_X86_64
+                // Check config after OS check so config entry not needed
+                && AOServDaemonConfiguration.isManagerEnabled(MySQLServerManager.class)
+                && mysqlServerManager==null
+            ) {
+                System.out.print("Starting MySQLServerManager: ");
+                AOServConnector conn=AOServDaemon.getConnector();
+                mysqlServerManager=new MySQLServerManager();
+                conn.mysqlServers.addTableListener(mysqlServerManager, 0);
+                System.out.println("Done");
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
         }
     }
 
@@ -119,55 +112,50 @@ final public class MySQLServerManager extends BuilderThread {
 
     private static final Object flushLock=new Object();
     static void flushPrivileges(MySQLServer mysqlServer) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, MySQLServerManager.class, "flushPrivileges(MySQLServer)", null);
-        try {
-            int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
+        int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
+
+        synchronized(flushLock) {
+            /*
+            This did not work properly, so we now invoke a native process instead.
 
             synchronized(flushLock) {
-                /*
-                This did not work properly, so we now invoke a native process instead.
-
-                synchronized(flushLock) {
-                    Connection conn=getPool().getConnection();
+                Connection conn=getPool().getConnection();
+                try {
+                    Statement stmt=conn.createStatement();
                     try {
-                        Statement stmt=conn.createStatement();
-                        try {
-                            stmt.executeUpdate("flush privileges");
-                        } finally {
-                            stmt.close();
-                        }
+                        stmt.executeUpdate("flush privileges");
                     } finally {
-                        getPool().releaseConnection(conn);
+                        stmt.close();
                     }
+                } finally {
+                    getPool().releaseConnection(conn);
                 }
-                */
-                String path;
-                if(
-                    osv==OperatingSystemVersion.MANDRAKE_10_1_I586
-                    || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-                ) {
-                    path="/usr/mysql/"+mysqlServer.getMinorVersion()+"/bin/mysqladmin";
-                } else if(
-                    osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
-                ) {
-                    path="/opt/mysql-"+mysqlServer.getMinorVersion()+"/bin/mysqladmin";
-                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-
-                String[] cmd={
-                    path,
-                    "-h",
-                    "127.0.0.1",
-                    "-P",
-                    Integer.toString(mysqlServer.getNetBind().getPort().getPort()),
-                    "-u",
-                    "root",
-                    "--password="+AOServDaemonConfiguration.getMySqlPassword(),
-                    "reload"
-                };
-                AOServDaemon.exec(cmd);
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
+            */
+            String path;
+            if(
+                osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+            ) {
+                path="/usr/mysql/"+mysqlServer.getMinorVersion()+"/bin/mysqladmin";
+            } else if(
+                osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+                || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+            ) {
+                path="/opt/mysql-"+mysqlServer.getMinorVersion()+"/bin/mysqladmin";
+            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+
+            String[] cmd={
+                path,
+                "-h",
+                "127.0.0.1",
+                "-P",
+                Integer.toString(mysqlServer.getNetBind().getPort().getPort()),
+                "-u",
+                "root",
+                "--password="+AOServDaemonConfiguration.getMySqlPassword(),
+                "reload"
+            };
+            AOServDaemon.exec(cmd);
         }
     }
 }

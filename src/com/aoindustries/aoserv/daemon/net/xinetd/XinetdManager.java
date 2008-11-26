@@ -5,16 +5,35 @@ package com.aoindustries.aoserv.daemon.net.xinetd;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.*;
-import com.aoindustries.aoserv.daemon.*;
-import com.aoindustries.aoserv.daemon.util.*;
-import com.aoindustries.io.*;
-import com.aoindustries.io.unix.*;
-import com.aoindustries.profiler.*;
-import com.aoindustries.util.*;
-import java.io.*;
-import java.sql.*;
-import java.util.*;
+import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.CvsRepository;
+import com.aoindustries.aoserv.client.LinuxAccount;
+import com.aoindustries.aoserv.client.LinuxGroup;
+import com.aoindustries.aoserv.client.LinuxServerAccount;
+import com.aoindustries.aoserv.client.LinuxServerGroup;
+import com.aoindustries.aoserv.client.NetBind;
+import com.aoindustries.aoserv.client.NetPort;
+import com.aoindustries.aoserv.client.NetProtocol;
+import com.aoindustries.aoserv.client.NetTcpRedirect;
+import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.Protocol;
+import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.util.BuilderThread;
+import com.aoindustries.io.ChainWriter;
+import com.aoindustries.io.unix.Stat;
+import com.aoindustries.io.unix.UnixFile;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Handles the building of xinetd configs and files.
@@ -33,104 +52,110 @@ public final class XinetdManager extends BuilderThread {
     public static final File xinetdDirectory=new File("/etc/xinetd.d");
 
     private XinetdManager() {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, XinetdManager.class, "<init>()", null);
-        Profiler.endProfile(Profiler.INSTANTANEOUS);
     }
 
     private static final Object rebuildLock=new Object();
     protected void doRebuild() throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, XinetdManager.class, "doRebuild()", null);
-        try {
-            AOServConnector connector=AOServDaemon.getConnector();
-            AOServer aoServer=AOServDaemon.getThisAOServer();
+        AOServConnector connector=AOServDaemon.getConnector();
+        AOServer aoServer=AOServDaemon.getThisAOServer();
 
-            int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
-            if(
-                osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
-                && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
+        if(
+            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+            && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+        ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
-            final Stat tempStat = new Stat();
+        // Reused on inner loops
+        final Stat tempStat = new Stat();
+        final ByteArrayOutputStream bout = new ByteArrayOutputStream();
 
-            synchronized(rebuildLock) {
-                LinuxServerAccount interbaseUser=aoServer.getLinuxServerAccount(LinuxAccount.INTERBASE);
-                LinuxServerAccount nobodyUser=aoServer.getLinuxServerAccount(LinuxAccount.NOBODY);
-                LinuxServerAccount rootUser=aoServer.getLinuxServerAccount(LinuxAccount.ROOT);
-                LinuxServerGroup ttyGroup=aoServer.getLinuxServerGroup(LinuxGroup.TTY);
+        synchronized(rebuildLock) {
+            LinuxServerAccount interbaseUser=aoServer.getLinuxServerAccount(LinuxAccount.INTERBASE);
+            LinuxServerAccount nobodyUser=aoServer.getLinuxServerAccount(LinuxAccount.NOBODY);
+            LinuxServerAccount rootUser=aoServer.getLinuxServerAccount(LinuxAccount.ROOT);
+            LinuxServerGroup ttyGroup=aoServer.getLinuxServerGroup(LinuxGroup.TTY);
 
-                // Build a list of services that should be running
-                List<Service> services=new ArrayList<Service>();
-                List<NetBind> binds=aoServer.getServer().getNetBinds();
-                for(int c=0;c<binds.size();c++) {
-                    NetBind bind=binds.get(c);
-                    NetPort port=bind.getPort();
-                    NetTcpRedirect redirect=bind.getNetTcpRedirect();
-                    Protocol protocolObj=bind.getAppProtocol();
-                    String protocol=protocolObj.getProtocol();
-                    if(
-                        redirect!=null
-                        //|| protocol.equals(Protocol.AUTH)
-                        || protocol.equals(Protocol.CVSPSERVER)
-                        || protocol.equals(Protocol.IMAP2)
-                        || protocol.equals(Protocol.INTERSERVER)
-                        || protocol.equals(Protocol.NTALK)
-                        || protocol.equals(Protocol.POP2)
-                        || protocol.equals(Protocol.POP3)
-                        || protocol.equals(Protocol.SIMAP)
-                        || protocol.equals(Protocol.SPOP3)
-                        || protocol.equals(Protocol.TALK)
-                        || protocol.equals(Protocol.TELNET)
-                    ) {
-                        Service service;
-                        if(redirect!=null) {
-                            NetProtocol netProtocol=bind.getNetProtocol();
-                            if(!netProtocol.getProtocol().equals(NetProtocol.TCP)) throw new SQLException("Only TCP ports may be redirected: (net_binds.pkey="+bind.getPkey()+").net_protocol="+netProtocol.getProtocol());
+            // Build a list of services that should be running
+            List<Service> services=new ArrayList<Service>();
+            List<NetBind> binds=aoServer.getServer().getNetBinds();
+            for(int c=0;c<binds.size();c++) {
+                NetBind bind=binds.get(c);
+                NetPort port=bind.getPort();
+                NetTcpRedirect redirect=bind.getNetTcpRedirect();
+                Protocol protocolObj=bind.getAppProtocol();
+                String protocol=protocolObj.getProtocol();
+                if(
+                    redirect!=null
+                    //|| protocol.equals(Protocol.AUTH)
+                    || protocol.equals(Protocol.CVSPSERVER)
+                    || protocol.equals(Protocol.INTERSERVER)
+                    || protocol.equals(Protocol.NTALK)
+                    || protocol.equals(Protocol.TALK)
+                    || protocol.equals(Protocol.TELNET)
+                    || (
+                        osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+                        && (
+                            // POP and IMAP is handled through xinetd on Mandriva 2006.0
+                            protocol.equals(Protocol.POP2)
+                            || protocol.equals(Protocol.POP3)
+                            || protocol.equals(Protocol.SIMAP)
+                            || protocol.equals(Protocol.SPOP3)
+                            || protocol.equals(Protocol.IMAP2)
+                        )
+                    )
+                ) {
+                    Service service;
+                    if(redirect!=null) {
+                        NetProtocol netProtocol=bind.getNetProtocol();
+                        if(!netProtocol.getProtocol().equals(NetProtocol.TCP)) throw new SQLException("Only TCP ports may be redirected: (net_binds.pkey="+bind.getPkey()+").net_protocol="+netProtocol.getProtocol());
 
+                        service=new Service(
+                            UNLISTED,
+                            -1,
+                            redirect.getConnectionsPerSecond()+" "+redirect.getConnectionsPerSecondOverloadSleepTime(),
+                            null,
+                            "redirect",
+                            netProtocol,
+                            bind.getIPAddress(),
+                            port,
+                            false,
+                            rootUser,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            -1,
+                            null,
+                            redirect.getDestinationHost()+" "+redirect.getDestinationPort()
+                        );
+                    } else {
+                        boolean portMatches=protocolObj.getPort(connector).equals(port);
+                        /*if(protocol.equals(Protocol.AUTH)) {
                             service=new Service(
-                                UNLISTED,
+                                portMatches?null:UNLISTED,
                                 -1,
-                                redirect.getConnectionsPerSecond()+" "+redirect.getConnectionsPerSecondOverloadSleepTime(),
                                 null,
-                                "redirect",
-                                netProtocol,
+                                null,
+                                portMatches?"auth":"auth-unlisted",
+                                bind.getNetProtocol(),
                                 bind.getIPAddress(),
-                                port,
-                                false,
+                                portMatches?null:port,
+                                true,
                                 rootUser,
                                 null,
-                                null,
-                                null,
+                                "/usr/sbin/in.identd",
+                                "-w -e",
                                 null,
                                 null,
                                 -1,
                                 null,
-                                redirect.getDestinationHost()+" "+redirect.getDestinationPort()
+                                null
                             );
-                        } else {
-                            boolean portMatches=protocolObj.getPort(connector).equals(port);
-                            /*if(protocol.equals(Protocol.AUTH)) {
-                                service=new Service(
-                                    portMatches?null:UNLISTED,
-                                    -1,
-                                    null,
-                                    null,
-                                    portMatches?"auth":"auth-unlisted",
-                                    bind.getNetProtocol(),
-                                    bind.getIPAddress(),
-                                    portMatches?null:port,
-                                    true,
-                                    rootUser,
-                                    null,
-                                    "/usr/sbin/in.identd",
-                                    "-w -e",
-                                    null,
-                                    null,
-                                    -1,
-                                    null,
-                                    null
-                                );
-                            } else */if(protocol.equals(Protocol.CVSPSERVER)) {
-                                List<CvsRepository> repos=aoServer.getCvsRepositories();
+                        } else */if(protocol.equals(Protocol.CVSPSERVER)) {
+                            List<CvsRepository> repos=aoServer.getCvsRepositories();
+                            if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                                 StringBuilder server_args=new StringBuilder();
                                 for(int d=0;d<repos.size();d++) {
                                     CvsRepository repo=repos.get(d);
@@ -152,6 +177,7 @@ public final class XinetdManager extends BuilderThread {
                                     rootUser,
                                     null,
                                     "/usr/bin/cvs",
+                                    null,
                                     server_args.toString(),
                                     "HOST DURATION",
                                     "HOST USERID",
@@ -159,7 +185,37 @@ public final class XinetdManager extends BuilderThread {
                                     null,
                                     null
                                 );
-                            } else if(protocol.equals(Protocol.IMAP2)) {
+                            } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                                StringBuilder server_args=new StringBuilder();
+                                server_args.append("-f");
+                                for(CvsRepository repo : repos) {
+                                    server_args.append(" --allow-root=").append(repo.getPath());
+                                }
+                                server_args.append(" pserver");
+                                service=new Service(
+                                    portMatches?null:UNLISTED,
+                                    -1,
+                                    "100 30",
+                                    "REUSE",
+                                    portMatches?"cvspserver":"cvspserver-unlisted",
+                                    bind.getNetProtocol(),
+                                    bind.getIPAddress(),
+                                    portMatches?null:port,
+                                    false,
+                                    rootUser,
+                                    null,
+                                    "/usr/bin/cvs",
+                                    "HOME=/var/cvs",
+                                    server_args.toString(),
+                                    "HOST DURATION",
+                                    "HOST USERID",
+                                    -1,
+                                    null,
+                                    null
+                                );
+                            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        } else if(protocol.equals(Protocol.IMAP2)) {
+                            if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1,
@@ -174,13 +230,16 @@ public final class XinetdManager extends BuilderThread {
                                     null,
                                     "/usr/sbin/imapd",
                                     null,
+                                    null,
                                     "HOST DURATION",
                                     "HOST USERID",
                                     -1,
                                     null,
                                     null
                                 );
-                            } else if(protocol.equals(Protocol.INTERSERVER)) {
+                            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        } else if(protocol.equals(Protocol.INTERSERVER)) {
+                            if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1,
@@ -195,13 +254,38 @@ public final class XinetdManager extends BuilderThread {
                                     null,
                                     "/usr/interclient/2.0/bin/interserver",
                                     null,
+                                    null,
                                     "HOST DURATION",
                                     "HOST USERID",
                                     -1,
                                     "128M",
                                     null
                                 );
-                            } else if(protocol.equals(Protocol.NTALK)) {
+                            } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                                service=new Service(
+                                    portMatches?null:UNLISTED,
+                                    -1,
+                                    null,
+                                    null,
+                                    portMatches?"interserver":"interserver-unlisted",
+                                    bind.getNetProtocol(),
+                                    bind.getIPAddress(),
+                                    portMatches?null:port,
+                                    false,
+                                    interbaseUser,
+                                    null,
+                                    "/opt/interclient-2.0/bin/interserver",
+                                    null,
+                                    null,
+                                    "HOST DURATION",
+                                    "HOST USERID",
+                                    -1,
+                                    "128M",
+                                    null
+                                );
+                            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        } else if(protocol.equals(Protocol.NTALK)) {
+                            if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1,
@@ -216,13 +300,38 @@ public final class XinetdManager extends BuilderThread {
                                     ttyGroup,
                                     "/usr/sbin/in.ntalkd",
                                     null,
+                                    null,
                                     "HOST DURATION",
                                     "HOST USERID",
                                     -1,
                                     null,
                                     null
                                 );
-                            } else if(protocol.equals(Protocol.POP2)) {
+                            } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                                service=new Service(
+                                    portMatches?null:UNLISTED,
+                                    -1, // instances
+                                    null, // cps
+                                    "IPv4", // flags
+                                    portMatches?"ntalk":"ntalk-unlisted",
+                                    bind.getNetProtocol(),
+                                    bind.getIPAddress(),
+                                    portMatches?null:port,
+                                    true,
+                                    nobodyUser,
+                                    ttyGroup,
+                                    "/usr/sbin/in.ntalkd",
+                                    null, // env
+                                    null, // server_args
+                                    "HOST DURATION",
+                                    "HOST USERID",
+                                    -1,
+                                    null,
+                                    null
+                                );
+                            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        } else if(protocol.equals(Protocol.POP2)) {
+                            if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1,
@@ -237,13 +346,16 @@ public final class XinetdManager extends BuilderThread {
                                     null,
                                     "/usr/sbin/ipop2d",
                                     null,
+                                    null,
                                     "HOST DURATION",
                                     "HOST USERID",
                                     -1,
                                     null,
                                     null
                                 );
-                            } else if(protocol.equals(Protocol.POP3)) {
+                            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        } else if(protocol.equals(Protocol.POP3)) {
+                            if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1,
@@ -258,65 +370,64 @@ public final class XinetdManager extends BuilderThread {
                                     null,
                                     "/usr/sbin/ipop3d",
                                     null,
+                                    null,
                                     "HOST DURATION",
                                     "HOST USERID",
                                     -1,
                                     null,
                                     null
                                 );
-                            } else if(protocol.equals(Protocol.SIMAP)) {
-                                if(
-                                    osv==OperatingSystemVersion.MANDRAKE_10_1_I586
-                                    || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-                                ) {
-                                    service=new Service(
-                                        portMatches?null:UNLISTED,
-                                        -1,
-                                        "100 30",
-                                        null,
-                                        portMatches?"imaps":"imaps-unlisted",
-                                        bind.getNetProtocol(),
-                                        bind.getIPAddress(),
-                                        portMatches?null:port,
-                                        false,
-                                        rootUser,
-                                        null,
-                                        "/usr/sbin/imapsd",
-                                        null,
-                                        "HOST DURATION",
-                                        "HOST USERID",
-                                        -1,
-                                        null,
-                                        null
-                                    );
-                                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-                            } else if(protocol.equals(Protocol.SPOP3)) {
-                                if(
-                                    osv==OperatingSystemVersion.MANDRAKE_10_1_I586
-                                    || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-                                ) {
-                                    service=new Service(
-                                        portMatches?null:UNLISTED,
-                                        -1,
-                                        "100 30",
-                                        null,
-                                        portMatches?"pop3s":"pop3s-unlisted",
-                                        bind.getNetProtocol(),
-                                        bind.getIPAddress(),
-                                        portMatches?null:port,
-                                        false,
-                                        rootUser,
-                                        null,
-                                        "/usr/sbin/ipop3sd",
-                                        null,
-                                        "HOST DURATION",
-                                        "HOST USERID",
-                                        -1,
-                                        null,
-                                        null
-                                    );
-                                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-                            } else if(protocol.equals(Protocol.TALK)) {
+                            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        } else if(protocol.equals(Protocol.SIMAP)) {
+                            if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                service=new Service(
+                                    portMatches?null:UNLISTED,
+                                    -1,
+                                    "100 30",
+                                    null,
+                                    portMatches?"imaps":"imaps-unlisted",
+                                    bind.getNetProtocol(),
+                                    bind.getIPAddress(),
+                                    portMatches?null:port,
+                                    false,
+                                    rootUser,
+                                    null,
+                                    "/usr/sbin/imapsd",
+                                    null,
+                                    null,
+                                    "HOST DURATION",
+                                    "HOST USERID",
+                                    -1,
+                                    null,
+                                    null
+                                );
+                            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        } else if(protocol.equals(Protocol.SPOP3)) {
+                            if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                service=new Service(
+                                    portMatches?null:UNLISTED,
+                                    -1,
+                                    "100 30",
+                                    null,
+                                    portMatches?"pop3s":"pop3s-unlisted",
+                                    bind.getNetProtocol(),
+                                    bind.getIPAddress(),
+                                    portMatches?null:port,
+                                    false,
+                                    rootUser,
+                                    null,
+                                    "/usr/sbin/ipop3sd",
+                                    null,
+                                    null,
+                                    "HOST DURATION",
+                                    "HOST USERID",
+                                    -1,
+                                    null,
+                                    null
+                                );
+                            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        } else if(protocol.equals(Protocol.TALK)) {
+                            if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1,
@@ -331,178 +442,251 @@ public final class XinetdManager extends BuilderThread {
                                     ttyGroup,
                                     "/usr/sbin/in.talkd",
                                     null,
+                                    null,
                                     "HOST DURATION",
                                     "HOST USERID",
                                     -1,
                                     null,
                                     null
                                 );
-                            } else if(protocol.equals(Protocol.TELNET)) {
-                                if(
-                                    osv==OperatingSystemVersion.MANDRAKE_10_1_I586
-                                    || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-                                ) {
-                                    service=new Service(
-                                        portMatches?null:UNLISTED,
-                                        -1,
-                                        "100 30",
-                                        "REUSE",
-                                        portMatches?"telnet":"telnet-unlisted",
-                                        bind.getNetProtocol(),
-                                        bind.getIPAddress(),
-                                        portMatches?null:port,
-                                        false,
-                                        rootUser,
-                                        null,
-                                        "/usr/sbin/telnetd",
-                                        "-a none",
-                                        "HOST DURATION",
-                                        "HOST USERID",
-                                        -1,
-                                        null,
-                                        null
-                                    );
-                                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-                            } else throw new RuntimeException("Unexpected protocol: "+protocol);
-                        }
-                        
-                        // Do not add if is a duplicate ip address, net protocol, and port
-                        boolean foundDup=false;
-                        for(Service other : services) {
-                            if(service.bindMatches(other)) {
-                                foundDup=true;
-                                break;
-                            }
-                        }
-                        if(!foundDup) services.add(service);
+                            } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                                service=new Service(
+                                    portMatches?null:UNLISTED,
+                                    -1, // instances
+                                    null, // cps
+                                    "IPv4", // flags
+                                    portMatches?"talk":"talk-unlisted",
+                                    bind.getNetProtocol(),
+                                    bind.getIPAddress(),
+                                    portMatches?null:port,
+                                    true,
+                                    nobodyUser,
+                                    ttyGroup,
+                                    "/usr/sbin/in.talkd",
+                                    null, // env
+                                    null, // server_args
+                                    "HOST DURATION",
+                                    "HOST USERID",
+                                    -1,
+                                    null,
+                                    null
+                                );
+                            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        } else if(protocol.equals(Protocol.TELNET)) {
+                            if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                service=new Service(
+                                    portMatches?null:UNLISTED,
+                                    -1,
+                                    "100 30",
+                                    "REUSE",
+                                    portMatches?"telnet":"telnet-unlisted",
+                                    bind.getNetProtocol(),
+                                    bind.getIPAddress(),
+                                    portMatches?null:port,
+                                    false,
+                                    rootUser,
+                                    null,
+                                    "/usr/sbin/telnetd",
+                                    null,
+                                    "-a none",
+                                    "HOST DURATION",
+                                    "HOST USERID",
+                                    -1,
+                                    null,
+                                    null
+                                );
+                            } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                                service=new Service(
+                                    portMatches?null:UNLISTED,
+                                    -1,
+                                    "100 30",
+                                    "REUSE",
+                                    portMatches?"telnet":"telnet-unlisted",
+                                    bind.getNetProtocol(),
+                                    bind.getIPAddress(),
+                                    portMatches?null:port,
+                                    false,
+                                    rootUser,
+                                    null,
+                                    "/usr/sbin/in.telnetd",
+                                    null,
+                                    null,
+                                    "HOST DURATION",
+                                    "HOST USERID",
+                                    -1,
+                                    null,
+                                    null
+                                );
+                            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        } else throw new RuntimeException("Unexpected protocol: "+protocol);
                     }
-                }
 
-                boolean needsReloaded=false;
-
-                // (Re)build configs to match service list
-                List<String> filenames=new SortedArrayList<String>();
-                final int numServices=services.size();
-                for(int c=0;c<numServices;c++) {
-                    Service service=services.get(c);
-                    String desiredFilename=service.getService();
-                    String filename=null;
-                    for(int d=1;d<Integer.MAX_VALUE;d++) {
-                        String checkFilename=d==1?desiredFilename:(desiredFilename+"-"+d);
-                        if(!filenames.contains(checkFilename)) {
-                            filename=checkFilename;
+                    // Do not add if is a duplicate ip address, net protocol, and port
+                    boolean foundDup=false;
+                    for(Service other : services) {
+                        if(service.bindMatches(other)) {
+                            foundDup=true;
                             break;
                         }
                     }
-                    if(filename==null) throw new IOException("Unable to find available filename for service: "+desiredFilename);
-                    filenames.add(filename);
+                    if(!foundDup) services.add(service);
+                }
+            }
 
-                    UnixFile newUF=new UnixFile(xinetdDirectory, filename+".new");
-                    ChainWriter out=new ChainWriter(new FileOutputStream(newUF.getFile()));
-		    try {
-			newUF.setMode(0600);
-			service.printXinetdConfig(out);
-		    } finally {
-			out.flush();
-			out.close();
-		    }
-                    
-                    // Move into place if different than existing
-                    UnixFile existingUF=new UnixFile(xinetdDirectory, filename);
-                    if(existingUF.getStat(tempStat).exists() && newUF.contentEquals(existingUF)) newUF.delete();
-                    else {
-                        newUF.renameTo(existingUF);
+            boolean needsReloaded=false;
+
+            // (Re)build configs to match service list
+            Set<String> filenames = new HashSet<String>();
+            final int numServices=services.size();
+            for(int c=0; c<numServices; c++) {
+                Service service = services.get(c);
+                String desiredFilename = service.getService();
+                String filename = null;
+                for(int d=1; d<Integer.MAX_VALUE; d++) {
+                    String checkFilename = d==1 ? desiredFilename : (desiredFilename+"-"+d);
+                    if(!filenames.contains(checkFilename)) {
+                        filename = checkFilename;
+                        break;
+                    }
+                }
+                if(filename==null) throw new IOException("Unable to find available filename for service: "+desiredFilename);
+                filenames.add(filename);
+
+                // Build to RAM first
+                bout.reset();
+                ChainWriter out = new ChainWriter(bout);
+                try {
+                    service.printXinetdConfig(out);
+                } finally {
+                    out.close();
+                }
+                byte[] newBytes = bout.toByteArray();
+
+                // Move into place if different than existing
+                UnixFile existingUF=new UnixFile(xinetdDirectory, filename);
+                if(
+                    !existingUF.getStat(tempStat).exists()
+                    || !existingUF.contentEquals(newBytes)
+                ) {
+                    UnixFile newUF = new UnixFile(xinetdDirectory, filename+".new");
+                    // SecureOutputStream not required because /etc/xinetd.d is a secure directory already.
+                    OutputStream newOut = new FileOutputStream(newUF.getFile());
+                    try {
+                        newUF.setMode(0600);
+                        newOut.write(newBytes);
+                    } finally {
+                        newOut.close();
+                    }
+                    newUF.renameTo(existingUF);
+                    needsReloaded = true;
+                }
+            }
+
+            // Cleanup extra configs
+            String[] list = xinetdDirectory.list();
+            if(list!=null) {
+                for(int c=0;c<list.length;c++) {
+                    String filename=list[c];
+                    if(!filenames.contains(filename)) {
+                        new UnixFile(xinetdDirectory, filename).delete();
                         needsReloaded=true;
                     }
                 }
+            }
 
-                // Cleanup extra configs
-                String[] list=xinetdDirectory.list();
-                if(list!=null) {
-                    for(int c=0;c<list.length;c++) {
-                        String filename=list[c];
-                        if(!filenames.contains(filename)) {
-                            new UnixFile(xinetdDirectory, filename).delete();
-                            needsReloaded=true;
-                        }
-                    }
-                }
-
-                UnixFile rcFile=new UnixFile("/etc/rc.d/rc3.d/S56xinetd");
-                if(numServices==0) {
-                    // Turn off xinetd completely if not already off
-                    if(rcFile.getStat(tempStat).exists()) {
-                        AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/xinetd", "stop"});
+            // Control service
+            UnixFile rcFile=new UnixFile("/etc/rc.d/rc3.d/S56xinetd");
+            if(numServices==0) {
+                // Turn off xinetd completely if not already off
+                if(rcFile.getStat(tempStat).exists()) {
+                    // Stop service
+                    AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/xinetd", "stop"});
+                    // Disable with chkconfig
+                    if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                         AOServDaemon.exec(new String[] {"/sbin/chkconfig", "--del", "xinetd"});
-                    }
-                } else {
-                    // Turn on xinetd if not already on
-                    if(!rcFile.getStat(tempStat).exists()) {
+                    } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                        AOServDaemon.exec(new String[] {"/sbin/chkconfig", "xinetd", "off"});
+                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                }
+            } else {
+                // Turn on xinetd if not already on
+                if(!rcFile.getStat(tempStat).exists()) {
+                    // Enable with chkconfig
+                    if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                         AOServDaemon.exec(new String[] {"/sbin/chkconfig", "--add", "xinetd"});
-                    }
-
-                    // Restart xinetd if modified
+                    } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                        AOServDaemon.exec(new String[] {"/sbin/chkconfig", "xinetd", "on"});
+                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                    // Start service
+                    AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/xinetd", "start"});
+                } else {
+                    // Reload xinetd if modified
                     if(needsReloaded) {
+                        // Try reload config first
                         try {
                             AOServDaemon.exec(
                                 new String[] {
                                     "/etc/rc.d/init.d/xinetd",
-                                    "stop"
+                                    "reload"
                                 }
                             );
                         } catch(IOException err) {
                             AOServDaemon.reportError(err, null);
-                        }
-                        try {
-                            Thread.sleep(1000);
-                        } catch(InterruptedException err) {
-                            AOServDaemon.reportWarning(err, null);
-                        }
-                        try {
+
+                            // Try more forceful stop/start
+                            try {
+                                AOServDaemon.exec(
+                                    new String[] {
+                                        "/etc/rc.d/init.d/xinetd",
+                                        "stop"
+                                    }
+                                );
+                            } catch(IOException err2) {
+                                AOServDaemon.reportError(err2, null);
+                            }
+                            try {
+                                Thread.sleep(1000);
+                            } catch(InterruptedException err2) {
+                                AOServDaemon.reportWarning(err2, null);
+                            }
                             AOServDaemon.exec(
                                 new String[] {
                                     "/etc/rc.d/init.d/xinetd",
                                     "start"
                                 }
                             );
-                        } catch(IOException err) {
-                            AOServDaemon.reportError(err, null);
                         }
                     }
                 }
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
         }
     }
 
     public static void start() throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, XinetdManager.class, "start()", null);
-        try {
-            if(AOServDaemonConfiguration.isManagerEnabled(XinetdManager.class) && xinetdManager==null) {
-                synchronized(System.out) {
-                    if(xinetdManager==null) {
-                        System.out.print("Starting XinetdManager: ");
-                        AOServConnector conn=AOServDaemon.getConnector();
-                        xinetdManager=new XinetdManager();
-                        conn.cvsRepositories.addTableListener(xinetdManager, 0);
-                        conn.netBinds.addTableListener(xinetdManager, 0);
-                        conn.netTcpRedirects.addTableListener(xinetdManager, 0);
-                        System.out.println("Done");
-                    }
-                }
+        AOServer thisAOServer=AOServDaemon.getThisAOServer();
+        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+
+        synchronized(System.out) {
+            if(
+                // Nothing is done for these operating systems
+                osv!=OperatingSystemVersion.CENTOS_5DOM0_I686
+                && osv!=OperatingSystemVersion.CENTOS_5DOM0_X86_64
+                // Check config after OS check so config entry not needed
+                && AOServDaemonConfiguration.isManagerEnabled(XinetdManager.class)
+                && xinetdManager==null
+            ) {
+                System.out.print("Starting XinetdManager: ");
+                AOServConnector conn=AOServDaemon.getConnector();
+                xinetdManager=new XinetdManager();
+                conn.cvsRepositories.addTableListener(xinetdManager, 0);
+                conn.netBinds.addTableListener(xinetdManager, 0);
+                conn.netTcpRedirects.addTableListener(xinetdManager, 0);
+                System.out.println("Done");
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
         }
     }
 
     public String getProcessTimerDescription() {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, XinetdManager.class, "getProcessTimerDescription()", null);
-        try {
-            return "Rebuild xinetd Configuration";
-        } finally {
-            Profiler.endProfile(Profiler.INSTANTANEOUS);
-        }
+        return "Rebuild xinetd Configuration";
     }
 }

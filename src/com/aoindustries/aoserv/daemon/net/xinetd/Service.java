@@ -5,11 +5,15 @@ package com.aoindustries.aoserv.daemon.net.xinetd;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.*;
-import com.aoindustries.io.*;
-import com.aoindustries.util.*;
-import java.io.*;
-import java.sql.*;
+import com.aoindustries.aoserv.client.IPAddress;
+import com.aoindustries.aoserv.client.LinuxServerAccount;
+import com.aoindustries.aoserv.client.LinuxServerGroup;
+import com.aoindustries.aoserv.client.NetPort;
+import com.aoindustries.aoserv.client.NetProtocol;
+import com.aoindustries.io.ChainWriter;
+import com.aoindustries.util.StringUtility;
+import java.io.IOException;
+import java.sql.SQLException;
 
 /**
  * Represents one service in the xinetd.d directory.
@@ -28,6 +32,7 @@ public final class Service {
     final private LinuxServerAccount user;
     final private LinuxServerGroup group;
     final private String server;
+    final private String env;
     final private String server_args;
     final private String log_on_success;
     final private String log_on_failure;
@@ -48,6 +53,7 @@ public final class Service {
         LinuxServerAccount user,
         LinuxServerGroup group,
         String server,
+        String env,
         String server_args,
         String log_on_success,
         String log_on_failure,
@@ -67,6 +73,7 @@ public final class Service {
         this.user=user;
         this.group=group;
         this.server=server;
+        this.env = env;
         this.server_args=server_args;
         this.log_on_success=log_on_success;
         this.log_on_failure=log_on_failure;
@@ -74,7 +81,7 @@ public final class Service {
         this.rlimit_as=rlimit_as;
         this.redirect=redirect;
 
-        if(redirect!=null && (server!=null || server_args!=null)) throw new SQLException("Unable to provide server or server_args when a redirect is requested");
+        if(redirect!=null && (server!=null || env!=null || server_args!=null)) throw new SQLException("Unable to provide server, env, or server_args when a redirect is requested");
     }
     
     public String getService() {
@@ -120,6 +127,8 @@ public final class Service {
         if(group!=null) out.print("\tgroup = ").print(group.getLinuxGroup().getName()).print('\n');
 
         if(server!=null) out.print("\tserver = ").print(server).print('\n');
+
+        if(env!=null) out.print("\tenv = ").print(env).print('\n');
 
         if(server_args!=null) out.print("\tserver_args = ").print(server_args).print('\n');
 

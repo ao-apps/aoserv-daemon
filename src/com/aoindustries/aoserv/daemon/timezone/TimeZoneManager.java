@@ -14,9 +14,7 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.profiler.Profiler;
 import java.io.ByteArrayOutputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.SQLException;
@@ -35,40 +33,41 @@ public class TimeZoneManager extends BuilderThread {
     }
 
     public static void start() throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, TimeZoneManager.class, "start()", null);
-        try {
-            if(AOServDaemonConfiguration.isManagerEnabled(TimeZoneManager.class) && timeZoneManager==null) {
-                synchronized(System.out) {
-                    if(timeZoneManager==null) {
-                        System.out.print("Starting TimeZoneManager: ");
-                        AOServConnector connector=AOServDaemon.getConnector();
-                        timeZoneManager=new TimeZoneManager();
-                        connector.aoServers.addTableListener(timeZoneManager, 0);
-                        System.out.println("Done");
-                    }
-                }
+        AOServer thisAOServer=AOServDaemon.getThisAOServer();
+        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+
+        synchronized(System.out) {
+            if(
+                // Nothing is done for these operating systems
+                osv!=OperatingSystemVersion.CENTOS_5DOM0_I686
+                && osv!=OperatingSystemVersion.CENTOS_5DOM0_X86_64
+                // Check config after OS check so config entry not needed
+                && AOServDaemonConfiguration.isManagerEnabled(TimeZoneManager.class)
+                && timeZoneManager==null
+            ) {
+                System.out.print("Starting TimeZoneManager: ");
+                AOServConnector connector=AOServDaemon.getConnector();
+                timeZoneManager=new TimeZoneManager();
+                connector.aoServers.addTableListener(timeZoneManager, 0);
+                System.out.println("Done");
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
         }
     }
 
     private static final Object rebuildLock=new Object();
     protected void doRebuild() throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, TimeZoneManager.class, "doRebuild()", null);
-        try {
-            AOServConnector connector=AOServDaemon.getConnector();
-            AOServer server=AOServDaemon.getThisAOServer();
+        AOServer server=AOServDaemon.getThisAOServer();
 
-            int osv=server.getServer().getOperatingSystemVersion().getPkey();
-            if(
-                osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
-                && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        int osv=server.getServer().getOperatingSystemVersion().getPkey();
+        if(
+            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+            && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+        ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
-            String timeZone = server.getTimeZone().getName();
+        String timeZone = server.getTimeZone().getName();
 
+        synchronized(rebuildLock) {
             /*
              * Control the /etc/localtime symbolic link
              */
@@ -88,52 +87,56 @@ public class TimeZoneManager extends BuilderThread {
                     localtime.symLink(correctTarget);
                 }
             }
-            
+
             /*
              * Control /etc/sysconfig/clock
              */
+            // Build the new file contents to RAM
             ByteArrayOutputStream bout = new ByteArrayOutputStream();
             ChainWriter newOut = new ChainWriter(bout);
             try {
-                newOut.print("ARC=false\n"
-                           + "ZONE=").print(timeZone).print("\n"
-                           + "UTC=false\n");
+                if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                    newOut.print("ZONE=\"").print(timeZone).print("\"\n"
+                               + "UTC=true\n"
+                               + "ARC=false\n");
+                } else if(
+                    osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+                    || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+                ) {
+                    newOut.print("ARC=false\n"
+                               + "ZONE=").print(timeZone).print("\n"
+                               + "UTC=false\n");
+                } else {
+                    throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                }
             } finally {
                 newOut.close();
             }
             byte[] newBytes = bout.toByteArray();
+            
+            // Only update the file when it has changed
             UnixFile clockConfig = new UnixFile("/etc/sysconfig/clock");
-            if(!clockConfig.contentEquals(newBytes)) {
+            if(!clockConfig.getStat().exists() || !clockConfig.contentEquals(newBytes)) {
+                // Write to temp file
                 UnixFile newClockConfig = new UnixFile("/etc/sysconfig/clock.new");
-                newClockConfig.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0755, true);
-                OutputStream newClockOut = new FileOutputStream(newClockConfig.getFile());
+                OutputStream newClockOut = newClockConfig.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0755, true);
                 try {
                     newClockOut.write(newBytes);
                 } finally {
                     newClockOut.close();
                 }
+                // Atomically move into place
                 newClockConfig.renameTo(clockConfig);
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
         }
     }
 
     public String getProcessTimerDescription() {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, TimeZoneManager.class, "getProcessTimerDescription()", null);
-        try {
-            return "Rebuild time zones";
-        } finally {
-            Profiler.endProfile(Profiler.INSTANTANEOUS);
-        }
+        return "Rebuild time zones";
     }
 
+    @Override
     public long getProcessTimerMaximumTime() {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, TimeZoneManager.class, "getProcessTimerMaximumTime()", null);
-        try {
-            return (long)30*60*1000;
-        } finally {
-            Profiler.endProfile(Profiler.INSTANTANEOUS);
-        }
+        return (long)30*60*1000;
     }
 }

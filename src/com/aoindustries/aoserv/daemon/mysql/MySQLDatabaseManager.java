@@ -5,23 +5,31 @@ package com.aoindustries.aoserv.daemon.mysql;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.*;
-import com.aoindustries.aoserv.daemon.*;
+import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.MySQLDatabase;
+import com.aoindustries.aoserv.client.MySQLServer;
+import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
-import com.aoindustries.aoserv.daemon.server.*;
-import com.aoindustries.aoserv.daemon.util.*;
-import com.aoindustries.io.*;
-import com.aoindustries.io.unix.*;
-import com.aoindustries.md5.*;
-import com.aoindustries.profiler.*;
-import com.aoindustries.sql.*;
-import com.aoindustries.table.*;
-import com.aoindustries.util.*;
-import com.aoindustries.util.zip.*;
-import java.io.*;
-import java.sql.*;
-import java.util.List;
+import com.aoindustries.aoserv.daemon.util.BuilderThread;
+import com.aoindustries.io.CompressedDataOutputStream;
+import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.sql.AOConnectionPool;
+import com.aoindustries.util.BufferManager;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.HashSet;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * Controls the MySQL databases.
@@ -31,266 +39,243 @@ import java.util.Properties;
 final public class MySQLDatabaseManager extends BuilderThread {
 
     private MySQLDatabaseManager() {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, MySQLDatabaseManager.class, "<init>()", null);
-        Profiler.endProfile(Profiler.INSTANTANEOUS);
     }
 
     private static final Object rebuildLock=new Object();
     protected void doRebuild() throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, MySQLDatabaseManager.class, "doRebuild()", null);
-        try {
-            AOServConnector connector=AOServDaemon.getConnector();
-            AOServer thisAOServer=AOServDaemon.getThisAOServer();
+        //AOServConnector connector=AOServDaemon.getConnector();
+        AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
-            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
-            if(
-                osv!=OperatingSystemVersion.MANDRAKE_10_1_I586
-                && osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+        if(
+            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+            && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+        ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
-            synchronized(rebuildLock) {
-                for(MySQLServer mysqlServer : thisAOServer.getMySQLServers()) {
-                    String version=mysqlServer.getVersion().getVersion();
-                    boolean modified=false;
-                    // Get the connection to work through
-                    AOConnectionPool pool=MySQLServerManager.getPool(mysqlServer);
-                    Connection conn=pool.getConnection(false);
+        synchronized(rebuildLock) {
+            for(MySQLServer mysqlServer : thisAOServer.getMySQLServers()) {
+                String version=mysqlServer.getVersion().getVersion();
+                boolean modified=false;
+                // Get the connection to work through
+                AOConnectionPool pool=MySQLServerManager.getPool(mysqlServer);
+                Connection conn=pool.getConnection(false);
+                try {
+                    // Get the list of all existing databases
+                    Set<String> existing=new HashSet<String>();
+                    Statement stmt=conn.createStatement();
                     try {
-                        // Get the list of all existing databases
-                        List<String> existing=new SortedArrayList<String>();
-                        Statement stmt=conn.createStatement();
+                        ResultSet results=stmt.executeQuery("show databases");
                         try {
-                            ResultSet results=stmt.executeQuery("show databases");
-                            try {
-                                while(results.next()) existing.add(results.getString(1));
-                            } finally {
-                                results.close();
-                            }
-
-                            // Create the databases that do not exist and should
-                            for(MySQLDatabase database : mysqlServer.getMySQLDatabases()) {
-                                String name=database.getName();
-                                if(existing.contains(name)) existing.remove(name);
-                                else {
-                                    // Create the database
-                                    stmt.executeUpdate("create database "+name);
-
-                                    modified=true;
-                                }
-                            }
-
-                            // Remove the extra databases
-                            for(int c=0;c<existing.size();c++) {
-                                String dbName=existing.get(c);
-                                if(
-                                    dbName.equals(MySQLDatabase.MYSQL)
-                                    || (version.startsWith("5.0.") && dbName.equals(MySQLDatabase.INFORMATION_SCHEMA))
-                                ) {
-                                    AOServDaemon.reportWarning(new SQLException("Refusing to drop critical MySQL Database: "+dbName+" on "+mysqlServer), null);
-                                } else {
-                                    // Remove the extra database
-                                    stmt.executeUpdate("drop database "+dbName);
-
-                                    modified=true;
-                                }
-                            }
+                            while(results.next()) existing.add(results.getString(1));
                         } finally {
-                            stmt.close();
+                            results.close();
+                        }
+
+                        // Create the databases that do not exist and should
+                        for(MySQLDatabase database : mysqlServer.getMySQLDatabases()) {
+                            String name=database.getName();
+                            if(existing.contains(name)) existing.remove(name);
+                            else {
+                                // Create the database
+                                stmt.executeUpdate("create database "+name);
+
+                                modified=true;
+                            }
+                        }
+
+                        // Remove the extra databases
+                        for(String dbName : existing) {
+                            if(
+                                dbName.equals(MySQLDatabase.MYSQL)
+                                || (version.startsWith("5.0.") && dbName.equals(MySQLDatabase.INFORMATION_SCHEMA))
+                            ) {
+                                AOServDaemon.reportWarning(new SQLException("Refusing to drop critical MySQL Database: "+dbName+" on "+mysqlServer), null);
+                            } else {
+                                // Remove the extra database
+                                stmt.executeUpdate("drop database "+dbName);
+
+                                modified=true;
+                            }
                         }
                     } finally {
-                        pool.releaseConnection(conn);
+                        stmt.close();
                     }
-                    if(modified) MySQLServerManager.flushPrivileges(mysqlServer);
+                } finally {
+                    pool.releaseConnection(conn);
                 }
+                if(modified) MySQLServerManager.flushPrivileges(mysqlServer);
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
         }
     }
 
     private static MySQLDatabaseManager mysqlDatabaseManager;
     
-    public static void backupDatabase(CompressedDataInputStream masterIn, CompressedDataOutputStream masterOut) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.IO, MySQLDatabaseManager.class, "backupDatabase(CompressedDataInputStream,CompressedDataOutputStream)", null);
+    /*public static void backupDatabase(CompressedDataInputStream masterIn, CompressedDataOutputStream masterOut) throws IOException, SQLException {
+        int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
+        int pkey=masterIn.readCompressedInt();
+        MySQLDatabase md=AOServDaemon.getConnector().mysqlDatabases.get(pkey);
+        if(md==null) throw new SQLException("Unable to find MySQLDatabase: "+pkey);
+        String dbName=md.getName();
+        MySQLServer ms=md.getMySQLServer();
+        UnixFile tempFile=UnixFile.mktemp("/tmp/backup_mysql_database.sql.gz.", true);
         try {
-            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
-            int pkey=masterIn.readCompressedInt();
-            MySQLDatabase md=AOServDaemon.getConnector().mysqlDatabases.get(pkey);
-            if(md==null) throw new SQLException("Unable to find MySQLDatabase: "+pkey);
-            String dbName=md.getName();
-            MySQLServer ms=md.getMySQLServer();
-            UnixFile tempFile=UnixFile.mktemp("/tmp/backup_mysql_database.sql.gz.");
-            tempFile.getFile().deleteOnExit();
+            // Dump, count raw bytes, create MD5, and compress to a temp file
+            String path;
+            if(
+                osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+            ) {
+                path="/usr/aoserv/daemon/bin/backup_mysql_database";
+            } else if(
+                osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+                || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+            ) {
+                path="/opt/aoserv-daemon/bin/backup_mysql_database";
+            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+
+            String[] command={
+                path,
+                dbName,
+                ms.getMinorVersion(),
+                Integer.toString(ms.getNetBind().getPort().getPort()),
+                tempFile.getPath()
+            };
+            long dataSize;
+            Process P=Runtime.getRuntime().exec(command);
             try {
-                // Dump, count raw bytes, create MD5, and compress to a temp file
-                String path;
-                if(
-                    osv==OperatingSystemVersion.MANDRAKE_10_1_I586
-                    || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-                ) {
-                    path="/usr/aoserv/daemon/bin/backup_mysql_database";
-                } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-                    path="/opt/aoserv-daemon/bin/backup_mysql_database";
-                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-
-                String[] command={
-                    path,
-                    dbName,
-                    ms.getMinorVersion(),
-                    Integer.toString(ms.getNetBind().getPort().getPort()),
-                    tempFile.getPath()
-                };
-                long dataSize;
-                Process P=Runtime.getRuntime().exec(command);
+                P.getOutputStream().close();
+                BufferedReader dumpIn=new BufferedReader(new InputStreamReader(P.getInputStream()));
                 try {
-                    P.getOutputStream().close();
-                    BufferedReader dumpIn=new BufferedReader(new InputStreamReader(P.getInputStream()));
-                    try {
-                        dataSize=Long.parseLong(dumpIn.readLine());
-                    } finally {
-                        dumpIn.close();
-                    }
+                    dataSize=Long.parseLong(dumpIn.readLine());
                 } finally {
-                    try {
-                        int retCode=P.waitFor();
-                        if(retCode!=0) throw new IOException("backup_mysql_database exited with non-zero return code: "+retCode);
-                    } catch(InterruptedException err) {
-                        InterruptedIOException ioErr=new InterruptedIOException();
-                        ioErr.initCause(err);
-                        throw ioErr;
-                    }
-                }
-
-                MD5InputStream md5In=new MD5InputStream(new CorrectedGZIPInputStream(new BufferedInputStream(new FileInputStream(tempFile.getPath()))));
-                try {
-                    byte[] buff=BufferManager.getBytes();
-                    try {
-                        while(md5In.read(buff, 0, BufferManager.BUFFER_SIZE)!=-1);
-                        md5In.close();
-
-                        byte[] md5=md5In.hash();
-                        long md5_hi=MD5.getMD5Hi(md5);
-                        long md5_lo=MD5.getMD5Lo(md5);
-
-                        masterOut.write(AOServDaemonProtocol.NEXT);
-                        masterOut.writeLong(dataSize);
-                        masterOut.writeLong(md5_hi);
-                        masterOut.writeLong(md5_lo);
-                        masterOut.flush();
-
-                        boolean sendData=masterIn.readBoolean();
-                        if(sendData) {
-                            InputStream tmpIn=new FileInputStream(tempFile.getFile());
-                            int ret;
-                            while((ret=tmpIn.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
-                                masterOut.write(AOServDaemonProtocol.NEXT);
-                                masterOut.writeShort(ret);
-                                masterOut.write(buff, 0, ret);
-                            }
-                        }
-                    } finally {
-                        BufferManager.release(buff);
-                    }
-                    masterOut.write(AOServDaemonProtocol.DONE);
-                    masterOut.flush();
-                } finally {
-                    md5In.close();
+                    dumpIn.close();
                 }
             } finally {
-                if(tempFile.getStat().exists()) tempFile.delete();
-            }
-        } finally {
-            Profiler.endProfile(Profiler.IO);
-        }
-    }
-
-    public static void dumpDatabase(MySQLDatabase md, CompressedDataOutputStream masterOut) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, MySQLDatabaseManager.class, "dumpDatabase(MySQLDatabase,CompressedDataOutputStream)", null);
-        try {
-            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
-            UnixFile tempFile=UnixFile.mktemp("/tmp/dump_mysql_database.sql.");
-            tempFile.getFile().deleteOnExit();
-            try {
-                String dbName=md.getName();
-                MySQLServer ms=md.getMySQLServer();
-                String path;
-                if(
-                    osv==OperatingSystemVersion.MANDRAKE_10_1_I586
-                    || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-                ) {
-                    path="/usr/aoserv/daemon/bin/dump_mysql_database";
-                } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-                    path="/opt/aoserv-daemon/bin/dump_mysql_database";
-                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-                String[] command={
-                    path,
-                    dbName,
-                    ms.getMinorVersion(),
-                    Integer.toString(ms.getNetBind().getPort().getPort()),
-                    tempFile.getPath()
-                };
-                AOServDaemon.exec(command);
-
-                InputStream dumpin=new FileInputStream(tempFile.getFile());
                 try {
-                    byte[] buff=BufferManager.getBytes();
-                    try {
+                    int retCode=P.waitFor();
+                    if(retCode!=0) throw new IOException("backup_mysql_database exited with non-zero return code: "+retCode);
+                } catch(InterruptedException err) {
+                    InterruptedIOException ioErr=new InterruptedIOException();
+                    ioErr.initCause(err);
+                    throw ioErr;
+                }
+            }
+
+            MD5InputStream md5In=new MD5InputStream(new CorrectedGZIPInputStream(new BufferedInputStream(new FileInputStream(tempFile.getPath()))));
+            try {
+                byte[] buff=BufferManager.getBytes();
+                try {
+                    while(md5In.read(buff, 0, BufferManager.BUFFER_SIZE)!=-1);
+                    md5In.close();
+
+                    byte[] md5=md5In.hash();
+                    long md5_hi=MD5.getMD5Hi(md5);
+                    long md5_lo=MD5.getMD5Lo(md5);
+
+                    masterOut.write(AOServDaemonProtocol.NEXT);
+                    masterOut.writeLong(dataSize);
+                    masterOut.writeLong(md5_hi);
+                    masterOut.writeLong(md5_lo);
+                    masterOut.flush();
+
+                    boolean sendData=masterIn.readBoolean();
+                    if(sendData) {
+                        InputStream tmpIn=new FileInputStream(tempFile.getFile());
                         int ret;
-                        while((ret=dumpin.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
-                            masterOut.writeByte(AOServDaemonProtocol.NEXT);
+                        while((ret=tmpIn.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
+                            masterOut.write(AOServDaemonProtocol.NEXT);
                             masterOut.writeShort(ret);
                             masterOut.write(buff, 0, ret);
                         }
-                    } finally {
-                        BufferManager.release(buff);
                     }
                 } finally {
-                    dumpin.close();
+                    BufferManager.release(buff);
                 }
+                masterOut.write(AOServDaemonProtocol.DONE);
+                masterOut.flush();
             } finally {
-                if(tempFile.getStat().exists()) tempFile.delete();
+                md5In.close();
             }
         } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
+            if(tempFile.getStat().exists()) tempFile.delete();
+        }
+    }*/
+
+    public static void dumpDatabase(MySQLDatabase md, CompressedDataOutputStream masterOut) throws IOException, SQLException {
+        int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
+        UnixFile tempFile=UnixFile.mktemp("/tmp/dump_mysql_database.sql.", true);
+        try {
+            String dbName=md.getName();
+            MySQLServer ms=md.getMySQLServer();
+            String path;
+            if(
+                osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+            ) {
+                path="/usr/aoserv/daemon/bin/dump_mysql_database";
+            } else if(
+                osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+                || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+            ) {
+                path="/opt/aoserv-daemon/bin/dump_mysql_database";
+            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            String[] command={
+                path,
+                dbName,
+                ms.getMinorVersion(),
+                Integer.toString(ms.getNetBind().getPort().getPort()),
+                tempFile.getPath()
+            };
+            AOServDaemon.exec(command);
+
+            InputStream dumpin=new FileInputStream(tempFile.getFile());
+            try {
+                byte[] buff=BufferManager.getBytes();
+                try {
+                    int ret;
+                    while((ret=dumpin.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
+                        masterOut.writeByte(AOServDaemonProtocol.NEXT);
+                        masterOut.writeShort(ret);
+                        masterOut.write(buff, 0, ret);
+                    }
+                } finally {
+                    BufferManager.release(buff);
+                }
+            } finally {
+                dumpin.close();
+            }
+        } finally {
+            if(tempFile.getStat().exists()) tempFile.delete();
         }
     }
 
     public static void start() throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, MySQLDatabaseManager.class, "start()", null);
-        try {
-            if(AOServDaemonConfiguration.isManagerEnabled(MySQLDatabaseManager.class) && mysqlDatabaseManager==null) {
-                synchronized(System.out) {
-                    if(mysqlDatabaseManager==null) {
-                        System.out.print("Starting MySQLDatabaseManager: ");
-                        AOServConnector conn=AOServDaemon.getConnector();
-                        mysqlDatabaseManager=new MySQLDatabaseManager();
-                        conn.mysqlDatabases.addTableListener(mysqlDatabaseManager, 0);
-                        System.out.println("Done");
-                    }
-                }
+        AOServer thisAOServer=AOServDaemon.getThisAOServer();
+        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+
+        synchronized(System.out) {
+            if(
+                // Nothing is done for these operating systems
+                osv!=OperatingSystemVersion.CENTOS_5DOM0_I686
+                && osv!=OperatingSystemVersion.CENTOS_5DOM0_X86_64
+                // Check config after OS check so config entry not needed
+                && AOServDaemonConfiguration.isManagerEnabled(MySQLDatabaseManager.class)
+                && mysqlDatabaseManager==null
+            ) {
+                System.out.print("Starting MySQLDatabaseManager: ");
+                AOServConnector conn=AOServDaemon.getConnector();
+                mysqlDatabaseManager=new MySQLDatabaseManager();
+                conn.mysqlDatabases.addTableListener(mysqlDatabaseManager, 0);
+                System.out.println("Done");
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
         }
     }
 
     public static void waitForRebuild() {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, MySQLDatabaseManager.class, "waitForRebuild()", null);
-        try {
-            if(mysqlDatabaseManager!=null) mysqlDatabaseManager.waitForBuild();
-        } finally {
-            Profiler.endProfile(Profiler.INSTANTANEOUS);
-        }
+        if(mysqlDatabaseManager!=null) mysqlDatabaseManager.waitForBuild();
     }
 
     public String getProcessTimerDescription() {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, MySQLDatabaseManager.class, "getProcessTimerDescription()", null);
-        try {
-            return "Rebuild MySQL Databases";
-        } finally {
-            Profiler.endProfile(Profiler.INSTANTANEOUS);
-        }
+        return "Rebuild MySQL Databases";
     }
     
     public static void getMasterStatus(int mysqlServer, CompressedDataOutputStream out) throws IOException, SQLException {
@@ -328,7 +313,10 @@ final public class MySQLDatabaseManager extends BuilderThread {
         File file;
         if(nestedOperatingSystemVersion==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
             file = new File(failoverRoot+"/etc/aoserv/daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
-        } else if(nestedOperatingSystemVersion==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+        } else if(
+            nestedOperatingSystemVersion==OperatingSystemVersion.REDHAT_ES_4_X86_64
+            || nestedOperatingSystemVersion==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+        ) {
             file = new File(failoverRoot+"/etc/opt/aoserv-daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
         } else throw new SQLException("Unsupport OperatingSystemVersion: "+nestedOperatingSystemVersion);
         if(!file.exists()) throw new SQLException("Properties file doesn't exist: "+file.getPath());
