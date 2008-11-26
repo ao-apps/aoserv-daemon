@@ -313,10 +313,10 @@ public class LinuxAccountManager extends BuilderThread {
                 LinuxAccount linuxAccount=account.getLinuxAccount();
                 String type=linuxAccount.getType().getName();
                 //String username=linuxAccount.getUsername().getUsername();
-                LinuxServerGroup primaryGroup=account.getPrimaryLinuxServerGroup();
+                LinuxServerGroup group=account.getPrimaryLinuxServerGroup();
                 //String groupname=group.getLinuxGroup().getName();
                 int uid=account.getUID().getID();
-                int gid=primaryGroup.getGID().getID();
+                int gid=group.getGID().getID();
 
                 File homeDir=new File(account.getHome());
                 if(!homeDir.exists()) {
@@ -755,7 +755,7 @@ public class LinuxAccountManager extends BuilderThread {
     }
 
     private static LinuxAccountManager linuxAccountManager;
-    public static void start() throws IOException, SQLException {
+    public static void start() throws IOException {
         AOServer thisAOServer=AOServDaemon.getThisAOServer();
         int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
 
