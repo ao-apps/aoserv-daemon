@@ -137,10 +137,6 @@ public class AOServerEnvironment extends UnixFileEnvironment {
         filesystemRules.put("/dev/log", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/dev/pts/", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/dev/shm/", FilesystemIteratorRule.SKIP);
-        filesystemRules.put("/distro/mandrake/10.1/i586/proc/", FilesystemIteratorRule.SKIP);
-        filesystemRules.put("/distro/mandrake/10.1/i586/sys/", FilesystemIteratorRule.SKIP);
-        filesystemRules.put("/distro/mandriva/2006.0/i586/proc/", FilesystemIteratorRule.SKIP);
-        filesystemRules.put("/distro/mandriva/2006.0/i586/sys/", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/etc/mail/statistics", FilesystemIteratorRule.SKIP);
 
         // Don't send /etc/lilo.conf for failovers - it can cause severe problems if a nested server has its kernel RPMs upgraded
