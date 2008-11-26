@@ -61,7 +61,6 @@ aoserv.daemon.distro.DistroManager.enabled=true
 aoserv.daemon.dns.DNSManager.enabled=true
 aoserv.daemon.email.EmailAddressManager.enabled=true
 aoserv.daemon.email.EmailDomainManager.enabled=true
-aoserv.daemon.email.maillog.MailLogReader.enabled=true
 aoserv.daemon.email.MajordomoManager.enabled=true
 aoserv.daemon.email.ProcmailManager.enabled=true
 aoserv.daemon.email.SendmailCFManager.enabled=true
