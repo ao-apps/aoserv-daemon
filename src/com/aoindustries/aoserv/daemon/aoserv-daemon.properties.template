@@ -65,7 +65,6 @@ aoserv.daemon.email.MajordomoManager.enabled=true
 aoserv.daemon.email.ProcmailManager.enabled=true
 aoserv.daemon.email.SendmailCFManager.enabled=true
 aoserv.daemon.email.SmtpRelayManager.enabled=true
-aoserv.daemon.email.SmtpStatManager.enabled=true
 aoserv.daemon.email.SpamAssassinManager.enabled=true
 aoserv.daemon.failover.FailoverFileReplicationManager.enabled=true
 aoserv.daemon.ftp.FTPManager.enabled=true
