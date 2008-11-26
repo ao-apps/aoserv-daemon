@@ -5,7 +5,6 @@ package com.aoindustries.aoserv.daemon.report;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.profiler.*;
 import java.io.*;
 
 /**
@@ -35,12 +34,7 @@ final public class ProcPartitions {
     ;
 
     public ProcPartitions() {
-        Profiler.startProfile(Profiler.FAST, ProcPartitions.class, "<init>()", null);
-        try {
-            device_majors=device_minors=runnings=new int[0];
-            blocks=rios=rmerges=rsect=ruse=wios=wmerge=wsect=wuse=uses=aveq=new long[0];
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        device_majors=device_minors=runnings=new int[0];
+        blocks=rios=rmerges=rsect=ruse=wios=wmerge=wsect=wuse=uses=aveq=new long[0];
     }
 }

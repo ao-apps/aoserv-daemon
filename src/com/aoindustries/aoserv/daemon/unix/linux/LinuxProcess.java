@@ -5,10 +5,10 @@ package com.aoindustries.aoserv.daemon.unix.linux;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.io.unix.*;
-import com.aoindustries.aoserv.daemon.unix.*;
-import com.aoindustries.profiler.*;
-import java.io.*;
+import com.aoindustries.aoserv.daemon.unix.UnixProcess;
+import com.aoindustries.io.unix.UnixFile;
+import java.io.File;
+import java.io.IOException;
 
 /**
  * A <code>UnixProcess</code> represents a process
@@ -29,8 +29,6 @@ public class LinuxProcess extends UnixProcess {
      */
     public LinuxProcess(int pid) {
 	super(pid);
-        Profiler.startProfile(Profiler.INSTANTANEOUS, LinuxProcess.class, "<init>(int)", null);
-        Profiler.endProfile(Profiler.INSTANTANEOUS);
     }
 
     /**
@@ -40,12 +38,7 @@ public class LinuxProcess extends UnixProcess {
      * FileNotFoundException is thrown.
      */
     public int getGID() throws IOException {
-        Profiler.startProfile(Profiler.IO, LinuxProcess.class, "getGID()", null);
-        try {
-            return new UnixFile(getProc().getPath()).getStat().getGID();
-        } finally {
-            Profiler.endProfile(Profiler.IO);
-        }
+        return new UnixFile(getProc().getPath()).getStat().getGID();
     }
 
     /**
@@ -55,20 +48,15 @@ public class LinuxProcess extends UnixProcess {
      * @exception  IOException if the proc is not mounted
      */
     private File getProc() throws IOException {
-        Profiler.startProfile(Profiler.IO, LinuxProcess.class, "getProc()", null);
-        try {
-	    synchronized(this) {
-		if(processProc==null) {
-		    if(proc==null) {
-			proc=new File("/proc");
-			if(!proc.isDirectory()) throw new IOException("Unable to find "+proc.getPath()+" directory");
-		    }
-		    processProc=new File(proc, String.valueOf(pid));
-		}
-		return processProc;
-	    }
-        } finally {
-            Profiler.endProfile(Profiler.IO);
+        synchronized(this) {
+            if(processProc==null) {
+                if(proc==null) {
+                    proc=new File("/proc");
+                    if(!proc.isDirectory()) throw new IOException("Unable to find "+proc.getPath()+" directory");
+                }
+                processProc=new File(proc, String.valueOf(pid));
+            }
+            return processProc;
         }
     }
 
@@ -79,12 +67,7 @@ public class LinuxProcess extends UnixProcess {
      * FileNotFoundException is thrown.
      */
     public int getUID() throws IOException {
-        Profiler.startProfile(Profiler.IO, LinuxProcess.class, "getUID()", null);
-        try {
-            return new UnixFile(getProc().getPath()).getStat().getUID();
-        } finally {
-            Profiler.endProfile(Profiler.IO);
-        }
+        return new UnixFile(getProc().getPath()).getStat().getUID();
     }
 
     /**
@@ -92,11 +75,6 @@ public class LinuxProcess extends UnixProcess {
      * is considered running if a directory exists in /proc.
      */
     public boolean isRunning() throws IOException {
-        Profiler.startProfile(Profiler.IO, LinuxProcess.class, "isRunning()", null);
-        try {
-            return getProc().exists();
-        } finally {
-            Profiler.endProfile(Profiler.IO);
-        }
+        return getProc().exists();
     }
 }

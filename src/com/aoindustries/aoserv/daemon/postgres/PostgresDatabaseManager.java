@@ -51,150 +51,145 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 
     /*
     public static void backupDatabase(CompressedDataInputStream masterIn, CompressedDataOutputStream masterOut) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.IO, PostgresDatabaseManager.class, "backupDatabase(CompressedDataInputStream,CompressedDataOutputStream)", null);
+        String minorVersion=masterIn.readUTF();
+        String dbName=masterIn.readUTF();
+        int port=masterIn.readCompressedInt();
+
+        // Dump, count raw bytes, create MD5, and compress to a temp file
+        int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
+        String commandPath;
+        if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64 || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+            commandPath = "/opt/aoserv-daemon/bin/backup_postgres_database";
+        } else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+            commandPath = "/usr/aoserv/daemon/bin/backup_postgres_database";
+        } else {
+            throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        }
+        String[] command={
+            commandPath,
+            minorVersion,
+            Integer.toString(port),
+            dbName
+        };
+        Process P=Runtime.getRuntime().exec(command);
+ * try.. finally on P
+ * P.getOutputStream().close();
+        BufferedReader dumpIn=new BufferedReader(new InputStreamReader(P.getInputStream()));
+        long dataSize=Long.parseLong(dumpIn.readLine());
+        List<UnixFile> unixFiles=new ArrayList<UnixFile>();
         try {
-            String minorVersion=masterIn.readUTF();
-            String dbName=masterIn.readUTF();
-            int port=masterIn.readCompressedInt();
-
-            // Dump, count raw bytes, create MD5, and compress to a temp file
-            int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
-            String commandPath;
-            if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64 || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                commandPath = "/opt/aoserv-daemon/bin/backup_postgres_database";
-            } else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                commandPath = "/usr/aoserv/daemon/bin/backup_postgres_database";
-            } else {
-                throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            String line;
+            while((line=dumpIn.readLine())!=null) {
+                UnixFile uf=new UnixFile(line);
+                uf.getFile().deleteOnExit();
+                unixFiles.add(uf);
             }
-            String[] command={
-                commandPath,
-                minorVersion,
-                Integer.toString(port),
-                dbName
-            };
-            Process P=Runtime.getRuntime().exec(command);
-     * try.. finally on P
-     * P.getOutputStream().close();
-            BufferedReader dumpIn=new BufferedReader(new InputStreamReader(P.getInputStream()));
-            long dataSize=Long.parseLong(dumpIn.readLine());
-            List<UnixFile> unixFiles=new ArrayList<UnixFile>();
+            dumpIn.close();
             try {
-                String line;
-                while((line=dumpIn.readLine())!=null) {
-                    UnixFile uf=new UnixFile(line);
-                    uf.getFile().deleteOnExit();
-                    unixFiles.add(uf);
-                }
-                dumpIn.close();
+                int retCode=P.waitFor();
+                if(retCode!=0) throw new IOException("backup_postgres_database exited with non-zero return code: "+retCode);
+            } catch(InterruptedException err) {
+                InterruptedIOException ioErr=new InterruptedIOException();
+                ioErr.initCause(err);
+                throw ioErr;
+            }
+
+            // Convert to an array of files and calculate the compressedSize
+            long compressedSize = 0;
+            File[] files=new File[unixFiles.size()];
+            for(int c=0;c<files.length;c++) {
+                File file = files[c] = unixFiles.get(c).getFile();
+                long len = file.length();
+                if(len < 0) throw new IOException("Unable to get length for file: " + file.getPath());
+                compressedSize += len;
+            }
+
+            // Build the MD5 hash
+            MD5InputStream md5In=new MD5InputStream(new CorrectedGZIPInputStream(new BufferedInputStream(new MultiFileInputStream(files))));
+            try {
+                byte[] buff=BufferManager.getBytes();
                 try {
-                    int retCode=P.waitFor();
-                    if(retCode!=0) throw new IOException("backup_postgres_database exited with non-zero return code: "+retCode);
-                } catch(InterruptedException err) {
-                    InterruptedIOException ioErr=new InterruptedIOException();
-                    ioErr.initCause(err);
-                    throw ioErr;
-                }
+                    while(md5In.read(buff, 0, BufferManager.BUFFER_SIZE)!=-1);
+                    md5In.close();
 
-                // Convert to an array of files and calculate the compressedSize
-                long compressedSize = 0;
-                File[] files=new File[unixFiles.size()];
-                for(int c=0;c<files.length;c++) {
-                    File file = files[c] = unixFiles.get(c).getFile();
-                    long len = file.length();
-                    if(len < 0) throw new IOException("Unable to get length for file: " + file.getPath());
-                    compressedSize += len;
-                }
+                    byte[] md5=md5In.hash();
+                    long md5_hi=MD5.getMD5Hi(md5);
+                    long md5_lo=MD5.getMD5Lo(md5);
 
-                // Build the MD5 hash
-                MD5InputStream md5In=new MD5InputStream(new CorrectedGZIPInputStream(new BufferedInputStream(new MultiFileInputStream(files))));
-                try {
-                    byte[] buff=BufferManager.getBytes();
-                    try {
-                        while(md5In.read(buff, 0, BufferManager.BUFFER_SIZE)!=-1);
-                        md5In.close();
+                    masterOut.write(AOServDaemonProtocol.NEXT);
+                    masterOut.writeLong(dataSize);
+                    masterOut.writeLong(compressedSize);
+                    masterOut.writeLong(md5_hi);
+                    masterOut.writeLong(md5_lo);
+                    masterOut.flush();
 
-                        byte[] md5=md5In.hash();
-                        long md5_hi=MD5.getMD5Hi(md5);
-                        long md5_lo=MD5.getMD5Lo(md5);
+                    boolean sendData=masterIn.readBoolean();
+                    if(sendData) {
+                        long daemonKey=masterIn.readLong();
+                        int toAOServer=masterIn.readCompressedInt();
+                        String toIpAddress=masterIn.readUTF();
+                        int toPort=masterIn.readCompressedInt();
+                        String toProtocol=masterIn.readUTF();
+                        int toPoolSize=masterIn.readCompressedInt();
+                        AOServDaemonConnector daemonConnector=AOServDaemonConnector.getConnector(
+                            toAOServer,
+                            toIpAddress,
+                            AOServDaemon.getThisAOServer().getDaemonBind().getIPAddress().getIPAddress(),
+                            toPort,
+                            toProtocol,
+                            null,
+                            toPoolSize,
+                            AOPool.DEFAULT_MAX_CONNECTION_AGE,
+                            SSLConnector.class,
+                            SSLConnector.sslProviderLoaded,
+                            AOServClientConfiguration.getSslTruststorePath(),
+                            AOServClientConfiguration.getSslTruststorePassword(),
+                            AOServDaemon.getErrorHandler()
+                        );
+                        AOServDaemonConnection daemonConn=daemonConnector.getConnection();
+                        try {
+                            // Start the replication
+                            CompressedDataOutputStream out=daemonConn.getOutputStream();
+                            out.writeCompressedInt(AOServDaemonProtocol.BACKUP_POSTGRES_DATABASE_SEND_DATA);
+                            out.writeLong(daemonKey);
+                            out.flush();
 
-                        masterOut.write(AOServDaemonProtocol.NEXT);
-                        masterOut.writeLong(dataSize);
-                        masterOut.writeLong(compressedSize);
-                        masterOut.writeLong(md5_hi);
-                        masterOut.writeLong(md5_lo);
-                        masterOut.flush();
-
-                        boolean sendData=masterIn.readBoolean();
-                        if(sendData) {
-                            long daemonKey=masterIn.readLong();
-                            int toAOServer=masterIn.readCompressedInt();
-                            String toIpAddress=masterIn.readUTF();
-                            int toPort=masterIn.readCompressedInt();
-                            String toProtocol=masterIn.readUTF();
-                            int toPoolSize=masterIn.readCompressedInt();
-                            AOServDaemonConnector daemonConnector=AOServDaemonConnector.getConnector(
-                                toAOServer,
-                                toIpAddress,
-                                AOServDaemon.getThisAOServer().getDaemonBind().getIPAddress().getIPAddress(),
-                                toPort,
-                                toProtocol,
-                                null,
-                                toPoolSize,
-                                AOPool.DEFAULT_MAX_CONNECTION_AGE,
-                                SSLConnector.class,
-                                SSLConnector.sslProviderLoaded,
-                                AOServClientConfiguration.getSslTruststorePath(),
-                                AOServClientConfiguration.getSslTruststorePassword(),
-                                AOServDaemon.getErrorHandler()
-                            );
-                            AOServDaemonConnection daemonConn=daemonConnector.getConnection();
-                            try {
-                                // Start the replication
-                                CompressedDataOutputStream out=daemonConn.getOutputStream();
-                                out.writeCompressedInt(AOServDaemonProtocol.BACKUP_POSTGRES_DATABASE_SEND_DATA);
-                                out.writeLong(daemonKey);
-                                out.flush();
-
-                                CompressedDataInputStream in=daemonConn.getInputStream();
-                                InputStream tmpIn=new MultiFileInputStream(files);
-                                int ret;
-                                while((ret=tmpIn.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
-                                    out.write(AOServDaemonProtocol.NEXT);
-                                    out.writeShort(ret);
-                                    out.write(buff, 0, ret);
-                                }
-                                out.write(AOServDaemonProtocol.DONE);
-                                out.flush();
-                                int result=in.read();
-                                if(result!=AOServDaemonProtocol.DONE) {
-                                    if (result == AOServDaemonProtocol.IO_EXCEPTION) throw new IOException(in.readUTF());
-                                    else if (result == AOServDaemonProtocol.SQL_EXCEPTION) throw new SQLException(in.readUTF());
-                                    else throw new IOException("Unknown result: " + result);
-                                }
-                            } catch(IOException err) {
-                                daemonConn.close();
-                                throw err;
-                            } catch(SQLException err) {
-                                daemonConn.close();
-                                throw err;
-                            } finally {
-                                daemonConnector.releaseConnection(daemonConn);
+                            CompressedDataInputStream in=daemonConn.getInputStream();
+                            InputStream tmpIn=new MultiFileInputStream(files);
+                            int ret;
+                            while((ret=tmpIn.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
+                                out.write(AOServDaemonProtocol.NEXT);
+                                out.writeShort(ret);
+                                out.write(buff, 0, ret);
                             }
-                            masterOut.write(AOServDaemonProtocol.DONE);
-                            masterOut.flush();
+                            out.write(AOServDaemonProtocol.DONE);
+                            out.flush();
+                            int result=in.read();
+                            if(result!=AOServDaemonProtocol.DONE) {
+                                if (result == AOServDaemonProtocol.IO_EXCEPTION) throw new IOException(in.readUTF());
+                                else if (result == AOServDaemonProtocol.SQL_EXCEPTION) throw new SQLException(in.readUTF());
+                                else throw new IOException("Unknown result: " + result);
+                            }
+                        } catch(IOException err) {
+                            daemonConn.close();
+                            throw err;
+                        } catch(SQLException err) {
+                            daemonConn.close();
+                            throw err;
+                        } finally {
+                            daemonConnector.releaseConnection(daemonConn);
                         }
-                    } finally {
-                        BufferManager.release(buff);
+                        masterOut.write(AOServDaemonProtocol.DONE);
+                        masterOut.flush();
                     }
                 } finally {
-                    md5In.close();
+                    BufferManager.release(buff);
                 }
             } finally {
-                for(UnixFile unixFile : unixFiles) unixFile.delete();
+                md5In.close();
             }
         } finally {
-            Profiler.endProfile(Profiler.IO);
+            for(UnixFile unixFile : unixFiles) unixFile.delete();
         }
     }
 */

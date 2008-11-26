@@ -5,7 +5,6 @@ package com.aoindustries.aoserv.daemon.report;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.profiler.*;
 import java.io.*;
 
 /**
@@ -36,12 +35,7 @@ public final class ProcNetDev {
     ;
 
     public ProcNetDev() {
-        Profiler.startProfile(Profiler.FAST, ProcNetDev.class, "<init>()", null);
-        try {
-            deviceIDs=new String[0];
-            rxBytes=rxPackets=rxErrors=rxDrop=rxFIFO=rxFrame=rxCompress=rxMulticast=txBytes=txPackets=txErrors=txDrop=txFIFO=txColls=txCarrier=txCompressed=new long[0];
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        deviceIDs=new String[0];
+        rxBytes=rxPackets=rxErrors=rxDrop=rxFIFO=rxFrame=rxCompress=rxMulticast=txBytes=txPackets=txErrors=txDrop=txFIFO=txColls=txCarrier=txCompressed=new long[0];
     }
 }

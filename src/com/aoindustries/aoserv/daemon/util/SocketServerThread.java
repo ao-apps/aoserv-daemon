@@ -5,11 +5,12 @@ package com.aoindustries.aoserv.daemon.util;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.daemon.*;
+import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.io.AOPool;
-import com.aoindustries.profiler.*;
-import java.io.*;
-import java.net.*;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 /**
  * Handles incoming connections on one <code>ServerSocket</code>.
@@ -23,81 +24,57 @@ abstract public class SocketServerThread extends Thread {
 
     public SocketServerThread(String name, String ipAddress, int port) {
         super(name+" on "+ipAddress+":"+port);
-        Profiler.startProfile(Profiler.INSTANTANEOUS, SocketServerThread.class, "<init>(String,int)", null);
-        try {
-            this.ipAddress=ipAddress;
-            this.port=port;
-        } finally {
-            Profiler.endProfile(Profiler.INSTANTANEOUS);
-        }
+        this.ipAddress=ipAddress;
+        this.port=port;
     }
 
     public String getIPAddress() {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, SocketServerThread.class, "getIPAddress()", null);
-        try {
-            return ipAddress;
-        } finally {
-            Profiler.endProfile(Profiler.INSTANTANEOUS);
-        }
+        return ipAddress;
     }
     
     public int getPort() {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, SocketServerThread.class, "getPort()", null);
-        try {
-            return port;
-        } finally {
-            Profiler.endProfile(Profiler.INSTANTANEOUS);
-        }
+        return port;
     }
 
     boolean runMore=true;
 
     private ServerSocket SS;
 
+    @Override
     public void run() {
-        Profiler.startProfile(Profiler.UNKNOWN, SocketServerThread.class, "run()", null);
-        try {
-            while(runMore) {
+        while(runMore) {
+            try {
+                SS=new ServerSocket(port, 50, InetAddress.getByName(ipAddress));
                 try {
-                    SS=new ServerSocket(port, 50, InetAddress.getByName(ipAddress));
-                    try {
-                        while(runMore) {
-                            Socket socket=SS.accept();
-                            socket.setKeepAlive(true);
-                            socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
-                            //socket.setTcpNoDelay(true);
-                            socketConnected(socket);
-                        }
-                    } finally {
-                        SS.close();
+                    while(runMore) {
+                        Socket socket=SS.accept();
+                        socket.setKeepAlive(true);
+                        socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
+                        //socket.setTcpNoDelay(true);
+                        socketConnected(socket);
                     }
-                } catch(ThreadDeath TD) {
-                    throw TD;
-                } catch(Throwable T) {
-                    AOServDaemon.reportError(T, null);
-                    try {
-                        Thread.sleep(60000);
-                    } catch(InterruptedException err) {
-                        AOServDaemon.reportWarning(err, null);
-                    }
+                } finally {
+                    SS.close();
+                }
+            } catch(ThreadDeath TD) {
+                throw TD;
+            } catch(Throwable T) {
+                AOServDaemon.reportError(T, null);
+                try {
+                    Thread.sleep(60000);
+                } catch(InterruptedException err) {
+                    AOServDaemon.reportWarning(err, null);
                 }
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
         }
     }
 
     final public void close() {
-        Profiler.startProfile(Profiler.UNKNOWN, SocketServerThread.class, "close()", null);
+        runMore=false;
         try {
-            runMore=false;
-            try {
-                SS.close();
-            } catch(IOException err) {
-                AOServDaemon.reportError(err, null);
-            }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
+            SS.close();
+        } catch(IOException err) {
+            AOServDaemon.reportError(err, null);
         }
     }
 

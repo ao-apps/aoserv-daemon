@@ -5,7 +5,6 @@ package com.aoindustries.aoserv.daemon.report;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.profiler.*;
 import java.io.*;
 
 /**
@@ -19,12 +18,7 @@ final public class NetStatLN {
     final public int[] listens;
 
     public NetStatLN() {
-        Profiler.startProfile(Profiler.FAST, NetStatLN.class, "<init>()", null);
-        try {
-            deviceIDs=new String[0];
-            listens=new int[0];
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        deviceIDs=new String[0];
+        listens=new int[0];
     }
 }

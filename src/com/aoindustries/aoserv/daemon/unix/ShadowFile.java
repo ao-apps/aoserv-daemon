@@ -5,16 +5,23 @@ package com.aoindustries.aoserv.daemon.unix;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.*;
-import com.aoindustries.aoserv.daemon.*;
-import com.aoindustries.aoserv.daemon.httpd.*;
-import com.aoindustries.io.*;
-import com.aoindustries.io.unix.*;
-import com.aoindustries.profiler.*;
-import com.aoindustries.util.*;
-import java.io.*;
-import java.sql.*;
-import java.util.*;
+import com.aoindustries.aoserv.client.LinuxAccount;
+import com.aoindustries.aoserv.client.LinuxServerAccount;
+import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.io.ChainWriter;
+import com.aoindustries.io.unix.UnixFile;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * A <code>ShadowFileEntry</code> represents one line of the
@@ -33,9 +40,7 @@ final public class ShadowFile {
     /** Locks the shadow file for updates */
     private static final Object	shadowLock=new Object();
 
-    private ShadowFile(String line) {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, ShadowFile.class, "<init>(String)", null);
-        Profiler.endProfile(Profiler.INSTANTANEOUS);
+    private ShadowFile(/*String line*/) {
     }
 
     /**
@@ -45,124 +50,114 @@ final public class ShadowFile {
      * passwords are never lost during updates.
      */
     public static String getEncryptedPassword(String username) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, ShadowFile.class, "getEncryptedPassword(String)", null);
-        try {
-            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
-            if(
-                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-                && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
+        if(
+            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+            && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+        ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
-            synchronized(shadowLock) {
-                BufferedReader in = new BufferedReader(new InputStreamReader(new BufferedInputStream(new FileInputStream(shadowFile.getFile()))));
-		String password;
-                try {
-                    password=LinuxAccount.NO_PASSWORD_CONFIG_VALUE;
-                    String line;
-                    while ((line = in.readLine()) != null) {
-                        ShadowFileEntry entry = new ShadowFileEntry(line);
-                        if(entry.username.equals(username)) {
-                            password=entry.password;
-                            break;
-                        }
+        synchronized(shadowLock) {
+            BufferedReader in = new BufferedReader(new InputStreamReader(new BufferedInputStream(new FileInputStream(shadowFile.getFile()))));
+            String password;
+            try {
+                password=LinuxAccount.NO_PASSWORD_CONFIG_VALUE;
+                String line;
+                while ((line = in.readLine()) != null) {
+                    ShadowFileEntry entry = new ShadowFileEntry(line);
+                    if(entry.username.equals(username)) {
+                        password=entry.password;
+                        break;
                     }
-                } finally {
-                    in.close();
                 }
-
-                return password;
+            } finally {
+                in.close();
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
+
+            return password;
         }
     }
 
     public static void rebuildShadowFile(List<LinuxServerAccount> accounts) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, ShadowFile.class, "rebuildShadowFile(List<LinuxServerAccount>)", null);
-        try {
-            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
-            if(
-                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-                && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
+        if(
+            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+            && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+        ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
-            synchronized(shadowLock) {
-                /*
-                 * Get the old data from /etc/shadow
-                 */
-                Map<String,ShadowFileEntry> shadowEntries = new HashMap<String,ShadowFileEntry>();
-                BufferedReader in = new BufferedReader(new InputStreamReader(new BufferedInputStream(new FileInputStream(shadowFile.getFile()))));
-                try {
-                    String line;
-                    while ((line = in.readLine()) != null) {
-                        ShadowFileEntry entry = new ShadowFileEntry(line);
-                        if (shadowEntries.containsKey(entry.username)) throw new IllegalArgumentException("Shadow file contains duplicate entry: " + line);
-                        shadowEntries.put(entry.username, entry);
-                    }
-                } finally {
-                    in.close();
+        synchronized(shadowLock) {
+            /*
+             * Get the old data from /etc/shadow
+             */
+            Map<String,ShadowFileEntry> shadowEntries = new HashMap<String,ShadowFileEntry>();
+            BufferedReader in = new BufferedReader(new InputStreamReader(new BufferedInputStream(new FileInputStream(shadowFile.getFile()))));
+            try {
+                String line;
+                while ((line = in.readLine()) != null) {
+                    ShadowFileEntry entry = new ShadowFileEntry(line);
+                    if (shadowEntries.containsKey(entry.username)) throw new IllegalArgumentException("Shadow file contains duplicate entry: " + line);
+                    shadowEntries.put(entry.username, entry);
                 }
-
-                /*
-                 * Write the new /etc/shadow file, creating default entries if needed.
-                 */
-                ChainWriter out = new ChainWriter(
-                    new BufferedOutputStream(
-                        newShadowFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true)
-                    )
-                );
-                try {
-                    boolean rootFound=false;
-                    for (int c = 0; c < accounts.size(); c++) {
-                        String username = accounts.get(c)
-                            .getLinuxAccount()
-                            .getUsername()
-                            .getUsername()
-                        ;
-                        if(username.equals(LinuxAccount.ROOT)) {
-                            ShadowFileEntry entry = shadowEntries.get(username);
-                            if (entry == null) entry = new ShadowFileEntry(username);
-                            out.print(entry.toString());
-                            out.print('\n');
-                            rootFound=true;
-                            break;
-                        }
-                    }
-                    if(!rootFound) throw new SQLException("root user not found while creating "+newShadowFile.getPath());
-                    for (int c = 0; c < accounts.size(); c++) {
-                        String username = accounts.get(c)
-                            .getLinuxAccount()
-                            .getUsername()
-                            .getUsername()
-                        ;
-                        if(!username.equals(LinuxAccount.ROOT)) {
-                            ShadowFileEntry entry = shadowEntries.get(username);
-                            if (entry == null) entry = new ShadowFileEntry(username);
-                            out.print(entry.toString());
-                            out.print('\n');
-                        }
-                    }
-                } finally {
-                    out.flush();
-                    out.close();
-                }
-
-                if(newShadowFile.getStat().getSize()>0) {
-                    if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                        // Do nothing
-                    } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-                        // Do nothing
-                    } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                        newShadowFile.setMode(0400);
-                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-                    shadowFile.renameTo(backupShadowFile);
-                    newShadowFile.renameTo(shadowFile);
-                } else throw new IOException(newShadowFile.getPath()+" has zero or unknown length");
+            } finally {
+                in.close();
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
+
+            /*
+             * Write the new /etc/shadow file, creating default entries if needed.
+             */
+            ChainWriter out = new ChainWriter(
+                new BufferedOutputStream(
+                    newShadowFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true)
+                )
+            );
+            try {
+                boolean rootFound=false;
+                for (int c = 0; c < accounts.size(); c++) {
+                    String username = accounts.get(c)
+                        .getLinuxAccount()
+                        .getUsername()
+                        .getUsername()
+                    ;
+                    if(username.equals(LinuxAccount.ROOT)) {
+                        ShadowFileEntry entry = shadowEntries.get(username);
+                        if (entry == null) entry = new ShadowFileEntry(username);
+                        out.print(entry.toString());
+                        out.print('\n');
+                        rootFound=true;
+                        break;
+                    }
+                }
+                if(!rootFound) throw new SQLException("root user not found while creating "+newShadowFile.getPath());
+                for (int c = 0; c < accounts.size(); c++) {
+                    String username = accounts.get(c)
+                        .getLinuxAccount()
+                        .getUsername()
+                        .getUsername()
+                    ;
+                    if(!username.equals(LinuxAccount.ROOT)) {
+                        ShadowFileEntry entry = shadowEntries.get(username);
+                        if (entry == null) entry = new ShadowFileEntry(username);
+                        out.print(entry.toString());
+                        out.print('\n');
+                    }
+                }
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            if(newShadowFile.getStat().getSize()>0) {
+                if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                    // Do nothing
+                } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                    // Do nothing
+                } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                    newShadowFile.setMode(0400);
+                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                shadowFile.renameTo(backupShadowFile);
+                newShadowFile.renameTo(shadowFile);
+            } else throw new IOException(newShadowFile.getPath()+" has zero or unknown length");
         }
     }
 
@@ -174,66 +169,61 @@ final public class ShadowFile {
      * passwords are never lost during updates.
      */
     public static void setEncryptedPassword(String username, String encryptedPassword) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, ShadowFile.class, "setEncryptedPassword(String,String)", null);
-        try {
-            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
-            if(
-                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-                && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
+        if(
+            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+            && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+        ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
-            synchronized(shadowLock) {
-                /*
-                 * Get the old data from /etc/shadow
-                 */
-                List<ShadowFileEntry> shadowEntries = new ArrayList<ShadowFileEntry>();
-		boolean userFound=false;
-                BufferedReader in = new BufferedReader(new InputStreamReader(new BufferedInputStream(new FileInputStream(shadowFile.getFile()))));
-                try {
-                    // Reset if already exists
-                    String line;
-                    while ((line = in.readLine()) != null) {
-                        ShadowFileEntry entry = new ShadowFileEntry(line);
-                        if(entry.username.equals(username)) {
-                            userFound=true;
-                            entry.password=encryptedPassword;
-                        }
-                        shadowEntries.add(entry);
+        synchronized(shadowLock) {
+            /*
+             * Get the old data from /etc/shadow
+             */
+            List<ShadowFileEntry> shadowEntries = new ArrayList<ShadowFileEntry>();
+            boolean userFound=false;
+            BufferedReader in = new BufferedReader(new InputStreamReader(new BufferedInputStream(new FileInputStream(shadowFile.getFile()))));
+            try {
+                // Reset if already exists
+                String line;
+                while ((line = in.readLine()) != null) {
+                    ShadowFileEntry entry = new ShadowFileEntry(line);
+                    if(entry.username.equals(username)) {
+                        userFound=true;
+                        entry.password=encryptedPassword;
                     }
-                } finally {
-                    in.close();
+                    shadowEntries.add(entry);
                 }
-
-                // Add if does not yet exist
-                if(!userFound) shadowEntries.add(new ShadowFileEntry(username+':'+encryptedPassword));
-
-                /*
-                 * Write the new /etc/shadow file.
-                 */
-                ChainWriter out = new ChainWriter(
-                    new BufferedOutputStream(
-                        newShadowFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true)
-                    )
-                );
-                try {
-                    for (ShadowFileEntry entry : shadowEntries) {
-                        out.print(entry.toString());
-                        out.print('\n');
-                    }
-                } finally {
-                    out.flush();
-                    out.close();
-                }
-
-                /*
-                 * Move the new file into place.
-                 */
-                shadowFile.renameTo(backupShadowFile);
-                newShadowFile.renameTo(shadowFile);
+            } finally {
+                in.close();
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
+
+            // Add if does not yet exist
+            if(!userFound) shadowEntries.add(new ShadowFileEntry(username+':'+encryptedPassword));
+
+            /*
+             * Write the new /etc/shadow file.
+             */
+            ChainWriter out = new ChainWriter(
+                new BufferedOutputStream(
+                    newShadowFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true)
+                )
+            );
+            try {
+                for (ShadowFileEntry entry : shadowEntries) {
+                    out.print(entry.toString());
+                    out.print('\n');
+                }
+            } finally {
+                out.flush();
+                out.close();
+            }
+
+            /*
+             * Move the new file into place.
+             */
+            shadowFile.renameTo(backupShadowFile);
+            newShadowFile.renameTo(shadowFile);
         }
     }
 
@@ -241,16 +231,11 @@ final public class ShadowFile {
      * Sets the password for one user on the system.
      */
     public static void setPassword(String username, String plaintext) throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, ShadowFile.class, "setPassword(String,String)", null);
-        try {
-            setEncryptedPassword(
-                username,
-                plaintext==null || plaintext.length()==0
-                ?LinuxAccount.NO_PASSWORD_CONFIG_VALUE
-                :UnixFile.crypt(plaintext, AOServDaemon.getRandom())
-            );
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
-        }
+        setEncryptedPassword(
+            username,
+            plaintext==null || plaintext.length()==0
+            ?LinuxAccount.NO_PASSWORD_CONFIG_VALUE
+            :UnixFile.crypt(plaintext, AOServDaemon.getRandom())
+        );
     }
 }

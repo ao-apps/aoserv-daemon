@@ -7,8 +7,10 @@ package com.aoindustries.aoserv.daemon;
  */
 import com.aoindustries.io.AOPool;
 import com.aoindustries.profiler.Profiler;
-import java.io.*;
-import java.util.*;
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
 
 /**
  * The configuration for all AOServ processes is stored in a properties file.

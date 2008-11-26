@@ -237,25 +237,15 @@ final public class FTPManager extends BuilderThread {
     }
 
     /*public static boolean isRedHatGlobalGroup(String group) {
-        Profiler.startProfile(Profiler.FAST, FTPManager.class, "isRedHatGlobalGroup(String)", null);
-        try {
-            int len=redhatGlobalGroups.length;
-            for(int c=0;c<len;c++) if(redhatGlobalGroups[c].equals(group)) return true;
-            return false;
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        int len=redhatGlobalGroups.length;
+        for(int c=0;c<len;c++) if(redhatGlobalGroups[c].equals(group)) return true;
+        return false;
     }*/
 
     /*public static boolean isRedHatGlobalUsername(String username) {
-        Profiler.startProfile(Profiler.FAST, FTPManager.class, "isRedHatGlobalUsername(String)", null);
-        try {
-            int len=redhatGlobalUsernames.length;
-            for(int c=0;c<len;c++) if(redhatGlobalUsernames[c].equals(username)) return true;
-            return false;
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        int len=redhatGlobalUsernames.length;
+        for(int c=0;c<len;c++) if(redhatGlobalUsernames[c].equals(username)) return true;
+        return false;
     }*/
 
     public static void start() throws IOException, SQLException {

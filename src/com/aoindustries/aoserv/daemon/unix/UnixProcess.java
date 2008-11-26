@@ -5,9 +5,8 @@ package com.aoindustries.aoserv.daemon.unix;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.daemon.*;
-import com.aoindustries.profiler.*;
-import java.io.*;
+import com.aoindustries.aoserv.daemon.AOServDaemon;
+import java.io.IOException;
 
 /**
  * A <code>UnixProcess</code> represents a process
@@ -23,12 +22,7 @@ abstract public class UnixProcess {
      * Constructs a Unix process given its process ID.
      */
     public UnixProcess(int pid) {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, UnixProcess.class, "<init>(int)", null);
-        try {
-            this.pid=pid;
-        } finally {
-            Profiler.endProfile(Profiler.INSTANTANEOUS);
-        }
+        this.pid=pid;
     }
 
     /**
@@ -61,26 +55,21 @@ abstract public class UnixProcess {
      * <code>/bin/kill</code> executable.
      */
     public void killProc() throws IOException {
-        Profiler.startProfile(Profiler.UNKNOWN, UnixProcess.class, "killProc()", null);
-        try {
-            String pidS=String.valueOf(pid);
-            if(isRunning()) {
-                String[] cmd={"/bin/kill", "-SIGTERM", pidS};
-                AOServDaemon.exec(cmd);
+        String pidS=String.valueOf(pid);
+        if(isRunning()) {
+            String[] cmd={"/bin/kill", "-SIGTERM", pidS};
+            AOServDaemon.exec(cmd);
+        }
+        if(isRunning()) {
+            try {
+                Thread.sleep(2000);
+            } catch(InterruptedException err) {
+                AOServDaemon.reportWarning(err, null);
             }
-            if(isRunning()) {
-                try {
-                    Thread.sleep(2000);
-                } catch(InterruptedException err) {
-                    AOServDaemon.reportWarning(err, null);
-                }
-            }
-            if(isRunning()) {
-                String[] cmd={"/bin/kill", "-SIGKILL", pidS};
-                AOServDaemon.exec(cmd);
-            }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
+        }
+        if(isRunning()) {
+            String[] cmd={"/bin/kill", "-SIGKILL", pidS};
+            AOServDaemon.exec(cmd);
         }
     }
 
@@ -89,17 +78,12 @@ abstract public class UnixProcess {
      * <code>/bin/kill</code> executable.
      */
     public void signal(String signalName) throws IOException {
-        Profiler.startProfile(Profiler.UNKNOWN, UnixProcess.class, "signal(String)", null);
-        try {
-            AOServDaemon.exec(
-                new String[] {
-                    "/bin/kill",
-                    "-"+signalName,
-                    Integer.toString(pid)
-                }
-            );
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
-        }
+        AOServDaemon.exec(
+            new String[] {
+                "/bin/kill",
+                "-"+signalName,
+                Integer.toString(pid)
+            }
+        );
     }
 }

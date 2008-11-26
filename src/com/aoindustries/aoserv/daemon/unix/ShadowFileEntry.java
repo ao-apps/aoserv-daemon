@@ -6,7 +6,6 @@ package com.aoindustries.aoserv.daemon.unix;
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.LinuxAccount;
-import com.aoindustries.profiler.*;
 import com.aoindustries.util.StringUtility;
 
 /**
@@ -50,45 +49,40 @@ final public class ShadowFileEntry {
      * in which case the default values are used and the password is set to <code>"!!"</code> (disabled).
      */
     public ShadowFileEntry(String line) {
-        Profiler.startProfile(Profiler.UNKNOWN, ShadowFileEntry.class, "<init>(String)", null);
-        try {
-            String[] values=StringUtility.splitString(line, ':');
-            int len=values.length;
-            if(len<1) throw new IllegalArgumentException("At least the first field of shadow file required: "+line);
+        String[] values=StringUtility.splitString(line, ':');
+        int len=values.length;
+        if(len<1) throw new IllegalArgumentException("At least the first field of shadow file required: "+line);
 
-            username = values[0];
+        username = values[0];
 
-            String S;
+        String S;
 
-            if(len>=2 && (S=values[1]).length()>0) {
-                password=S;
-                // Convert * to !!
-                if("*".equals(password)) password=LinuxAccount.NO_PASSWORD_CONFIG_VALUE;
-            } else password=LinuxAccount.NO_PASSWORD_CONFIG_VALUE;
+        if(len>=2 && (S=values[1]).length()>0) {
+            password=S;
+            // Convert * to !!
+            if("*".equals(password)) password=LinuxAccount.NO_PASSWORD_CONFIG_VALUE;
+        } else password=LinuxAccount.NO_PASSWORD_CONFIG_VALUE;
 
-            if(len>=3 && (S=values[2]).length()>0) changedDate=Integer.parseInt(S);
-            else changedDate=getCurrentDate();
+        if(len>=3 && (S=values[2]).length()>0) changedDate=Integer.parseInt(S);
+        else changedDate=getCurrentDate();
 
-            if(len>=4 && (S=values[3]).length()>0) minPasswordAge=Integer.parseInt(S);
-            else minPasswordAge=-1;
+        if(len>=4 && (S=values[3]).length()>0) minPasswordAge=Integer.parseInt(S);
+        else minPasswordAge=-1;
 
-            if(len>=5 && (S=values[4]).length()>0) maxPasswordAge=Integer.parseInt(S);
-            else maxPasswordAge=99999;
+        if(len>=5 && (S=values[4]).length()>0) maxPasswordAge=Integer.parseInt(S);
+        else maxPasswordAge=99999;
 
-            if(len>=6 && (S=values[5]).length()>0) warningDays=Integer.parseInt(S);
-            else warningDays=0;
+        if(len>=6 && (S=values[5]).length()>0) warningDays=Integer.parseInt(S);
+        else warningDays=0;
 
-            if(len>=7 && (S=values[6]).length()>0) inactivateDays=Integer.parseInt(S);
-            else inactivateDays=0;
+        if(len>=7 && (S=values[6]).length()>0) inactivateDays=Integer.parseInt(S);
+        else inactivateDays=0;
 
-            if(len>=8 && (S=values[7]).length()>0) expirationDate=Integer.parseInt(S);
-            else expirationDate=0;
+        if(len>=8 && (S=values[7]).length()>0) expirationDate=Integer.parseInt(S);
+        else expirationDate=0;
 
-            if(len>=9 && (S=values[8]).length()>0) flag=S;
-            else flag=null;
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
-        }
+        if(len>=9 && (S=values[8]).length()>0) flag=S;
+        else flag=null;
     }
 
     /**
@@ -105,74 +99,54 @@ final public class ShadowFileEntry {
 	int expirationDate,
 	String flag
     ) {
-        Profiler.startProfile(Profiler.FAST, ShadowFileEntry.class, "<init>(String,String,int,int,int,int,int,int,String)", null);
-        try {
-            this.username = username;
-            this.password = password;
-            if("*".equals(password)) this.password=LinuxAccount.NO_PASSWORD_CONFIG_VALUE;
-            this.changedDate = changedDate;
-            this.minPasswordAge = minPasswordAge;
-            this.maxPasswordAge = maxPasswordAge;
-            this.warningDays = warningDays;
-            this.inactivateDays = inactivateDays;
-            this.expirationDate = expirationDate;
-            this.flag = flag;
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        this.username = username;
+        this.password = password;
+        if("*".equals(password)) this.password=LinuxAccount.NO_PASSWORD_CONFIG_VALUE;
+        this.changedDate = changedDate;
+        this.minPasswordAge = minPasswordAge;
+        this.maxPasswordAge = maxPasswordAge;
+        this.warningDays = warningDays;
+        this.inactivateDays = inactivateDays;
+        this.expirationDate = expirationDate;
+        this.flag = flag;
     }
 
     /**
      * Gets the number of days from the Epoch for the current day.
      */
     public static int getCurrentDate() {
-        Profiler.startProfile(Profiler.FAST, ShadowFileEntry.class, "getCurrentDate()", null);
-        try {
-            return getCurrentDate(System.currentTimeMillis());
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return getCurrentDate(System.currentTimeMillis());
     }
 
     /**
      * Gets the number of days from the Epoch for the provided time in milliseconds from Epoch.
      */
     public static int getCurrentDate(long time) {
-        Profiler.startProfile(Profiler.FAST, ShadowFileEntry.class, "getCurrentData(long)", null);
-        try {
-            return (int)(time/(24*60*60*1000));
-        } finally {
-            Profiler.endProfile(Profiler.FAST);
-        }
+        return (int)(time/(24*60*60*1000));
     }
 
     /**
      * Gets this <code>ShadowFileEntry</code> as it would be written in <code>/etc/shadow</code>.
      */
     public String toString() {
-        Profiler.startProfile(Profiler.UNKNOWN, ShadowFileEntry.class, "toString()", null);
-        try {
-            StringBuilder SB=new StringBuilder();
-            SB
-                .append(username)
-                .append(':')
-                .append(password)
-                .append(':')
-                .append(changedDate)
-                .append(':')
-            ;
-            if(minPasswordAge>=0) SB.append(minPasswordAge);
-            SB.append(':').append(maxPasswordAge).append(':');
-            if(warningDays>0) SB.append(warningDays);
-            SB.append(':');
-            if(inactivateDays>0) SB.append(inactivateDays);
-            SB.append(':');
-            if(expirationDate>0) SB.append(expirationDate);
-            SB.append(':');
-            if(flag!=null) SB.append(flag);
-            return SB.toString();
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
-        }
+        StringBuilder SB=new StringBuilder();
+        SB
+            .append(username)
+            .append(':')
+            .append(password)
+            .append(':')
+            .append(changedDate)
+            .append(':')
+        ;
+        if(minPasswordAge>=0) SB.append(minPasswordAge);
+        SB.append(':').append(maxPasswordAge).append(':');
+        if(warningDays>0) SB.append(warningDays);
+        SB.append(':');
+        if(inactivateDays>0) SB.append(inactivateDays);
+        SB.append(':');
+        if(expirationDate>0) SB.append(expirationDate);
+        SB.append(':');
+        if(flag!=null) SB.append(flag);
+        return SB.toString();
     }
 }

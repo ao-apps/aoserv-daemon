@@ -5,7 +5,6 @@ package com.aoindustries.aoserv.daemon.report;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.profiler.*;
 import java.io.*;
 
 /**
@@ -23,11 +22,6 @@ final public class ProcSwaps {
     ;
 
     public ProcSwaps() {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, DF.class, "ProcSwaps()", null);
-        try {
-            device_majors=device_minors=totals=useds=new int[0];
-        } finally {
-            Profiler.endProfile(Profiler.INSTANTANEOUS);
-        }
+        device_majors=device_minors=totals=useds=new int[0];
     }
 }
