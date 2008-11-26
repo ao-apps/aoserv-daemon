@@ -5,13 +5,13 @@ package com.aoindustries.aoserv.daemon.random;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.*;
-import com.aoindustries.aoserv.daemon.*;
-import com.aoindustries.io.unix.linux.*;
-import com.aoindustries.profiler.*;
-import com.aoindustries.util.*;
-import java.io.*;
-import java.sql.*;
+import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.io.unix.linux.DevRandom;
+import com.aoindustries.util.BufferManager;
+import java.io.IOException;
+import java.sql.SQLException;
 import java.util.*;
 
 /**
@@ -60,127 +60,113 @@ public final class RandomEntropyManager implements Runnable {
     private static Thread thread;
 
     private RandomEntropyManager() {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, RandomEntropyManager.class, "<init>()", null);
-        Profiler.endProfile(Profiler.INSTANTANEOUS);
     }
     
     public void run() {
-        Profiler.startProfile(Profiler.UNKNOWN, RandomEntropyManager.class, "run()", null);
-        try {
-            while(true) {
-                try {
-                    AOServConnector conn=AOServDaemon.getConnector();
-                    boolean lastObtain=true;
-                    while(true) {
-                        int sleepyTime;
-                        int entropyAvail=DevRandom.getEntropyAvail();
-                        if(entropyAvail<=OBTAIN_THRESHOLD) {
-                            lastObtain=true;
-                            int bitsNeeded=DESIRED_BITS-entropyAvail;
-                            int bytesNeeded=bitsNeeded>>>3;
-                            if(bytesNeeded>BufferManager.BUFFER_SIZE) bytesNeeded=BufferManager.BUFFER_SIZE;
-                            byte[] buff=BufferManager.getBytes();
-                            try {
-                                int obtained=conn.getMasterEntropy(buff, bytesNeeded);
-                                if(obtained>0) {
-                                    if(obtained==BufferManager.BUFFER_SIZE) DevRandom.addEntropy(buff);
-                                    else {
-                                        byte[] newBuff=new byte[obtained];
-                                        System.arraycopy(buff, 0, newBuff, 0, obtained);
-                                        DevRandom.addEntropy(newBuff);
-                                    }
-                                }
-                            } finally {
-                                BufferManager.release(buff);
-                            }
-                            // Sleep proportional to the amount of pool needed
-                            sleepyTime=
-                                MIN_DELAY
-                                +(int)(
-                                    (
-                                        (double)entropyAvail/(double)DESIRED_BITS
-                                    )*(MAX_OBTAIN_DELAY-MIN_DELAY)
-                                )
-                            ;
-                        } else {
-                            long masterNeeded=-1;
-                            if(entropyAvail>=PROVIDE_THRESHOLD) {
-                                lastObtain=false;
-                                int provideBits=entropyAvail-DESIRED_BITS;
-                                int provideBytes=provideBits>>>3;
-                                masterNeeded=conn.getMasterEntropyNeeded();
-                                if(provideBytes>masterNeeded) provideBytes=(int)masterNeeded;
-                                if(provideBytes>0) {
-                                    if(provideBytes>BufferManager.BUFFER_SIZE) provideBytes=BufferManager.BUFFER_SIZE;
-                                    if(AOServDaemon.DEBUG) System.err.println("DEBUG: RandomEntropyManager: Providing "+provideBytes+" bytes ("+(provideBytes<<3)+" bits) of entropy to master server");
-                                    byte[] buff=BufferManager.getBytes();
-                                    try {
-                                        DevRandom.nextBytesStatic(buff, 0, provideBytes);
-                                        conn.addMasterEntropy(buff, provideBytes);
-                                    } finally {
-                                        BufferManager.release(buff);
-                                    }
+        while(true) {
+            try {
+                AOServConnector conn=AOServDaemon.getConnector();
+                boolean lastObtain=true;
+                while(true) {
+                    int sleepyTime;
+                    int entropyAvail=DevRandom.getEntropyAvail();
+                    if(entropyAvail<=OBTAIN_THRESHOLD) {
+                        lastObtain=true;
+                        int bitsNeeded=DESIRED_BITS-entropyAvail;
+                        int bytesNeeded=bitsNeeded>>>3;
+                        if(bytesNeeded>BufferManager.BUFFER_SIZE) bytesNeeded=BufferManager.BUFFER_SIZE;
+                        byte[] buff=BufferManager.getBytes();
+                        try {
+                            int obtained=conn.getMasterEntropy(buff, bytesNeeded);
+                            if(obtained>0) {
+                                if(obtained==BufferManager.BUFFER_SIZE) DevRandom.addEntropy(buff);
+                                else {
+                                    byte[] newBuff=new byte[obtained];
+                                    System.arraycopy(buff, 0, newBuff, 0, obtained);
+                                    DevRandom.addEntropy(newBuff);
                                 }
                             }
-                            if(lastObtain) sleepyTime=MAX_OBTAIN_DELAY;
-                            else {
-                                // Sleep for the longest delay or shorter if master needs more entropy
-                                if(masterNeeded==-1) masterNeeded=conn.getMasterEntropyNeeded();
-                                if(masterNeeded>0) {
-                                    // Sleep proportional to the amount of master pool needed
-                                    sleepyTime=
-                                        MIN_DELAY
-                                        +(int)(
-                                            (
-                                                1.0d-(
-                                                    (double)masterNeeded/(double)AOServConnector.MASTER_ENTROPY_POOL_SIZE
-                                                )
-                                            )*(MAX_PROVIDE_DELAY-MIN_DELAY)
-                                        )
-                                    ;
-                                } else sleepyTime=MAX_PROVIDE_DELAY;
+                        } finally {
+                            BufferManager.release(buff);
+                        }
+                        // Sleep proportional to the amount of pool needed
+                        sleepyTime=
+                            MIN_DELAY
+                            +(int)(
+                                (
+                                    (double)entropyAvail/(double)DESIRED_BITS
+                                )*(MAX_OBTAIN_DELAY-MIN_DELAY)
+                            )
+                        ;
+                    } else {
+                        long masterNeeded=-1;
+                        if(entropyAvail>=PROVIDE_THRESHOLD) {
+                            lastObtain=false;
+                            int provideBits=entropyAvail-DESIRED_BITS;
+                            int provideBytes=provideBits>>>3;
+                            masterNeeded=conn.getMasterEntropyNeeded();
+                            if(provideBytes>masterNeeded) provideBytes=(int)masterNeeded;
+                            if(provideBytes>0) {
+                                if(provideBytes>BufferManager.BUFFER_SIZE) provideBytes=BufferManager.BUFFER_SIZE;
+                                if(AOServDaemon.DEBUG) System.err.println("DEBUG: RandomEntropyManager: Providing "+provideBytes+" bytes ("+(provideBytes<<3)+" bits) of entropy to master server");
+                                byte[] buff=BufferManager.getBytes();
+                                try {
+                                    DevRandom.nextBytesStatic(buff, 0, provideBytes);
+                                    conn.addMasterEntropy(buff, provideBytes);
+                                } finally {
+                                    BufferManager.release(buff);
+                                }
                             }
                         }
-
-                        try {
-                            Thread.sleep(sleepyTime);
-                        } catch(InterruptedException err) {
-                            AOServDaemon.reportWarning(err, null);
+                        if(lastObtain) sleepyTime=MAX_OBTAIN_DELAY;
+                        else {
+                            // Sleep for the longest delay or shorter if master needs more entropy
+                            if(masterNeeded==-1) masterNeeded=conn.getMasterEntropyNeeded();
+                            if(masterNeeded>0) {
+                                // Sleep proportional to the amount of master pool needed
+                                sleepyTime=
+                                    MIN_DELAY
+                                    +(int)(
+                                        (
+                                            1.0d-(
+                                                (double)masterNeeded/(double)AOServConnector.MASTER_ENTROPY_POOL_SIZE
+                                            )
+                                        )*(MAX_PROVIDE_DELAY-MIN_DELAY)
+                                    )
+                                ;
+                            } else sleepyTime=MAX_PROVIDE_DELAY;
                         }
                     }
-                } catch(ThreadDeath TD) {
-                    throw TD;
-                } catch(Throwable T) {
-                    AOServDaemon.reportError(T, null);
+
                     try {
-                        Thread.sleep(ERROR_DELAY);
+                        Thread.sleep(sleepyTime);
                     } catch(InterruptedException err) {
                         AOServDaemon.reportWarning(err, null);
                     }
                 }
+            } catch(ThreadDeath TD) {
+                throw TD;
+            } catch(Throwable T) {
+                AOServDaemon.reportError(T, null);
+                try {
+                    Thread.sleep(ERROR_DELAY);
+                } catch(InterruptedException err) {
+                    AOServDaemon.reportWarning(err, null);
+                }
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
         }
     }
     
     public static void start() throws IOException, SQLException {
-        Profiler.startProfile(Profiler.UNKNOWN, RandomEntropyManager.class, "start()", null);
-        try {
-            // Avoid random manager when in failover mode
-            if(AOServDaemonConfiguration.isManagerEnabled(RandomEntropyManager.class) && AOServDaemon.getThisAOServer().getFailoverServer()==null) {
+        // Avoid random manager when in failover mode
+        if(AOServDaemonConfiguration.isManagerEnabled(RandomEntropyManager.class) && AOServDaemon.getThisAOServer().getFailoverServer()==null) {
+            synchronized(System.out) {
                 if(thread==null) {
-                    synchronized(System.out) {
-                        if(thread==null) {
-                            System.out.print("Starting RandomEntropyManager: ");
-                            (thread=new Thread(new RandomEntropyManager())).start();
-                            System.out.println("Done");
-                        }
-                    }
+                    System.out.print("Starting RandomEntropyManager: ");
+                    (thread=new Thread(new RandomEntropyManager())).start();
+                    System.out.println("Done");
                 }
             }
-        } finally {
-            Profiler.endProfile(Profiler.UNKNOWN);
         }
     }
 }
