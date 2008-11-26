@@ -827,8 +827,7 @@ public class LinuxAccountManager extends BuilderThread {
         try {
             LinuxServerAccount lsa=AOServDaemon.getThisAOServer().getLinuxServerAccount(username);
             String home=lsa.getHome();
-            UnixFile tempUF=UnixFile.mktemp("/tmp/tar_home_directory.tar.");
-            tempUF.getFile().deleteOnExit();
+            UnixFile tempUF=UnixFile.mktemp("/tmp/tar_home_directory.tar.", true);
             try {
                 String[] cmd={
                     "/bin/tar",
@@ -867,8 +866,7 @@ public class LinuxAccountManager extends BuilderThread {
             synchronized(rebuildLock) {
                 LinuxServerAccount lsa=AOServDaemon.getThisAOServer().getLinuxServerAccount(username);
                 String home=lsa.getHome();
-                UnixFile tempUF=UnixFile.mktemp("/tmp/untar_home_directory.tar.");
-                tempUF.getFile().deleteOnExit();
+                UnixFile tempUF=UnixFile.mktemp("/tmp/untar_home_directory.tar.", true);
                 try {
                     OutputStream out=tempUF.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true);
                     int code;

@@ -13,7 +13,6 @@ import com.aoindustries.aoserv.daemon.backup.AOServerEnvironment;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
-import com.aoindustries.io.DontCloseInputStream;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.md5.MD5;
@@ -760,7 +759,7 @@ final public class FailoverFileReplicationManager {
                                                     // Move to a new temp filename for later reuse
                                                     String name = uf.getFile().getName();
                                                     UnixFile templateUF = name.length()>64 ? new UnixFile(ufParent, name.substring(0, 64), false) : uf;
-                                                    UnixFile tempUF = UnixFile.mktemp(templateUF.getPath()+'.');
+                                                    UnixFile tempUF = UnixFile.mktemp(templateUF.getPath()+'.', false);
                                                     // Update the filesystem
                                                     uf.renameTo(tempUF);
                                                     uf.link(linkToUF);
@@ -941,14 +940,14 @@ final public class FailoverFileReplicationManager {
                                                         String name = uf.getFile().getName();
                                                         UnixFile templateUF = name.length()>64 ? new UnixFile(ufParent, name.substring(0, 64), false) : uf;
                                                         String tempPath = templateUF.getPath()+'.';
-                                                        UnixFile tempUF = UnixFile.mktemp(tempPath);
+                                                        UnixFile tempUF = UnixFile.mktemp(tempPath, false);
                                                         // Update filesystem
                                                         if(retention==1) {
                                                             // Failover mode does a more cautious link to temp and rename over to avoid
                                                             // any moment where there is no file in the path of uf
                                                             tempUF.delete();
                                                             tempUF.link(uf);
-                                                            UnixFile tempUF2 = UnixFile.mktemp(tempPath);
+                                                            UnixFile tempUF2 = UnixFile.mktemp(tempPath, false);
                                                             tempUF2.delete();
                                                             tempUF2.link(oldLogUF);
                                                             tempUF2.renameTo(uf);
@@ -1067,7 +1066,7 @@ final public class FailoverFileReplicationManager {
                                                         String name = uf.getFile().getName();
                                                         UnixFile templateUF = name.length()>64 ? new UnixFile(ufParent, name.substring(0, 64), false) : uf;
                                                         String tempPath = templateUF.getPath()+'.';
-                                                        UnixFile tempUF = UnixFile.mktemp(tempPath);
+                                                        UnixFile tempUF = UnixFile.mktemp(tempPath, false);
                                                         tempNewFiles[c] = tempUF;
                                                         if(log.isTraceEnabled()) log.trace("Using temp file (chunked): "+tempUF.getPath());
                                                         // modifyTimeAndSizeCaches is not updated here, it will be updated below when the data is received
@@ -1127,7 +1126,7 @@ final public class FailoverFileReplicationManager {
                                                     String name = uf.getFile().getName();
                                                     UnixFile templateUF = name.length()>64 ? new UnixFile(ufParent, name.substring(0, 64), false) : uf;
                                                     String tempPath = templateUF.getPath()+'.';
-                                                    UnixFile tempUF = UnixFile.mktemp(tempPath);
+                                                    UnixFile tempUF = UnixFile.mktemp(tempPath, false);
                                                     tempNewFiles[c] = tempUF;
                                                     if(log.isTraceEnabled()) log.trace("Using temp file (not chunked): "+tempUF.getPath());
                                                     // modifyTimeAndSizeCaches is not updated here, it will be updated below when the data is received
@@ -1389,7 +1388,7 @@ final public class FailoverFileReplicationManager {
                                                 String name = uf.getFile().getName();
                                                 UnixFile templateUF = name.length()>64 ? new UnixFile(uf.getParent(), name.substring(0, 64), false) : uf;
                                                 String tempPath = templateUF.getPath()+'.';
-                                                UnixFile tempUFLog = UnixFile.mktemp(tempPath);
+                                                UnixFile tempUFLog = UnixFile.mktemp(tempPath, false);
                                                 // Update filesystem
                                                 if(retention==1) {
                                                     // Failover mode does a more cautious link to temp and rename over to avoid
@@ -2126,7 +2125,7 @@ final public class FailoverFileReplicationManager {
     private static boolean copyIfHardLinked(UnixFile uf, Stat ufStat) throws IOException {
         if(ufStat.isRegularFile() && ufStat.getNumberLinks()>1) {
             if(log.isTraceEnabled()) log.trace("Copying file due to hard link: "+uf);
-            UnixFile temp = UnixFile.mktemp(uf.getPath()+'.');
+            UnixFile temp = UnixFile.mktemp(uf.getPath()+'.', false);
             uf.copyTo(temp, true);
             temp.chown(ufStat.getUID(), ufStat.getGID());
             temp.setMode(ufStat.getMode());

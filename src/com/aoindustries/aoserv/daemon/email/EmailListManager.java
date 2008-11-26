@@ -111,7 +111,7 @@ final public class EmailListManager {
                 }
             }
 
-            UnixFile tempUF=UnixFile.mktemp(path+".new.");
+            UnixFile tempUF=UnixFile.mktemp(path+".new.", false);
             PrintWriter out=new PrintWriter(
                 new BufferedOutputStream(
                     tempUF.getSecureOutputStream(uid, gid, mode, true)

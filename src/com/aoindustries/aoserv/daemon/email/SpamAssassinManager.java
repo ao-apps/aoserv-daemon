@@ -383,21 +383,12 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
     }
 
     public String getProcessTimerDescription() {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, SpamAssassinManager.class, "getProcessTimerDescription()", null);
-        try {
-            return "Rebuild SpamAssassin User Preferences";
-        } finally {
-            Profiler.endProfile(Profiler.INSTANTANEOUS);
-        }
+        return "Rebuild SpamAssassin User Preferences";
     }
 
+    @Override
     public long getProcessTimerMaximumTime() {
-        Profiler.startProfile(Profiler.INSTANTANEOUS, SpamAssassinManager.class, "getProcessTimerMaximumTime()", null);
-        try {
-            return (long)30*60*1000;
-        } finally {
-            Profiler.endProfile(Profiler.INSTANTANEOUS);
-        }
+        return (long)30*60*1000;
     }
     
     public static class RazorLogTrimmer implements CronJob {
@@ -446,7 +437,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                             if(removed) {
                                 int uid = lsa.getUID().getID();
                                 int gid = lsa.getPrimaryLinuxServerGroup().getGID().getID();
-                                UnixFile tempFile = UnixFile.mktemp(razorAgentLog.getPath()+'.');
+                                UnixFile tempFile = UnixFile.mktemp(razorAgentLog.getPath()+'.', false);
                                 try {
                                     PrintWriter out = new PrintWriter(new BufferedOutputStream(tempFile.getSecureOutputStream(uid, gid, 0644, true)));
                                     try {

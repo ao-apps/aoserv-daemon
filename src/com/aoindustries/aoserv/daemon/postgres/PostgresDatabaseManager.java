@@ -339,10 +339,9 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
     public static void dumpDatabase(PostgresDatabase pd, CompressedDataOutputStream masterOut) throws IOException, SQLException {
         Profiler.startProfile(Profiler.UNKNOWN, PostgresDatabaseManager.class, "dumpDatabase(PostgresDatabase,CompressedDataOutputStream)", null);
         try {
-            UnixFile tempFile=UnixFile.mktemp("/tmp/dump_postgres_database.sql.");
-            tempFile.getFile().deleteOnExit();
+            UnixFile tempFile=UnixFile.mktemp("/tmp/dump_postgres_database.sql.", true);
             try {
-                AOServConnector conn=AOServDaemon.getConnector();
+                //AOServConnector conn=AOServDaemon.getConnector();
                 PostgresServer ps=pd.getPostgresServer();
                 String minorVersion=ps.getPostgresVersion().getMinorVersion();
                 int port=ps.getNetBind().getPort().getPort();
