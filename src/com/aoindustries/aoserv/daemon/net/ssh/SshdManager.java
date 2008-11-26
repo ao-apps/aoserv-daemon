@@ -165,6 +165,11 @@ final public class SshdManager extends BuilderThread {
                     } catch(IOException err2) {
                         AOServDaemon.reportError(err2, null);
                     }
+                    try {
+                        Thread.sleep(1000);
+                    } catch(InterruptedException err2) {
+                        AOServDaemon.reportWarning(err2, null);
+                    }
                     AOServDaemon.exec(
                         new String[] {
                             "/etc/rc.d/init.d/sshd",
