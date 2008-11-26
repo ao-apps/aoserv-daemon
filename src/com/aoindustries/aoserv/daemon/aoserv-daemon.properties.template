@@ -55,7 +55,6 @@ aoserv.daemon.interbase.connections=16
 aoserv.daemon.interbase.max_connection_age=
 
 # Enabled/disabled each Manager
-aoserv.daemon.backup.AOServerEnvironment.enabled=true
 aoserv.daemon.cvsd.CvsManager.enabled=true
 aoserv.daemon.distro.DistroManager.enabled=true
 aoserv.daemon.dns.DNSManager.enabled=true
