@@ -481,8 +481,6 @@ final public class AOServDaemon {
                 in.close();
             }
         } finally {
-            // TODO: Put into waitFor and use here
-            
             // Read the standard error
             StringBuilder errorSB = new StringBuilder();
             Reader errIn = new InputStreamReader(P.getErrorStream());
