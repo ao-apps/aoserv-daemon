@@ -20,7 +20,6 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -436,21 +435,30 @@ final public class DNSManager extends BuilderThread {
     }
 
     public static void start() throws IOException, SQLException {
-        if(AOServDaemonConfiguration.isManagerEnabled(DNSManager.class) && dnsManager==null) {
-            Protocol dns = AOServDaemon.getConnector().protocols.get(Protocol.DNS);
-            if(dns==null) throw new SQLException("Unable to find Protocol: "+Protocol.DNS);
-            if(!AOServDaemon.getThisAOServer().getServer().getNetBinds(dns).isEmpty()) {
-                synchronized(System.out) {
-                    if(dnsManager==null) {
-                        System.out.print("Starting DNSManager: ");
-                        AOServConnector conn=AOServDaemon.getConnector();
-                        dnsManager=new DNSManager();
-                        conn.dnsZones.addTableListener(dnsManager, 0);
-                        conn.dnsRecords.addTableListener(dnsManager, 0);
-                        conn.netBinds.addTableListener(dnsManager, 0);
-                        System.out.println("Done");
-                    }
-                }
+        AOServer thisAOServer=AOServDaemon.getThisAOServer();
+        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+        Protocol dns = AOServDaemon.getConnector().protocols.get(Protocol.DNS);
+        if(dns==null) throw new SQLException("Unable to find Protocol: "+Protocol.DNS);
+        List<NetBind> netBinds = AOServDaemon.getThisAOServer().getServer().getNetBinds(dns);
+
+        synchronized(System.out) {
+            if(
+                // Nothing is done for these operating systems
+                osv!=OperatingSystemVersion.CENTOS_5DOM0_I686
+                && osv!=OperatingSystemVersion.CENTOS_5DOM0_X86_64
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+                // Check config after OS check so config entry not needed
+                && AOServDaemonConfiguration.isManagerEnabled(DNSManager.class)
+                && dnsManager==null
+                && !netBinds.isEmpty()
+            ) {
+                System.out.print("Starting DNSManager: ");
+                AOServConnector conn=AOServDaemon.getConnector();
+                dnsManager=new DNSManager();
+                conn.dnsZones.addTableListener(dnsManager, 0);
+                conn.dnsRecords.addTableListener(dnsManager, 0);
+                conn.netBinds.addTableListener(dnsManager, 0);
+                System.out.println("Done");
             }
         }
     }
