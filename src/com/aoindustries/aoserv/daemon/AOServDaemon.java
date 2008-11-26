@@ -211,7 +211,7 @@ final public class AOServDaemon {
                 LinuxAccountManager.start();
                 MajordomoManager.start();
                 MrtgManager.start();
-                MySQLCreditCardScanner.start();
+                // TODO: Move to aoserv-daemon: MySQLCreditCardScanner.start();
                 MySQLDatabaseManager.start();
                 MySQLDBUserManager.start();
                 MySQLHostManager.start();
