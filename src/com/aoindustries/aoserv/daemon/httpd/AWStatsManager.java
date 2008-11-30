@@ -63,7 +63,6 @@ final public class AWStatsManager extends BuilderThread {
 
     private static final Object rebuildLock=new Object();
     protected void doRebuild() throws IOException, SQLException {
-        //AOServConnector connector=AOServDaemon.getConnector();
         AOServer aoServer=AOServDaemon.getThisAOServer();
 
         final File awstatsDirectory;
@@ -76,7 +75,10 @@ final public class AWStatsManager extends BuilderThread {
             awstatsDirectory = mandrivaAwstatsDirectory;
             hostsDirectory = mandrivaHostsDirectory;
             binDirectory = mandrivaBinDirectory;
-        } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+        } else if(
+            osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+            || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+        ) {
             awstatsDirectory = redhatAwstatsDirectory;
             hostsDirectory = redhatHostsDirectory;
             binDirectory = redhatBinDirectory;
@@ -578,11 +580,11 @@ final public class AWStatsManager extends BuilderThread {
     }
 
     public static void getAWStatsFile(String siteName, String path, String queryString, CompressedDataOutputStream out) throws IOException, SQLException {
-        // Currently only Mandrake 10.1 is supported
         int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
         if(
             osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
             && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+            && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
         ) throw new SQLException("Unsupport OperatingSystemVersion: "+osv);
 
         if("awstats.pl".equals(path)) {
@@ -603,9 +605,12 @@ final public class AWStatsManager extends BuilderThread {
                 || queryString.matches("^month=\\d*&year=\\d*&output=\\w*&config="+escapedSiteName+"&framename=\\w*$")
             ) {
                 String runascgi;
-                if(osv==OperatingSystemVersion.MANDRAKE_10_1_I586 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                     runascgi = "/var/lib/awstats/hosts/"+siteName+"/runascgi.sh";
-                } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                } else if(
+                    osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+                    || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                ) {
                     runascgi = "/var/opt/awstats-6/hosts/"+siteName+"/runascgi.sh";
                 } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                 String[] cmd={
@@ -666,11 +671,13 @@ final public class AWStatsManager extends BuilderThread {
             if(path.startsWith("icon/") && path.indexOf("..")==-1) {
                 final File iconDirectory;
                 if(
-                    osv==OperatingSystemVersion.MANDRAKE_10_1_I586
-                    || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+                    osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
                 ) {
                     iconDirectory = mandrivaIconDirectory;
-                } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                } else if(
+                    osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+                    || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                ) {
                     iconDirectory = redhatIconDirectory;
                 } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                 File file=new File(iconDirectory, path.substring(5));
