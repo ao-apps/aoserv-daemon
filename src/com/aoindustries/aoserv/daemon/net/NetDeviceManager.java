@@ -39,7 +39,10 @@ final public class NetDeviceManager extends BuilderThread {
     ;
     
     private static NetDeviceManager netDeviceManager;
-    
+
+    /**
+     * TODO: Once all Dom0 upgraded to CentOS 5, change this to false.
+     */
     private static final boolean WARN_ONLY = true;
 
     private NetDeviceManager() {
@@ -62,8 +65,7 @@ final public class NetDeviceManager extends BuilderThread {
             Set<NetDeviceID> restartDeviceIDs=new HashSet<NetDeviceID>();
 
             List<NetDevice> devices=thisAOServer.getServer().getNetDevices();
-            for(int c=0;c<devices.size();c++) {
-                NetDevice device=devices.get(c);
+            for(NetDevice device : devices) {
                 NetDeviceID deviceId=device.getNetDeviceID();
                 if(
                     // Don't build loopback
@@ -92,7 +94,7 @@ final public class NetDeviceManager extends BuilderThread {
                                 if(broadcast==null) throw new SQLException("(net_devices.pkey="+device.getPkey()+").broadcast may not be null");
                                 out.print("BOOTPROTO=static\n"
                                         + "IPADDR=").print(primaryIP.getIPAddress()).print("\n"
-                                        + "NETMASK=").print(device.getNetMask()).print("\n"
+                                        + "NETMASK=").print(primaryIP.getNetMask()).print("\n"
                                         + "NETWORK=").print(network).print("\n"
                                         + "BROADCAST=").print(broadcast).print("\n"
                                         + "ONBOOT=yes\n");
@@ -162,7 +164,7 @@ final public class NetDeviceManager extends BuilderThread {
                                                 + "#\n");
                                         if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                                             out.print("IPADDR=").print(ip.getIPAddress()).print("\n"
-                                                    + "NETMASK=").print(curDevice.getNetMask()).print("\n");
+                                                    + "NETMASK=").print(ip.getNetMask()).print("\n");
                                         } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                                     } finally {
                                         out.close();
@@ -279,7 +281,16 @@ final public class NetDeviceManager extends BuilderThread {
                 // Restart all devices in this scenario
                 for(int c=0;c<devices.size();c++) {
                     NetDeviceID deviceId=devices.get(c).getNetDeviceID();
-                    if(!restartDeviceIDs.contains(deviceId)) restartDeviceIDs.add(deviceId);
+                    if(
+                        // Don't build loopback
+                        !deviceId.isLoopback()
+                        // Don't build bonded device
+                        && !deviceId.getName().startsWith("bond")
+                        // Don't add twice
+                        && !restartDeviceIDs.contains(deviceId)
+                    ) {
+                        restartDeviceIDs.add(deviceId);
+                    }
                 }
             } else {
                 if(WARN_ONLY) {
