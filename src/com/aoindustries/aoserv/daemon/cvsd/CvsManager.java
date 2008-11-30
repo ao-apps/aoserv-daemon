@@ -52,6 +52,7 @@ final public class CvsManager extends BuilderThread {
         synchronized(rebuildLock) {
             // Get a list of all the directories in /var/cvs
             File cvsDir=new File(CVS_DIRECTORY);
+            if(!cvsDir.exists()) new UnixFile(cvsDir).mkdir(false, 0755, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
             String[] list=cvsDir.list();
             int listLen=list.length;
             Set<String> existing = new HashSet<String>(listLen);
