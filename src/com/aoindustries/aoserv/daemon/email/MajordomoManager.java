@@ -20,13 +20,14 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.util.SortedArrayList;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author  AO Industries, Inc.
@@ -46,31 +47,43 @@ final public class MajordomoManager extends BuilderThread {
         int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
         if(
             osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+            && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
         ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
-        List<MajordomoServer> mss=aoServer.getMajordomoServers();
+        // Reused during processing below
+        Stat tempStat = new Stat();
+
         synchronized(rebuildLock) {
+            List<MajordomoServer> mss=aoServer.getMajordomoServers();
+
+            // Create the directory if needed
             UnixFile serversUF=new UnixFile(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY);
-            LinuxGroup mailLG=connector.linuxGroups.get(LinuxGroup.MAIL);
-            if(mailLG==null) throw new SQLException("Unable to find LinuxGroup: "+LinuxGroup.MAIL);
-            LinuxServerGroup mailLSG=mailLG.getLinuxServerGroup(aoServer);
-            if(mailLSG==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+aoServer.getHostname());
-            int mailGID=mailLSG.getGID().getID();
+            if(!serversUF.getStat(tempStat).exists()) serversUF.mkdir(false, 0755, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
+
+            // Resolve the GID for "mail"
+            int mailGID;
+            {
+                LinuxGroup mailLG=connector.linuxGroups.get(LinuxGroup.MAIL);
+                if(mailLG==null) throw new SQLException("Unable to find LinuxGroup: "+LinuxGroup.MAIL);
+                LinuxServerGroup mailLSG=mailLG.getLinuxServerGroup(aoServer);
+                if(mailLSG==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+aoServer.getHostname());
+                mailGID=mailLSG.getGID().getID();
+            }
 
             // A list of things to be deleted is maintained
             List<File> deleteFileList=new ArrayList<File>();
 
             // Get the list of all things in /etc/mail/majordomo
             String[] list=serversUF.list();
-            List<String> existingServers=new SortedArrayList<String>(list.length);
-            for(int c=0;c<list.length;c++) existingServers.add(list[c]);
+            Set<String> existingServers=new HashSet<String>(list.length*4/3+1);
+            for(String filename : list) existingServers.add(filename);
 
             // Take care of all servers
             for(MajordomoServer ms : mss) {
                 String version=ms.getVersion().getVersion();
                 String domain=ms.getDomain().getDomain();
                 // Make sure it won't be deleted
-                if(existingServers.contains(domain)) existingServers.remove(domain);
+                existingServers.remove(domain);
                 String msPath=MajordomoServer.MAJORDOMO_SERVER_DIRECTORY+'/'+domain;
                 LinuxServerAccount lsa=ms.getLinuxServerAccount();
                 int lsaUID=lsa.getUID().getID();
@@ -85,7 +98,12 @@ final public class MajordomoManager extends BuilderThread {
                     || msUFStat.getGID()==UnixFile.ROOT_GID
                 ) {
                     // Add a new install
-                    String sharedPath="../../../../usr/majordomo/"+version;
+                    String sharedPath;
+                    if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                        sharedPath="../../../../usr/majordomo/"+version;
+                    } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                        sharedPath="../../../../opt/majordomo-"+version;
+                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
                     if(!msUFStat.exists()) msUF.mkdir();
                     msUF.setMode(0750);
@@ -439,11 +457,16 @@ final public class MajordomoManager extends BuilderThread {
                                 + "1;\n"
                         );
                     } finally {
-                        out.flush();
                         out.close();
                     }
 
                     // Compile, install, and remove the wrapper
+                    String source;
+                    if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                        source = "/usr/aoserv/bin/majordomo-wrapper-"+version+".c";
+                    } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                        source = "/opt/aoserv-daemon/src/majordomo-wrapper-"+version+".c";
+                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                     String[] cc={
                         "/usr/bin/cc",
                         "-DBIN=\""+msPath+"\"",
@@ -455,7 +478,7 @@ final public class MajordomoManager extends BuilderThread {
                         "-DPOSIX_GID="+lsgGID,
                         "-o",
                         msPath+"/wrapper",
-                        "/usr/aoserv/bin/majordomo-wrapper-"+version+".c"
+                        source
                     };
                     AOServDaemon.exec(cc);
                     String[] strip={
@@ -488,9 +511,9 @@ final public class MajordomoManager extends BuilderThread {
 
                 // Verify the correct lists are installed
                 String[] listFiles=listsUF.list();
-                List<String> existingListFiles=new SortedArrayList<String>(listFiles.length);
-                for(int d=0;d<listFiles.length;d++) {
-                    existingListFiles.add(listFiles[d]);
+                Set<String> existingListFiles=new HashSet<String>(listFiles.length*4/3+1);
+                for(String filename : listFiles) {
+                    existingListFiles.add(filename);
                 }
 
                 // Add any new files, allow some files to stay
@@ -899,7 +922,6 @@ final public class MajordomoManager extends BuilderThread {
                                     + "\t# allowed access.\n"
                                     + "who_access          =   open\n");
                         } finally {
-                            out.flush();
                             out.close();
                         }
                     }
@@ -921,14 +943,14 @@ final public class MajordomoManager extends BuilderThread {
                 }
 
                 // Delete the extra files
-                for(int d=0;d<existingListFiles.size();d++) {
-                    deleteFileList.add(new File(listsUF.getPath(), existingListFiles.get(d)));
+                for(String filename : existingListFiles) {
+                    deleteFileList.add(new File(listsUF.getPath(), filename));
                 }
             }
 
             // Delete the extra directories
-            for(int c=0;c<existingServers.size();c++) {
-                deleteFileList.add(new File(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY, existingServers.get(c)));
+            for(String filename : existingServers) {
+                deleteFileList.add(new File(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY, filename));
             }
 
             /*

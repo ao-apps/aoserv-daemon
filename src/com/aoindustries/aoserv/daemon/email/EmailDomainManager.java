@@ -14,7 +14,8 @@ import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
-import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
@@ -29,18 +30,8 @@ public final class EmailDomainManager extends BuilderThread {
      */
     private static final UnixFile
         newFile=new UnixFile("/etc/mail/local-host-names.new"),
-        configFile=new UnixFile("/etc/mail/local-host-names"),
-        backupFile=new UnixFile("/etc/mail/local-host-names.old")
+        configFile=new UnixFile("/etc/mail/local-host-names")
     ;
-
-    /**
-     * qmail configs.
-     */
-    /*private static final UnixFile
-        newRcptHosts=new UnixFile("/etc/qmail/rcpthosts.new"),
-        rcptHosts=new UnixFile("/etc/qmail/rcpthosts"),
-        oldRcptHosts=new UnixFile("/etc/qmail/rcpthosts.old")
-    ;*/
 
     private static EmailDomainManager emailDomainManager;
 
@@ -49,13 +40,13 @@ public final class EmailDomainManager extends BuilderThread {
 
     private static final Object rebuildLock=new Object();
     protected void doRebuild() throws IOException, SQLException {
-        //AOServConnector connector=AOServDaemon.getConnector();
         AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
         int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
         if(
             osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
             && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+            && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
         ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
         synchronized(rebuildLock) {
@@ -63,43 +54,33 @@ public final class EmailDomainManager extends BuilderThread {
             List<EmailDomain> domains = thisAOServer.getEmailDomains();
 
             // Create the new file
-            //boolean isQmail=thisAOServer.isQmail();
-            UnixFile unixFile=/*isQmail?newRcptHosts:*/newFile;
-            ChainWriter out = new ChainWriter(
-                new BufferedOutputStream(
-                    unixFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, false)
-                )
-            );
+            ByteArrayOutputStream bout = new ByteArrayOutputStream();
+            ChainWriter out = new ChainWriter(bout);
             try {
-                // qmail always lists localhost
-                // if(isQmail) out.print("localhost\n");
-
-                for (EmailDomain domain : domains) out.println(domain.getDomain());
+                for(EmailDomain domain : domains) out.println(domain.getDomain());
             } finally {
-                out.flush();
                 out.close();
             }
+            byte[] newBytes = bout.toByteArray();
 
-            // Move the old one to be backup
-            /*if(isQmail) {
-                rcptHosts.renameTo(oldRcptHosts);
-                newRcptHosts.renameTo(rcptHosts);
-            } else {*/
-                configFile.renameTo(backupFile);
+            // Write new file only when needed
+            if(!configFile.getStat().exists() || !configFile.contentEquals(newBytes)) {
+                FileOutputStream newOut = newFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, false);
+                try {
+                    newOut.write(newBytes);
+                } finally {
+                    newOut.close();
+                }
                 newFile.renameTo(configFile);
-            //}
 
-            // Reload the MTA
-            reloadMTA();
+                // Reload the MTA
+                reloadMTA();
+            }
         }
     }
 
     private static final Object reloadLock=new Object();
-    /*private static final String[] reloadQmailCommand={
-        "/var/qmail/bin/qmailctl",
-        "reload"
-    };*/
-    private static final String[] reloadSendmailCommandRedHat={
+    private static final String[] reloadSendmailCommandCentOs={
         "/usr/bin/killall",
         "-HUP",
         "sendmail"
@@ -111,20 +92,19 @@ public final class EmailDomainManager extends BuilderThread {
     };
     public static void reloadMTA() throws IOException, SQLException {
         synchronized(reloadLock) {
-            /*if(AOServDaemon.getThisAOServer().isQmail()) {
-                AOServDaemon.exec(reloadQmailCommand);
-            } else {*/
-                int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
-                String[] cmd;
-                if(
-                    osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-                ) {
-                    cmd=reloadSendmailCommandMandriva;
-                } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-                    cmd=reloadSendmailCommandRedHat;
-                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-                AOServDaemon.exec(cmd);
-            //}
+            int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
+            String[] cmd;
+            if(
+                osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+            ) {
+                cmd=reloadSendmailCommandMandriva;
+            } else if(
+                osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+                || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+            ) {
+                cmd=reloadSendmailCommandCentOs;
+            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            AOServDaemon.exec(cmd);
         }
     }
 
