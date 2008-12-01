@@ -685,6 +685,7 @@ public final class XinetdManager extends BuilderThread {
                     // Reload xinetd if modified
                     if(needsReloaded) {
                         // Try reload config first
+                        /* reload has several limitations documented in the man page for xinetd.conf, will always stop/start instead
                         try {
                             AOServDaemon.exec(
                                 new String[] {
@@ -693,7 +694,7 @@ public final class XinetdManager extends BuilderThread {
                                 }
                             );
                         } catch(IOException err) {
-                            AOServDaemon.reportError(err, null);
+                            AOServDaemon.reportError(err, null);*/
 
                             // Try more forceful stop/start
                             try {
@@ -717,7 +718,7 @@ public final class XinetdManager extends BuilderThread {
                                     "start"
                                 }
                             );
-                        }
+                        //}
                     }
                 }
             }
