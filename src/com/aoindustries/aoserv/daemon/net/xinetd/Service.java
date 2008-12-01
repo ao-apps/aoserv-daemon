@@ -22,7 +22,9 @@ public final class Service {
 
     final private String type;
     final private int instances;
+    final private int per_source;
     final private String cps;
+    final private String banner_fail;
     final private String flags;
     final private String service;
     final private NetProtocol socket_type;
@@ -43,7 +45,9 @@ public final class Service {
     public Service(
         String type,
         int instances,
+        int per_source,
         String cps,
+        String banner_fail,
         String flags,
         String service,
         NetProtocol socket_type,
@@ -63,7 +67,9 @@ public final class Service {
     ) throws SQLException {
         this.type=type;
         this.instances=instances;
+        this.per_source = per_source;
         this.cps=cps;
+        this.banner_fail = banner_fail;
         this.flags=flags;
         this.service=service;
         this.socket_type=socket_type;
@@ -96,12 +102,20 @@ public final class Service {
         out.print("service ").print(service).print("\n"
                 + "{\n");
         if(type!=null) out.print("\ttype = ").print(type).print('\n');
+
         out.print("\tinstances = ");
         if(instances==-1) out.print("UNLIMITED");
         else out.print(instances);
         out.print('\n');
 
+        out.print("\tper_source = ");
+        if(per_source==-1) out.print("UNLIMITED");
+        else out.print(per_source);
+        out.print('\n');
+
         if(cps!=null) out.print("\tcps = ").print(cps).print('\n');
+
+        if(banner_fail!=null) out.print("\tbanner_fail = ").print(banner_fail).print('\n');
 
         if(flags!=null) out.print("\tflags = ").print(flags).print('\n');
 

@@ -17,6 +17,7 @@ import com.aoindustries.aoserv.client.NetPort;
 import com.aoindustries.aoserv.client.NetProtocol;
 import com.aoindustries.aoserv.client.NetTcpRedirect;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.PrivateFTPServer;
 import com.aoindustries.aoserv.client.Protocol;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -37,8 +38,6 @@ import java.util.Set;
 
 /**
  * Handles the building of xinetd configs and files.
- *
- * TODO: RedHat ES 4 will always have authd launched by xinetd.
  */
 public final class XinetdManager extends BuilderThread {
 
@@ -93,15 +92,19 @@ public final class XinetdManager extends BuilderThread {
                     || protocol.equals(Protocol.TALK)
                     || protocol.equals(Protocol.TELNET)
                     || (
+                        // POP and IMAP is handled through xinetd on Mandriva 2006.0
                         osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
                         && (
-                            // POP and IMAP is handled through xinetd on Mandriva 2006.0
                             protocol.equals(Protocol.POP2)
                             || protocol.equals(Protocol.POP3)
                             || protocol.equals(Protocol.SIMAP)
                             || protocol.equals(Protocol.SPOP3)
                             || protocol.equals(Protocol.IMAP2)
                         )
+                    ) || (
+                        // FTP is handled through xinetd on CentOS 5
+                        osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                        && protocol.equals(Protocol.FTP)
                     )
                 ) {
                     Service service;
@@ -112,7 +115,9 @@ public final class XinetdManager extends BuilderThread {
                         service=new Service(
                             UNLISTED,
                             -1,
+                            -1,
                             redirect.getConnectionsPerSecond()+" "+redirect.getConnectionsPerSecondOverloadSleepTime(),
+                            null,
                             null,
                             "redirect",
                             netProtocol,
@@ -167,7 +172,9 @@ public final class XinetdManager extends BuilderThread {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1,
+                                    -1,
                                     "100 30",
+                                    null,
                                     "REUSE",
                                     portMatches?"cvspserver":"cvspserver-unlisted",
                                     bind.getNetProtocol(),
@@ -195,7 +202,9 @@ public final class XinetdManager extends BuilderThread {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1,
+                                    -1,
                                     "100 30",
+                                    null,
                                     "REUSE",
                                     portMatches?"cvspserver":"cvspserver-unlisted",
                                     bind.getNetProtocol(),
@@ -214,12 +223,41 @@ public final class XinetdManager extends BuilderThread {
                                     null
                                 );
                             } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        } else if(protocol.equals(Protocol.FTP)) {
+                            if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                                PrivateFTPServer privateFtpServer = bind.getPrivateFTPServer();
+                                service=new Service(
+                                    portMatches?null:UNLISTED,
+                                    200,
+                                    5,
+                                    "100 30",
+                                    "/etc/vsftpd/busy_banner",
+                                    "IPv4",
+                                    portMatches?"ftp":"ftp-unlisted",
+                                    bind.getNetProtocol(),
+                                    bind.getIPAddress(),
+                                    portMatches?null:port,
+                                    false,
+                                    rootUser,
+                                    null,
+                                    "/usr/sbin/vsftpd",
+                                    null,
+                                    privateFtpServer==null ? "/etc/vsftpd/vsftpd.conf" : ("/etc/vsftpd/private_ftp_servers/vsftpd_"+bind.getIPAddress().getIPAddress()+"_"+port.getPort()+".conf"),
+                                    "PID HOST DURATION",
+                                    "HOST",
+                                    10,
+                                    null,
+                                    null
+                                );
+                            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                         } else if(protocol.equals(Protocol.IMAP2)) {
                             if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1,
+                                    -1,
                                     "100 30",
+                                    null,
                                     null,
                                     portMatches?"imap":"imap-unlisted",
                                     bind.getNetProtocol(),
@@ -243,6 +281,8 @@ public final class XinetdManager extends BuilderThread {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1,
+                                    -1,
+                                    null,
                                     null,
                                     null,
                                     portMatches?"interserver":"interserver-unlisted",
@@ -265,6 +305,8 @@ public final class XinetdManager extends BuilderThread {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1,
+                                    -1,
+                                    null,
                                     null,
                                     null,
                                     portMatches?"interserver":"interserver-unlisted",
@@ -289,6 +331,8 @@ public final class XinetdManager extends BuilderThread {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1,
+                                    -1,
+                                    null,
                                     null,
                                     null,
                                     portMatches?"ntalk":"ntalk-unlisted",
@@ -311,7 +355,9 @@ public final class XinetdManager extends BuilderThread {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1, // instances
+                                    -1, // per_source
                                     null, // cps
+                                    null, // banner_fail
                                     "IPv4", // flags
                                     portMatches?"ntalk":"ntalk-unlisted",
                                     bind.getNetProtocol(),
@@ -335,7 +381,9 @@ public final class XinetdManager extends BuilderThread {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1,
+                                    -1,
                                     "100 30",
+                                    null,
                                     null,
                                     portMatches?"pop2":"pop2-unlisted",
                                     bind.getNetProtocol(),
@@ -359,7 +407,9 @@ public final class XinetdManager extends BuilderThread {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1,
+                                    -1,
                                     "100 30",
+                                    null,
                                     null,
                                     portMatches?"pop3":"pop3-unlisted",
                                     bind.getNetProtocol(),
@@ -383,7 +433,9 @@ public final class XinetdManager extends BuilderThread {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1,
+                                    -1,
                                     "100 30",
+                                    null,
                                     null,
                                     portMatches?"imaps":"imaps-unlisted",
                                     bind.getNetProtocol(),
@@ -407,7 +459,9 @@ public final class XinetdManager extends BuilderThread {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1,
+                                    -1,
                                     "100 30",
+                                    null,
                                     null,
                                     portMatches?"pop3s":"pop3s-unlisted",
                                     bind.getNetProtocol(),
@@ -431,6 +485,8 @@ public final class XinetdManager extends BuilderThread {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1,
+                                    -1,
+                                    null,
                                     null,
                                     null,
                                     portMatches?"talk":"talk-unlisted",
@@ -453,7 +509,9 @@ public final class XinetdManager extends BuilderThread {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1, // instances
+                                    -1, // per_source
                                     null, // cps
+                                    null, // banner_fail
                                     "IPv4", // flags
                                     portMatches?"talk":"talk-unlisted",
                                     bind.getNetProtocol(),
@@ -477,7 +535,9 @@ public final class XinetdManager extends BuilderThread {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1,
+                                    -1,
                                     "100 30",
+                                    null,
                                     "REUSE",
                                     portMatches?"telnet":"telnet-unlisted",
                                     bind.getNetProtocol(),
@@ -499,7 +559,9 @@ public final class XinetdManager extends BuilderThread {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     -1,
+                                    -1,
                                     "100 30",
+                                    null,
                                     "REUSE",
                                     portMatches?"telnet":"telnet-unlisted",
                                     bind.getNetProtocol(),
