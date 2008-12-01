@@ -228,7 +228,7 @@ public final class XinetdManager extends BuilderThread {
                                 PrivateFTPServer privateFtpServer = bind.getPrivateFTPServer();
                                 service=new Service(
                                     portMatches?null:UNLISTED,
-                                    200,
+                                    100,
                                     5,
                                     "100 30",
                                     "/etc/vsftpd/busy_banner",
@@ -242,7 +242,7 @@ public final class XinetdManager extends BuilderThread {
                                     null,
                                     "/usr/sbin/vsftpd",
                                     null,
-                                    privateFtpServer==null ? "/etc/vsftpd/vsftpd.conf" : ("/etc/vsftpd/private_ftp_servers/vsftpd_"+bind.getIPAddress().getIPAddress()+"_"+port.getPort()+".conf"),
+                                    privateFtpServer==null ? "/etc/vsftpd/vsftpd.conf" : ("/etc/vsftpd/vhosts/vsftpd_"+bind.getIPAddress().getIPAddress()+"_"+port.getPort()+".conf"),
                                     "PID HOST DURATION",
                                     "HOST",
                                     10,
