@@ -24,14 +24,15 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
 import com.aoindustries.io.ChainWriter;
+import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.util.SortedArrayList;
 import com.aoindustries.util.StringUtility;
 import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -40,9 +41,11 @@ import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 /**
  * @author  AO Industries, Inc.
@@ -55,24 +58,13 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
     private static final UnixFile
         newAliases = new UnixFile("/etc/aliases.new"),
         aliases=new UnixFile("/etc/aliases"),
-        backupAliases=new UnixFile("/etc/aliases.old"),
 
         newUserTable=new UnixFile("/etc/mail/virtusertable.new"),
-        userTable=new UnixFile("/etc/mail/virtusertable"),
-        backupUserTable=new UnixFile("/etc/mail/virtusertable.old")
+        userTable=new UnixFile("/etc/mail/virtusertable")
     ;
 
     public static final File mailSpool=new File("/var/spool/mail");
 
-    /**
-     * qmail files.
-     */
-    /*private static final UnixFile
-        newVirtualDomains=new UnixFile("/etc/qmail/virtualdomains.new"),
-        virtualDomains=new UnixFile("/etc/qmail/virtualdomains"),
-        oldVirtualDomains=new UnixFile("/etc/qmail/virtualdomains.old")
-    ;*/
-        
     private static EmailAddressManager emailAddressManager;
 
     private EmailAddressManager() {
@@ -81,67 +73,29 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
     private static final Object rebuildLock=new Object();
     protected void doRebuild() throws IOException, SQLException {
         AOServer aoServer=AOServDaemon.getThisAOServer();
-        //AOServConnector connector=AOServDaemon.getConnector();
 
         int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
         if(
             osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
             && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+            && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
         ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
-        List<EmailAddress> eas=aoServer.getEmailAddresses();
         synchronized(rebuildLock) {
-            /*if(aoServer.isQmail()) {
-                // Write the /etc/qmail/virtualdomains.new
-                ChainWriter out = new ChainWriter(
-                    new BufferedOutputStream(
-                        newVirtualDomains.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)
-                    )
-                );
-                try {
-                    // Process the non-wildcard entries first
-                    for(EmailAddress ea : eas) {
-                        String address=ea.getAddress();
-                        if(address.length()>0) {
-                            writeQmailVirtualDomainLine(
-                                ea,
-                                out
-                            );
-                        }
-                    }
+            List<EmailAddress> eas=aoServer.getEmailAddresses();
 
-                    // Process the wildcard entries
-                    for(EmailAddress ea : eas) {
-                        String address=ea.getAddress();
-                        if(address.length()==0) {
-                            writeQmailVirtualDomainLine(
-                                ea,
-                                out
-                            );
-                        }
-                    }
-                } finally {
-                    out.flush();
-                    out.close();
-                }
+            // Each username may only be used once within the aliases file
+            Set<String> usernamesUsed=new HashSet<String>();
 
-                // Move the previous files into backup position and the new ones into place
-                virtualDomains.renameTo(oldVirtualDomains);
-                newVirtualDomains.renameTo(virtualDomains);
+            //
+            // Write the new /etc/aliases file.
+            //
+            ByteArrayOutputStream aliasesBOut = new ByteArrayOutputStream();
+            ByteArrayOutputStream usersBOut = new ByteArrayOutputStream();
 
-                EmailDomainManager.reloadMTA();
-            } else {*/
-                //
-                // Write the new /etc/aliases file.
-                //
-
-                // Each username may only be used once within the aliases file
-                List<String> usernamesUsed=new SortedArrayList<String>();
-                ChainWriter aliasesOut = new ChainWriter(
-                    new BufferedOutputStream(
-                        newAliases.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_UID, 0644, true)
-                    )
-                );
+            ChainWriter aliasesOut = new ChainWriter(aliasesBOut);
+            try {
+                ChainWriter usersOut = new ChainWriter(usersBOut);
                 try {
                     aliasesOut.print(
                           "#\n"
@@ -167,7 +121,10 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
                     String ex_nouser;
                     if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                         ex_nouser="/usr/aoserv/bin/ex_nouser";
-                    } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                    } else if(
+                        osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+                        || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                    ) {
                         ex_nouser="/opt/aoserv-client/sbin/ex_nouser";
                     } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                     for(LinuxServerAccount lsa : aoServer.getLinuxServerAccounts()) {
@@ -181,100 +138,128 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
                     }
 
                     // Write the /etc/mail/virtusertable.new
-                    ChainWriter usersOut = new ChainWriter(
-                        new BufferedOutputStream(
-                            newUserTable.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)
-                        )
-                    );
-                    try {
-                        String[] devNullUsername=new String[1];
-                        Map<String,String> singleForwardingTies=new HashMap<String,String>();
-                        Map<String,String> singleListTies=new HashMap<String,String>();
-                        Map<String,String> singlePipeTies=new HashMap<String,String>();
-                        Map<String,String> singleInboxTies=new HashMap<String,String>();
+                    String[] devNullUsername=new String[1];
+                    Map<String,String> singleForwardingTies=new HashMap<String,String>();
+                    Map<String,String> singleListTies=new HashMap<String,String>();
+                    Map<String,String> singlePipeTies=new HashMap<String,String>();
+                    Map<String,String> singleInboxTies=new HashMap<String,String>();
 
-                        // Process the non-wildcard entries first
-                        for(EmailAddress ea : eas) {
-                            String address=ea.getAddress();
-                            if(address.length()>0) {
-                                writeEmailAddressConfigs(
-                                    ea,
-                                    usernamesUsed,
-                                    devNullUsername,
-                                    singleForwardingTies,
-                                    singleListTies,
-                                    singlePipeTies,
-                                    singleInboxTies,
-                                    aliasesOut,
-                                    usersOut
-                                );
-                            }
+                    // Process the non-wildcard entries first
+                    for(EmailAddress ea : eas) {
+                        String address=ea.getAddress();
+                        if(address.length()>0) {
+                            writeEmailAddressConfigs(
+                                ea,
+                                usernamesUsed,
+                                devNullUsername,
+                                singleForwardingTies,
+                                singleListTies,
+                                singlePipeTies,
+                                singleInboxTies,
+                                aliasesOut,
+                                usersOut
+                            );
                         }
+                    }
 
-                        // Send all other special email addresses if they have not been overridden.
+                    // Send all other special email addresses if they have not been overridden.
+                    for(EmailDomain ed : aoServer.getEmailDomains()) {
+                        String domain=ed.getDomain();
+                        if(ed.getEmailAddress("abuse")==null) usersOut.print("abuse@").print(domain).print("\tabuse\n");
+                        if(ed.getEmailAddress("devnull")==null) usersOut.print("devnull@").print(domain).print("\tdevnull\n");
+                        if(ed.getEmailAddress("mailer-daemon")==null) usersOut.print("mailer-daemon@").print(domain).print("\tmailer-daemon\n");
+                        if(ed.getEmailAddress("postmaster")==null) usersOut.print("postmaster@").print(domain).print("\tpostmaster\n");
+                    }
+
+                    // Process the wildcard entries
+                    for(EmailAddress ea : eas) {
+                        String address=ea.getAddress();
+                        if(address.length()==0) {
+                            writeEmailAddressConfigs(
+                                ea,
+                                usernamesUsed,
+                                devNullUsername,
+                                singleForwardingTies,
+                                singleListTies,
+                                singlePipeTies,
+                                singleInboxTies,
+                                aliasesOut,
+                                usersOut
+                            );
+                        }
+                    }
+
+                    // Block all other email_domains that have not been explicitly configured as an email address.
+                    // This had a dead.letter problem and was commented for a while
+                    /*if(osv!=OperatingSystemVersion.XXXXXXXXXX && aoServer.getRestrictOutboundEmail()) {
                         for(EmailDomain ed : aoServer.getEmailDomains()) {
                             String domain=ed.getDomain();
-                            if(ed.getEmailAddress("abuse")==null) usersOut.print("abuse@").print(domain).print("\tabuse\n");
-                            if(ed.getEmailAddress("devnull")==null) usersOut.print("devnull@").print(domain).print("\tdevnull\n");
-                            if(ed.getEmailAddress("mailer-daemon")==null) usersOut.print("mailer-daemon@").print(domain).print("\tmailer-daemon\n");
-                            if(ed.getEmailAddress("postmaster")==null) usersOut.print("postmaster@").print(domain).print("\tpostmaster\n");
+                            if(ed.getEmailAddress("")==null) usersOut.print("@").print(domain).print("\terror:5.1.1:550 No such email address here\n");
                         }
-
-                        // Process the wildcard entries
-                        for(EmailAddress ea : eas) {
-                            String address=ea.getAddress();
-                            if(address.length()==0) {
-                                writeEmailAddressConfigs(
-                                    ea,
-                                    usernamesUsed,
-                                    devNullUsername,
-                                    singleForwardingTies,
-                                    singleListTies,
-                                    singlePipeTies,
-                                    singleInboxTies,
-                                    aliasesOut,
-                                    usersOut
-                                );
-                            }
-                        }
-
-                        // Block all other email_domains that have not been explicitly configured as an email address.
-                        // This had a dead.letter problem and was commented for a while
-                        /*if(osv!=OperatingSystemVersion.XXXXXXXXXX && aoServer.getRestrictOutboundEmail()) {
-                            for(EmailDomain ed : aoServer.getEmailDomains()) {
-                                String domain=ed.getDomain();
-                                if(ed.getEmailAddress("")==null) usersOut.print("@").print(domain).print("\terror:5.1.1:550 No such email address here\n");
-                            }
-                        }*/
-                    } finally {
-                        // Close the virtusertable
-                        usersOut.flush();
-                        usersOut.close();
-                    }
+                    }*/
                 } finally {
-                    // Close the aliases file
-                    aliasesOut.flush();
-                    aliasesOut.close();
+                    // Close the virtusertable
+                    usersOut.close();
                 }
-                // Move the previous files into backup position and the new ones into place
-                userTable.renameTo(backupUserTable);
-                newUserTable.renameTo(userTable);
+            } finally {
+                // Close the aliases file
+                aliasesOut.close();
+            }
+            byte[] usersNewBytes = usersBOut.toByteArray();
+            byte[] aliasesNewBytes = aliasesBOut.toByteArray();
 
-                aliases.renameTo(backupAliases);
-                newAliases.renameTo(aliases);
+            // Only write to disk if changed, this will almost always be the case when
+            // tie usernames are used for any reason, but this will help for servers with
+            // simple configurations.
+            Stat tempStat = new Stat();
 
-                // Rebuild the hash map
-                makeMap();
+            boolean needMakeMap;
+            if(
+                !userTable.getStat(tempStat).exists()
+                || !userTable.contentEquals(usersNewBytes)
+            ) {
+                FileOutputStream newOut = newUserTable.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true);
+                try {
+                    newOut.write(usersNewBytes);
+                } finally {
+                    newOut.close();
+                }
+                needMakeMap = true;
+            } else {
+                needMakeMap = false;
+            }
 
-                // Call newaliases
-                newAliases();
-            /*}*/
+            boolean needNewAliases;
+            if(
+                !aliases.getStat(tempStat).exists()
+                || !aliases.contentEquals(aliasesNewBytes)
+            ) {
+                FileOutputStream newOut = newAliases.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true);
+                try {
+                    newOut.write(aliasesNewBytes);
+                } finally {
+                    newOut.close();
+                }
+                needNewAliases = true;
+            } else {
+                needNewAliases = false;
+            }
+
+            // Move both files into place as close together as possible since they are a set
+            if(needMakeMap) newUserTable.renameTo(userTable);
+            if(needNewAliases) newAliases.renameTo(aliases);
+
+            // Rebuild the hash map
+            if(needMakeMap) makeMap();
+
+            // Call newaliases
+            if(needNewAliases) newAliases();
         }
     }
     
     private static void writeEmailAddressConfigs(
         EmailAddress ea,
-        List<String> usernamesUsed,
+        Set<String> usernamesUsed,
         String[] devNullUsername,
         Map<String,String> singleForwardingTies,
         Map<String,String> singleListTies,
@@ -425,23 +410,21 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
         LinuxServerAccount lsa=thisAOServer.getLinuxServerAccount(username);
         if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+username+" on "+thisAOServer);
         long[] sizes=new long[folderNames.length];
-        for(int c=0;c<folderNames.length;c++) {
-            String folderName = folderNames[c];
-            if(folderName.indexOf("..") !=-1) sizes[c]=-1;
-            else {
-                File folderFile;
-                if(folderName.equals("INBOX")) folderFile=new File(mailSpool, username);
+        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+            for(int c=0;c<folderNames.length;c++) {
+                String folderName = folderNames[c];
+                if(folderName.indexOf("..") !=-1) sizes[c]=-1;
                 else {
-                    if(
-                        osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-                    ) {
-                        folderFile=new File(new File(lsa.getHome(), "Mail"), folderName);
-                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                    File folderFile;
+                    if(folderName.equals("INBOX")) folderFile=new File(mailSpool, username);
+                    else folderFile=new File(new File(lsa.getHome(), "Mail"), folderName);
+                    if(folderFile.exists()) sizes[c]=folderFile.length();
+                    else sizes[c]=-1;
                 }
-                if(folderFile.exists()) sizes[c]=folderFile.length();
-                else sizes[c]=-1;
             }
-        }
+        } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+            throw new SQLException("TODO: CYRUS: Implement");
+        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
         return sizes;
     }
 
@@ -450,58 +433,69 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
         int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
         LinuxServerAccount lsa=thisAOServer.getLinuxServerAccount(username);
         if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+username+" on "+thisAOServer);
-        UnixFile mailboxlist=new UnixFile(lsa.getHome(), ".mailboxlist");
-        List<String> lines=new ArrayList<String>();
-        boolean currentlySubscribed=false;
-        if(mailboxlist.getStat().exists()) {
-            BufferedReader in=new BufferedReader(new InputStreamReader(mailboxlist.getSecureInputStream()));
-            try {
-                String line;
-                while((line=in.readLine())!=null) {
-                    lines.add(line);
-                    if(line.equals(folderName)) currentlySubscribed=true;
+        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+            UnixFile mailboxlist=new UnixFile(lsa.getHome(), ".mailboxlist");
+            List<String> lines=new ArrayList<String>();
+            boolean currentlySubscribed=false;
+            if(mailboxlist.getStat().exists()) {
+                BufferedReader in=new BufferedReader(new InputStreamReader(mailboxlist.getSecureInputStream()));
+                try {
+                    String line;
+                    while((line=in.readLine())!=null) {
+                        lines.add(line);
+                        if(line.equals(folderName)) currentlySubscribed=true;
+                    }
+                } finally {
+                    in.close();
                 }
-            } finally {
-                in.close();
             }
-        }
-        if(subscribed!=currentlySubscribed) {
-            PrintWriter out=new PrintWriter(mailboxlist.getSecureOutputStream(lsa.getUID().getID(), lsa.getPrimaryLinuxServerGroup().getGID().getID(), 0644, true));
-            try {
-                for(int c=0;c<lines.size();c++) {
-                    String line=lines.get(c);
-                    if(subscribed || !line.equals(folderName)) {
-                        // Only print if the folder still exists
-                        if(
-                            line.equals("INBOX")
-                            || line.equals("Drafts")
-                            || line.equals("Trash")
-                            || line.equals("Junk")
-                        ) out.println(line);
-                        else {
-                            File folderFile;
+            if(subscribed!=currentlySubscribed) {
+                PrintWriter out=new PrintWriter(mailboxlist.getSecureOutputStream(lsa.getUID().getID(), lsa.getPrimaryLinuxServerGroup().getGID().getID(), 0644, true));
+                try {
+                    for(int c=0;c<lines.size();c++) {
+                        String line=lines.get(c);
+                        if(subscribed || !line.equals(folderName)) {
+                            // Only print if the folder still exists
                             if(
-                                osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-                            ) {
-                                folderFile=new File(new File(lsa.getHome(), "Mail"), line);
-                            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-                            if(folderFile.exists()) out.println(line);
+                                line.equals("INBOX")
+                                || line.equals("Drafts")
+                                || line.equals("Trash")
+                                || line.equals("Junk")
+                            ) out.println(line);
+                            else {
+                                File folderFile=new File(new File(lsa.getHome(), "Mail"), line);
+                                if(folderFile.exists()) out.println(line);
+                            }
                         }
                     }
+                    if(subscribed) out.println(folderName);
+                } finally {
+                    out.close();
                 }
-                if(subscribed) out.println(folderName);
-            } finally {
-                out.close();
             }
-        }
+        } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+            throw new SQLException("TODO: CYRUS: Implement");
+        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
     }
 
-    public static long getInboxSize(String username) throws IOException {
-        return new File(mailSpool, username).length();
+    public static long getInboxSize(String username) throws IOException, SQLException {
+        AOServer thisAOServer=AOServDaemon.getThisAOServer();
+        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+            return new File(mailSpool, username).length();
+        } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+            throw new SQLException("TODO: CYRUS: Implement");
+        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
     }
 
-    public static long getInboxModified(String username) throws IOException {
-        return new File(mailSpool, username).lastModified();
+    public static long getInboxModified(String username) throws IOException, SQLException {
+        AOServer thisAOServer=AOServDaemon.getThisAOServer();
+        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+            return new File(mailSpool, username).lastModified();
+        } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+            throw new SQLException("TODO: CYRUS: Implement");
+        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
     }
 
     private static final int TIE_USERNAME_DIGITS=12;
@@ -510,7 +504,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
         'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
         'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'
     };
-    private static String getTieUsername(List<String> usernamesUsed) {
+    private static String getTieUsername(Set<String> usernamesUsed) {
         Random random = AOServDaemon.getRandom();
         StringBuilder SB=new StringBuilder(4+TIE_USERNAME_DIGITS);
         SB.append("tmp_");
@@ -534,6 +528,7 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
             if(
                 osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
                 || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+                || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) makemap="/usr/sbin/makemap";
             else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
@@ -548,7 +543,6 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
                         int ch;
                         while ((ch = in.read()) != -1) out.write(ch);
                     } finally {
-                        out.flush();
                         out.close();
                     }
                 } finally {
@@ -644,5 +638,6 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
 
     public static void rebuildEmailCertificates() {
         // TODO: Rebuild certificates automatically once a year
+        // TODO: Should this be monitored in NOC instead?
     }
 }
