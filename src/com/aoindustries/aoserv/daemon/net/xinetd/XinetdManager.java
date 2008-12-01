@@ -17,7 +17,6 @@ import com.aoindustries.aoserv.client.NetPort;
 import com.aoindustries.aoserv.client.NetProtocol;
 import com.aoindustries.aoserv.client.NetTcpRedirect;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.PrivateFTPServer;
 import com.aoindustries.aoserv.client.Protocol;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -225,7 +224,6 @@ public final class XinetdManager extends BuilderThread {
                             } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                         } else if(protocol.equals(Protocol.FTP)) {
                             if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                                PrivateFTPServer privateFtpServer = bind.getPrivateFTPServer();
                                 service=new Service(
                                     portMatches?null:UNLISTED,
                                     100,
@@ -242,7 +240,7 @@ public final class XinetdManager extends BuilderThread {
                                     null,
                                     "/usr/sbin/vsftpd",
                                     null,
-                                    privateFtpServer==null ? "/etc/vsftpd/vsftpd.conf" : ("/etc/vsftpd/vhosts/vsftpd_"+bind.getIPAddress().getIPAddress()+"_"+port.getPort()+".conf"),
+                                    "/etc/vsftpd/vhosts/vsftpd_"+bind.getIPAddress().getIPAddress()+"_"+port.getPort()+".conf",
                                     "PID HOST DURATION",
                                     "HOST",
                                     10,
