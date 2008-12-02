@@ -583,6 +583,8 @@ final public class MrtgManager extends BuilderThread {
                 safeName = "aoaes256";
             } else if(device.equals("/ao.copy.aes256.img")) {
                 safeName = "aocopyaes256";
+            } else if(device.equals("/dev/mapper/ao")) {
+                safeName = "aoluks";
             } else {
                 if(device.startsWith("/dev/")) device=device.substring(5);
                 // All characters should now be a-z, A-Z, and 0-9
