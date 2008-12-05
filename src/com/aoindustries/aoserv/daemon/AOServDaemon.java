@@ -55,8 +55,10 @@ import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.IntList;
 import com.aoindustries.util.StringUtility;
 import com.aoindustries.util.WrappedException;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
 import java.io.Reader;
@@ -473,6 +475,59 @@ final public class AOServDaemon {
                         sb.append(buff, 0, count);
                     }
                     return sb.toString();
+                } finally {
+                    BufferManager.release(buff);
+                }
+            } finally {
+                in.close();
+            }
+        } finally {
+            // Read the standard error
+            StringBuilder errorSB = new StringBuilder();
+            Reader errIn = new InputStreamReader(P.getErrorStream());
+            try {
+                char[] buff = BufferManager.getChars();
+                try {
+                    int ret;
+                    while((ret=errIn.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) errorSB.append(buff, 0, ret);
+                } finally {
+                    BufferManager.release(buff);
+                }
+            } finally {
+                errIn.close();
+            }
+            // Write any standard error to standard error
+            String errorString = errorSB.toString();
+            if(errorString.length()>0) System.err.println("'"+getCommandString(command)+"': "+errorString);
+            try {
+                int retCode = P.waitFor();
+                if(retCode!=0) throw new IOException("Non-zero exit status from '"+getCommandString(command)+"': "+retCode+", standard error was: "+errorString);
+            } catch(InterruptedException err) {
+                InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
+                ioErr.initCause(err);
+                throw ioErr;
+            }
+        }
+    }
+
+    /**
+     * Executes a command and captures the output.
+     */
+    public static byte[] execAndCaptureBytes(String[] command) throws IOException {
+        Process P = Runtime.getRuntime().exec(command);
+        try {
+            P.getOutputStream().close();
+            // Read the results
+            InputStream in = P.getInputStream();
+            try {
+                ByteArrayOutputStream bout = new ByteArrayOutputStream();
+                byte[] buff = BufferManager.getBytes();
+                try {
+                    int count;
+                    while((count=in.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
+                        bout.write(buff, 0, count);
+                    }
+                    return bout.toByteArray();
                 } finally {
                     BufferManager.release(buff);
                 }
