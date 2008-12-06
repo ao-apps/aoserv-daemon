@@ -290,7 +290,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
         int osv=server.getOperatingSystemVersion().getPkey();
         if(
             osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-            || osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+            && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
         ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
         final String primaryIP = aoServer.getPrimaryIPAddress().getIPAddress();
