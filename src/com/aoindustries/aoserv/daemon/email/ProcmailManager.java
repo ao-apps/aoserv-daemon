@@ -32,6 +32,8 @@ import java.util.List;
 /**
  * Builds the .procmailrc configurations.
  *
+ * TODO: Add second spamassassin threshold to just delete outright, maybe default to 15 or so
+ *
  * @author  AO Industries, Inc.
  */
 public final class ProcmailManager extends BuilderThread {
@@ -108,6 +110,19 @@ public final class ProcmailManager extends BuilderThread {
                             // The same X-Loop is used for attachment filters and autoresponders
                             String xloopAddress=username+'@'+lsa.getAOServer().getHostname();
 
+                            // Split the username in to user and domain (used by Cyrus)
+                            String user, domain;
+                            {
+                                int atPos = username.indexOf('@');
+                                if(atPos==-1) {
+                                    user = username;
+                                    domain = "default";
+                                } else {
+                                    user = username.substring(0, atPos);
+                                    domain = username.substring(atPos+1);
+                                }
+                            }
+
                             // The default from address
                             String defaultFromAddress;
                             if(laa!=null) defaultFromAddress=laa.getEmailAddress().toString();
@@ -130,13 +145,13 @@ public final class ProcmailManager extends BuilderThread {
                                         + "* < 256000\n"
                                         + "{\n"
                                         + "  # Filter through spamassassin\n"
-                                        // Not locking here, letting spamd do the locking since procmail locking is terribly slow. + "  :0fw: spamassassin.lock\n"
-                                        + "  :0fw\n"
+                                        // Not locking here, letting spamd do the locking since procmail locking is terribly slow. + "  :0 fw: spamassassin.lock\n"
+                                        + "  :0 fw\n"
                                         + "  | /usr/bin/spamc -d ").print(primaryIP).print("\n"
                                         + "  \n"
                                         + "  # If spamassassin failed, return a temporary failure code to sendmail\n"
                                         + "  :0\n"
-                                        + "  * !^X-Spam-Status: (Yes|No)"
+                                        + "  * !^X-Spam-Status: (Yes|No)\n"
                                         + "  {\n"
                                         + "    # Return EX_TEMPFAIL to have sendmail retry delivery\n"
                                         + "    EXITCODE=75\n"
@@ -257,6 +272,19 @@ public final class ProcmailManager extends BuilderThread {
                             }
 
                             if(lsa.useInbox()) {
+                                // Capture return-path header if needed
+                                if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                    // Nothing special needed
+                                } else if(
+                                    osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                                    || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+                                ) {
+                                    out.print("\n"
+                                            + "# Capture the current Return-path to pass to deliver\n"
+                                            + ":0 h\n"
+                                            + "RETURN_PATH=| /usr/bin/formail -c -x Return-Path: | /bin/sed -e 's/^ *<//' -e 's/>$//'\n");
+                                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+
                                 // Only move to Junk folder when the message could be stored to the inbox
                                 if(spamAssassinMode.equals(EmailSpamAssassinIntegrationMode.IMAP)) {
                                     out.print("\n"
@@ -265,26 +293,29 @@ public final class ProcmailManager extends BuilderThread {
                                         out.print(":0:\n"
                                                 + "* ^X-Spam-Status: Yes\n"
                                                 + "Mail/Junk\n");
-                                    } else if(
-                                        osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-                                    ) {
-                                        out.print(":0\n"
+                                    } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                                        out.print(":0 w\n"
                                                 + "* ^X-Spam-Status: Yes\n"
-                                                + "| /usr/bin/formail -I\"From \" | /usr/lib/cyrus-imapd/deliver -a \"").print(username).print("\" -m Junk \"").print(username).print("\"\n"
-                                                + "\n"
-                                                + ":0\n"
-                                                + "| /usr/bin/formail -I\"From \" | /usr/lib/cyrus-imapd/deliver -a \"").print(username).print("\" \"").print(username).print("\"\n");
-                                    } else if(
-                                        osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
-                                    ) {
-                                        out.print(":0\n"
+                                                + "| /usr/bin/formail -I\"From \" | /usr/lib/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n");
+                                    } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                                        out.print(":0 w\n"
                                                 + "* ^X-Spam-Status: Yes\n"
-                                                + "| /usr/bin/formail -I\"From \" | /usr/lib64/cyrus-imapd/deliver -a \"").print(username).print("\" -m Junk \"").print(username).print("\"\n"
-                                                + "\n"
-                                                + ":0\n"
-                                                + "| /usr/bin/formail -I\"From \" | /usr/lib64/cyrus-imapd/deliver -a \"").print(username).print("\" \"").print(username).print("\"\n");
+                                                + "| /usr/bin/formail -I\"From \" | /usr/lib64/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n");
                                     } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                                 }
+
+                                // Deliver to INBOX
+                                if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                    // Nothing special needed
+                                } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                                    out.print("\n"
+                                            + ":0 w\n"
+                                            + "| /usr/bin/formail -I\"From \" | /usr/lib/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
+                                } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                                    out.print("\n"
+                                            + ":0 w\n"
+                                            + "| /usr/bin/formail -I\"From \" | /usr/lib64/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
+                                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                             } else {
                                 // Discard the email if configured to not use the inbox
                                 out.print("\n"
