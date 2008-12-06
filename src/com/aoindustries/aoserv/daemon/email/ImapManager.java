@@ -5,7 +5,6 @@ package com.aoindustries.aoserv.daemon.email;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -31,17 +30,23 @@ final public class ImapManager extends BuilderThread {
         synchronized(rebuildLock) {
             // TODO: Store cyrus password in aoserv-daemon.properties
             //       Also, change this password daily with new, random values and update properties file?
+            //       /usr/bin/cyradm --user cyrus@default 192.168.1.12
             
             // TODO: Configure certificates in /etc/pki/cyrus-imapd on a per-IP basis.
             //       file:///home/o/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
             //       value of "disabled" if the certificate file doesn't exist (or use server default)
             //       openssl req -new -x509 -nodes -out cyrus-imapd.pem -keyout cyrus-imapd.pem -days 3650
+            //       Other automated certificate management, sendmail too?
             
             // TODO: Turn off cyrus-imapd service and chkconfig off when not needed (like done for xinetd)
 
             // TODO: Create missing cyrus users
             //       createmailbox user/{username}
             //       setaclmailbox user/{username} cyrus c
+            //       also create the Trash folder if they have IMAP integration enabled
+            //       also create Junk folder if they have IMAP integration enabled
+            //       Also create other folders and convert from UW software
+            //           And control .mailboxlist, too.
             
             // TODO: Remove extra cyrus users
             //       deletemailbox user/cyrus.test@suspendo.aoindustries.com
@@ -70,6 +75,34 @@ final public class ImapManager extends BuilderThread {
             //       works now with loginrealms: suspendo.aoindustries.com
             
             // TODO: sieve only listen on primary IP only (for chroot failover)
+            
+            // TODO: Explicitely disallow @default in any username - make sure none in DB
+            //       Explicitely disallow cyrus@* in any usernames - make sure none in DB
+            //       Make sure only one @ allowed in usernames - check database
+            //       Make sure @ never first or last (always have something before and after) - check DB
+            
+            // TODO: Auto-expunge each mailbox once per day, add ACL as needed - cyr_expire?
+            //       Auto clean Trash/Junk if they exist, during auto-expunge pass - ipurge -f -d (days) -X -s
+            //       what is delayed expunge? - unexpunge command
+            
+            // TODO: Run chk_cyrus from NOC?
+            
+            // TODO: ctl_cyrusdb -c right before backup LVM snapshot
+            
+            // TODO: Maybe can get inbox size (and # of messages) from: mbexamine user/cyrus.test2@default
+            //       Or use quota and quota command.
+            
+            // TODO: No longer support POP2
+            
+            // TODO: Add smmapd support
+            
+            // TODO: EVENT in man cyrus.conf(5)
+            
+            // TODO tls_prune automatically called from master?
+            
+            // TODO: Train SpamAssassin
+            //       Maybe sync_log can be used for training spamassassin?
+            //       Or maybe we can look for hard linking with FAM, if copy creates hard links?
         }
     }
 
@@ -87,7 +120,7 @@ final public class ImapManager extends BuilderThread {
                 && imapManager==null
             ) {
                 System.out.print("Starting ImapManager: ");
-                AOServConnector connector=AOServDaemon.getConnector();
+                //AOServConnector connector=AOServDaemon.getConnector();
                 imapManager=new ImapManager();
                 //connector.ipAddresses.addTableListener(imapManager, 0);
                 //connector.netBinds.addTableListener(imapManager, 0);
