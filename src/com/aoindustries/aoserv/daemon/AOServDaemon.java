@@ -17,6 +17,7 @@ import com.aoindustries.aoserv.daemon.distro.DistroManager;
 import com.aoindustries.aoserv.daemon.dns.DNSManager;
 import com.aoindustries.aoserv.daemon.email.EmailAddressManager;
 import com.aoindustries.aoserv.daemon.email.EmailDomainManager;
+import com.aoindustries.aoserv.daemon.email.ImapManager;
 import com.aoindustries.aoserv.daemon.email.MajordomoManager;
 import com.aoindustries.aoserv.daemon.email.ProcmailManager;
 import com.aoindustries.aoserv.daemon.email.SendmailCFManager;
@@ -207,6 +208,7 @@ final public class AOServDaemon {
                 FTPManager.start();
                 HttpdManager.start();
                 // TODO: Enable once data is created InterBaseManager.start();
+                ImapManager.start();
                 JilterConfigurationWriter.start();
                 LinuxAccountManager.start();
                 MajordomoManager.start();
