@@ -55,14 +55,19 @@ final public class ImapManager extends BuilderThread {
             
             // TODO: sieve
             //       sieveusehomedir
-            // Test account:
+            // Test account 1:
             //       hostname: 192.168.1.12
             //       username: cyrus.test@suspendo.aoindustries.com
             //       password: Clusk48Kulp
+            // Test account 2:
+            //       hostname: 192.168.1.12
+            //       username: cyrus.test2
+            //       password: Eflay43Klar
             
             // sieveshell:
             //       sieveshell --authname=cyrus.test@suspendo.aoindustries.com 192.168.1.12
             //       /bin/su -s /bin/bash -c "/usr/bin/sieveshell 192.168.1.12" cyrus.test@suspendo.aoindustries.com
+            //       works now with loginrealms: suspendo.aoindustries.com
             
             // TODO: sieve only listen on primary IP only (for chroot failover)
         }
