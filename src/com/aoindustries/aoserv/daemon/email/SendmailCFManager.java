@@ -360,7 +360,8 @@ final public class SendmailCFManager extends BuilderThread {
                                 + "define(`confPID_FILE', `/var/run/sm-client.pid')dnl\n"
                                 + "dnl define(`confDIRECT_SUBMISSION_MODIFIERS',`C')\n"
                                 + "dnl FEATURE(`use_ct_file')dnl\n"
-                                + "FEATURE(`msp', `[").print(primaryIpAddress.getIPAddress()).print("]')dnl\n");
+                                + "FEATURE(`msp', `[").print(primaryIpAddress.getIPAddress()).print("]')dnl\n"
+                                + "define(`confPROCESS_TITLE_PREFIX',`").print(aoServer.getHostname()).print("')dnl\n");
                     } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                         out.print("divert(-1)\n"
                                 + "#\n"
@@ -378,8 +379,7 @@ final public class SendmailCFManager extends BuilderThread {
                                 + "dnl define(`confDIRECT_SUBMISSION_MODIFIERS',`C')dnl\n"
                                 + "FEATURE(`use_ct_file')dnl\n"
                                 + "FEATURE(`msp', `[").print(primaryIpAddress.getIPAddress()).print("]')dnl\n"
-                                + "define(`confRUN_AS_USER',`mail:mail')dnl\n"
-                                + "define(`confTRUSTED_USER',`mail')dnl\n");
+                                + "define(`confPROCESS_TITLE_PREFIX',`").print(aoServer.getHostname()).print("')dnl\n");
                     } else {
                         throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                     }
