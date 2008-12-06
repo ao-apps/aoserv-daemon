@@ -28,7 +28,6 @@ import com.aoindustries.aoserv.daemon.ftp.FTPManager;
 import com.aoindustries.aoserv.daemon.httpd.AWStatsManager;
 import com.aoindustries.aoserv.daemon.httpd.HttpdManager;
 import com.aoindustries.aoserv.daemon.monitor.MrtgManager;
-import com.aoindustries.aoserv.daemon.monitor.NetStatMonitor;
 import com.aoindustries.aoserv.daemon.mysql.MySQLDBUserManager;
 import com.aoindustries.aoserv.daemon.mysql.MySQLDatabaseManager;
 import com.aoindustries.aoserv.daemon.mysql.MySQLHostManager;
@@ -235,9 +234,6 @@ final public class AOServDaemon {
                 // Start up the AOServDaemonServers
                 NetBind bind=getThisAOServer().getDaemonBind();
                 if(bind!=null) new AOServDaemonServer(bind.getIPAddress().getIPAddress(), bind.getPort().getPort(), bind.getAppProtocol().getProtocol());
-
-                // Start up the reliability monitoring
-                NetStatMonitor.start();
 
                 done=true;
             } catch (ThreadDeath TD) {

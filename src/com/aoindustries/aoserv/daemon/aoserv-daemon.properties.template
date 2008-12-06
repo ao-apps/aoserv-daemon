@@ -70,7 +70,6 @@ aoserv.daemon.ftp.FTPManager.enabled=true
 aoserv.daemon.httpd.AWStatsManager.enabled=true
 aoserv.daemon.httpd.HttpdManager.enabled=true
 aoserv.daemon.monitor.MrtgManager.enabled=true
-aoserv.daemon.monitor.NetStatMonitor.enabled=true
 aoserv.daemon.mysql.MySQLDatabaseManager.enabled=true
 aoserv.daemon.mysql.MySQLDBUserManager.enabled=true
 aoserv.daemon.mysql.MySQLHostManager.enabled=true
