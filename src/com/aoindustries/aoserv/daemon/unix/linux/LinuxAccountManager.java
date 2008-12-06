@@ -308,7 +308,7 @@ public class LinuxAccountManager extends BuilderThread {
                 osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                 || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) {
-                // Do nothing
+                // Nothing done, user management put in ImapManager
             } else {
                 throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
             }
