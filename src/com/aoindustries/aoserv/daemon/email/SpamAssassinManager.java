@@ -491,7 +491,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                 tempSB.append(firstIsHam ? " --ham" : " --spam");
                 for(UnixFile uf : thisPass) tempSB.append(' ').append(uf.getPath());
                 String command = tempSB.toString();
-                System.err.println("DEBUG: "+SpamAssassinManager.class.getName()+": processIncomingMessagesCentOs: username="+username+" and command=\""+command+"\"");
+                //System.err.println("DEBUG: "+SpamAssassinManager.class.getName()+": processIncomingMessagesCentOs: username="+username+" and command=\""+command+"\"");
                 try {
                     AOServDaemon.suexec(
                         username,
@@ -500,7 +500,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                 } finally {
                     if(isNoSync) {
                         String command2 = "/usr/bin/sa-learn --sync";
-                        System.err.println("DEBUG: "+SpamAssassinManager.class.getName()+": processIncomingMessagesCentOs: username="+username+" and command2=\""+command2+"\"");
+                        //System.err.println("DEBUG: "+SpamAssassinManager.class.getName()+": processIncomingMessagesCentOs: username="+username+" and command2=\""+command2+"\"");
                         AOServDaemon.suexec(
                             username,
                             command2
