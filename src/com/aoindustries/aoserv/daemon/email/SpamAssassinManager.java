@@ -281,7 +281,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                             // Call sa-learn for this pass
                             tempSB.setLength(0);
                             tempSB.append("/usr/bin/sa-learn ").append(currentIsHam?"--ham":"--spam").append(" --dir");
-                            for(int c=0;c<thisPass.size();c++) {
+                            // Only train first 100 maximum at a time
+                            for(int c=0;c<thisPass.size() && c<100;c++) {
                                 UnixFile uf=thisPass.get(c);
                                 tempSB.append(' ').append(uf.getPath());
                             }
