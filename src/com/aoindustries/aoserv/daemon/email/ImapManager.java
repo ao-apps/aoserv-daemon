@@ -6,12 +6,20 @@ package com.aoindustries.aoserv.daemon.email;
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
+import com.aoindustries.io.unix.UnixFile;
+import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Any IMAP/Cyrus-specific features are here.
@@ -19,6 +27,8 @@ import java.sql.SQLException;
  * @author  AO Industries, Inc.
  */
 final public class ImapManager extends BuilderThread {
+
+    public static final File mailSpool=new File("/var/spool/mail");
 
     private static ImapManager imapManager;
 
@@ -136,5 +146,99 @@ final public class ImapManager extends BuilderThread {
 
     public String getProcessTimerDescription() {
         return "Rebuild IMAP and Cyrus configurations";
+    }
+
+    public static long[] getImapFolderSizes(String username, String[] folderNames) throws IOException, SQLException {
+        AOServer thisAOServer=AOServDaemon.getThisAOServer();
+        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+        LinuxServerAccount lsa=thisAOServer.getLinuxServerAccount(username);
+        if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+username+" on "+thisAOServer);
+        long[] sizes=new long[folderNames.length];
+        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+            for(int c=0;c<folderNames.length;c++) {
+                String folderName = folderNames[c];
+                if(folderName.indexOf("..") !=-1) sizes[c]=-1;
+                else {
+                    File folderFile;
+                    if(folderName.equals("INBOX")) folderFile=new File(mailSpool, username);
+                    else folderFile=new File(new File(lsa.getHome(), "Mail"), folderName);
+                    if(folderFile.exists()) sizes[c]=folderFile.length();
+                    else sizes[c]=-1;
+                }
+            }
+        } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+            throw new SQLException("TODO: CYRUS: Implement");
+        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        return sizes;
+    }
+
+    public static void setImapFolderSubscribed(String username, String folderName, boolean subscribed) throws IOException, SQLException {
+        AOServer thisAOServer=AOServDaemon.getThisAOServer();
+        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+        LinuxServerAccount lsa=thisAOServer.getLinuxServerAccount(username);
+        if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+username+" on "+thisAOServer);
+        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+            UnixFile mailboxlist=new UnixFile(lsa.getHome(), ".mailboxlist");
+            List<String> lines=new ArrayList<String>();
+            boolean currentlySubscribed=false;
+            if(mailboxlist.getStat().exists()) {
+                BufferedReader in=new BufferedReader(new InputStreamReader(mailboxlist.getSecureInputStream()));
+                try {
+                    String line;
+                    while((line=in.readLine())!=null) {
+                        lines.add(line);
+                        if(line.equals(folderName)) currentlySubscribed=true;
+                    }
+                } finally {
+                    in.close();
+                }
+            }
+            if(subscribed!=currentlySubscribed) {
+                PrintWriter out=new PrintWriter(mailboxlist.getSecureOutputStream(lsa.getUID().getID(), lsa.getPrimaryLinuxServerGroup().getGID().getID(), 0644, true));
+                try {
+                    for(int c=0;c<lines.size();c++) {
+                        String line=lines.get(c);
+                        if(subscribed || !line.equals(folderName)) {
+                            // Only print if the folder still exists
+                            if(
+                                line.equals("INBOX")
+                                || line.equals("Drafts")
+                                || line.equals("Trash")
+                                || line.equals("Junk")
+                            ) out.println(line);
+                            else {
+                                File folderFile=new File(new File(lsa.getHome(), "Mail"), line);
+                                if(folderFile.exists()) out.println(line);
+                            }
+                        }
+                    }
+                    if(subscribed) out.println(folderName);
+                } finally {
+                    out.close();
+                }
+            }
+        } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+            throw new SQLException("TODO: CYRUS: Implement");
+        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+    }
+
+    public static long getInboxSize(String username) throws IOException, SQLException {
+        AOServer thisAOServer=AOServDaemon.getThisAOServer();
+        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+            return new File(mailSpool, username).length();
+        } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+            throw new SQLException("TODO: CYRUS: Implement");
+        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+    }
+
+    public static long getInboxModified(String username) throws IOException, SQLException {
+        AOServer thisAOServer=AOServDaemon.getThisAOServer();
+        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+            return new File(mailSpool, username).lastModified();
+        } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+            throw new SQLException("TODO: CYRUS: Implement");
+        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
     }
 }

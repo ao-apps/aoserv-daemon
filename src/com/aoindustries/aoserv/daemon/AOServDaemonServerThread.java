@@ -21,8 +21,8 @@ import com.aoindustries.aoserv.client.SchemaTable;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.distro.DistroManager;
-import com.aoindustries.aoserv.daemon.email.EmailAddressManager;
 import com.aoindustries.aoserv.daemon.email.EmailListManager;
+import com.aoindustries.aoserv.daemon.email.ImapManager;
 import com.aoindustries.aoserv.daemon.email.ProcmailManager;
 import com.aoindustries.aoserv.daemon.failover.FailoverFileReplicationManager;
 import com.aoindustries.aoserv.daemon.httpd.AWStatsManager;
@@ -442,7 +442,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 String[] folderNames=new String[numFolders];
                                 for(int c=0;c<numFolders;c++) folderNames[c]=in.readUTF();
                                 if(key==null) throw new IOException("Only the master server may GET_IMAP_FOLDER_SIZES");
-                                long[] sizes=EmailAddressManager.getImapFolderSizes(username, folderNames);
+                                long[] sizes=ImapManager.getImapFolderSizes(username, folderNames);
                                 out.write(AOServDaemonProtocol.DONE);
                                 for(int c=0;c<numFolders;c++) out.writeLong(sizes[c]);
                             }
@@ -452,8 +452,8 @@ final public class AOServDaemonServerThread extends Thread {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_INBOX_ATTRIBUTES, Thread="+toString());
                                 String username=in.readUTF();
                                 if(key==null) throw new IOException("Only the master server may GET_INBOX_ATTRIBUTES");
-                                long fileSize=EmailAddressManager.getInboxSize(username);
-                                long lastModified=EmailAddressManager.getInboxModified(username);
+                                long fileSize=ImapManager.getInboxSize(username);
+                                long lastModified=ImapManager.getInboxModified(username);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeLong(fileSize);
                                 out.writeLong(lastModified);
@@ -647,7 +647,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 String folderName=in.readUTF();
                                 boolean subscribed=in.readBoolean();
                                 if(key==null) throw new IOException("Only the master server may SET_IMAP_FOLDER_SUBSCRIBED");
-                                EmailAddressManager.setImapFolderSubscribed(username, folderName, subscribed);
+                                ImapManager.setImapFolderSubscribed(username, folderName, subscribed);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
                             break;

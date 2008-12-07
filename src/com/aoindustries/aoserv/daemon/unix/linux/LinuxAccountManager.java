@@ -19,7 +19,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
-import com.aoindustries.aoserv.daemon.email.EmailAddressManager;
+import com.aoindustries.aoserv.daemon.email.ImapManager;
 import com.aoindustries.aoserv.daemon.unix.ShadowFile;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.ChainWriter;
@@ -272,7 +272,7 @@ public class LinuxAccountManager extends BuilderThread {
                     LinuxAccount linuxAccount = account.getLinuxAccount();
                     if(linuxAccount.getType().isEmail()) {
                         String username=linuxAccount.getUsername().getUsername();
-                        File file=new File(EmailAddressManager.mailSpool, username);
+                        File file=new File(ImapManager.mailSpool, username);
                         if(!file.exists()) {
                             UnixFile unixFile=new UnixFile(file.getPath());
                             unixFile.getSecureOutputStream(
@@ -287,7 +287,7 @@ public class LinuxAccountManager extends BuilderThread {
                 /*
                  * Remove any inboxes that should not exist.
                  */
-                String[] list=EmailAddressManager.mailSpool.list();
+                String[] list=ImapManager.mailSpool.list();
                 if(list!=null) {
                     int len=list.length;
                     for(int c=0;c<len;c++) {
@@ -298,7 +298,7 @@ public class LinuxAccountManager extends BuilderThread {
                                 !filename.endsWith(".lock")
                                 || !usernames.contains(filename.substring(0, filename.length()-5))
                             ) {
-                                File spoolFile=new File(EmailAddressManager.mailSpool, filename);
+                                File spoolFile=new File(ImapManager.mailSpool, filename);
                                 deleteFileList.add(spoolFile);
                             }
                         }
