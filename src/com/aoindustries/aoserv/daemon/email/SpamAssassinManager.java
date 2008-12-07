@@ -9,11 +9,15 @@ import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.EmailSpamAssassinIntegrationMode;
 import com.aoindustries.aoserv.client.IPAddress;
+import com.aoindustries.aoserv.client.LinuxAccount;
+import com.aoindustries.aoserv.client.LinuxGroup;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
+import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
@@ -25,6 +29,7 @@ import com.aoindustries.util.sort.AutoSort;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -33,9 +38,11 @@ import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
@@ -102,7 +109,17 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                         }
                     }
                     lastStartTime=System.currentTimeMillis();
-                    processIncomingMessages();
+                    
+                    // Process incoming messages
+                    AOServer thisAOServer=AOServDaemon.getThisAOServer();
+                    int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+                    if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                        processIncomingMessagesMandriva();
+                    } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                        processIncomingMessagesCentOs();
+                    } else {
+                        throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                    }
                 }
             } catch(ThreadDeath TD) {
                 throw TD;
@@ -143,7 +160,34 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
         }
     }
 
-    private synchronized static void processIncomingMessages() throws IOException, SQLException {
+    /**
+     * The entire filename must be acceptable characters a-z, A-Z, 0-9, -, and _
+     * This is, along with the character restrictions for usernames, are the key aspects
+     * of the security of the following suexec call.
+     */
+    private static boolean isFilenameOk(String filename) {
+        // Don't allow null
+        if(filename==null) return false;
+        
+        // Don't allow empty string
+        if(filename.length()==0) return false;
+
+        for(int d=0;d<filename.length();d++) {
+            char ch=filename.charAt(d);
+            if(
+                (ch<'a' || ch>'z')
+                && (ch<'A' || ch>'Z')
+                && (ch<'0' || ch>'9')
+                && ch!='-'
+                && ch!='_'
+            ) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private synchronized static void processIncomingMessagesMandriva() throws IOException, SQLException {
         String[] fileList=incomingDirectory.list();
         if(fileList!=null && fileList.length>0) {
             // Get the list of UnixFile's of all messages that are at least one minute old or one minute in the future
@@ -163,24 +207,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                                 (mtime-currentTime)>60000
                                 || (currentTime-mtime)>60000
                             ) {
-                                // The entire filename must be acceptable characters a-z, A-Z, 0-9, -, and _
-                                // This is, along with the character restrictions for usernames, are the key aspects
-                                // of the security of the following suexec call
-                                boolean filenameOK=true;
-                                for(int d=0;d<filename.length();d++) {
-                                    char ch=filename.charAt(d);
-                                    if(
-                                        (ch<'a' || ch>'z')
-                                        && (ch<'A' || ch>'Z')
-                                        && (ch<'0' || ch>'9')
-                                        && ch!='-'
-                                        && ch!='_'
-                                    ) {
-                                        filenameOK=false;
-                                        break;
-                                    }
-                                }
-                                if(filenameOK) readyList.add(uf);
+                                if(isFilenameOk(filename)) readyList.add(uf);
                                 else AOServDaemon.reportWarning(new IOException("Invalid directory name"), new Object[] {"incomingDirectory="+incomingDirectory.getPath(), "filename="+filename});
                             }
                         }
@@ -279,6 +306,194 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                     }
                 }
             }
+        }
+    }
+
+    private synchronized static void processIncomingMessagesCentOs() throws IOException, SQLException {
+        // Create the incomingDirectory if it doesn't exist
+        Stat incomingStat = incomingDirectory.getStat();
+        if(!incomingStat.exists()) {
+            incomingDirectory.mkdir();
+            incomingDirectory.getStat(incomingStat);
+        }
+        // Make sure mode 0770
+        if(incomingStat.getMode()!=0770) {
+            incomingDirectory.setMode(0770);
+            incomingDirectory.getStat(incomingStat);
+        }
+        // Make sure user cyrus and group mail
+        AOServer aoServer = AOServDaemon.getThisAOServer();
+        LinuxServerAccount cyrus = aoServer.getLinuxServerAccount(LinuxAccount.CYRUS);
+        if(cyrus==null) throw new SQLException("Unable to find LinuxServerAccount: "+LinuxAccount.CYRUS+" on "+aoServer);
+        int cyrusUid = cyrus.getUID().getID();
+        LinuxServerGroup mail = aoServer.getLinuxServerGroup(LinuxGroup.MAIL);
+        if(mail==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxAccount.MAIL+" on "+aoServer);
+        int mailGid = mail.getGID().getID();
+        if(incomingStat.getUID()!=cyrusUid || incomingStat.getGID()!=mailGid) {
+            incomingDirectory.chown(cyrusUid, mailGid);
+            incomingDirectory.getStat(incomingStat);
+        }
+
+        // Used on inner loop
+        Stat userDirectoryUfStat = new Stat();
+        List<File> deleteFileList=new ArrayList<File>();
+        StringBuilder tempSB = new StringBuilder();
+        List<UnixFile> thisPass = new ArrayList<UnixFile>();
+
+        while(true) {
+            // End loop if no subdirectories
+            String[] incomingDirectoryList=incomingDirectory.list();
+            if(incomingDirectoryList==null || incomingDirectoryList.length==0) break;
+
+            // Find the username that has the oldest timestamp that is also at least one minute old or one minute in the future
+            LinuxServerAccount oldestLsa = null;
+            Map<UnixFile,Long> oldestReadyMap = null;
+            long oldestTimestamp = -1;
+
+            // The files will be backed-up before being deleted
+            deleteFileList.clear();
+            long currentTime = System.currentTimeMillis();
+
+            for(String incomingDirectoryFilename : incomingDirectoryList) {
+                UnixFile userDirectoryUf = new UnixFile(incomingDirectory, incomingDirectoryFilename, false);
+                File userDirectoryFile = userDirectoryUf.getFile();
+
+                // Each filename should be a username
+                LinuxServerAccount lsa = aoServer.getLinuxServerAccount(incomingDirectoryFilename);
+                if(lsa==null) {
+                    // user not found, backup and then remove
+                    deleteFileList.add(userDirectoryFile);
+                } else {
+                    // Set permissions, should be 0770
+                    userDirectoryUf.getStat(userDirectoryUfStat);
+                    if(userDirectoryUfStat.getMode()!=0770) {
+                        userDirectoryUf.setMode(0770);
+                        userDirectoryUf.getStat(userDirectoryUfStat);
+                    }
+                    // Set ownership, should by username and group mail
+                    int lsaUid = lsa.getUID().getID();
+                    if(userDirectoryUfStat.getUID()!=lsaUid || userDirectoryUfStat.getGID()!=mailGid) {
+                        userDirectoryUf.chown(lsaUid, mailGid);
+                        userDirectoryUf.getStat(userDirectoryUfStat);
+                    }
+                    // Check each filename, searching if this lsa has the oldest timestamp (older or newer than one minute)
+                    String[] userDirectoryList = userDirectoryUf.list();
+                    if(userDirectoryList!=null && userDirectoryList.length>0) {
+                        Map<UnixFile,Long> readyMap = new HashMap<UnixFile,Long>(userDirectoryList.length*4/3+1);
+                        for(String userFilename : userDirectoryList) {
+                            UnixFile userUf=new UnixFile(userDirectoryUf, userFilename, false);
+                            File userFile = userUf.getFile();
+                            if(userFilename.startsWith("ham_") || userFilename.startsWith("spam_")) {
+                                // Must be a regular file
+                                Stat userUfStat = userUf.getStat();
+                                if(userUfStat.isRegularFile()) {
+                                    int pos1 = userFilename.indexOf('_');
+                                    if(pos1==-1) throw new AssertionError("pos1==-1"); // This should not happen because of check against ham_ or spam_ above.
+                                    int pos2 = userFilename.indexOf('_', pos1+1);
+                                    if(pos2!=-1) {
+                                        try {
+                                            long timestamp = Long.parseLong(userFilename.substring(pos1+1, pos2)) * 1000;
+                                            if(
+                                                (timestamp-currentTime)>60000
+                                                || (currentTime-timestamp)>60000
+                                            ) {
+                                                if(isFilenameOk(userFilename)) {
+                                                    readyMap.put(userUf, timestamp);
+                                                    
+                                                    // Is the oldest?
+                                                    if(oldestLsa==null || timestamp < oldestTimestamp) {
+                                                        oldestLsa = lsa;
+                                                        oldestReadyMap = readyMap;
+                                                        oldestTimestamp = timestamp;
+                                                    }
+                                                } else {
+                                                    AOServDaemon.reportWarning(new IOException("Invalid character in filename, deleting"), new Object[] {"userDirectoryUf="+userDirectoryUf.getPath(), "userFilename="+userFilename});
+                                                    deleteFileList.add(userFile);
+                                                }
+                                            }
+                                        } catch(NumberFormatException err) {
+                                            IOException ioErr = new IOException("Unable to find parse timestamp in filename, deleting");
+                                            ioErr.initCause(err);
+                                            AOServDaemon.reportWarning(ioErr, new Object[] {"userDirectoryUf="+userDirectoryUf.getPath(), "userFilename="+userFilename});
+                                            deleteFileList.add(userFile);
+                                        }
+                                    } else {
+                                        AOServDaemon.reportWarning(new IOException("Unable to find second underscore (_) in filename, deleting"), new Object[] {"userDirectoryUf="+userDirectoryUf.getPath(), "userFilename="+userFilename});
+                                        deleteFileList.add(userFile);
+                                    }
+                                } else {
+                                    AOServDaemon.reportWarning(new IOException("Not a regular file, deleting"), new Object[] {"userDirectoryUf="+userDirectoryUf.getPath(), "userFilename="+userFilename});
+                                    deleteFileList.add(userFile);
+                                }
+                            } else {
+                                AOServDaemon.reportWarning(new IOException("Unexpected filename, should start with \"spam_\" or \"ham_\", deleting"), new Object[] {"userDirectoryUf="+userDirectoryUf.getPath(), "userFilename="+userFilename});
+                                deleteFileList.add(userFile);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Back up the files scheduled for removal.
+            if(!deleteFileList.isEmpty()) {
+                // Get the next backup filename
+                File backupFile = BackupManager.getNextBackupFile();
+                BackupManager.backupFiles(deleteFileList, backupFile);
+
+                // Remove the files that have been backed up.
+                for(File file : deleteFileList) new UnixFile(file).secureDeleteRecursive();
+            }
+
+            // Nothing to do, end loop to sleep
+            if(oldestLsa==null) break;
+
+            // Sort the list by oldest time first
+            final Map<UnixFile,Long> readyMap = oldestReadyMap;
+            List<UnixFile> readyList = new ArrayList<UnixFile>(oldestReadyMap.keySet());
+            AutoSort.sortStatic(
+                readyList,
+                new Comparator<UnixFile>() {
+                    public int compare(UnixFile uf1, UnixFile uf2) {
+                        return readyMap.get(uf1).compareTo(readyMap.get(uf2));
+                    }
+                }
+            );
+
+            // Process the oldest file while batching as many spam or ham directories together as possible
+            thisPass.clear();
+            UnixFile firstUf = readyList.get(0);
+            boolean firstIsHam = firstUf.getFile().getName().startsWith("ham_");
+            thisPass.add(firstUf);
+            for(int c=1;c<readyList.size();c++) {
+                UnixFile other = readyList.get(c);
+                boolean otherIsHam = other.getFile().getName().startsWith("ham_");
+                if(firstIsHam == otherIsHam) {
+                    // If both spam or both ham, batch to one call and remove from later processing
+                    thisPass.add(other);
+                } else {
+                    // Mode for that user switched, termination batching loop
+                    break;
+                }
+            }
+
+            // Only train SpamAssassin when integration mode not set to none
+            EmailSpamAssassinIntegrationMode integrationMode = oldestLsa.getEmailSpamAssassinIntegrationMode();
+            if(!integrationMode.getName().equals(EmailSpamAssassinIntegrationMode.NONE)) {
+                // Call sa-learn for this pass
+                String username = oldestLsa.getLinuxAccount().getUsername().getUsername();
+                tempSB.setLength(0);
+                tempSB.append("/usr/bin/sa-learn ").append(firstIsHam ? "--ham" : "--spam");
+                for(UnixFile uf : thisPass) tempSB.append(' ').append(uf.getPath());
+                String command = tempSB.toString();
+                System.err.println("DEBUG: "+SpamAssassinManager.class.getName()+": processIncomingMessagesCentOs: username="+username+" and command=\""+command+"\"");
+                AOServDaemon.suexec(
+                    username,
+                    command
+                );
+            }
+
+            // Remove the files processed (or not processed based on integration mode) in this pass
+            for(UnixFile uf : thisPass) uf.delete();
         }
     }
 
