@@ -485,7 +485,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                 String username = oldestLsa.getLinuxAccount().getUsername().getUsername();
                 tempSB.setLength(0);
                 tempSB.append("/usr/bin/sa-learn");
-                // The choice of 5 here is arbitrary, have not measured the performance of this versus other values
+                // The choice of 5 here is arbitrary, have not measured the performance of this versus other values.
+                // This needs to balance the overhead of the additional exec versus the overhead of the sync.
                 boolean isNoSync = thisPass.size() >= 5;
                 if(isNoSync) tempSB.append(" --no-sync");
                 tempSB.append(firstIsHam ? " --ham" : " --spam");
