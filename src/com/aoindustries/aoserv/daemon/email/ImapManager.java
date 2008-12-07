@@ -47,6 +47,8 @@ final public class ImapManager extends BuilderThread {
             //       also create Junk folder if they have IMAP integration enabled
             //       Also create other folders and convert from UW software
             //           And control .mailboxlist, too.
+            //           http://cyrusimap.web.cmu.edu/twiki/bin/view/Cyrus/MboxCyrusMigration
+            //           chown to root as completed - do not deleted until later
             
             // TODO: Remove extra cyrus users
             //       deletemailbox user/cyrus.test@suspendo.aoindustries.com
@@ -77,32 +79,34 @@ final public class ImapManager extends BuilderThread {
             // TODO: sieve only listen on primary IP only (for chroot failover)
             
             // TODO: Explicitely disallow @default in any username - make sure none in DB
+            //       Explicitely disallow ao_servers.hostname=default
             //       Explicitely disallow cyrus@* in any usernames - make sure none in DB
             //       Make sure only one @ allowed in usernames - check database
             //       Make sure @ never first or last (always have something before and after) - check DB
             
-            // TODO: Auto-expunge each mailbox once per day, add ACL as needed - cyr_expire?
-            //       Auto clean Trash/Junk if they exist, during auto-expunge pass - ipurge -f -d (days) -X -s
-            //       what is delayed expunge? - unexpunge command
+            // TODO: Auto-expunge each mailbox once per day - cyr_expire?
+            //         Set /vendor/cmu/cyrus-imapd/expire for Junk and Trash - see man cyr_expire
+            //         http://lists.andrew.cmu.edu/pipermail/cyrus-devel/2007-June/000331.html
+            //       http://cyrusimap.web.cmu.edu/twiki/bin/view/Cyrus/MboxExpire
+            //         mboxcfg INBOX/SPAM expire 10
+            //         info INBOX/SPAM
+            //         or: imap.setannotation('INBOX/SPAM', '/vendor/cmu/cyrus-imapd/expire',
             
             // TODO: Run chk_cyrus from NOC?
             
-            // TODO: ctl_cyrusdb -c right before backup LVM snapshot
+            // TODO: Backups:
+            //           stop master, snapshot, start master
+            //           Or, without snapshots, do ctl_mboxlist -d
+            //               http://cyrusimap.web.cmu.edu/twiki/bin/view/Cyrus/Backup
+            //           Also, don't back-up Junk folders?
             
             // TODO: Maybe can get inbox size (and # of messages) from: mbexamine user/cyrus.test2@default
             //       Or use quota and quota command.
+            //       Or use IMAP?
             
             // TODO: No longer support POP2
             
             // TODO: Add smmapd support
-            
-            // TODO: EVENT in man cyrus.conf(5)
-            
-            // TODO tls_prune automatically called from master?
-            
-            // TODO: Train SpamAssassin
-            //       Maybe sync_log can be used for training spamassassin?
-            //       Or maybe we can look for hard linking with FAM, if copy creates hard links?
         }
     }
 
