@@ -281,8 +281,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                             // Call sa-learn for this pass
                             tempSB.setLength(0);
                             tempSB.append("/usr/bin/sa-learn ").append(currentIsHam?"--ham":"--spam").append(" --dir");
-                            // Only train first 100 maximum at a time
-                            for(int c=0;c<thisPass.size() && c<100;c++) {
+                            for(int c=0;c<thisPass.size();c++) {
                                 UnixFile uf=thisPass.get(c);
                                 tempSB.append(' ').append(uf.getPath());
                             }
@@ -317,9 +316,9 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
             incomingDirectory.mkdir();
             incomingDirectory.getStat(incomingStat);
         }
-        // Make sure mode 0770
-        if(incomingStat.getMode()!=0770) {
-            incomingDirectory.setMode(0770);
+        // Make sure mode 0755
+        if(incomingStat.getMode()!=0755) {
+            incomingDirectory.setMode(0755);
             incomingDirectory.getStat(incomingStat);
         }
         // Make sure user cyrus and group mail
@@ -339,7 +338,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
         Stat userDirectoryUfStat = new Stat();
         List<File> deleteFileList=new ArrayList<File>();
         StringBuilder tempSB = new StringBuilder();
-        List<UnixFile> thisPass = new ArrayList<UnixFile>();
+        List<UnixFile> thisPass = new ArrayList<UnixFile>(100);
 
         while(true) {
             // End loop if no subdirectories
@@ -471,6 +470,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                 if(firstIsHam == otherIsHam) {
                     // If both spam or both ham, batch to one call and remove from later processing
                     thisPass.add(other);
+                    // Only train maximum 100 messages at a time
+                    if(thisPass.size()>=100) break;
                 } else {
                     // Mode for that user switched, termination batching loop
                     break;
@@ -483,14 +484,29 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                 // Call sa-learn for this pass
                 String username = oldestLsa.getLinuxAccount().getUsername().getUsername();
                 tempSB.setLength(0);
-                tempSB.append("/usr/bin/sa-learn ").append(firstIsHam ? "--ham" : "--spam");
+                tempSB.append("/usr/bin/sa-learn");
+                // The choice of 5 here is arbitrary, have not measured the performance of this versus other values
+                boolean isNoSync = thisPass.size() >= 5;
+                if(isNoSync) tempSB.append(" --no-sync");
+                tempSB.append(firstIsHam ? " --ham" : " --spam");
                 for(UnixFile uf : thisPass) tempSB.append(' ').append(uf.getPath());
                 String command = tempSB.toString();
                 System.err.println("DEBUG: "+SpamAssassinManager.class.getName()+": processIncomingMessagesCentOs: username="+username+" and command=\""+command+"\"");
-                AOServDaemon.suexec(
-                    username,
-                    command
-                );
+                try {
+                    AOServDaemon.suexec(
+                        username,
+                        command
+                    );
+                } finally {
+                    if(isNoSync) {
+                        String command2 = "/usr/bin/sa-learn --sync";
+                        System.err.println("DEBUG: "+SpamAssassinManager.class.getName()+": processIncomingMessagesCentOs: username="+username+" and command2=\""+command2+"\"");
+                        AOServDaemon.suexec(
+                            username,
+                            command2
+                        );
+                    }
+                }
             }
 
             // Remove the files processed (or not processed based on integration mode) in this pass
