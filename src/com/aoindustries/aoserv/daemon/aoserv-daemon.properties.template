@@ -54,6 +54,9 @@ aoserv.daemon.interbase.password=<interbase_password>
 aoserv.daemon.interbase.connections=16
 aoserv.daemon.interbase.max_connection_age=
 
+# Cyrus
+aoserv.daemon.cyrus.password=
+
 # Enabled/disabled each Manager
 aoserv.daemon.cvsd.CvsManager.enabled=true
 aoserv.daemon.distro.DistroManager.enabled=true

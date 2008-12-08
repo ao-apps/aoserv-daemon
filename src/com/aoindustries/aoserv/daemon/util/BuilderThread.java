@@ -12,6 +12,7 @@ import com.aoindustries.table.Table;
 import com.aoindustries.table.TableListener;
 import java.io.IOException;
 import java.sql.SQLException;
+import javax.mail.MessagingException;
 
 /**
  * Handles the building of CVS repositories and configs.
@@ -121,7 +122,7 @@ abstract public class BuilderThread implements TableListener {
         }
     }
     
-    protected abstract void doRebuild() throws IOException, SQLException;
+    protected abstract void doRebuild() throws IOException, SQLException, MessagingException;
 
     private int waitForBuildCount=0;
     public void waitForBuild() {

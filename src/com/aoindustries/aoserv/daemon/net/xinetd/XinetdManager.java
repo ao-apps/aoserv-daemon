@@ -94,8 +94,8 @@ public final class XinetdManager extends BuilderThread {
                         // POP and IMAP is handled through xinetd on Mandriva 2006.0
                         osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
                         && (
-                            protocol.equals(Protocol.POP2)
-                            || protocol.equals(Protocol.POP3)
+                            //protocol.equals(Protocol.POP2)
+                            protocol.equals(Protocol.POP3)
                             || protocol.equals(Protocol.SIMAP)
                             || protocol.equals(Protocol.SPOP3)
                             || protocol.equals(Protocol.IMAP2)
@@ -374,7 +374,7 @@ public final class XinetdManager extends BuilderThread {
                                     null
                                 );
                             } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-                        } else if(protocol.equals(Protocol.POP2)) {
+                        /*} else if(protocol.equals(Protocol.POP2)) {
                             if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                                 service=new Service(
                                     portMatches?null:UNLISTED,
@@ -399,7 +399,7 @@ public final class XinetdManager extends BuilderThread {
                                     null,
                                     null
                                 );
-                            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);*/
                         } else if(protocol.equals(Protocol.POP3)) {
                             if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                                 service=new Service(

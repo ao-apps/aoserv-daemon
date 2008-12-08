@@ -176,6 +176,10 @@ final public class AOServDaemonConfiguration {
         return S==null || S.length()==0 ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(S);
     }
 
+    public static String getCyrusPassword() throws IOException {
+        return getProperty("cyrus.password");
+    }
+
     public static boolean isManagerEnabled(Class clazz) throws IOException {
         final String stripPrefix="com.aoindustries.aoserv.daemon.";
         String key=clazz.getName();
