@@ -41,7 +41,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
-import java.util.TimeZone;
 import javax.mail.Folder;
 import javax.mail.MessagingException;
 import javax.mail.Session;
@@ -135,40 +134,45 @@ final public class ImapManager extends BuilderThread {
 
     private static final Object rebuildLock=new Object();
     protected void doRebuild() throws IOException, SQLException, MessagingException {
-        synchronized(rebuildLock) {
-            // TODO: Configure /etc/cyrus.conf
-                // Require port 143 on primary IP, error if not there - used for admin connections
-            // TODO: Configure /etc/imapd.conf
-                // TODO: Configure certificates in /etc/pki/cyrus-imapd on a per-IP basis.
-                //       file:///home/o/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
-                //       value of "disabled" if the certificate file doesn't exist (or use server default)
-                //       openssl req -new -x509 -nodes -out cyrus-imapd.pem -keyout cyrus-imapd.pem -days 3650
-                //       Other automated certificate management, sendmail too?
-            // TODO: Restart cyrus-imapd if needed
+        AOServer thisAOServer=AOServDaemon.getThisAOServer();
+        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+        if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+            synchronized(rebuildLock) {
 
-            rebuildUsers();
+                // TODO: Configure /etc/cyrus.conf
+                    // Require port 143 on primary IP, error if not there - used for admin connections
+                // TODO: Configure /etc/imapd.conf
+                    // TODO: Configure certificates in /etc/pki/cyrus-imapd on a per-IP basis.
+                    //       file:///home/o/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
+                    //       value of "disabled" if the certificate file doesn't exist (or use server default)
+                    //       openssl req -new -x509 -nodes -out cyrus-imapd.pem -keyout cyrus-imapd.pem -days 3650
+                    //       Other automated certificate management, sendmail too?
+                // TODO: Restart cyrus-imapd if needed
 
-            // TODO: Future
-            //     Control the synchronous mode for ext2/ext3 automatically?
-            //         file:///home/o/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
-            //         cd /var/imap
-            //         chattr +S user quota user/* quota/*
-            //         chattr +S /var/spool/imap /var/spool/imap/*
-            //         chattr +S /var/spool/mqueue
-            //     sieve to replace procmail and allow more directly delivery
-            //         sieveusehomedir
-            //         sieveshell:
-            //             sieveshell --authname=cyrus.test@suspendo.aoindustries.com 192.168.1.12
-            //             /bin/su -s /bin/bash -c "/usr/bin/sieveshell 192.168.1.12" cyrus.test@suspendo.aoindustries.com
-            //         sieve only listen on primary IP only (for chroot failover)
-            //     Run chk_cyrus from NOC?
-            //     Backups:
-            //           stop master, snapshot, start master
-            //           Or, without snapshots, do ctl_mboxlist -d
-            //               http://cyrusimap.web.cmu.edu/twiki/bin/view/Cyrus/Backup
-            //           Also, don't back-up Junk folders?
-            //     Add smmapd support
-            //     Consider http://en.wikipedia.org/wiki/Application_Configuration_Access_Protocol or http://en.wikipedia.org/wiki/Application_Configuration_Access_Protocol
+                rebuildUsers();
+
+                // TODO: Future
+                //     Control the synchronous mode for ext2/ext3 automatically?
+                //         file:///home/o/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
+                //         cd /var/imap
+                //         chattr +S user quota user/* quota/*
+                //         chattr +S /var/spool/imap /var/spool/imap/*
+                //         chattr +S /var/spool/mqueue
+                //     sieve to replace procmail and allow more directly delivery
+                //         sieveusehomedir
+                //         sieveshell:
+                //             sieveshell --authname=cyrus.test@suspendo.aoindustries.com 192.168.1.12
+                //             /bin/su -s /bin/bash -c "/usr/bin/sieveshell 192.168.1.12" cyrus.test@suspendo.aoindustries.com
+                //         sieve only listen on primary IP only (for chroot failover)
+                //     Run chk_cyrus from NOC?
+                //     Backups:
+                //           stop master, snapshot, start master
+                //           Or, without snapshots, do ctl_mboxlist -d
+                //               http://cyrusimap.web.cmu.edu/twiki/bin/view/Cyrus/Backup
+                //           Also, don't back-up Junk folders?
+                //     Add smmapd support
+                //     Consider http://en.wikipedia.org/wiki/Application_Configuration_Access_Protocol or http://en.wikipedia.org/wiki/Application_Configuration_Access_Protocol
+            }
         }
     }
 
@@ -365,9 +369,9 @@ final public class ImapManager extends BuilderThread {
     /**
      * TODO: Remove after testing, or move to JUnit tests.
      */
-    public static void main(String[] args) {
+    /*public static void main(String[] args) {
         try {
-            //rebuildUsers();
+            rebuildUsers();
 
             for(LinuxServerAccount lsa : AOServDaemon.getThisAOServer().getLinuxServerAccounts()) {
                 LinuxAccount la = lsa.getLinuxAccount();
@@ -381,7 +385,7 @@ final public class ImapManager extends BuilderThread {
         } catch(Exception err) {
             ErrorPrinter.printStackTraces(err);
         }
-    }
+    }*/
 
     public static void start() throws IOException, SQLException {
         AOServer thisAOServer=AOServDaemon.getThisAOServer();
