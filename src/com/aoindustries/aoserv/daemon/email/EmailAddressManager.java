@@ -21,8 +21,6 @@ import com.aoindustries.aoserv.client.Username;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.cron.CronDaemon;
-import com.aoindustries.cron.CronJob;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -45,7 +43,7 @@ import java.util.Set;
 /**
  * @author  AO Industries, Inc.
  */
-final public class EmailAddressManager extends BuilderThread implements CronJob {
+final public class EmailAddressManager extends BuilderThread {
 
     /**
      * Sendmail files.
@@ -490,8 +488,6 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
                 connector.linuxServerAccounts.addTableListener(emailAddressManager, 0);
                 connector.linuxAccAddresses.addTableListener(emailAddressManager, 0);
                 connector.systemEmailAliases.addTableListener(emailAddressManager, 0);
-                // Register in CronDaemon
-                CronDaemon.addCronJob(emailAddressManager, AOServDaemon.getErrorHandler());
                 System.out.println("Done");
             }
         }
@@ -508,35 +504,5 @@ final public class EmailAddressManager extends BuilderThread implements CronJob 
 
     public String getProcessTimerDescription() {
         return "Rebuild Email Addresses";
-    }
-    
-    public String getCronJobName() {
-        return EmailAddressManager.class.getName();
-    }
-    
-    public int getCronJobScheduleMode() {
-        return CRON_JOB_SCHEDULE_SKIP;
-    }
-    
-    public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
-        return
-            minute==30
-            && hour==1
-            && dayOfMonth==1
-            && month==1
-        ;
-    }
-
-    public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
-        rebuildEmailCertificates();
-    }
-    
-    public int getCronJobThreadPriority() {
-        return Thread.NORM_PRIORITY;
-    }
-
-    public static void rebuildEmailCertificates() {
-        // TODO: Rebuild certificates automatically once a year
-        // TODO: Should this be monitored in NOC instead?
     }
 }
