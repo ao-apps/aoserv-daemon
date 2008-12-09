@@ -40,9 +40,6 @@ final public class NetDeviceManager extends BuilderThread {
     
     private static NetDeviceManager netDeviceManager;
 
-    /**
-     * TODO: Once all Dom0 upgraded to CentOS 5, change this to false.
-     */
     private static final boolean WARN_ONLY = false;
 
     private NetDeviceManager() {
