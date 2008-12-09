@@ -99,8 +99,13 @@ public final class ProcmailManager extends BuilderThread {
                             out.print(AUTO_PROCMAILRC
                                       + "\n"
                                       + "# Setup the environment\n"
-                                      + "SHELL=/bin/bash\n"
-                                      + "LINEBUF=16384\n");
+                                      + "SHELL=/bin/bash\n");
+                                      
+                                      // TODO: Build the file after this in advance, look for the longest line, and set accordingly.
+                                      //+ "LINEBUF=16384\n"
+                                      // This was only set for the auto-reply and email attachment block stuff.
+                                      
+                                      // Default locking time is fine since not locking for spamassassin now: + "LOCKSLEEP=15\n");
 
                             LinuxAccount la = lsa.getLinuxAccount();
                             String username = la.getUsername().getUsername();
@@ -145,9 +150,9 @@ public final class ProcmailManager extends BuilderThread {
                                         + "* < 256000\n"
                                         + "{\n"
                                         + "  # Filter through spamassassin\n"
-                                        // Not locking here, letting spamd do the locking since procmail locking is terribly slow. + "  :0 fw: spamassassin.lock\n"
+                                        // procmail locking sucks and is not necessary: + "  :0 fw: spamassassin.lock\n"
                                         + "  :0 fw\n"
-                                        + "  | /usr/bin/spamc -d ").print(primaryIP).print("\n"
+                                        + "  | /usr/bin/spamc -d ").print(primaryIP).print(" --connect-retries=6 --retry-sleep=10 --headers\n"
                                         + "  \n"
                                         + "  # If spamassassin failed, return a temporary failure code to sendmail\n"
                                         + "  :0\n"
