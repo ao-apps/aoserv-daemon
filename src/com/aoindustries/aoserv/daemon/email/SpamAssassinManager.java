@@ -64,6 +64,8 @@ import java.util.Set;
  *
  * Multiple directories from one user are sent to sa-learn at once when possible for efficiency.
  *
+ * TODO: Somehow report when users drag from Junk to elsewhere (ham training), perhaps we can tweak our sa_discard_score some
+ *
  * @author  AO Industries, Inc.
  */
 public class SpamAssassinManager extends BuilderThread implements Runnable {
