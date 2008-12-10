@@ -32,10 +32,6 @@ import java.util.List;
 /**
  * Builds the .procmailrc configurations.
  *
- * TODO: Add second spamassassin threshold to just delete outright, maybe default to 15-20 or so.
- * TODO: Once done, update any manual .procmailrc files as needed for this and other recent changes.
- *       Currently testing on support@aoindustries.com account with a Junkier folder for >=15
- *
  * @author  AO Industries, Inc.
  */
 public final class ProcmailManager extends BuilderThread {
