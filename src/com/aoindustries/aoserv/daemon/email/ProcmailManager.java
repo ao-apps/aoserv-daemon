@@ -315,11 +315,13 @@ public final class ProcmailManager extends BuilderThread {
                                     } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                                         out.print(":0 w\n"
                                                 + "* ^X-Spam-Status: Yes\n"
-                                                + "| /usr/bin/formail -I\"From \" | /usr/lib/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n");
+                                                // + "| /usr/bin/formail -I\"From \" | /usr/lib/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n");
+                                                + "| /opt/aoserv-client/bin/skipfirstline | /usr/lib/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n");
                                     } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                                         out.print(":0 w\n"
                                                 + "* ^X-Spam-Status: Yes\n"
-                                                + "| /usr/bin/formail -I\"From \" | /usr/lib64/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n");
+                                                // + "| /usr/bin/formail -I\"From \" | /usr/lib64/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n");
+                                                + "| /opt/aoserv-client/bin/skipfirstline | /usr/lib64/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n");
                                     } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                                 }
 
