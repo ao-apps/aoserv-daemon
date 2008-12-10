@@ -32,7 +32,9 @@ import java.util.List;
 /**
  * Builds the .procmailrc configurations.
  *
- * TODO: Add second spamassassin threshold to just delete outright, maybe default to 15 or so
+ * TODO: Add second spamassassin threshold to just delete outright, maybe default to 15-20 or so.
+ * TODO: Once done, update any manual .procmailrc files as needed for this and other recent changes.
+ *       Currently testing on support@aoindustries.com account with a Junkier folder for >=15
  *
  * @author  AO Industries, Inc.
  */
@@ -161,8 +163,19 @@ public final class ProcmailManager extends BuilderThread {
                                         + "    # Return EX_TEMPFAIL to have sendmail retry delivery\n"
                                         + "    EXITCODE=75\n"
                                         + "    HOST\n"
-                                        + "  }\n"
-                                        + "}\n");
+                                        + "  }\n");
+                                // Discard if configured to do so
+                                int saDiscardScore = lsa.getSpamAssassinDiscardScore();
+                                if(saDiscardScore>0) {
+                                    out.print("\n"
+                                            + "  # Discard spam with a score >= ").print(saDiscardScore).print("\n"
+                                            + "  :0\n"
+                                            + "  * ^X-Spam-Level: ");
+                                    for(int c=0;c<saDiscardScore;c++) out.print("\\*");
+                                    out.print("\n"
+                                            + "  /dev/null\n");
+                                }
+                                out.print("}\n");
                             }
                             // First figure out if this message will be rejected due to attachment
                             if(!eabs.isEmpty()) {
@@ -256,16 +269,21 @@ public final class ProcmailManager extends BuilderThread {
                                 // Figure out the autoresponder details
                                 String path=lsa.getAutoresponderPath();
                                 String subject=lsa.getAutoresponderSubject();
-                                // TODO: What if subject has shell characters?
                                 out.print("\n"
-                                          + "# Configure the autoresponder\n"
-                                          + ":0 h c\n"
-                                          + "* !^FROM_DAEMON\n"
-                                          + "* !From: .*MAILER-DAEMON.*\n"
-                                          + "* !X-Loop: ").print(xloopAddress).print("\n"
-                                          + "| (/usr/bin/formail -r \\\n"
-                                          + "    -I\"Precedence: junk\" \\\n"
-                                          + "    -i\"From: ").print(defaultFromAddress).print("\" \\\n");
+                                        + "# Configure the autoresponder\n"
+                                        + ":0 h c\n"
+                                        + "* !^FROM_DAEMON\n"
+                                        + "* !^From: .*MAILER-DAEMON.*\n");
+                                // This is already discarded above: + "* !^X-Loop: ").print(xloopAddress).print("\n");
+                                // Don't respond to spam
+                                if(!spamAssassinMode.equals(EmailSpamAssassinIntegrationMode.NONE)) {
+                                    // This handles both large messages that aren't scanned and those that are scanned by using !Yes
+                                    out.print("* !^X-Spam-Status: Yes\n");
+                                }
+                                out.print("| (/usr/bin/formail -r \\\n"
+                                        + "    -I\"Precedence: junk\" \\\n"
+                                        + "    -i\"From: ").print(defaultFromAddress).print("\" \\\n");
+                                // TODO: What if subject has shell characters?
                                 if(subject!=null) out.print("    -i\"Subject: ").print(subject).print("\" \\\n");
                                 out.print("    -A\"X-Loop: ").print(xloopAddress).print("\" ");
                                 if(path==null) out.print("\\\n");
@@ -277,20 +295,7 @@ public final class ProcmailManager extends BuilderThread {
                             }
 
                             if(lsa.useInbox()) {
-                                // Capture return-path header if needed
-                                if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                                    // Nothing special needed
-                                } else if(
-                                    osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-                                    || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
-                                ) {
-                                    out.print("\n"
-                                            + "# Capture the current Return-path to pass to deliver\n"
-                                            + ":0 h\n"
-                                            + "RETURN_PATH=| /usr/bin/formail -c -x Return-Path: | /bin/sed -e 's/^ *<//' -e 's/>$//'\n");
-                                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-
-                                // Only move to Junk folder when the message could be stored to the inbox
+                                // Only move to Junk folder when the inbox is enabled and in IMAP mode
                                 if(spamAssassinMode.equals(EmailSpamAssassinIntegrationMode.IMAP)) {
                                     out.print("\n"
                                             + "# Place any flagged spam in the Junk folder\n");
@@ -308,6 +313,18 @@ public final class ProcmailManager extends BuilderThread {
                                                 + "| /usr/bin/formail -I\"From \" | /usr/lib64/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n");
                                     } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                                 }
+                                // Capture return-path header if needed
+                                if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                    // Nothing special needed
+                                } else if(
+                                    osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                                    || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+                                ) {
+                                    out.print("\n"
+                                            + "# Capture the current Return-path to pass to deliver\n"
+                                            + ":0 h\n"
+                                            + "RETURN_PATH=| /usr/bin/formail -c -x Return-Path: | /bin/sed -e 's/^ *<//' -e 's/>$//'\n");
+                                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
                                 // Deliver to INBOX
                                 if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
@@ -322,9 +339,9 @@ public final class ProcmailManager extends BuilderThread {
                                             + "| /usr/bin/formail -I\"From \" | /usr/lib64/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
                                 } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                             } else {
-                                // Discard the email if configured to not use the inbox
+                                // Discard the email if configured to not use the inbox or Junk folders
                                 out.print("\n"
-                                          + "# Discard the message so it is not stored in the inbox\n"
+                                          + "# Discard the message\n"
                                           + ":0\n"
                                           + "/dev/null\n");
                             }

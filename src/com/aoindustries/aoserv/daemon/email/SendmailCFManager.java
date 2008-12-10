@@ -30,6 +30,8 @@ import java.util.List;
 
 /**
  * Builds the sendmail.mc and sendmail.cf files as necessary.
+ * 
+ * TODO: Somehow report when users drag from Junk to elsewhere (ham training), perhaps we can tweak our sa_discard_score some
  *
  * @author  AO Industries, Inc.
  */
