@@ -39,6 +39,8 @@ import org.apache.commons.logging.LogFactory;
  * 
  * TODO: Should we use some tricky stuff to dump the databases straight out as we iterate?  (Backups only)
  * TODO: Or, just dump to disk and remove when completed?  (Backups only)
+ * 
+ * TODO: Adhere to the d attribute?  man chattr
  *
  * @see  AOServer
  *
