@@ -74,6 +74,21 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
     private static final long DELAY_INTERVAL=(long)60*1000;
 
     /**
+     * The maximum number of messages that will be sent to sa-learn as a single command.
+     */
+    private static final int MAX_SALEARN_BATCH = 1000;
+
+    /**
+     * The minimum number of messages being sent to sa-learn that will use a two step
+     * sa-learn --no-sync then sa-learn --sync
+     * 
+     * The choice of 5 here is arbitrary, we have not measured the performance of this versus other values.
+     * This needs to balance the overhead of the additional exec versus the overhead of the sync.
+     * This balance may consider that CPU is generally more plentiful than disk I/O.
+     */
+    private static final int SALEARN_NOSYNC_THRESHOLD = 5;
+
+    /**
      * The directory containing the spam and ham directories.
      */
     private static final UnixFile incomingDirectory=new UnixFile("/var/spool/aoserv/spamassassin");
@@ -338,7 +353,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
         Stat userDirectoryUfStat = new Stat();
         List<File> deleteFileList=new ArrayList<File>();
         StringBuilder tempSB = new StringBuilder();
-        List<UnixFile> thisPass = new ArrayList<UnixFile>(100);
+        List<UnixFile> thisPass = new ArrayList<UnixFile>(MAX_SALEARN_BATCH);
 
         while(true) {
             // End loop if no subdirectories
@@ -479,8 +494,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                 if(firstIsHam == otherIsHam) {
                     // If both spam or both ham, batch to one call and remove from later processing
                     thisPass.add(other);
-                    // Only train maximum 100 messages at a time
-                    if(thisPass.size()>=100) break;
+                    // Only train maximum MAX_SALEARN_BATCH messages at a time
+                    if(thisPass.size()>=MAX_SALEARN_BATCH) break;
                 } else {
                     // Mode for that user switched, termination batching loop
                     break;
@@ -494,10 +509,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                 String username = oldestLsa.getLinuxAccount().getUsername().getUsername();
                 tempSB.setLength(0);
                 tempSB.append("/usr/bin/sa-learn");
-                // The choice of 5 here is arbitrary, have not measured the performance of this versus other values.
-                // This needs to balance the overhead of the additional exec versus the overhead of the sync.
-                // This balance may consider that CPU is generally more plentiful than disk I/O.
-                boolean isNoSync = thisPass.size() >= 5;
+                boolean isNoSync = thisPass.size() >= SALEARN_NOSYNC_THRESHOLD;
                 if(isNoSync) tempSB.append(" --no-sync");
                 tempSB.append(firstIsHam ? " --ham" : " --spam");
                 for(UnixFile uf : thisPass) tempSB.append(' ').append(uf.getPath());
