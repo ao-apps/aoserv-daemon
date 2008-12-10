@@ -295,6 +295,19 @@ public final class ProcmailManager extends BuilderThread {
                             }
 
                             if(lsa.useInbox()) {
+                                // Capture return-path header if needed
+                                if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                    // Nothing special needed
+                                } else if(
+                                    osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                                    || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+                                ) {
+                                    out.print("\n"
+                                            + "# Capture the current Return-path to pass to deliver\n"
+                                            + ":0 h\n"
+                                            + "RETURN_PATH=| /usr/bin/formail -c -x Return-Path: | /bin/sed -e 's/^ *<//' -e 's/>$//'\n");
+                                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+
                                 // Only move to Junk folder when the inbox is enabled and in IMAP mode
                                 if(spamAssassinMode.equals(EmailSpamAssassinIntegrationMode.IMAP)) {
                                     out.print("\n"
@@ -313,18 +326,6 @@ public final class ProcmailManager extends BuilderThread {
                                                 + "| /usr/bin/formail -I\"From \" | /usr/lib64/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n");
                                     } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                                 }
-                                // Capture return-path header if needed
-                                if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                                    // Nothing special needed
-                                } else if(
-                                    osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-                                    || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
-                                ) {
-                                    out.print("\n"
-                                            + "# Capture the current Return-path to pass to deliver\n"
-                                            + ":0 h\n"
-                                            + "RETURN_PATH=| /usr/bin/formail -c -x Return-Path: | /bin/sed -e 's/^ *<//' -e 's/>$//'\n");
-                                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
                                 // Deliver to INBOX
                                 if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
