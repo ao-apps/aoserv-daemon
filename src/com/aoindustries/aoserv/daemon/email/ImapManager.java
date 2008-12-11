@@ -15,6 +15,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.util.ErrorPrinter;
 import com.sun.mail.iap.Argument;
 import com.sun.mail.iap.ProtocolException;
 import com.sun.mail.iap.Response;
@@ -34,10 +35,12 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import javax.mail.Folder;
 import javax.mail.MessagingException;
 import javax.mail.Session;
@@ -58,6 +61,18 @@ import javax.mail.Session;
 final public class ImapManager extends BuilderThread {
 
     public static final File mailSpool=new File("/var/spool/mail");
+    
+    private static final File imapSpool = new File("/var/spool/imap");
+    private static final File imapVirtDomainSpool = new File(imapSpool, "domain");
+
+    /**
+     * These directories may be in the imapSpool and will be ignored.
+     */
+    private static final Set<String> imapSpoolIgnoreDirectories = new HashSet<String>();
+    static {
+        imapSpoolIgnoreDirectories.add("domain");
+        imapSpoolIgnoreDirectories.add("stage.");
+    }
 
     private static ImapManager imapManager;
 
@@ -184,7 +199,7 @@ final public class ImapManager extends BuilderThread {
         StringBuilder sb = new StringBuilder();
         sb.append("user/").append(user);
         if(folder.length()>0) sb.append('/').append(folder);
-        if(domain!=null) sb.append('@').append(domain);
+        sb.append('@').append(domain);
         return sb.toString();
     }
 
@@ -195,12 +210,12 @@ final public class ImapManager extends BuilderThread {
      * 
      * @param  folder  the IMAPFolder to verify the ACL on
      * @param  user    the username (without any @ sign)
-     * @param  domain  null if no domain
+     * @param  domain  "default" if no domain
      * @param  rights  the rights, one character to right
      */
     private static void rebuildAcl(IMAPFolder folder, String user, String domain, Rights rights) throws MessagingException {
         // Determine the username
-        String username = domain==null ? user : (user+'@'+domain);
+        String username = domain.equals("default") ? user : (user+'@'+domain);
 
         ACL userAcl = null;
         for(ACL acl : folder.getACL()) {
@@ -244,7 +259,7 @@ final public class ImapManager extends BuilderThread {
      * @see  #getDomain
      */
     private static String getUser(String username) {
-        int atPos = username.indexOf('@');
+        int atPos = username.lastIndexOf('@');
         return (atPos==-1) ? username : username.substring(0, atPos);
     }
     
@@ -254,8 +269,50 @@ final public class ImapManager extends BuilderThread {
      * @see  #getUser
      */
     private static String getDomain(String username) {
-        int atPos = username.indexOf('@');
-        return (atPos==-1) ? null : username.substring(atPos+1);
+        int atPos = username.lastIndexOf('@');
+        return (atPos==-1) ? "default" : username.substring(atPos+1);
+    }
+
+    /**
+     * Adds user directories to the provided domain->user map.
+     * The directories should be in the format ?/user/*
+     * The ? should be equal to the first letter of *
+     */
+    private static void addUserDirectories(File directory, Set<String> ignoreList, String domain, Map<String,Set<String>> allUsers) throws IOException {
+        String[] hashFilenames = directory.list();
+        if(hashFilenames!=null) {
+            for(String hashFilename : hashFilenames) {
+                if(ignoreList==null || !ignoreList.contains(hashFilename)) {
+                    // hashFilename should only be one character
+                    File hashDir = new File(directory, hashFilename);
+                    if(hashFilename.length()!=1) throw new IOException("hashFilename should only be on character: "+hashDir.getPath());
+                    // hashDir should only contain a "user" directory
+                    String[] hashSubFilenames = hashDir.list();
+                    if(hashSubFilenames!=null && hashSubFilenames.length>0) {
+                        if(hashSubFilenames.length!=1) throw new IOException("hashSubFilenames should only contain one directory: "+hashDir);
+                        String hashSubFilename = hashSubFilenames[0];
+                        File userDir = new File(hashDir, hashSubFilename);
+                        if(!hashSubFilename.equals("user")) throw new IOException("hashSubFilenames should only contain a \"user\" directory: "+userDir);
+                        String[] userSubFilenames = userDir.list();
+                        if(userSubFilenames!=null && userSubFilenames.length>0) {
+                            // Add the domain if needed
+                            Set<String> domainUsers = allUsers.get(domain);
+                            if(domainUsers==null) {
+                                //System.out.println("domain: "+domain);
+                                allUsers.put(domain, domainUsers = new HashSet<String>());
+                            }
+                            // Add the users
+                            for(String user : userSubFilenames) {
+                                if(!user.startsWith(hashFilename)) throw new IOException("user directory should start with "+hashFilename+": "+userDir.getPath()+"/"+user);
+                                user = user.replace('^', '.');
+                                //System.out.println("user: "+user);
+                                if(!domainUsers.add(user)) throw new IOException("user already in domain: "+userDir.getPath()+"/"+user);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private static void rebuildUsers() throws IOException, SQLException, MessagingException {
@@ -263,90 +320,129 @@ final public class ImapManager extends BuilderThread {
             // Connect to the store
             IMAPStore store = getStore();
 
-            // Make sure the user folder exists
-            IMAPFolder userFolder = (IMAPFolder)store.getFolder("user");
-            try {
-                if(!userFolder.exists()) throw new MessagingException("Folder doesn't exist: user");
+            // Verify all email users - only users who have a home under /home/ are considered
+            List<LinuxServerAccount> lsas = AOServDaemon.getThisAOServer().getLinuxServerAccounts();
+            Set<String> validEmailUsernames = new HashSet<String>(lsas.size()*4/3+1);
+            for(LinuxServerAccount lsa : lsas) {
+                LinuxAccount la = lsa.getLinuxAccount();
+                String homePath = lsa.getHome();
+                if(la.getType().isEmail() && homePath.startsWith("/home/")) {
+                    // Split into user and domain
+                    String laUsername = la.getUsername().getUsername();
+                    String user = getUser(laUsername);
+                    String domain = getDomain(laUsername);
+                    validEmailUsernames.add(laUsername);
 
-                // Verify all email users - only users who have a home under /home/ are considered
-                for(LinuxServerAccount lsa : AOServDaemon.getThisAOServer().getLinuxServerAccounts()) {
-                    LinuxAccount la = lsa.getLinuxAccount();
-                    String homePath = lsa.getHome();
-                    if(la.getType().isEmail() && homePath.startsWith("/home/")) {
-                        // Split into user and domain
-                        String laUsername = la.getUsername().getUsername();
-                        String user = getUser(laUsername);
-                        String domain = getDomain(laUsername);
+                    // INBOX
+                    String inboxFolderName = getFolderName(user, domain, "");
+                    IMAPFolder inboxFolder = (IMAPFolder)store.getFolder(inboxFolderName);
+                    try {
+                        if(!inboxFolder.exists() && !inboxFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
+                            throw new MessagingException("Unable to create folder: "+inboxFolder.getFullName());
+                        }
+                        rebuildAcl(inboxFolder, LinuxAccount.CYRUS, "default", new Rights("ckrx"));
+                        rebuildAcl(inboxFolder, user, domain, new Rights("acdeiklprstwx"));
+                    } finally {
+                        if(inboxFolder.isOpen()) inboxFolder.close(false);
+                        inboxFolder = null;
+                    }
 
-                        // INBOX
-                        String inboxFolderName = getFolderName(user, domain, "");
-                        IMAPFolder inboxFolder = (IMAPFolder)store.getFolder(inboxFolderName);
+                    // Trash
+                    String trashFolderName = getFolderName(user, domain, "Trash");
+                    IMAPFolder trashFolder = (IMAPFolder)store.getFolder(trashFolderName);
+                    try {
+                        if(!trashFolder.exists() && !trashFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
+                            throw new MessagingException("Unable to create folder: "+trashFolder.getFullName());
+                        }
+                        rebuildAcl(trashFolder, LinuxAccount.CYRUS, "default", new Rights("ckrx"));
+                        rebuildAcl(trashFolder, user, domain, new Rights("acdeiklprstwx"));
+                    } finally {
+                        if(trashFolder.isOpen()) trashFolder.close(false);
+                        trashFolder = null;
+                    }
+
+                    if(!lsa.getEmailSpamAssassinIntegrationMode().getName().equals(EmailSpamAssassinIntegrationMode.NONE)) {
+                        // Junk
+                        String junkFolderName = getFolderName(user, domain, "Junk");
+                        IMAPFolder junkFolder = (IMAPFolder)store.getFolder(junkFolderName);
                         try {
-                            if(!inboxFolder.exists() && !inboxFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
-                                throw new MessagingException("Unable to create folder: "+inboxFolder.getFullName());
+                            if(!junkFolder.exists() && !junkFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
+                                throw new MessagingException("Unable to create folder: "+junkFolder.getFullName());
                             }
-                            rebuildAcl(inboxFolder, LinuxAccount.CYRUS, null, new Rights("ckrx"));
-                            rebuildAcl(inboxFolder, user, domain, new Rights("acdeiklprstwx"));
+                            rebuildAcl(junkFolder, LinuxAccount.CYRUS, "default", new Rights("ckrx"));
+                            rebuildAcl(junkFolder, user, domain, new Rights("acdeiklprstwx"));
                         } finally {
-                            if(inboxFolder.isOpen()) inboxFolder.close(false);
+                            if(junkFolder.isOpen()) junkFolder.close(false);
+                            junkFolder = null;
                         }
+                    }
 
-                        // Trash
-                        String trashFolderName = getFolderName(user, domain, "Trash");
-                        IMAPFolder trashFolder = (IMAPFolder)store.getFolder(trashFolderName);
-                        try {
-                            if(!trashFolder.exists() && !trashFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
-                                throw new MessagingException("Unable to create folder: "+trashFolder.getFullName());
-                            }
-                            rebuildAcl(trashFolder, LinuxAccount.CYRUS, null, new Rights("ckrx"));
-                            rebuildAcl(trashFolder, user, domain, new Rights("acdeiklprstwx"));
-                        } finally {
-                            if(trashFolder.isOpen()) trashFolder.close(false);
-                        }
-                        
-                        if(!lsa.getEmailSpamAssassinIntegrationMode().getName().equals(EmailSpamAssassinIntegrationMode.NONE)) {
-                            // Junk
-                            String junkFolderName = getFolderName(user, domain, "Junk");
-                            IMAPFolder junkFolder = (IMAPFolder)store.getFolder(junkFolderName);
-                            try {
-                                if(!junkFolder.exists() && !junkFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
-                                    throw new MessagingException("Unable to create folder: "+junkFolder.getFullName());
-                                }
-                                rebuildAcl(junkFolder, LinuxAccount.CYRUS, null, new Rights("ckrx"));
-                                rebuildAcl(junkFolder, user, domain, new Rights("acdeiklprstwx"));
-                            } finally {
-                                if(junkFolder.isOpen()) junkFolder.close(false);
-                            }
-                        }
+                    // TODO: Auto-expunge every mailbox once per day - cyr_expire?
+                        //         Set /vendor/cmu/cyrus-imapd/expire for Junk and Trash - see man cyr_expire
+                        //         http://lists.andrew.cmu.edu/pipermail/cyrus-devel/2007-June/000331.html
+                        //       http://cyrusimap.web.cmu.edu/twiki/bin/view/Cyrus/MboxExpire
+                        //         mboxcfg INBOX/SPAM expire 10
+                        //         info INBOX/SPAM
+                        //         or: imap.setannotation('INBOX/SPAM', '/vendor/cmu/cyrus-imapd/expire',
+                        //       192.168.1.12> mboxcfg "Junk" expire 31
+                        //       192.168.1.12> info "Junk"
+                        //       {Junk}:
+                        //       condstore: false
+                        //       expire: 31
+                        //       lastpop:
+                        //       lastupdate:  7-Dec-2008 07:25:19 -0600
+                        //       partition: default
+                        //       size: 0
+                    // TODO: Convert old folders from UW software
+                        //           And control .mailboxlist, too.
+                        //           http://cyrusimap.web.cmu.edu/twiki/bin/view/Cyrus/MboxCyrusMigration
+                        //           chown to root as completed - do not deleted until later
+                        //           Could we run old IMAP software on a different port and do JavaMail-based copies?
+                        //           imapsync: http://www.zimbra.com/forums/migration/6487-mailbox-size-extremely-large.html
+                }
+            }
 
-                        // TODO: Auto-expunge every mailbox once per day - cyr_expire?
-                            //         Set /vendor/cmu/cyrus-imapd/expire for Junk and Trash - see man cyr_expire
-                            //         http://lists.andrew.cmu.edu/pipermail/cyrus-devel/2007-June/000331.html
-                            //       http://cyrusimap.web.cmu.edu/twiki/bin/view/Cyrus/MboxExpire
-                            //         mboxcfg INBOX/SPAM expire 10
-                            //         info INBOX/SPAM
-                            //         or: imap.setannotation('INBOX/SPAM', '/vendor/cmu/cyrus-imapd/expire',
-                            //       192.168.1.12> mboxcfg "Junk" expire 31
-                            //       192.168.1.12> info "Junk"
-                            //       {Junk}:
-                            //       condstore: false
-                            //       expire: 31
-                            //       lastpop:
-                            //       lastupdate:  7-Dec-2008 07:25:19 -0600
-                            //       partition: default
-                            //       size: 0
-                        // TODO: Convert old folders from UW software
-                            //           And control .mailboxlist, too.
-                            //           http://cyrusimap.web.cmu.edu/twiki/bin/view/Cyrus/MboxCyrusMigration
-                            //           chown to root as completed - do not deleted until later
-                            //           Could we run old IMAP software on a different port and do JavaMail-based copies?
-                            //           imapsync: http://www.zimbra.com/forums/migration/6487-mailbox-size-extremely-large.html
+            // Get the list of domains and users from the filesystem
+            // (including the default).
+            Map<String,Set<String>> allUsers = new HashMap<String,Set<String>>();
+
+            // The default users are in /var/spool/imap/?/user/*
+            addUserDirectories(imapSpool, imapSpoolIgnoreDirectories, "default", allUsers);
+
+            // The virtdomains are in /var/spool/imap/domain/?/*
+            String[] hashDirs = imapVirtDomainSpool.list();
+            if(hashDirs!=null) {
+                for(String hashDirName : hashDirs) {
+                    File hashDir = new File(imapVirtDomainSpool, hashDirName);
+                    String[] domainDirs = hashDir.list();
+                    if(domainDirs!=null) {
+                        for(String domain : domainDirs) {
+                            addUserDirectories(new File(hashDir, domain), null, domain, allUsers);
+                        }
                     }
                 }
-                // TODO: Remove extra cyrus users (try from IMAP)
-                    //       deletemailbox user/cyrus.test@suspendo.aoindustries.com
-            } finally {
-                if(userFolder.isOpen()) userFolder.close(false);
+            }
+
+            for(String domain : allUsers.keySet()) {
+                for(String user : allUsers.get(domain)) {
+                    String lsaUsername;
+                    if(domain.equals("default")) lsaUsername = user;
+                    else lsaUsername = user+'@'+domain;
+                    if(!validEmailUsernames.contains(lsaUsername)) {
+                        String cyrusFolder = getFolderName(user, domain, "");
+
+                        // Make sure the user folder exists
+                        IMAPFolder userFolder = (IMAPFolder)store.getFolder(cyrusFolder);
+                        try {
+                            if(!userFolder.exists()) throw new MessagingException("Folder doesn't exist: "+cyrusFolder);
+                            //System.out.println("Deleting mailbox: "+cyrusFolder);
+                            rebuildAcl(userFolder, LinuxAccount.CYRUS, "default", new Rights("cdkrx")); // Adds the d permission
+                            if(!userFolder.delete(true)) throw new IOException("Unable to delete mailbox: "+cyrusFolder);
+                        } finally {
+                            if(userFolder.isOpen()) userFolder.close(false);
+                        }
+                    }
+                }
             }
         } catch(RuntimeException err) {
             closeStore();
@@ -366,11 +462,11 @@ final public class ImapManager extends BuilderThread {
     /**
      * TODO: Remove after testing, or move to JUnit tests.
      */
-    /*public static void main(String[] args) {
+    public static void main(String[] args) {
         try {
             rebuildUsers();
 
-            for(LinuxServerAccount lsa : AOServDaemon.getThisAOServer().getLinuxServerAccounts()) {
+            /*for(LinuxServerAccount lsa : AOServDaemon.getThisAOServer().getLinuxServerAccounts()) {
                 LinuxAccount la = lsa.getLinuxAccount();
                 if(la.getType().isEmail() && lsa.getHome().startsWith("/home/")) {
                     String username = la.getUsername().getUsername();
@@ -378,11 +474,11 @@ final public class ImapManager extends BuilderThread {
                     DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM, Locale.US);
                     System.out.println(username+": "+dateFormat.format(new Date(getInboxModified(username))));
                 }
-            }
+            }*/
         } catch(Exception err) {
             ErrorPrinter.printStackTraces(err);
         }
-    }*/
+    }
 
     public static void start() throws IOException, SQLException {
         AOServer thisAOServer=AOServDaemon.getThisAOServer();
