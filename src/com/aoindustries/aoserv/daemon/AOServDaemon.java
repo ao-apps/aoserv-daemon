@@ -563,16 +563,33 @@ final public class AOServDaemon {
 
     /**
      * Switches to the specified user and executes a command.
+     * 
+     * @param  nice  a nice level passed to /bin/nice, a value of zero (0) will cause nice to not be called
      */
-    public static void suexec(String username, String command) throws IOException {
-        String[] cmd={
-            "/bin/su",
-            "-s",
-            Shell.BASH,
-            "-c",
-            command,
-            username
-        };
+    public static void suexec(String username, String command, int nice) throws IOException {
+        String[] cmd;
+        if(nice!=0) {
+            cmd = new String[] {
+                "/bin/nice",
+                "-n",
+                Integer.toString(nice),
+                "/bin/su",
+                "-s",
+                Shell.BASH,
+                "-c",
+                command,
+                username
+            };
+        } else {
+            cmd = new String[] {
+                "/bin/su",
+                "-s",
+                Shell.BASH,
+                "-c",
+                command,
+                username
+            };
+        }
         exec(cmd);
     }
 }

@@ -88,7 +88,8 @@ final public class CvsManager extends BuilderThread {
                 if(!cvsRootUF.getStat().exists()) {
                     AOServDaemon.suexec(
                         lsa.getLinuxAccount().getUsername().getUsername(),
-                        "/usr/bin/cvs -d "+path+" init"
+                        "/usr/bin/cvs -d "+path+" init",
+                        0
                     );
                 }
                 // Remove from list

@@ -276,7 +276,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                     } else {
                                         throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                                     }
-                                    AOServDaemon.suexec(LinuxAccount.POSTGRES, createlang+" -p "+port+" plpgsql "+name);
+                                    AOServDaemon.suexec(LinuxAccount.POSTGRES, createlang+" -p "+port+" plpgsql "+name, 0);
                                     if(
                                         version.startsWith(PostgresVersion.VERSION_7_1+'.')
                                         || version.startsWith(PostgresVersion.VERSION_7_2+'.')
@@ -285,11 +285,11 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                         || version.startsWith(PostgresVersion.VERSION_8_1+'.')
                                         // Not supported as of 8.3 - it has built-in full text indexing
                                     ) {
-                                        AOServDaemon.suexec(LinuxAccount.POSTGRES, psql+" -p "+port+" -c \"create function fti() returns opaque as '"+lib+"/mfti.so' language 'c';\" "+name);
+                                        AOServDaemon.suexec(LinuxAccount.POSTGRES, psql+" -p "+port+" -c \"create function fti() returns opaque as '"+lib+"/mfti.so' language 'c';\" "+name, 0);
                                     }
                                     if(database.getEnablePostgis()) {
-                                        AOServDaemon.suexec(LinuxAccount.POSTGRES, psql+" -p "+port+" "+name+" -f "+share+"/lwpostgis.sql");
-                                        AOServDaemon.suexec(LinuxAccount.POSTGRES, psql+" -p "+port+" "+name+" -f "+share+"/spatial_ref_sys.sql");
+                                        AOServDaemon.suexec(LinuxAccount.POSTGRES, psql+" -p "+port+" "+name+" -f "+share+"/lwpostgis.sql", 0);
+                                        AOServDaemon.suexec(LinuxAccount.POSTGRES, psql+" -p "+port+" "+name+" -f "+share+"/spatial_ref_sys.sql", 0);
                                     }
                                 } catch(IOException err) {
                                     try {
