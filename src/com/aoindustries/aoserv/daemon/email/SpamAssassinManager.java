@@ -77,8 +77,11 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 
     /**
      * The maximum number of messages that will be sent to sa-learn as a single command.
+     * This is kept fairly low so the sa-learn --sync doesn't take too long and hold
+     * locks that could prevent new mail from arriving.  Between executions, new
+     * mail would have a chance to be scanned.
      */
-    private static final int MAX_SALEARN_BATCH = 1000;
+    private static final int MAX_SALEARN_BATCH = 100;
 
     /**
      * The minimum number of messages being sent to sa-learn that will use a two step
@@ -304,7 +307,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                             }
                             AOServDaemon.suexec(
                                 username,
-                                tempSB.toString()
+                                tempSB.toString(),
+                                15
                             );
                         }
 
@@ -520,7 +524,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                 try {
                     AOServDaemon.suexec(
                         username,
-                        command
+                        command,
+                        15
                     );
                 } finally {
                     if(isNoSync) {
@@ -528,7 +533,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                         //System.err.println("DEBUG: "+SpamAssassinManager.class.getName()+": processIncomingMessagesCentOs: username="+username+" and command2=\""+command2+"\"");
                         AOServDaemon.suexec(
                             username,
-                            command2
+                            command2,
+                            15
                         );
                     }
                 }
