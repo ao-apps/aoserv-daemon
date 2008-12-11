@@ -301,7 +301,8 @@ public final class ProcmailManager extends BuilderThread {
                                     out.print("\n"
                                             + "# Capture the current Return-path to pass to deliver\n"
                                             + ":0 h\n"
-                                            + "RETURN_PATH=| /usr/bin/formail -c -x Return-Path: | /bin/sed -e 's/^ *<//' -e 's/>$//'\n");
+                                            //+ "RETURN_PATH=| /usr/bin/formail -c -x Return-Path: | /bin/sed -e 's/^ *<//' -e 's/>$//'\n");
+                                            + "RETURN_PATH=| /opt/aoserv-client/bin/returnpath\n");
                                 } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
                                 // Only move to Junk folder when the inbox is enabled and in IMAP mode
