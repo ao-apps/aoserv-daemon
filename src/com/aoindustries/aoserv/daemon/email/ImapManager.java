@@ -23,6 +23,7 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.sql.SQLUtility;
 import com.aoindustries.util.StringUtility;
 import com.sun.mail.iap.Argument;
 import com.sun.mail.iap.ProtocolException;
@@ -47,6 +48,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -56,6 +58,7 @@ import java.util.Properties;
 import java.util.Set;
 import javax.mail.Flags;
 import javax.mail.Folder;
+import javax.mail.Header;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Session;
@@ -763,9 +766,63 @@ final public class ImapManager extends BuilderThread {
 
         // Directory should be empty, delete it or error if not empty
         list = directory.list();
-        if(list!=null && list.length>0) throw new IOException("Directory not empty: "+directory.getPath());
-        if(log.isDebugEnabled()) log.debug(username+": Deleting empty directory: "+directory.getPath());
-        directory.delete();
+        if(list!=null && list.length>0) {
+            if(log.isWarnEnabled()) log.warn(username+": Unable to delete non-empty directory \""+directory.getPath()+"\": Contains "+list.length+" items");
+        } else {
+            if(log.isDebugEnabled()) log.debug(username+": Deleting empty directory: "+directory.getPath());
+            directory.delete();
+        }
+    }
+
+    /**
+     * TODO: This should really be a toString on the Flags.Flag class.
+     */
+    private static String getFlagName(Flags.Flag flag) throws MessagingException {
+        if(flag==Flags.Flag.ANSWERED) return "ANSWERED";
+        if(flag==Flags.Flag.DELETED) return "DELETED";
+        if(flag==Flags.Flag.DRAFT) return "DRAFT";
+        if(flag==Flags.Flag.FLAGGED) return "FLAGGED";
+        if(flag==Flags.Flag.RECENT) return "RECENT";
+        if(flag==Flags.Flag.SEEN) return "SEEN";
+        if(flag==Flags.Flag.USER) return "USER";
+        throw new MessagingException("Unexpected flag: "+flag);
+    }
+
+    private static final Flags.Flag[] systemFlags = {
+        Flags.Flag.ANSWERED,
+        Flags.Flag.DELETED,
+        Flags.Flag.DRAFT,
+        Flags.Flag.FLAGGED,
+        Flags.Flag.RECENT,
+        Flags.Flag.SEEN,
+        Flags.Flag.USER
+    };
+
+    private static final Object appendCounterLock = new Object();
+    private static long appendCounterStart = -1;
+    private static long appendCounter = 0;
+
+    private static void incAppendCounter() {
+        synchronized(appendCounterLock) {
+            long currentTime = System.currentTimeMillis();
+            if(appendCounterStart==-1) {
+                appendCounterStart = currentTime;
+                appendCounter = 0;
+            } else {
+                appendCounter++;
+                long span = currentTime - appendCounterStart;
+                if(span<0) {
+                    if(log.isWarnEnabled()) log.warn("incAppendCounter: span<0: System time reset?");
+                    appendCounterStart = currentTime;
+                    appendCounter = 0;
+                } else if(span>=60000) {
+                    long milliMessagesPerSecond = appendCounter * 1000000 / span;
+                    if(log.isInfoEnabled()) log.info("Copied "+SQLUtility.getMilliDecimal(milliMessagesPerSecond)+" messages per second");
+                    appendCounterStart = currentTime;
+                    appendCounter = 0;
+                }
+            }
+        }
     }
 
     private static void convertImapFile(final String username, final UnixFile file, final UnixFile backupFile, final String folderName, final String[] tempPassword, final Stat tempStat) throws IOException, SQLException, MessagingException {
@@ -792,127 +849,199 @@ final public class ImapManager extends BuilderThread {
         ) {
             if(log.isDebugEnabled()) log.debug(username+": Deleting non-mailbox file: "+file.getPath());
             file.delete();
-        }
-
-        // Get Old Store
-        IMAPStore oldStore = getOldUserStore(username, tempPassword);
-        try {
-            // Get Old Folder
-            IMAPFolder oldFolder = (IMAPFolder)oldStore.getFolder(folderName);
+        } else {
+            // Get Old Store
+            boolean deleteOldFolder;
+            IMAPStore oldStore = getOldUserStore(username, tempPassword);
             try {
-                if(!oldFolder.exists()) throw new MessagingException(username+": Old folder doesn't exist: "+folderName);
-                oldFolder.open(Folder.READ_WRITE);
-                // Get New Store
-                IMAPStore newStore = getNewUserStore(username, tempPassword);
+                // Get Old Folder
+                IMAPFolder oldFolder = (IMAPFolder)oldStore.getFolder(folderName);
                 try {
-                    // Get New Folder
-                    IMAPFolder newFolder = (IMAPFolder)newStore.getFolder(folderName);
+                    if(!oldFolder.exists()) throw new MessagingException(username+": Old folder doesn't exist: "+folderName);
+                    oldFolder.open(Folder.READ_WRITE);
+                    // Get New Store
+                    IMAPStore newStore = getNewUserStore(username, tempPassword);
                     try {
-                        // Should already exist
-                        if(!newFolder.exists()) throw new MessagingException(username+": New folder doesn't exist: "+folderName);
-                        newFolder.open(Folder.READ_WRITE);
+                        // Get New Folder
+                        IMAPFolder newFolder = (IMAPFolder)newStore.getFolder(folderName);
+                        try {
+                            // Should already exist
+                            if(!newFolder.exists()) throw new MessagingException(username+": New folder doesn't exist: "+folderName);
+                            newFolder.open(Folder.READ_WRITE);
 
-                        // Subscribe to new folder if not yet subscribed
-                        if(!newFolder.isSubscribed()) {
-                            if(log.isDebugEnabled()) log.debug(username+": Subscribing to mailbox: "+folderName);
-                            newFolder.setSubscribed(true);
-                        }
+                            // Subscribe to new folder if not yet subscribed
+                            if(!newFolder.isSubscribed()) {
+                                if(log.isDebugEnabled()) log.debug(username+": Subscribing to mailbox: "+folderName);
+                                newFolder.setSubscribed(true);
+                            }
 
-                        // Read existing uidMap or create as empty
-                        UnixFile uidMapFile = new UnixFile(backupFile.getPath()+".uidMap");
-                        Map<Long,Long> uidMap = new HashMap<Long,Long>();
-                        PrintWriter uidMapOut;
-                        if(uidMapFile.getStat(tempStat).exists()) {
-                            // Read existing
-                            BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(uidMapFile.getFile())));
+                            // Read existing uidMap or create as empty
+                            UnixFile uidMapFile = new UnixFile(backupFile.getPath()+".uidMap");
+                            Map<Long,Long> uidMap = new HashMap<Long,Long>();
+                            PrintWriter uidMapOut;
+                            if(uidMapFile.getStat(tempStat).exists()) {
+                                // Read existing
+                                BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(uidMapFile.getFile())));
+                                try {
+                                    String line;
+                                    while((line=in.readLine())!=null) {
+                                        int pos = line.indexOf(',');
+                                        if(pos==-1) throw new IOException(username+": \""+folderName+"\": No comma (,) in uidMap file line: "+line);
+                                        Long oldUid = Long.valueOf(Long.parseLong(line.substring(0, pos)));
+                                        Long newUid = Long.valueOf(Long.parseLong(line.substring(pos+1)));
+                                        if(uidMap.put(oldUid, newUid)!=null) throw new IOException(username+": \""+folderName+"\": Old UID found twice: "+oldUid);
+                                    }
+                                } finally {
+                                    in.close();
+                                }
+                                if(log.isDebugEnabled()) log.debug(username+": \""+folderName+"\": Recovered existing uidMap of "+uidMap.size()+" elements");
+                                // Append to the existing
+                                // TODO: Benchmark batching in sets of 10/100/1000
+                                // TODO: Benchmark as appendUID versus append
+                                if(log.isDebugEnabled()) log.debug(username+": \""+folderName+"\": Appending to uidMap file: "+uidMapFile.getPath());
+                                uidMapOut = new PrintWriter(new FileOutputStream(uidMapFile.getFile(), true));
+                            } else {
+                                // Create empty
+                                if(log.isDebugEnabled()) log.debug(username+": \""+folderName+"\": Creating new uidMap file: "+uidMapFile.getPath());
+                                uidMapOut = new PrintWriter(new FileOutputStream(uidMapFile.getFile()));
+                            }
                             try {
-                                String line;
-                                while((line=in.readLine())!=null) {
-                                    int pos = line.indexOf(',');
-                                    if(pos==-1) throw new IOException(username+": \""+folderName+"\": No comma (,) in uidMap file line: "+line);
-                                    Long oldUid = Long.valueOf(Long.parseLong(line.substring(0, pos)));
-                                    Long newUid = Long.valueOf(Long.parseLong(line.substring(pos+1)));
-                                    if(uidMap.put(oldUid, newUid)!=null) throw new IOException(username+": \""+folderName+"\": Old UID found twice: "+oldUid);
+                                Message[] oldMessages = oldFolder.getMessages();
+                                for(int c=0, len=oldMessages.length; c<len; c++) {
+                                    Message oldMessage = oldMessages[c];
+                                    Long oldUid = oldFolder.getUID(oldMessage);
+                                    // Make sure not already finished this message
+                                    if(!uidMap.containsKey(oldUid)) {
+                                        if(log.isDebugEnabled()) log.debug(username+": \""+folderName+"\": Copying message "+(c+1)+" of "+len+" ("+StringUtility.getApproximateSize(oldMessage.getSize())+")");
+
+                                        try {
+                                            Flags oldFlags = oldMessage.getFlags();
+
+                                            // Copy to newFolder
+                                            incAppendCounter();
+                                            AppendUID[] newUids = newFolder.appendUIDMessages(new Message[] {oldMessage});
+                                            if(newUids.length!=1) throw new MessagingException("newUids.length!=1: "+newUids.length);
+                                            AppendUID newUid = newUids[0];
+                                            if(newUid==null) throw new MessagingException("newUid is null");
+                                            
+                                            // Make sure the flags match
+                                            long newUidNum = newUid.uid;
+                                            Message newMessage = newFolder.getMessageByUID(newUidNum);
+                                            if(newMessage==null) throw new MessagingException(username+": \""+folderName+"\": Unable to find new message by UID: "+newUidNum);
+                                            Flags newFlags = newMessage.getFlags();
+
+                                            // Remove the recent flag if added by append
+                                            Flags effectiveNewFlags = new Flags(newFlags);
+                                            for(Flags.Flag flag : systemFlags) {
+                                                if(oldFlags.contains(flag)) {
+                                                    if(!newFlags.contains(flag)) {
+                                                        // New should have
+                                                    }
+                                                } else {
+                                                    if(newFlags.contains(flag)) {
+                                                        // New should not have
+                                                        if(
+                                                            // This is OK to ignore since it was added by append
+                                                            flag==Flags.Flag.RECENT
+                                                        ) {
+                                                            // This failed: newMessage.setFlag(flag, false);
+                                                            effectiveNewFlags.remove(flag);
+                                                        } else if(
+                                                            // This was set by append but needs to be unset
+                                                            flag==Flags.Flag.SEEN
+                                                        ) {
+                                                            newMessage.setFlag(flag, false);
+                                                            newFlags = newMessage.getFlags();
+                                                            effectiveNewFlags.remove(flag);
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            if(!oldFlags.equals(effectiveNewFlags)) {
+                                                if(log.isWarnEnabled()) {
+                                                    for(Flags.Flag flag : oldFlags.getSystemFlags()) {
+                                                        log.warn(username+": \""+folderName+"\": oldFlags: system: "+getFlagName(flag));
+                                                    }
+                                                    for(String flag : oldFlags.getUserFlags()) {
+                                                        log.warn(username+": \""+folderName+"\": oldFlags: user: "+flag);
+                                                    }
+                                                    for(Flags.Flag flag : newFlags.getSystemFlags()) {
+                                                        log.warn(username+": \""+folderName+"\": newFlags: system: "+getFlagName(flag));
+                                                    }
+                                                    for(String flag : newFlags.getUserFlags()) {
+                                                        log.warn(username+": \""+folderName+"\": newFlags: user: "+flag);
+                                                    }
+                                                }
+                                                throw new MessagingException(username+": \""+folderName+"\": oldFlags!=newFlags: "+oldFlags+"!="+newFlags);
+                                            }
+
+                                            // Flag as deleted if not already so
+                                            if(!oldMessage.isSet(Flags.Flag.DELETED)) oldMessage.setFlag(Flags.Flag.DELETED, true);
+
+                                            // Update uidMap
+                                            uidMap.put(oldUid, newUidNum);
+                                            uidMapOut.println(oldUid+","+newUidNum);
+                                            uidMapOut.flush();
+                                        } catch(MessagingException err) {
+                                            String message = err.getMessage();
+                                            if(message!=null && message.endsWith(" NO Message contains invalid header")) {
+                                                if(log.isWarnEnabled()) log.warn(username+": \""+folderName+"\": Not able to copy message: "+message);
+                                                Enumeration headers = oldMessage.getAllHeaders();
+                                                while(headers.hasMoreElements()) {
+                                                    Header header = (Header)headers.nextElement();
+                                                    if(log.isWarnEnabled()) log.warn(username+": \""+folderName+"\": \""+header.getName()+"\" = \""+header.getValue()+"\"");
+                                                }
+                                            } else throw err;
+                                        }
+                                    } else {
+                                        // If completed, should have deleted flag
+                                        if(log.isDebugEnabled()) log.debug(username+": \""+folderName+"\": Already copied message "+(c+1)+" of "+len+" ("+StringUtility.getApproximateSize(oldMessage.getSize())+")");
+                                        if(!oldMessage.isSet(Flags.Flag.DELETED)) throw new MessagingException(username+": \""+folderName+"\": Message in uidMap but not flagged as deleted: oldUid="+oldUid);
+                                    }
                                 }
                             } finally {
-                                in.close();
-                            }
-                            if(log.isDebugEnabled()) log.debug(username+": \""+folderName+"\": Recovered existing uidMap of "+uidMap.size()+" elements");
-                            // Append to the existing
-                            // TODO: Benchmark batching in sets of 10/100/1000
-                            // TODO: Benchmark as appendUID versus append
-                            if(log.isDebugEnabled()) log.debug(username+": \""+folderName+"\": Appending to uidMap file: "+uidMapFile.getPath());
-                            uidMapOut = new PrintWriter(new FileOutputStream(uidMapFile.getFile(), true));
-                        } else {
-                            // Create empty
-                            if(log.isDebugEnabled()) log.debug(username+": \""+folderName+"\": Creating new uidMap file: "+uidMapFile.getPath());
-                            uidMapOut = new PrintWriter(new FileOutputStream(uidMapFile.getFile()));
-                        }
-                        try {
-                            Message[] oldMessages = oldFolder.getMessages();
-                            for(int c=0, len=oldMessages.length; c<len; c++) {
-                                Message oldMessage = oldMessages[c];
-                                Long oldUid = oldFolder.getUID(oldMessage);
-                                // Make sure not already finished this message
-                                if(!uidMap.containsKey(oldUid)) {
-                                    if(log.isDebugEnabled()) log.debug(username+": \""+folderName+"\": Copying message "+(c+1)+" of "+len+" ("+StringUtility.getApproximateSize(oldMessage.getSize())+")");
-
-                                    // Copy to newFolder
-                                    AppendUID[] newUids = newFolder.appendUIDMessages(new Message[] {oldMessage});
-                                    if(newUids.length!=1) throw new MessagingException("newUids.length!=1: "+newUids.length);
-                                    AppendUID newUid = newUids[0];
-                                    if(newUid==null) throw new MessagingException("newUid is null");
-
-                                    // Flag as deleted if not already so
-                                    if(!oldMessage.isSet(Flags.Flag.DELETED)) oldMessage.setFlag(Flags.Flag.DELETED, true);
-
-                                    // Update uidMap
-                                    long newUidNum = newUid.uid;
-                                    uidMap.put(oldUid, newUidNum);
-                                    uidMapOut.println(oldUid+","+newUidNum);
-                                    uidMapOut.flush();
-                                } else {
-                                    // If completed, should have deleted flag
-                                    if(log.isDebugEnabled()) log.debug(username+": \""+folderName+"\": Already copied message "+(c+1)+" of "+len+" ("+StringUtility.getApproximateSize(oldMessage.getSize())+")");
-                                    if(!oldMessage.isSet(Flags.Flag.DELETED)) throw new MessagingException(username+": \""+folderName+"\": Message in uidMap but not flagged as deleted: oldUid="+oldUid);
-                                }
+                                uidMapOut.close();
                             }
                         } finally {
-                            uidMapOut.close();
+                            if(newFolder.isOpen()) newFolder.close(false);
                         }
                     } finally {
-                        if(newFolder.isOpen()) newFolder.close(false);
+                        newStore.close();
+                    }
+                    // Confirm that all messages in the old folder have delete flag
+                    int notDeletedCount = 0;
+                    Message[] oldMessages = oldFolder.getMessages();
+                    for(Message oldMessage : oldMessages) {
+                        if(!oldMessage.isSet(Flags.Flag.DELETED)) notDeletedCount++;
+                    }
+                    if(notDeletedCount>0 && log.isWarnEnabled()) {
+                        if(log.isWarnEnabled()) log.warn(username+": Unable to delete mailbox \""+folderName+"\": "+notDeletedCount+" of "+oldMessages.length+" old messages not flagged as deleted");
+                        deleteOldFolder = false;
+                    } else {
+                        deleteOldFolder = true;
                     }
                 } finally {
-                    newStore.close();
+                    // Make sure closed
+                    if(oldFolder.isOpen()) oldFolder.close(false);
                 }
-                // Confirm that all messages in the old folder have delete flag
-                int notDeletedCount = 0;
-                Message[] oldMessages = oldFolder.getMessages();
-                for(Message oldMessage : oldMessages) {
-                    if(!oldMessage.isSet(Flags.Flag.DELETED)) notDeletedCount++;
+                // Delete old folder if completely empty, error otherwise
+                if(deleteOldFolder && !folderName.equals("INBOX")) {
+                    if(log.isDebugEnabled()) log.debug(username+": Deleting mailbox: "+folderName);
+                    if(!oldFolder.delete(false)) throw new IOException(username+": Unable to delete mailbox: "+folderName);
                 }
-                if(notDeletedCount>0) throw new MessagingException(username+": Unable to delete mailbox \""+folderName+"\": "+notDeletedCount+" of "+oldMessages.length+" old messages not flagged as deleted");
             } finally {
-                // Make sure closed
-                if(oldFolder.isOpen()) oldFolder.close(false);
+                oldStore.close();
             }
-            // Delete old folder if completely empty, error otherwise
-            if(!folderName.equals("INBOX")) {
-                if(log.isDebugEnabled()) log.debug(username+": Deleting mailbox: "+folderName);
-                if(!oldFolder.delete(false)) throw new IOException(username+": Unable to delete mailbox: "+folderName);
-            }
-        } finally {
-            oldStore.close();
-        }
-        if(file.getStat(tempStat).exists()) {
-            // If INBOX, need to remove file
-            if(folderName.equals("INBOX")) {
-                if(log.isDebugEnabled()) log.debug(username+": Deleting mailbox file: "+file.getPath());
-                file.delete();
-            } else {
-                // Confirm file should is gone
-                throw new IOException(username+": File still exists: "+file.getPath());
+            if(deleteOldFolder && file.getStat(tempStat).exists()) {
+                // If INBOX, need to remove file
+                if(folderName.equals("INBOX")) {
+                    if(log.isDebugEnabled()) log.debug(username+": Deleting mailbox file: "+file.getPath());
+                    file.delete();
+                } else {
+                    // Confirm file should is gone
+                    throw new IOException(username+": File still exists: "+file.getPath());
+                }
             }
         }
     }
