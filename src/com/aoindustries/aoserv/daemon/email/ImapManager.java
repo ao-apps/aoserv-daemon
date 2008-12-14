@@ -1093,6 +1093,7 @@ final public class ImapManager extends BuilderThread {
         }
         synchronized(userLogOut) {
             userLogOut.println("["+logLevel+"] "+System.currentTimeMillis()+" - "+message);
+            userLogOut.flush();
         }
     }
 
@@ -1212,6 +1213,7 @@ final public class ImapManager extends BuilderThread {
                                             
                                             // Per-user logs
                                             UnixFile logFile = new UnixFile(userBackupDirectory, "log", false);
+                                            if(log.isDebugEnabled()) log.debug(laUsername+": Using logfile: "+logFile.getPath());
                                             PrintWriter logOut = new PrintWriter(new FileOutputStream(logFile.getFile(), true));
                                             try {
                                                 if(logFile.getStat(tempStat).getMode()!=0600) logFile.setMode(0600);
