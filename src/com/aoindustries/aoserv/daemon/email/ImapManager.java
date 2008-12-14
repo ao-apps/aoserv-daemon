@@ -9,30 +9,43 @@ import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.EmailSpamAssassinIntegrationMode;
 import com.aoindustries.aoserv.client.LinuxAccount;
+import com.aoindustries.aoserv.client.LinuxAccountTable;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
+import com.aoindustries.aoserv.client.NetBind;
+import com.aoindustries.aoserv.client.NetProtocol;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.Protocol;
+import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
+import com.aoindustries.io.ChainWriter;
+import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.util.ErrorPrinter;
+import com.aoindustries.util.StringUtility;
 import com.sun.mail.iap.Argument;
 import com.sun.mail.iap.ProtocolException;
 import com.sun.mail.iap.Response;
 import com.sun.mail.imap.ACL;
+import com.sun.mail.imap.AppendUID;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPStore;
 import com.sun.mail.imap.Rights;
 import com.sun.mail.imap.protocol.IMAPProtocol;
 import com.sun.mail.imap.protocol.IMAPResponse;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,9 +54,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import javax.mail.Flags;
 import javax.mail.Folder;
+import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Session;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * Any IMAP/Cyrus-specific features are here.
@@ -56,14 +73,61 @@ import javax.mail.Session;
  *     hostname: 192.168.1.12
  *     username: cyrus.test2
  *     password: Eflay43Klar
+ *
+ * TODO: Once conversion done:
+ *     1) Set WUIMAP_CONVERSION_ENABLED to false
+ *     2) Make sure all gone in /home/?/???/Mail and /home/?/???/.mailboxlist
+ *     - Then after a while -
+ *     3) rm -rf /opt/imap-2007d
+ *     4) rm -rf /var/opt/imap-2007d
+ *
+ * TODO: Future
+ *     Control the synchronous mode for ext2/ext3 automatically?
+ *         file:///home/o/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
+ *         cd /var/imap
+ *         chattr +S user quota user/* quota/*
+ *         chattr +S /var/spool/imap /var/spool/imap/*
+ *         chattr +S /var/spool/mqueue
+ *     sieve to replace procmail and allow more directly delivery
+ *         sieveusehomedir
+ *         sieveshell:
+ *             sieveshell --authname=cyrus.test@suspendo.aoindustries.com 192.168.1.12
+ *             /bin/su -s /bin/bash -c "/usr/bin/sieveshell 192.168.1.12" cyrus.test@suspendo.aoindustries.com
+ *         sieve only listen on primary IP only (for chroot failover)
+ *         procmail migration script here: http://cyrusimap.web.cmu.edu/twiki/bin/view/Cyrus/MboxCyrusMigration
+ *     Run chk_cyrus from NOC?
+ *     Backups:
+ *           stop master, snapshot, start master
+ *           Or, without snapshots, do ctl_mboxlist -d
+ *               http://cyrusimap.web.cmu.edu/twiki/bin/view/Cyrus/Backup
+ *           Also, don't back-up Junk folders?
+ *     Add smmapd support
+ *     Consider http://en.wikipedia.org/wiki/Application_Configuration_Access_Protocol or http://en.wikipedia.org/wiki/Application_Configuration_Access_Protocol
+ *     Look for any "junk" flags for Cyrus folders - if exists can train off this instead of requiring move to/from Junk
+ *
  * @author  AO Industries, Inc.
  */
 final public class ImapManager extends BuilderThread {
+
+    public static final boolean WUIMAP_CONVERSION_ENABLED = true;
+
+    private static final Log log = LogFactory.getLog(ImapManager.class);
 
     public static final File mailSpool=new File("/var/spool/mail");
     
     private static final File imapSpool = new File("/var/spool/imap");
     private static final File imapVirtDomainSpool = new File(imapSpool, "domain");
+    private static final File subsysLockFile = new File("/var/lock/subsys/cyrus-imapd");
+
+    private static final UnixFile
+        cyrusRcFile=new UnixFile("/etc/rc.d/rc3.d/S65cyrus-imapd"),
+        cyrusConfFile = new UnixFile("/etc/cyrus.conf"),
+        cyrusConfNewFile = new UnixFile("/etc/cyrus.conf.new"),
+        imapdConfFile = new UnixFile("/etc/imapd.conf"),
+        imapdConfNewFile = new UnixFile("/etc/imapd.conf.new")
+    ;
+
+    private static final UnixFile wuBackupDirectory = new UnixFile("/var/opt/imap-2007d/backup");
 
     /**
      * These directories may be in the imapSpool and will be ignored.
@@ -105,13 +169,41 @@ final public class ImapManager extends BuilderThread {
     private static IMAPStore _store;
 
     /**
-     * Gets the IMAPStore for admin control.
+     * Gets the IP address that should be used for admin access to the server.
+     * It will first try to use the Primary IP address on the machine.  If that
+     * doesn't have an IMAP server on port 143, then it will search all IP
+     * addresses and use the first one with an IMAP server on port 143.
+     * 
+     * @return  The IP address or <code>null</code> if not an IMAP server.
+     */
+    private static String getImapServerIPAddress() throws IOException, SQLException {
+        AOServer aoServer = AOServDaemon.getThisAOServer();
+        AOServConnector conn = AOServDaemon.getConnector();
+        Protocol imapProtocol = conn.protocols.get(Protocol.IMAP2);
+        if(imapProtocol==null) throw new SQLException("Protocol not found: "+Protocol.IMAP2);
+        int imapPort = imapProtocol.getPort(conn).getPort();
+        List<NetBind> netBinds = aoServer.getServer().getNetBinds(imapProtocol);
+        // Look for primary IP match
+        String primaryIp = aoServer.getPrimaryIPAddress().getIPAddress();
+        NetBind firstImap = null;
+        for(NetBind nb : netBinds) {
+            if(nb.getPort().getPort()==imapPort) {
+                if(nb.getIPAddress().getIPAddress().equals(primaryIp)) return primaryIp;
+                if(firstImap==null) firstImap = nb;
+            }
+        }
+        return firstImap==null ? null : firstImap.getIPAddress().getIPAddress();
+    }
+
+    /**
+     * Gets the IMAPStore for admin control or <code>null</code> if not an IMAP server.
      */
     private static IMAPStore getStore() throws IOException, SQLException, MessagingException {
         synchronized(_storeLock) {
             if(_store==null) {
                 // Get things that may failed externally before allocating session and store
-                String host = AOServDaemon.getThisAOServer().getPrimaryIPAddress().getIPAddress();
+                String host = getImapServerIPAddress();
+                if(host==null) return null;
                 String user = LinuxAccount.CYRUS+"@default";
                 String password = AOServDaemonConfiguration.getCyrusPassword();
 
@@ -144,46 +236,334 @@ final public class ImapManager extends BuilderThread {
         }
     }
 
+    /**
+     * Gets access to the old IMAPStore for wu-imapd.
+     */
+    private static IMAPStore getOldUserStore(String username, String[] tempPassword) throws IOException, SQLException, MessagingException {
+        return getUserStore(
+            AOServDaemon.getThisAOServer().getPrimaryIPAddress().getIPAddress(),
+            8143,
+            username,
+            username,
+            tempPassword
+        );
+    }
+
+    /**
+     * Gets access to the new IMAPStore for cyrus.
+     */
+    private static IMAPStore getNewUserStore(String username, String[] tempPassword) throws IOException, SQLException, MessagingException {
+        String host = getImapServerIPAddress();
+        if(host==null) throw new IOException("Not an IMAP server");
+        return getUserStore(
+            host,
+            143,
+            username,
+            username.indexOf('@')==-1 ? (username+"@default") : username,
+            tempPassword
+        );
+    }
+
+    /**
+     * Gets the IMAPStore for the provided user to the given IPAddress and port.
+     */
+    private static IMAPStore getUserStore(String host, int port, String username, String imapUsername, String[] tempPassword) throws IOException, SQLException, MessagingException {
+        // Reset the user password if needed
+        String password = tempPassword[0];
+        if(password==null) {
+            password = LinuxAccountTable.generatePassword();
+            if(log.isDebugEnabled()) log.debug(username+": Setting password to "+password);
+            LinuxAccountManager.setPassword(username, password);
+            tempPassword[0] = password;
+        }
+
+        // Create the session
+        Properties props = new Properties();
+        props.put("mail.store.protocol", "imap");
+        props.put("mail.imap.port", Integer.toString(port));
+        Session session = Session.getInstance(props, null);
+        //session.setDebug(true);
+
+        // Create new store
+        IMAPStore store = (IMAPStore)session.getStore();
+        store.connect(
+            host,
+            imapUsername,
+            password
+        );
+        return store;
+    }
+
     private static final Object rebuildLock=new Object();
     protected void doRebuild() throws IOException, SQLException, MessagingException {
         AOServer thisAOServer=AOServDaemon.getThisAOServer();
         int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
         if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-            synchronized(rebuildLock) {
+            // Used inside synchronized block
+            Stat tempStat = new Stat();
+            ByteArrayOutputStream bout = new ByteArrayOutputStream();
+            AOServConnector conn = AOServDaemon.getConnector();
+            Server server = thisAOServer.getServer();
 
-                // TODO: Configure /etc/cyrus.conf
-                    // Require port 143 on primary IP, error if not there - used for admin connections
-                // TODO: Configure /etc/imapd.conf
+            Protocol imapProtocol = conn.protocols.get(Protocol.IMAP2);
+            if(imapProtocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.IMAP2);
+            List<NetBind> imapBinds = server.getNetBinds(imapProtocol);
+
+            Protocol imapsProtocol = conn.protocols.get(Protocol.SIMAP);
+            if(imapsProtocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.SIMAP);
+            List<NetBind> imapsBinds = server.getNetBinds(imapsProtocol);
+
+            Protocol pop3Protocol = conn.protocols.get(Protocol.POP3);
+            if(pop3Protocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.POP3);
+            List<NetBind> pop3Binds = server.getNetBinds(pop3Protocol);
+
+            Protocol pop3sProtocol = conn.protocols.get(Protocol.SPOP3);
+            if(pop3sProtocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.SPOP3);
+            List<NetBind> pop3sBinds = server.getNetBinds(pop3sProtocol);
+
+            Protocol sieveProtocol = conn.protocols.get(Protocol.SIEVE);
+            if(sieveProtocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.SIEVE);
+            List<NetBind> sieveBinds = server.getNetBinds(sieveProtocol);
+
+            synchronized(rebuildLock) {
+                // If there are no IMAP(S)/POP3(S) binds
+                if(imapBinds.isEmpty() && imapsBinds.isEmpty() && pop3Binds.isEmpty() && pop3sBinds.isEmpty()) {
+                    // Should not have any sieve binds
+                    if(!sieveBinds.isEmpty()) throw new SQLException("Should not have sieve without any imap, imaps, pop3, or pop3s");
+
+                    // Stop service if running
+                    if(subsysLockFile.exists()) {
+                        if(log.isDebugEnabled()) log.debug("Stopping cyrus-imapd service");
+                        AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/cyrus-imapd", "stop"});
+                        if(subsysLockFile.exists()) throw new IOException(subsysLockFile.getPath()+" still exists after service stop");
+                    }
+
+                    // chkconfig off if needed
+                    if(cyrusRcFile.getStat(tempStat).exists()) {
+                        if(log.isDebugEnabled()) log.debug("Disabling cyrus-imapd service");
+                        AOServDaemon.exec(new String[] {"/sbin/chkconfig", "cyrus-imapd", "off"});
+                        if(cyrusRcFile.getStat(tempStat).exists()) throw new IOException(cyrusRcFile.getPath()+" still exists after chkconfig off");
+                    }
+
+                    // Delete config files if exist
+                    if(imapdConfNewFile.getStat(tempStat).exists()) {
+                        if(log.isDebugEnabled()) log.debug("Deleting unnecessary config file: "+imapdConfNewFile.getPath());
+                        imapdConfNewFile.delete();
+                    }
+                    if(imapdConfFile.getStat(tempStat).exists()) {
+                        if(log.isDebugEnabled()) log.debug("Deleting unnecessary config file: "+imapdConfFile.getPath());
+                        imapdConfFile.delete();
+                    }
+                    if(cyrusConfNewFile.getStat(tempStat).exists()) {
+                        if(log.isDebugEnabled()) log.debug("Deleting unnecessary config file: "+cyrusConfNewFile.getPath());
+                        cyrusConfNewFile.delete();
+                    }
+                    if(cyrusConfFile.getStat(tempStat).exists()) {
+                        if(log.isDebugEnabled()) log.debug("Deleting unnecessary config file: "+cyrusConfFile.getPath());
+                        cyrusConfFile.delete();
+                    }
+                } else {
+                    // Require sieve
+                    if(sieveBinds.isEmpty()) throw new SQLException("sieve is required with any of imap, imaps, pop3, and pop3s");
+
+                    // Required IMAP at least once on any default port
+                    int defaultImapPort = imapProtocol.getPort(conn).getPort();
+                    boolean foundOnDefault = false;
+                    for(NetBind nb : imapBinds) {
+                        if(nb.getPort().getPort()==defaultImapPort) {
+                            foundOnDefault = true;
+                            break;
+                        }
+                    }
+                    if(!foundOnDefault) throw new SQLException("imap is required on a default port with any of imap, imaps, pop3, and pop3s");
+
+                    boolean needsReload = false;
+                    // Update /etc/cyrus.conf
+                    {
+                        bout.reset();
+                        ChainWriter out = new ChainWriter(bout);
+                        try {
+                            out.print("#\n"
+                                    + "# Automatically generated by ").print(ImapManager.class.getName()).print("\n"
+                                    + "#\n"
+                                    + "START {\n"
+                                    //+ "  # do not delete this entry!\n"
+                                    + "  recover cmd=\"ctl_cyrusdb -r\"\n"
+                                    //+ "  # this is only necessary if using idled for IMAP IDLE\n"
+                                    + "  idled cmd=\"idled\"\n"
+                                    + "}\n"
+                                    //+ "# UNIX sockets start with a slash and are put into /var/lib/imap/sockets\n"
+                                    + "SERVICES {\n");
+                                    //+ "  # add or remove based on preferences\n"
+                            // imap
+                            int counter = 1;
+                            for(NetBind imapBind : imapBinds) {
+                                if(!imapBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("imap requires TCP protocol");
+                                out.print("  imap").print(counter++).print(" cmd=\"imapd\" listen=\"[").print(imapBind.getIPAddress().getIPAddress()).print("]:").print(imapBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=5\n");
+                            }
+                            // imaps
+                            counter = 1;
+                            for(NetBind imapsBind : imapsBinds) {
+                                if(!imapsBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("imaps requires TCP protocol");
+                                out.print("  imaps").print(counter++).print(" cmd=\"imapd -s\" listen=\"[").print(imapsBind.getIPAddress().getIPAddress()).print("]:").print(imapsBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=1\n");
+                            }
+                            // pop3
+                            counter = 1;
+                            for(NetBind pop3Bind : pop3Binds) {
+                                if(!pop3Bind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("pop3 requires TCP protocol");
+                                out.print("  pop3").print(counter++).print(" cmd=\"pop3d\" listen=\"[").print(pop3Bind.getIPAddress().getIPAddress()).print("]:").print(pop3Bind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=3\n");
+                            }
+                            // pop3s
+                            counter = 1;
+                            for(NetBind pop3sBind : pop3sBinds) {
+                                if(!pop3sBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("pop3s requires TCP protocol");
+                                out.print("  pop3s").print(counter++).print(" cmd=\"pop3d -s\" listen=\"[").print(pop3sBind.getIPAddress().getIPAddress()).print("]:").print(pop3sBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=1\n");
+                            }
+                            // sieve
+                            counter = 1;
+                            for(NetBind sieveBind : sieveBinds) {
+                                if(!sieveBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("sieve requires TCP protocol");
+                                out.print("  sieve").print(counter++).print(" cmd=\"timsieved\" listen=\"[").print(sieveBind.getIPAddress().getIPAddress()).print("]:").print(sieveBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=0\n");
+                            }
+                                    //+ "  # these are only necessary if receiving/exporting usenet via NNTP\n"
+                                    //+ "#  nntp         cmd=\"nntpd\" listen=\"nntp\" prefork=3\n"
+                                    //+ "#  nntps                cmd=\"nntpd -s\" listen=\"nntps\" prefork=1\n"
+                                    //+ "  # at least one LMTP is required for delivery\n"
+                                    //+ "#  lmtp         cmd=\"lmtpd\" listen=\"lmtp\" prefork=0\n"
+                            out.print("  lmtpunix cmd=\"lmtpd\" listen=\"/var/lib/imap/socket/lmtp\" prefork=1\n"
+                                    //+ "  # this is only necessary if using notifications\n"
+                                    //+ "#  notify       cmd=\"notifyd\" listen=\"/var/lib/imap/socket/notify\" proto=\"udp\" prefork=1\n"
+                                    + "}\n"
+                                    + "EVENTS {\n"
+                                    //+ "  # this is required\n"
+                                    + "  checkpoint cmd=\"ctl_cyrusdb -c\" period=30\n"
+                                    //+ "  # this is only necessary if using duplicate delivery suppression,\n"
+                                    //+ "  # Sieve or NNTP\n"
+                                    // -X 3 added to allow 3 day "unexpunge" capability
+                                    + "  delprune cmd=\"cyr_expire -E 3 -X 3\" at=0400\n"
+                                    //+ "  # this is only necessary if caching TLS sessions\n"
+                                    + "  tlsprune cmd=\"tls_prune\" at=0400\n"
+                                    + "}\n");
+                        } finally {
+                            out.close();
+                        }
+                        byte[] newBytes = bout.toByteArray();
+
+                        // Only write when changed
+                        if(!cyrusConfFile.getStat(tempStat).exists() || !cyrusConfFile.contentEquals(newBytes)) {
+                            if(log.isDebugEnabled()) log.debug("Writing new config file: "+cyrusConfFile.getPath());
+                            FileOutputStream newOut = new FileOutputStream(cyrusConfNewFile.getFile());
+                            try {
+                                newOut.write(newBytes);
+                            } finally {
+                                newOut.close();
+                            }
+                            cyrusConfNewFile.renameTo(cyrusConfFile);
+                            needsReload = true;
+                        }
+                    }
+
+                    // Update /etc/imapd.conf
+                    {
+                        bout.reset();
+                        ChainWriter out = new ChainWriter(bout);
+                        try {
+                            out.print("#\n"
+                                    + "# Automatically generated by ").print(ImapManager.class.getName()).print("\n"
+                                    + "#\n"
+                                    + "configdirectory: /var/lib/imap\n"
+                                    + "\n"
+                                    + "# Default partition\n"
+                                    + "defaultpartition: default\n"
+                                    + "partition-default: /var/spool/imap\n"
+                                    + "\n"
+                                    + "# Authentication\n"
+                                    + "username_tolower: no\n" // This is to be consistent with authenticated SMTP, which always has case-sensitive usernames.
+                                    + "unix_group_enable: no\n"
+                                    + "sasl_pwcheck_method: saslauthd\n"
+                                    + "sasl_mech_list: PLAIN\n"
+                                    + "sasl_minimum_layer: 0\n"
+                                    + "allowplaintext: yes\n"
+                                    + "allowplainwithouttls: yes\n"
+                                    + "\n"
+                                    + "# SSL/TLS\n"
+                                    + "tls_cert_file: /etc/pki/cyrus-imapd/cyrus-imapd.pem\n"
+                                    + "tls_key_file: /etc/pki/cyrus-imapd/cyrus-imapd.pem\n"
+                                    + "tls_ca_file: /etc/pki/tls/certs/ca-bundle.crt\n"
+                                    + "\n"
+                                    + "# Performance\n"
+                                    + "expunge_mode: delayed\n"
+                                    + "hashimapspool: true\n"
+                                    + "\n"
+                                    + "# Outlook compatibility\n"
+                                    + "flushseenstate: yes\n"
+                                    + "\n"
+                                    + "# WU IMAPD compatibility\n"
+                                    + "altnamespace: yes\n"
+                                    + "unixhierarchysep: yes\n"
+                                    + "virtdomains: userid\n"
+                                    + "defaultdomain: default\n"
+                                    + "\n"
+                                    + "# Security\n"
+                                    + "imapidresponse: no\n"
+                                    + "admins: cyrus\n"
+                                    + "\n"
+                                    + "# Allows users to read for sa-learn after hard linking to user readable directory\n"
+                                    + "umask: 022\n"
+                                    + "\n"
+                                    + "# Proper hostname in chroot fail-over state\n"
+                                    + "servername: ").print(thisAOServer.getHostname()).print("\n"
+                                    + "\n"
+                                    + "# Sieve\n"
+                                    + "sievedir: /var/lib/imap/sieve\n"
+                                    + "autosievefolders: Junk\n"
+                                    + "sendmail: /usr/sbin/sendmail\n");
+                        } finally {
+                            out.close();
+                        }
+                        byte[] newBytes = bout.toByteArray();
+
+                        // Only write when changed
+                        if(!imapdConfFile.getStat(tempStat).exists() || !imapdConfFile.contentEquals(newBytes)) {
+                            if(log.isDebugEnabled()) log.debug("Writing new config file: "+imapdConfFile.getPath());
+                            FileOutputStream newOut = new FileOutputStream(imapdConfNewFile.getFile());
+                            try {
+                                newOut.write(newBytes);
+                            } finally {
+                                newOut.close();
+                            }
+                            imapdConfNewFile.renameTo(imapdConfFile);
+                            needsReload = true;
+                        }
+                    }
+
                     // TODO: Configure certificates in /etc/pki/cyrus-imapd on a per-IP basis.
                     //       file:///home/o/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
                     //       value of "disabled" if the certificate file doesn't exist (or use server default)
                     //       openssl req -new -x509 -nodes -out cyrus-imapd.pem -keyout cyrus-imapd.pem -days 3650
                     //       Other automated certificate management, sendmail too?
-                // TODO: Restart cyrus-imapd if needed
+                    
+                    // chkconfig on if needed
+                    if(!cyrusRcFile.getStat(tempStat).exists()) {
+                        if(log.isDebugEnabled()) log.debug("Enabling cyrus-imapd service");
+                        AOServDaemon.exec(new String[] {"/sbin/chkconfig", "cyrus-imapd", "on"});
+                        if(!cyrusRcFile.getStat(tempStat).exists()) throw new IOException(cyrusRcFile.getPath()+" still does not exists after chkconfig on");
+                    }
 
-                rebuildUsers();
+                    // Start service if not running
+                    if(!subsysLockFile.exists()) {
+                        if(log.isDebugEnabled()) log.debug("Starting cyrus-imapd service");
+                        AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/cyrus-imapd", "start"});
+                        if(!subsysLockFile.exists()) throw new IOException(subsysLockFile.getPath()+" still does not exists after service start");
+                    } else {
+                        if(needsReload) {
+                            if(log.isDebugEnabled()) log.debug("Reloading cyrus-imapd service");
+                            AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/cyrus-imapd", "reload"});
+                        }
+                    }
 
-                // TODO: Future
-                //     Control the synchronous mode for ext2/ext3 automatically?
-                //         file:///home/o/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
-                //         cd /var/imap
-                //         chattr +S user quota user/* quota/*
-                //         chattr +S /var/spool/imap /var/spool/imap/*
-                //         chattr +S /var/spool/mqueue
-                //     sieve to replace procmail and allow more directly delivery
-                //         sieveusehomedir
-                //         sieveshell:
-                //             sieveshell --authname=cyrus.test@suspendo.aoindustries.com 192.168.1.12
-                //             /bin/su -s /bin/bash -c "/usr/bin/sieveshell 192.168.1.12" cyrus.test@suspendo.aoindustries.com
-                //         sieve only listen on primary IP only (for chroot failover)
-                //     Run chk_cyrus from NOC?
-                //     Backups:
-                //           stop master, snapshot, start master
-                //           Or, without snapshots, do ctl_mboxlist -d
-                //               http://cyrusimap.web.cmu.edu/twiki/bin/view/Cyrus/Backup
-                //           Also, don't back-up Junk folders?
-                //     Add smmapd support
-                //     Consider http://en.wikipedia.org/wiki/Application_Configuration_Access_Protocol or http://en.wikipedia.org/wiki/Application_Configuration_Access_Protocol
+                    rebuildUsers();
+                }
             }
         }
     }
@@ -199,7 +579,7 @@ final public class ImapManager extends BuilderThread {
         StringBuilder sb = new StringBuilder();
         sb.append("user/").append(user);
         if(folder.length()>0) sb.append('/').append(folder);
-        sb.append('@').append(domain);
+        if(!domain.equals("default")) sb.append('@').append(domain);
         return sb.toString();
     }
 
@@ -226,6 +606,7 @@ final public class ImapManager extends BuilderThread {
         }
         if(userAcl==null) {
             ACL newAcl = new ACL(username, new Rights(rights));
+            if(log.isDebugEnabled()) log.debug(folder.getFullName()+": Adding new ACL: "+rights.toString());
             folder.addACL(newAcl);
         } else {
             // Verify rights
@@ -239,6 +620,7 @@ final public class ImapManager extends BuilderThread {
                     if(!aclRights.contains(right)) missingRights.add(right);
                 }
                 userAcl.setRights(missingRights);
+                if(log.isDebugEnabled()) log.debug(folder.getFullName()+": Adding rights to ACL: "+userAcl.toString());
                 folder.addRights(userAcl);
             }
             if(!rights.contains(aclRights)) {
@@ -248,6 +630,7 @@ final public class ImapManager extends BuilderThread {
                     if(!rights.contains(right)) extraRights.add(right);
                 }
                 userAcl.setRights(extraRights);
+                if(log.isDebugEnabled()) log.debug(folder.getFullName()+": Removing rights from ACL: "+userAcl.toString());
                 folder.removeRights(userAcl);
             }
         }
@@ -281,6 +664,7 @@ final public class ImapManager extends BuilderThread {
     private static void addUserDirectories(File directory, Set<String> ignoreList, String domain, Map<String,Set<String>> allUsers) throws IOException {
         String[] hashFilenames = directory.list();
         if(hashFilenames!=null) {
+            Arrays.sort(hashFilenames);
             for(String hashFilename : hashFilenames) {
                 if(ignoreList==null || !ignoreList.contains(hashFilename)) {
                     // hashFilename should only be one character
@@ -295,17 +679,18 @@ final public class ImapManager extends BuilderThread {
                         if(!hashSubFilename.equals("user")) throw new IOException("hashSubFilenames should only contain a \"user\" directory: "+userDir);
                         String[] userSubFilenames = userDir.list();
                         if(userSubFilenames!=null && userSubFilenames.length>0) {
+                            Arrays.sort(userSubFilenames);
                             // Add the domain if needed
                             Set<String> domainUsers = allUsers.get(domain);
                             if(domainUsers==null) {
-                                //System.out.println("domain: "+domain);
+                                if(log.isTraceEnabled()) log.trace("addUserDirectories: domain: "+domain);
                                 allUsers.put(domain, domainUsers = new HashSet<String>());
                             }
                             // Add the users
                             for(String user : userSubFilenames) {
                                 if(!user.startsWith(hashFilename)) throw new IOException("user directory should start with "+hashFilename+": "+userDir.getPath()+"/"+user);
                                 user = user.replace('^', '.');
-                                //System.out.println("user: "+user);
+                                if(log.isTraceEnabled()) log.trace("addUserDirectories: user: "+user);
                                 if(!domainUsers.add(user)) throw new IOException("user already in domain: "+userDir.getPath()+"/"+user);
                             }
                         }
@@ -315,11 +700,231 @@ final public class ImapManager extends BuilderThread {
         }
     }
 
+    private static void convertImapDirectory(final String username, final UnixFile directory, final UnixFile backupDirectory, final String folderPath, final String[] tempPassword, final Stat tempStat) throws IOException, SQLException, MessagingException {
+        // Careful not a symbolic link
+        if(!directory.getStat(tempStat).isDirectory()) throw new IOException("Not a directory: "+directory.getPath());
+
+        // Create backup directory
+        if(!backupDirectory.getStat(tempStat).exists()) {
+            if(log.isDebugEnabled()) log.debug(username+": Creating backup directory: "+backupDirectory.getPath());
+            backupDirectory.mkdir(false, 0700);
+        }
+
+        // Convert each of the children
+        String[] list = directory.list();
+        if(list!=null) {
+            Arrays.sort(list);
+            for(String childName : list) {
+                UnixFile childUf = new UnixFile(directory, childName, false);
+                long mode = childUf.getStat(tempStat).getRawMode();
+                boolean isDirectory = UnixFile.isDirectory(mode);
+                boolean isFile = UnixFile.isRegularFile(mode);
+                if(isDirectory && isFile) throw new IOException("Both directory and regular file: "+childUf.getPath());
+                if(!isDirectory && !isFile) throw new IOException("Neither directory nor regular file: "+childUf.getPath());
+                String folderName = folderPath.length()==0 ? childName : (folderPath+'/'+childName);
+
+                // Get New Store
+                IMAPStore newStore = getNewUserStore(username, tempPassword);
+                try {
+                    // Get New Folder
+                    IMAPFolder newFolder = (IMAPFolder)newStore.getFolder(folderName);
+                    try {
+                        // Create the new folder if doesn't exist
+                        if(!newFolder.exists()) {
+                            if(log.isDebugEnabled()) log.debug(username+": Creating mailbox: "+folderName);
+                            if(!newFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
+                                throw new MessagingException("Unable to create folder: "+folderName);
+                            }
+                        }
+
+                        // Subscribe to new folder if not yet subscribed
+                        if(!newFolder.isSubscribed()) {
+                            if(log.isDebugEnabled()) log.debug(username+": Subscribing to mailbox: "+folderName);
+                            newFolder.setSubscribed(true);
+                        }
+                    } finally {
+                        if(newFolder.isOpen()) newFolder.close(false);
+                    }
+                } finally {
+                    newStore.close();
+                }
+
+                // Recurse
+                UnixFile childBackupUf = new UnixFile(backupDirectory, childName, false);
+                if(isDirectory && !isFile) {
+                    convertImapDirectory(username, childUf, childBackupUf, folderName, tempPassword, tempStat);
+                } else if(isFile && !isDirectory) {
+                    convertImapFile(username, childUf, childBackupUf, folderName, tempPassword, tempStat);
+                } else {
+                    throw new AssertionError("This should already have been caught by the isDirectory and isFile checks above");
+                }
+            }
+        }
+
+        // Directory should be empty, delete it or error if not empty
+        list = directory.list();
+        if(list!=null && list.length>0) throw new IOException("Directory not empty: "+directory.getPath());
+        if(log.isDebugEnabled()) log.debug(username+": Deleting empty directory: "+directory.getPath());
+        directory.delete();
+    }
+
+    private static void convertImapFile(final String username, final UnixFile file, final UnixFile backupFile, final String folderName, final String[] tempPassword, final Stat tempStat) throws IOException, SQLException, MessagingException {
+        // Careful not a symolic link
+        if(!file.getStat().isRegularFile()) throw new IOException("Not a regular file: "+file.getPath());
+
+        // Backup file
+        if(!backupFile.getStat(tempStat).exists()) {
+            if(log.isDebugEnabled()) log.debug(username+": Backing-up \""+folderName+"\" to \""+backupFile.getPath()+"\"");
+            UnixFile tempFile = UnixFile.mktemp(backupFile.getPath()+".", false);
+            file.copyTo(tempFile, true);
+            tempFile.chown(UnixFile.ROOT_UID, UnixFile.ROOT_GID).setMode(0600).renameTo(backupFile);
+        }
+
+        // Delete the file if it is not a mailbox
+        String filename = file.getFile().getName();
+        if(
+            filename.startsWith(".")
+            && (
+                filename.endsWith(".index.ids")
+                || filename.endsWith(".index")
+                || filename.endsWith(".index.sorted")
+            )
+        ) {
+            if(log.isDebugEnabled()) log.debug(username+": Deleting non-mailbox file: "+file.getPath());
+            file.delete();
+        }
+
+        // Get Old Store
+        IMAPStore oldStore = getOldUserStore(username, tempPassword);
+        try {
+            // Get Old Folder
+            IMAPFolder oldFolder = (IMAPFolder)oldStore.getFolder(folderName);
+            try {
+                if(!oldFolder.exists()) throw new MessagingException(username+": Old folder doesn't exist: "+folderName);
+                oldFolder.open(Folder.READ_WRITE);
+                // Get New Store
+                IMAPStore newStore = getNewUserStore(username, tempPassword);
+                try {
+                    // Get New Folder
+                    IMAPFolder newFolder = (IMAPFolder)newStore.getFolder(folderName);
+                    try {
+                        // Should already exist
+                        if(!newFolder.exists()) throw new MessagingException(username+": New folder doesn't exist: "+folderName);
+                        newFolder.open(Folder.READ_WRITE);
+
+                        // Subscribe to new folder if not yet subscribed
+                        if(!newFolder.isSubscribed()) {
+                            if(log.isDebugEnabled()) log.debug(username+": Subscribing to mailbox: "+folderName);
+                            newFolder.setSubscribed(true);
+                        }
+
+                        // Read existing uidMap or create as empty
+                        UnixFile uidMapFile = new UnixFile(backupFile.getPath()+".uidMap");
+                        Map<Long,Long> uidMap = new HashMap<Long,Long>();
+                        PrintWriter uidMapOut;
+                        if(uidMapFile.getStat(tempStat).exists()) {
+                            // Read existing
+                            BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(uidMapFile.getFile())));
+                            try {
+                                String line;
+                                while((line=in.readLine())!=null) {
+                                    int pos = line.indexOf(',');
+                                    if(pos==-1) throw new IOException(username+": \""+folderName+"\": No comma (,) in uidMap file line: "+line);
+                                    Long oldUid = Long.valueOf(Long.parseLong(line.substring(0, pos)));
+                                    Long newUid = Long.valueOf(Long.parseLong(line.substring(pos+1)));
+                                    if(uidMap.put(oldUid, newUid)!=null) throw new IOException(username+": \""+folderName+"\": Old UID found twice: "+oldUid);
+                                }
+                            } finally {
+                                in.close();
+                            }
+                            if(log.isDebugEnabled()) log.debug(username+": \""+folderName+"\": Recovered existing uidMap of "+uidMap.size()+" elements");
+                            // Append to the existing
+                            // TODO: Benchmark batching in sets of 10/100/1000
+                            // TODO: Benchmark as appendUID versus append
+                            if(log.isDebugEnabled()) log.debug(username+": \""+folderName+"\": Appending to uidMap file: "+uidMapFile.getPath());
+                            uidMapOut = new PrintWriter(new FileOutputStream(uidMapFile.getFile(), true));
+                        } else {
+                            // Create empty
+                            if(log.isDebugEnabled()) log.debug(username+": \""+folderName+"\": Creating new uidMap file: "+uidMapFile.getPath());
+                            uidMapOut = new PrintWriter(new FileOutputStream(uidMapFile.getFile()));
+                        }
+                        try {
+                            Message[] oldMessages = oldFolder.getMessages();
+                            for(int c=0, len=oldMessages.length; c<len; c++) {
+                                Message oldMessage = oldMessages[c];
+                                Long oldUid = oldFolder.getUID(oldMessage);
+                                // Make sure not already finished this message
+                                if(!uidMap.containsKey(oldUid)) {
+                                    if(log.isDebugEnabled()) log.debug(username+": \""+folderName+"\": Copying message "+(c+1)+" of "+len+" ("+StringUtility.getApproximateSize(oldMessage.getSize())+")");
+
+                                    // Copy to newFolder
+                                    AppendUID[] newUids = newFolder.appendUIDMessages(new Message[] {oldMessage});
+                                    if(newUids.length!=1) throw new MessagingException("newUids.length!=1: "+newUids.length);
+                                    AppendUID newUid = newUids[0];
+                                    if(newUid==null) throw new MessagingException("newUid is null");
+
+                                    // Flag as deleted if not already so
+                                    if(!oldMessage.isSet(Flags.Flag.DELETED)) oldMessage.setFlag(Flags.Flag.DELETED, true);
+
+                                    // Update uidMap
+                                    long newUidNum = newUid.uid;
+                                    uidMap.put(oldUid, newUidNum);
+                                    uidMapOut.println(oldUid+","+newUidNum);
+                                    uidMapOut.flush();
+                                } else {
+                                    // If completed, should have deleted flag
+                                    if(log.isDebugEnabled()) log.debug(username+": \""+folderName+"\": Already copied message "+(c+1)+" of "+len+" ("+StringUtility.getApproximateSize(oldMessage.getSize())+")");
+                                    if(!oldMessage.isSet(Flags.Flag.DELETED)) throw new MessagingException(username+": \""+folderName+"\": Message in uidMap but not flagged as deleted: oldUid="+oldUid);
+                                }
+                            }
+                        } finally {
+                            uidMapOut.close();
+                        }
+                    } finally {
+                        if(newFolder.isOpen()) newFolder.close(false);
+                    }
+                } finally {
+                    newStore.close();
+                }
+                // Confirm that all messages in the old folder have delete flag
+                int notDeletedCount = 0;
+                Message[] oldMessages = oldFolder.getMessages();
+                for(Message oldMessage : oldMessages) {
+                    if(!oldMessage.isSet(Flags.Flag.DELETED)) notDeletedCount++;
+                }
+                if(notDeletedCount>0) throw new MessagingException(username+": Unable to delete mailbox \""+folderName+"\": "+notDeletedCount+" of "+oldMessages.length+" old messages not flagged as deleted");
+            } finally {
+                // Make sure closed
+                if(oldFolder.isOpen()) oldFolder.close(false);
+            }
+            // Delete old folder if completely empty, error otherwise
+            if(!folderName.equals("INBOX")) {
+                if(log.isDebugEnabled()) log.debug(username+": Deleting mailbox: "+folderName);
+                if(!oldFolder.delete(false)) throw new IOException(username+": Unable to delete mailbox: "+folderName);
+            }
+        } finally {
+            oldStore.close();
+        }
+        if(file.getStat(tempStat).exists()) {
+            // If INBOX, need to remove file
+            if(folderName.equals("INBOX")) {
+                if(log.isDebugEnabled()) log.debug(username+": Deleting mailbox file: "+file.getPath());
+                file.delete();
+            } else {
+                // Confirm file should is gone
+                throw new IOException(username+": File still exists: "+file.getPath());
+            }
+        }
+    }
+
     private static void rebuildUsers() throws IOException, SQLException, MessagingException {
         try {
-            // Connect to the store
-            IMAPStore store = getStore();
+            // Used on inner loop
+            Stat tempStat = new Stat();
 
+            // Connect to the store (will be null when not an IMAP server)
+            IMAPStore store = getStore();
+            if(store==null) throw new SQLException("Not an IMAP server");
             // Verify all email users - only users who have a home under /home/ are considered
             List<LinuxServerAccount> lsas = AOServDaemon.getThisAOServer().getLinuxServerAccounts();
             Set<String> validEmailUsernames = new HashSet<String>(lsas.size()*4/3+1);
@@ -337,10 +942,13 @@ final public class ImapManager extends BuilderThread {
                     String inboxFolderName = getFolderName(user, domain, "");
                     IMAPFolder inboxFolder = (IMAPFolder)store.getFolder(inboxFolderName);
                     try {
-                        if(!inboxFolder.exists() && !inboxFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
-                            throw new MessagingException("Unable to create folder: "+inboxFolder.getFullName());
+                        if(!inboxFolder.exists()) {
+                            if(log.isDebugEnabled()) log.debug("Creating mailbox: "+inboxFolderName);
+                            if(!inboxFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
+                                throw new MessagingException("Unable to create folder: "+inboxFolder.getFullName());
+                            }
                         }
-                        rebuildAcl(inboxFolder, LinuxAccount.CYRUS, "default", new Rights("ckrx"));
+                        rebuildAcl(inboxFolder, LinuxAccount.CYRUS, "default", new Rights("ackrx"));
                         rebuildAcl(inboxFolder, user, domain, new Rights("acdeiklprstwx"));
                     } finally {
                         if(inboxFolder.isOpen()) inboxFolder.close(false);
@@ -351,54 +959,137 @@ final public class ImapManager extends BuilderThread {
                     String trashFolderName = getFolderName(user, domain, "Trash");
                     IMAPFolder trashFolder = (IMAPFolder)store.getFolder(trashFolderName);
                     try {
-                        if(!trashFolder.exists() && !trashFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
-                            throw new MessagingException("Unable to create folder: "+trashFolder.getFullName());
+                        if(!trashFolder.exists()) {
+                            if(log.isDebugEnabled()) log.debug("Creating mailbox: "+trashFolderName);
+                            if(!trashFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
+                                throw new MessagingException("Unable to create folder: "+trashFolder.getFullName());
+                            }
                         }
-                        rebuildAcl(trashFolder, LinuxAccount.CYRUS, "default", new Rights("ckrx"));
+                        rebuildAcl(trashFolder, LinuxAccount.CYRUS, "default", new Rights("ackrx"));
                         rebuildAcl(trashFolder, user, domain, new Rights("acdeiklprstwx"));
+
+                        // Set/update expire annotation
+                        String existingValue = getAnnotation(trashFolder, "/vendor/cmu/cyrus-imapd/expire", "value.shared");
+                        int trashRetention = lsa.getTrashEmailRetention();
+                        String expectedValue = trashRetention==-1 ? null : Integer.toString(trashRetention);
+                        if(!StringUtility.equals(existingValue, expectedValue)) {
+                            if(log.isDebugEnabled()) log.debug("Setting mailbox expiration: "+trashFolderName+": "+expectedValue);
+                            setAnnotation(trashFolder, "/vendor/cmu/cyrus-imapd/expire", expectedValue, "text/plain");
+                        }
                     } finally {
                         if(trashFolder.isOpen()) trashFolder.close(false);
                         trashFolder = null;
                     }
 
-                    if(!lsa.getEmailSpamAssassinIntegrationMode().getName().equals(EmailSpamAssassinIntegrationMode.NONE)) {
-                        // Junk
-                        String junkFolderName = getFolderName(user, domain, "Junk");
-                        IMAPFolder junkFolder = (IMAPFolder)store.getFolder(junkFolderName);
-                        try {
-                            if(!junkFolder.exists() && !junkFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
-                                throw new MessagingException("Unable to create folder: "+junkFolder.getFullName());
+                    // Junk
+                    String junkFolderName = getFolderName(user, domain, "Junk");
+                    IMAPFolder junkFolder = (IMAPFolder)store.getFolder(junkFolderName);
+                    try {
+                        if(lsa.getEmailSpamAssassinIntegrationMode().getName().equals(EmailSpamAssassinIntegrationMode.IMAP)) {
+                            // Junk folder required for IMAP mode
+                            if(!junkFolder.exists()) {
+                                if(log.isDebugEnabled()) log.debug("Creating mailbox: "+junkFolderName);
+                                if(!junkFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
+                                    throw new MessagingException("Unable to create folder: "+junkFolder.getFullName());
+                                }
                             }
-                            rebuildAcl(junkFolder, LinuxAccount.CYRUS, "default", new Rights("ckrx"));
-                            rebuildAcl(junkFolder, user, domain, new Rights("acdeiklprstwx"));
-                        } finally {
-                            if(junkFolder.isOpen()) junkFolder.close(false);
-                            junkFolder = null;
                         }
+                        if(junkFolder.exists()) {
+                            rebuildAcl(junkFolder, LinuxAccount.CYRUS, "default", new Rights("ackrx"));
+                            rebuildAcl(junkFolder, user, domain, new Rights("acdeiklprstwx"));
+
+                            // Set/update expire annotation
+                            String existingValue = getAnnotation(junkFolder, "/vendor/cmu/cyrus-imapd/expire", "value.shared");
+                            int junkRetention = lsa.getJunkEmailRetention();
+                            String expectedValue = junkRetention==-1 ? null : Integer.toString(junkRetention);
+                            if(!StringUtility.equals(existingValue, expectedValue)) {
+                                if(log.isDebugEnabled()) log.debug("Setting mailbox expiration: "+junkFolderName+": "+expectedValue);
+                                setAnnotation(junkFolder, "/vendor/cmu/cyrus-imapd/expire", expectedValue, "text/plain");
+                            }
+                        }
+                    } finally {
+                        if(junkFolder.isOpen()) junkFolder.close(false);
+                        junkFolder = null;
                     }
 
-                    // TODO: Auto-expunge every mailbox once per day - cyr_expire?
-                        //         Set /vendor/cmu/cyrus-imapd/expire for Junk and Trash - see man cyr_expire
-                        //         http://lists.andrew.cmu.edu/pipermail/cyrus-devel/2007-June/000331.html
-                        //       http://cyrusimap.web.cmu.edu/twiki/bin/view/Cyrus/MboxExpire
-                        //         mboxcfg INBOX/SPAM expire 10
-                        //         info INBOX/SPAM
-                        //         or: imap.setannotation('INBOX/SPAM', '/vendor/cmu/cyrus-imapd/expire',
-                        //       192.168.1.12> mboxcfg "Junk" expire 31
-                        //       192.168.1.12> info "Junk"
-                        //       {Junk}:
-                        //       condstore: false
-                        //       expire: 31
-                        //       lastpop:
-                        //       lastupdate:  7-Dec-2008 07:25:19 -0600
-                        //       partition: default
-                        //       size: 0
-                    // TODO: Convert old folders from UW software
-                        //           And control .mailboxlist, too.
-                        //           http://cyrusimap.web.cmu.edu/twiki/bin/view/Cyrus/MboxCyrusMigration
-                        //           chown to root as completed - do not deleted until later
-                        //           Could we run old IMAP software on a different port and do JavaMail-based copies?
-                        //           imapsync: http://www.zimbra.com/forums/migration/6487-mailbox-size-extremely-large.html
+                    if(WUIMAP_CONVERSION_ENABLED) {
+                        // Create the backup directory
+                        if(!wuBackupDirectory.getStat(tempStat).exists()) {
+                            if(log.isDebugEnabled()) log.debug("Creating directory: "+wuBackupDirectory.getPath());
+                            wuBackupDirectory.mkdir(true, 0700);
+                        }
+                        UnixFile userBackupDirectory = new UnixFile(wuBackupDirectory, laUsername, false);
+                        if(!userBackupDirectory.getStat(tempStat).exists()) {
+                            if(log.isDebugEnabled()) log.debug(laUsername+": Creating backup directory: "+userBackupDirectory.getPath());
+                            userBackupDirectory.mkdir(false, 0700);
+                        }
+
+                        // Backup the password
+                        UnixFile passwordBackup = new UnixFile(userBackupDirectory, "passwd", false);
+                        if(!passwordBackup.getStat(tempStat).exists()) {
+                            if(log.isDebugEnabled()) log.debug(laUsername+": Backing-up password");
+                            String encryptedPassword = LinuxAccountManager.getEncryptedPassword(laUsername);
+                            UnixFile tempFile = UnixFile.mktemp(passwordBackup.getPath()+".", false);
+                            PrintWriter out = new PrintWriter(new FileOutputStream(tempFile.getFile()));
+                            try {
+                                out.println(encryptedPassword);
+                            } finally {
+                                out.close();
+                            }
+                            tempFile.renameTo(passwordBackup);
+                        }
+
+                        // Backup the mailboxlist
+                        UnixFile homeDir = new UnixFile(homePath);
+                        UnixFile mailBoxListFile = new UnixFile(homeDir, ".mailboxlist", false);
+                        if(mailBoxListFile.getStat(tempStat).exists()) {
+                            if(!tempStat.isRegularFile()) throw new IOException("Not a regular file: "+mailBoxListFile.getPath());
+                            UnixFile mailBoxListBackup = new UnixFile(userBackupDirectory, "mailboxlist", false);
+                            if(!mailBoxListBackup.getStat(tempStat).exists()) {
+                                if(log.isDebugEnabled()) log.debug(laUsername+": Backing-up mailboxlist");
+                                UnixFile tempFile = UnixFile.mktemp(mailBoxListBackup.getPath()+".", false);
+                                mailBoxListFile.copyTo(tempFile, true);
+                                tempFile.chown(UnixFile.ROOT_UID, UnixFile.ROOT_GID).setMode(0600).renameTo(mailBoxListBackup);
+                            }
+                        }
+
+                        // The password will be reset to a random value upon first use, subsequent
+                        // accesses will use the same password.
+                        String[] tempPassword = new String[1];
+
+                        // Convert old INBOX
+                        UnixFile inboxFile = new UnixFile(mailSpool, laUsername);
+                        if(inboxFile.getStat(tempStat).exists()) {
+                            if(!tempStat.isRegularFile()) throw new IOException("Not a regular file: "+inboxFile.getPath());
+                            convertImapFile(laUsername, inboxFile, new UnixFile(userBackupDirectory, "INBOX", false), "INBOX", tempPassword, tempStat);
+                        }
+
+                        // Convert old folders from UW software
+                        UnixFile mailDir = new UnixFile(homeDir, "Mail", false);
+                        if(mailDir.getStat(tempStat).exists()) {
+                            if(!tempStat.isDirectory()) throw new IOException("Not a directory: "+mailDir.getPath());
+                            convertImapDirectory(laUsername, mailDir, new UnixFile(userBackupDirectory, "Mail", false), "", tempPassword, tempStat);
+                        }
+
+                        // TODO: mailboxlistfile should now be empty - confirm and delete
+                        
+                        // Restore passwd, if needed
+                        String currentEncryptedPassword = LinuxAccountManager.getEncryptedPassword(laUsername);
+                        String savedEncryptedPassword;
+                        BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(passwordBackup.getFile())));
+                        try {
+                            savedEncryptedPassword = in.readLine();
+                        } finally {
+                            in.close();
+                        }
+                        if(savedEncryptedPassword==null) throw new IOException("Unable to load saved password");
+                        if(!savedEncryptedPassword.equals(currentEncryptedPassword)) {
+                            if(log.isDebugEnabled()) log.debug(laUsername+": Restoring password");
+                            LinuxAccountManager.setEncryptedPassword(laUsername, savedEncryptedPassword);
+                        }
+
+                        // TODO: Remove .mailboxlist, should be empty - error if not.
+                    }
                 }
             }
 
@@ -412,10 +1103,12 @@ final public class ImapManager extends BuilderThread {
             // The virtdomains are in /var/spool/imap/domain/?/*
             String[] hashDirs = imapVirtDomainSpool.list();
             if(hashDirs!=null) {
+                Arrays.sort(hashDirs);
                 for(String hashDirName : hashDirs) {
                     File hashDir = new File(imapVirtDomainSpool, hashDirName);
                     String[] domainDirs = hashDir.list();
                     if(domainDirs!=null) {
+                        Arrays.sort(domainDirs);
                         for(String domain : domainDirs) {
                             addUserDirectories(new File(hashDir, domain), null, domain, allUsers);
                         }
@@ -435,8 +1128,8 @@ final public class ImapManager extends BuilderThread {
                         IMAPFolder userFolder = (IMAPFolder)store.getFolder(cyrusFolder);
                         try {
                             if(!userFolder.exists()) throw new MessagingException("Folder doesn't exist: "+cyrusFolder);
-                            //System.out.println("Deleting mailbox: "+cyrusFolder);
-                            rebuildAcl(userFolder, LinuxAccount.CYRUS, "default", new Rights("cdkrx")); // Adds the d permission
+                            if(log.isDebugEnabled()) log.debug("Deleting mailbox: "+cyrusFolder);
+                            rebuildAcl(userFolder, LinuxAccount.CYRUS, "default", new Rights("acdkrx")); // Adds the d permission
                             if(!userFolder.delete(true)) throw new IOException("Unable to delete mailbox: "+cyrusFolder);
                         } finally {
                             if(userFolder.isOpen()) userFolder.close(false);
@@ -460,13 +1153,20 @@ final public class ImapManager extends BuilderThread {
     }
 
     /**
-     * TODO: Remove after testing, or move to JUnit tests.
+     * Remove after testing, or move to JUnit tests.
      */
+    /*
     public static void main(String[] args) {
         try {
             rebuildUsers();
 
-            /*for(LinuxServerAccount lsa : AOServDaemon.getThisAOServer().getLinuxServerAccounts()) {
+            String[] folders = {"INBOX", "Junk", "No Existie"};
+            long[] sizes = getImapFolderSizes("cyrus.test2", folders);
+            for(int c=0;c<folders.length;c++) {
+                System.out.println(folders[c]+": "+sizes[c]);
+            }
+            
+            for(LinuxServerAccount lsa : AOServDaemon.getThisAOServer().getLinuxServerAccounts()) {
                 LinuxAccount la = lsa.getLinuxAccount();
                 if(la.getType().isEmail() && lsa.getHome().startsWith("/home/")) {
                     String username = la.getUsername().getUsername();
@@ -474,11 +1174,11 @@ final public class ImapManager extends BuilderThread {
                     DateFormat dateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM, Locale.US);
                     System.out.println(username+": "+dateFormat.format(new Date(getInboxModified(username))));
                 }
-            }*/
+            }
         } catch(Exception err) {
             ErrorPrinter.printStackTraces(err);
         }
-    }
+    }*/
 
     public static void start() throws IOException, SQLException {
         AOServer thisAOServer=AOServDaemon.getThisAOServer();
@@ -511,7 +1211,7 @@ final public class ImapManager extends BuilderThread {
         return "Rebuild IMAP and Cyrus configurations";
     }
 
-    public static long[] getImapFolderSizes(String username, String[] folderNames) throws IOException, SQLException {
+    public static long[] getImapFolderSizes(String username, String[] folderNames) throws IOException, SQLException, MessagingException {
         AOServer thisAOServer=AOServDaemon.getThisAOServer();
         int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
         LinuxServerAccount lsa=thisAOServer.getLinuxServerAccount(username);
@@ -530,7 +1230,16 @@ final public class ImapManager extends BuilderThread {
                 }
             }
         } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-            throw new SQLException("TODO: CYRUS: Implement");
+            String user = getUser(username);
+            String domain = getDomain(username);
+            for(int c=0;c<folderNames.length;c++) {
+                String folderName = folderNames[c];
+                if(folderName.indexOf("..") !=-1) sizes[c]=-1;
+                else {
+                    boolean isInbox = folderName.equals("INBOX");
+                    sizes[c] = getCyrusFolderSize(user, isInbox ? "" : folderName, domain, !isInbox);
+                }
+            }
         } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
         return sizes;
     }
@@ -581,7 +1290,7 @@ final public class ImapManager extends BuilderThread {
                 }
             }
         } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-            throw new SQLException("TODO: CYRUS: Implement");
+            throw new SQLException("Cyrus folders should be subscribed/unsubscribed from IMAP directly because subscribe list is stored per user basis.");
         } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
     }
 
@@ -621,6 +1330,9 @@ final public class ImapManager extends BuilderThread {
      * ad OK Completed
      * 
      * http://java.sun.com/products/javamail/javadocs/com/sun/mail/imap/IMAPFolder.html#doCommand(com.sun.mail.imap.IMAPFolder.ProtocolCommand)
+     * 
+     * https://glassfish.dev.java.net/javaee5/mail/
+     * javamail@sun.com
      */
     @SuppressWarnings({"unchecked"})
     private static List<Annotation> getAnnotations(IMAPFolder folder, final String entry, final String attribute) throws MessagingException {
@@ -631,8 +1343,8 @@ final public class ImapManager extends BuilderThread {
                     // Issue command
                     Argument args = new Argument();
                     args.writeString(mailboxName);
-                    args.writeString(entry);
-                    args.writeString(attribute);
+                    args.writeQString(entry);
+                    args.writeQString(attribute);
 
                     Response[] r = p.command("GETANNOTATION", args);
                     Response response = r[r.length-1];
@@ -696,39 +1408,102 @@ final public class ImapManager extends BuilderThread {
         return null;
     }
 
+    /**
+     * Sets a single annotation.
+     * 
+     * @param  expectedValue  if <code>null</code>, annotation will be removed
+     */
+    private static void setAnnotation(IMAPFolder folder, final String entry, final String value, final String contentType) throws MessagingException {
+        final String mailboxName = folder.getFullName();
+        final String newValue;
+        final String newContentType;
+        if(value==null) {
+            newValue = "NIL";
+            newContentType = "NIL";
+        } else {
+            newValue = value;
+            newContentType = contentType;
+        }
+        folder.doCommand(
+            new IMAPFolder.ProtocolCommand() {
+                public Object doCommand(IMAPProtocol p) throws ProtocolException {
+                    // Issue command
+                    Argument list = new Argument();
+                    list.writeQString("value.shared");
+                    list.writeQString(newValue);
+                    list.writeQString("content-type.shared");
+                    list.writeQString(newContentType);
+
+                    Argument args = new Argument();
+                    args.writeString(mailboxName);
+                    args.writeQString(entry);
+                    args.writeArgument(list);
+
+                    Response[] r = p.command("SETANNOTATION", args);
+                    Response response = r[r.length-1];
+
+                    // Grab response
+                    if (!response.isOK()) {
+                        throw new ProtocolException("Response is not OK: "+response);
+                    }
+
+                    // dispatch remaining untagged responses
+                    p.notifyResponseHandlers(r);
+                    p.handleResult(response);
+
+                    return null;
+                }
+            }
+        );
+    }
+
+    private static long getCyrusFolderSize(String username, String folder, boolean notFoundOK) throws IOException, SQLException, MessagingException {
+        return getCyrusFolderSize(getUser(username), folder, getDomain(username), notFoundOK);
+    }
+
+    /**
+     * @param notFoundOK if <code>true</code> will return <code>-1</code> if annotation not found, MessagingException otherwise
+     */
+    private static long getCyrusFolderSize(String user, String folder, String domain, boolean notFoundOK) throws IOException, SQLException, MessagingException {
+        try {
+            // Connect to the store (will be null when not an IMAP server)
+            IMAPStore store = getStore();
+            if(store==null) {
+                if(!notFoundOK) throw new MessagingException("Not an IMAP server");
+                return -1;
+            }
+            String folderName = getFolderName(user, domain, folder);
+            IMAPFolder mailbox = (IMAPFolder)store.getFolder(folderName);
+            try {
+                String value = getAnnotation(mailbox, "/vendor/cmu/cyrus-imapd/size", "value.shared");
+                if(value!=null) return Long.parseLong(value);
+                if(!notFoundOK) throw new MessagingException(folderName+": \"/vendor/cmu/cyrus-imapd/size\" \"value.shared\" annotation not found");
+                return -1;
+            } finally {
+                if(mailbox.isOpen()) mailbox.close(false);
+            }
+        } catch(RuntimeException err) {
+            closeStore();
+            throw err;
+        } catch(IOException err) {
+            closeStore();
+            throw err;
+        } catch(SQLException err) {
+            closeStore();
+            throw err;
+        } catch(MessagingException err) {
+            closeStore();
+            throw err;
+        }
+    }
+
     public static long getInboxSize(String username) throws IOException, SQLException, MessagingException {
         AOServer thisAOServer=AOServDaemon.getThisAOServer();
         int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
         if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
             return new File(mailSpool, username).length();
         } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-            try {
-                // Connect to the store
-                IMAPStore store = getStore();
-                String user = getUser(username);
-                String domain = getDomain(username);
-                String inboxFolderName = getFolderName(user, domain, "");
-                IMAPFolder inboxFolder = (IMAPFolder)store.getFolder(inboxFolderName);
-                try {
-                    String value = getAnnotation(inboxFolder, "/vendor/cmu/cyrus-imapd/size", "value.shared");
-                    if(value!=null) return Long.parseLong(value);
-                    throw new MessagingException("username="+username+": \"/vendor/cmu/cyrus-imapd/size\" \"value.shared\" annotation not found");
-                } finally {
-                    if(inboxFolder.isOpen()) inboxFolder.close(false);
-                }
-            } catch(RuntimeException err) {
-                closeStore();
-                throw err;
-            } catch(IOException err) {
-                closeStore();
-                throw err;
-            } catch(SQLException err) {
-                closeStore();
-                throw err;
-            } catch(MessagingException err) {
-                closeStore();
-                throw err;
-            }
+            return getCyrusFolderSize(username, "", false);
             /*
 ad GETANNOTATION user/cyrus.test/Junk@suspendo.aoindustries.com "*" "value.shared"
 * ANNOTATION "user/cyrus.test/Junk@suspendo.aoindustries.com" "/vendor/cmu/cyrus-imapd/expire" ("value.shared" "31")
@@ -751,6 +1526,10 @@ ad OK Completed
             try {
                 // Connect to the store
                 IMAPStore store = getStore();
+                if(store==null) {
+                    // Not an IMAP server, consistent with File.lastModified() above
+                    return 0L;
+                }
                 String user = getUser(username);
                 String domain = getDomain(username);
                 String inboxFolderName = getFolderName(user, domain, "");

@@ -20,6 +20,7 @@ import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Protocol;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.email.ImapManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
@@ -74,8 +75,38 @@ public final class XinetdManager extends BuilderThread {
             LinuxServerGroup ttyGroup=aoServer.getLinuxServerGroup(LinuxGroup.TTY);
 
             // Build a list of services that should be running
-            List<Service> services=new ArrayList<Service>();
             List<NetBind> binds=aoServer.getServer().getNetBinds();
+            List<Service> services=new ArrayList<Service>(binds.size()+(ImapManager.WUIMAP_CONVERSION_ENABLED ? 1 : 0)); // Worst-case all binds are in xinetd
+
+            if(ImapManager.WUIMAP_CONVERSION_ENABLED) {
+                // Remove once conversion to CentOS has been completed
+                services.add(
+                    new Service(
+                        UNLISTED,
+                        -1,
+                        -1,
+                        null,
+                        null,
+                        null,
+                        "wuimap",
+                        connector.netProtocols.get(NetProtocol.TCP),
+                        aoServer.getPrimaryIPAddress(),
+                        connector.netPorts.get(8143),
+                        false,
+                        rootUser,
+                        null,
+                        "/opt/imap-2007d/bin/imapd",
+                        null,
+                        null,
+                        "HOST DURATION",
+                        "HOST USERID",
+                        -1,
+                        null,
+                        null
+                    )
+                );
+            }
+
             for(int c=0;c<binds.size();c++) {
                 NetBind bind=binds.get(c);
                 NetPort port=bind.getPort();

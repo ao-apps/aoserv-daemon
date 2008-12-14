@@ -12,7 +12,9 @@ import com.aoindustries.aoserv.client.EmailAttachmentType;
 import com.aoindustries.aoserv.client.EmailSpamAssassinIntegrationMode;
 import com.aoindustries.aoserv.client.LinuxAccAddress;
 import com.aoindustries.aoserv.client.LinuxAccount;
+import com.aoindustries.aoserv.client.LinuxGroup;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
+import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -60,6 +62,11 @@ public final class ProcmailManager extends BuilderThread {
 
     private static ProcmailManager procmailManager;
 
+    private static final UnixFile
+        cyrusDeliverCentOs = new UnixFile("/usr/lib/cyrus-imapd/deliver"),
+        cyrusDeliverRedHat = new UnixFile("/usr/lib64/cyrus-imapd/deliver")
+    ;
+
     private ProcmailManager() {
     }
 
@@ -67,6 +74,9 @@ public final class ProcmailManager extends BuilderThread {
     protected void doRebuild() throws IOException, SQLException {
         AOServer aoServer=AOServDaemon.getThisAOServer();
         String primaryIP = aoServer.getPrimaryIPAddress().getIPAddress();
+        LinuxServerGroup mailLsg = aoServer.getLinuxServerGroup(LinuxGroup.MAIL);
+        if(mailLsg==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+aoServer.getHostname());
+        int mailGid = mailLsg.getGID().getID();
 
         int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
         if(
@@ -76,6 +86,28 @@ public final class ProcmailManager extends BuilderThread {
         ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
         synchronized(rebuildLock) {
+            // Control the permissions of the deliver program, needs to be SUID to
+            // Setting here because RPM updates will change permissions
+            if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                Stat deliverStat = cyrusDeliverCentOs.getStat();
+                if(deliverStat.getUID()!=UnixFile.ROOT_UID || deliverStat.getGID()!=mailGid) {
+                    cyrusDeliverCentOs.chown(UnixFile.ROOT_UID, mailGid);
+                    cyrusDeliverCentOs.getStat(deliverStat);
+                }
+                if(deliverStat.getMode()!=02755) {
+                    cyrusDeliverCentOs.setMode(02755);
+                }
+            } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                Stat deliverStat = cyrusDeliverRedHat.getStat();
+                if(deliverStat.getUID()!=UnixFile.ROOT_UID || deliverStat.getGID()!=mailGid) {
+                    cyrusDeliverRedHat.chown(UnixFile.ROOT_UID, mailGid);
+                    cyrusDeliverRedHat.getStat(deliverStat);
+                }
+                if(deliverStat.getMode()!=02755) {
+                    cyrusDeliverRedHat.setMode(02755);
+                }
+            }
+
             List<LinuxServerAccount> lsas=aoServer.getLinuxServerAccounts();
             for(LinuxServerAccount lsa : lsas) {
                 if(lsa.getLinuxAccount().getType().isEmail()) {
@@ -317,12 +349,12 @@ public final class ProcmailManager extends BuilderThread {
                                         out.print(":0 w\n"
                                                 + "* ^X-Spam-Status: Yes\n"
                                                 // + "| /usr/bin/formail -I\"From \" | /usr/lib/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n");
-                                                + "| /opt/aoserv-client/bin/skipfirstline | /usr/lib/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n");
+                                                + "| /opt/aoserv-client/bin/skipfirstline | ").print(cyrusDeliverCentOs.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n");
                                     } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                                         out.print(":0 w\n"
                                                 + "* ^X-Spam-Status: Yes\n"
                                                 // + "| /usr/bin/formail -I\"From \" | /usr/lib64/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n");
-                                                + "| /opt/aoserv-client/bin/skipfirstline | /usr/lib64/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n");
+                                                + "| /opt/aoserv-client/bin/skipfirstline | ").print(cyrusDeliverRedHat.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n");
                                     } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                                 }
 
@@ -332,11 +364,13 @@ public final class ProcmailManager extends BuilderThread {
                                 } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                                     out.print("\n"
                                             + ":0 w\n"
-                                            + "| /usr/bin/formail -I\"From \" | /usr/lib/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
+                                            //+ "| /usr/bin/formail -I\"From \" | /usr/lib/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
+                                            + "| /opt/aoserv-client/bin/skipfirstline | ").print(cyrusDeliverCentOs.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
                                 } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                                     out.print("\n"
                                             + ":0 w\n"
-                                            + "| /usr/bin/formail -I\"From \" | /usr/lib64/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
+                                            //+ "| /usr/bin/formail -I\"From \" | /usr/lib64/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
+                                            + "| /opt/aoserv-client/bin/skipfirstline | ").print(cyrusDeliverRedHat.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
                                 } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                             } else {
                                 // Discard the email if configured to not use the inbox or Junk folders
