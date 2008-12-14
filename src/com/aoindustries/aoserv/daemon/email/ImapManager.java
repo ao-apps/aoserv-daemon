@@ -306,7 +306,7 @@ final public class ImapManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
-    protected void doRebuild() throws IOException, SQLException, MessagingException, InterruptedException, ExecutionException {
+    protected void doRebuild() throws IOException, SQLException, MessagingException {
         AOServer thisAOServer=AOServDaemon.getThisAOServer();
         int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
         if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
@@ -549,6 +549,11 @@ final public class ImapManager extends BuilderThread {
                     }
 
                     // TODO: Configure certificates in /etc/pki/cyrus-imapd on a per-IP basis.
+                    //       Make sure server default file exists
+                    //       If no per ip_port files exist, then symlink to server defaults
+                    //           This allows simply replacing on filesystem once they have been created
+                    //       Do not remove any old cert files, can remove symlinks to default files only
+                    //
                     //       file:///home/o/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
                     //       value of "disabled" if the certificate file doesn't exist (or use server default)
                     //       openssl req -new -x509 -nodes -out cyrus-imapd.pem -keyout cyrus-imapd.pem -days 3650
@@ -904,8 +909,6 @@ final public class ImapManager extends BuilderThread {
                                 }
                                 if(log.isDebugEnabled()) log.debug(username+": \""+folderName+"\": Recovered existing uidMap of "+uidMap.size()+" elements");
                                 // Append to the existing
-                                // TODO: Benchmark batching in sets of 10/100/1000
-                                // TODO: Benchmark as appendUID versus append
                                 if(log.isDebugEnabled()) log.debug(username+": \""+folderName+"\": Appending to uidMap file: "+uidMapFile.getPath());
                                 uidMapOut = new PrintWriter(new FileOutputStream(uidMapFile.getFile(), true));
                             } else {
@@ -1062,7 +1065,7 @@ final public class ImapManager extends BuilderThread {
         }
     }
 
-    private static void rebuildUsers() throws IOException, SQLException, MessagingException, InterruptedException, ExecutionException {
+    private static void rebuildUsers() throws IOException, SQLException, MessagingException {
         try {
             // Connect to the store (will be null when not an IMAP server)
             IMAPStore store = getStore();
@@ -1223,7 +1226,8 @@ final public class ImapManager extends BuilderThread {
                                                 convertImapDirectory(laUsername, mailDir, new UnixFile(userBackupDirectory, "Mail", false), "", tempPassword, concurrentTempStat);
                                             }
 
-                                            // TODO: mailboxlistfile should now be empty - confirm and delete
+                                            // Remove the mailboxlist file
+                                            if(mailBoxListFile.getStat(concurrentTempStat).exists()) mailBoxListFile.delete();
 
                                             // Restore passwd, if needed
                                             String currentEncryptedPassword = LinuxAccountManager.getEncryptedPassword(laUsername);
@@ -1239,8 +1243,6 @@ final public class ImapManager extends BuilderThread {
                                                 if(log.isDebugEnabled()) log.debug(laUsername+": Restoring password");
                                                 LinuxAccountManager.setEncryptedPassword(laUsername, savedEncryptedPassword);
                                             }
-
-                                            // TODO: Remove .mailboxlist, should be empty - error if not.
 
                                             return null;
                                         }

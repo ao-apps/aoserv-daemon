@@ -12,7 +12,6 @@ import com.aoindustries.table.Table;
 import com.aoindustries.table.TableListener;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.concurrent.ExecutionException;
 import javax.mail.MessagingException;
 
 /**
@@ -123,7 +122,7 @@ abstract public class BuilderThread implements TableListener {
         }
     }
     
-    protected abstract void doRebuild() throws IOException, SQLException, MessagingException, InterruptedException, ExecutionException;
+    protected abstract void doRebuild() throws IOException, SQLException, MessagingException;
 
     private int waitForBuildCount=0;
     public void waitForBuild() {
