@@ -68,6 +68,8 @@ import java.security.Security;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * The <code>AOServDaemon</code> starts all of the services that run inside the Java VM.
@@ -99,6 +101,8 @@ final public class AOServDaemon {
      * The default connection is used to the database, because it should be configured in the properties files.
      */
     private static AOServConnector conn;
+
+    public final static ExecutorService executorService = Executors.newCachedThreadPool();
 
     /**
      * Create no instances.

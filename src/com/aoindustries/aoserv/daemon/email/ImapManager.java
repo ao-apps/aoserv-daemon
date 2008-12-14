@@ -56,6 +56,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import javax.mail.Flags;
 import javax.mail.Folder;
 import javax.mail.Header;
@@ -113,6 +120,7 @@ import org.apache.commons.logging.LogFactory;
 final public class ImapManager extends BuilderThread {
 
     public static final boolean WUIMAP_CONVERSION_ENABLED = true;
+    private static final int WUIMAP_CONVERSION_CONCURRENCY = 20;
 
     private static final Log log = LogFactory.getLog(ImapManager.class);
 
@@ -298,7 +306,7 @@ final public class ImapManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
-    protected void doRebuild() throws IOException, SQLException, MessagingException {
+    protected void doRebuild() throws IOException, SQLException, MessagingException, InterruptedException, ExecutionException {
         AOServer thisAOServer=AOServDaemon.getThisAOServer();
         int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
         if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
@@ -957,20 +965,28 @@ final public class ImapManager extends BuilderThread {
                                                     }
                                                 }
                                             }
+                                            for(String flag : oldFlags.getUserFlags()) {
+                                                if(!newFlags.contains(flag)) {
+                                                    // Add the user flag
+                                                    effectiveNewFlags.add(flag);
+                                                    newMessage.setFlags(new Flags(flag), true);
+                                                    newFlags = newMessage.getFlags();
+                                                }
+                                            }
 
                                             if(!oldFlags.equals(effectiveNewFlags)) {
-                                                if(log.isWarnEnabled()) {
+                                                if(log.isErrorEnabled()) {
                                                     for(Flags.Flag flag : oldFlags.getSystemFlags()) {
-                                                        log.warn(username+": \""+folderName+"\": oldFlags: system: "+getFlagName(flag));
+                                                        log.error(username+": \""+folderName+"\": oldFlags: system: "+getFlagName(flag));
                                                     }
                                                     for(String flag : oldFlags.getUserFlags()) {
-                                                        log.warn(username+": \""+folderName+"\": oldFlags: user: "+flag);
+                                                        log.error(username+": \""+folderName+"\": oldFlags: user: "+flag);
                                                     }
                                                     for(Flags.Flag flag : newFlags.getSystemFlags()) {
-                                                        log.warn(username+": \""+folderName+"\": newFlags: system: "+getFlagName(flag));
+                                                        log.error(username+": \""+folderName+"\": newFlags: system: "+getFlagName(flag));
                                                     }
                                                     for(String flag : newFlags.getUserFlags()) {
-                                                        log.warn(username+": \""+folderName+"\": newFlags: user: "+flag);
+                                                        log.error(username+": \""+folderName+"\": newFlags: user: "+flag);
                                                     }
                                                 }
                                                 throw new MessagingException(username+": \""+folderName+"\": oldFlags!=newFlags: "+oldFlags+"!="+newFlags);
@@ -1046,180 +1062,220 @@ final public class ImapManager extends BuilderThread {
         }
     }
 
-    private static void rebuildUsers() throws IOException, SQLException, MessagingException {
+    private static void rebuildUsers() throws IOException, SQLException, MessagingException, InterruptedException, ExecutionException {
         try {
-            // Used on inner loop
-            Stat tempStat = new Stat();
-
             // Connect to the store (will be null when not an IMAP server)
             IMAPStore store = getStore();
             if(store==null) throw new SQLException("Not an IMAP server");
             // Verify all email users - only users who have a home under /home/ are considered
             List<LinuxServerAccount> lsas = AOServDaemon.getThisAOServer().getLinuxServerAccounts();
             Set<String> validEmailUsernames = new HashSet<String>(lsas.size()*4/3+1);
-            for(LinuxServerAccount lsa : lsas) {
-                LinuxAccount la = lsa.getLinuxAccount();
-                String homePath = lsa.getHome();
-                if(la.getType().isEmail() && homePath.startsWith("/home/")) {
-                    // Split into user and domain
-                    String laUsername = la.getUsername().getUsername();
-                    String user = getUser(laUsername);
-                    String domain = getDomain(laUsername);
-                    validEmailUsernames.add(laUsername);
+            // Conversions are done concurrently
+            Map<LinuxServerAccount,Future<Object>> convertors = WUIMAP_CONVERSION_ENABLED ? new HashMap<LinuxServerAccount,Future<Object>>(lsas.size()*4/3+1) : null;
+            ExecutorService executorService = WUIMAP_CONVERSION_ENABLED ? Executors.newFixedThreadPool(WUIMAP_CONVERSION_CONCURRENCY) : null;
+            try {
+                for(LinuxServerAccount lsa : lsas) {
+                    LinuxAccount la = lsa.getLinuxAccount();
+                    final String homePath = lsa.getHome();
+                    if(la.getType().isEmail() && homePath.startsWith("/home/")) {
+                        // Split into user and domain
+                        final String laUsername = la.getUsername().getUsername();
+                        String user = getUser(laUsername);
+                        String domain = getDomain(laUsername);
+                        validEmailUsernames.add(laUsername);
 
-                    // INBOX
-                    String inboxFolderName = getFolderName(user, domain, "");
-                    IMAPFolder inboxFolder = (IMAPFolder)store.getFolder(inboxFolderName);
-                    try {
-                        if(!inboxFolder.exists()) {
-                            if(log.isDebugEnabled()) log.debug("Creating mailbox: "+inboxFolderName);
-                            if(!inboxFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
-                                throw new MessagingException("Unable to create folder: "+inboxFolder.getFullName());
-                            }
-                        }
-                        rebuildAcl(inboxFolder, LinuxAccount.CYRUS, "default", new Rights("ackrx"));
-                        rebuildAcl(inboxFolder, user, domain, new Rights("acdeiklprstwx"));
-                    } finally {
-                        if(inboxFolder.isOpen()) inboxFolder.close(false);
-                        inboxFolder = null;
-                    }
-
-                    // Trash
-                    String trashFolderName = getFolderName(user, domain, "Trash");
-                    IMAPFolder trashFolder = (IMAPFolder)store.getFolder(trashFolderName);
-                    try {
-                        if(!trashFolder.exists()) {
-                            if(log.isDebugEnabled()) log.debug("Creating mailbox: "+trashFolderName);
-                            if(!trashFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
-                                throw new MessagingException("Unable to create folder: "+trashFolder.getFullName());
-                            }
-                        }
-                        rebuildAcl(trashFolder, LinuxAccount.CYRUS, "default", new Rights("ackrx"));
-                        rebuildAcl(trashFolder, user, domain, new Rights("acdeiklprstwx"));
-
-                        // Set/update expire annotation
-                        String existingValue = getAnnotation(trashFolder, "/vendor/cmu/cyrus-imapd/expire", "value.shared");
-                        int trashRetention = lsa.getTrashEmailRetention();
-                        String expectedValue = trashRetention==-1 ? null : Integer.toString(trashRetention);
-                        if(!StringUtility.equals(existingValue, expectedValue)) {
-                            if(log.isDebugEnabled()) log.debug("Setting mailbox expiration: "+trashFolderName+": "+expectedValue);
-                            setAnnotation(trashFolder, "/vendor/cmu/cyrus-imapd/expire", expectedValue, "text/plain");
-                        }
-                    } finally {
-                        if(trashFolder.isOpen()) trashFolder.close(false);
-                        trashFolder = null;
-                    }
-
-                    // Junk
-                    String junkFolderName = getFolderName(user, domain, "Junk");
-                    IMAPFolder junkFolder = (IMAPFolder)store.getFolder(junkFolderName);
-                    try {
-                        if(lsa.getEmailSpamAssassinIntegrationMode().getName().equals(EmailSpamAssassinIntegrationMode.IMAP)) {
-                            // Junk folder required for IMAP mode
-                            if(!junkFolder.exists()) {
-                                if(log.isDebugEnabled()) log.debug("Creating mailbox: "+junkFolderName);
-                                if(!junkFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
-                                    throw new MessagingException("Unable to create folder: "+junkFolder.getFullName());
+                        // INBOX
+                        String inboxFolderName = getFolderName(user, domain, "");
+                        IMAPFolder inboxFolder = (IMAPFolder)store.getFolder(inboxFolderName);
+                        try {
+                            if(!inboxFolder.exists()) {
+                                if(log.isDebugEnabled()) log.debug("Creating mailbox: "+inboxFolderName);
+                                if(!inboxFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
+                                    throw new MessagingException("Unable to create folder: "+inboxFolder.getFullName());
                                 }
                             }
+                            rebuildAcl(inboxFolder, LinuxAccount.CYRUS, "default", new Rights("ackrx"));
+                            rebuildAcl(inboxFolder, user, domain, new Rights("acdeiklprstwx"));
+                        } finally {
+                            if(inboxFolder.isOpen()) inboxFolder.close(false);
+                            inboxFolder = null;
                         }
-                        if(junkFolder.exists()) {
-                            rebuildAcl(junkFolder, LinuxAccount.CYRUS, "default", new Rights("ackrx"));
-                            rebuildAcl(junkFolder, user, domain, new Rights("acdeiklprstwx"));
+
+                        // Trash
+                        String trashFolderName = getFolderName(user, domain, "Trash");
+                        IMAPFolder trashFolder = (IMAPFolder)store.getFolder(trashFolderName);
+                        try {
+                            if(!trashFolder.exists()) {
+                                if(log.isDebugEnabled()) log.debug("Creating mailbox: "+trashFolderName);
+                                if(!trashFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
+                                    throw new MessagingException("Unable to create folder: "+trashFolder.getFullName());
+                                }
+                            }
+                            rebuildAcl(trashFolder, LinuxAccount.CYRUS, "default", new Rights("ackrx"));
+                            rebuildAcl(trashFolder, user, domain, new Rights("acdeiklprstwx"));
 
                             // Set/update expire annotation
-                            String existingValue = getAnnotation(junkFolder, "/vendor/cmu/cyrus-imapd/expire", "value.shared");
-                            int junkRetention = lsa.getJunkEmailRetention();
-                            String expectedValue = junkRetention==-1 ? null : Integer.toString(junkRetention);
+                            String existingValue = getAnnotation(trashFolder, "/vendor/cmu/cyrus-imapd/expire", "value.shared");
+                            int trashRetention = lsa.getTrashEmailRetention();
+                            String expectedValue = trashRetention==-1 ? null : Integer.toString(trashRetention);
                             if(!StringUtility.equals(existingValue, expectedValue)) {
-                                if(log.isDebugEnabled()) log.debug("Setting mailbox expiration: "+junkFolderName+": "+expectedValue);
-                                setAnnotation(junkFolder, "/vendor/cmu/cyrus-imapd/expire", expectedValue, "text/plain");
+                                if(log.isDebugEnabled()) log.debug("Setting mailbox expiration: "+trashFolderName+": "+expectedValue);
+                                setAnnotation(trashFolder, "/vendor/cmu/cyrus-imapd/expire", expectedValue, "text/plain");
                             }
-                        }
-                    } finally {
-                        if(junkFolder.isOpen()) junkFolder.close(false);
-                        junkFolder = null;
-                    }
-
-                    if(WUIMAP_CONVERSION_ENABLED) {
-                        // Create the backup directory
-                        if(!wuBackupDirectory.getStat(tempStat).exists()) {
-                            if(log.isDebugEnabled()) log.debug("Creating directory: "+wuBackupDirectory.getPath());
-                            wuBackupDirectory.mkdir(true, 0700);
-                        }
-                        UnixFile userBackupDirectory = new UnixFile(wuBackupDirectory, laUsername, false);
-                        if(!userBackupDirectory.getStat(tempStat).exists()) {
-                            if(log.isDebugEnabled()) log.debug(laUsername+": Creating backup directory: "+userBackupDirectory.getPath());
-                            userBackupDirectory.mkdir(false, 0700);
-                        }
-
-                        // Backup the password
-                        UnixFile passwordBackup = new UnixFile(userBackupDirectory, "passwd", false);
-                        if(!passwordBackup.getStat(tempStat).exists()) {
-                            if(log.isDebugEnabled()) log.debug(laUsername+": Backing-up password");
-                            String encryptedPassword = LinuxAccountManager.getEncryptedPassword(laUsername);
-                            UnixFile tempFile = UnixFile.mktemp(passwordBackup.getPath()+".", false);
-                            PrintWriter out = new PrintWriter(new FileOutputStream(tempFile.getFile()));
-                            try {
-                                out.println(encryptedPassword);
-                            } finally {
-                                out.close();
-                            }
-                            tempFile.renameTo(passwordBackup);
-                        }
-
-                        // Backup the mailboxlist
-                        UnixFile homeDir = new UnixFile(homePath);
-                        UnixFile mailBoxListFile = new UnixFile(homeDir, ".mailboxlist", false);
-                        if(mailBoxListFile.getStat(tempStat).exists()) {
-                            if(!tempStat.isRegularFile()) throw new IOException("Not a regular file: "+mailBoxListFile.getPath());
-                            UnixFile mailBoxListBackup = new UnixFile(userBackupDirectory, "mailboxlist", false);
-                            if(!mailBoxListBackup.getStat(tempStat).exists()) {
-                                if(log.isDebugEnabled()) log.debug(laUsername+": Backing-up mailboxlist");
-                                UnixFile tempFile = UnixFile.mktemp(mailBoxListBackup.getPath()+".", false);
-                                mailBoxListFile.copyTo(tempFile, true);
-                                tempFile.chown(UnixFile.ROOT_UID, UnixFile.ROOT_GID).setMode(0600).renameTo(mailBoxListBackup);
-                            }
-                        }
-
-                        // The password will be reset to a random value upon first use, subsequent
-                        // accesses will use the same password.
-                        String[] tempPassword = new String[1];
-
-                        // Convert old INBOX
-                        UnixFile inboxFile = new UnixFile(mailSpool, laUsername);
-                        if(inboxFile.getStat(tempStat).exists()) {
-                            if(!tempStat.isRegularFile()) throw new IOException("Not a regular file: "+inboxFile.getPath());
-                            convertImapFile(laUsername, inboxFile, new UnixFile(userBackupDirectory, "INBOX", false), "INBOX", tempPassword, tempStat);
-                        }
-
-                        // Convert old folders from UW software
-                        UnixFile mailDir = new UnixFile(homeDir, "Mail", false);
-                        if(mailDir.getStat(tempStat).exists()) {
-                            if(!tempStat.isDirectory()) throw new IOException("Not a directory: "+mailDir.getPath());
-                            convertImapDirectory(laUsername, mailDir, new UnixFile(userBackupDirectory, "Mail", false), "", tempPassword, tempStat);
-                        }
-
-                        // TODO: mailboxlistfile should now be empty - confirm and delete
-                        
-                        // Restore passwd, if needed
-                        String currentEncryptedPassword = LinuxAccountManager.getEncryptedPassword(laUsername);
-                        String savedEncryptedPassword;
-                        BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(passwordBackup.getFile())));
-                        try {
-                            savedEncryptedPassword = in.readLine();
                         } finally {
-                            in.close();
-                        }
-                        if(savedEncryptedPassword==null) throw new IOException("Unable to load saved password");
-                        if(!savedEncryptedPassword.equals(currentEncryptedPassword)) {
-                            if(log.isDebugEnabled()) log.debug(laUsername+": Restoring password");
-                            LinuxAccountManager.setEncryptedPassword(laUsername, savedEncryptedPassword);
+                            if(trashFolder.isOpen()) trashFolder.close(false);
+                            trashFolder = null;
                         }
 
-                        // TODO: Remove .mailboxlist, should be empty - error if not.
+                        // Junk
+                        String junkFolderName = getFolderName(user, domain, "Junk");
+                        IMAPFolder junkFolder = (IMAPFolder)store.getFolder(junkFolderName);
+                        try {
+                            if(lsa.getEmailSpamAssassinIntegrationMode().getName().equals(EmailSpamAssassinIntegrationMode.IMAP)) {
+                                // Junk folder required for IMAP mode
+                                if(!junkFolder.exists()) {
+                                    if(log.isDebugEnabled()) log.debug("Creating mailbox: "+junkFolderName);
+                                    if(!junkFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
+                                        throw new MessagingException("Unable to create folder: "+junkFolder.getFullName());
+                                    }
+                                }
+                            }
+                            if(junkFolder.exists()) {
+                                rebuildAcl(junkFolder, LinuxAccount.CYRUS, "default", new Rights("ackrx"));
+                                rebuildAcl(junkFolder, user, domain, new Rights("acdeiklprstwx"));
+
+                                // Set/update expire annotation
+                                String existingValue = getAnnotation(junkFolder, "/vendor/cmu/cyrus-imapd/expire", "value.shared");
+                                int junkRetention = lsa.getJunkEmailRetention();
+                                String expectedValue = junkRetention==-1 ? null : Integer.toString(junkRetention);
+                                if(!StringUtility.equals(existingValue, expectedValue)) {
+                                    if(log.isDebugEnabled()) log.debug("Setting mailbox expiration: "+junkFolderName+": "+expectedValue);
+                                    setAnnotation(junkFolder, "/vendor/cmu/cyrus-imapd/expire", expectedValue, "text/plain");
+                                }
+                            }
+                        } finally {
+                            if(junkFolder.isOpen()) junkFolder.close(false);
+                            junkFolder = null;
+                        }
+
+                        if(WUIMAP_CONVERSION_ENABLED) {
+                            convertors.put(
+                                lsa,
+                                executorService.submit(
+                                    new Callable<Object>() {
+                                        public Object call() throws IOException, SQLException, MessagingException {
+                                            Stat concurrentTempStat = new Stat();
+                                            // Create the backup directory
+                                            if(!wuBackupDirectory.getStat(concurrentTempStat).exists()) {
+                                                if(log.isDebugEnabled()) log.debug("Creating directory: "+wuBackupDirectory.getPath());
+                                                wuBackupDirectory.mkdir(true, 0700);
+                                            }
+                                            UnixFile userBackupDirectory = new UnixFile(wuBackupDirectory, laUsername, false);
+                                            if(!userBackupDirectory.getStat(concurrentTempStat).exists()) {
+                                                if(log.isDebugEnabled()) log.debug(laUsername+": Creating backup directory: "+userBackupDirectory.getPath());
+                                                userBackupDirectory.mkdir(false, 0700);
+                                            }
+
+                                            // Backup the password
+                                            UnixFile passwordBackup = new UnixFile(userBackupDirectory, "passwd", false);
+                                            if(!passwordBackup.getStat(concurrentTempStat).exists()) {
+                                                if(log.isDebugEnabled()) log.debug(laUsername+": Backing-up password");
+                                                String encryptedPassword = LinuxAccountManager.getEncryptedPassword(laUsername);
+                                                UnixFile tempFile = UnixFile.mktemp(passwordBackup.getPath()+".", false);
+                                                PrintWriter out = new PrintWriter(new FileOutputStream(tempFile.getFile()));
+                                                try {
+                                                    out.println(encryptedPassword);
+                                                } finally {
+                                                    out.close();
+                                                }
+                                                tempFile.renameTo(passwordBackup);
+                                            }
+
+                                            // Backup the mailboxlist
+                                            UnixFile homeDir = new UnixFile(homePath);
+                                            UnixFile mailBoxListFile = new UnixFile(homeDir, ".mailboxlist", false);
+                                            if(mailBoxListFile.getStat(concurrentTempStat).exists()) {
+                                                if(!concurrentTempStat.isRegularFile()) throw new IOException("Not a regular file: "+mailBoxListFile.getPath());
+                                                UnixFile mailBoxListBackup = new UnixFile(userBackupDirectory, "mailboxlist", false);
+                                                if(!mailBoxListBackup.getStat(concurrentTempStat).exists()) {
+                                                    if(log.isDebugEnabled()) log.debug(laUsername+": Backing-up mailboxlist");
+                                                    UnixFile tempFile = UnixFile.mktemp(mailBoxListBackup.getPath()+".", false);
+                                                    mailBoxListFile.copyTo(tempFile, true);
+                                                    tempFile.chown(UnixFile.ROOT_UID, UnixFile.ROOT_GID).setMode(0600).renameTo(mailBoxListBackup);
+                                                }
+                                            }
+
+                                            // The password will be reset to a random value upon first use, subsequent
+                                            // accesses will use the same password.
+                                            String[] tempPassword = new String[1];
+
+                                            // Convert old INBOX
+                                            UnixFile inboxFile = new UnixFile(mailSpool, laUsername);
+                                            if(inboxFile.getStat(concurrentTempStat).exists()) {
+                                                if(!concurrentTempStat.isRegularFile()) throw new IOException("Not a regular file: "+inboxFile.getPath());
+                                                convertImapFile(laUsername, inboxFile, new UnixFile(userBackupDirectory, "INBOX", false), "INBOX", tempPassword, concurrentTempStat);
+                                            }
+
+                                            // Convert old folders from UW software
+                                            UnixFile mailDir = new UnixFile(homeDir, "Mail", false);
+                                            if(mailDir.getStat(concurrentTempStat).exists()) {
+                                                if(!concurrentTempStat.isDirectory()) throw new IOException("Not a directory: "+mailDir.getPath());
+                                                convertImapDirectory(laUsername, mailDir, new UnixFile(userBackupDirectory, "Mail", false), "", tempPassword, concurrentTempStat);
+                                            }
+
+                                            // TODO: mailboxlistfile should now be empty - confirm and delete
+
+                                            // Restore passwd, if needed
+                                            String currentEncryptedPassword = LinuxAccountManager.getEncryptedPassword(laUsername);
+                                            String savedEncryptedPassword;
+                                            BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(passwordBackup.getFile())));
+                                            try {
+                                                savedEncryptedPassword = in.readLine();
+                                            } finally {
+                                                in.close();
+                                            }
+                                            if(savedEncryptedPassword==null) throw new IOException("Unable to load saved password");
+                                            if(!savedEncryptedPassword.equals(currentEncryptedPassword)) {
+                                                if(log.isDebugEnabled()) log.debug(laUsername+": Restoring password");
+                                                LinuxAccountManager.setEncryptedPassword(laUsername, savedEncryptedPassword);
+                                            }
+
+                                            // TODO: Remove .mailboxlist, should be empty - error if not.
+
+                                            return null;
+                                        }
+                                    }
+                                )
+                            );
+                        }
                     }
                 }
+                if(WUIMAP_CONVERSION_ENABLED) {
+                    List<LinuxServerAccount> deleteMe = new ArrayList<LinuxServerAccount>();
+                    while(!convertors.isEmpty()) {
+                        deleteMe.clear();
+                        for(Map.Entry<LinuxServerAccount,Future<Object>> entry : convertors.entrySet()) {
+                            LinuxServerAccount lsa = entry.getKey();
+                            Future<Object> future = entry.getValue();
+                            // Wait for completion
+                            try {
+                                future.get(1, TimeUnit.SECONDS);
+                                deleteMe.add(lsa);
+                            } catch(InterruptedException err) {
+                                AOServDaemon.reportWarning(err, null);
+                                // Will retry on next loop
+                            } catch(ExecutionException err) {
+                                AOServDaemon.reportError(err, null);
+                                deleteMe.add(lsa);
+                            } catch(TimeoutException err) {
+                                // This is OK, will just retry on next loop
+                            }
+                        }
+                        for(LinuxServerAccount lsa : deleteMe) convertors.remove(lsa);
+                    }
+                }
+            } finally {
+                if(WUIMAP_CONVERSION_ENABLED) executorService.shutdown();
             }
 
             // Get the list of domains and users from the filesystem
