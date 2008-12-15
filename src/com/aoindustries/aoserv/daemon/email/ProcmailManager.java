@@ -346,15 +346,27 @@ public final class ProcmailManager extends BuilderThread {
                                                 + "* ^X-Spam-Status: Yes\n"
                                                 + "Mail/Junk\n");
                                     } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                                        out.print(":0 w\n"
+                                        out.print(":0\n"
                                                 + "* ^X-Spam-Status: Yes\n"
-                                                // + "| /usr/bin/formail -I\"From \" | /usr/lib/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n");
-                                                + "| /opt/aoserv-client/bin/skipfirstline | ").print(cyrusDeliverCentOs.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n");
+                                                + "{\n"
+                                                + "  :0 w\n"
+                                                + "  | /opt/aoserv-client/bin/skipfirstline | ").print(cyrusDeliverCentOs.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n"
+                                                + "\n"
+                                                + "  # Delivery failed, return EX_TEMPFAIL to have sendmail retry delivery\n"
+                                                + "  EXITCODE=75\n"
+                                                + "  HOST\n"
+                                                + "}\n");
                                     } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-                                        out.print(":0 w\n"
+                                        out.print(":0\n"
                                                 + "* ^X-Spam-Status: Yes\n"
-                                                // + "| /usr/bin/formail -I\"From \" | /usr/lib64/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n");
-                                                + "| /opt/aoserv-client/bin/skipfirstline | ").print(cyrusDeliverRedHat.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n");
+                                                + "{\n"
+                                                + "  :0 w\n"
+                                                + "  | /opt/aoserv-client/bin/skipfirstline | ").print(cyrusDeliverRedHat.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n"
+                                                + "\n"
+                                                + "  # Delivery failed, return EX_TEMPFAIL to have sendmail retry delivery\n"
+                                                + "  EXITCODE=75\n"
+                                                + "  HOST\n"
+                                                + "}\n");
                                     } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                                 }
 
@@ -365,12 +377,20 @@ public final class ProcmailManager extends BuilderThread {
                                     out.print("\n"
                                             + ":0 w\n"
                                             //+ "| /usr/bin/formail -I\"From \" | /usr/lib/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
-                                            + "| /opt/aoserv-client/bin/skipfirstline | ").print(cyrusDeliverCentOs.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
+                                            + "| /opt/aoserv-client/bin/skipfirstline | ").print(cyrusDeliverCentOs.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n"
+                                            + "\n"
+                                            + "# Delivery failed, return EX_TEMPFAIL to have sendmail retry delivery\n"
+                                            + "EXITCODE=75\n"
+                                            + "HOST\n");
                                 } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                                     out.print("\n"
                                             + ":0 w\n"
                                             //+ "| /usr/bin/formail -I\"From \" | /usr/lib64/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
-                                            + "| /opt/aoserv-client/bin/skipfirstline | ").print(cyrusDeliverRedHat.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
+                                            + "| /opt/aoserv-client/bin/skipfirstline | ").print(cyrusDeliverRedHat.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n"
+                                            + "\n"
+                                            + "# Delivery failed, return EX_TEMPFAIL to have sendmail retry delivery\n"
+                                            + "EXITCODE=75\n"
+                                            + "HOST\n");
                                 } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                             } else {
                                 // Discard the email if configured to not use the inbox or Junk folders
