@@ -51,6 +51,7 @@ import java.util.Calendar;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -114,6 +115,8 @@ import org.apache.commons.logging.LogFactory;
  *     Add smmapd support
  *     Consider http://en.wikipedia.org/wiki/Application_Configuration_Access_Protocol or http://en.wikipedia.org/wiki/Application_Configuration_Access_Protocol
  *     Look for any "junk" flags for Cyrus folders - if exists can train off this instead of requiring move to/from Junk
+ * 
+ * TODO: Test what happens to delivery when Cyrus is down.
  *
  * @author  AO Industries, Inc.
  */
@@ -135,7 +138,17 @@ final public class ImapManager extends BuilderThread {
         cyrusConfFile = new UnixFile("/etc/cyrus.conf"),
         cyrusConfNewFile = new UnixFile("/etc/cyrus.conf.new"),
         imapdConfFile = new UnixFile("/etc/imapd.conf"),
-        imapdConfNewFile = new UnixFile("/etc/imapd.conf.new")
+        imapdConfNewFile = new UnixFile("/etc/imapd.conf.new"),
+        pkiVostsDirectory = new UnixFile("/etc/pki/cyrus-imapd/vhosts")
+    ;
+
+    /**
+     * Default symbolic links for protocol-ip-port-specific certificate files.
+     */
+    private static final String
+        DEFAULT_CERT_SYMLINK = "../cyrus-imapd.pem",
+        DEFAULT_KEY_SYMLINK  = "../cyrus-imapd.pem",
+        DEFAULT_CA_SYMLINK   = "../../tls/certs/ca-bundle.crt"
     ;
 
     private static final UnixFile wuBackupDirectory = new UnixFile("/var/opt/imap-2007d/backup");
@@ -390,6 +403,18 @@ final public class ImapManager extends BuilderThread {
                     }
                     if(!foundOnDefault) throw new SQLException("imap is required on a default port with any of imap, imaps, pop3, and pop3s");
 
+                    // The worst-case number of services, used to initialize storage to avoid rehash/resize
+                    int maxServices =
+                        imapBinds.size()
+                        + imapsBinds.size()
+                        + pop3Binds.size()
+                        + pop3sBinds.size()
+                        + sieveBinds.size()
+                        + 1 // lmtpunix
+                    ;
+                    // All services that support TLS or SSL will be added here
+                    Map<String,NetBind> tlsServices = new LinkedHashMap<String,NetBind>(maxServices*4/3+1);
+
                     boolean needsReload = false;
                     // Update /etc/cyrus.conf
                     {
@@ -412,25 +437,33 @@ final public class ImapManager extends BuilderThread {
                             int counter = 1;
                             for(NetBind imapBind : imapBinds) {
                                 if(!imapBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("imap requires TCP protocol");
-                                out.print("  imap").print(counter++).print(" cmd=\"imapd\" listen=\"[").print(imapBind.getIPAddress().getIPAddress()).print("]:").print(imapBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=5\n");
+                                String serviceName = "imap"+(counter++);
+                                out.print("  ").print(serviceName).print(" cmd=\"imapd\" listen=\"[").print(imapBind.getIPAddress().getIPAddress()).print("]:").print(imapBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=5\n");
+                                tlsServices.put(serviceName, imapBind);
                             }
                             // imaps
                             counter = 1;
                             for(NetBind imapsBind : imapsBinds) {
                                 if(!imapsBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("imaps requires TCP protocol");
-                                out.print("  imaps").print(counter++).print(" cmd=\"imapd -s\" listen=\"[").print(imapsBind.getIPAddress().getIPAddress()).print("]:").print(imapsBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=1\n");
+                                String serviceName = "imaps"+(counter++);
+                                out.print("  ").print(serviceName).print(" cmd=\"imapd -s\" listen=\"[").print(imapsBind.getIPAddress().getIPAddress()).print("]:").print(imapsBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=1\n");
+                                tlsServices.put(serviceName, imapsBind);
                             }
                             // pop3
                             counter = 1;
                             for(NetBind pop3Bind : pop3Binds) {
                                 if(!pop3Bind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("pop3 requires TCP protocol");
-                                out.print("  pop3").print(counter++).print(" cmd=\"pop3d\" listen=\"[").print(pop3Bind.getIPAddress().getIPAddress()).print("]:").print(pop3Bind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=3\n");
+                                String serviceName = "pop3"+(counter++);
+                                out.print("  ").print(serviceName).print(" cmd=\"pop3d\" listen=\"[").print(pop3Bind.getIPAddress().getIPAddress()).print("]:").print(pop3Bind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=3\n");
+                                tlsServices.put(serviceName, pop3Bind);
                             }
                             // pop3s
                             counter = 1;
                             for(NetBind pop3sBind : pop3sBinds) {
                                 if(!pop3sBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("pop3s requires TCP protocol");
-                                out.print("  pop3s").print(counter++).print(" cmd=\"pop3d -s\" listen=\"[").print(pop3sBind.getIPAddress().getIPAddress()).print("]:").print(pop3sBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=1\n");
+                                String serviceName = "pop3s"+(counter++);
+                                out.print("  ").print(serviceName).print(" cmd=\"pop3d -s\" listen=\"[").print(pop3sBind.getIPAddress().getIPAddress()).print("]:").print(pop3sBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=1\n");
+                                tlsServices.put(serviceName, pop3sBind);
                             }
                             // sieve
                             counter = 1;
@@ -476,6 +509,9 @@ final public class ImapManager extends BuilderThread {
                         }
                     }
 
+                    // Any files in /etc/pki/cyrus-imapd/vhosts that are not in this list are subject to removal
+                    Set<String> vhostsFiles = new HashSet<String>(3 * (maxServices*4/3+1)); // Three files per service
+
                     // Update /etc/imapd.conf
                     {
                         bout.reset();
@@ -502,8 +538,58 @@ final public class ImapManager extends BuilderThread {
                                     + "# SSL/TLS\n"
                                     + "tls_cert_file: /etc/pki/cyrus-imapd/cyrus-imapd.pem\n"
                                     + "tls_key_file: /etc/pki/cyrus-imapd/cyrus-imapd.pem\n"
-                                    + "tls_ca_file: /etc/pki/tls/certs/ca-bundle.crt\n"
-                                    + "\n"
+                                    + "tls_ca_file: /etc/pki/tls/certs/ca-bundle.crt\n");
+                            // Make sure directory exists and has proper permissions
+                            {
+                                Stat pkiVostsDirectoryStat = pkiVostsDirectory.getStat();
+                                if(!pkiVostsDirectoryStat.exists()) {
+                                    pkiVostsDirectory.mkdir();
+                                    pkiVostsDirectory.getStat(pkiVostsDirectoryStat);
+                                }
+                                if(pkiVostsDirectoryStat.getMode()!=0755) {
+                                    pkiVostsDirectory.setMode(0755);
+                                    // Not needed because last use: pkiVostsDirectory.getStat(pkiVostsDirectoryStat);
+                                }
+                            }
+                            // service-specific certificates
+                            //     file:///home/o/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
+                            //     value of "disabled" if the certificate file doesn't exist (or use server default)
+                            //     openssl req -new -x509 -nodes -out cyrus-imapd.pem -keyout cyrus-imapd.pem -days 3650
+                            for(Map.Entry<String,NetBind> entry : tlsServices.entrySet()) {
+                                String serviceName = entry.getKey();
+                                NetBind netBind = entry.getValue();
+                                String ipAddress = netBind.getIPAddress().getIPAddress();
+                                int port = netBind.getPort().getPort();
+                                String protocol;
+                                String appProtocol = netBind.getAppProtocol().getProtocol();
+                                if(Protocol.IMAP2.equals(appProtocol)) protocol = "imap";
+                                else if(Protocol.SIMAP.equals(appProtocol)) protocol = "imaps";
+                                else if(Protocol.POP3.equals(appProtocol)) protocol = "pop3";
+                                else if(Protocol.SPOP3.equals(appProtocol)) protocol = "pop3s";
+                                else throw new SQLException("Unexpected Protocol: "+appProtocol);
+
+                                // cert file
+                                String certFilename = protocol+"_"+ipAddress+"_"+port+".cert";
+                                UnixFile certFile = new UnixFile(pkiVostsDirectory, certFilename, false);
+                                if(!certFile.getStat(tempStat).exists()) certFile.symLink(DEFAULT_CERT_SYMLINK);
+                                vhostsFiles.add(certFilename);
+                                out.print(serviceName).print("_tls_cert_file: ").print(certFile.getPath()).print('\n');
+
+                                // key file
+                                String keyFilename = protocol+"_"+ipAddress+"_"+port+".key";
+                                UnixFile keyFile = new UnixFile(pkiVostsDirectory, keyFilename, false);
+                                if(!keyFile.getStat(tempStat).exists()) keyFile.symLink(DEFAULT_KEY_SYMLINK);
+                                vhostsFiles.add(keyFilename);
+                                out.print(serviceName).print("_tls_key_file: ").print(keyFile.getPath()).print('\n');
+                                
+                                // ca file
+                                String caFilename = protocol+"_"+ipAddress+"_"+port+".ca";
+                                UnixFile caFile = new UnixFile(pkiVostsDirectory, caFilename, false);
+                                if(!caFile.getStat(tempStat).exists()) caFile.symLink(DEFAULT_CA_SYMLINK);
+                                vhostsFiles.add(caFilename);
+                                out.print(serviceName).print("_tls_ca_file: ").print(caFile.getPath()).print('\n');
+                            }
+                            out.print("\n"
                                     + "# Performance\n"
                                     + "expunge_mode: delayed\n"
                                     + "hashimapspool: true\n"
@@ -550,16 +636,26 @@ final public class ImapManager extends BuilderThread {
                         }
                     }
 
-                    // TODO: Configure certificates in /etc/pki/cyrus-imapd on a per-IP basis.
-                    //       Make sure server default file exists
-                    //       If no per ip_port files exist, then symlink to server defaults
-                    //           This allows simply replacing on filesystem once they have been created
-                    //       Do not remove any old cert files, can remove symlinks to default files only
-                    //
-                    //       file:///home/o/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
-                    //       value of "disabled" if the certificate file doesn't exist (or use server default)
-                    //       openssl req -new -x509 -nodes -out cyrus-imapd.pem -keyout cyrus-imapd.pem -days 3650
-                    //       Other automated certificate management, sendmail too?
+                    // Remove default links in /etc/pki/cyrus-imapd/vhosts that are no longer used
+                    String[] list = pkiVostsDirectory.list();
+                    if(list!=null) {
+                        for(String filename : list) {
+                            if(!vhostsFiles.contains(filename)) {
+                                UnixFile vhostsFile = new UnixFile(pkiVostsDirectory, filename, false);
+                                vhostsFile.getStat(tempStat);
+                                if(tempStat.isSymLink()) {
+                                    String target = vhostsFile.readLink();
+                                    if(
+                                        target.equals(DEFAULT_CERT_SYMLINK)
+                                        || target.equals(DEFAULT_KEY_SYMLINK)
+                                        || target.equals(DEFAULT_CA_SYMLINK)
+                                    ) {
+                                        vhostsFile.delete();
+                                    }
+                                }
+                            }
+                        }
+                    }
                     
                     // chkconfig on if needed
                     if(!cyrusRcFile.getStat(tempStat).exists()) {
@@ -790,7 +886,7 @@ final public class ImapManager extends BuilderThread {
     }
 
     /**
-     * TODO: This should really be a toString on the Flags.Flag class.
+     * This should really be a toString on the Flags.Flag class.
      */
     private static String getFlagName(Flags.Flag flag) throws MessagingException {
         if(flag==Flags.Flag.ANSWERED) return "ANSWERED";
@@ -1386,8 +1482,8 @@ final public class ImapManager extends BuilderThread {
     /**
      * Remove after testing, or move to JUnit tests.
      */
-    /*
-    public static void main(String[] args) {
+    /*public static void main(String[] args) {
+        for(int c=0;c<10;c++) benchmark();
         try {
             rebuildUsers();
 
