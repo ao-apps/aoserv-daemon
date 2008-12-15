@@ -86,6 +86,7 @@ import org.apache.commons.logging.LogFactory;
  *     password: Eflay43Klar
  *
  * TODO: Once conversion done:
+ *     0) Look for any /home/?/???/MoveToCyrus folders (www2.kc.aoindustries.com:smurphy is one)
  *     1) Set WUIMAP_CONVERSION_ENABLED to false
  *     2) Make sure all gone in /home/?/???/Mail and /home/?/???/.mailboxlist
  *     - Then after a while -
