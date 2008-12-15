@@ -115,8 +115,6 @@ import org.apache.commons.logging.LogFactory;
  *     Add smmapd support
  *     Consider http://en.wikipedia.org/wiki/Application_Configuration_Access_Protocol or http://en.wikipedia.org/wiki/Application_Configuration_Access_Protocol
  *     Look for any "junk" flags for Cyrus folders - if exists can train off this instead of requiring move to/from Junk
- * 
- * TODO: Test what happens to delivery when Cyrus is down.
  *
  * @author  AO Industries, Inc.
  */
@@ -263,21 +261,35 @@ final public class ImapManager extends BuilderThread {
     /**
      * Gets access to the old IMAPStore for wu-imapd.
      */
-    private static IMAPStore getOldUserStore(PrintWriter logOut, String username, String[] tempPassword) throws IOException, SQLException, MessagingException {
+    private static IMAPStore getOldUserStore(
+        PrintWriter logOut,
+        String username,
+        String[] tempPassword,
+        UnixFile passwordBackup,
+        Stat tempStat
+    ) throws IOException, SQLException, MessagingException {
         return getUserStore(
             logOut,
             AOServDaemon.getThisAOServer().getPrimaryIPAddress().getIPAddress(),
             8143,
             username,
             username,
-            tempPassword
+            tempPassword,
+            passwordBackup,
+            tempStat
         );
     }
 
     /**
      * Gets access to the new IMAPStore for cyrus.
      */
-    private static IMAPStore getNewUserStore(PrintWriter logOut, String username, String[] tempPassword) throws IOException, SQLException, MessagingException {
+    private static IMAPStore getNewUserStore(
+        PrintWriter logOut,
+        String username,
+        String[] tempPassword,
+        UnixFile passwordBackup,
+        Stat tempStat
+    ) throws IOException, SQLException, MessagingException {
         String host = getImapServerIPAddress();
         if(host==null) throw new IOException("Not an IMAP server");
         return getUserStore(
@@ -286,17 +298,42 @@ final public class ImapManager extends BuilderThread {
             143,
             username,
             username.indexOf('@')==-1 ? (username+"@default") : username,
-            tempPassword
+            tempPassword,
+            passwordBackup,
+            tempStat
         );
     }
 
     /**
      * Gets the IMAPStore for the provided user to the given IPAddress and port.
      */
-    private static IMAPStore getUserStore(PrintWriter logOut, String host, int port, String username, String imapUsername, String[] tempPassword) throws IOException, SQLException, MessagingException {
+    private static IMAPStore getUserStore(
+        PrintWriter logOut,
+        String host,
+        int port,
+        String username,
+        String imapUsername,
+        String[] tempPassword,
+        UnixFile passwordBackup,
+        Stat tempStat
+    ) throws IOException, SQLException, MessagingException {
         // Reset the user password if needed
         String password = tempPassword[0];
         if(password==null) {
+            // Backup the password
+            if(!passwordBackup.getStat(tempStat).exists()) {
+                log(logOut, LogLevel.DEBUG, username, "Backing-up password");
+                String encryptedPassword = LinuxAccountManager.getEncryptedPassword(username);
+                UnixFile tempFile = UnixFile.mktemp(passwordBackup.getPath()+".", false);
+                PrintWriter out = new PrintWriter(new FileOutputStream(tempFile.getFile()));
+                try {
+                    out.println(encryptedPassword);
+                } finally {
+                    out.close();
+                }
+                tempFile.renameTo(passwordBackup);
+            }
+            // Change the password to a random value
             password = LinuxAccountTable.generatePassword();
             log(logOut, LogLevel.DEBUG, username, "Setting password to "+password);
             LinuxAccountManager.setPassword(username, password);
@@ -543,10 +580,12 @@ final public class ImapManager extends BuilderThread {
                             {
                                 Stat pkiVostsDirectoryStat = pkiVostsDirectory.getStat();
                                 if(!pkiVostsDirectoryStat.exists()) {
+                                    if(log.isDebugEnabled()) log.debug("Creating vhosts directory: "+pkiVostsDirectory.getPath());
                                     pkiVostsDirectory.mkdir();
                                     pkiVostsDirectory.getStat(pkiVostsDirectoryStat);
                                 }
                                 if(pkiVostsDirectoryStat.getMode()!=0755) {
+                                    if(log.isDebugEnabled()) log.debug("Setting vhosts directory permissions: "+pkiVostsDirectory.getPath());
                                     pkiVostsDirectory.setMode(0755);
                                     // Not needed because last use: pkiVostsDirectory.getStat(pkiVostsDirectoryStat);
                                 }
@@ -571,21 +610,30 @@ final public class ImapManager extends BuilderThread {
                                 // cert file
                                 String certFilename = protocol+"_"+ipAddress+"_"+port+".cert";
                                 UnixFile certFile = new UnixFile(pkiVostsDirectory, certFilename, false);
-                                if(!certFile.getStat(tempStat).exists()) certFile.symLink(DEFAULT_CERT_SYMLINK);
+                                if(!certFile.getStat(tempStat).exists()) {
+                                    if(log.isDebugEnabled()) log.debug("Creating default cert symlink: "+certFile.getPath()+"->"+DEFAULT_CERT_SYMLINK);
+                                    certFile.symLink(DEFAULT_CERT_SYMLINK);
+                                }
                                 vhostsFiles.add(certFilename);
                                 out.print(serviceName).print("_tls_cert_file: ").print(certFile.getPath()).print('\n');
 
                                 // key file
                                 String keyFilename = protocol+"_"+ipAddress+"_"+port+".key";
                                 UnixFile keyFile = new UnixFile(pkiVostsDirectory, keyFilename, false);
-                                if(!keyFile.getStat(tempStat).exists()) keyFile.symLink(DEFAULT_KEY_SYMLINK);
+                                if(!keyFile.getStat(tempStat).exists()) {
+                                    if(log.isDebugEnabled()) log.debug("Creating default key symlink: "+keyFile.getPath()+"->"+DEFAULT_KEY_SYMLINK);
+                                    keyFile.symLink(DEFAULT_KEY_SYMLINK);
+                                }
                                 vhostsFiles.add(keyFilename);
                                 out.print(serviceName).print("_tls_key_file: ").print(keyFile.getPath()).print('\n');
                                 
                                 // ca file
                                 String caFilename = protocol+"_"+ipAddress+"_"+port+".ca";
                                 UnixFile caFile = new UnixFile(pkiVostsDirectory, caFilename, false);
-                                if(!caFile.getStat(tempStat).exists()) caFile.symLink(DEFAULT_CA_SYMLINK);
+                                if(!caFile.getStat(tempStat).exists()) {
+                                    if(log.isDebugEnabled()) log.debug("Creating default ca symlink: "+caFile.getPath()+"->"+DEFAULT_CA_SYMLINK);
+                                    caFile.symLink(DEFAULT_CA_SYMLINK);
+                                }
                                 vhostsFiles.add(caFilename);
                                 out.print(serviceName).print("_tls_ca_file: ").print(caFile.getPath()).print('\n');
                             }
@@ -650,8 +698,13 @@ final public class ImapManager extends BuilderThread {
                                         || target.equals(DEFAULT_KEY_SYMLINK)
                                         || target.equals(DEFAULT_CA_SYMLINK)
                                     ) {
+                                        if(log.isDebugEnabled()) log.debug("Deleting default symlink: "+vhostsFile.getPath()+"->"+target);
                                         vhostsFile.delete();
+                                    } else {
+                                        // Warn here to help admin keep clean?
                                     }
+                                } else {
+                                    // Warn here to help admin keep clean?
                                 }
                             }
                         }
@@ -814,7 +867,16 @@ final public class ImapManager extends BuilderThread {
         }
     }
 
-    private static void convertImapDirectory(final PrintWriter logOut, final String username, final UnixFile directory, final UnixFile backupDirectory, final String folderPath, final String[] tempPassword, final Stat tempStat) throws IOException, SQLException, MessagingException {
+    private static void convertImapDirectory(
+        final PrintWriter logOut,
+        final String username,
+        final UnixFile directory,
+        final UnixFile backupDirectory,
+        final String folderPath,
+        final String[] tempPassword,
+        final UnixFile passwordBackup,
+        final Stat tempStat
+    ) throws IOException, SQLException, MessagingException {
         // Careful not a symbolic link
         if(!directory.getStat(tempStat).isDirectory()) throw new IOException("Not a directory: "+directory.getPath());
 
@@ -838,7 +900,7 @@ final public class ImapManager extends BuilderThread {
                 String folderName = folderPath.length()==0 ? childName : (folderPath+'/'+childName);
 
                 // Get New Store
-                IMAPStore newStore = getNewUserStore(logOut, username, tempPassword);
+                IMAPStore newStore = getNewUserStore(logOut, username, tempPassword, passwordBackup, tempStat);
                 try {
                     // Get New Folder
                     IMAPFolder newFolder = (IMAPFolder)newStore.getFolder(folderName);
@@ -866,9 +928,9 @@ final public class ImapManager extends BuilderThread {
                 // Recurse
                 UnixFile childBackupUf = new UnixFile(backupDirectory, childName, false);
                 if(isDirectory && !isFile) {
-                    convertImapDirectory(logOut, username, childUf, childBackupUf, folderName, tempPassword, tempStat);
+                    convertImapDirectory(logOut, username, childUf, childBackupUf, folderName, tempPassword, passwordBackup, tempStat);
                 } else if(isFile && !isDirectory) {
-                    convertImapFile(logOut, username, childUf, childBackupUf, folderName, tempPassword, tempStat);
+                    convertImapFile(logOut, username, childUf, childBackupUf, folderName, tempPassword, passwordBackup, tempStat);
                 } else {
                     throw new AssertionError("This should already have been caught by the isDirectory and isFile checks above");
                 }
@@ -936,7 +998,16 @@ final public class ImapManager extends BuilderThread {
         }
     }
 
-    private static void convertImapFile(final PrintWriter logOut, final String username, final UnixFile file, final UnixFile backupFile, final String folderName, final String[] tempPassword, final Stat tempStat) throws IOException, SQLException, MessagingException {
+    private static void convertImapFile(
+        final PrintWriter logOut,
+        final String username,
+        final UnixFile file,
+        final UnixFile backupFile,
+        final String folderName,
+        final String[] tempPassword,
+        final UnixFile passwordBackup,
+        final Stat tempStat
+    ) throws IOException, SQLException, MessagingException {
         // Careful not a symolic link
         if(!file.getStat().isRegularFile()) throw new IOException("Not a regular file: "+file.getPath());
 
@@ -963,7 +1034,7 @@ final public class ImapManager extends BuilderThread {
         } else {
             // Get Old Store
             boolean deleteOldFolder;
-            IMAPStore oldStore = getOldUserStore(logOut, username, tempPassword);
+            IMAPStore oldStore = getOldUserStore(logOut, username, tempPassword, passwordBackup, tempStat);
             try {
                 // Get Old Folder
                 IMAPFolder oldFolder = (IMAPFolder)oldStore.getFolder(folderName);
@@ -971,7 +1042,7 @@ final public class ImapManager extends BuilderThread {
                     if(!oldFolder.exists()) throw new MessagingException(username+": Old folder doesn't exist: "+folderName);
                     oldFolder.open(Folder.READ_WRITE);
                     // Get New Store
-                    IMAPStore newStore = getNewUserStore(logOut, username, tempPassword);
+                    IMAPStore newStore = getNewUserStore(logOut, username, tempPassword, passwordBackup, tempStat);
                     try {
                         // Get New Folder
                         IMAPFolder newFolder = (IMAPFolder)newStore.getFolder(folderName);
@@ -1309,24 +1380,13 @@ final public class ImapManager extends BuilderThread {
                                             
                                             // Per-user logs
                                             UnixFile logFile = new UnixFile(userBackupDirectory, "log", false);
-                                            if(log.isDebugEnabled()) log.debug(laUsername+": Using logfile: "+logFile.getPath());
+                                            if(log.isTraceEnabled()) log.trace(laUsername+": Using logfile: "+logFile.getPath());
                                             PrintWriter logOut = new PrintWriter(new FileOutputStream(logFile.getFile(), true));
                                             try {
                                                 if(logFile.getStat(tempStat).getMode()!=0600) logFile.setMode(0600);
-                                                // Backup the password
+                                                // Password backup is delayed until immediately before the password is reset.
+                                                // This avoids unnecessary password resets.
                                                 UnixFile passwordBackup = new UnixFile(userBackupDirectory, "passwd", false);
-                                                if(!passwordBackup.getStat(tempStat).exists()) {
-                                                    log(logOut, LogLevel.DEBUG, laUsername, "Backing-up password");
-                                                    String encryptedPassword = LinuxAccountManager.getEncryptedPassword(laUsername);
-                                                    UnixFile tempFile = UnixFile.mktemp(passwordBackup.getPath()+".", false);
-                                                    PrintWriter out = new PrintWriter(new FileOutputStream(tempFile.getFile()));
-                                                    try {
-                                                        out.println(encryptedPassword);
-                                                    } finally {
-                                                        out.close();
-                                                    }
-                                                    tempFile.renameTo(passwordBackup);
-                                                }
 
                                                 // Backup the mailboxlist
                                                 UnixFile homeDir = new UnixFile(homePath);
@@ -1350,36 +1410,38 @@ final public class ImapManager extends BuilderThread {
                                                 UnixFile inboxFile = new UnixFile(mailSpool, laUsername);
                                                 if(inboxFile.getStat(tempStat).exists()) {
                                                     if(!tempStat.isRegularFile()) throw new IOException("Not a regular file: "+inboxFile.getPath());
-                                                    convertImapFile(logOut, laUsername, inboxFile, new UnixFile(userBackupDirectory, "INBOX", false), "INBOX", tempPassword, tempStat);
+                                                    convertImapFile(logOut, laUsername, inboxFile, new UnixFile(userBackupDirectory, "INBOX", false), "INBOX", tempPassword, passwordBackup, tempStat);
                                                 }
 
                                                 // Convert old folders from UW software
                                                 UnixFile mailDir = new UnixFile(homeDir, "Mail", false);
                                                 if(mailDir.getStat(tempStat).exists()) {
                                                     if(!tempStat.isDirectory()) throw new IOException("Not a directory: "+mailDir.getPath());
-                                                    convertImapDirectory(logOut, laUsername, mailDir, new UnixFile(userBackupDirectory, "Mail", false), "", tempPassword, tempStat);
+                                                    convertImapDirectory(logOut, laUsername, mailDir, new UnixFile(userBackupDirectory, "Mail", false), "", tempPassword, passwordBackup, tempStat);
                                                 }
 
                                                 // Remove the mailboxlist file
                                                 if(mailBoxListFile.getStat(tempStat).exists()) mailBoxListFile.delete();
 
                                                 // Restore passwd, if needed
-                                                String currentEncryptedPassword = LinuxAccountManager.getEncryptedPassword(laUsername);
-                                                String savedEncryptedPassword;
-                                                BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(passwordBackup.getFile())));
-                                                try {
-                                                    savedEncryptedPassword = in.readLine();
-                                                } finally {
-                                                    in.close();
-                                                }
-                                                if(savedEncryptedPassword==null) throw new IOException("Unable to load saved password");
-                                                if(!savedEncryptedPassword.equals(currentEncryptedPassword)) {
-                                                    log(logOut, LogLevel.DEBUG, laUsername, "Restoring password");
-                                                    LinuxAccountManager.setEncryptedPassword(laUsername, savedEncryptedPassword);
-                                                    UnixFile passwordBackupOld = new UnixFile(userBackupDirectory, "passwd.old", false);
-                                                    passwordBackup.renameTo(passwordBackupOld);
-                                                } else {
-                                                    passwordBackup.delete();
+                                                if(passwordBackup.getStat(tempStat).exists()) {
+                                                    String currentEncryptedPassword = LinuxAccountManager.getEncryptedPassword(laUsername);
+                                                    String savedEncryptedPassword;
+                                                    BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(passwordBackup.getFile())));
+                                                    try {
+                                                        savedEncryptedPassword = in.readLine();
+                                                    } finally {
+                                                        in.close();
+                                                    }
+                                                    if(savedEncryptedPassword==null) throw new IOException("Unable to load saved password");
+                                                    if(!savedEncryptedPassword.equals(currentEncryptedPassword)) {
+                                                        log(logOut, LogLevel.DEBUG, laUsername, "Restoring password");
+                                                        LinuxAccountManager.setEncryptedPassword(laUsername, savedEncryptedPassword);
+                                                        UnixFile passwordBackupOld = new UnixFile(userBackupDirectory, "passwd.old", false);
+                                                        passwordBackup.renameTo(passwordBackupOld);
+                                                    } else {
+                                                        passwordBackup.delete();
+                                                    }
                                                 }
                                             } finally {
                                                 logOut.close();
