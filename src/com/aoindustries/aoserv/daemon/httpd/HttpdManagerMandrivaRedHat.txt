@@ -74,53 +74,53 @@ import java.util.Set;
  *
  * @author  AO Industries, Inc.
  */
-final public class HttpdManagerMandrivaRedHat extends BuilderThread {
+final class HttpdManagerMandrivaRedHat extends BuilderThread {
 
     /**
      * The default PHP version.
      */
-    public static final String DEFAULT_MANDRIVA_2006_0_PHP_VERSION="4";
-    public static final String DEFAULT_REDHAT_ES_4_PHP_VERSION="5";
+    static final String DEFAULT_MANDRIVA_2006_0_PHP_VERSION="4";
+    static final String DEFAULT_REDHAT_ES_4_PHP_VERSION="5";
 
     /**
      * The version of PostgreSQL minor version used by the default PHP version.
      */
-    public static final String MANDRIVA_2006_0_PHP_POSTGRES_MINOR_VERSION="7.3";
-    public static final String REDHAT_ES_4_PHP_POSTGRES_MINOR_VERSION="8.1";
+    static final String MANDRIVA_2006_0_PHP_POSTGRES_MINOR_VERSION="7.3";
+    static final String REDHAT_ES_4_PHP_POSTGRES_MINOR_VERSION="8.1";
 
     /**
      * The default JDK version.
      */
-    public static final String DEFAULT_MANDRIVA_2006_0_JDK_VERSION="jdk1.5.0";
-    public static final String DEFAULT_REDHAT_ES_4_JDK_VERSION="jdk1.5.0";
-    public static final String DEFAULT_TOMCAT_5_JDK_VERSION="jdk1.5.0";
+    static final String DEFAULT_MANDRIVA_2006_0_JDK_VERSION="jdk1.5.0";
+    static final String DEFAULT_REDHAT_ES_4_JDK_VERSION="jdk1.5.0";
+    static final String DEFAULT_TOMCAT_5_JDK_VERSION="jdk1.5.0";
 
     /**
      * The default JDK paths.
      */
-    public static final String DEFAULT_MANDRIVA_2006_0_JDK_PATH="/usr/jdk/1.5.0";
-    public static final String DEFAULT_REDHAT_ES_4_JDK_PATH="/opt/jdk1.5.0";
-    public static final String DEFAULT_TOMCAT_5_JDK_PATH="/usr/jdk/1.5.0";
+    static final String DEFAULT_MANDRIVA_2006_0_JDK_PATH="/usr/jdk/1.5.0";
+    static final String DEFAULT_REDHAT_ES_4_JDK_PATH="/opt/jdk1.5.0";
+    static final String DEFAULT_TOMCAT_5_JDK_PATH="/usr/jdk/1.5.0";
 
     /**
      * The directory that HTTPD configs are located in.
      */
-    public static final String CONFIG_DIRECTORY="/etc/httpd";
+    static final String CONFIG_DIRECTORY="/etc/httpd";
 
     /**
      * The directory that individual host and bind configurations are in.
      */
-    public static final String CONF_HOSTS=CONFIG_DIRECTORY+"/conf/hosts";
+    static final String CONF_HOSTS=CONFIG_DIRECTORY+"/conf/hosts";
 
     /**
      * The directory containing wwwgroup config files
      */
-    public static final String CONF_WWWGROUPS=CONFIG_DIRECTORY+"/conf/wwwgroup";
+    static final String CONF_WWWGROUPS=CONFIG_DIRECTORY+"/conf/wwwgroup";
 	
     /**
      * The worker files.
      */
-    public static final String
+    static final String
         WORKERS_BEGINNING=CONFIG_DIRECTORY+"/conf/workers",
         WORKERS_ENDING=".properties",
         WORKERS_ENDING_NEW=WORKERS_ENDING+".new",
@@ -135,12 +135,12 @@ final public class HttpdManagerMandrivaRedHat extends BuilderThread {
     /**
      * The directory that logs are stored in.
      */
-    public static final String LOG_DIR="/logs";
+    static final String LOG_DIR="/logs";
 
     /**
      * The directory that contains the log rotation scripts.
      */
-    public static final String LOG_ROTATION_DIR="/etc/httpd/conf/logrotate.d";
+    static final String LOG_ROTATION_DIR="/etc/httpd/conf/logrotate.d";
 
     /**
      * The list of files that are contained in /www/{site}/var/log directories.
@@ -821,7 +821,7 @@ final public class HttpdManagerMandrivaRedHat extends BuilderThread {
         }
 
         copyResource("web.dtd-3.2.4", siteDir+"/conf/web.dtd", uid, gid, 0660);
-        copyResource("web.xml-3,2,4", siteDir+"/conf/web.xml", uid, gid, 0660);
+        copyResource("web.xml-3.2.4", siteDir+"/conf/web.xml", uid, gid, 0660);
 
         /*
          * Create the empty log files.
@@ -4094,8 +4094,7 @@ final public class HttpdManagerMandrivaRedHat extends BuilderThread {
                                   + "\n"
                                   + "export CATALINA_BASE=\"").print(wwwGroupDir).print("\"\n"
                                   + "export CATALINA_HOME=\"").print(wwwGroupDir).print("\"\n"
-                                  + "export CATALINA_TEMP=\"").print(wwwGroupDir).print("/temp\"\n"
-                                                                                                                                              );
+                                  + "export CATALINA_TEMP=\"").print(wwwGroupDir).print("/temp\"\n");
                     } else if (version.startsWith(HttpdTomcatVersion.VERSION_3_2_PREFIX) || version.startsWith(HttpdTomcatVersion.VERSION_3_1_PREFIX)) {
                         out.print(". /etc/profile\n");
                         if(tomcat.isSecure()) {
@@ -4779,7 +4778,7 @@ final public class HttpdManagerMandrivaRedHat extends BuilderThread {
         }
     }
 
-    public static void ln(String destination, String filename, int uid, int gid) throws IOException {
+    static void ln(String destination, String filename, int uid, int gid) throws IOException {
         try {
             new UnixFile(filename).symLink(destination).chown(uid, gid);
         } catch (IOException e) {
@@ -4788,14 +4787,14 @@ final public class HttpdManagerMandrivaRedHat extends BuilderThread {
         }
     }
     
-    public static void lnAll(String dstBase, String srcBase, int uid, int gid) throws IOException {
+    static void lnAll(String dstBase, String srcBase, int uid, int gid) throws IOException {
         String[] destinations=new UnixFile(dstBase).list();
         for (int i=0;i<destinations.length;i++) {
             new UnixFile(srcBase+destinations[i]).symLink(dstBase+destinations[i]).chown(uid, gid);
         }
     }
 
-    public static void mkdir(String dirName, int mode, LinuxServerAccount owner, LinuxServerGroup group) throws IOException, SQLException {
+    static void mkdir(String dirName, int mode, LinuxServerAccount owner, LinuxServerGroup group) throws IOException, SQLException {
         UnixFile uf=new UnixFile(dirName);
         Stat ufStat = uf.getStat();
         if(!ufStat.exists()) {
@@ -4808,7 +4807,7 @@ final public class HttpdManagerMandrivaRedHat extends BuilderThread {
         if(ufStat.getMode()!=mode) uf.setMode(mode);
     }
 
-    public static boolean passwordMatches(String password, String crypted) throws IOException {
+    static boolean passwordMatches(String password, String crypted) throws IOException {
         if(crypted.length()<=2) return false;
         String salt=crypted.substring(0,2);
         return UnixCrypt.crypt(password, salt).equals(crypted);
@@ -4843,15 +4842,15 @@ final public class HttpdManagerMandrivaRedHat extends BuilderThread {
         }
     }
 
-    public static void restartApache() throws IOException, SQLException {
+    static void restartApache() throws IOException, SQLException {
         controlApache("restart");
     }
 
-    public static void startApache() throws IOException, SQLException {
+    static void startApache() throws IOException, SQLException {
         controlApache("start");
     }
 
-    public static void stopApache() throws IOException, SQLException {
+    static void stopApache() throws IOException, SQLException {
         controlApache("stop");
     }
 
@@ -4890,7 +4889,7 @@ final public class HttpdManagerMandrivaRedHat extends BuilderThread {
         }
     }
 
-    public static String startJVM(int sitePKey) throws IOException, SQLException {
+    static String startJVM(int sitePKey) throws IOException, SQLException {
         synchronized(startJVMTimes) {
             AOServConnector conn=AOServDaemon.getConnector();
 
@@ -4987,7 +4986,7 @@ final public class HttpdManagerMandrivaRedHat extends BuilderThread {
         }
     }
 
-    public static String stopJVM(int sitePKey) throws IOException, SQLException {
+    static String stopJVM(int sitePKey) throws IOException, SQLException {
         final Stat tempStat = new Stat();
         synchronized(startJVMTimes) {
             AOServConnector conn=AOServDaemon.getConnector();
@@ -5085,7 +5084,7 @@ final public class HttpdManagerMandrivaRedHat extends BuilderThread {
         }
     }
 
-    public static void waitForRebuild() {
+    static void waitForRebuild() {
         if(httpdManagerMandrivaRedHat!=null) httpdManagerMandrivaRedHat.waitForBuild();
     }
     
@@ -5394,7 +5393,7 @@ final public class HttpdManagerMandrivaRedHat extends BuilderThread {
         return 15L*60*1000;
     }
     
-    public static String getAutoWarning(HttpdSite hs) throws IOException, SQLException {
+    static String getAutoWarning(HttpdSite hs) throws IOException, SQLException {
         return
             "<!--\n"
             + "  Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
@@ -5411,7 +5410,7 @@ final public class HttpdManagerMandrivaRedHat extends BuilderThread {
         ;
     }
 
-    public static String getAutoWarning(HttpdSharedTomcat hst) throws IOException, SQLException {
+    static String getAutoWarning(HttpdSharedTomcat hst) throws IOException, SQLException {
         return
             "<!--\n"
             + "  Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
@@ -5428,7 +5427,7 @@ final public class HttpdManagerMandrivaRedHat extends BuilderThread {
         ;
     }
     
-    public static void stripFilePrefix(UnixFile uf, String prefix, Stat tempStat) throws IOException {
+    static void stripFilePrefix(UnixFile uf, String prefix, Stat tempStat) throws IOException {
         // Remove the auto warning if the site has recently become manual
         int prefixLen=prefix.length();
         uf.getStat(tempStat);

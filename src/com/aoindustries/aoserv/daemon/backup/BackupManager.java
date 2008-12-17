@@ -43,6 +43,20 @@ final public class BackupManager {
     private BackupManager() {}
 
     /**
+     * Backs-up and then deletes the provided files.
+     */
+    public static void backupAndDeleteFiles(List<File> deleteFileList) throws IOException {
+        if(!deleteFileList.isEmpty()) {
+            // Get the next backup filename
+            File backupFile = getNextBackupFile();
+            // Backup
+            backupFiles(deleteFileList, backupFile);
+            // Remove the files that have been backed up.
+            for(File file : deleteFileList) new UnixFile(file).secureDeleteRecursive();
+        }
+    }
+
+    /**
      * Makes a tarball of the provided files into the provided file.
      */
     public static void backupFiles(List<File> files, File backupFile) throws IOException {

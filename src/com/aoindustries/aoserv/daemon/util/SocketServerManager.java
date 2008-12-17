@@ -5,11 +5,13 @@ package com.aoindustries.aoserv.daemon.util;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.*;
-import com.aoindustries.aoserv.daemon.*;
-import java.io.*;
-import java.sql.*;
-import java.util.*;
+import com.aoindustries.aoserv.client.IPAddress;
+import com.aoindustries.aoserv.client.NetBind;
+import com.aoindustries.aoserv.daemon.AOServDaemon;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Manages a group of <code>SocketServer</code>.  Servers may be
@@ -71,9 +73,9 @@ abstract public class SocketServerManager {
                 NetBind nb=nbs[c];
                 String nbIP=nb.getIPAddress().getIPAddress();
                 if(
-                   !nbIP.equals(IPAddress.LOOPBACK_IP)
-                   && !nbIP.equals(IPAddress.WILDCARD_IP)
-                   ) {
+                    !nbIP.equals(IPAddress.LOOPBACK_IP)
+                    && !nbIP.equals(IPAddress.WILDCARD_IP)
+                ) {
                     int nbPort=nb.getPort().getPort();
 
                     // Find in the existing list

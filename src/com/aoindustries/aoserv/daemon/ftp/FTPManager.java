@@ -8,6 +8,7 @@ package com.aoindustries.aoserv.daemon.ftp;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.FTPGuestUser;
+import com.aoindustries.aoserv.client.HttpdSite;
 import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.client.LinuxGroup;
@@ -19,15 +20,19 @@ import com.aoindustries.aoserv.client.PrivateFTPServer;
 import com.aoindustries.aoserv.client.Protocol;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.backup.BackupManager;
+import com.aoindustries.aoserv.daemon.httpd.HttpdSiteManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -53,8 +58,8 @@ final public class FTPManager extends BuilderThread {
     /**
      * The directory that is used for site-independant FTP access.
      */
-    public static final String SHARED_FTP_DIRECTORY="/var/ftp/pub";
-    
+    private static final UnixFile sharedFtpDirectory = new UnixFile("/var/ftp/pub");
+
     private static FTPManager ftpManager;
 
     private FTPManager() {
@@ -70,6 +75,8 @@ final public class FTPManager extends BuilderThread {
             } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                 doRebuildVsFtpd();
             } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            
+            doRebuildSharedFtpDirectory();
         }
     }
 
@@ -370,6 +377,37 @@ final public class FTPManager extends BuilderThread {
         } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
     }
 
+    /**
+     * Rebuilds the contents of /var/cvs  Each site optinally gets its own
+     * shared FTP space.
+     */
+    private static void doRebuildSharedFtpDirectory() throws IOException, SQLException {
+        List<File> deleteFileList=new ArrayList<File>();
+
+        String[] list = sharedFtpDirectory.list();
+        Set<String> ftpDirectories = new HashSet<String>(list.length*4/3+1);
+        for(int c=0;c<list.length;c++) ftpDirectories.add(list[c]);
+        
+        for(HttpdSite httpdSite : AOServDaemon.getThisAOServer().getHttpdSites()) {
+            HttpdSiteManager manager = HttpdSiteManager.getInstance(httpdSite);
+
+            /*
+             * Make the private FTP space, if needed.
+             */
+            if(manager.enableAnonymousFtp()) {
+                String siteName = httpdSite.getSiteName();
+                manager.configureFtpDirectory(new UnixFile(sharedFtpDirectory, siteName));
+                ftpDirectories.remove(siteName);
+            }
+        }
+
+        File sharedFtpDirectoryFile = sharedFtpDirectory.getFile();
+        for(String filename : ftpDirectories) deleteFileList.add(new File(sharedFtpDirectoryFile, filename));
+
+        // Back-up and delete the files scheduled for removal
+        BackupManager.backupAndDeleteFiles(deleteFileList);
+    }
+
     public static void start() throws IOException, SQLException {
         AOServer thisAOServer=AOServDaemon.getThisAOServer();
         int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
@@ -387,6 +425,7 @@ final public class FTPManager extends BuilderThread {
                 AOServConnector conn=AOServDaemon.getConnector();
                 ftpManager=new FTPManager();
                 conn.ftpGuestUsers.addTableListener(ftpManager, 0);
+                conn.httpdSites.addTableListener(ftpManager, 0);
                 conn.ipAddresses.addTableListener(ftpManager, 0);
                 conn.linuxAccounts.addTableListener(ftpManager, 0);
                 conn.linuxServerAccounts.addTableListener(ftpManager, 0);

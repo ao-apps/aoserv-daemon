@@ -46,16 +46,6 @@ import java.util.Map;
  */
 final public class AWStatsManager extends BuilderThread {
 
-    private static final File configDirectory=new File("/etc/awstats");
-    private static final File mandrivaAwstatsDirectory=new File("/var/lib/awstats");
-    private static final File redhatAwstatsDirectory=new File("/var/opt/awstats-6");
-    private static final File mandrivaHostsDirectory=new File("/var/lib/awstats/hosts");
-    private static final File redhatHostsDirectory=new File("/var/opt/awstats-6/hosts");
-    private static final File mandrivaBinDirectory=new File("/usr/awstats/current");
-    private static final File redhatBinDirectory=new File("/opt/awstats-6");
-    private static final File mandrivaIconDirectory=new File("/usr/awstats/current/wwwroot/icon");
-    private static final File redhatIconDirectory=new File("/opt/awstats-6/wwwroot/icon");
-
     private static AWStatsManager awstatsManager;
 
     private AWStatsManager() {
@@ -63,28 +53,14 @@ final public class AWStatsManager extends BuilderThread {
 
     private static final Object rebuildLock=new Object();
     protected void doRebuild() throws IOException, SQLException {
-        AOServer aoServer=AOServDaemon.getThisAOServer();
-
-        final File awstatsDirectory;
-        final File hostsDirectory;
-        final File binDirectory;
-        int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
-        if(
-            osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-        ) {
-            awstatsDirectory = mandrivaAwstatsDirectory;
-            hostsDirectory = mandrivaHostsDirectory;
-            binDirectory = mandrivaBinDirectory;
-        } else if(
-            osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
-            || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        ) {
-            awstatsDirectory = redhatAwstatsDirectory;
-            hostsDirectory = redhatHostsDirectory;
-            binDirectory = redhatBinDirectory;
-        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
+        final File awstatsDirectory = new File(osConfig.getAwstatsDirectory());
+        final File binDirectory     = new File(osConfig.getAwstatsBinDirectory());
+        final File configDirectory  = new File(osConfig.getAwstatsConfigDirectory());
+        final File hostsDirectory   = new File(osConfig.getAwstatsHostsDirectory());
 
         // Resolve the UID and GID before obtaining the lock
+        AOServer aoServer=AOServDaemon.getThisAOServer();
         int awstatsUID=aoServer.getLinuxServerAccount(LinuxAccount.AWSTATS).getUID().getID();
         int awstatsGID=aoServer.getLinuxServerGroup(LinuxGroup.AWSTATS).getGID().getID();
 
@@ -580,6 +556,7 @@ final public class AWStatsManager extends BuilderThread {
     }
 
     public static void getAWStatsFile(String siteName, String path, String queryString, CompressedDataOutputStream out) throws IOException, SQLException {
+        HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
         int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
         if(
             osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -669,17 +646,7 @@ final public class AWStatsManager extends BuilderThread {
             }
         } else {
             if(path.startsWith("icon/") && path.indexOf("..")==-1) {
-                final File iconDirectory;
-                if(
-                    osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-                ) {
-                    iconDirectory = mandrivaIconDirectory;
-                } else if(
-                    osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
-                    || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-                ) {
-                    iconDirectory = redhatIconDirectory;
-                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                final File iconDirectory = new File(osConfig.getAwstatsIconDirectory());
                 File file=new File(iconDirectory, path.substring(5));
                 FileInputStream in=new FileInputStream(file);
                 try {

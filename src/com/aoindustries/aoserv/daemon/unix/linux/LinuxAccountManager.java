@@ -8,7 +8,6 @@ package com.aoindustries.aoserv.daemon.unix.linux;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.FTPGuestUser;
-import com.aoindustries.aoserv.client.HttpdSite;
 import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.client.LinuxAccountType;
 import com.aoindustries.aoserv.client.LinuxGroup;
@@ -20,6 +19,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.email.ImapManager;
+import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.ShadowFile;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.ChainWriter;
@@ -103,6 +103,8 @@ public class LinuxAccountManager extends BuilderThread {
     private static void rebuildLinuxAccountSettings() throws IOException, SQLException {
         AOServConnector connector=AOServDaemon.getConnector();
         AOServer aoServer=AOServDaemon.getThisAOServer();
+        HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
+        final String wwwDirectory = osConfig.getHttpdSitesDirectory();
 
         int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
         if(
@@ -345,8 +347,8 @@ public class LinuxAccountManager extends BuilderThread {
                 String th=homeDir.getPath();
                 // Homes in /www will have all the skel copied, but will not set the directory perms
                 boolean isWWWAndUser=
-                    th.length()>(HttpdSite.WWW_DIRECTORY.length()+1)
-                    && th.substring(0, HttpdSite.WWW_DIRECTORY.length()+1).equals(HttpdSite.WWW_DIRECTORY+'/')
+                    th.length()>(wwwDirectory.length()+1)
+                    && th.substring(0, wwwDirectory.length()+1).equals(wwwDirectory+'/')
                     && (type.equals(LinuxAccountType.USER) || type.equals(LinuxAccountType.APPLICATION))
                     && linuxAccount.getFTPGuestUser()==null
                 ;
