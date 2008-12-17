@@ -171,7 +171,7 @@ public abstract class HttpdSiteManager {
      * 
      * @see  #doRebuild
      */
-    static void stopAndDisableDaemons(UnixFile siteDirectory, Stat tempStat) throws IOException, SQLException {
+    public static void stopAndDisableDaemons(UnixFile siteDirectory, Stat tempStat) throws IOException, SQLException {
         UnixFile daemonDirectory = new UnixFile(siteDirectory, "daemon", false);
         daemonDirectory.getStat(tempStat);
         if(tempStat.exists()) {
