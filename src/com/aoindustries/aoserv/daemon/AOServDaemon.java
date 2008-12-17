@@ -571,6 +571,28 @@ final public class AOServDaemon {
      * @param  nice  a nice level passed to /bin/nice, a value of zero (0) will cause nice to not be called
      */
     public static void suexec(String username, String command, int nice) throws IOException {
+        /*
+         * Not needed because command is passed as String[] and any funny stuff will
+         * be executed as the proper user.
+        if(command==null) throw new IllegalArgumentException("command is null");
+        int len = command.length();
+        if(len==0) throw new IllegalArgumentException("command is empty");
+        for(int c=0;c<len;c++) {
+            char ch = command.charAt(c);
+            if(
+                (ch<'a' || ch>'z')
+                && (ch<'A' || ch>'Z')
+                && (ch<'0' || ch>'9')
+                && ch!=' '
+                && ch!='-'
+                && ch!='_'
+                && ch!='.'
+                && ch!='/'
+            ) {
+                throw new IllegalArgumentException("Invalid command character: "+ch);
+            }
+        }*/
+
         String[] cmd;
         if(nice!=0) {
             cmd = new String[] {

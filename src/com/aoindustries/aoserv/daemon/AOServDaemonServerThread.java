@@ -27,6 +27,8 @@ import com.aoindustries.aoserv.daemon.email.ProcmailManager;
 import com.aoindustries.aoserv.daemon.failover.FailoverFileReplicationManager;
 import com.aoindustries.aoserv.daemon.httpd.AWStatsManager;
 import com.aoindustries.aoserv.daemon.httpd.HttpdManager;
+import com.aoindustries.aoserv.daemon.httpd.HttpdServerManager;
+import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
 import com.aoindustries.aoserv.daemon.monitor.MrtgManager;
 import com.aoindustries.aoserv.daemon.mysql.MySQLDBUserManager;
 import com.aoindustries.aoserv.daemon.mysql.MySQLDatabaseManager;
@@ -42,6 +44,7 @@ import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.profiler.MethodProfile;
 import com.aoindustries.profiler.Profiler;
+import com.aoindustries.util.UnixCrypt;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.EOFException;
@@ -60,11 +63,6 @@ import java.util.List;
  * @author  AO Industries, Inc.
  */
 final public class AOServDaemonServerThread extends Thread {
-
-    /**
-     * The list of allowed hosts is calculated the first time it is needed.
-     */
-    private static String[] allowedHosts;
 
     /**
      * The <code>AOServServer</code> that created this <code>AOServServerThread</code>.
@@ -103,6 +101,12 @@ final public class AOServDaemonServerThread extends Thread {
         start();
     }
 
+    private static boolean passwordMatches(String password, String crypted) throws IOException {
+        if(crypted.length()<=2) return false;
+        String salt=crypted.substring(0,2);
+        return UnixCrypt.crypt(password, salt).equals(crypted);
+    }
+
     @Override
     public void run() {
         try {
@@ -135,7 +139,7 @@ final public class AOServDaemonServerThread extends Thread {
                 if(isOK) {
                     // Authenticate the client first
                     String correctKey=thisAOServer.getDaemonKey();
-                    if(!HttpdManager.passwordMatches(key, correctKey)) {
+                    if(!passwordMatches(key, correctKey)) {
                         System.err.println("Connection attempted from " + hostAddress + " with invalid key: " + key);
                         out.writeBoolean(false);
                         out.flush();
@@ -540,7 +544,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing RESTART_APACHE, Thread="+toString());
                                 if(key==null) throw new IOException("Only the master server may RESTART_APACHE");
-                                HttpdManager.restartApache();
+                                HttpdServerManager.restartApache();
                                 out.write(AOServDaemonProtocol.DONE);
                             }
                             break;
@@ -688,7 +692,7 @@ final public class AOServDaemonServerThread extends Thread {
                         case AOServDaemonProtocol.START_APACHE :
                             if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing START_APACHE, Thread="+toString());
                             if(key==null) throw new IOException("Only the master server may START_APACHE");
-                            HttpdManager.startApache();
+                            HttpdServerManager.startApache();
                             out.write(AOServDaemonProtocol.DONE);
                             break;
                         case AOServDaemonProtocol.START_CRON :
@@ -711,7 +715,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing START_JVM, Thread="+toString());
                                 int sitePKey=in.readCompressedInt();
                                 if(key==null) throw new IOException("Only the master server may START_JVM");
-                                String message=HttpdManager.startJVM(sitePKey);
+                                String message=HttpdTomcatSiteManager.startJVM(sitePKey);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeBoolean(message!=null);
                                 if(message!=null) out.writeUTF(message);
@@ -754,7 +758,7 @@ final public class AOServDaemonServerThread extends Thread {
                         case AOServDaemonProtocol.STOP_APACHE :
                             if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing STOP_APACHE, Thread="+toString());
                             if(key==null) throw new IOException("Only the master server may STOP_APACHE");
-                            HttpdManager.stopApache();
+                            HttpdServerManager.stopApache();
                             out.write(AOServDaemonProtocol.DONE);
                             break;
                         case AOServDaemonProtocol.STOP_CRON :
@@ -768,7 +772,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing STOP_JVM, Thread="+toString());
                                 int sitePKey=in.readCompressedInt();
                                 if(key==null) throw new IOException("Only the master server may STOP_JVM");
-                                String message=HttpdManager.stopJVM(sitePKey);
+                                String message=HttpdTomcatSiteManager.stopJVM(sitePKey);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeBoolean(message!=null);
                                 if(message!=null) out.writeUTF(message);

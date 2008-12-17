@@ -35,6 +35,15 @@ public enum OperatingSystemConfiguration {
         public String getScriptInclude(String script) {
             return "/usr/aoserv/etc/"+script;
         }
+        public String getAOServClientScriptInclude() {
+            return "/usr/aoserv/etc/aoserv.sh";
+        }
+        public String getPostgresPath(String minorVersion) {
+            return "/usr/postgresql/"+minorVersion;
+        }
+        public String getMySQLConnectorJavaJarPath() {
+            return "/usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar";
+        }
     },
     REDHAT_ES_4_X86_64 {
         public HttpdOperatingSystemConfiguration getHttpdOperatingSystemConfiguration() {
@@ -54,6 +63,15 @@ public enum OperatingSystemConfiguration {
         }
         public String getScriptInclude(String script) {
             return "/opt/aoserv-client/scripts/"+script;
+        }
+        public String getAOServClientScriptInclude() {
+            return "/opt/aoserv-client/scripts/aoserv-client.sh";
+        }
+        public String getPostgresPath(String minorVersion) {
+            return "/opt/postgresql-"+minorVersion;
+        }
+        public String getMySQLConnectorJavaJarPath() {
+            return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
         }
     },
     CENTOS_5_I686_AND_X86_64 {
@@ -75,6 +93,15 @@ public enum OperatingSystemConfiguration {
         public String getScriptInclude(String script) {
             return "/opt/aoserv-client/scripts/"+script;
         }
+        public String getAOServClientScriptInclude() {
+            return "/opt/aoserv-client/scripts/aoserv-client.sh";
+        }
+        public String getPostgresPath(String minorVersion) {
+            return "/opt/postgresql-"+minorVersion;
+        }
+        public String getMySQLConnectorJavaJarPath() {
+            return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
+        }
     },
     CENTOS_5DOM0_I686 {
         public HttpdOperatingSystemConfiguration getHttpdOperatingSystemConfiguration() {
@@ -95,6 +122,15 @@ public enum OperatingSystemConfiguration {
         public String getScriptInclude(String script) {
             return "/opt/aoserv-client/scripts/"+script;
         }
+        public String getAOServClientScriptInclude() {
+            return "/opt/aoserv-client/scripts/aoserv-client.sh";
+        }
+        public String getPostgresPath(String minorVersion) {
+            return null;
+        }
+        public String getMySQLConnectorJavaJarPath() {
+            return null;
+        }
     },
     CENTOS_5DOM0_X86_64 {
         public HttpdOperatingSystemConfiguration getHttpdOperatingSystemConfiguration() {
@@ -114,6 +150,15 @@ public enum OperatingSystemConfiguration {
         }
         public String getScriptInclude(String script) {
             return "/opt/aoserv-client/scripts/"+script;
+        }
+        public String getAOServClientScriptInclude() {
+            return "/opt/aoserv-client/scripts/aoserv-client.sh";
+        }
+        public String getPostgresPath(String minorVersion) {
+            return null;
+        }
+        public String getMySQLConnectorJavaJarPath() {
+            return null;
         }
     };
 
@@ -177,4 +222,24 @@ public enum OperatingSystemConfiguration {
      * profile script.
      */
     public abstract String getScriptInclude(String script);
+
+    /**
+     * Gets the full path that a shell script would use to include the AOServ
+     * Client.
+     */
+    public abstract String getAOServClientScriptInclude();
+    
+    /**
+     * Gets the path to the PostgreSQL installation directory for the provided
+     * minor version (7.3, 8.1, 8.3, ...).
+     * 
+     * @return  The full path or <code>null</code> if PostgreSQL not supported.
+     */
+    public abstract String getPostgresPath(String minorVersion);
+    
+    /**
+     * Gets the full path to the preferred MySQL Java JDBC driver JAR or
+     * <code>null</code> if none available.
+     */
+    public abstract String getMySQLConnectorJavaJarPath();
 }
