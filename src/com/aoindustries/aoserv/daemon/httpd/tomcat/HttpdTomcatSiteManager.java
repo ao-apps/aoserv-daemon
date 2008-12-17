@@ -317,6 +317,7 @@ public abstract class HttpdTomcatSiteManager extends HttpdSiteManager {
         final boolean isTomcat3_2_4 = htv.isTomcat3_2_4(conn);
         final boolean isTomcat4_1_X = htv.isTomcat4_1_X(conn);
         final boolean isTomcat5_5_X = htv.isTomcat5_5_X(conn);
+        final boolean isTomcat6_0_X = htv.isTomcat6_0_X(conn);
         HttpdTomcatStdSite stdSite=tomcatSite.getHttpdTomcatStdSite();
         boolean isStandard=stdSite!=null;
         boolean isJBoss=tomcatSite.getHttpdJBossSite()!=null;

@@ -171,7 +171,7 @@ public abstract class HttpdSiteManager {
      * 
      * @see  #doRebuild
      */
-    public static void stopAndDisableDaemons(UnixFile siteDirectory, Stat tempStat) throws IOException, SQLException {
+    static void stopAndDisableDaemons(UnixFile siteDirectory, Stat tempStat) throws IOException, SQLException {
         UnixFile daemonDirectory = new UnixFile(siteDirectory, "daemon", false);
         daemonDirectory.getStat(tempStat);
         if(tempStat.exists()) {
@@ -440,47 +440,6 @@ public abstract class HttpdSiteManager {
             } finally {
                 // If still exists then there was a problem, clean-up
                 if(tempFile.getStat(tempStat).exists()) tempFile.delete();
-            }
-        }
-    }
-
-    /**
-     * Creates the test PHP script, must have PHP enabled.
-     * If PHP is disabled, does nothing.
-     * Any existing file will not be overwritten, even when in auto mode.
-     */
-    protected void createTestPHP(UnixFile rootDirectory) throws IOException, SQLException {
-        // TODO: Overwrite the phpinfo pages with this new version, for security
-        if(enablePhp()) {
-            Stat tempStat = new Stat();
-            UnixFile testFile = new UnixFile(rootDirectory, "test.php", false);
-            if(!testFile.getStat(tempStat).exists()) {
-                String primaryUrl = httpdSite.getPrimaryHttpdSiteURL().getHostname();
-                // Write to temp file first
-                UnixFile tempFile = UnixFile.mktemp(testFile.getPath()+".", false);
-                try {
-                    ChainWriter out = new ChainWriter(new FileOutputStream(tempFile.getFile()));
-                    try {
-                    out.print("<HTML>\n"
-                            + "  <HEAD><TITLE>Test PHP Page for ").print(primaryUrl).print("</TITLE></HEAD>\n"
-                            + "  <BODY>\n"
-                            + "    Test PHP Page for ").print(primaryUrl).print("<BR>\n"
-                            + "    <BR>\n"
-                            + "    The current time is <?= date('r') ?>.\n"
-                            + "  </BODY>\n"
-                            + "</HTML>\n");
-                    } finally {
-                        out.close();
-                    }
-                    // Set permissions and ownership
-                    tempFile.setMode(0664);
-                    tempFile.chown(httpdSite.getLinuxServerAccount().getUID().getID(), httpdSite.getLinuxServerGroup().getGID().getID());
-                    // Move into place
-                    tempFile.renameTo(testFile);
-                } finally {
-                    // If still exists then there was a problem, clean-up
-                    if(tempFile.getStat(tempStat).exists()) tempFile.delete();
-                }
             }
         }
     }

@@ -81,6 +81,7 @@ class HttpdTomcatSharedSiteManager_5_5_X extends HttpdTomcatSharedSiteManager {
                     + "  </description>\n"
                     + "</web-app>\n");
         } finally {
+            out.flush();
             out.close();
         }
 
@@ -94,7 +95,7 @@ class HttpdTomcatSharedSiteManager_5_5_X extends HttpdTomcatSharedSiteManager {
         String testPHP=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php";
         new ChainWriter(
             new UnixFile(testPHP).getSecureOutputStream(uid, gid, 0664, false)
-        ).print("<?phpinfo()?>\n").close();
+        ).print("<?phpinfo()?>\n").flush().close();
     }
 
     public TomcatCommon getTomcatCommon() {

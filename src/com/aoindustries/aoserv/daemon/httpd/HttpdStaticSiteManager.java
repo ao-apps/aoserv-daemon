@@ -18,9 +18,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 /**
- * Manages HttpdStaticSite configurations.  These are the most stripped-down
- * form of website.  Should not allow any sort of server-side execution.
- * Perhaps we could sell these for $1/month?
+ * Manages HttpdStaticSite configurations.
  *
  * @author  AO Industries, Inc.
  */

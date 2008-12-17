@@ -6,12 +6,6 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
-import com.aoindustries.io.unix.UnixFile;
-import java.io.File;
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Manages HttpdSharedTomcat version 6.0.X configurations.
@@ -26,9 +20,5 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager {
     
     TomcatCommon getTomcatCommon() {
         return TomcatCommon_6_0_X.getInstance();
-    }
-
-    void buildSharedTomcatDirectory(UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
-        throw new SQLException("TODO: Implement method");
     }
 }

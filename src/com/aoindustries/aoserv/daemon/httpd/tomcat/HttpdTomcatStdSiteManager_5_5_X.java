@@ -123,6 +123,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager {
                     + "\n"
                     + "export JAVA_OPTS='-server -Djava.awt.headless=true'\n");
         } finally {
+            out.flush();
             out.close();
         }
 
@@ -186,6 +187,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager {
                     + "fi\n"
             );
         } finally {
+            out.flush();
             out.close();
         }
         ln("../../.."+tomcatDirectory+"/bin/setclasspath.sh", siteDir+"/bin/setclasspath.sh", uid, gid);
@@ -195,6 +197,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager {
             out.print("#!/bin/sh\n"
                     + "exec ").print(siteDir).print("/bin/tomcat stop\n");
         } finally {
+            out.flush();
             out.close();
         }
 
@@ -203,6 +206,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager {
             out.print("#!/bin/sh\n"
                     + "exec ").print(siteDir).print("/bin/tomcat start\n");
         } finally {
+            out.flush();
             out.close();
         }
 
@@ -302,6 +306,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager {
                     + "  </description>\n"
                     + "</web-app>\n");
         } finally {
+            out.flush();
             out.close();
         }
 
@@ -315,7 +320,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager {
         String testPHP=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php";
         new ChainWriter(
             new UnixFile(testPHP).getSecureOutputStream(uid, gid, 0664, false)
-        ).print("<?phpinfo()?>\n").close();
+        ).print("<?phpinfo()?>\n").flush().close();
     }
 
     public TomcatCommon getTomcatCommon() {
