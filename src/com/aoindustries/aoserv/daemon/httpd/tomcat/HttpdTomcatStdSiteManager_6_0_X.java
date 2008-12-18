@@ -32,7 +32,7 @@ class HttpdTomcatStdSiteManager_6_0_X extends HttpdTomcatStdSiteManager<TomcatCo
         return TomcatCommon_6_0_X.getInstance();
     }
 
-    protected boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException {
+    protected byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException {
         throw new RuntimeException("TODO: Implement method");
     }
 }

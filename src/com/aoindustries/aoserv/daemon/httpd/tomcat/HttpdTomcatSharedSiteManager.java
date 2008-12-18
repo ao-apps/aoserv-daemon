@@ -77,4 +77,13 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
     protected void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) {
         sharedTomcatsNeedingRestarted.add(tomcatSharedSite.getHttpdSharedTomcat());
     }
+
+    /**
+     * Shared sites don't need to do anything to enable/disable.
+     * The HttpdSharedTomcat manager will update the profile.sites file
+     * and restart to take care of this.
+     */
+    protected void enableDisable(UnixFile siteDirectory) {
+        // Do nothing
+    }
 }

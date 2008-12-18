@@ -33,8 +33,8 @@ public abstract class TomcatCommon_3_X extends TomcatCommon {
         "tomcat.log"
     };
 
-    void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws SQLException {
-        throw new SQLException("TODO: Implement for Tomcat 3.X");
+    public void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws SQLException {
+        throw new SQLException("Not implemented for Tomcat 3.X");
     }
 
     /**
@@ -68,7 +68,7 @@ public abstract class TomcatCommon_3_X extends TomcatCommon {
     /**
      * Prints the default tomcat-users.xml file content for this version of Tomcat 3.X
      */
-    abstract void printTomcatUsers(ChainWriter out);
+    public abstract void printTomcatUsers(ChainWriter out);
     
     /**
      * Gets the servlet API version.

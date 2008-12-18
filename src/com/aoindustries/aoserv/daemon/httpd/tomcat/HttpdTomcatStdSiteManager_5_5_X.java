@@ -5,11 +5,17 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.HttpdJKProtocol;
 import com.aoindustries.aoserv.client.HttpdTomcatContext;
+import com.aoindustries.aoserv.client.HttpdTomcatDataSource;
+import com.aoindustries.aoserv.client.HttpdTomcatParameter;
 import com.aoindustries.aoserv.client.HttpdTomcatStdSite;
+import com.aoindustries.aoserv.client.HttpdWorker;
+import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
-import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.PostgresServer;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -20,8 +26,10 @@ import com.aoindustries.aoserv.daemon.util.FileUtils;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.List;
 
 /**
  * Manages HttpdTomcatStdSite version 5.5.X configurations.
@@ -38,9 +46,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
      * Builds a standard install for Tomcat 5.5.X
      */
     protected void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
-        /*
-         * Resolve and allocate stuff used throughout the method
-         */
+        // Resolve and allocate stuff used throughout the method
         final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
         final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
         final TomcatCommon tomcatCommon = getTomcatCommon();
@@ -97,27 +103,12 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
         try {
             out.print("#!/bin/sh\n"
                     + "\n"
-                    + ". /etc/profile\n");
-            if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-                out.print(". /opt/aoserv-client/scripts/jdk").print(tomcatCommon.getDefaultJdkVersion()).print(".sh\n");
-            } else {
-                out.print(". /usr/aoserv/etc/jdk").print(tomcatCommon.getDefaultJdkVersion()).print(".sh\n");
-            }
-            String defaultPhpVersion = httpdConfig.getDefaultPhpVersion();
-            if(defaultPhpVersion!=null) out.print(". /usr/aoserv/etc/php-").print(defaultPhpVersion).print(".sh\n");
-            if(postgresServerMinorVersion!=null) {
-                if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-                    out.print(". /opt/aoserv-client/scripts/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
-                } else {
-                    out.print(". /usr/aoserv/etc/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
-                }
-            }
-            if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-                out.print(". /opt/aoserv-client/scripts/aoserv-client.sh\n");
-            } else {
-                out.print(". /usr/aoserv/etc/aoserv.sh\n");
-            }
-            out.print("\n"
+                    + ". /etc/profile\n"
+                    + ". ").print(osConfig.getScriptInclude("jdk"+tomcatCommon.getDefaultJdkVersion()+".sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("php-"+httpdConfig.getDefaultPhpVersion()+".sh")).print('\n');
+            if(postgresServerMinorVersion!=null) out.print(". ").print(osConfig.getScriptInclude("postgresql-"+postgresServerMinorVersion+".sh")).print('\n');
+            out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
+                    + "\n"
                     + "umask 002\n"
                     + "export DISPLAY=:0.0\n"
                     + "\n"
@@ -149,39 +140,39 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
         try {
             out.print("#!/bin/sh\n"
                     + "\n"
-                    + "TOMCAT_HOME=").print(siteDir).print("\n"
+                    + "TOMCAT_HOME=\"").print(siteDir).print("\"\n"
                     + "\n"
                     + "if [ \"$1\" = \"start\" ]; then\n"
-                    + "    $0 stop\n"
-                    + "    $0 daemon &\n"
-                    + "    echo $! >${TOMCAT_HOME}/var/run/tomcat.pid\n"
+                    + "    \"$0\" stop\n"
+                    + "    \"$0\" daemon &\n"
+                    + "    echo $! >\"${TOMCAT_HOME}/var/run/tomcat.pid\"\n"
                     + "elif [ \"$1\" = \"stop\" ]; then\n"
-                    + "    if [ -f ${TOMCAT_HOME}/var/run/tomcat.pid ]; then\n"
-                    + "        kill `cat ${TOMCAT_HOME}/var/run/tomcat.pid`\n"
-                    + "        rm -f ${TOMCAT_HOME}/var/run/tomcat.pid\n"
+                    + "    if [ -f \"${TOMCAT_HOME}/var/run/tomcat.pid\" ]; then\n"
+                    + "        kill `cat \"${TOMCAT_HOME}/var/run/tomcat.pid\"`\n"
+                    + "        rm -f \"${TOMCAT_HOME}/var/run/tomcat.pid\"\n"
                     + "    fi\n"
-                    + "    if [ -f ${TOMCAT_HOME}/var/run/java.pid ]; then\n"
-                    + "        cd $TOMCAT_HOME\n"
-                    + "        . $TOMCAT_HOME/bin/profile\n"
+                    + "    if [ -f \"${TOMCAT_HOME}/var/run/java.pid\" ]; then\n"
+                    + "        cd \"$TOMCAT_HOME\"\n"
+                    + "        . \"$TOMCAT_HOME/bin/profile\"\n"
                     + "        umask 002\n"
                     + "        export DISPLAY=:0.0\n"
-                    + "        ${TOMCAT_HOME}/bin/catalina.sh stop 2>&1 >>${TOMCAT_HOME}/var/log/tomcat_err\n"
-                    + "        kill `cat ${TOMCAT_HOME}/var/run/java.pid` &>/dev/null\n"
-                    + "        rm -f ${TOMCAT_HOME}/var/run/java.pid\n"
+                    + "        \"${TOMCAT_HOME}/bin/catalina.sh\" stop 2>&1 >>\"${TOMCAT_HOME}/var/log/tomcat_err\"\n"
+                    + "        kill `cat \"${TOMCAT_HOME}/var/run/java.pid\"` &>/dev/null\n"
+                    + "        rm -f \"${TOMCAT_HOME}/var/run/java.pid\"\n"
                     + "    fi\n"
                     + "elif [ \"$1\" = \"daemon\" ]; then\n"
-                    + "    cd $TOMCAT_HOME\n"
-                    + "    . $TOMCAT_HOME/bin/profile\n"
+                    + "    cd \"$TOMCAT_HOME\"\n"
+                    + "    . \"$TOMCAT_HOME/bin/profile\"\n"
                     + "\n"
                     + "    while [ 1 ]; do\n"
                     + "        umask 002\n"
                     + "        export DISPLAY=:0.0\n"
-                    + "        mv -f ${TOMCAT_HOME}/var/log/tomcat_err ${TOMCAT_HOME}/var/log/tomcat_err.old\n"
-                    + "        ${TOMCAT_HOME}/bin/catalina.sh run >&${TOMCAT_HOME}/var/log/tomcat_err &\n"
-                    + "        echo $! >${TOMCAT_HOME}/var/run/java.pid\n"
+                    + "        mv -f \"${TOMCAT_HOME}/var/log/tomcat_err\" \"${TOMCAT_HOME}/var/log/tomcat_err.old\"\n"
+                    + "        \"${TOMCAT_HOME}/bin/catalina.sh\" run >&\"${TOMCAT_HOME}/var/log/tomcat_err\" &\n"
+                    + "        echo $! >\"${TOMCAT_HOME}/var/run/java.pid\"\n"
                     + "        wait\n"
                     + "        RETCODE=$?\n"
-                    + "        echo \"`date`: JVM died with a return code of $RETCODE, restarting in 5 seconds\" >>${TOMCAT_HOME}/var/log/jvm_crashes.log\n"
+                    + "        echo \"`date`: JVM died with a return code of $RETCODE, restarting in 5 seconds\" >>\"${TOMCAT_HOME}/var/log/jvm_crashes.log\"\n"
                     + "        sleep 5\n"
                     + "    done\n"
                     + "else\n"
@@ -225,17 +216,14 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
         FileUtils.lnAll("../../../.."+tomcatDirectory+"/common/lib/", siteDir+"/common/lib/", uid, gid);
 
         if(postgresServerMinorVersion!=null) {
-            if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                FileUtils.ln("../../../../usr/postgresql/"+postgresServerMinorVersion+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
-            } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-                FileUtils.ln("../../../../opt/postgresql-"+postgresServerMinorVersion+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
-            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
+            if(postgresPath!=null) FileUtils.ln("../../../.."+postgresPath+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
         }
-        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-            FileUtils.ln("../../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", siteDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", uid, gid);
-        } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-            FileUtils.ln("../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar", siteDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", uid, gid);
-        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
+        if(mysqlConnectorPath!=null) {
+            String filename = new UnixFile(mysqlConnectorPath).getFile().getName();
+            FileUtils.ln("../../../.."+mysqlConnectorPath, siteDir+"/common/lib/"+filename, uid, gid);
+        }
 
         /*
          * Write the conf/catalina.policy file
@@ -310,29 +298,113 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
         } finally {
             out.close();
         }
-
-        // CGI
-        UnixFile rootDirectory = new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE);
-        if(enableCgi()) {
-            UnixFile cgibinDirectory = new UnixFile(rootDirectory, "cgi-bin", false);
-            FileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
-            createTestCGI(cgibinDirectory);
-            createCgiPhpScript(cgibinDirectory);
-        }
-        
-        // index.html
-        UnixFile indexFile = new UnixFile(rootDirectory, "index.html", false);
-        createTestIndex(indexFile);
-
-        // PHP
-        createTestPHP(rootDirectory);
     }
 
     public TomcatCommon_5_5_X getTomcatCommon() {
         return TomcatCommon_5_5_X.getInstance();
     }
 
-    protected boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException {
-        throw new RuntimeException("TODO: Implement method");
+    protected byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException {
+        final TomcatCommon tomcatCommon = getTomcatCommon();
+        AOServConnector conn = AOServDaemon.getConnector();
+
+        // Build to RAM first
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        ChainWriter out = new ChainWriter(bout);
+        try {
+            List<HttpdWorker> hws=tomcatSite.getHttpdWorkers();
+            if(hws.size()!=1) throw new SQLException("Expected to only find one HttpdWorker for HttpdTomcatStdSite #"+httpdSite.getPkey()+", found "+hws.size());
+            HttpdWorker hw=hws.get(0);
+            String hwProtocol=hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
+            if(!hwProtocol.equals(HttpdJKProtocol.AJP13)) {
+                throw new SQLException("HttpdWorker #"+hw.getPkey()+" for HttpdTomcatStdSite #"+httpdSite.getPkey()+" must be AJP13 but it is "+hwProtocol);
+            }
+            if(!httpdSite.isManual()) out.print(autoWarning);
+            NetBind shutdownPort=tomcatStdSite.getTomcat4ShutdownPort();
+            if(shutdownPort==null) throw new SQLException("Unable to find shutdown port for HttpdTomcatStdSite="+tomcatStdSite);
+            String shutdownKey=tomcatStdSite.getTomcat4ShutdownKey();
+            if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for HttpdTomcatStdSite="+tomcatStdSite);
+            out.print("<Server port=\"").print(shutdownPort.getPort().getPort()).print("\" shutdown=\"").print(shutdownKey).print("\" debug=\"0\">\n");
+            out.print("  <GlobalNamingResources>\n"
+                    + "    <Resource name=\"UserDatabase\" auth=\"Container\"\n"
+                    + "              type=\"org.apache.catalina.UserDatabase\"\n"
+                    + "       description=\"User database that can be updated and saved\"\n"
+                    + "           factory=\"org.apache.catalina.users.MemoryUserDatabaseFactory\"\n"
+                    + "          pathname=\"conf/tomcat-users.xml\" />\n"
+                    + "   </GlobalNamingResources>\n");
+            out.print("  <Service name=\"Catalina\">\n"
+                    + "    <Connector\n"
+                    //+ "      className=\"org.apache.coyote.tomcat4.CoyoteConnector\"\n"
+                    //+ "      port=\"").print(hw.getNetBind().getPort().getPort()).print("\"\n"
+                    //+ "      minProcessors=\"2\"\n"
+                    //+ "      maxProcessors=\"200\"\n"
+                    //+ "      enableLookups=\"true\"\n"
+                    //+ "      redirectPort=\"443\"\n"
+                    //+ "      acceptCount=\"10\"\n"
+                    //+ "      debug=\"0\"\n"
+                    //+ "      connectionTimeout=\"20000\"\n"
+                    //+ "      useURIValidationHack=\"false\"\n"
+                    //+ "      protocolHandlerClassName=\"org.apache.jk.server.JkCoyoteHandler\"\n"
+                    );
+            out.print("      port=\"").print(hw.getNetBind().getPort().getPort()).print("\"\n");
+            out.print("      enableLookups=\"false\"\n");
+            out.print("      minProcessors=\"2\"\n"
+                    + "      maxProcessors=\"200\"\n"
+                    + "      address=\""+IPAddress.LOOPBACK_IP+"\"\n"
+                    + "      acceptCount=\"10\"\n"
+                    + "      debug=\"0\"\n"
+                    + "      protocol=\"AJP/1.3\"\n"
+                    + "    />\n"
+                    + "    <Engine name=\"Catalina\" defaultHost=\"localhost\" debug=\"0\">\n");
+            out.print("      <Realm className=\"org.apache.catalina.realm.UserDatabaseRealm\"\n"
+                    + "          resourceName=\"UserDatabase\" />\"\n");
+            out.print("      <Host\n"
+                    + "        name=\"localhost\"\n"
+                    + "        debug=\"0\"\n"
+                    + "        appBase=\"webapps\"\n"
+                    + "        unpackWARs=\"true\"\n");
+            out.print("        autoDeploy=\"true\"\n");
+            out.print("        xmlValidation=\"false\"\n"
+                    + "        xmlNamespaceAware=\"false\"\n");
+            out.print("      >\n");
+            for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
+                out.print("        <Context\n");
+                if(htc.getClassName()!=null) out.print("          className=\"").print(htc.getClassName()).print("\"\n");
+                out.print("          cookies=\"").print(htc.useCookies()).print("\"\n"
+                        + "          crossContext=\"").print(htc.allowCrossContext()).print("\"\n"
+                        + "          docBase=\"").print(htc.getDocBase()).print("\"\n"
+                        + "          override=\"").print(htc.allowOverride()).print("\"\n"
+                        + "          path=\"").print(htc.getPath()).print("\"\n"
+                        + "          privileged=\"").print(htc.isPrivileged()).print("\"\n"
+                        + "          reloadable=\"").print(htc.isReloadable()).print("\"\n"
+                        + "          useNaming=\"").print(htc.useNaming()).print("\"\n");
+                if(htc.getWrapperClass()!=null) out.print("          wrapperClass=\"").print(htc.getWrapperClass()).print("\"\n");
+                out.print("          debug=\"").print(htc.getDebugLevel()).print("\"\n");
+                if(htc.getWorkDir()!=null) out.print("          workDir=\"").print(htc.getWorkDir()).print("\"\n");
+                List<HttpdTomcatParameter> parameters=htc.getHttpdTomcatParameters();
+                List<HttpdTomcatDataSource> dataSources=htc.getHttpdTomcatDataSources();
+                if(parameters.isEmpty() && dataSources.isEmpty()) {
+                    out.print("        />\n");
+                } else {
+                    out.print("        >\n");
+                    // Parameters
+                    for(HttpdTomcatParameter parameter : parameters) {
+                        tomcatCommon.writeHttpdTomcatParameter(parameter, out);
+                    }
+                    // Data Sources
+                    for(HttpdTomcatDataSource dataSource : dataSources) {
+                        tomcatCommon.writeHttpdTomcatDataSource(dataSource, out);
+                    }
+                    out.print("        </Context>\n");
+                }
+            }
+            out.print("      </Host>\n"
+                    + "    </Engine>\n"
+                    + "  </Service>\n"
+                    + "</Server>\n");
+        } finally {
+            out.close();
+        }
+        return bout.toByteArray();
     }
 }

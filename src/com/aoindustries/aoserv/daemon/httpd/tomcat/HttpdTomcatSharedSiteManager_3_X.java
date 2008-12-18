@@ -9,10 +9,13 @@ import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.HttpdJKProtocol;
 import com.aoindustries.aoserv.client.HttpdTomcatContext;
 import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
+import com.aoindustries.aoserv.client.HttpdTomcatVersion;
 import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.util.FileUtils;
 import com.aoindustries.io.ChainWriter;
+import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -268,26 +271,47 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
         } finally {
             out.close();
         }
-
-        // CGI
-        UnixFile rootDirectory = new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE);
-        if(enableCgi()) {
-            UnixFile cgibinDirectory = new UnixFile(rootDirectory, "cgi-bin", false);
-            FileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
-            FileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
-            createTestCGI(cgibinDirectory);
-            createCgiPhpScript(cgibinDirectory);
-        }
-        
-        // index.html
-        UnixFile indexFile = new UnixFile(rootDirectory, "index.html", false);
-        createTestIndex(indexFile);
-
-        // PHP
-        createTestPHP(rootDirectory);
     }
 
+    /**
+     * Builds the server.xml file.
+     */
+    protected abstract byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException;
+
     protected boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException {
-        throw new RuntimeException("TODO: Implement method");
+        final String siteDir = siteDirectory.getPath();
+        final Stat tempStat = new Stat();
+        boolean needsRestart = false;
+        String autoWarning=getAutoWarningXml();
+
+        String confServerXML=siteDir+"/conf/server.xml";
+        UnixFile confServerXMLFile=new UnixFile(confServerXML);
+        if(!httpdSite.isManual() || !confServerXMLFile.getStat(tempStat).exists()) {
+            // Only write to the actual file when missing or changed
+            if(
+                FileUtils.writeIfNeeded(
+                    buildServerXml(siteDirectory, autoWarning),
+                    null,
+                    confServerXMLFile,
+                    httpdSite.getLinuxServerAccount().getUID().getID(),
+                    httpdSite.getLinuxServerGroup().getGID().getID(),
+                    0660
+                )
+            ) {
+                // Flag as needing restarted
+                needsRestart = true;
+            }
+        } else {
+            try {
+                FileUtils.stripFilePrefix(
+                    confServerXMLFile,
+                    autoWarning,
+                    tempStat
+                );
+            } catch(IOException err) {
+                // Errors OK because this is done in manual mode and they might have symbolic linked stuff
+            }
+        }
+        return needsRestart;
     }
 }

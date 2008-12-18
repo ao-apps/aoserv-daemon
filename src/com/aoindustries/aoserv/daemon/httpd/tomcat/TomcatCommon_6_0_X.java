@@ -23,7 +23,7 @@ class TomcatCommon_6_0_X extends TomcatCommon {
 
     private TomcatCommon_6_0_X() {}
 
-    void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws SQLException {
+    public void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws SQLException {
         throw new SQLException("TODO: Implement for Tomcat 6.0.X");
     }
 

@@ -14,6 +14,8 @@ import com.aoindustries.aoserv.client.HttpdTomcatVersion;
 import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
+import com.aoindustries.aoserv.daemon.util.FileUtils;
+import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -86,5 +88,64 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 
     protected void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) {
         sitesNeedingRestarted.add(httpdSite);
+    }
+
+    protected void enableDisable(UnixFile siteDirectory) throws IOException, SQLException {
+        UnixFile daemonUF = new UnixFile(siteDirectory, "daemon", false);
+        UnixFile daemonSymlink = new UnixFile(daemonUF, "tomcat", false);
+        if(httpdSite.getDisableLog()==null) {
+            // Enabled
+            if(!daemonSymlink.getStat().exists()) {
+                daemonSymlink.symLink("../bin/tomcat").chown(
+                    httpdSite.getLinuxServerAccount().getUID().getID(),
+                    httpdSite.getLinuxServerGroup().getGID().getID()
+                );
+            }
+        } else {
+            // Disabled
+            if(daemonSymlink.getStat().exists()) daemonSymlink.delete();
+        }
+    }
+
+    /**
+     * Builds the server.xml file.
+     */
+    protected abstract byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException;
+
+    protected boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException {
+        final String siteDir = siteDirectory.getPath();
+        final Stat tempStat = new Stat();
+        boolean needsRestart = false;
+        String autoWarning=getAutoWarningXml();
+
+        String confServerXML=siteDir+"/conf/server.xml";
+        UnixFile confServerXMLFile=new UnixFile(confServerXML);
+        if(!httpdSite.isManual() || !confServerXMLFile.getStat(tempStat).exists()) {
+            // Only write to the actual file when missing or changed
+            if(
+                FileUtils.writeIfNeeded(
+                    buildServerXml(siteDirectory, autoWarning),
+                    null,
+                    confServerXMLFile,
+                    httpdSite.getLinuxServerAccount().getUID().getID(),
+                    httpdSite.getLinuxServerGroup().getGID().getID(),
+                    0660
+                )
+            ) {
+                // Flag as needing restarted
+                needsRestart = true;
+            }
+        } else {
+            try {
+                FileUtils.stripFilePrefix(
+                    confServerXMLFile,
+                    autoWarning,
+                    tempStat
+                );
+            } catch(IOException err) {
+                // Errors OK because this is done in manual mode and they might have symbolic linked stuff
+            }
+        }
+        return needsRestart;
     }
 }

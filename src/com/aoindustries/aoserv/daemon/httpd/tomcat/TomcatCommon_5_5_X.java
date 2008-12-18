@@ -23,7 +23,7 @@ class TomcatCommon_5_5_X extends TomcatCommon {
 
     private TomcatCommon_5_5_X() {}
 
-    void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws SQLException {
+    public void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws SQLException {
         out.print("          <Resource\n"
                 + "            name=\"").printXmlAttribute(dataSource.getName()).print("\"\n"
                 + "            auth=\"Container\"\n"

@@ -13,6 +13,7 @@ import com.aoindustries.aoserv.client.HttpdTomcatVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.HttpdSiteManager;
+import com.aoindustries.aoserv.daemon.httpd.StopStartable;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.File;
@@ -32,7 +33,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author  AO Industries, Inc.
  */
-public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> {
+public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implements StopStartable {
 
     /**
      * Gets the specific manager for one version of shared Tomcat.
@@ -116,14 +117,21 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> {
                 // Enabled and has sites, start or restart
                 if(sharedTomcatsNeedingRestarted.contains(sharedTomcat)) {
                     commandCallable = new Callable<Object>() {
-                        public Object call() {
-                            manager.restart();
+                        public Object call() throws IOException, SQLException {
+                            if(manager.stop()) {
+                                try {
+                                    Thread.sleep(5000);
+                                } catch(InterruptedException err) {
+                                    AOServDaemon.reportWarning(err, null);
+                                }
+                            }
+                            manager.start();
                             return null;
                         }
                     };
                 } else {
                     commandCallable = new Callable<Object>() {
-                        public Object call() {
+                        public Object call() throws IOException, SQLException {
                             manager.start();
                             return null;
                         }
@@ -132,7 +140,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> {
             } else {
                 // Disabled or has no sites, can only stop if needed
                 commandCallable = new Callable<Object>() {
-                    public Object call() {
+                    public Object call() throws IOException, SQLException {
                         manager.stop();
                         return null;
                     }
@@ -225,125 +233,51 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> {
      */
     abstract void buildSharedTomcatDirectory(UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException;
 
-    /**
-     * Stops all processes for this shared tomcat if it is running.
-     */
-    public void stop() {
-        // TODO
+    public UnixFile getPidFile() throws IOException, SQLException {
+        return new UnixFile(
+            HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
+            + "/"
+            + sharedTomcat.getName()
+            + "/var/run/tomcat.pid"
+        );
     }
 
-    /**
-     * Starts all processes for this shared tomcat if it is not running.
-     */
-    public void start() {
-        // TODO
+    public String getStartStopScriptPath() throws IOException, SQLException {
+        return
+            HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
+            + "/"
+            + sharedTomcat.getName()
+            + "/bin/tomcat"
+        ;
     }
 
-    /**
-     * Restarts all processes for this shared tomcat if running.
-     * If not already running, starts the services.
-     */
-    public void restart() {
-        // TODO
+    public boolean stop() throws IOException, SQLException {
+        UnixFile pidFile = getPidFile();
+        if(pidFile.getStat().exists()) {
+            AOServDaemon.suexec(
+                sharedTomcat.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername(),
+                getStartStopScriptPath()+" stop",
+                0
+            );
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public boolean start() throws IOException, SQLException {
+        UnixFile pidFile = getPidFile();
+        if(!pidFile.getStat().exists()) {
+            AOServDaemon.suexec(
+                sharedTomcat.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername(),
+                getStartStopScriptPath()+" start",
+                0
+            );
+            return true;
+        } else {
+            return false;
+        }
     }
 
     abstract TC getTomcatCommon();
-
-    /**
-     * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
-     */
-    /*private static void moveMeTODO2(Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
-        Stat tempStat = new Stat();
-        AOServer aoServer = AOServDaemon.getThisAOServer();
-        List<HttpdSharedTomcat> hsts=aoServer.getHttpdSharedTomcats();
-        for(int c=0;c<hsts.size();c++) {
-            HttpdSharedTomcat hst=hsts.get(c);
-            String tomcatName=hst.getName();
-            UnixFile pidUF=new UnixFile(HttpdSharedTomcat.WWW_GROUP_DIR+'/'+tomcatName+"/var/run/tomcat.pid");
-            UnixFile daemonUF=new UnixFile(HttpdSharedTomcat.WWW_GROUP_DIR+'/'+tomcatName+"/daemon/tomcat");
-            if(hst.getDisableLog()==null) {
-                // Enabled, make sure running and auto
-                if(sharedTomcatsNeedingRestarted.contains(hst) || !pidUF.getStat(tempStat).exists()) startSharedTomcat(hst);
-                if(!daemonUF.getStat(tempStat).exists()) enableSharedTomcat(hst, tempStat);
-            } else {
-                // Disabled, make sure stopped and not auto
-                if(daemonUF.getStat(tempStat).exists()) disableSharedTomcat(hst, tempStat);
-                if(pidUF.getStat(tempStat).exists()) stopSharedTomcat(hst, tempStat);
-            }
-        }
-    }*/
-
-    /**
-     * TODO: Is this used?
-     */
-    /*static void startSharedTomcat(HttpdSharedTomcat hst) throws IOException, SQLException {
-        LinuxServerAccount lsa=hst.getLinuxServerAccount();
-        AOServDaemon.suexec(
-            lsa.getLinuxAccount().getUsername().getUsername(),
-            HttpdSharedTomcat.WWW_GROUP_DIR+'/'+hst.getName()+"/bin/tomcat start",
-            0
-        );
-    }*/
-
-    /**
-     * TODO: Is this used?
-     */
-    /*static void stopSharedTomcat(HttpdSharedTomcat hst, Stat tempStat) throws IOException, SQLException {
-        stopSharedTomcat(hst.getLinuxServerAccount(), hst.getName(), tempStat);
-    }*/
-    
-    /**
-     * TODO: Is this used?
-     */
-    /*private static void stopSharedTomcat(String tomcatName, Stat tempStat) throws IOException, SQLException {
-        UnixFile uf=new UnixFile(HttpdSharedTomcat.WWW_GROUP_DIR+'/'+tomcatName+"/daemon");
-        uf.getStat(tempStat);
-        if(tempStat.exists()) {
-            int uid=tempStat.getUID();
-            LinuxServerAccount lsa=AOServDaemon.getThisAOServer().getLinuxServerAccount(uid);
-            if(lsa!=null) {
-                stopSharedTomcat(lsa, tomcatName, tempStat);
-            }
-        }
-    }*/
-
-    /**
-     * TODO: Is this used?
-     */
-    /*private static void stopSharedTomcat(LinuxServerAccount lsa, String tomcatName, Stat tempStat) throws IOException, SQLException {
-        UnixFile pidUF=new UnixFile(HttpdSharedTomcat.WWW_GROUP_DIR+'/'+tomcatName+"/var/run/tomcat.pid");
-        if(pidUF.getStat(tempStat).exists()) {
-            AOServDaemon.suexec(
-                lsa.getLinuxAccount().getUsername().getUsername(),
-                HttpdSharedTomcat.WWW_GROUP_DIR+'/'+tomcatName+"/bin/tomcat stop",
-                0
-            );
-        }
-    }*/
-
-    /**
-     * TODO: Is this used?
-     */
-    /*private static void enableSharedTomcat(HttpdSharedTomcat hst, Stat tempStat) throws IOException, SQLException {
-        UnixFile uf=new UnixFile(HttpdSharedTomcat.WWW_GROUP_DIR+'/'+hst.getName()+"/daemon/tomcat");
-        if(!uf.getStat(tempStat).exists()) uf.symLink("../bin/tomcat").chown(
-            hst.getLinuxServerAccount().getUID().getID(),
-            hst.getLinuxServerGroup().getGID().getID()
-        );
-    }*/
-
-    /**
-     * TODO: Is this used?
-     */
-    /*private static void disableSharedTomcat(HttpdSharedTomcat hst, Stat tempStat) throws IOException {
-        disableSharedTomcat(hst.getName(), tempStat);
-    }*/
-
-    /**
-     * TODO: Is this used?
-     */
-    /*private static void disableSharedTomcat(String tomcatName, Stat tempStat) throws IOException {
-        UnixFile uf=new UnixFile(HttpdSharedTomcat.WWW_GROUP_DIR+'/'+tomcatName+"/daemon/tomcat");
-        if(uf.getStat(tempStat).exists()) uf.delete();
-    }*/
 }

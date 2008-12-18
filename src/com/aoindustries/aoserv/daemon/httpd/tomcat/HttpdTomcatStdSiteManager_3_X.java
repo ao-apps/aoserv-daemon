@@ -103,21 +103,44 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
             out.print("#!/bin/sh\n"
                     + "\n"
                     + ". /etc/profile\n"
-                    + ". /usr/aoserv/etc/jdk").print(osConfig.getDefaultJdkVersion()).print(".sh\n"
-                    + ". /usr/aoserv/etc/jakarta-oro-2.0.sh\n"
-                    + ". /usr/aoserv/etc/jakarta-regexp-1.1.sh\n"
-                    + ". /usr/aoserv/etc/jakarta-servletapi-").print(tomcatCommon.getServletApiVersion()).print(".sh\n"
-                    + ". /usr/aoserv/etc/jakarta-tomcat-").print(tomcatCommon.getTomcatApiVersion()).print(".sh\n"
-                    + ". /usr/aoserv/etc/jetspeed-1.1.sh\n"
-                    + ". /usr/aoserv/etc/cocoon-1.8.2.sh\n"
-                    + ". /usr/aoserv/etc/xerces-1.2.0.sh\n"
-                    + ". /usr/aoserv/etc/ant-1.6.2.sh\n"
-                    + ". /usr/aoserv/etc/xalan-1.2.d02.sh\n");
-            if(enablePhp()) out.print(". /usr/aoserv/etc/php-").print(httpdConfig.getDefaultPhpVersion()).print(".sh\n");
-            if(postgresServerMinorVersion!=null) out.print(". /usr/aoserv/etc/postgresql-").print(postgresServerMinorVersion).print(".sh\n");
-            out.print(". /usr/aoserv/etc/profile\n"
+                    + ". ").print(osConfig.getScriptInclude("jdk"+osConfig.getDefaultJdkVersion()+".sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("jakarta-oro-2.0.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("jakarta-regexp-1.1.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("jakarta-servletapi-"+tomcatCommon.getServletApiVersion()+".sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("jakarta-tomcat-"+tomcatCommon.getTomcatApiVersion()+".sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("jetspeed-1.1.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("cocoon-1.8.2.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("xerces-1.2.0.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("ant-1.6.2.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("xalan-1.2.d02.sh")).print("\n");
+            if(enablePhp()) out.print(". ").print(osConfig.getScriptInclude("php-"+httpdConfig.getDefaultPhpVersion()+".sh")).print("\n");
+            if(postgresServerMinorVersion!=null) out.print(". ").print(osConfig.getScriptInclude("postgresql-"+postgresServerMinorVersion+".sh")).print("\n");
+            out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("castor-0.8.8.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("cos-27May2002.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("ecs-1.3.3.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("freemarker-1.5.2.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("jaf-1.0.1.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("jakarta-slide-1.0m4.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("kavachart-3.1b2.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("javamail-1.1.3.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("jdbc-2.0.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("jsse-1.0.2.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("jyve-20000907.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("mm.mysql-2.0.7.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("openxml-1.2.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("pop3-1.1.1.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("soap-2.0.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("spfc-0.2.0.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("jakarta-turbine-20000907.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("village-1.3.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("webmacro-27-08-2000.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("xang-0.0.2.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("xmlrpc-1.0b3.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("interclient-2.0.sh")).print("\n"
+                    + ". ").print(osConfig.getScriptInclude("poolman-1.4.1.sh")).print("\n"
                     + "export \"CLASSPATH=/usr/aoserv/lib-1.3/aocode-public.jar:$CLASSPATH\"\n"
-                    + ". /usr/aoserv/etc/fop-0.15.0.sh\n"
+                    + ". ").print(osConfig.getScriptInclude("fop-0.15.0.sh")).print('\n'
                     + "\n"
                     + "export PATH=${PATH}:").print(siteDir).print("/bin\n"
                     + "\n"
@@ -153,42 +176,42 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
         try {
             out.print("#!/bin/sh\n"
                     + "\n"
-                    + "TOMCAT_HOME=").print(siteDir).print("\n"
+                    + "TOMCAT_HOME=\"").print(siteDir).print("\"\n"
                     + "\n"
                     + "if [ \"$1\" = \"start\" ]; then\n"
-                    + "    $0 stop\n"
-                    + "    $0 daemon &\n"
-                    + "    echo $! >${TOMCAT_HOME}/var/run/tomcat.pid\n"
+                    + "    \"$0\" stop\n"
+                    + "    \"$0\" daemon &\n"
+                    + "    echo $! >\"${TOMCAT_HOME}/var/run/tomcat.pid\"\n"
                     + "elif [ \"$1\" = \"stop\" ]; then\n"
-                    + "    if [ -f ${TOMCAT_HOME}/var/run/tomcat.pid ]; then\n"
-                    + "        kill `cat ${TOMCAT_HOME}/var/run/tomcat.pid`\n"
-                    + "        rm -f ${TOMCAT_HOME}/var/run/tomcat.pid\n"
+                    + "    if [ -f \"${TOMCAT_HOME}/var/run/tomcat.pid\" ]; then\n"
+                    + "        kill `cat \"${TOMCAT_HOME}/var/run/tomcat.pid\"`\n"
+                    + "        rm -f \"${TOMCAT_HOME}/var/run/tomcat.pid\"\n"
                     + "    fi\n"
-                    + "    if [ -f ${TOMCAT_HOME}/var/run/java.pid ]; then\n"
-                    + "        cd $TOMCAT_HOME\n"
-                    + "        . $TOMCAT_HOME/bin/profile\n"
+                    + "    if [ -f \"${TOMCAT_HOME}/var/run/java.pid\" ]; then\n"
+                    + "        cd \"$TOMCAT_HOME\"\n"
+                    + "        . \"$TOMCAT_HOME/bin/profile\"\n"
                     + "        umask 002\n"
                     + "        export DISPLAY=:0.0\n"
                     //+ "        ulimit -S -m 196608 -v 400000\n"
                     //+ "        ulimit -H -m 196608 -v 400000\n"
-                    + "        java -Dmail.smtp.host=").print(hostname).print(" org.apache.tomcat.startup.Tomcat -f ${TOMCAT_HOME}/conf/server.xml -stop &>/dev/null\n"
-                    + "        kill `cat ${TOMCAT_HOME}/var/run/java.pid` &>/dev/null\n"
-                    + "        rm -f ${TOMCAT_HOME}/var/run/java.pid\n"
+                    + "        java -Dmail.smtp.host=\"").print(hostname).print("\" org.apache.tomcat.startup.Tomcat -f \"${TOMCAT_HOME}/conf/server.xml\" -stop &>/dev/null\n"
+                    + "        kill `cat \"${TOMCAT_HOME}/var/run/java.pid\"` &>/dev/null\n"
+                    + "        rm -f \"${TOMCAT_HOME}/var/run/java.pid\"\n"
                     + "    fi\n"
                     + "elif [ \"$1\" = \"daemon\" ]; then\n"
-                    + "    cd $TOMCAT_HOME\n"
-                    + "    . $TOMCAT_HOME/bin/profile\n"
+                    + "    cd \"$TOMCAT_HOME\"\n"
+                    + "    . \"$TOMCAT_HOME/bin/profile\"\n"
                     + "\n"
                     + "    while [ 1 ]; do\n"
                     //+ "        ulimit -S -m 196608 -v 400000\n"
                     //+ "        ulimit -H -m 196608 -v 400000\n"
                     + "        umask 002\n"
                     + "        export DISPLAY=:0.0\n"
-                    + "        java -Dmail.smtp.host=").print(hostname).print(" org.apache.tomcat.startup.Tomcat -f ${TOMCAT_HOME}/conf/server.xml &>var/log/servlet_err &\n"
-                    + "        echo $! >${TOMCAT_HOME}/var/run/java.pid\n"
+                    + "        java -Dmail.smtp.host=\"").print(hostname).print("\" org.apache.tomcat.startup.Tomcat -f \"${TOMCAT_HOME}/conf/server.xml\" &>var/log/servlet_err &\n"
+                    + "        echo $! >\"${TOMCAT_HOME}/var/run/java.pid\"\n"
                     + "        wait\n"
                     + "        RETCODE=$?\n"
-                    + "        echo \"`date`: JVM died with a return code of $RETCODE, restarting in 5 seconds\" >>${TOMCAT_HOME}/var/log/jvm_crashes.log\n"
+                    + "        echo \"`date`: JVM died with a return code of $RETCODE, restarting in 5 seconds\" >>\"${TOMCAT_HOME}/var/log/jvm_crashes.log\"\n"
                     + "        sleep 5\n"
                     + "    done\n"
                     + "else\n"
@@ -350,26 +373,5 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
         } finally {
             out.close();
         }
-
-        // CGI
-        UnixFile rootDirectory = new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE);
-        if(enableCgi()) {
-            UnixFile cgibinDirectory = new UnixFile(rootDirectory, "cgi-bin", false);
-            FileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
-            FileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
-            createTestCGI(cgibinDirectory);
-            createCgiPhpScript(cgibinDirectory);
-        }
-        
-        // index.html
-        UnixFile indexFile = new UnixFile(rootDirectory, "index.html", false);
-        createTestIndex(indexFile);
-
-        // PHP
-        createTestPHP(rootDirectory);
-    }
-
-    protected boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException {
-        throw new RuntimeException("TODO: Implement method");
     }
 }

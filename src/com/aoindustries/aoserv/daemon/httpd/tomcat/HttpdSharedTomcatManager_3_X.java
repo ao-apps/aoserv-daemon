@@ -57,7 +57,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
         final int lsgGID = lsg.getGID().getID();
         final String wwwGroupDir = sharedTomcatDirectory.getPath();
         final String wwwDirectory = httpdConfig.getHttpdSitesDirectory();
-
+        final UnixFile daemonUF = new UnixFile(sharedTomcatDirectory, "daemon", false);
         // Create and fill in the directory if it does not exist or is owned by root.
         final UnixFile workUF = new UnixFile(sharedTomcatDirectory, "work", false);
 
@@ -71,8 +71,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
             sharedTomcatDirectory.setMode(0770);
             new UnixFile(sharedTomcatDirectory, "bin", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
             new UnixFile(sharedTomcatDirectory, "conf", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
-            UnixFile daemonUF = new UnixFile(sharedTomcatDirectory, "daemon", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
-            if(sharedTomcat.getDisableLog()==null) new UnixFile(daemonUF, "tomcat", false).symLink("../bin/tomcat").chown(lsaUID, lsgGID);
+            daemonUF.mkdir().chown(lsaUID, lsgGID).setMode(0770);
             UnixFile varUF = new UnixFile(sharedTomcatDirectory, "var", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
             new UnixFile(varUF, "log", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
             new UnixFile(varUF, "run", false).mkdir().chown(lsaUID, lsgGID).setMode(0700);
@@ -85,7 +84,6 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
             String profileFile = wwwGroupDir + "/bin/profile";
             LinuxAccountManager.setBashProfile(lsa, profileFile);
 
-            // TODO: Write to temp file
             UnixFile profileUF = new UnixFile(profileFile);
             ChainWriter out = new ChainWriter(
                 new BufferedOutputStream(
@@ -132,9 +130,9 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
                         + ". ").print(osConfig.getScriptInclude("xmlrpc-1.0b3.sh")).print("\n"
                         + ". ").print(osConfig.getScriptInclude("interclient-2.0.sh")).print("\n"
                         + ". ").print(osConfig.getScriptInclude("poolman-1.4.1.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("fop-0.15.0.sh")).print('\n');
-
-                out.print("\n"
+                        + "export \"CLASSPATH=/usr/aoserv/lib-1.3/aocode-public.jar:$CLASSPATH\"\n"
+                        + ". ").print(osConfig.getScriptInclude("fop-0.15.0.sh")).print('\n'
+                        + "\n"
                         + "export PATH=${PATH}:").print(wwwGroupDir).print("/bin\n"
                         + "\n"
                         + "export JAVA_OPTS='-server -Djava.awt.headless=true'\n"
@@ -175,34 +173,34 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
             try {
             out.print("#!/bin/sh\n"
                     + "\n"
-                    + "TOMCAT_HOME=").print(wwwGroupDir).print("\n"
+                    + "TOMCAT_HOME=\"").print(wwwGroupDir).print("\"\n"
                     + "\n"
                     + "if [ \"$1\" = \"start\" ]; then\n"
-                    + "    $0 stop\n"
-                    + "    $0 daemon &\n"
-                    + "    echo $! >${TOMCAT_HOME}/var/run/tomcat.pid\n"
+                    + "    \"$0\" stop\n"
+                    + "    \"$0\" daemon &\n"
+                    + "    echo $! >\"${TOMCAT_HOME}/var/run/tomcat.pid\"\n"
                     + "elif [ \"$1\" = \"stop\" ]; then\n"
-                    + "    if [ -f ${TOMCAT_HOME}/var/run/tomcat.pid ]; then\n"
-                    + "        kill `cat ${TOMCAT_HOME}/var/run/tomcat.pid`\n"
-                    + "        rm -f ${TOMCAT_HOME}/var/run/tomcat.pid\n"
+                    + "    if [ -f \"${TOMCAT_HOME}/var/run/tomcat.pid\" ]; then\n"
+                    + "        kill `cat \"${TOMCAT_HOME}/var/run/tomcat.pid\"`\n"
+                    + "        rm -f \"${TOMCAT_HOME}/var/run/tomcat.pid\"\n"
                     + "    fi\n"
-                    + "    if [ -f ${TOMCAT_HOME}/var/run/java.pid ]; then\n"
-                    + "        . $TOMCAT_HOME/bin/profile\n"
+                    + "    if [ -f \"${TOMCAT_HOME}/var/run/java.pid\" ]; then\n"
+                    + "        . \"$TOMCAT_HOME/bin/profile\"\n"
                     + "        umask 002\n"
                     + "        export DISPLAY=:0.0\n"
                     //+ "        ulimit -S -m 196608 -v 400000\n"
                     //+ "        ulimit -H -m 196608 -v 400000\n"
                     + "        if [ \"$SITES\" != \"\" ]; then\n"
-                    + "            cd $TOMCAT_HOME\n"
+                    + "            cd \"$TOMCAT_HOME\"\n"
             );
             out.print("            java com.aoindustries.apache.tomcat.VirtualTomcat stop $SITES &>/dev/null\n");
             out.print("        fi\n"
-                    + "        kill `cat ${TOMCAT_HOME}/var/run/java.pid` &>/dev/null\n"
-                    + "        rm -f ${TOMCAT_HOME}/var/run/java.pid\n"
+                    + "        kill `cat \"${TOMCAT_HOME}/var/run/java.pid\"` &>/dev/null\n"
+                    + "        rm -f \"${TOMCAT_HOME}/var/run/java.pid\"\n"
                     + "    fi\n"
                     + "elif [ \"$1\" = \"daemon\" ]; then\n"
-                    + "    cd $TOMCAT_HOME\n"
-                    + "    . $TOMCAT_HOME/bin/profile\n"
+                    + "    cd \"$TOMCAT_HOME\"\n"
+                    + "    . \"$TOMCAT_HOME/bin/profile\"\n"
                     + "\n"
                     + "    # Get rid of sites without servlet container content\n"
                     + "    SITES=`/usr/aoserv/sbin/filtersites $SITES`\n"
@@ -218,11 +216,11 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
             out.print("            echo $! >var/run/java.pid\n"
                     + "            wait\n"
                     + "            RETCODE=$?\n"
-                    + "            echo \"`date`: JVM died with a return code of $RETCODE, restarting in 5 seconds\" >>${TOMCAT_HOME}/var/log/jvm_crashes.log\n"
+                    + "            echo \"`date`: JVM died with a return code of $RETCODE, restarting in 5 seconds\" >>\"${TOMCAT_HOME}/var/log/jvm_crashes.log\"\n"
                     + "            sleep 5\n"
                     + "        done\n"
                     + "    fi\n"
-                    + "    rm -f ${TOMCAT_HOME}/var/run/tomcat.pid\n"
+                    + "    rm -f \"${TOMCAT_HOME}/var/run/tomcat.pid\"\n"
                     + "else\n"
                     + "    echo \"Usage:\"\n"
                     + "    echo \"tomcat {start|stop}\"\n"
@@ -324,6 +322,21 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
         }
         for (int c = 0; c < workFiles.size(); c++) {
             deleteFileList.add(new File(workUF.getFile(), workFiles.get(c)));
+        }
+        
+        // Enable/Disable
+        UnixFile daemonSymlink = new UnixFile(daemonUF, "tomcat", false);
+        if(sharedTomcat.getDisableLog()==null) {
+            // Enabled
+            if(!daemonSymlink.getStat(tempStat).exists()) {
+                daemonSymlink.symLink("../bin/tomcat").chown(
+                    lsaUID,
+                    lsgGID
+                );
+            }
+        } else {
+            // Disabled
+            if(daemonSymlink.getStat(tempStat).exists()) daemonSymlink.delete();
         }
 
         // Start if needed

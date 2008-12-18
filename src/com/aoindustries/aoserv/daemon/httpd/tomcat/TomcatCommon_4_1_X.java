@@ -24,7 +24,7 @@ class TomcatCommon_4_1_X extends TomcatCommon {
 
     private TomcatCommon_4_1_X() {}
 
-    void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws SQLException {
+    public void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws SQLException {
         out.print("          <Resource\n"
                 + "            name=\"").printXmlAttribute(dataSource.getName()).print("\"\n"
                 + "            auth=\"Container\"\n"

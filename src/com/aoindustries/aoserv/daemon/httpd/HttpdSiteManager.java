@@ -6,6 +6,7 @@ package com.aoindustries.aoserv.daemon.httpd;
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.AOSHCommand;
+import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
@@ -121,8 +122,8 @@ public abstract class HttpdSiteManager {
     static void stopStartAndRestart(Set<HttpdSite> sitesNeedingRestarted) throws IOException, SQLException {
         for(HttpdSite httpdSite : AOServDaemon.getThisAOServer().getHttpdSites()) {
             HttpdSiteManager manager = getInstance(httpdSite);
-            if(manager instanceof StopStartRestartable) {
-                final StopStartRestartable stopStartRestartable = (StopStartRestartable)manager;
+            if(manager instanceof StopStartable) {
+                final StopStartable stopStartRestartable = (StopStartable)manager;
                 Callable<Object> commandCallable;
                 if(httpdSite.getDisableLog()==null) {
                     // Enabled, start or restart
@@ -222,6 +223,63 @@ public abstract class HttpdSiteManager {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Starts the site if it is not running.  Restarts it if it is running.
+     * 
+     * @return  <code>null</code> if successful or a user-readable reason if not successful
+     */
+    public static String startHttpdSite(int sitePKey) throws IOException, SQLException {
+        AOServConnector conn = AOServDaemon.getConnector();
+
+        HttpdSite httpdSite=conn.httpdSites.get(sitePKey);
+        AOServer thisAOServer = AOServDaemon.getThisAOServer();
+        if(!httpdSite.getAOServer().equals(thisAOServer)) return "HttpdSite #"+sitePKey+" has server of "+httpdSite.getAOServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')';
+
+        HttpdSiteManager manager = getInstance(httpdSite);
+        if(manager instanceof StopStartable) {
+            StopStartable stopStartable = (StopStartable)manager;
+            if(stopStartable.stop()) {
+                try {
+                    Thread.sleep(5000);
+                } catch(InterruptedException err) {
+                    AOServDaemon.reportWarning(err, null);
+                }
+            }
+            stopStartable.start();
+
+            // Null means all went well
+            return null;
+        } else {
+            return "HttpdSite #"+sitePKey+" is not a type of site that can be stopped and started";
+        }
+    }
+
+    /**
+     * Stops the site if it is running.  Will return a message if already stopped.
+     * 
+     * @return  <code>null</code> if successful or a user-readable reason if not success.
+     */
+    public static String stopHttpdSite(int sitePKey) throws IOException, SQLException {
+        AOServConnector conn = AOServDaemon.getConnector();
+
+        HttpdSite httpdSite=conn.httpdSites.get(sitePKey);
+        AOServer thisAOServer = AOServDaemon.getThisAOServer();
+        if(!httpdSite.getAOServer().equals(thisAOServer)) return "HttpdSite #"+sitePKey+" has server of "+httpdSite.getAOServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')';
+
+        HttpdSiteManager manager = getInstance(httpdSite);
+        if(manager instanceof StopStartable) {
+            StopStartable stopStartable = (StopStartable)manager;
+            if(stopStartable.stop()) {
+                // Null means all went well
+                return null;
+            } else {
+                return "Site was already stopped";
+            }
+        } else {
+            return "HttpdSite #"+sitePKey+" is not a type of site that can be stopped and started";
         }
     }
 
@@ -528,13 +586,17 @@ public abstract class HttpdSiteManager {
     private static final SortedSet<Location> unmodifiableStandardRejectedLocations = Collections.unmodifiableSortedSet(standardRejectedLocations);
     static {
         // TODO: Benchmark faster with single or multiple rules
-        standardRejectedLocations.add(new Location(true, "/CVS/Attic"));
-        standardRejectedLocations.add(new Location(true, "/CVS/Entries"));
+        
+        // Protect CVS files http://www.bsd.net.au/article.php?story=2003031221495562
+        standardRejectedLocations.add(new Location(true, "/\\.#"));
+        standardRejectedLocations.add(new Location(true, ".*/CVS/.*"));
+        //standardRejectedLocations.add(new Location(true, "/CVS/Attic"));
+        //standardRejectedLocations.add(new Location(true, "/CVS/Entries"));
         // Already covered by Entries: standardRejectedLocations.add(new Location(true, "/CVS/Entries\\.Static"));
-        standardRejectedLocations.add(new Location(true, "/CVS/Repository"));
-        standardRejectedLocations.add(new Location(true, "/CVS/RevisionCache"));
-        standardRejectedLocations.add(new Location(true, "/CVS/Root"));
-        standardRejectedLocations.add(new Location(true, "/CVS/\\.#merg"));
+        //standardRejectedLocations.add(new Location(true, "/CVS/Repository"));
+        //standardRejectedLocations.add(new Location(true, "/CVS/RevisionCache"));
+        //standardRejectedLocations.add(new Location(true, "/CVS/Root"));
+        //standardRejectedLocations.add(new Location(true, "/CVS/\\.#merg"));
     }
 
     public static class Location implements Comparable<Location> {
@@ -633,23 +695,6 @@ public abstract class HttpdSiteManager {
      */
     public boolean blockAllTraceAndTrackRequests() {
         return true;
-    }
-
-    public static interface StopStartRestartable {
-
-        /**
-         * Stops all processes for this website if it is running.
-         * 
-         * @return  <code>true</code> if actually stopped or <code>false</code> if was already stopped
-         */
-        boolean stop() throws IOException, SQLException;
-
-        /**
-         * Starts all processes for this website if it is not running.
-         * 
-         * @return  <code>true</code> if actually started or <code>false</code> if was already started
-         */
-        boolean start() throws IOException, SQLException;
     }
 
     public static class JkSetting implements Comparable<JkSetting> {

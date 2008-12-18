@@ -61,44 +61,29 @@ class HttpdTomcatSharedSiteManager_4_1_X extends HttpdTomcatSharedSiteManager<To
             )
         );
         try {
-                out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
-                        + "\n"
-                        + "<!DOCTYPE web-app\n"
-                        + "    PUBLIC \"-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN\"\n"
-                        + "    \"http://java.sun.com/j2ee/dtds/web-app_2_3.dtd\">\n"
-                        + "\n"
-                        + "<web-app>\n"
-                        + "  <display-name>Welcome to Tomcat</display-name>\n"
-                        + "  <description>\n"
-                        + "    Welcome to Tomcat\n"
-                        + "  </description>\n"
-                        + "</web-app>\n");
+            out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+                    + "\n"
+                    + "<!DOCTYPE web-app\n"
+                    + "    PUBLIC \"-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN\"\n"
+                    + "    \"http://java.sun.com/j2ee/dtds/web-app_2_3.dtd\">\n"
+                    + "\n"
+                    + "<web-app>\n"
+                    + "  <display-name>Welcome to Tomcat</display-name>\n"
+                    + "  <description>\n"
+                    + "    Welcome to Tomcat\n"
+                    + "  </description>\n"
+                    + "</web-app>\n");
         } finally {
             out.close();
         }
-
-        // CGI
-        UnixFile rootDirectory = new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE);
-        if(enableCgi()) {
-            UnixFile cgibinDirectory = new UnixFile(rootDirectory, "cgi-bin", false);
-            FileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
-            createTestCGI(cgibinDirectory);
-            createCgiPhpScript(cgibinDirectory);
-        }
-        
-        // index.html
-        UnixFile indexFile = new UnixFile(rootDirectory, "index.html", false);
-        createTestIndex(indexFile);
-
-        // PHP
-        createTestPHP(rootDirectory);
     }
 
     public TomcatCommon_4_1_X getTomcatCommon() {
         return TomcatCommon_4_1_X.getInstance();
     }
 
-    protected boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException {
-        throw new RuntimeException("TODO: Implement method");
+    protected boolean rebuildConfigFiles(UnixFile siteDirectory) {
+        // No configs to rebuild
+        return false;
     }
 }

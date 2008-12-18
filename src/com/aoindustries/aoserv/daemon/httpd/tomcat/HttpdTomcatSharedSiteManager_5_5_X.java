@@ -49,7 +49,7 @@ class HttpdTomcatSharedSiteManager_5_5_X extends HttpdTomcatSharedSiteManager<To
         FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, uid, gid);
         FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, uid, gid);
         FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
-        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);	
+        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);
 
         /*
          * Write the ROOT/WEB-INF/web.xml file.
@@ -74,29 +74,14 @@ class HttpdTomcatSharedSiteManager_5_5_X extends HttpdTomcatSharedSiteManager<To
         } finally {
             out.close();
         }
-
-        // CGI
-        UnixFile rootDirectory = new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE);
-        if(enableCgi()) {
-            UnixFile cgibinDirectory = new UnixFile(rootDirectory, "cgi-bin", false);
-            FileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
-            createTestCGI(cgibinDirectory);
-            createCgiPhpScript(cgibinDirectory);
-        }
-
-        // index.html
-        UnixFile indexFile = new UnixFile(rootDirectory, "index.html", false);
-        createTestIndex(indexFile);
-
-        // PHP
-        createTestPHP(rootDirectory);
     }
 
     public TomcatCommon_5_5_X getTomcatCommon() {
         return TomcatCommon_5_5_X.getInstance();
     }
 
-    protected boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException {
-        throw new RuntimeException("TODO: Implement method");
+    protected boolean rebuildConfigFiles(UnixFile siteDirectory) {
+        // No configs to rebuild
+        return false;
     }
 }

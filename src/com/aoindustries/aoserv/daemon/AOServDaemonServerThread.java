@@ -28,7 +28,7 @@ import com.aoindustries.aoserv.daemon.failover.FailoverFileReplicationManager;
 import com.aoindustries.aoserv.daemon.httpd.AWStatsManager;
 import com.aoindustries.aoserv.daemon.httpd.HttpdManager;
 import com.aoindustries.aoserv.daemon.httpd.HttpdServerManager;
-import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
+import com.aoindustries.aoserv.daemon.httpd.HttpdSiteManager;
 import com.aoindustries.aoserv.daemon.monitor.MrtgManager;
 import com.aoindustries.aoserv.daemon.mysql.MySQLDBUserManager;
 import com.aoindustries.aoserv.daemon.mysql.MySQLDatabaseManager;
@@ -715,7 +715,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing START_JVM, Thread="+toString());
                                 int sitePKey=in.readCompressedInt();
                                 if(key==null) throw new IOException("Only the master server may START_JVM");
-                                String message=HttpdTomcatSiteManager.startJVM(sitePKey);
+                                String message=HttpdSiteManager.startHttpdSite(sitePKey);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeBoolean(message!=null);
                                 if(message!=null) out.writeUTF(message);
@@ -772,7 +772,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing STOP_JVM, Thread="+toString());
                                 int sitePKey=in.readCompressedInt();
                                 if(key==null) throw new IOException("Only the master server may STOP_JVM");
-                                String message=HttpdTomcatSiteManager.stopJVM(sitePKey);
+                                String message=HttpdSiteManager.stopHttpdSite(sitePKey);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeBoolean(message!=null);
                                 if(message!=null) out.writeUTF(message);

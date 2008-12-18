@@ -9,17 +9,23 @@ import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.HttpdJBossSite;
 import com.aoindustries.aoserv.client.HttpdJKProtocol;
 import com.aoindustries.aoserv.client.HttpdTomcatContext;
+import com.aoindustries.aoserv.client.HttpdTomcatVersion;
 import com.aoindustries.aoserv.client.HttpdWorker;
+import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
+import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.TomcatCommon_3_2_4;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.TomcatCommon_3_X;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.aoserv.daemon.util.FileUtils;
 import com.aoindustries.io.ChainWriter;
+import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -44,6 +50,9 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
         /*
          * Resolve and allocate stuff used throughout the method
          */
+        final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
+        final String replaceCommand = osConfig.getReplaceCommand();
+        if(replaceCommand==null) throw new IOException("OperatingSystem doesn't have replace command");
         final TomcatCommon_3_2_4 tomcatCommon = getTomcatCommon();
         final String siteDir = siteDirectory.getPath();
         final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
@@ -78,23 +87,35 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
         command[command.length-1] = siteDir;
         for (int i = 0; i < contents.length; i++) command[i+2] = templateDir+"/"+contents[i];
         AOServDaemon.exec(command);
+        // chown
         String[] command2 = {
             "/bin/chown", 
             "-R", 
-            laUsername+"."+laGroupname,
+            laUsername,
             siteDir+"/jboss",
             siteDir+"/bin",
             siteDir+"/lib",
             siteDir+"/daemon"
         };
         AOServDaemon.exec(command2);
+        // chgrp
+        String[] chgrpCommand = {
+            "/bin/chgrp", 
+            "-R", 
+            laGroupname,
+            siteDir+"/jboss",
+            siteDir+"/bin",
+            siteDir+"/lib",
+            siteDir+"/daemon"
+        };
+        AOServDaemon.exec(chgrpCommand);
 
         String jbossConfDir = siteDir+"/jboss/conf/tomcat";
         File f2 = new File(jbossConfDir);
         String[] f2contents = f2.list();
 
         String[] command3 = new String[5];
-        command3[0] = "/usr/mysql/4.1/bin/replace";
+        command3[0] = replaceCommand;
         command3[3] = "--";
         for (int i = 0; i < 5; i++) {
             for (int j = 0; j < f2contents.length; j++) {
@@ -110,7 +131,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
             }
         }
         String[] command4 = {
-            "/usr/mysql/4.1/bin/replace",
+            replaceCommand,
             "site_name",
             siteName,
             "--",
@@ -240,12 +261,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
             )
         );
         try {
-            out.print("<tomcat-users>\n"
-                      + "  <user name=\"tomcat\" password=\"tomcat\" roles=\"tomcat\" />\n"
-                      + "  <user name=\"role1\"  password=\"tomcat\" roles=\"role1\" />\n"
-                      + "  <user name=\"both\"   password=\"tomcat\" roles=\"tomcat,role1\" />\n"
-                      + "</tomcat-users>\n"
-                      );
+            tomcatCommon.printTomcatUsers(out);
         } finally {
             out.close();
         }
@@ -338,23 +354,6 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
         } finally {
             out.close();
         }
-
-        // CGI
-        UnixFile rootDirectory = new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE);
-        if(enableCgi()) {
-            UnixFile cgibinDirectory = new UnixFile(rootDirectory, "cgi-bin", false);
-            FileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
-            FileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
-            createTestCGI(cgibinDirectory);
-            createCgiPhpScript(cgibinDirectory);
-        }
-
-        // index.html
-        UnixFile indexFile = new UnixFile(rootDirectory, "index.html", false);
-        createTestIndex(indexFile);
-
-        // PHP
-        createTestPHP(rootDirectory);
     }
 
     public TomcatCommon_3_2_4 getTomcatCommon() {
@@ -376,7 +375,121 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
         throw new SQLException("Couldn't find ajp12");
     }
 
+    protected void enableDisable(UnixFile siteDirectory) throws IOException, SQLException {
+        UnixFile daemonUF = new UnixFile(siteDirectory, "daemon", false);
+        UnixFile daemonSymlink = new UnixFile(daemonUF, "jboss", false);
+        if(httpdSite.getDisableLog()==null) {
+            // Enabled
+            if(!daemonSymlink.getStat().exists()) {
+                daemonSymlink.symLink("../bin/jboss").chown(
+                    httpdSite.getLinuxServerAccount().getUID().getID(),
+                    httpdSite.getLinuxServerGroup().getGID().getID()
+                );
+            }
+        } else {
+            // Disabled
+            if(daemonSymlink.getStat().exists()) daemonSymlink.delete();
+        }
+    }
+
+    /**
+     * Builds the server.xml file.
+     */
+    protected byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException {
+        final String siteDir = siteDirectory.getPath();
+        final AOServConnector conn = AOServDaemon.getConnector();
+        final HttpdTomcatVersion htv = tomcatSite.getHttpdTomcatVersion();
+
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        ChainWriter out = new ChainWriter(bout);
+        try {
+            out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n");
+            if(!httpdSite.isManual()) out.print(autoWarning);
+            out.print("<Server>\n"
+                    + "  <xmlmapper:debug level=\"0\" />\n"
+                    + "  <Logger name=\"tc_log\" verbosityLevel = \"INFORMATION\" path=\"").print(siteDir).print("/var/log/tomcat.log\" />\n"
+                    + "  <Logger name=\"servlet_log\" path=\"").print(siteDir).print("/var/log/servlet.log\" />\n"
+                    + "  <Logger name=\"JASPER_LOG\" path=\"").print(siteDir).print("/var/log/jasper.log\" verbosityLevel = \"INFORMATION\" />\n"
+                    + "\n"
+                    + "  <ContextManager debug=\"0\" home=\"").print(siteDir).print("\" workDir=\"").print(siteDir).print("/work").print("\" showDebugInfo=\"true\" >\n"
+                    + "    <ContextInterceptor className=\"org.apache.tomcat.context.WebXmlReader\" />\n"
+                    + "    <ContextInterceptor className=\"org.apache.tomcat.context.LoaderInterceptor\" />\n"
+                    + "    <ContextInterceptor className=\"org.apache.tomcat.context.DefaultCMSetter\" />\n"
+                    + "    <ContextInterceptor className=\"org.apache.tomcat.context.WorkDirInterceptor\" />\n"
+                    + "    <RequestInterceptor className=\"org.apache.tomcat.request.Jdk12Interceptor\" />\n"
+                    + "    <RequestInterceptor className=\"org.apache.tomcat.request.SessionInterceptor\" noCookies=\"false\" />\n"
+                    + "    <RequestInterceptor className=\"org.apache.tomcat.request.SimpleMapper1\" debug=\"0\" />\n"
+                    + "    <RequestInterceptor className=\"org.apache.tomcat.request.InvokerInterceptor\" debug=\"0\" prefix=\"/servlet/\" />\n"
+                    + "    <RequestInterceptor className=\"org.apache.tomcat.request.StaticInterceptor\" debug=\"0\" suppress=\"false\" />\n"
+                    + "    <RequestInterceptor className=\"org.apache.tomcat.session.StandardSessionInterceptor\" />\n"
+                    + "    <RequestInterceptor className=\"org.apache.tomcat.request.AccessInterceptor\" debug=\"0\" />\n"
+                    + "    <RequestInterceptor className=\"org.jboss.tomcat.security.JBossSecurityMgrRealm\" />\n"
+                    + "    <ContextInterceptor className=\"org.apache.tomcat.context.LoadOnStartupInterceptor\" />\n");
+
+            for(HttpdWorker worker : tomcatSite.getHttpdWorkers()) {
+                NetBind netBind=worker.getNetBind();
+                String protocol=worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
+
+                out.print("    <Connector className=\"org.apache.tomcat.service.PoolTcpConnector\">\n"
+                        + "      <Parameter name=\"handler\" value=\"");
+                if(protocol.equals(HttpdJKProtocol.AJP12)) out.print("org.apache.tomcat.service.connector.Ajp12ConnectionHandler");
+                else if(protocol.equals(HttpdJKProtocol.AJP13)) out.print("org.apache.tomcat.service.connector.Ajp13ConnectionHandler");
+                else throw new IllegalArgumentException("Unknown AJP version: "+htv);
+                out.print("\"/>\n"
+                        + "      <Parameter name=\"port\" value=\"").print(netBind.getPort()).print("\"/>\n");
+                IPAddress ip=netBind.getIPAddress();
+                if(!ip.isWildcard()) out.print("      <Parameter name=\"inet\" value=\"").print(ip.getIPAddress()).print("\"/>\n");
+                out.print("      <Parameter name=\"max_threads\" value=\"30\"/>\n"
+                        + "      <Parameter name=\"max_spare_threads\" value=\"10\"/>\n"
+                        + "      <Parameter name=\"min_spare_threads\" value=\"1\"/>\n"
+                        + "    </Connector>\n"
+                );
+            }
+            for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
+                out.print("    <Context path=\"").print(htc.getPath()).print("\" docBase=\"").print(htc.getDocBase()).print("\" debug=\"").print(htc.getDebugLevel()).print("\" reloadable=\"").print(htc.isReloadable()).print("\" />\n");
+            }
+            out.print("  </ContextManager>\n"
+                    + "</Server>\n");
+        } finally {
+            out.close();
+        }
+        return bout.toByteArray();
+    }
+
     protected boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException {
-        throw new RuntimeException("TODO: Implement method");
+        final String siteDir = siteDirectory.getPath();
+        final Stat tempStat = new Stat();
+        boolean needsRestart = false;
+        String autoWarning=getAutoWarningXml();
+
+        String confServerXML=siteDir+"/conf/server.xml";
+        UnixFile confServerXMLFile=new UnixFile(confServerXML);
+        if(!httpdSite.isManual() || !confServerXMLFile.getStat(tempStat).exists()) {
+            // Only write to the actual file when missing or changed
+            if(
+                FileUtils.writeIfNeeded(
+                    buildServerXml(siteDirectory, autoWarning),
+                    null,
+                    confServerXMLFile,
+                    httpdSite.getLinuxServerAccount().getUID().getID(),
+                    httpdSite.getLinuxServerGroup().getGID().getID(),
+                    0660
+                )
+            ) {
+                // Flag as needing restarted
+                needsRestart = true;
+            }
+        } else {
+            try {
+                FileUtils.stripFilePrefix(
+                    confServerXMLFile,
+                    autoWarning,
+                    tempStat
+                );
+            } catch(IOException err) {
+                // Errors OK because this is done in manual mode and they might have symbolic linked stuff
+            }
+        }
+        return needsRestart;
     }
 }

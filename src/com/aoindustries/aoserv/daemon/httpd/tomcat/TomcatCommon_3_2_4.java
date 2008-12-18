@@ -32,7 +32,7 @@ public class TomcatCommon_3_2_4 extends TomcatCommon_3_X {
         FileUtils.copyResource(TomcatCommon_3_2_4.class, "web.xml-3.2.4", confDirectory+"/web.xml", uid, gid, mode);
     }
 
-    void printTomcatUsers(ChainWriter out) {
+    public void printTomcatUsers(ChainWriter out) {
         out.print("<tomcat-users>\n"
                 + "  <user name=\"tomcat\" password=\"tomcat\" roles=\"tomcat\" />\n"
                 + "  <user name=\"role1\"  password=\"tomcat\" roles=\"role1\" />\n"
