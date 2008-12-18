@@ -187,9 +187,6 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
                         + "    cd \"$TOMCAT_HOME\"\n"
                         + "    . \"$TOMCAT_HOME/bin/profile\"\n"
                         + "\n"
-                        + "    # Get rid of sites without servlet container content\n"
-                        + "    SITES=`/usr/aoserv/sbin/filtersites $SITES`\n"
-                        + "\n"
                         + "    if [ \"$SITES\" != \"\" ]; then\n"
                         + "        while [ 1 ]; do\n"
                 );
@@ -543,5 +540,10 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 
         // Start if needed
         if(needRestart && sharedTomcat.getDisableLog()==null) sharedTomcatsNeedingRestarted.add(sharedTomcat);
+    }
+
+    protected boolean upgradeSharedTomcatDirectory(UnixFile siteDirectory) throws IOException, SQLException {
+        // TODO
+        return false;
     }
 }

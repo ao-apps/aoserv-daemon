@@ -211,6 +211,8 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         final int uid = httpdSite.getLinuxServerAccount().getUID().getID();
         final int gid = httpdSite.getLinuxServerGroup().getGID().getID();
         final String siteDir = siteDirectory.getPath();
+        final UnixFile rootDirectory = new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE);
+        final UnixFile cgibinDirectory = new UnixFile(rootDirectory, "cgi-bin", false);
 
         // Create wwwDirectory if needed
         final Stat siteDirectoryStat = new Stat();
@@ -225,14 +227,11 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         // Build directory contents if is new or incomplete
         boolean needsRestart = false;
         if(isNew) {
-
             // Build the per-Tomcat-version unique values
             buildSiteDirectoryContents(siteDirectory);
 
             // CGI
-            UnixFile rootDirectory = new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE);
             if(enableCgi()) {
-                UnixFile cgibinDirectory = new UnixFile(rootDirectory, "cgi-bin", false);
                 FileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
                 FileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
                 createTestCGI(cgibinDirectory);
@@ -253,6 +252,9 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         // Perform any necessary upgrades
         if(upgradeSiteDirectoryContents(siteDirectory)) needsRestart = true;
         
+        // CGI-based PHP
+        upgradeCgiPhpScript(cgibinDirectory); // No need to restart on cgi-bin/php upgrade
+
         // Rebuild config files that need to be updated
         if(rebuildConfigFiles(siteDirectory)) needsRestart = true;
 

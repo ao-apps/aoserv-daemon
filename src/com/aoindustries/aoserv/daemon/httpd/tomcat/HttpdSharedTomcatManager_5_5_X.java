@@ -185,9 +185,6 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
                     + "    cd \"$TOMCAT_HOME\"\n"
                     + "    . \"$TOMCAT_HOME/bin/profile\"\n"
                     + "\n"
-                    + "    # Get rid of sites without servlet container content\n"
-                    + "    SITES=`/usr/aoserv/sbin/filtersites $SITES`\n"
-                    + "\n"
                     + "    if [ \"$SITES\" != \"\" ]; then\n"
                     + "        while [ 1 ]; do\n"
             );
@@ -539,5 +536,31 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 
         // Start if needed
         if(needRestart && sharedTomcat.getDisableLog()==null) sharedTomcatsNeedingRestarted.add(sharedTomcat);
+    }
+
+    protected boolean upgradeSharedTomcatDirectory(UnixFile siteDirectory) throws IOException, SQLException {
+        // Upgrade Tomcat
+        boolean needsRestart = getTomcatCommon().upgradeTomcatDirectory(
+            siteDirectory,
+            sharedTomcat.getLinuxServerAccount().getUID().getID(),
+            sharedTomcat.getLinuxServerGroup().getGID().getID()
+        );
+
+        // Update bin/tomcat script
+        OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
+        if(osConfig==OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
+            // Replace /usr/aoserv/sbin/filtersites in bin/tomcat
+            String results = AOServDaemon.execAndCapture(
+                new String[] {
+                    osConfig.getReplaceCommand(),
+                    "SITES=`/usr/aoserv/sbin/filtersites",
+                    "# SITES=`/usr/aoserv/sbin/filtersites",
+                    "--",
+                    siteDirectory.getPath()+"/bin/tomcat"
+                }
+            );
+            if(results.length()>0) needsRestart = true;
+        }
+        return needsRestart;
     }
 }

@@ -16,6 +16,7 @@ import com.aoindustries.aoserv.client.HttpdTomcatSite;
 import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
 import com.aoindustries.aoserv.daemon.util.FileUtils;
 import com.aoindustries.io.ChainWriter;
@@ -437,6 +438,39 @@ public abstract class HttpdSiteManager {
                 }
             }
         }
+    }
+
+    /**
+     * If the cgi-bin/php script exists, will upgrade it if necessary.
+     * 
+     * @return  <code>true</code> if the script was modified
+     */
+    public boolean upgradeCgiPhpScript(UnixFile cgibinDirectory) throws IOException, SQLException {
+        boolean updated = false;
+        OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
+        if(osConfig==OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
+            UnixFile phpFile = new UnixFile(cgibinDirectory, "php", false);
+            if(phpFile.getStat().exists()) {
+                // Replace /usr/aoserv/etc in bin/profile
+                String results = AOServDaemon.execAndCapture(
+                    new String[] {
+                        osConfig.getReplaceCommand(),
+                        "/usr/aoserv/etc/postgresql",
+                        "/opt/aoserv-client/scripts/postgresql",
+                        "/usr/php/4/bin/php",
+                        "/opt/php-4/bin/php",
+                        "/usr/php/5/bin/php",
+                        "/opt/php-5/bin/php-cgi",
+                        "/usr/php/5/bin/php-cgi",
+                        "/opt/php-5/bin/php-cgi",
+                        "--",
+                        phpFile.getPath()
+                    }
+                );
+                if(results.length()>0) updated = true;
+            }
+        }
+        return updated;
     }
 
     /**

@@ -86,6 +86,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
             final String tomcatName = sharedTomcat.getName();
             UnixFile sharedTomcatDirectory = new UnixFile(wwwgroupDirectory, tomcatName, false);
             manager.buildSharedTomcatDirectory(sharedTomcatDirectory, deleteFileList, sharedTomcatsNeedingRestarted);
+            if(manager.upgradeSharedTomcatDirectory(sharedTomcatDirectory)) sharedTomcatsNeedingRestarted.add(sharedTomcat);
             wwwgroupRemoveList.remove(tomcatName);
         }
 
@@ -233,6 +234,13 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
      * </ol>
      */
     abstract void buildSharedTomcatDirectory(UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException;
+
+    /**
+     * Upgrades the site directory contents for an auto-upgrade.
+     *
+     * @return  <code>true</code> if the site needs to be restarted.
+     */
+    protected abstract boolean upgradeSharedTomcatDirectory(UnixFile siteDirectory) throws IOException, SQLException;
 
     public UnixFile getPidFile() throws IOException, SQLException {
         return new UnixFile(

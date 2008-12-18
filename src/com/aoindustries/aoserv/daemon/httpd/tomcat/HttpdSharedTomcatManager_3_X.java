@@ -202,9 +202,6 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
                     + "    cd \"$TOMCAT_HOME\"\n"
                     + "    . \"$TOMCAT_HOME/bin/profile\"\n"
                     + "\n"
-                    + "    # Get rid of sites without servlet container content\n"
-                    + "    SITES=`/usr/aoserv/sbin/filtersites $SITES`\n"
-                    + "\n"
                     + "    if [ \"$SITES\" != \"\" ]; then\n"
                     + "        while [ 1 ]; do\n"
                     //+ "            ulimit -S -m 196608 -v 400000\n"
@@ -341,5 +338,10 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 
         // Start if needed
         if(needRestart && sharedTomcat.getDisableLog()==null) sharedTomcatsNeedingRestarted.add(sharedTomcat);
+    }
+
+    protected boolean upgradeSharedTomcatDirectory(UnixFile siteDirectory) throws IOException, SQLException {
+        // TODO
+        return false;
     }
 }
