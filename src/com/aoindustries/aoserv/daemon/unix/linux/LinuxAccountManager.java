@@ -702,6 +702,7 @@ public class LinuxAccountManager extends BuilderThread {
             if(!found) {
                 RandomAccessFile out=profileFile.getSecureRandomAccessFile("rw");
                 out.seek(out.length());
+                out.write('\n');
                 out.writeBytes(profileLine);
                 out.write('\n');
                 out.close();

@@ -14,6 +14,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.HttpdSiteManager;
 import com.aoindustries.aoserv.daemon.httpd.StopStartable;
+import com.aoindustries.aoserv.daemon.util.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.File;
@@ -148,7 +149,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
             }
             try {
                 Future commandFuture = AOServDaemon.executorService.submit(commandCallable);
-                commandFuture.get(1, TimeUnit.MINUTES);
+                commandFuture.get(60, TimeUnit.SECONDS);
             } catch(InterruptedException err) {
                 AOServDaemon.reportWarning(err, null);
             } catch(ExecutionException err) {
@@ -259,6 +260,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
                 getStartStopScriptPath()+" stop",
                 0
             );
+            if(pidFile.getStat().exists()) pidFile.delete();
             return true;
         } else {
             return false;
@@ -275,6 +277,24 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
             );
             return true;
         } else {
+            // Read the PID file and make sure the process is still running
+            String pid = FileUtils.readFileAsString(pidFile);
+            try {
+                int pidNum = Integer.parseInt(pid.trim());
+                UnixFile procDir = new UnixFile("/proc/"+pidNum);
+                if(!procDir.getStat().exists()) {
+                    System.err.println("Warning: Deleting PID file for dead process: "+pidFile.getPath());
+                    pidFile.delete();
+                    AOServDaemon.suexec(
+                        sharedTomcat.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername(),
+                        getStartStopScriptPath()+" start",
+                        0
+                    );
+                    return true;
+                }
+            } catch(NumberFormatException err) {
+                AOServDaemon.reportWarning(err, null);
+            }
             return false;
         }
     }

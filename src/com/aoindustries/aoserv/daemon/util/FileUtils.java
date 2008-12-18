@@ -157,6 +157,7 @@ public class FileUtils {
      * set the ownership and permissions, and then rename over any
      * existing files.  If <code>tempFile</code> exists and <code>file</code>
      * has to be written, <code>tempFile</code> will be overwritten.
+     * If file is a symlink, will be removed first.
      * 
      * @param  tempFile  if <code>null</code>, a randomly-generated filename will
      *                   be used
@@ -173,8 +174,12 @@ public class FileUtils {
         int mode
     ) throws IOException {
         Stat tempStat = new Stat();
+        if(file.getStat(tempStat).exists() && tempStat.isSymLink()) {
+            file.delete();
+            file.getStat(tempStat);
+        }
         if(
-            !file.getStat(tempStat).exists()
+            !tempStat.exists()
             || !file.contentEquals(newContents)
         ) {
             // Create temp file if none provided

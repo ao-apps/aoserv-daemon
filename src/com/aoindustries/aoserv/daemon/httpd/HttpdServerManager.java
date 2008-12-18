@@ -1,3 +1,4 @@
+
 package com.aoindustries.aoserv.daemon.httpd;
 
 /*
@@ -62,6 +63,11 @@ public class HttpdServerManager {
     static final String CONF_HOSTS = CONF_DIRECTORY+"/hosts";
 
     /**
+     * The init.d directory.
+     */
+    private static final String INIT_DIRECTORY = "/etc/rc.d/init.d";
+
+    /**
      * Gets the workers#.properties file path.
      */
     private static String getWorkersFile(HttpdServer hs) {
@@ -105,6 +111,12 @@ public class HttpdServerManager {
 
         // Rebuild /etc/httpd/conf/ files
         doRebuildConf(aoServer, bout, serversNeedingReloaded);
+        
+        // Control the /etc/rc.d/init.d/httpd* files
+        doRebuildInitScripts(aoServer, bout, deleteFileList, serversNeedingReloaded);
+
+        // Other filesystem fixes related to logging
+        fixFilesystem(deleteFileList);
     }
     
     /**
@@ -247,7 +259,7 @@ public class HttpdServerManager {
 
             // The CGI user info
             out.print("\n"
-                    + "    # Use suexec when available"
+                    + "    # Use suexec when available\n"
                     + "    <IfModule mod_suexec.c>\n"
                     + "        SuexecUserGroup ").print(lsa.getLinuxAccount().getUsername()).print(' ').print(lsg.getLinuxGroup().getName()).print("\n"
                     + "    </IfModule>\n");
@@ -270,14 +282,14 @@ public class HttpdServerManager {
                         + "    # Rejected URL patterns\n");
                 for(HttpdSiteManager.Location location : rejectedLocations) {
                     if(location.isRegularExpression()) {
-                        out.print("    <LocationMatch \"").print(location).print("\">\n"
-                                + "        AllowOverride None\n"
+                        out.print("    <LocationMatch \"").print(location.getLocation()).print("\">\n"
+                                + "        Order deny,allow\n"
                                 + "        Deny from All\n"
                                 + "    </LocationMatch>\n"
                         );
                     } else {
-                        out.print("    <Location \"").print(location).print("\">\n"
-                                + "        AllowOverride None\n"
+                        out.print("    <Location \"").print(location.getLocation()).print("\">\n"
+                                + "        Order deny,allow\n"
                                 + "        Deny from All\n"
                                 + "    </Location>\n"
                         );
@@ -375,7 +387,7 @@ public class HttpdServerManager {
             SortedSet<HttpdSiteManager.JkSetting> jkSettings = manager.getJkSettings();
             if(!jkSettings.isEmpty()) {
                 out.print("\n"
-                        + "    # Request patterns mapped through mod_jk"
+                        + "    # Request patterns mapped through mod_jk\n"
                         + "    <IfModule mod_jk.c>\n");
                 for(HttpdSiteManager.JkSetting setting : jkSettings) {
                     out
@@ -442,10 +454,11 @@ public class HttpdServerManager {
     }
 
     /**
-     * Builds the httpd#.conf file contents for the provided HttpdServer.
+     * Builds the httpd#.conf file for CentOS 5
      */
-    private static byte[] buildHttpdConf(HttpdServer hs, ByteArrayOutputStream bout) throws IOException, SQLException {
+    private static byte[] buildHttpdConfCentOs5(HttpdServer hs, ByteArrayOutputStream bout) throws IOException, SQLException {
         final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
+        if(osConfig!=HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) throw new AssertionError("This method is for CentOS 5 only");
         final int serverNum = hs.getNumber();
         bout.reset();
         ChainWriter out = new ChainWriter(bout);
@@ -454,231 +467,127 @@ public class HttpdServerManager {
             boolean isEnabled=lsa.getDisableLog()==null;
             // The version of PHP module to run
             TechnologyVersion phpVersion=hs.getModPhpVersion();
-            if(osConfig==HttpdOperatingSystemConfiguration.MANDRIVA_2006_0_I586) {
-                out.print("ServerRoot \""+CONFIG_DIRECTORY+"\"\n"
-                        + "Include conf/modules_conf/core\n"
-                        + "PidFile /var/run/httpd").print(serverNum).print(".pid\n"
-                        + "Timeout ").print(hs.getTimeOut()).print("\n"
-                        + "CoreDumpDirectory /var/log/httpd").print(serverNum).print("\n"
-                        + "LockFile /var/log/httpd").print(serverNum).print("/accept.lock\n"
-                        + "\n"
-                        + "Include conf/modules_conf/prefork\n"
-                        + "Include conf/modules_conf/worker\n"
-                        + "\n"
-                        + "LoadModule access_module modules/mod_access.so\n"
-                        + "LoadModule auth_module modules/mod_auth.so\n"
-                        + "# LoadModule auth_anon_module modules/mod_auth_anon.so\n"
-                        + "# LoadModule auth_dbm_module modules/mod_auth_dbm.so\n"
-                        + "# LoadModule auth_digest_module modules/mod_auth_digest.so\n"
-                        + "# LoadModule file_cache_module modules/mod_file_cache.so\n"
-                        + "# LoadModule charset_lite_module modules/mod_charset_lite.so\n"
-                        + "# LoadModule cache_module modules/mod_cache.so\n"
-                        + "# LoadModule disk_cache_module modules/mod_disk_cache.so\n"
-                        + "# LoadModule mem_cache_module modules/mod_mem_cache.so\n"
-                        + "# LoadModule case_filter_module modules/mod_case_filter.so\n"
-                        + "# LoadModule case_filter_in_module modules/mod_case_filter_in.so\n"
-                        + "# LoadModule dumpio_module modules/mod_dumpio.so\n"
-                        + "# LoadModule ldap_module modules/mod_ldap.so\n"
-                        + "# LoadModule auth_ldap_module modules/mod_auth_ldap.so\n"
-                        + "# LoadModule ext_filter_module modules/mod_ext_filter.so\n"
-                        + "LoadModule include_module modules/mod_include.so\n"
-                        + "LoadModule deflate_module modules/mod_deflate.so\n"
-                        + "LoadModule log_config_module modules/mod_log_config.so\n"
-                        + "# LoadModule log_forensic_module modules/mod_log_forensic.so\n"
-                        + "# LoadModule logio_module modules/mod_logio.so\n"
-                        + "LoadModule env_module modules/mod_env.so\n"
-                        + "LoadModule mime_magic_module modules/mod_mime_magic.so\n"
-                        + "# LoadModule cern_meta_module modules/mod_cern_meta.so\n"
-                        + "LoadModule expires_module modules/mod_expires.so\n"
-                        + "LoadModule headers_module modules/mod_headers.so\n"
-                        + "# LoadModule usertrack_module modules/mod_usertrack.so\n"
-                        + "# LoadModule unique_id_module modules/mod_unique_id.so\n"
-                        + "LoadModule setenvif_module modules/mod_setenvif.so\n"
-                        + "LoadModule proxy_module modules/mod_proxy.so\n"
-                        + "# LoadModule proxy_connect_module modules/mod_proxy_connect.so\n"
-                        + "# LoadModule proxy_ftp_module modules/mod_proxy_ftp.so\n"
-                        + "LoadModule proxy_http_module modules/mod_proxy_http.so\n"
-                        + "LoadModule mime_module modules/mod_mime.so\n"
-                        + "# LoadModule dav_module modules/mod_dav.so\n"
-                        + "LoadModule status_module modules/mod_status.so\n"
-                        + "LoadModule autoindex_module modules/mod_autoindex.so\n"
-                        + "LoadModule asis_module modules/mod_asis.so\n"
-                        + "# LoadModule info_module modules/mod_info.so\n"
-                        + "LoadModule cgi_module modules/mod_cgi.so\n"
-                        + "# LoadModule cgid_module modules/mod_cgid.so\n"
-                        + "# LoadModule dav_fs_module modules/mod_dav_fs.so\n"
-                        + "# LoadModule vhost_alias_module modules/mod_vhost_alias.so\n"
-                        + "LoadModule negotiation_module modules/mod_negotiation.so\n"
-                        + "LoadModule dir_module modules/mod_dir.so\n"
-                        + "LoadModule imap_module modules/mod_imap.so\n"
-                        + "LoadModule actions_module modules/mod_actions.so\n"
-                        + "# LoadModule speling_module modules/mod_speling.so\n"
-                        + "# LoadModule userdir_module modules/mod_userdir.so\n"
-                        + "LoadModule alias_module modules/mod_alias.so\n"
-                        + "LoadModule rewrite_module modules/mod_rewrite.so\n"
-                        + "LoadModule jk_module modules/mod_jk-apache-2.0.49-linux-i686.so\n"
-                        + "LoadModule ssl_module extramodules/mod_ssl.so\n");
-                if(hs.useSuexec()) out.print("LoadModule suexec_module extramodules/mod_suexec.so\n");
-                if(isEnabled && phpVersion!=null) {
-                    String version = phpVersion.getVersion();
-                    String phpMajorVersion = getMajorPhpVersion(version);
-                    out.print("\n"
-                            + "# Enable mod_php\n"
-                            + "LoadModule php").print(phpMajorVersion).print("_module /usr/php/").print(phpMajorVersion).print("/lib/apache/").print(getPhpLib(phpVersion)).print("\n"
-                            + "AddType application/x-httpd-php .php4 .php3 .phtml .php\n"
-                            + "AddType application/x-httpd-php-source .phps\n");
-                }
+            out.print("ServerRoot \""+CONFIG_DIRECTORY+"\"\n"
+                    + "Include conf/modules_conf/core\n"
+                    + "PidFile /var/run/httpd").print(serverNum).print(".pid\n"
+                    + "Timeout ").print(hs.getTimeOut()).print("\n"
+                    + "CoreDumpDirectory /var/log/httpd/httpd").print(serverNum).print("\n"
+                    + "LockFile /var/log/httpd/httpd").print(serverNum).print("/accept.lock\n"
+                    + "\n"
+                    + "Include conf/modules_conf/prefork\n"
+                    + "Include conf/modules_conf/worker\n"
+                    + "\n"
+                    + "LoadModule auth_basic_module modules/mod_auth_basic.so\n"
+                    + "#LoadModule auth_digest_module modules/mod_auth_digest.so\n"
+                    + "#LoadModule authn_file_module modules/mod_authn_file.so\n"
+                    + "#LoadModule authn_alias_module modules/mod_authn_alias.so\n"
+                    + "#LoadModule authn_anon_module modules/mod_authn_anon.so\n"
+                    + "#LoadModule authn_dbm_module modules/mod_authn_dbm.so\n"
+                    + "#LoadModule authn_default_module modules/mod_authn_default.so\n"
+                    + "LoadModule authz_host_module modules/mod_authz_host.so\n"
+                    + "#LoadModule authz_user_module modules/mod_authz_user.so\n"
+                    + "#LoadModule authz_owner_module modules/mod_authz_owner.so\n"
+                    + "#LoadModule authz_groupfile_module modules/mod_authz_groupfile.so\n"
+                    + "#LoadModule authz_dbm_module modules/mod_authz_dbm.so\n"
+                    + "#LoadModule authz_default_module modules/mod_authz_default.so\n"
+                    + "#LoadModule ldap_module modules/mod_ldap.so\n"
+                    + "#LoadModule authnz_ldap_module modules/mod_authnz_ldap.so\n"
+                    + "LoadModule include_module modules/mod_include.so\n"
+                    + "LoadModule log_config_module modules/mod_log_config.so\n"
+                    + "#LoadModule logio_module modules/mod_logio.so\n"
+                    + "LoadModule env_module modules/mod_env.so\n"
+                    + "#LoadModule ext_filter_module modules/mod_ext_filter.so\n"
+                    + "LoadModule mime_magic_module modules/mod_mime_magic.so\n"
+                    + "LoadModule expires_module modules/mod_expires.so\n"
+                    + "LoadModule deflate_module modules/mod_deflate.so\n"
+                    + "LoadModule headers_module modules/mod_headers.so\n"
+                    + "#LoadModule usertrack_module modules/mod_usertrack.so\n"
+                    + "LoadModule setenvif_module modules/mod_setenvif.so\n"
+                    + "LoadModule mime_module modules/mod_mime.so\n"
+                    + "#LoadModule dav_module modules/mod_dav.so\n"
+                    + "LoadModule status_module modules/mod_status.so\n"
+                    + "LoadModule autoindex_module modules/mod_autoindex.so\n"
+                    + "#LoadModule info_module modules/mod_info.so\n"
+                    + "#LoadModule dav_fs_module modules/mod_dav_fs.so\n"
+                    + "#LoadModule vhost_alias_module modules/mod_vhost_alias.so\n"
+                    + "LoadModule negotiation_module modules/mod_negotiation.so\n"
+                    + "LoadModule dir_module modules/mod_dir.so\n"
+                    + "LoadModule imagemap_module modules/mod_imagemap.so\n"
+                    + "LoadModule actions_module modules/mod_actions.so\n"
+                    + "#LoadModule speling_module modules/mod_speling.so\n"
+                    + "#LoadModule userdir_module modules/mod_userdir.so\n"
+                    + "LoadModule alias_module modules/mod_alias.so\n"
+                    + "LoadModule rewrite_module modules/mod_rewrite.so\n"
+                    + "LoadModule proxy_module modules/mod_proxy.so\n"
+                    + "#LoadModule proxy_balancer_module modules/mod_proxy_balancer.so\n"
+                    + "#LoadModule proxy_ftp_module modules/mod_proxy_ftp.so\n"
+                    + "LoadModule proxy_http_module modules/mod_proxy_http.so\n"
+                    + "#LoadModule proxy_connect_module modules/mod_proxy_connect.so\n"
+                    + "#LoadModule cache_module modules/mod_cache.so\n"
+                    + "#LoadModule suexec_module modules/mod_suexec.so\n"
+                    + "#LoadModule disk_cache_module modules/mod_disk_cache.so\n"
+                    + "#LoadModule file_cache_module modules/mod_file_cache.so\n"
+                    + "#LoadModule mem_cache_module modules/mod_mem_cache.so\n"
+                    + "LoadModule cgi_module modules/mod_cgi.so\n"
+                    + "#LoadModule cern_meta_module modules/mod_cern_meta.so\n"
+                    + "#LoadModule asis_module modules/mod_asis.so\n"
+                    + "LoadModule jk_module modules/mod_jk-1.2.27.so\n"
+                    + "LoadModule ssl_module modules/mod_ssl.so\n");
+            if(hs.useSuexec()) out.print("LoadModule suexec_module modules/mod_suexec.so\n");
+            if(isEnabled && phpVersion!=null) {
+                String version = phpVersion.getVersion();
+                String phpMajorVersion = getMajorPhpVersion(version);
                 out.print("\n"
-                        + "Include conf/modules_conf/mod_log_config\n"
-                        + "Include conf/modules_conf/mod_mime_magic\n"
-                        + "Include conf/modules_conf/mod_setenvif\n"
-                        + "Include conf/modules_conf/mod_proxy\n"
-                        + "Include conf/modules_conf/mod_mime\n"
-                        + "Include conf/modules_conf/mod_dav\n"
-                        + "Include conf/modules_conf/mod_status\n"
-                        + "Include conf/modules_conf/mod_autoindex\n"
-                        + "Include conf/modules_conf/mod_negotiation\n"
-                        + "Include conf/modules_conf/mod_dir\n"
-                        + "Include conf/modules_conf/mod_userdir\n"
-                        + "Include conf/modules_conf/mod_ssl\n"
-                        + "Include conf/modules_conf/mod_jk\n"
-                        + "\n"
-                        + "SSLSessionCache shmcb:/var/cache/httpd/mod_ssl/ssl_scache").print(serverNum).print("(512000)\n"
-                        + "\n");
-                // Use apache if the account is disabled
-                if(isEnabled) {
-                    out.print("User ").print(lsa.getLinuxAccount().getUsername().getUsername()).print("\n"
-                            + "Group ").print(hs.getLinuxServerGroup().getLinuxGroup().getName()).print("\n");
-                } else {
-                    out.print("User "+LinuxAccount.APACHE+"\n"
-                            + "Group "+LinuxGroup.APACHE+"\n");
-                }
-                out.print("\n"
-                        + "ServerName ").print(hs.getAOServer().getHostname()).print("\n"
-                        + "\n"
-                        + "ErrorLog /var/log/httpd").print(serverNum).print("/error_log\n"
-                        + "CustomLog /var/log/httpd").print(serverNum).print("/access_log combined\n"
-                        + "\n"
-                        + "<IfModule mod_dav_fs.c>\n"
-                        + "    DAVLockDB /var/lib/dav").print(serverNum).print("/lockdb\n"
-                        + "</IfModule>\n"
-                        + "\n"
-                        + "<IfModule mod_jk.c>\n"
-                        + "    JkWorkersFile /etc/httpd/conf/workers").print(serverNum).print(".properties\n"
-                        + "    JkLogFile /var/log/httpd").print(serverNum).print("/mod_jk.log\n"
-                        + "</IfModule>\n"
-                        + "\n"
-                        + "Include conf/fileprotector.conf\n"
-                        + "\n"
-                );
-            } else if(osConfig==HttpdOperatingSystemConfiguration.REDHAT_ES_4_X86_64) {
-                out.print("ServerRoot \""+CONFIG_DIRECTORY+"\"\n"
-                        + "Include conf/modules_conf/core\n"
-                        + "PidFile /var/run/httpd").print(serverNum).print(".pid\n"
-                        + "Timeout ").print(hs.getTimeOut()).print("\n"
-                        + "CoreDumpDirectory /var/log/httpd").print(serverNum).print("\n"
-                        + "LockFile /var/log/httpd").print(serverNum).print("/accept.lock\n"
-                        + "\n"
-                        + "Include conf/modules_conf/prefork\n"
-                        + "Include conf/modules_conf/worker\n"
-                        + "\n"
-                        + "LoadModule access_module modules/mod_access.so\n"
-                        + "LoadModule auth_module modules/mod_auth.so\n"
-                        + "# LoadModule auth_anon_module modules/mod_auth_anon.so\n"
-                        + "# LoadModule auth_dbm_module modules/mod_auth_dbm.so\n"
-                        + "# LoadModule auth_digest_module modules/mod_auth_digest.so\n"
-                        + "# LoadModule ldap_module modules/mod_ldap.so\n"
-                        + "# LoadModule auth_ldap_module modules/mod_auth_ldap.so\n"
-                        + "LoadModule include_module modules/mod_include.so\n"
-                        + "LoadModule log_config_module modules/mod_log_config.so\n"
-                        + "LoadModule env_module modules/mod_env.so\n"
-                        + "LoadModule mime_magic_module modules/mod_mime_magic.so\n"
-                        + "# LoadModule cern_meta_module modules/mod_cern_meta.so\n"
-                        + "LoadModule expires_module modules/mod_expires.so\n"
-                        + "LoadModule deflate_module modules/mod_deflate.so\n"
-                        + "LoadModule headers_module modules/mod_headers.so\n"
-                        + "# LoadModule usertrack_module modules/mod_usertrack.so\n"
-                        + "LoadModule setenvif_module modules/mod_setenvif.so\n"
-                        + "LoadModule mime_module modules/mod_mime.so\n"
-                        + "# LoadModule dav_module modules/mod_dav.so\n"
-                        + "# LoadModule status_module modules/mod_status.so\n"
-                        + "LoadModule autoindex_module modules/mod_autoindex.so\n"
-                        + "LoadModule asis_module modules/mod_asis.so\n"
-                        + "# LoadModule info_module modules/mod_info.so\n"
-                        + "# LoadModule dav_fs_module modules/mod_dav_fs.so\n"
-                        + "# LoadModule vhost_alias_module modules/mod_vhost_alias.so\n"
-                        + "LoadModule negotiation_module modules/mod_negotiation.so\n"
-                        + "LoadModule dir_module modules/mod_dir.so\n"
-                        + "LoadModule imap_module modules/mod_imap.so\n"
-                        + "LoadModule actions_module modules/mod_actions.so\n"
-                        + "# LoadModule speling_module modules/mod_speling.so\n"
-                        + "# LoadModule userdir_module modules/mod_userdir.so\n"
-                        + "LoadModule alias_module modules/mod_alias.so\n"
-                        + "LoadModule rewrite_module modules/mod_rewrite.so\n"
-                        + "LoadModule proxy_module modules/mod_proxy.so\n"
-                        + "# LoadModule proxy_ftp_module modules/mod_proxy_ftp.so\n"
-                        + "LoadModule proxy_http_module modules/mod_proxy_http.so\n"
-                        + "# LoadModule proxy_connect_module modules/mod_proxy_connect.so\n"
-                        + "# LoadModule cache_module modules/mod_cache.so\n");
-                if(hs.useSuexec()) out.print("LoadModule suexec_module modules/mod_suexec.so\n");
-                if(isEnabled && phpVersion!=null) {
-                    String version = phpVersion.getVersion();
-                    String phpMajorVersion = getMajorPhpVersion(version);
-                    out.print("\n"
-                            + "# Enable mod_php\n"
-                            + "LoadModule php").print(phpMajorVersion).print("_module /opt/php-").print(phpMajorVersion).print("/lib/apache/").print(getPhpLib(phpVersion)).print("\n"
-                            + "AddType application/x-httpd-php .php4 .php3 .phtml .php\n"
-                            + "AddType application/x-httpd-php-source .phps\n");
-                }
-                out.print("# LoadModule disk_cache_module modules/mod_disk_cache.so\n"
-                        + "# LoadModule file_cache_module modules/mod_file_cache.so\n"
-                        + "# LoadModule mem_cache_module modules/mod_mem_cache.so\n"
-                        + "LoadModule cgi_module modules/mod_cgi.so\n"
-                        + "LoadModule ssl_module modules/mod_ssl.so\n"
-                        + "LoadModule jk_module modules/mod_jk-apache-2.0.52-linux-x86_64.so\n"
-                        + "\n"
-                        + "Include conf/modules_conf/mod_log_config\n"
-                        + "Include conf/modules_conf/mod_mime_magic\n"
-                        + "Include conf/modules_conf/mod_setenvif\n"
-                        + "Include conf/modules_conf/mod_mime\n"
-                        + "Include conf/modules_conf/mod_status\n"
-                        + "Include conf/modules_conf/mod_autoindex\n"
-                        + "Include conf/modules_conf/mod_negotiation\n"
-                        + "Include conf/modules_conf/mod_dir\n"
-                        + "Include conf/modules_conf/mod_userdir\n"
-                        + "Include conf/modules_conf/mod_proxy\n"
-                        + "Include conf/modules_conf/mod_ssl\n"
-                        + "Include conf/modules_conf/mod_jk\n"
-                        + "\n"
-                        + "SSLSessionCache shmcb:/var/cache/mod_ssl/scache").print(serverNum).print("(512000)\n"
-                        + "\n");
-                // Use apache if the account is disabled
-                if(isEnabled) {
-                    out.print("User ").print(lsa.getLinuxAccount().getUsername().getUsername()).print("\n"
-                            + "Group ").print(hs.getLinuxServerGroup().getLinuxGroup().getName()).print("\n");
-                } else {
-                    out.print("User "+LinuxAccount.APACHE+"\n"
-                            + "Group "+LinuxGroup.APACHE+"\n");
-                }
-                out.print("\n"
-                        + "ServerName ").print(hs.getAOServer().getHostname()).print("\n"
-                        + "\n"
-                        + "ErrorLog /var/log/httpd").print(serverNum).print("/error_log\n"
-                        + "CustomLog /var/log/httpd").print(serverNum).print("/access_log combined\n"
-                        + "\n"
-                        + "<IfModule mod_dav_fs.c>\n"
-                        + "    DAVLockDB /var/lib/dav").print(serverNum).print("/lockdb\n"
-                        + "</IfModule>\n"
-                        + "\n"
-                        + "<IfModule mod_jk.c>\n"
-                        + "    JkWorkersFile /etc/httpd/conf/workers").print(serverNum).print(".properties\n"
-                        + "    JkLogFile /var/log/httpd").print(serverNum).print("/mod_jk.log\n"
-                        + "</IfModule>\n"
-                        + "\n"
-                );
-            } else {
-                throw new SQLException("Unsupported OperatingSystemConfiguration: "+osConfig);
+                        + "# Enable mod_php\n"
+                        + "LoadModule php").print(phpMajorVersion).print("_module /opt/php-").print(phpMajorVersion).print("/lib/apache/").print(getPhpLib(phpVersion)).print("\n"
+                        + "AddType application/x-httpd-php .php4 .php3 .phtml .php\n"
+                        + "AddType application/x-httpd-php-source .phps\n");
             }
+            out.print("\n"
+                    + "Include conf/modules_conf/mod_ident\n"
+                    + "Include conf/modules_conf/mod_log_config\n"
+                    + "Include conf/modules_conf/mod_mime_magic\n"
+                    + "Include conf/modules_conf/mod_setenvif\n"
+                    + "Include conf/modules_conf/mod_proxy\n"
+                    + "Include conf/modules_conf/mod_mime\n"
+                    + "Include conf/modules_conf/mod_dav\n"
+                    + "Include conf/modules_conf/mod_status\n"
+                    + "Include conf/modules_conf/mod_autoindex\n"
+                    + "Include conf/modules_conf/mod_negotiation\n"
+                    + "Include conf/modules_conf/mod_dir\n"
+                    + "Include conf/modules_conf/mod_userdir\n"
+                    + "Include conf/modules_conf/mod_ssl\n"
+                    + "Include conf/modules_conf/mod_jk\n"
+                    + "\n"
+                    + "ServerAdmin root@").print(hs.getAOServer().getHostname()).print("\n"
+                    + "\n"
+                    + "SSLSessionCache shmcb:/var/cache/httpd/mod_ssl/ssl_scache").print(serverNum).print("(512000)\n"
+                    + "\n");
+            // Use apache if the account is disabled
+            if(isEnabled) {
+                out.print("User ").print(lsa.getLinuxAccount().getUsername().getUsername()).print("\n"
+                        + "Group ").print(hs.getLinuxServerGroup().getLinuxGroup().getName()).print("\n");
+            } else {
+                out.print("User "+LinuxAccount.APACHE+"\n"
+                        + "Group "+LinuxGroup.APACHE+"\n");
+            }
+            out.print("\n"
+                    + "ServerName ").print(hs.getAOServer().getHostname()).print("\n"
+                    + "\n"
+                    + "ErrorLog /var/log/httpd/httpd").print(serverNum).print("/error_log\n"
+                    + "CustomLog /var/log/httpd/httpd").print(serverNum).print("/access_log combined\n"
+                    + "\n"
+                    + "<IfModule mod_dav_fs.c>\n"
+                    + "    DAVLockDB /var/lib/dav").print(serverNum).print("/lockdb\n"
+                    + "</IfModule>\n"
+                    + "\n"
+                    + "<IfModule mod_jk.c>\n"
+                    + "    JkWorkersFile /etc/httpd/conf/workers").print(serverNum).print(".properties\n"
+                    + "    JkLogFile /var/log/httpd/httpd").print(serverNum).print("/mod_jk.log\n"
+                    + "    JkShmFile /var/log/httpd/httpd").print(serverNum).print("/jk-runtime-status\n"
+                    + "</IfModule>\n"
+                    + "\n"
+            );
 
             // List of binds
             for(HttpdBind hb : hs.getHttpdBinds()) {
@@ -709,6 +618,331 @@ public class HttpdServerManager {
             out.close();
         }
         return bout.toByteArray();
+    }
+
+    /**
+     * Builds the httpd#.conf file for RedHat ES 4
+     */
+    private static byte[] buildHttpdConfRedHatEs4(HttpdServer hs, ByteArrayOutputStream bout) throws IOException, SQLException {
+        final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
+        if(osConfig!=HttpdOperatingSystemConfiguration.REDHAT_ES_4_X86_64) throw new AssertionError("This method is for RedHat ES 4 only");
+        final int serverNum = hs.getNumber();
+        bout.reset();
+        ChainWriter out = new ChainWriter(bout);
+        try {
+            LinuxServerAccount lsa=hs.getLinuxServerAccount();
+            boolean isEnabled=lsa.getDisableLog()==null;
+            // The version of PHP module to run
+            TechnologyVersion phpVersion=hs.getModPhpVersion();
+            out.print("ServerRoot \""+CONFIG_DIRECTORY+"\"\n"
+                    + "Include conf/modules_conf/core\n"
+                    + "PidFile /var/run/httpd").print(serverNum).print(".pid\n"
+                    + "Timeout ").print(hs.getTimeOut()).print("\n"
+                    + "CoreDumpDirectory /var/log/httpd").print(serverNum).print("\n"
+                    + "LockFile /var/log/httpd").print(serverNum).print("/accept.lock\n"
+                    + "\n"
+                    + "Include conf/modules_conf/prefork\n"
+                    + "Include conf/modules_conf/worker\n"
+                    + "\n"
+                    + "LoadModule access_module modules/mod_access.so\n"
+                    + "LoadModule auth_module modules/mod_auth.so\n"
+                    + "# LoadModule auth_anon_module modules/mod_auth_anon.so\n"
+                    + "# LoadModule auth_dbm_module modules/mod_auth_dbm.so\n"
+                    + "# LoadModule auth_digest_module modules/mod_auth_digest.so\n"
+                    + "# LoadModule ldap_module modules/mod_ldap.so\n"
+                    + "# LoadModule auth_ldap_module modules/mod_auth_ldap.so\n"
+                    + "LoadModule include_module modules/mod_include.so\n"
+                    + "LoadModule log_config_module modules/mod_log_config.so\n"
+                    + "LoadModule env_module modules/mod_env.so\n"
+                    + "LoadModule mime_magic_module modules/mod_mime_magic.so\n"
+                    + "# LoadModule cern_meta_module modules/mod_cern_meta.so\n"
+                    + "LoadModule expires_module modules/mod_expires.so\n"
+                    + "LoadModule deflate_module modules/mod_deflate.so\n"
+                    + "LoadModule headers_module modules/mod_headers.so\n"
+                    + "# LoadModule usertrack_module modules/mod_usertrack.so\n"
+                    + "LoadModule setenvif_module modules/mod_setenvif.so\n"
+                    + "LoadModule mime_module modules/mod_mime.so\n"
+                    + "# LoadModule dav_module modules/mod_dav.so\n"
+                    + "# LoadModule status_module modules/mod_status.so\n"
+                    + "LoadModule autoindex_module modules/mod_autoindex.so\n"
+                    + "LoadModule asis_module modules/mod_asis.so\n"
+                    + "# LoadModule info_module modules/mod_info.so\n"
+                    + "# LoadModule dav_fs_module modules/mod_dav_fs.so\n"
+                    + "# LoadModule vhost_alias_module modules/mod_vhost_alias.so\n"
+                    + "LoadModule negotiation_module modules/mod_negotiation.so\n"
+                    + "LoadModule dir_module modules/mod_dir.so\n"
+                    + "LoadModule imap_module modules/mod_imap.so\n"
+                    + "LoadModule actions_module modules/mod_actions.so\n"
+                    + "# LoadModule speling_module modules/mod_speling.so\n"
+                    + "# LoadModule userdir_module modules/mod_userdir.so\n"
+                    + "LoadModule alias_module modules/mod_alias.so\n"
+                    + "LoadModule rewrite_module modules/mod_rewrite.so\n"
+                    + "LoadModule proxy_module modules/mod_proxy.so\n"
+                    + "# LoadModule proxy_ftp_module modules/mod_proxy_ftp.so\n"
+                    + "LoadModule proxy_http_module modules/mod_proxy_http.so\n"
+                    + "# LoadModule proxy_connect_module modules/mod_proxy_connect.so\n"
+                    + "# LoadModule cache_module modules/mod_cache.so\n");
+            if(hs.useSuexec()) out.print("LoadModule suexec_module modules/mod_suexec.so\n");
+            if(isEnabled && phpVersion!=null) {
+                String version = phpVersion.getVersion();
+                String phpMajorVersion = getMajorPhpVersion(version);
+                out.print("\n"
+                        + "# Enable mod_php\n"
+                        + "LoadModule php").print(phpMajorVersion).print("_module /opt/php-").print(phpMajorVersion).print("/lib/apache/").print(getPhpLib(phpVersion)).print("\n"
+                        + "AddType application/x-httpd-php .php4 .php3 .phtml .php\n"
+                        + "AddType application/x-httpd-php-source .phps\n");
+            }
+            out.print("# LoadModule disk_cache_module modules/mod_disk_cache.so\n"
+                    + "# LoadModule file_cache_module modules/mod_file_cache.so\n"
+                    + "# LoadModule mem_cache_module modules/mod_mem_cache.so\n"
+                    + "LoadModule cgi_module modules/mod_cgi.so\n"
+                    + "LoadModule ssl_module modules/mod_ssl.so\n"
+                    + "LoadModule jk_module modules/mod_jk-apache-2.0.52-linux-x86_64.so\n"
+                    + "\n"
+                    + "Include conf/modules_conf/mod_log_config\n"
+                    + "Include conf/modules_conf/mod_mime_magic\n"
+                    + "Include conf/modules_conf/mod_setenvif\n"
+                    + "Include conf/modules_conf/mod_mime\n"
+                    + "Include conf/modules_conf/mod_status\n"
+                    + "Include conf/modules_conf/mod_autoindex\n"
+                    + "Include conf/modules_conf/mod_negotiation\n"
+                    + "Include conf/modules_conf/mod_dir\n"
+                    + "Include conf/modules_conf/mod_userdir\n"
+                    + "Include conf/modules_conf/mod_proxy\n"
+                    + "Include conf/modules_conf/mod_ssl\n"
+                    + "Include conf/modules_conf/mod_jk\n"
+                    + "\n"
+                    + "SSLSessionCache shmcb:/var/cache/mod_ssl/scache").print(serverNum).print("(512000)\n"
+                    + "\n");
+            // Use apache if the account is disabled
+            if(isEnabled) {
+                out.print("User ").print(lsa.getLinuxAccount().getUsername().getUsername()).print("\n"
+                        + "Group ").print(hs.getLinuxServerGroup().getLinuxGroup().getName()).print("\n");
+            } else {
+                out.print("User "+LinuxAccount.APACHE+"\n"
+                        + "Group "+LinuxGroup.APACHE+"\n");
+            }
+            out.print("\n"
+                    + "ServerName ").print(hs.getAOServer().getHostname()).print("\n"
+                    + "\n"
+                    + "ErrorLog /var/log/httpd").print(serverNum).print("/error_log\n"
+                    + "CustomLog /var/log/httpd").print(serverNum).print("/access_log combined\n"
+                    + "\n"
+                    + "<IfModule mod_dav_fs.c>\n"
+                    + "    DAVLockDB /var/lib/dav").print(serverNum).print("/lockdb\n"
+                    + "</IfModule>\n"
+                    + "\n"
+                    + "<IfModule mod_jk.c>\n"
+                    + "    JkWorkersFile /etc/httpd/conf/workers").print(serverNum).print(".properties\n"
+                    + "    JkLogFile /var/log/httpd").print(serverNum).print("/mod_jk.log\n"
+                    + "</IfModule>\n"
+                    + "\n"
+            );
+
+            // List of binds
+            for(HttpdBind hb : hs.getHttpdBinds()) {
+                NetBind nb=hb.getNetBind();
+                String ip=nb.getIPAddress().getIPAddress();
+                int port=nb.getPort().getPort();
+                out.print("Listen ").print(ip).print(':').print(port).print("\n"
+                        + "NameVirtualHost ").print(ip).print(':').print(port).print('\n');
+            }
+
+            // The list of sites to include
+            List<HttpdSite> sites=hs.getHttpdSites();
+            for(int d=0;d<2;d++) {
+                boolean listFirst=d==0;
+                out.print("\n");
+                for(HttpdSite site : sites) {
+                    if(site.listFirst()==listFirst) {
+                        for(HttpdSiteBind bind : site.getHttpdSiteBinds(hs)) {
+                            NetBind nb=bind.getHttpdBind().getNetBind();
+                            String ipAddress=nb.getIPAddress().getIPAddress();
+                            int port=nb.getPort().getPort();
+                            out.print("Include conf/hosts/").print(site.getSiteName()).print('_').print(ipAddress).print('_').print(port).print('\n');
+                        }
+                    }
+                }
+            }
+        } finally {
+            out.close();
+        }
+        return bout.toByteArray();
+    }
+
+    /**
+     * Builds the httpd#.conf file for Mandriva 2006.0
+     */
+    private static byte[] buildHttpdConfMandriva2006(HttpdServer hs, ByteArrayOutputStream bout) throws IOException, SQLException {
+        final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
+        if(osConfig!=HttpdOperatingSystemConfiguration.MANDRIVA_2006_0_I586) throw new AssertionError("This method is for Mandriva 2006.0 only");
+        final int serverNum = hs.getNumber();
+        bout.reset();
+        ChainWriter out = new ChainWriter(bout);
+        try {
+            LinuxServerAccount lsa=hs.getLinuxServerAccount();
+            boolean isEnabled=lsa.getDisableLog()==null;
+            // The version of PHP module to run
+            TechnologyVersion phpVersion=hs.getModPhpVersion();
+            out.print("ServerRoot \""+CONFIG_DIRECTORY+"\"\n"
+                    + "Include conf/modules_conf/core\n"
+                    + "PidFile /var/run/httpd").print(serverNum).print(".pid\n"
+                    + "Timeout ").print(hs.getTimeOut()).print("\n"
+                    + "CoreDumpDirectory /var/log/httpd").print(serverNum).print("\n"
+                    + "LockFile /var/log/httpd").print(serverNum).print("/accept.lock\n"
+                    + "\n"
+                    + "Include conf/modules_conf/prefork\n"
+                    + "Include conf/modules_conf/worker\n"
+                    + "\n"
+                    + "LoadModule access_module modules/mod_access.so\n"
+                    + "LoadModule auth_module modules/mod_auth.so\n"
+                    + "# LoadModule auth_anon_module modules/mod_auth_anon.so\n"
+                    + "# LoadModule auth_dbm_module modules/mod_auth_dbm.so\n"
+                    + "# LoadModule auth_digest_module modules/mod_auth_digest.so\n"
+                    + "# LoadModule file_cache_module modules/mod_file_cache.so\n"
+                    + "# LoadModule charset_lite_module modules/mod_charset_lite.so\n"
+                    + "# LoadModule cache_module modules/mod_cache.so\n"
+                    + "# LoadModule disk_cache_module modules/mod_disk_cache.so\n"
+                    + "# LoadModule mem_cache_module modules/mod_mem_cache.so\n"
+                    + "# LoadModule case_filter_module modules/mod_case_filter.so\n"
+                    + "# LoadModule case_filter_in_module modules/mod_case_filter_in.so\n"
+                    + "# LoadModule dumpio_module modules/mod_dumpio.so\n"
+                    + "# LoadModule ldap_module modules/mod_ldap.so\n"
+                    + "# LoadModule auth_ldap_module modules/mod_auth_ldap.so\n"
+                    + "# LoadModule ext_filter_module modules/mod_ext_filter.so\n"
+                    + "LoadModule include_module modules/mod_include.so\n"
+                    + "LoadModule deflate_module modules/mod_deflate.so\n"
+                    + "LoadModule log_config_module modules/mod_log_config.so\n"
+                    + "# LoadModule log_forensic_module modules/mod_log_forensic.so\n"
+                    + "# LoadModule logio_module modules/mod_logio.so\n"
+                    + "LoadModule env_module modules/mod_env.so\n"
+                    + "LoadModule mime_magic_module modules/mod_mime_magic.so\n"
+                    + "# LoadModule cern_meta_module modules/mod_cern_meta.so\n"
+                    + "LoadModule expires_module modules/mod_expires.so\n"
+                    + "LoadModule headers_module modules/mod_headers.so\n"
+                    + "# LoadModule usertrack_module modules/mod_usertrack.so\n"
+                    + "# LoadModule unique_id_module modules/mod_unique_id.so\n"
+                    + "LoadModule setenvif_module modules/mod_setenvif.so\n"
+                    + "LoadModule proxy_module modules/mod_proxy.so\n"
+                    + "# LoadModule proxy_connect_module modules/mod_proxy_connect.so\n"
+                    + "# LoadModule proxy_ftp_module modules/mod_proxy_ftp.so\n"
+                    + "LoadModule proxy_http_module modules/mod_proxy_http.so\n"
+                    + "LoadModule mime_module modules/mod_mime.so\n"
+                    + "# LoadModule dav_module modules/mod_dav.so\n"
+                    + "LoadModule status_module modules/mod_status.so\n"
+                    + "LoadModule autoindex_module modules/mod_autoindex.so\n"
+                    + "LoadModule asis_module modules/mod_asis.so\n"
+                    + "# LoadModule info_module modules/mod_info.so\n"
+                    + "LoadModule cgi_module modules/mod_cgi.so\n"
+                    + "# LoadModule cgid_module modules/mod_cgid.so\n"
+                    + "# LoadModule dav_fs_module modules/mod_dav_fs.so\n"
+                    + "# LoadModule vhost_alias_module modules/mod_vhost_alias.so\n"
+                    + "LoadModule negotiation_module modules/mod_negotiation.so\n"
+                    + "LoadModule dir_module modules/mod_dir.so\n"
+                    + "LoadModule imap_module modules/mod_imap.so\n"
+                    + "LoadModule actions_module modules/mod_actions.so\n"
+                    + "# LoadModule speling_module modules/mod_speling.so\n"
+                    + "# LoadModule userdir_module modules/mod_userdir.so\n"
+                    + "LoadModule alias_module modules/mod_alias.so\n"
+                    + "LoadModule rewrite_module modules/mod_rewrite.so\n"
+                    + "LoadModule jk_module modules/mod_jk-apache-2.0.49-linux-i686.so\n"
+                    + "LoadModule ssl_module extramodules/mod_ssl.so\n");
+            if(hs.useSuexec()) out.print("LoadModule suexec_module extramodules/mod_suexec.so\n");
+            if(isEnabled && phpVersion!=null) {
+                String version = phpVersion.getVersion();
+                String phpMajorVersion = getMajorPhpVersion(version);
+                out.print("\n"
+                        + "# Enable mod_php\n"
+                        + "LoadModule php").print(phpMajorVersion).print("_module /usr/php/").print(phpMajorVersion).print("/lib/apache/").print(getPhpLib(phpVersion)).print("\n"
+                        + "AddType application/x-httpd-php .php4 .php3 .phtml .php\n"
+                        + "AddType application/x-httpd-php-source .phps\n");
+            }
+            out.print("\n"
+                    + "Include conf/modules_conf/mod_log_config\n"
+                    + "Include conf/modules_conf/mod_mime_magic\n"
+                    + "Include conf/modules_conf/mod_setenvif\n"
+                    + "Include conf/modules_conf/mod_proxy\n"
+                    + "Include conf/modules_conf/mod_mime\n"
+                    + "Include conf/modules_conf/mod_dav\n"
+                    + "Include conf/modules_conf/mod_status\n"
+                    + "Include conf/modules_conf/mod_autoindex\n"
+                    + "Include conf/modules_conf/mod_negotiation\n"
+                    + "Include conf/modules_conf/mod_dir\n"
+                    + "Include conf/modules_conf/mod_userdir\n"
+                    + "Include conf/modules_conf/mod_ssl\n"
+                    + "Include conf/modules_conf/mod_jk\n"
+                    + "\n"
+                    + "SSLSessionCache shmcb:/var/cache/httpd/mod_ssl/ssl_scache").print(serverNum).print("(512000)\n"
+                    + "\n");
+            // Use apache if the account is disabled
+            if(isEnabled) {
+                out.print("User ").print(lsa.getLinuxAccount().getUsername().getUsername()).print("\n"
+                        + "Group ").print(hs.getLinuxServerGroup().getLinuxGroup().getName()).print("\n");
+            } else {
+                out.print("User "+LinuxAccount.APACHE+"\n"
+                        + "Group "+LinuxGroup.APACHE+"\n");
+            }
+            out.print("\n"
+                    + "ServerName ").print(hs.getAOServer().getHostname()).print("\n"
+                    + "\n"
+                    + "ErrorLog /var/log/httpd").print(serverNum).print("/error_log\n"
+                    + "CustomLog /var/log/httpd").print(serverNum).print("/access_log combined\n"
+                    + "\n"
+                    + "<IfModule mod_dav_fs.c>\n"
+                    + "    DAVLockDB /var/lib/dav").print(serverNum).print("/lockdb\n"
+                    + "</IfModule>\n"
+                    + "\n"
+                    + "<IfModule mod_jk.c>\n"
+                    + "    JkWorkersFile /etc/httpd/conf/workers").print(serverNum).print(".properties\n"
+                    + "    JkLogFile /var/log/httpd").print(serverNum).print("/mod_jk.log\n"
+                    + "</IfModule>\n"
+                    + "\n"
+                    + "Include conf/fileprotector.conf\n"
+                    + "\n"
+            );
+
+            // List of binds
+            for(HttpdBind hb : hs.getHttpdBinds()) {
+                NetBind nb=hb.getNetBind();
+                String ip=nb.getIPAddress().getIPAddress();
+                int port=nb.getPort().getPort();
+                out.print("Listen ").print(ip).print(':').print(port).print("\n"
+                        + "NameVirtualHost ").print(ip).print(':').print(port).print('\n');
+            }
+
+            // The list of sites to include
+            List<HttpdSite> sites=hs.getHttpdSites();
+            for(int d=0;d<2;d++) {
+                boolean listFirst=d==0;
+                out.print("\n");
+                for(HttpdSite site : sites) {
+                    if(site.listFirst()==listFirst) {
+                        for(HttpdSiteBind bind : site.getHttpdSiteBinds(hs)) {
+                            NetBind nb=bind.getHttpdBind().getNetBind();
+                            String ipAddress=nb.getIPAddress().getIPAddress();
+                            int port=nb.getPort().getPort();
+                            out.print("Include conf/hosts/").print(site.getSiteName()).print('_').print(ipAddress).print('_').print(port).print('\n');
+                        }
+                    }
+                }
+            }
+        } finally {
+            out.close();
+        }
+        return bout.toByteArray();
+    }
+
+    /**
+     * Builds the httpd#.conf file contents for the provided HttpdServer.
+     */
+    private static byte[] buildHttpdConf(HttpdServer hs, ByteArrayOutputStream bout) throws IOException, SQLException {
+        HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
+        switch(osConfig) {
+            case MANDRIVA_2006_0_I586     : return buildHttpdConfMandriva2006(hs, bout);
+            case REDHAT_ES_4_X86_64       : return buildHttpdConfRedHatEs4(hs, bout);
+            case CENTOS_5_I686_AND_X86_64 : return buildHttpdConfCentOs5(hs, bout);
+            default                       : throw new AssertionError("Unexpected value for osConfig: "+osConfig);
+        }
     }
 
     /**
@@ -872,5 +1106,131 @@ public class HttpdServerManager {
     private static String getMajorPhpVersion(String version) {
         int pos = version.indexOf('.');
         return pos == -1 ? version : version.substring(0, pos);
+    }
+
+    private static final UnixFile[] centOsAlwaysDelete = {
+        new UnixFile("/etc/httpd/conf/httpd1.conf.old"),
+        new UnixFile("/etc/httpd/conf/httpd2.conf.old"),
+        new UnixFile("/etc/httpd/conf/httpd3.conf.old"),
+        new UnixFile("/etc/httpd/conf/httpd4.conf.old"),
+        new UnixFile("/etc/httpd/conf/httpd5.conf.old"),
+        new UnixFile("/etc/httpd/conf/httpd6.conf.old"),
+        new UnixFile("/etc/httpd/conf/httpd7.conf.old"),
+        new UnixFile("/etc/httpd/conf/httpd8.conf.old"),
+        new UnixFile("/etc/httpd/conf/workers1.properties.old"),
+        new UnixFile("/etc/httpd/conf/workers2.properties.old"),
+        new UnixFile("/etc/httpd/conf/workers3.properties.old"),
+        new UnixFile("/etc/httpd/conf/workers4.properties.old"),
+        new UnixFile("/etc/httpd/conf/workers5.properties.old"),
+        new UnixFile("/etc/httpd/conf/workers6.properties.old"),
+        new UnixFile("/etc/httpd/conf/workers7.properties.old"),
+        new UnixFile("/etc/httpd/conf/workers8.properties.old"),
+        new UnixFile("/etc/rc.d/init.d/httpd"),
+        new UnixFile("/opt/aoserv-daemon/init.d/httpd1"),
+        new UnixFile("/opt/aoserv-daemon/init.d/httpd2"),
+        new UnixFile("/opt/aoserv-daemon/init.d/httpd3"),
+        new UnixFile("/opt/aoserv-daemon/init.d/httpd4"),
+        new UnixFile("/opt/aoserv-daemon/init.d/httpd5"),
+        new UnixFile("/opt/aoserv-daemon/init.d/httpd6"),
+        new UnixFile("/opt/aoserv-daemon/init.d/httpd7"),
+        new UnixFile("/opt/aoserv-daemon/init.d/httpd8")
+    };
+
+    /**
+     * Fixes any filesystem stuff related to Apache.
+     */
+    private static void fixFilesystem(List<File> deleteFileList) throws IOException, SQLException {
+        HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
+        if(osConfig==HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
+            Stat tempStat = new Stat();
+            // Make sure these files don't exist.  They may be due to upgrades or a
+            // result of RPM installs.
+            for(UnixFile uf : centOsAlwaysDelete) {
+                if(uf.getStat(tempStat).exists()) deleteFileList.add(uf.getFile());
+            }
+        }
+    }
+
+    /**
+     * Rebuilds /etc/rc.d/init.d/httpd* init scripts.
+     */
+    private static void doRebuildInitScripts(AOServer aoServer, ByteArrayOutputStream bout, List<File> deleteFileList, Set<HttpdServer> serversNeedingReloaded) throws IOException {
+        List<HttpdServer> hss = aoServer.getHttpdServers();
+        Set<String> dontDeleteFilenames = new HashSet<String>(hss.size()*4/3+1);
+        for(HttpdServer hs : hss) {
+            int num = hs.getNumber();
+            bout.reset();
+            ChainWriter out = new ChainWriter(bout);
+            try {
+                out.print("#!/bin/bash\n"
+                        + "#\n"
+                        + "# httpd").print(num).print("        Startup script for the Apache HTTP Server ").print(num).print("\n"
+                        + "#\n"
+                        + "# chkconfig: 345 85 15\n"
+                        + "# description: Apache is a World Wide Web server.  It is used to serve \\\n"
+                        + "#              HTML files and CGI.\n"
+                        + "# processname: httpd").print(num).print("\n"
+                        + "# config: /etc/httpd/conf/httpd").print(num).print(".conf\n"
+                        + "# pidfile: /var/run/httpd").print(num).print(".pid\n"
+                        + "\n"
+                        + "NUM=").print(num).print("\n"
+                        + ". /opt/aoserv-daemon/init.d/httpd\n");
+            } finally {
+                out.close();
+            }
+            String filename = "httpd"+num;
+            dontDeleteFilenames.add(filename);
+            if(
+                FileUtils.writeIfNeeded(
+                    bout.toByteArray(),
+                    null,
+                    new UnixFile(INIT_DIRECTORY+"/"+filename),
+                    UnixFile.ROOT_UID,
+                    UnixFile.ROOT_GID,
+                    0700
+                )
+            ) {
+                // Make start at boot
+                AOServDaemon.exec(
+                    new String[] {
+                        "/sbin/chkconfig",
+                        filename,
+                        "on"
+                    }
+                );
+                // Make reload
+                serversNeedingReloaded.add(hs);
+            }
+        }
+        for(String filename : new File(INIT_DIRECTORY).list()) {
+            if(filename.startsWith("httpd")) {
+                String suffix = filename.substring(5);
+                try {
+                    // Parse to make sure is a httpd# filename
+                    int num = Integer.parseInt(suffix);
+                    if(!dontDeleteFilenames.contains(filename)) {
+                        // chkconfig off
+                        AOServDaemon.exec(
+                            new String[] {
+                                "/sbin/chkconfig",
+                                filename,
+                                "off"
+                            }
+                        );
+                        // stop
+                        String fullPath = INIT_DIRECTORY+"/"+filename;
+                        AOServDaemon.exec(
+                            new String[] {
+                                fullPath,
+                                "stop"
+                            }
+                        );
+                        deleteFileList.add(new File(fullPath));
+                    }
+                } catch(NumberFormatException err) {
+                    AOServDaemon.reportWarning(err, null);
+                }
+            }
+        }
     }
 }

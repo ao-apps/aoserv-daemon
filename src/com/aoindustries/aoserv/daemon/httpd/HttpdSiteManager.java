@@ -160,7 +160,7 @@ public abstract class HttpdSiteManager {
                 }
                 try {
                     Future commandFuture = AOServDaemon.executorService.submit(commandCallable);
-                    commandFuture.get(1, TimeUnit.MINUTES);
+                    commandFuture.get(60, TimeUnit.SECONDS);
                 } catch(InterruptedException err) {
                     AOServDaemon.reportWarning(err, null);
                 } catch(ExecutionException err) {
@@ -209,7 +209,7 @@ public abstract class HttpdSiteManager {
                                         }
                                     }
                                 );
-                                stopFuture.get(1, TimeUnit.MINUTES);
+                                stopFuture.get(60, TimeUnit.SECONDS);
                             } catch(InterruptedException err) {
                                 AOServDaemon.reportWarning(err, null);
                             } catch(ExecutionException err) {
@@ -449,6 +449,7 @@ public abstract class HttpdSiteManager {
             Stat tempStat = new Stat();
             UnixFile testFile = new UnixFile(cgibinDirectory, "test", false);
             if(!testFile.getStat(tempStat).exists()) {
+                String primaryUrl = httpdSite.getPrimaryHttpdSiteURL().getHostname();
                 // Write to temp file first
                 UnixFile tempFile = UnixFile.mktemp(testFile.getPath()+".", false);
                 try {
@@ -458,8 +459,14 @@ public abstract class HttpdSiteManager {
                                 + "print \"Content-Type: text/html\\n\";\n"
                                 + "print \"\\n\";\n"
                                 + "print \"<HTML>\\n\";\n"
+                                + "print \"  <HEAD><TITLE>Test CGI Page for ").print(primaryUrl).print("</TITLE></HEAD>\\n\";\n"
                                 + "print \"  <BODY>\\n\";\n"
-                                + "print \"    <H1>Test CGI Script for ").print(httpdSite.getPrimaryHttpdSiteURL().getHostname()).print("</H1>\\n\";\n"
+                                + "print \"    Test CGI Page for ").print(primaryUrl).print("<BR>\\n\";\n"
+                                + "print \"    <BR>\\n\";\n"
+                                + "print \"    The current time is \";\n"
+                                + "@date=`/bin/date -R`;\n"
+                                + "chop(@date);\n"
+                                + "print \"@date.\\n\";\n"
                                 + "print \"  </BODY>\\n\";\n"
                                 + "print \"</HTML>\\n\";\n");
                     } finally {

@@ -106,6 +106,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
                 getStartStopScriptPath()+" stop",
                 0
             );
+            if(pidFile.getStat().exists()) pidFile.delete();
             return true;
         } else {
             return false;
@@ -122,6 +123,24 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
             );
             return true;
         } else {
+            // Read the PID file and make sure the process is still running
+            String pid = FileUtils.readFileAsString(pidFile);
+            try {
+                int pidNum = Integer.parseInt(pid.trim());
+                UnixFile procDir = new UnixFile("/proc/"+pidNum);
+                if(!procDir.getStat().exists()) {
+                    System.err.println("Warning: Deleting PID file for dead process: "+pidFile.getPath());
+                    pidFile.delete();
+                    AOServDaemon.suexec(
+                        httpdSite.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername(),
+                        getStartStopScriptPath()+" start",
+                        0
+                    );
+                    return true;
+                }
+            } catch(NumberFormatException err) {
+                AOServDaemon.reportWarning(err, null);
+            }
             return false;
         }
     }
