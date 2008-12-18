@@ -82,13 +82,13 @@ public enum OperatingSystemConfiguration {
             return "1.6.0";
         }
         public String getJdkPath(String version) {
-            return "/opt/jdk-"+version;
+            return "/opt/jdk-"+version+"-i686";
         }
         public String getOpensslDefaultCaFile() {
             return "/etc/pki/tls/certs/ca-bundle.crt";
         }
         public String getReplaceCommand() {
-            return "/opt/mysql-5.0/bin/replace";
+            return "/opt/mysql-5.0-i686/bin/replace";
         }
         public String getScriptInclude(String script) {
             return "/opt/aoserv-client/scripts/"+script;
@@ -97,7 +97,7 @@ public enum OperatingSystemConfiguration {
             return "/opt/aoserv-client/scripts/aoserv-client.sh";
         }
         public String getPostgresPath(String minorVersion) {
-            return "/opt/postgresql-"+minorVersion;
+            return "/opt/postgresql-"+minorVersion+"-i686";
         }
         public String getMySQLConnectorJavaJarPath() {
             return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";

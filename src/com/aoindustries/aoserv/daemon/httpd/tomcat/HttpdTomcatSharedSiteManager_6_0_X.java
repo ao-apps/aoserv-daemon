@@ -35,4 +35,9 @@ class HttpdTomcatSharedSiteManager_6_0_X extends HttpdTomcatSharedSiteManager<To
     protected boolean rebuildConfigFiles(UnixFile siteDirectory) {
         throw new RuntimeException("TODO: Implement method");
     }
+
+    protected boolean upgradeSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
+        // TODO
+        return false;
+    }
 }

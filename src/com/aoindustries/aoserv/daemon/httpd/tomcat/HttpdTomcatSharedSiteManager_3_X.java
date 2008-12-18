@@ -314,4 +314,9 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
         }
         return needsRestart;
     }
+
+    protected boolean upgradeSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
+        // TODO
+        return false;
+    }
 }

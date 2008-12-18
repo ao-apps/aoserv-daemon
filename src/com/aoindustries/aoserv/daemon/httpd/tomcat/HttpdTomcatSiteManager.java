@@ -250,6 +250,9 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
             needsRestart = true;
         }
 
+        // Perform any necessary upgrades
+        if(upgradeSiteDirectoryContents(siteDirectory)) needsRestart = true;
+        
         // Rebuild config files that need to be updated
         if(rebuildConfigFiles(siteDirectory)) needsRestart = true;
 
@@ -273,6 +276,13 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
      * This doesn't need to create the cgi-bin, cgi-bin/test, test.php, or index.html
      */
     protected abstract void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException;
+
+    /**
+     * Upgrades the site directory contents for an auto-upgrade.
+     *
+     * @return  <code>true</code> if the site needs to be restarted.
+     */
+    protected abstract boolean upgradeSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException;
 
     /**
      * Rebuilds any config files that need updated.  This should not include any

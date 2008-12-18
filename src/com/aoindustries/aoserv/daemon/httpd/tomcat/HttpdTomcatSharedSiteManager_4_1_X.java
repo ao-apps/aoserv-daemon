@@ -86,4 +86,9 @@ class HttpdTomcatSharedSiteManager_4_1_X extends HttpdTomcatSharedSiteManager<To
         // No configs to rebuild
         return false;
     }
+
+    protected boolean upgradeSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
+        // TODO
+        return false;
+    }
 }
