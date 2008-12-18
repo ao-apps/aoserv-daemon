@@ -120,44 +120,53 @@ public abstract class HttpdSiteManager {
      */
     static void stopStartAndRestart(Set<HttpdSite> sitesNeedingRestarted) throws IOException, SQLException {
         for(HttpdSite httpdSite : AOServDaemon.getThisAOServer().getHttpdSites()) {
-            final HttpdSiteManager manager = getInstance(httpdSite);
-
-            Callable<Object> commandCallable;
-            if(httpdSite.getDisableLog()==null) {
-                // Enabled, start or restart
-                if(sitesNeedingRestarted.contains(httpdSite)) {
-                    commandCallable = new Callable<Object>() {
-                        public Object call() {
-                            manager.restart();
-                            return null;
-                        }
-                    };
+            HttpdSiteManager manager = getInstance(httpdSite);
+            if(manager instanceof StopStartRestartable) {
+                final StopStartRestartable stopStartRestartable = (StopStartRestartable)manager;
+                Callable<Object> commandCallable;
+                if(httpdSite.getDisableLog()==null) {
+                    // Enabled, start or restart
+                    if(sitesNeedingRestarted.contains(httpdSite)) {
+                        commandCallable = new Callable<Object>() {
+                            public Object call() throws IOException, SQLException {
+                                if(stopStartRestartable.stop()) {
+                                    try {
+                                        Thread.sleep(5000);
+                                    } catch(InterruptedException err) {
+                                        AOServDaemon.reportWarning(err, null);
+                                    }
+                                }
+                                stopStartRestartable.start();
+                                return null;
+                            }
+                        };
+                    } else {
+                        commandCallable = new Callable<Object>() {
+                            public Object call() throws IOException, SQLException {
+                                stopStartRestartable.start();
+                                return null;
+                            }
+                        };
+                    }
                 } else {
+                    // Disabled, can only stop if needed
                     commandCallable = new Callable<Object>() {
-                        public Object call() {
-                            manager.start();
+                        public Object call() throws IOException, SQLException {
+                            stopStartRestartable.stop();
                             return null;
                         }
                     };
                 }
-            } else {
-                // Disabled, can only stop if needed
-                commandCallable = new Callable<Object>() {
-                    public Object call() {
-                        manager.stop();
-                        return null;
-                    }
-                };
-            }
-            try {
-                Future commandFuture = AOServDaemon.executorService.submit(commandCallable);
-                commandFuture.get(1, TimeUnit.MINUTES);
-            } catch(InterruptedException err) {
-                AOServDaemon.reportWarning(err, null);
-            } catch(ExecutionException err) {
-                AOServDaemon.reportWarning(err, null);
-            } catch(TimeoutException err) {
-                AOServDaemon.reportWarning(err, null);
+                try {
+                    Future commandFuture = AOServDaemon.executorService.submit(commandCallable);
+                    commandFuture.get(1, TimeUnit.MINUTES);
+                } catch(InterruptedException err) {
+                    AOServDaemon.reportWarning(err, null);
+                } catch(ExecutionException err) {
+                    AOServDaemon.reportWarning(err, null);
+                } catch(TimeoutException err) {
+                    AOServDaemon.reportWarning(err, null);
+                }
             }
         }
     }
@@ -274,7 +283,7 @@ public abstract class HttpdSiteManager {
      * If this site or other sites needs to be restarted due to changes in the files, add to <code>sitesNeedingRestarted</code>.
      * If any shared Tomcat needs to be restarted due to changes in the files, add to <code>sharedTomcatsNeedingRestarted</code>.
      * Any files under siteDirectory that need to be updated to enable/disable this site should be changed.
-     * Actual process start/stop will be performed later in <code>disableEnableAndRestart</code>.
+     * Actual process start/stop will be performed later in <code>stopStartAndRestart</code>.
      * 
      * <ol>
      *   <li>If <code>siteDirectory</code> doesn't exist, create it as root with mode 0700</li>
@@ -445,6 +454,47 @@ public abstract class HttpdSiteManager {
     }
 
     /**
+     * Creates the test PHP script, must have PHP enabled.
+     * If PHP is disabled, does nothing.
+     * Any existing file will not be overwritten, even when in auto mode.
+     */
+    protected void createTestPHP(UnixFile rootDirectory) throws IOException, SQLException {
+        // TODO: Overwrite the phpinfo pages with this new version, for security
+        if(enablePhp()) {
+            Stat tempStat = new Stat();
+            UnixFile testFile = new UnixFile(rootDirectory, "test.php", false);
+            if(!testFile.getStat(tempStat).exists()) {
+                String primaryUrl = httpdSite.getPrimaryHttpdSiteURL().getHostname();
+                // Write to temp file first
+                UnixFile tempFile = UnixFile.mktemp(testFile.getPath()+".", false);
+                try {
+                    ChainWriter out = new ChainWriter(new FileOutputStream(tempFile.getFile()));
+                    try {
+                    out.print("<HTML>\n"
+                            + "  <HEAD><TITLE>Test PHP Page for ").print(primaryUrl).print("</TITLE></HEAD>\n"
+                            + "  <BODY>\n"
+                            + "    Test PHP Page for ").print(primaryUrl).print("<BR>\n"
+                            + "    <BR>\n"
+                            + "    The current time is <?= date('r') ?>.\n"
+                            + "  </BODY>\n"
+                            + "</HTML>\n");
+                    } finally {
+                        out.close();
+                    }
+                    // Set permissions and ownership
+                    tempFile.setMode(0664);
+                    tempFile.chown(httpdSite.getLinuxServerAccount().getUID().getID(), httpdSite.getLinuxServerGroup().getGID().getID());
+                    // Move into place
+                    tempFile.renameTo(testFile);
+                } finally {
+                    // If still exists then there was a problem, clean-up
+                    if(tempFile.getStat(tempStat).exists()) tempFile.delete();
+                }
+            }
+        }
+    }
+
+    /**
      * Gets the user ID that apache for this site runs as.
      * If this site runs as multiple UIDs on multiple Apache instances, will
      * return the "apache" user.
@@ -480,9 +530,11 @@ public abstract class HttpdSiteManager {
         // TODO: Benchmark faster with single or multiple rules
         standardRejectedLocations.add(new Location(true, "/CVS/Attic"));
         standardRejectedLocations.add(new Location(true, "/CVS/Entries"));
-        standardRejectedLocations.add(new Location(true, "/CVS/Entries\\.Static"));
+        // Already covered by Entries: standardRejectedLocations.add(new Location(true, "/CVS/Entries\\.Static"));
         standardRejectedLocations.add(new Location(true, "/CVS/Repository"));
+        standardRejectedLocations.add(new Location(true, "/CVS/RevisionCache"));
         standardRejectedLocations.add(new Location(true, "/CVS/Root"));
+        standardRejectedLocations.add(new Location(true, "/CVS/\\.#merg"));
     }
 
     public static class Location implements Comparable<Location> {
@@ -582,30 +634,22 @@ public abstract class HttpdSiteManager {
     public boolean blockAllTraceAndTrackRequests() {
         return true;
     }
-    
-    /**
-     * Stops all processes for this website if it is running.
-     * 
-     * This default implementation does nothing.
-     */
-    public void stop() {
-    }
 
-    /**
-     * Starts all processes for this website if it is not running.
-     * 
-     * This default implementation does nothing.
-     */
-    public void start() {
-    }
+    public static interface StopStartRestartable {
 
-    /**
-     * Restarts all processes for this website if running.
-     * If not already running, starts the services.
-     * 
-     * This default implementation does nothing.
-     */
-    public void restart() {
+        /**
+         * Stops all processes for this website if it is running.
+         * 
+         * @return  <code>true</code> if actually stopped or <code>false</code> if was already stopped
+         */
+        boolean stop() throws IOException, SQLException;
+
+        /**
+         * Starts all processes for this website if it is not running.
+         * 
+         * @return  <code>true</code> if actually started or <code>false</code> if was already started
+         */
+        boolean start() throws IOException, SQLException;
     }
 
     public static class JkSetting implements Comparable<JkSetting> {
@@ -674,7 +718,7 @@ public abstract class HttpdSiteManager {
      * 
      * @return  An empty set if no Jk enabled.
      */
-    public SortedSet<JkSetting> getJkSettings() {
+    public SortedSet<JkSetting> getJkSettings() throws IOException, SQLException {
         return emptyJkSettings;
     }
 

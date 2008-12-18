@@ -8,21 +8,27 @@ package com.aoindustries.aoserv.daemon.httpd.jboss;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
 import com.aoindustries.aoserv.client.HttpdJBossSite;
+import com.aoindustries.aoserv.client.HttpdSharedTomcat;
+import com.aoindustries.aoserv.client.HttpdSite;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
+import com.aoindustries.aoserv.daemon.httpd.tomcat.TomcatCommon;
+import com.aoindustries.io.unix.UnixFile;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Set;
 
 /**
  * Manages HttpdJBossSite configurations.
  *
  * @author  AO Industries, Inc.
  */
-public abstract class HttpdJBossSiteManager extends HttpdTomcatSiteManager {
+public abstract class HttpdJBossSiteManager<TC extends TomcatCommon> extends HttpdTomcatSiteManager<TC> {
 
     /**
      * Gets the specific manager for one type of web site.
      */
-    public static HttpdJBossSiteManager getInstance(HttpdJBossSite jbossSite) throws IOException, SQLException {
+    public static HttpdJBossSiteManager<? extends TomcatCommon> getInstance(HttpdJBossSite jbossSite) throws IOException, SQLException {
         AOServConnector connector=AOServDaemon.getConnector();
         String jbossVersion = jbossSite.getHttpdJBossVersion().getTechnologyVersion(connector).getVersion();
         if(jbossVersion.equals("2.2.2")) return new HttpdJBossSiteManager_2_2_2(jbossSite);
@@ -34,5 +40,27 @@ public abstract class HttpdJBossSiteManager extends HttpdTomcatSiteManager {
     HttpdJBossSiteManager(HttpdJBossSite jbossSite) {
         super(jbossSite.getHttpdTomcatSite());
         this.jbossSite = jbossSite;
+    }
+
+    public UnixFile getPidFile() throws IOException, SQLException {
+        return new UnixFile(
+            HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
+            + "/"
+            + httpdSite.getSiteName()
+            + "/var/run/jboss.pid"
+        );
+    }
+
+    public String getStartStopScriptPath() throws IOException, SQLException {
+        return
+            HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
+            + "/"
+            + httpdSite.getSiteName()
+            + "/bin/jboss"
+        ;
+    }
+
+    protected void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) {
+        sitesNeedingRestarted.add(httpdSite);
     }
 }

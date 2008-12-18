@@ -5,37 +5,25 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.HttpdJBossSite;
-import com.aoindustries.aoserv.client.HttpdJKProtocol;
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
 import com.aoindustries.aoserv.client.HttpdTomcatContext;
-import com.aoindustries.aoserv.client.HttpdTomcatDataSource;
-import com.aoindustries.aoserv.client.HttpdTomcatParameter;
 import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
 import com.aoindustries.aoserv.client.HttpdTomcatSite;
 import com.aoindustries.aoserv.client.HttpdTomcatStdSite;
-import com.aoindustries.aoserv.client.HttpdTomcatVersion;
 import com.aoindustries.aoserv.client.HttpdWorker;
-import com.aoindustries.aoserv.client.IPAddress;
-import com.aoindustries.aoserv.client.LinuxServerAccount;
-import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdSiteManager;
 import com.aoindustries.aoserv.daemon.httpd.jboss.HttpdJBossSiteManager;
-import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.sql.SQLUtility;
-import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -46,12 +34,12 @@ import java.util.TreeSet;
  *
  * @author  AO Industries, Inc.
  */
-public abstract class HttpdTomcatSiteManager extends HttpdSiteManager {
+public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends HttpdSiteManager implements HttpdSiteManager.StopStartRestartable {
 
     /**
      * Gets the specific manager for one type of web site.
      */
-    public static HttpdTomcatSiteManager getInstance(HttpdTomcatSite tomcatSite) throws IOException, SQLException {
+    public static HttpdTomcatSiteManager<? extends TomcatCommon> getInstance(HttpdTomcatSite tomcatSite) throws IOException, SQLException {
         HttpdTomcatStdSite stdSite=tomcatSite.getHttpdTomcatStdSite();
         if(stdSite!=null) return HttpdTomcatStdSiteManager.getInstance(stdSite);
 
@@ -64,11 +52,6 @@ public abstract class HttpdTomcatSiteManager extends HttpdSiteManager {
         throw new SQLException("HttpdTomcatSite must be one of HttpdTomcatStdSite, HttpdJBossSite, or HttpdTomcatSharedSite: "+tomcatSite);
     }
 
-    /**
-     * Keeps track of the last start times for each Java VM.
-     */
-    private static final Map<String,Long> startJVMTimes=new HashMap<String,Long>();
-
     final protected HttpdTomcatSite tomcatSite;
 
     protected HttpdTomcatSiteManager(HttpdTomcatSite tomcatSite) {
@@ -76,201 +59,6 @@ public abstract class HttpdTomcatSiteManager extends HttpdSiteManager {
         this.tomcatSite = tomcatSite;
     }
 
-    public static String startJVM(int sitePKey) throws IOException, SQLException {
-        synchronized(startJVMTimes) {
-            AOServConnector conn=AOServDaemon.getConnector();
-
-            HttpdSite httpdSite=conn.httpdSites.get(sitePKey);
-            AOServer thisAOServer=AOServDaemon.getThisAOServer();
-            if(!httpdSite.getAOServer().equals(thisAOServer)) throw new SQLException("HttpdSite #"+sitePKey+" has server of "+httpdSite.getAOServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')');
-
-            HttpdTomcatSite tomcatSite=httpdSite.getHttpdTomcatSite();
-            if(tomcatSite==null) throw new SQLException("Unable to find HttpdTomcatSite for HttpdSite #"+sitePKey);
-
-            HttpdTomcatStdSite stdSite=tomcatSite.getHttpdTomcatStdSite();
-            if(stdSite!=null) {
-                String key="httpd_tomcat_std_site.tomcat_site="+sitePKey;
-
-                // Throw an exception if the site was started recently.
-                Long L=startJVMTimes.get(key);
-                if(L!=null) {
-                    long span=System.currentTimeMillis()-L.longValue();
-                    if(span<HttpdTomcatSite.MINIMUM_START_JVM_DELAY && span>=0) return
-                        "Must wait "
-                        +SQLUtility.getMilliDecimal(HttpdTomcatSite.MINIMUM_START_JVM_DELAY)
-                        +" seconds between Java VM starts, only "
-                        +SQLUtility.getMilliDecimal((int)span)
-                        +" seconds have passed."
-                    ;
-                }
-
-                LinuxServerAccount lsa=httpdSite.getLinuxServerAccount();
-                AOServDaemon.suexec(
-                    lsa.getLinuxAccount().getUsername().getUsername(),
-                    HttpdSite.WWW_DIRECTORY+'/'+httpdSite.getSiteName()+"/bin/tomcat start",
-                    0
-                );
-
-                // Make sure we don't start too quickly
-                startJVMTimes.put(key, Long.valueOf(System.currentTimeMillis()));
-            } else {
-                HttpdTomcatSharedSite shrSite=tomcatSite.getHttpdTomcatSharedSite();
-                if(shrSite!=null) {
-                    HttpdSharedTomcat shrTomcat=shrSite.getHttpdSharedTomcat();
-                    String name=shrTomcat.getName();
-                    String key="httpd_shared_tomcats.name="+name;
-
-                    // Throw an exception if the site was started recently.
-                    Long L=startJVMTimes.get(key);
-                    if(L!=null) {
-                        long span=System.currentTimeMillis()-L.longValue();
-                        if(span<HttpdTomcatSite.MINIMUM_START_JVM_DELAY && span>=0) return
-                            "Must wait "
-                            +SQLUtility.getMilliDecimal(HttpdTomcatSite.MINIMUM_START_JVM_DELAY)
-                            +" seconds between Java VM starts, only "
-                            +SQLUtility.getMilliDecimal((int)span)
-                            +" seconds have passed."
-                        ;
-                    }
-
-                    HttpdSharedTomcatManager.startSharedTomcat(shrTomcat);
-
-                    // Make sure we don't start too quickly
-                    startJVMTimes.put(key, Long.valueOf(System.currentTimeMillis()));
-                } else {
-                    HttpdJBossSite jbossSite=tomcatSite.getHttpdJBossSite();
-                    if(jbossSite!=null) {
-                        String key="httpd_jboss_site.tomcat_site="+sitePKey;
-
-                        // Throw an exception if the site was started recently.
-                        Long L=startJVMTimes.get(key);
-                        if(L!=null) {
-                            long span=System.currentTimeMillis()-L.longValue();
-                            if(span<HttpdTomcatSite.MINIMUM_START_JVM_DELAY && span>=0) return
-                                "Must wait "
-                                +SQLUtility.getMilliDecimal(HttpdTomcatSite.MINIMUM_START_JVM_DELAY)
-                                +" seconds between Java VM starts, only "
-                                +SQLUtility.getMilliDecimal((int)span)
-                                +" seconds have passed."
-                            ;
-                        }
-
-                        LinuxServerAccount lsa=httpdSite.getLinuxServerAccount();
-                        AOServDaemon.suexec(
-                            lsa.getLinuxAccount().getUsername().getUsername(),
-                            HttpdSite.WWW_DIRECTORY+'/'+httpdSite.getSiteName()+"/bin/jboss start",
-                            0
-                        );
-
-                        // Make sure we don't start too quickly
-                        startJVMTimes.put(key, Long.valueOf(System.currentTimeMillis()));
-                    } else throw new SQLException("Unable to find HttpdTomcatStdSite, HttpdTomcatSharedSite or HttpdJBossSite for HttpdSite #"+sitePKey);
-                }
-            }
-
-            // Null means all went well
-            return null;
-        }
-    }
-
-    public static String stopJVM(int sitePKey) throws IOException, SQLException {
-        final Stat tempStat = new Stat();
-        synchronized(startJVMTimes) {
-            AOServConnector conn=AOServDaemon.getConnector();
-
-            HttpdSite httpdSite=conn.httpdSites.get(sitePKey);
-            AOServer thisAOServer=AOServDaemon.getThisAOServer();
-            if(!httpdSite.getAOServer().equals(thisAOServer)) throw new SQLException("HttpdSite #"+sitePKey+" has server of "+httpdSite.getAOServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')');
-
-            HttpdTomcatSite tomcatSite=httpdSite.getHttpdTomcatSite();
-            if(tomcatSite==null) throw new SQLException("Unable to find HttpdTomcatSite for HttpdSite #"+sitePKey);
-
-            HttpdTomcatStdSite stdSite=tomcatSite.getHttpdTomcatStdSite();
-            if(stdSite!=null) {
-                String key="httpd_tomcat_std_site.tomcat_site="+sitePKey;
-
-                // Throw an exception if the site was started recently.
-                Long L=startJVMTimes.get(key);
-                if(L!=null) {
-                    long span=System.currentTimeMillis()-L.longValue();
-                    if(span<HttpdTomcatSite.MINIMUM_START_JVM_DELAY && span>=0) return
-                        "Must wait "
-                        +SQLUtility.getMilliDecimal(HttpdTomcatSite.MINIMUM_START_JVM_DELAY)
-                        +" seconds between a Java VM start and stop, only "
-                        +SQLUtility.getMilliDecimal((int)span)
-                        +" seconds have passed."
-                    ;
-                }
-
-                LinuxServerAccount lsa=httpdSite.getLinuxServerAccount();
-                AOServDaemon.suexec(
-                    lsa.getLinuxAccount().getUsername().getUsername(),
-                    HttpdSite.WWW_DIRECTORY+'/'+httpdSite.getSiteName()+"/bin/tomcat stop",
-                    0
-                );
-
-                // Make sure we don't start too quickly
-                startJVMTimes.put(key, Long.valueOf(System.currentTimeMillis()));
-            } else {
-                HttpdTomcatSharedSite shrSite=tomcatSite.getHttpdTomcatSharedSite();
-                if(shrSite!=null) {
-                    HttpdSharedTomcat shrTomcat=shrSite.getHttpdSharedTomcat();
-                    String name=shrTomcat.getName();
-                    String key="httpd_shared_tomcats.name="+name;
-
-                    // Throw an exception if the site was started recently.
-                    Long L=startJVMTimes.get(key);
-                    if(L!=null) {
-                        long span=System.currentTimeMillis()-L.longValue();
-                        if(span<HttpdTomcatSite.MINIMUM_START_JVM_DELAY && span>=0) return
-                            "Must wait "
-                            +SQLUtility.getMilliDecimal(HttpdTomcatSite.MINIMUM_START_JVM_DELAY)
-                            +" seconds between a Java VM start and stop, only "
-                            +SQLUtility.getMilliDecimal((int)span)
-                            +" seconds have passed."
-                        ;
-                    }
-
-                    HttpdSharedTomcatManager.stopSharedTomcat(shrTomcat, tempStat);
-
-                    // Make sure we don't start too quickly
-                    startJVMTimes.put(key, Long.valueOf(System.currentTimeMillis()));
-                } else {
-                    HttpdJBossSite jbossSite=tomcatSite.getHttpdJBossSite();
-                    if(jbossSite!=null) {
-                        String key="httpd_jboss_site.tomcat_site="+sitePKey;
-
-                        // Throw an exception if the site was started recently.
-                        Long L=startJVMTimes.get(key);
-                        if(L!=null) {
-                            long span=System.currentTimeMillis()-L.longValue();
-                            if(span<HttpdTomcatSite.MINIMUM_START_JVM_DELAY && span>=0) return
-                                "Must wait "
-                                +SQLUtility.getMilliDecimal(HttpdTomcatSite.MINIMUM_START_JVM_DELAY)
-                                +" seconds between a Java VM start and stop, only "
-                                +SQLUtility.getMilliDecimal((int)span)
-                                +" seconds have passed."
-                            ;
-                        }
-
-                        LinuxServerAccount lsa=httpdSite.getLinuxServerAccount();
-                        AOServDaemon.suexec(
-                            lsa.getLinuxAccount().getUsername().getUsername(),
-                            HttpdSite.WWW_DIRECTORY+'/'+httpdSite.getSiteName()+"/bin/jboss stop",
-                            0
-                        );
-
-                        // Make sure we don't start too quickly
-                        startJVMTimes.put(key, Long.valueOf(System.currentTimeMillis()));
-                    } else throw new SQLException("Unable to find HttpdTomcatStdSite, HttpdTomcatSharedSite or HttpdJBossSite for HttpdSite #"+sitePKey);
-                }
-            }
-
-            // Null means all went well
-            return null;
-        }
-    }
-    
     protected boolean enableCgi() {
         return true;
     }
@@ -283,41 +71,20 @@ public abstract class HttpdTomcatSiteManager extends HttpdSiteManager {
         return true;
     }
 
-    public abstract TomcatCommon getTomcatCommon();
+    public abstract TC getTomcatCommon();
 
-    /*
-     * TODO: Put at the beginning of the build site methods (to make the directory w/ the proper permissions)        
-            wwwDirUF.getStat(tempStat);
-            if(!tempStat.exists() || tempStat.getUID()==UnixFile.ROOT_GID) {
-                getHttpdSiteManager(site).buildSiteDirectory();
-            }
-
-                if(!tempStat.exists()) wwwDirUF.mkdir();
-                wwwDirUF.setMode(
-                    (
-                        tomcatSite!=null
-                        && tomcatSite.getHttpdTomcatSharedSite()!=null
-                        && (tomcatSite.getHttpdTomcatVersion().isTomcat3_1(conn) || tomcatSite.getHttpdTomcatVersion().isTomcat3_2_4(conn))
-                        && tomcatSite.getHttpdTomcatSharedSite().getHttpdSharedTomcat().isSecure()
-                    ) ? 01770 : 0770
-                );
-     */
-
-        /* TODO: Put at end of site creation
-                // Now that the contents are all successfully created, update the directory
-                // owners to make sure we don't cover up this directory in the future
-                wwwDirUF.chown(httpdUID, lsgGID);
-         */
     // TODO: Call from appropriate place
-    protected byte[] buildServerXml() {
+    /*
+    protected byte[] buildServerXml(UnixFile siteDirectory) {
+        final String siteDir = siteDirectory.getPath();
         AOServConnector conn = AOServDaemon.getConnector();
+        final Stat tempStat = new Stat();
         // Add or rebuild the server.xml files for standard or Tomcat sites.
         final HttpdTomcatVersion htv = tomcatSite.getHttpdTomcatVersion();
         final boolean isTomcat3_1 = htv.isTomcat3_1(conn);
         final boolean isTomcat3_2_4 = htv.isTomcat3_2_4(conn);
         final boolean isTomcat4_1_X = htv.isTomcat4_1_X(conn);
         final boolean isTomcat5_5_X = htv.isTomcat5_5_X(conn);
-        final boolean isTomcat6_0_X = htv.isTomcat6_0_X(conn);
         HttpdTomcatStdSite stdSite=tomcatSite.getHttpdTomcatStdSite();
         boolean isStandard=stdSite!=null;
         boolean isJBoss=tomcatSite.getHttpdJBossSite()!=null;
@@ -634,7 +401,7 @@ public abstract class HttpdTomcatSiteManager extends HttpdSiteManager {
                 }
             } else {
                 try {
-                    stripFilePrefix(
+                    FileUtils.stripFilePrefix(
                         confServerXMLFile,
                         autoWarning,
                         tempStat
@@ -644,43 +411,213 @@ public abstract class HttpdTomcatSiteManager extends HttpdSiteManager {
                 }
             }
         }
-    }
-    
-    // TODO: Move this to start/stop/restart implementations
-    /*
-            String siteName=hs.getSiteName();
-            try {
-                if(hs.getDisableLog()==null) {
-                    // Enabled, make sure running and auto
-                    UnixFile pidUF=getPIDUnixFile(hs);
-                    UnixFile daemonUF=getDaemonUnixFile(hs);
-                    if(pidUF!=null && (sitesNeedingRestarted.contains(hs) || !pidUF.getStat(tempStat).exists())) {
-                        startHttpdSite(hs);
-                    }
-                    if(daemonUF!=null && !daemonUF.getStat(tempStat).exists()) enableHttpdSite(hs, tempStat);
-                } else {
-                    // Disabled, make sure stopped and not auto
-                    UnixFile daemonUF=getDaemonUnixFile(hs);
-                    UnixFile pidUF=getPIDUnixFile(hs);
-                    if(daemonUF!=null && daemonUF.getStat(tempStat).exists()) disableHttpdSite(hs, tempStat);
-                    if(pidUF!=null && pidUF.getStat(tempStat).exists()) stopHttpdSite(hs, tempStat);
-                }
-            } catch(IOException err) {
-                System.err.println("disableAndEnableHttpdSites error on site: "+siteName);
-                throw err;
-            }
+    }*/
+
+    /**
+     * Keeps track of the last start times for each Java VM.
      */
-    private static UnixFile getPIDUnixFile(HttpdSite hs) throws IOException, SQLException {
-        HttpdTomcatSite hts=hs.getHttpdTomcatSite();
-        if(hts!=null) {
-            HttpdJBossSite hjs=hts.getHttpdJBossSite();
-            if(hjs!=null) return new UnixFile(hs.getInstallDirectory()+"/var/run/jboss.pid");
-            HttpdTomcatStdSite htss=hts.getHttpdTomcatStdSite();
-            if(htss!=null) return new UnixFile(hs.getInstallDirectory()+"/var/run/tomcat.pid");
-        }
+    private static final Map<String,Long> startJVMTimes=new HashMap<String,Long>();
+
+    public static String startJVM(int sitePKey) throws IOException, SQLException {
         return null;
+        /* TODO: Update
+        synchronized(startJVMTimes) {
+            AOServConnector conn=AOServDaemon.getConnector();
+
+            HttpdSite httpdSite=conn.httpdSites.get(sitePKey);
+            AOServer thisAOServer=AOServDaemon.getThisAOServer();
+            if(!httpdSite.getAOServer().equals(thisAOServer)) throw new SQLException("HttpdSite #"+sitePKey+" has server of "+httpdSite.getAOServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')');
+
+            HttpdTomcatSite tomcatSite=httpdSite.getHttpdTomcatSite();
+            if(tomcatSite==null) throw new SQLException("Unable to find HttpdTomcatSite for HttpdSite #"+sitePKey);
+
+            HttpdTomcatStdSite stdSite=tomcatSite.getHttpdTomcatStdSite();
+            if(stdSite!=null) {
+                String key="httpd_tomcat_std_site.tomcat_site="+sitePKey;
+
+                // Throw an exception if the site was started recently.
+                Long L=startJVMTimes.get(key);
+                if(L!=null) {
+                    long span=System.currentTimeMillis()-L.longValue();
+                    if(span<HttpdTomcatSite.MINIMUM_START_JVM_DELAY && span>=0) return
+                        "Must wait "
+                        +SQLUtility.getMilliDecimal(HttpdTomcatSite.MINIMUM_START_JVM_DELAY)
+                        +" seconds between Java VM starts, only "
+                        +SQLUtility.getMilliDecimal((int)span)
+                        +" seconds have passed."
+                    ;
+                }
+
+                LinuxServerAccount lsa=httpdSite.getLinuxServerAccount();
+                AOServDaemon.suexec(
+                    lsa.getLinuxAccount().getUsername().getUsername(),
+                    HttpdSite.WWW_DIRECTORY+'/'+httpdSite.getSiteName()+"/bin/tomcat start",
+                    0
+                );
+
+                // Make sure we don't start too quickly
+                startJVMTimes.put(key, Long.valueOf(System.currentTimeMillis()));
+            } else {
+                HttpdTomcatSharedSite shrSite=tomcatSite.getHttpdTomcatSharedSite();
+                if(shrSite!=null) {
+                    HttpdSharedTomcat shrTomcat=shrSite.getHttpdSharedTomcat();
+                    String name=shrTomcat.getName();
+                    String key="httpd_shared_tomcats.name="+name;
+
+                    // Throw an exception if the site was started recently.
+                    Long L=startJVMTimes.get(key);
+                    if(L!=null) {
+                        long span=System.currentTimeMillis()-L.longValue();
+                        if(span<HttpdTomcatSite.MINIMUM_START_JVM_DELAY && span>=0) return
+                            "Must wait "
+                            +SQLUtility.getMilliDecimal(HttpdTomcatSite.MINIMUM_START_JVM_DELAY)
+                            +" seconds between Java VM starts, only "
+                            +SQLUtility.getMilliDecimal((int)span)
+                            +" seconds have passed."
+                        ;
+                    }
+
+                    HttpdSharedTomcatManager.startSharedTomcat(shrTomcat);
+
+                    // Make sure we don't start too quickly
+                    startJVMTimes.put(key, Long.valueOf(System.currentTimeMillis()));
+                } else {
+                    HttpdJBossSite jbossSite=tomcatSite.getHttpdJBossSite();
+                    if(jbossSite!=null) {
+                        String key="httpd_jboss_site.tomcat_site="+sitePKey;
+
+                        // Throw an exception if the site was started recently.
+                        Long L=startJVMTimes.get(key);
+                        if(L!=null) {
+                            long span=System.currentTimeMillis()-L.longValue();
+                            if(span<HttpdTomcatSite.MINIMUM_START_JVM_DELAY && span>=0) return
+                                "Must wait "
+                                +SQLUtility.getMilliDecimal(HttpdTomcatSite.MINIMUM_START_JVM_DELAY)
+                                +" seconds between Java VM starts, only "
+                                +SQLUtility.getMilliDecimal((int)span)
+                                +" seconds have passed."
+                            ;
+                        }
+
+                        LinuxServerAccount lsa=httpdSite.getLinuxServerAccount();
+                        AOServDaemon.suexec(
+                            lsa.getLinuxAccount().getUsername().getUsername(),
+                            HttpdSite.WWW_DIRECTORY+'/'+httpdSite.getSiteName()+"/bin/jboss start",
+                            0
+                        );
+
+                        // Make sure we don't start too quickly
+                        startJVMTimes.put(key, Long.valueOf(System.currentTimeMillis()));
+                    } else throw new SQLException("Unable to find HttpdTomcatStdSite, HttpdTomcatSharedSite or HttpdJBossSite for HttpdSite #"+sitePKey);
+                }
+            }
+
+            // Null means all went well
+            return null;
+        }*/
     }
 
+    public static String stopJVM(int sitePKey) throws IOException, SQLException {
+        return null;
+        /* TODO: Update
+        final Stat tempStat = new Stat();
+        synchronized(startJVMTimes) {
+            AOServConnector conn=AOServDaemon.getConnector();
+
+            HttpdSite httpdSite=conn.httpdSites.get(sitePKey);
+            AOServer thisAOServer=AOServDaemon.getThisAOServer();
+            if(!httpdSite.getAOServer().equals(thisAOServer)) throw new SQLException("HttpdSite #"+sitePKey+" has server of "+httpdSite.getAOServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')');
+
+            HttpdTomcatSite tomcatSite=httpdSite.getHttpdTomcatSite();
+            if(tomcatSite==null) throw new SQLException("Unable to find HttpdTomcatSite for HttpdSite #"+sitePKey);
+
+            HttpdTomcatStdSite stdSite=tomcatSite.getHttpdTomcatStdSite();
+            if(stdSite!=null) {
+                String key="httpd_tomcat_std_site.tomcat_site="+sitePKey;
+
+                // Throw an exception if the site was started recently.
+                Long L=startJVMTimes.get(key);
+                if(L!=null) {
+                    long span=System.currentTimeMillis()-L.longValue();
+                    if(span<HttpdTomcatSite.MINIMUM_START_JVM_DELAY && span>=0) return
+                        "Must wait "
+                        +SQLUtility.getMilliDecimal(HttpdTomcatSite.MINIMUM_START_JVM_DELAY)
+                        +" seconds between a Java VM start and stop, only "
+                        +SQLUtility.getMilliDecimal((int)span)
+                        +" seconds have passed."
+                    ;
+                }
+
+                LinuxServerAccount lsa=httpdSite.getLinuxServerAccount();
+                AOServDaemon.suexec(
+                    lsa.getLinuxAccount().getUsername().getUsername(),
+                    HttpdSite.WWW_DIRECTORY+'/'+httpdSite.getSiteName()+"/bin/tomcat stop",
+                    0
+                );
+
+                // Make sure we don't start too quickly
+                startJVMTimes.put(key, Long.valueOf(System.currentTimeMillis()));
+            } else {
+                HttpdTomcatSharedSite shrSite=tomcatSite.getHttpdTomcatSharedSite();
+                if(shrSite!=null) {
+                    HttpdSharedTomcat shrTomcat=shrSite.getHttpdSharedTomcat();
+                    String name=shrTomcat.getName();
+                    String key="httpd_shared_tomcats.name="+name;
+
+                    // Throw an exception if the site was started recently.
+                    Long L=startJVMTimes.get(key);
+                    if(L!=null) {
+                        long span=System.currentTimeMillis()-L.longValue();
+                        if(span<HttpdTomcatSite.MINIMUM_START_JVM_DELAY && span>=0) return
+                            "Must wait "
+                            +SQLUtility.getMilliDecimal(HttpdTomcatSite.MINIMUM_START_JVM_DELAY)
+                            +" seconds between a Java VM start and stop, only "
+                            +SQLUtility.getMilliDecimal((int)span)
+                            +" seconds have passed."
+                        ;
+                    }
+
+                    HttpdSharedTomcatManager.stopSharedTomcat(shrTomcat, tempStat);
+
+                    // Make sure we don't start too quickly
+                    startJVMTimes.put(key, Long.valueOf(System.currentTimeMillis()));
+                } else {
+                    HttpdJBossSite jbossSite=tomcatSite.getHttpdJBossSite();
+                    if(jbossSite!=null) {
+                        String key="httpd_jboss_site.tomcat_site="+sitePKey;
+
+                        // Throw an exception if the site was started recently.
+                        Long L=startJVMTimes.get(key);
+                        if(L!=null) {
+                            long span=System.currentTimeMillis()-L.longValue();
+                            if(span<HttpdTomcatSite.MINIMUM_START_JVM_DELAY && span>=0) return
+                                "Must wait "
+                                +SQLUtility.getMilliDecimal(HttpdTomcatSite.MINIMUM_START_JVM_DELAY)
+                                +" seconds between a Java VM start and stop, only "
+                                +SQLUtility.getMilliDecimal((int)span)
+                                +" seconds have passed."
+                            ;
+                        }
+
+                        LinuxServerAccount lsa=httpdSite.getLinuxServerAccount();
+                        AOServDaemon.suexec(
+                            lsa.getLinuxAccount().getUsername().getUsername(),
+                            HttpdSite.WWW_DIRECTORY+'/'+httpdSite.getSiteName()+"/bin/jboss stop",
+                            0
+                        );
+
+                        // Make sure we don't start too quickly
+                        startJVMTimes.put(key, Long.valueOf(System.currentTimeMillis()));
+                    } else throw new SQLException("Unable to find HttpdTomcatStdSite, HttpdTomcatSharedSite or HttpdJBossSite for HttpdSite #"+sitePKey);
+                }
+            }
+
+            // Null means all went well
+            return null;
+        }*/
+    }
+
+    /** TODO: Review */
     private static UnixFile getDaemonUnixFile(HttpdSite hs) throws IOException, SQLException {
         HttpdTomcatSite hts=hs.getHttpdTomcatSite();
         if(hts!=null) {
@@ -692,40 +629,7 @@ public abstract class HttpdTomcatSiteManager extends HttpdSiteManager {
         return null;
     }
 
-    private static void startHttpdSite(HttpdSite hs) throws IOException, SQLException {
-        controlHttpdSite(hs, "start");
-    }
-    
-    private static void stopHttpdSite(HttpdSite hs, Stat tempStat) throws IOException, SQLException {
-        UnixFile pidUF=getPIDUnixFile(hs);
-        if(pidUF!=null && pidUF.getStat(tempStat).exists()) controlHttpdSite(hs, "stop");
-    }
-
-    private static void controlHttpdSite(HttpdSite hs, String action) throws IOException, SQLException {
-        HttpdTomcatSite hst=hs.getHttpdTomcatSite();
-        if(hst!=null) {
-            HttpdJBossSite hjs=hst.getHttpdJBossSite();
-            if(hjs!=null) {
-                LinuxServerAccount lsa=hs.getLinuxServerAccount();
-                AOServDaemon.suexec(
-                    lsa.getLinuxAccount().getUsername().getUsername(),
-                    HttpdSite.WWW_DIRECTORY+'/'+hs.getSiteName()+"/bin/jboss "+action,
-                    0
-                );
-            } else {
-                HttpdTomcatStdSite htss=hst.getHttpdTomcatStdSite();
-                if(htss!=null) {
-                    LinuxServerAccount lsa=hs.getLinuxServerAccount();
-                    AOServDaemon.suexec(
-                        lsa.getLinuxAccount().getUsername().getUsername(),
-                        HttpdSite.WWW_DIRECTORY+'/'+hs.getSiteName()+"/bin/tomcat "+action,
-                        0
-                    );
-                }
-            }
-        }
-    }
-
+    /** TODO: Review */
     private static void enableHttpdSite(HttpdSite hs,Stat tempStat) throws IOException, SQLException {
         HttpdTomcatSite hst=hs.getHttpdTomcatSite();
         if(hst!=null) {
@@ -749,17 +653,19 @@ public abstract class HttpdTomcatSiteManager extends HttpdSiteManager {
         }
     }
 
-    private static void disableHttpdSite(HttpdSite hs, Stat tempStat) throws IOException {
+    /** TODO: Review */
+    /*private static void disableHttpdSite(HttpdSite hs, Stat tempStat) throws IOException {
         disableHttpdSite(hs.getSiteName(), tempStat);
-    }
+    }*/
 
-    private static void disableHttpdSite(String siteName, Stat tempStat) throws IOException {
+    /** TODO: Review */
+    /*private static void disableHttpdSite(String siteName, Stat tempStat) throws IOException {
         UnixFile jbossUF=new UnixFile(HttpdSite.WWW_DIRECTORY+'/'+siteName+"/daemon/jboss");
         if(jbossUF.getStat(tempStat).exists()) jbossUF.delete();
 
         UnixFile tomcatUF=new UnixFile(HttpdSite.WWW_DIRECTORY+'/'+siteName+"/daemon/tomcat");
         if(tomcatUF.getStat(tempStat).exists()) tomcatUF.delete();
-    }
+    }*/
 
     /**
      * In addition to the standard values, also protects the /WEB-INF/ and /META-INF/ directories of all contexts.
@@ -787,7 +693,37 @@ public abstract class HttpdTomcatSiteManager extends HttpdSiteManager {
     protected abstract HttpdWorker getHttpdWorker() throws IOException, SQLException;
 
     @Override
-    public SortedSet<JkSetting> getJkSettings() {
+    public boolean stop() throws IOException, SQLException {
+        UnixFile pidFile = getPidFile();
+        if(pidFile.getStat().exists()) {
+            AOServDaemon.suexec(
+                httpdSite.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername(),
+                getStartStopScriptPath()+" stop",
+                0
+            );
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean start() throws IOException, SQLException {
+        UnixFile pidFile = getPidFile();
+        if(!pidFile.getStat().exists()) {
+            AOServDaemon.suexec(
+                httpdSite.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername(),
+                getStartStopScriptPath()+" start",
+                0
+            );
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public SortedSet<JkSetting> getJkSettings() throws IOException, SQLException {
         final String jkCode = getHttpdWorker().getCode().getCode();
         SortedSet<JkSetting> settings = new TreeSet<JkSetting>();
         if(tomcatSite.useApache()) {
@@ -811,6 +747,7 @@ public abstract class HttpdTomcatSiteManager extends HttpdSiteManager {
                 if(enablePhp()) settings.add(new JkSetting(false, path+"/*.php", jkCode));
             }
         }
+        return settings;
     }
 
     public SortedMap<String,WebAppSettings> getWebapps() {
@@ -830,4 +767,73 @@ public abstract class HttpdTomcatSiteManager extends HttpdSiteManager {
         }
         return webapps;
     }
+
+    /**
+     * Gets the PID file for the wrapper script.  When this file exists the
+     * script is assumed to be running.  This PID file may be shared between
+     * multiple sites in the case of a shared Tomcat.
+     */
+    public abstract UnixFile getPidFile() throws IOException, SQLException;
+    
+    /**
+     * Gets the path to the start/stop script.
+     */
+    public abstract String getStartStopScriptPath() throws IOException, SQLException;
+
+    /**
+     * Every Tomcat site is built through the same overall set of steps.
+     */
+    final protected void buildSiteDirectory(UnixFile siteDirectory, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
+        final int apacheUid = getApacheUid();
+        final int gid = httpdSite.getLinuxServerGroup().getGID().getID();
+
+        // Create wwwDirectory if needed
+        final Stat siteDirectoryStat = new Stat();
+        if(!siteDirectory.getStat(siteDirectoryStat).exists()) {
+            siteDirectory.mkdir(false, 0700);
+            siteDirectory.getStat(siteDirectoryStat);
+        } else if(!siteDirectoryStat.isDirectory()) throw new IOException("Not a directory: "+siteDirectory);
+
+        // New if still owned by root
+        final boolean isNew = siteDirectoryStat.getUID() == UnixFile.ROOT_UID;
+
+        // Build directory contents if is new or incomplete
+        boolean needsRestart = false;
+        if(isNew) {
+            buildSiteDirectoryContents(siteDirectory);
+            // Always cause restart when is new
+            needsRestart = true;
+        }
+
+        // Rebuild config files that need to be updated
+        if(rebuildConfigFiles(siteDirectory)) needsRestart = true;
+
+        // Complete, set permission and ownership
+        siteDirectory.getStat(siteDirectoryStat);
+        if(siteDirectoryStat.getMode()!=0770) siteDirectory.setMode(0770);
+        if(siteDirectoryStat.getUID()!=apacheUid || siteDirectoryStat.getGID()!=gid) siteDirectory.chown(apacheUid, gid);
+
+        // Flag as needing restart
+        if(needsRestart) flagNeedsRestart(sitesNeedingRestarted, sharedTomcatsNeedingRestarted);
+    }
+
+    /**
+     * Builds the complete directory tree for a new site.  This should not include
+     * the siteDirectory itself, which has already been created.  This should also
+     * not include any files that enable/disable the site.
+     */
+    protected abstract void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException;
+
+    /**
+     * Rebuilds any config files that need updated.  This should include any
+     * files/symlinks that enable/disable this site.
+     *
+     * @return  <code>true</code> if the site needs to be restarted.
+     */
+    protected abstract boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException;
+
+    /**
+     * Flags that the site needs restarted.
+     */
+    protected abstract void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted);
 }

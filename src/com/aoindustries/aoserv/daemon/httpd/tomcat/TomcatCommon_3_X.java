@@ -7,8 +7,10 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
  */
 import com.aoindustries.aoserv.client.HttpdTomcatDataSource;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
+import com.aoindustries.aoserv.daemon.util.FileUtils;
 import com.aoindustries.io.ChainWriter;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.sql.SQLException;
 
 /**
@@ -16,14 +18,14 @@ import java.sql.SQLException;
  *
  * @author  AO Industries, Inc.
  */
-abstract class TomcatCommon_3_X extends TomcatCommon {
+public abstract class TomcatCommon_3_X extends TomcatCommon {
 
     TomcatCommon_3_X() {}
 
     /**
      * The list of files that are contained in /www/{site}/var/log directories.
      */
-    static final String[] tomcatLogFiles={
+    public static final String[] tomcatLogFiles={
         "jasper.log",
         "jvm_crashes.log",
         "servlet.log",
@@ -43,4 +45,38 @@ abstract class TomcatCommon_3_X extends TomcatCommon {
     public String getDefaultJdkVersion() throws IOException, SQLException {
         return OperatingSystemConfiguration.getOperatingSystemConfiguration().getDefaultJdkVersion();
     }
+    
+    /**
+     * Creates the test-tomcat.xml file in the provided conf directory.
+     */
+    public void createTestTomcatXml(String confDirectory, int uid, int gid, int mode) throws IOException {
+        FileUtils.copyResource(TomcatCommon_3_X.class, "test-tomcat.xml", confDirectory+"/test-tomcat.xml", uid, gid, 0660);
+    }
+
+    public abstract void createWebDtd(String confDirectory, int uid, int gid, int mode) throws IOException;
+
+    public abstract void createWebXml(String confDirectory, int uid, int gid, int mode) throws IOException;
+
+    public void copyCocoonProperties1(OutputStream out) throws IOException {
+        FileUtils.copyResource(TomcatCommon_3_X.class, "cocoon.properties.1", out);
+    }
+
+    public void copyCocoonProperties2(OutputStream out) throws IOException {
+        FileUtils.copyResource(TomcatCommon_3_X.class, "cocoon.properties.2", out);
+    }
+    
+    /**
+     * Prints the default tomcat-users.xml file content for this version of Tomcat 3.X
+     */
+    abstract void printTomcatUsers(ChainWriter out);
+    
+    /**
+     * Gets the servlet API version.
+     */
+    abstract String getServletApiVersion();
+    
+    /**
+     * Gets the tomcat API version.
+     */
+    abstract String getTomcatApiVersion();
 }

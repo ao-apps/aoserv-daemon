@@ -18,7 +18,9 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 /**
- * Manages HttpdStaticSite configurations.
+ * Manages HttpdStaticSite configurations.  These are the most stripped-down
+ * form of website.  Should not allow any sort of server-side execution.
+ * Perhaps we could sell these for $1/month?
  *
  * @author  AO Industries, Inc.
  */
@@ -40,7 +42,7 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 
     protected void buildSiteDirectory(UnixFile siteDirectory, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
         final Stat tempStat = new Stat();
-        final boolean isManual = httpdSite.isManual();
+        final boolean isAuto = !httpdSite.isManual();
         final int apacheUid = getApacheUid();
         final int uid = httpdSite.getLinuxServerAccount().getUID().getID();
         final int gid = httpdSite.getLinuxServerGroup().getGID().getID();
@@ -55,10 +57,10 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
         final boolean isNew = tempStat.getUID() == UnixFile.ROOT_UID;
 
         // conf/
-        if(isNew || !isManual) FileUtils.mkdir(new UnixFile(siteDirectory, "conf", false), 0775, uid, gid);
+        if(isNew || isAuto) FileUtils.mkdir(new UnixFile(siteDirectory, "conf", false), 0775, uid, gid);
         // htdocs/
         UnixFile htdocsDirectory = new UnixFile(siteDirectory, "htdocs", false);
-        if(isNew || !isManual) FileUtils.mkdir(htdocsDirectory, 0775, uid, gid);
+        if(isNew || isAuto) FileUtils.mkdir(htdocsDirectory, 0775, uid, gid);
         // htdocs/index.html
         if(isNew) createTestIndex(new UnixFile(htdocsDirectory, "index.html", false));
 

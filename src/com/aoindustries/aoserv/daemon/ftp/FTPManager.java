@@ -396,7 +396,7 @@ final public class FTPManager extends BuilderThread {
              */
             if(manager.enableAnonymousFtp()) {
                 String siteName = httpdSite.getSiteName();
-                manager.configureFtpDirectory(new UnixFile(sharedFtpDirectory, siteName));
+                manager.configureFtpDirectory(new UnixFile(sharedFtpDirectory, siteName, false));
                 ftpDirectories.remove(siteName);
             }
         }

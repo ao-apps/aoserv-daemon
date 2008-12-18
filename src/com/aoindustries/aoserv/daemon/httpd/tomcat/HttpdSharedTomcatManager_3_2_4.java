@@ -12,13 +12,13 @@ import com.aoindustries.aoserv.client.HttpdSharedTomcat;
  *
  * @author  AO Industries, Inc.
  */
-class HttpdSharedTomcatManager_3_2_4 extends HttpdSharedTomcatManager_3_X {
+class HttpdSharedTomcatManager_3_2_4 extends HttpdSharedTomcatManager_3_X<TomcatCommon_3_2_4> {
 
     HttpdSharedTomcatManager_3_2_4(HttpdSharedTomcat sharedTomcat) {
         super(sharedTomcat);
     }
     
-    TomcatCommon getTomcatCommon() {
+    TomcatCommon_3_2_4 getTomcatCommon() {
         return TomcatCommon_3_2_4.getInstance();
     }
 }

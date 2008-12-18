@@ -5,22 +5,21 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.HttpdSharedTomcat;
-import com.aoindustries.aoserv.client.HttpdSite;
+import com.aoindustries.aoserv.client.HttpdTomcatContext;
 import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
-import com.aoindustries.aoserv.client.LinuxServerAccount;
-import com.aoindustries.aoserv.client.LinuxServerGroup;
+import com.aoindustries.aoserv.daemon.util.FileUtils;
+import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.Set;
 
 /**
  * Manages HttpdTomcatSharedSite version 4.1.X configurations.
  *
  * @author  AO Industries, Inc.
  */
-class HttpdTomcatSharedSiteManager_4_1_X extends HttpdTomcatSharedSiteManager {
+class HttpdTomcatSharedSiteManager_4_1_X extends HttpdTomcatSharedSiteManager<TomcatCommon_4_1_X> {
 
     HttpdTomcatSharedSiteManager_4_1_X(HttpdTomcatSharedSite tomcatSharedSite) {
         super(tomcatSharedSite);
@@ -29,36 +28,28 @@ class HttpdTomcatSharedSiteManager_4_1_X extends HttpdTomcatSharedSiteManager {
     /**
      * Builds a shared site for Tomcat 4.1.X
      */
-    protected void buildSiteDirectory(UnixFile siteDirectory, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
-        /*
-         * We no longer support secure JVMs.
-         */
-        final HttpdSharedTomcat sharedTomcat = tomcatSharedSite.getHttpdSharedTomcat();
-        if(sharedTomcat.isSecure()) throw new SQLException("We no longer support secure Multi-Site Tomcat installations: "+sharedTomcat);
-
+    protected void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
         /*
          * Resolve and allocate stuff used throughout the method
          */
-        final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
-        final LinuxServerGroup lsg = httpdSite.getLinuxServerGroup();
-        final int uid = lsa.getUID().getID();
-        final int gid = lsg.getGID().getID();
+        final String siteDir = siteDirectory.getPath();
+        final int uid = httpdSite.getLinuxServerAccount().getUID().getID();
+        final int gid = httpdSite.getLinuxServerGroup().getGID().getID();
 
         /*
          * Create the skeleton of the site, the directories and links.
          */
-        mkdir(siteDir+"/bin", 0770, lsa, lsg);
-        mkdir(siteDir+"/conf", 0775, lsa, lsg);
-        mkdir(siteDir+"/daemon", 0770, lsa, lsg);
-        ln("var/log", siteDir+"/logs", uid, gid);
-        mkdir(siteDir+"/var", 0770, lsa, lsg);
-        mkdir(siteDir+"/var/log", 0770, lsa, lsg);
-        mkdir(siteDir+"/webapps", 0775, lsa, lsg);
-        mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, lsa, lsg);
-        mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, lsa, lsg);
-        mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, lsa, lsg);
-        mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, lsa, lsg);	
-        mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", 0755, lsa, lsg);
+        FileUtils.mkdir(siteDir+"/bin", 0770, uid, gid);
+        FileUtils.mkdir(siteDir+"/conf", 0775, uid, gid);
+        FileUtils.mkdir(siteDir+"/daemon", 0770, uid, gid);
+        FileUtils.ln("var/log", siteDir+"/logs", uid, gid);
+        FileUtils.mkdir(siteDir+"/var", 0770, uid, gid);
+        FileUtils.mkdir(siteDir+"/var/log", 0770, uid, gid);
+        FileUtils.mkdir(siteDir+"/webapps", 0775, uid, gid);
+        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, uid, gid);
+        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, uid, gid);
+        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
+        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);	
 
         /*
          * Write the ROOT/WEB-INF/web.xml file.
@@ -83,24 +74,31 @@ class HttpdTomcatSharedSiteManager_4_1_X extends HttpdTomcatSharedSiteManager {
                         + "  </description>\n"
                         + "</web-app>\n");
         } finally {
-            out.flush();
             out.close();
         }
 
-        createCgiPhpScript(httpdSite);
-        createTestCGI(httpdSite);
-        createTestIndex(httpdSite);
+        // CGI
+        UnixFile rootDirectory = new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE);
+        if(enableCgi()) {
+            UnixFile cgibinDirectory = new UnixFile(rootDirectory, "cgi-bin", false);
+            FileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
+            createTestCGI(cgibinDirectory);
+            createCgiPhpScript(cgibinDirectory);
+        }
+        
+        // index.html
+        UnixFile indexFile = new UnixFile(rootDirectory, "index.html", false);
+        createTestIndex(indexFile);
 
-        /*
-         * Create the test.php file.
-         */
-        String testPHP=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php";
-        new ChainWriter(
-            new UnixFile(testPHP).getSecureOutputStream(uid, gid, 0664, false)
-        ).print("<?phpinfo()?>\n").flush().close();
+        // PHP
+        createTestPHP(rootDirectory);
     }
 
-    public TomcatCommon getTomcatCommon() {
+    public TomcatCommon_4_1_X getTomcatCommon() {
         return TomcatCommon_4_1_X.getInstance();
+    }
+
+    protected boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException {
+        throw new RuntimeException("TODO: Implement method");
     }
 }

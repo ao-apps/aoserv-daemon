@@ -6,24 +6,29 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.HttpdSharedTomcat;
+import com.aoindustries.aoserv.client.HttpdSite;
 import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
 import com.aoindustries.aoserv.client.HttpdTomcatVersion;
 import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
+import com.aoindustries.io.unix.UnixFile;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Set;
 
 /**
  * Manages HttpdTomcatSharedSite configurations.
  *
  * @author  AO Industries, Inc.
  */
-abstract class HttpdTomcatSharedSiteManager extends HttpdTomcatSiteManager {
+abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends HttpdTomcatSiteManager<TC> {
 
     /**
      * Gets the specific manager for one type of web site.
      */
-    static HttpdTomcatSharedSiteManager getInstance(HttpdTomcatSharedSite shrSite) throws IOException, SQLException {
+    static HttpdTomcatSharedSiteManager<? extends TomcatCommon> getInstance(HttpdTomcatSharedSite shrSite) throws IOException, SQLException {
         AOServConnector connector=AOServDaemon.getConnector();
 
         HttpdTomcatVersion htv=shrSite.getHttpdTomcatSite().getHttpdTomcatVersion();
@@ -49,5 +54,27 @@ abstract class HttpdTomcatSharedSiteManager extends HttpdTomcatSiteManager {
         HttpdWorker hw = tomcatSharedSite.getHttpdSharedTomcat().getTomcat4Worker();
         if(hw==null) throw new SQLException("Unable to find shared HttpdWorker");
         return hw;
+    }
+
+    public UnixFile getPidFile() throws IOException, SQLException {
+        return new UnixFile(
+            HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
+            + "/"
+            + tomcatSharedSite.getHttpdSharedTomcat().getName()
+            + "/var/run/tomcat.pid"
+        );
+    }
+
+    public String getStartStopScriptPath() throws IOException, SQLException {
+        return
+            HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
+            + "/"
+            + tomcatSharedSite.getHttpdSharedTomcat().getName()
+            + "/bin/tomcat"
+        ;
+    }
+
+    protected void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) {
+        sharedTomcatsNeedingRestarted.add(tomcatSharedSite.getHttpdSharedTomcat());
     }
 }

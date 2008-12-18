@@ -5,28 +5,33 @@ package com.aoindustries.aoserv.daemon.httpd.jboss;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.HttpdJBossSite;
-import com.aoindustries.aoserv.client.HttpdSharedTomcat;
-import com.aoindustries.aoserv.client.HttpdSite;
+import com.aoindustries.aoserv.client.HttpdJKProtocol;
+import com.aoindustries.aoserv.client.HttpdTomcatContext;
 import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.httpd.tomcat.TomcatCommon;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.TomcatCommon_3_2_4;
+import com.aoindustries.aoserv.daemon.httpd.tomcat.TomcatCommon_3_X;
+import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.aoserv.daemon.util.FileUtils;
+import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.sql.SQLException;
-import java.util.Set;
+import java.util.List;
 
 /**
  * Manages HttpdJBossSite version 2.2.2 configurations.
  *
  * @author  AO Industries, Inc.
  */
-class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager {
+class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2_4> {
 
     HttpdJBossSiteManager_2_2_2(HttpdJBossSite jbossSite) {
         super(jbossSite);
@@ -35,10 +40,12 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager {
     /**
      * Builds a JBoss 2.2.2 installation
      */
-    protected void buildSiteDirectory(UnixFile siteDirectory, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
+    protected void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
         /*
          * Resolve and allocate stuff used throughout the method
          */
+        final TomcatCommon_3_2_4 tomcatCommon = getTomcatCommon();
+        final String siteDir = siteDirectory.getPath();
         final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
         final LinuxServerGroup lsg = httpdSite.getLinuxServerGroup();
         final int uid = lsa.getUID().getID();
@@ -51,17 +58,16 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager {
          * Create the skeleton of the site, the directories and links.
          */
         FileUtils.mkdir(new UnixFile(siteDirectory, "bin", false), 0770, uid, gid);
-        ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
-        mkdir(siteDir+"/conf", 0775, lsa, lsg);
-        mkdir(siteDir+"/daemon", 0770, lsa, lsg);
-        ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
-        mkdir(siteDir+"/lib", 0770, lsa, lsg);
-        ln("var/log", siteDir+"/logs", uid, gid);
-        ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", siteDir+"/servlet", uid, gid);
-        mkdir(siteDir+"/var", 0770, lsa, lsg);
-        mkdir(siteDir+"/var/log", 0770, lsa, lsg);
-        mkdir(siteDir+"/var/run", 0770, lsa, lsg);
-        mkdir(siteDir+"/webapps", 0775, lsa, lsg);
+        FileUtils.mkdir(siteDir+"/conf", 0775, uid, gid);
+        FileUtils.mkdir(siteDir+"/daemon", 0770, uid, gid);
+        FileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
+        FileUtils.mkdir(siteDir+"/lib", 0770, uid, gid);
+        FileUtils.ln("var/log", siteDir+"/logs", uid, gid);
+        FileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", siteDir+"/servlet", uid, gid);
+        FileUtils.mkdir(siteDir+"/var", 0770, uid, gid);
+        FileUtils.mkdir(siteDir+"/var/log", 0770, uid, gid);
+        FileUtils.mkdir(siteDir+"/var/run", 0770, uid, gid);
+        FileUtils.mkdir(siteDir+"/webapps", 0775, uid, gid);
 
         String templateDir = jbossSite.getHttpdJBossVersion().getTemplateDirectory();
         File f = new File(templateDir);
@@ -113,17 +119,16 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager {
             siteDir+"/bin/profile.user"
         };
         AOServDaemon.exec(command4);
-        ln(".", siteDir+"/tomcat", uid, gid);
+        FileUtils.ln(".", siteDir+"/tomcat", uid, gid);
 
-        mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, lsa, lsg);
-        mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF", 0775, lsa, lsg);
-        mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, lsa, lsg);
-        mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, lsa, lsg);
-        mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon", 0770, lsa, lsg);
-        mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf", 0770, lsa, lsg);
-        mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, lsa, lsg);	
-        mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", 0755, lsa, lsg);
-        mkdir(siteDir+"/work", 0750, lsa, lsg);
+        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, uid, gid);
+        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF", 0775, uid, gid);
+        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, uid, gid);
+        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
+        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon", 0770, uid, gid);
+        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf", 0770, uid, gid);
+        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);	
+        FileUtils.mkdir(siteDir+"/work", 0750, uid, gid);
 
         /*
          * Set up the bash profile source
@@ -134,7 +139,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager {
         /*
          * The classes directory
          */
-        mkdir(siteDir+"/classes", 0770, lsa, lsg);
+        FileUtils.mkdir(siteDir+"/classes", 0770, uid, gid);
 
         /*
          * Write the manifest.servlet file.
@@ -166,7 +171,6 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager {
                       + "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n"
                       );
         } finally {
-            out.flush();
             out.close();
         }
 
@@ -218,14 +222,13 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager {
                       + "    value CDATA \"\">\n"
                       );
         } finally {
-            out.flush();
             out.close();
         }
 
         /*
          * Create the test-tomcat.xml file.
          */
-        copyResource("test-tomcat.xml", siteDir+"/conf/test-tomcat.xml", uid, gid, 0660);
+        tomcatCommon.createTestTomcatXml(siteDir+"/conf", uid, gid, 0660);
 
         /*
          * Create the tomcat-users.xml file
@@ -244,25 +247,24 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager {
                       + "</tomcat-users>\n"
                       );
         } finally {
-            out.flush();
             out.close();
         }
 
         /*
          * Create the web.dtd file.
          */
-        copyResource("web.dtd-3.2.4", siteDir+"/conf/web.dtd", uid, gid, 0660);
+        tomcatCommon.createWebDtd(siteDir+"/conf", uid, gid, 0660);
 
         /*
          * Create the web.xml file.
          */
-        copyResource("web.xml-3.2.4", siteDir+"/conf/web.xml", uid, gid, 0660);
+        tomcatCommon.createWebXml(siteDir+"/conf", uid, gid, 0660);
 
         /*
          * Create the empty log files.
          */
-        for(int c=0;c<tomcatLogFiles.length;c++) {
-            String filename=siteDir+"/var/log/"+tomcatLogFiles[c];
+        for(int c=0;c<TomcatCommon_3_X.tomcatLogFiles.length;c++) {
+            String filename=siteDir+"/var/log/"+TomcatCommon_3_X.tomcatLogFiles[c];
             new UnixFile(filename).getSecureOutputStream(uid, gid, 0660, false).close();
         }
 
@@ -277,7 +279,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager {
                 0664,
                 false
             )
-        ).print("Manifest-Version: 1.0").flush().close();
+        ).print("Manifest-Version: 1.0").close();
 
         /*
          * Write the cocoon.properties file.
@@ -285,17 +287,16 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager {
         String cocoonProps=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties";
         OutputStream fileOut=new BufferedOutputStream(new UnixFile(cocoonProps).getSecureOutputStream(uid, gid, 0660, false));
         try {
-            copyResource("cocoon.properties.1", fileOut);
+            tomcatCommon.copyCocoonProperties1(fileOut);
             out=new ChainWriter(fileOut);
             try {
                 out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon\n");
                 out.flush();
-                copyResource("cocoon.properties.2", fileOut);
+                tomcatCommon.copyCocoonProperties2(fileOut);
             } finally {
                 out.flush();
             }
         } finally {
-            fileOut.flush();
             fileOut.close();
         }
 
@@ -335,24 +336,28 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager {
                       + "\n"
                       + "</web-app>\n");
         } finally {
-            out.flush();
             out.close();
         }
 
-        createCgiPhpScript(httpdSite);
-        createTestCGI(httpdSite);
-        createTestIndex(httpdSite);
+        // CGI
+        UnixFile rootDirectory = new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE);
+        if(enableCgi()) {
+            UnixFile cgibinDirectory = new UnixFile(rootDirectory, "cgi-bin", false);
+            FileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
+            FileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
+            createTestCGI(cgibinDirectory);
+            createCgiPhpScript(cgibinDirectory);
+        }
 
-        /*
-         * Create the test.php file.
-         */
-        String testPHP=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php";
-        new ChainWriter(
-            new UnixFile(testPHP).getSecureOutputStream(uid, gid, 0664, false)
-        ).print("<?phpinfo()?>\n").flush().close();
+        // index.html
+        UnixFile indexFile = new UnixFile(rootDirectory, "index.html", false);
+        createTestIndex(indexFile);
+
+        // PHP
+        createTestPHP(rootDirectory);
     }
 
-    public TomcatCommon getTomcatCommon() {
+    public TomcatCommon_3_2_4 getTomcatCommon() {
         return TomcatCommon_3_2_4.getInstance();
     }
 
@@ -369,5 +374,9 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager {
             if(hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol().equals(HttpdJKProtocol.AJP12)) return hw;
         }
         throw new SQLException("Couldn't find ajp12");
+    }
+
+    protected boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException {
+        throw new RuntimeException("TODO: Implement method");
     }
 }

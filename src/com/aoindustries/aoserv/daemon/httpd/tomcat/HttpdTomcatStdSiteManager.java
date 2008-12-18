@@ -7,25 +7,30 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
  */
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.HttpdJKProtocol;
+import com.aoindustries.aoserv.client.HttpdSharedTomcat;
+import com.aoindustries.aoserv.client.HttpdSite;
 import com.aoindustries.aoserv.client.HttpdTomcatStdSite;
 import com.aoindustries.aoserv.client.HttpdTomcatVersion;
 import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
+import com.aoindustries.io.unix.UnixFile;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Manages HttpdTomcatStdSite configurations.
  *
  * @author  AO Industries, Inc.
  */
-abstract class HttpdTomcatStdSiteManager extends HttpdTomcatSiteManager {
+abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdTomcatSiteManager<TC> {
 
     /**
      * Gets the specific manager for one type of web site.
      */
-    static HttpdTomcatStdSiteManager getInstance(HttpdTomcatStdSite stdSite) throws IOException, SQLException {
+    static HttpdTomcatStdSiteManager<? extends TomcatCommon> getInstance(HttpdTomcatStdSite stdSite) throws IOException, SQLException {
         AOServConnector connector=AOServDaemon.getConnector();
         HttpdTomcatVersion htv=stdSite.getHttpdTomcatSite().getHttpdTomcatVersion();
         if(htv.isTomcat3_1(connector)) return new HttpdTomcatStdSiteManager_3_1(stdSite);
@@ -59,5 +64,27 @@ abstract class HttpdTomcatStdSiteManager extends HttpdTomcatSiteManager {
             if(hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol().equals(HttpdJKProtocol.AJP12)) return hw;
         }
         throw new SQLException("Couldn't find either ajp13 or ajp12");
+    }
+
+    public UnixFile getPidFile() throws IOException, SQLException {
+        return new UnixFile(
+            HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
+            + "/"
+            + httpdSite.getSiteName()
+            + "/var/run/tomcat.pid"
+        );
+    }
+
+    public String getStartStopScriptPath() throws IOException, SQLException {
+        return
+            HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
+            + "/"
+            + httpdSite.getSiteName()
+            + "/bin/tomcat"
+        ;
+    }
+
+    protected void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) {
+        sitesNeedingRestarted.add(httpdSite);
     }
 }
