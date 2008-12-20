@@ -86,7 +86,7 @@ class HttpdTomcatSharedSiteManager_5_5_X extends HttpdTomcatSharedSiteManager<To
     }
 
     protected boolean upgradeSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
-        // TODO
+        // Nothing to do
         return false;
     }
 }

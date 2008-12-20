@@ -543,7 +543,33 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
     }
 
     protected boolean upgradeSharedTomcatDirectory(UnixFile siteDirectory) throws IOException, SQLException {
-        // TODO
-        return false;
+        // Upgrade Tomcat
+        boolean needsRestart = getTomcatCommon().upgradeTomcatDirectory(
+            siteDirectory,
+            sharedTomcat.getLinuxServerAccount().getUID().getID(),
+            sharedTomcat.getLinuxServerGroup().getGID().getID()
+        );
+
+        // Update bin/tomcat script
+        OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
+        if(osConfig==OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
+            // Replace /usr/aoserv/sbin/filtersites in bin/tomcat
+            String results = AOServDaemon.execAndCapture(
+                new String[] {
+                    osConfig.getReplaceCommand(),
+                    "    SITES=`/usr/aoserv/sbin/filtersites", // Leading spaces prevent repetitive updates
+                    "    # SITES=`/usr/aoserv/sbin/filtersites",
+                    
+                    // Fix upgrade mistake
+                    "# # SITES=`/usr/aoserv/sbin/filtersites",
+                    "# SITES=`/usr/aoserv/sbin/filtersites",
+                    
+                    "--",
+                    siteDirectory.getPath()+"/bin/tomcat"
+                }
+            );
+            if(results.length()>0) needsRestart = true;
+        }
+        return needsRestart;
     }
 }

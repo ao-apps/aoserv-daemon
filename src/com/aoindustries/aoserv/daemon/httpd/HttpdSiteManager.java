@@ -11,6 +11,7 @@ import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
 import com.aoindustries.aoserv.client.HttpdSiteBind;
+import com.aoindustries.aoserv.client.HttpdSiteURL;
 import com.aoindustries.aoserv.client.HttpdStaticSite;
 import com.aoindustries.aoserv.client.HttpdTomcatSite;
 import com.aoindustries.aoserv.client.LinuxAccount;
@@ -457,12 +458,23 @@ public abstract class HttpdSiteManager {
                         osConfig.getReplaceCommand(),
                         "/usr/aoserv/etc/postgresql",
                         "/opt/aoserv-client/scripts/postgresql",
+
                         "/usr/php/4/bin/php",
-                        "/opt/php-4/bin/php",
+                        "/opt/php-4-i686/bin/php",
+
                         "/usr/php/5/bin/php",
-                        "/opt/php-5/bin/php-cgi",
+                        "/opt/php-5-i686/bin/php-cgi",
+
                         "/usr/php/5/bin/php-cgi",
+                        "/opt/php-5-i686/bin/php-cgi",
+                        
+                        // Correct upgrade mistake
+                        "/opt/php-4/bin/php",
+                        "/opt/php-4-i686/bin/php",
+
                         "/opt/php-5/bin/php-cgi",
+                        "/opt/php-5-i686/bin/php-cgi",
+                        
                         "--",
                         phpFile.getPath()
                     }
@@ -483,7 +495,8 @@ public abstract class HttpdSiteManager {
             Stat tempStat = new Stat();
             UnixFile testFile = new UnixFile(cgibinDirectory, "test", false);
             if(!testFile.getStat(tempStat).exists()) {
-                String primaryUrl = httpdSite.getPrimaryHttpdSiteURL().getHostname();
+                HttpdSiteURL primaryHsu = httpdSite.getPrimaryHttpdSiteURL();
+                String primaryUrl = primaryHsu==null ? httpdSite.getSiteName() : primaryHsu.getHostname();
                 // Write to temp file first
                 UnixFile tempFile = UnixFile.mktemp(testFile.getPath()+".", false);
                 try {
@@ -521,11 +534,15 @@ public abstract class HttpdSiteManager {
 
     /**
      * Creates the test index.html file if it is missing.
+     * 
+     * TODO: Generate proper disabled page automatically.
+     *       Or, better, put into logic of static site rebuild.
      */
     protected void createTestIndex(UnixFile indexFile) throws IOException, SQLException {
         Stat tempStat = new Stat();
         if(!indexFile.getStat(tempStat).exists()) {
-            String primaryUrl = httpdSite.getPrimaryHttpdSiteURL().getHostname();
+            HttpdSiteURL primaryHsu = httpdSite.getPrimaryHttpdSiteURL();
+            String primaryUrl = primaryHsu==null ? httpdSite.getSiteName() : primaryHsu.getHostname();
             // Write to temp file first
             UnixFile tempFile = UnixFile.mktemp(indexFile.getPath()+".", false);
             try {
@@ -563,7 +580,8 @@ public abstract class HttpdSiteManager {
             Stat tempStat = new Stat();
             UnixFile testFile = new UnixFile(rootDirectory, "test.php", false);
             if(!testFile.getStat(tempStat).exists()) {
-                String primaryUrl = httpdSite.getPrimaryHttpdSiteURL().getHostname();
+                HttpdSiteURL primaryHsu = httpdSite.getPrimaryHttpdSiteURL();
+                String primaryUrl = primaryHsu==null ? httpdSite.getSiteName() : primaryHsu.getHostname();
                 // Write to temp file first
                 UnixFile tempFile = UnixFile.mktemp(testFile.getPath()+".", false);
                 try {

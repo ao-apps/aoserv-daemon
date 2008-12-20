@@ -393,7 +393,11 @@ class HttpdTomcatStdSiteManager_4_1_X extends HttpdTomcatStdSiteManager<TomcatCo
     }
 
     protected boolean upgradeSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
-        // TODO
-        return false;
+        // The only thing that needs to be modified is the included Tomcat
+        return getTomcatCommon().upgradeTomcatDirectory(
+            siteDirectory,
+            httpdSite.getLinuxServerAccount().getUID().getID(),
+            httpdSite.getLinuxServerGroup().getGID().getID()
+        );
     }
 }

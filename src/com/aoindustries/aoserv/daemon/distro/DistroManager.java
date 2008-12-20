@@ -116,19 +116,19 @@ final public class DistroManager implements Runnable {
                     AOServer thisAOServer=AOServDaemon.getThisAOServer();
                     long distroStartTime=System.currentTimeMillis();
                     long lastDistroTime=thisAOServer.getLastDistroTime();
-                    if(log.isDebugEnabled()) {
-                        log.debug("runNow="+runNow);
-                        log.debug("distroStartTime="+distroStartTime);
-                        log.debug("lastDistroTime="+lastDistroTime);
+                    if(log.isTraceEnabled()) {
+                        log.trace("runNow="+runNow);
+                        log.trace("distroStartTime="+distroStartTime);
+                        log.trace("lastDistroTime="+lastDistroTime);
                     }
                     if(runNow || lastDistroTime>distroStartTime || (distroStartTime-lastDistroTime)>=12L*60*60*1000) {
                         int distroHour=thisAOServer.getDistroHour();
                         Calendar cal=Calendar.getInstance();
                         cal.setTimeInMillis(distroStartTime);
                         int currentHour = cal.get(Calendar.HOUR_OF_DAY);
-                        if(log.isDebugEnabled()) {
-                            log.debug("distroHour="+distroHour);
-                            log.debug("currentHour="+currentHour);
+                        if(log.isTraceEnabled()) {
+                            log.trace("distroHour="+distroHour);
+                            log.trace("currentHour="+currentHour);
                         }
                         if(runNow || currentHour==distroHour) {
                             ProcessTimer timer=new ProcessTimer(
@@ -542,7 +542,9 @@ final public class DistroManager implements Runnable {
             byte[] trashBuffer=BufferManager.getBytes();
             try {
                 int ret;
-                while((ret=md5in.read(trashBuffer, 0, BufferManager.BUFFER_SIZE))!=-1);
+                while((ret=md5in.read(trashBuffer, 0, BufferManager.BUFFER_SIZE))!=-1) {
+                    // Intentional empty block
+                }
             } finally {
                 BufferManager.release(trashBuffer);
             }

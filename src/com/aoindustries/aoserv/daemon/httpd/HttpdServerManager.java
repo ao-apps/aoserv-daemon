@@ -539,7 +539,7 @@ public class HttpdServerManager {
                 String phpMajorVersion = getMajorPhpVersion(version);
                 out.print("\n"
                         + "# Enable mod_php\n"
-                        + "LoadModule php").print(phpMajorVersion).print("_module /opt/php-").print(phpMajorVersion).print("/lib/apache/").print(getPhpLib(phpVersion)).print("\n"
+                        + "LoadModule php").print(phpMajorVersion).print("_module /opt/php-").print(phpMajorVersion).print("-i686/lib/apache/").print(getPhpLib(phpVersion)).print("\n"
                         + "AddType application/x-httpd-php .php4 .php3 .phtml .php\n"
                         + "AddType application/x-httpd-php-source .phps\n");
             }

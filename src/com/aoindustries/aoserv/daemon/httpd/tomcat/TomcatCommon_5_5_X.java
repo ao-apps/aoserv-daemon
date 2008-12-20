@@ -10,7 +10,6 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.util.UpgradeSymlink;
 import com.aoindustries.io.ChainWriter;
-import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -115,6 +114,11 @@ class TomcatCommon_5_5_X extends TomcatCommon {
             "common/lib/jasper-compiler-jdt.jar",
             "../../../../usr/apache/jakarta/tomcat/5.5/common/lib/jasper-compiler-jdt.jar",
             "../../../../opt/apache-tomcat-5.5/common/lib/jasper-compiler-jdt.jar"
+        ),
+        new UpgradeSymlink(
+            "common/lib/postgresql.jar",
+            "../../../../usr/postgresql/7.3/share/java/postgresql.jar",
+            "../../../../opt/postgresql-7.3/share/java/postgresql.jar"
         ),
         new UpgradeSymlink(
             "common/lib/servlet-api.jar",

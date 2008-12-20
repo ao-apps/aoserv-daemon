@@ -84,8 +84,8 @@ public enum HttpdOperatingSystemConfiguration {
             return "8.1";
         }
         public String getPhpCgiPath(String version) {
-            if("4".equals(version)) return "/opt/php-4/bin/php";
-            else if("5".equals(version)) return "/opt/php-5/bin/php-cgi";
+            if("4".equals(version)) return "/opt/php-4-i686/bin/php";
+            else if("5".equals(version)) return "/opt/php-5-i686/bin/php-cgi";
             else throw new AssertionError("Unexpected PHP version: "+version);
         }
         public String getHttpdSitesDirectory() {

@@ -1415,10 +1415,12 @@ final public class ImapManager extends BuilderThread {
                                                 }
 
                                                 // Convert old folders from UW software
-                                                UnixFile mailDir = new UnixFile(homeDir, "Mail", false);
-                                                if(mailDir.getStat(tempStat).exists()) {
-                                                    if(!tempStat.isDirectory()) throw new IOException("Not a directory: "+mailDir.getPath());
-                                                    convertImapDirectory(logOut, laUsername, mailDir, new UnixFile(userBackupDirectory, "Mail", false), "", tempPassword, passwordBackup, tempStat);
+                                                if(!"/home/a/acccorpapp".equals(homeDir)) {
+                                                    UnixFile mailDir = new UnixFile(homeDir, "Mail", false);
+                                                    if(mailDir.getStat(tempStat).exists()) {
+                                                        if(!tempStat.isDirectory()) throw new IOException("Not a directory: "+mailDir.getPath());
+                                                        convertImapDirectory(logOut, laUsername, mailDir, new UnixFile(userBackupDirectory, "Mail", false), "", tempPassword, passwordBackup, tempStat);
+                                                    }
                                                 }
 
                                                 // Remove the mailboxlist file

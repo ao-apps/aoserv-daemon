@@ -553,8 +553,13 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
             String results = AOServDaemon.execAndCapture(
                 new String[] {
                     osConfig.getReplaceCommand(),
-                    "SITES=`/usr/aoserv/sbin/filtersites",
+                    "    SITES=`/usr/aoserv/sbin/filtersites", // Leading spaces prevent repetitive updates
+                    "    # SITES=`/usr/aoserv/sbin/filtersites",
+                    
+                    // Fix upgrade mistake
+                    "# # SITES=`/usr/aoserv/sbin/filtersites",
                     "# SITES=`/usr/aoserv/sbin/filtersites",
+                    
                     "--",
                     siteDirectory.getPath()+"/bin/tomcat"
                 }
