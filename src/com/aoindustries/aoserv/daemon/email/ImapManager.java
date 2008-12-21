@@ -69,6 +69,7 @@ import javax.mail.Folder;
 import javax.mail.Header;
 import javax.mail.Message;
 import javax.mail.MessagingException;
+import javax.mail.ReadOnlyFolderException;
 import javax.mail.Session;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -1020,7 +1021,7 @@ final public class ImapManager extends BuilderThread {
             tempFile.chown(UnixFile.ROOT_UID, UnixFile.ROOT_GID).setMode(0600).renameTo(backupFile);
         }
 
-        // Delete the file if it is not a mailbox
+        // Delete the file if it is not a mailbox or is empty
         String filename = file.getFile().getName();
         if(
             filename.startsWith(".")
@@ -1031,6 +1032,9 @@ final public class ImapManager extends BuilderThread {
             )
         ) {
             log(logOut, LogLevel.DEBUG, username, "Deleting non-mailbox file: "+file.getPath());
+            file.delete();
+        } else if(file.getStat().getSize()==0) {
+            log(logOut, LogLevel.DEBUG, username, "Deleting empty mailbox file: "+file.getPath());
             file.delete();
         } else {
             // Get Old Store
@@ -1133,6 +1137,9 @@ final public class ImapManager extends BuilderThread {
                                             }
                                             throw new MessagingException(username+": \""+folderName+"\": oldFlags!=newFlags: "+oldFlags+"!="+newFlags);
                                         }
+                                        
+                                        // Flag as deleted on the old folder
+                                        oldMessage.setFlag(Flags.Flag.DELETED, true);
                                     } catch(MessagingException err) {
                                         String message = err.getMessage();
                                         if(message!=null && message.endsWith(" NO Message contains invalid header")) {
@@ -1372,7 +1379,7 @@ final public class ImapManager extends BuilderThread {
                                                 }
 
                                                 // Convert old folders from UW software
-                                                if(!"/home/a/acccorpapp".equals(homeDir)) {
+                                                if(!"/home/a/acccorpapp".equals(homeDir.getPath())) {
                                                     UnixFile mailDir = new UnixFile(homeDir, "Mail", false);
                                                     if(mailDir.getStat(tempStat).exists()) {
                                                         if(!tempStat.isDirectory()) throw new IOException("Not a directory: "+mailDir.getPath());
@@ -1426,10 +1433,21 @@ final public class ImapManager extends BuilderThread {
                                 future.get(1, TimeUnit.SECONDS);
                                 deleteMe.add(lsa);
                             } catch(InterruptedException err) {
-                                AOServDaemon.reportWarning(err, null);
+                                AOServDaemon.reportWarning(err, new Object[] {"lsa="+lsa});
                                 // Will retry on next loop
                             } catch(ExecutionException err) {
-                                AOServDaemon.reportError(err, null);
+                                Object[] extraInfo;
+                                Throwable cause = err.getCause();
+                                if(cause!=null && (cause instanceof ReadOnlyFolderException)) {
+                                    ReadOnlyFolderException rofe = (ReadOnlyFolderException)cause;
+                                    extraInfo = new Object[] {
+                                        "lsa="+lsa,
+                                        "folder="+rofe.getFolder().getFullName()
+                                    };
+                                } else {
+                                    extraInfo = new Object[] {"lsa="+lsa};
+                                }
+                                AOServDaemon.reportError(err, extraInfo);
                                 deleteMe.add(lsa);
                             } catch(TimeoutException err) {
                                 // This is OK, will just retry on next loop
