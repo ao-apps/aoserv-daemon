@@ -1148,16 +1148,16 @@ final public class ImapManager extends BuilderThread {
 
                                             if(!oldFlags.equals(effectiveNewFlags)) {
                                                 for(Flags.Flag flag : oldFlags.getSystemFlags()) {
-                                                    log(logOut, LogLevel.ERROR, username, "\""+folderName+"\": oldFlags: system: "+getFlagName(flag));
+                                                    log(logOut, LogLevel.ERROR, username, "\""+folderName+"\": oldFlags: system: \""+getFlagName(flag)+'"');
                                                 }
                                                 for(String flag : oldFlags.getUserFlags()) {
-                                                    log(logOut, LogLevel.ERROR, username, "\""+folderName+"\": oldFlags: user: "+flag);
+                                                    log(logOut, LogLevel.ERROR, username, "\""+folderName+"\": oldFlags: user: \""+flag+'"');
                                                 }
                                                 for(Flags.Flag flag : newFlags.getSystemFlags()) {
-                                                    log(logOut, LogLevel.ERROR, username, "\""+folderName+"\": newFlags: system: "+getFlagName(flag));
+                                                    log(logOut, LogLevel.ERROR, username, "\""+folderName+"\": newFlags: system: \""+getFlagName(flag)+'"');
                                                 }
                                                 for(String flag : newFlags.getUserFlags()) {
-                                                    log(logOut, LogLevel.ERROR, username, "\""+folderName+"\": newFlags: user: "+flag);
+                                                    log(logOut, LogLevel.ERROR, username, "\""+folderName+"\": newFlags: user: \""+flag+'"');
                                                 }
                                                 throw new MessagingException(username+": \""+folderName+"\": oldFlags!=newFlags: "+oldFlags+"!="+newFlags);
                                             }
