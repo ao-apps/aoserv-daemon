@@ -75,6 +75,8 @@ class TomcatCommon_5_5_X extends TomcatCommon {
             "../../../../usr/apache/jakarta/tomcat/5.5/common/i18n/tomcat-i18n-ja.jar",
             "../../../../opt/apache-tomcat-5.5/common/i18n/tomcat-i18n-ja.jar"
         ),
+        new UpgradeSymlink("common/lib/mysql-connector-java-3.0.11-stable-bin.jar", "../../../../usr/mysql-connector-java-3.0.11-stable/mysql-connector-java-3.0.11-stable-bin.jar", "../../../../opt/mysql-connector-java-3.0.11-stable/mysql-connector-java-3.0.11-stable-bin.jar"),
+        new UpgradeSymlink("common/lib/mysql-connector-java-3.0.11-stable-bin.jar", "../../../../usr/mysql-connector-java/3.0.11-stable/mysql-connector-java-3.0.11-stable-bin.jar", "../../../../opt/mysql-connector-java-3.0.11-stable/mysql-connector-java-3.0.11-stable-bin.jar"),
         new UpgradeSymlink(
             "common/lib/mysql-connector-java-3.1.12-bin.jar",
             "../../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar",
@@ -115,9 +117,25 @@ class TomcatCommon_5_5_X extends TomcatCommon {
             "../../../../usr/apache/jakarta/tomcat/5.5/common/lib/jasper-compiler-jdt.jar",
             "../../../../opt/apache-tomcat-5.5/common/lib/jasper-compiler-jdt.jar"
         ),
+        new UpgradeSymlink("common/lib/mm.mysql-2.0.7-bin.jar", "../../../../usr/mm.mysql-2.0.7/mm.mysql-2.0.7-bin.jar", "../../../../opt/mm.mysql-2.0.7/mm.mysql-2.0.7-bin.jar"),
+        new UpgradeSymlink(
+            "common/lib/postgresql.jar",
+            "../../../../usr/postgresql-7.3/share/java/postgresql.jar",
+            "../../../../opt/postgresql-7.3/share/java/postgresql.jar"
+        ),
         new UpgradeSymlink(
             "common/lib/postgresql.jar",
             "../../../../usr/postgresql/7.3/share/java/postgresql.jar",
+            "../../../../opt/postgresql-7.3/share/java/postgresql.jar"
+        ),
+        new UpgradeSymlink(
+            "common/lib/postgresql.jar",
+            "../../../../usr/postgresql-7.3.3/share/java/postgresql.jar",
+            "../../../../opt/postgresql-7.3/share/java/postgresql.jar"
+        ),
+        new UpgradeSymlink(
+            "common/lib/postgresql.jar",
+            "../../../../usr/postgresql/7.3.3/share/java/postgresql.jar",
             "../../../../opt/postgresql-7.3/share/java/postgresql.jar"
         ),
         new UpgradeSymlink(

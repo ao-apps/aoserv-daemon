@@ -16,6 +16,11 @@ import java.sql.SQLException;
 public interface StopStartable {
 
     /**
+     * Determines if the persistent processes for this site should be running.
+     */
+    boolean isStartable() throws IOException, SQLException;
+
+    /**
      * Stops all processes for this website if it is running.
      * 
      * @return  <code>true</code> if actually stopped or <code>false</code> if was already stopped

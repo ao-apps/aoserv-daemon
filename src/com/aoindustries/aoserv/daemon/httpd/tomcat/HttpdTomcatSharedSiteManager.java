@@ -65,6 +65,10 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
         );
     }
 
+    public boolean isStartable() throws IOException, SQLException {
+        return tomcatSharedSite.getHttpdSharedTomcat().getDisableLog()==null;
+    }
+
     public String getStartStopScriptPath() throws IOException, SQLException {
         return
             HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
@@ -72,6 +76,10 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
             + tomcatSharedSite.getHttpdSharedTomcat().getName()
             + "/bin/tomcat"
         ;
+    }
+
+    public String getStartStopScriptUsername() throws IOException, SQLException {
+        return tomcatSharedSite.getHttpdSharedTomcat().getLinuxServerAccount().getLinuxAccount().getUsername().getUsername();
     }
 
     protected void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) {

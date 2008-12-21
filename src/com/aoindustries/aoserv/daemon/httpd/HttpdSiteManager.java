@@ -17,12 +17,12 @@ import com.aoindustries.aoserv.client.HttpdTomcatSite;
 import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
 import com.aoindustries.aoserv.daemon.util.FileUtils;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -127,7 +127,7 @@ public abstract class HttpdSiteManager {
             if(manager instanceof StopStartable) {
                 final StopStartable stopStartRestartable = (StopStartable)manager;
                 Callable<Object> commandCallable;
-                if(httpdSite.getDisableLog()==null) {
+                if(stopStartRestartable.isStartable()) {
                     // Enabled, start or restart
                     if(sitesNeedingRestarted.contains(httpdSite)) {
                         commandCallable = new Callable<Object>() {
@@ -243,17 +243,21 @@ public abstract class HttpdSiteManager {
         HttpdSiteManager manager = getInstance(httpdSite);
         if(manager instanceof StopStartable) {
             StopStartable stopStartable = (StopStartable)manager;
-            if(stopStartable.stop()) {
-                try {
-                    Thread.sleep(5000);
-                } catch(InterruptedException err) {
-                    AOServDaemon.reportWarning(err, null);
+            if(stopStartable.isStartable()) {
+                if(stopStartable.stop()) {
+                    try {
+                        Thread.sleep(5000);
+                    } catch(InterruptedException err) {
+                        AOServDaemon.reportWarning(err, null);
+                    }
                 }
-            }
-            stopStartable.start();
+                stopStartable.start();
 
-            // Null means all went well
-            return null;
+                // Null means all went well
+                return null;
+            } else {
+                return "HttpdSite #"+sitePKey+" is not currently startable";
+            }
         } else {
             return "HttpdSite #"+sitePKey+" is not a type of site that can be stopped and started";
         }
@@ -402,87 +406,89 @@ public abstract class HttpdSiteManager {
     protected abstract boolean enablePhp();
 
     /**
-     * Creates the CGI php script, CGI must be enabled and PHP enabled.
-     * If CGI is disabled or PHP is disabled, does nothing.
-     * Any existing file will not be overwritten, even when in auto mode.
+     * Creates or updates the CGI php script, CGI must be enabled and PHP enabled.
+     * If CGI is disabled or PHP is disabled, removed any php script.
+     * Any existing file will be overwritten, even when in manual mode.
      */
     protected void createCgiPhpScript(UnixFile cgibinDirectory) throws IOException, SQLException {
+        UnixFile phpFile = new UnixFile(cgibinDirectory, "php", false);
+        // TODO: If every server this site runs as uses mod_php, then don't make the script
         if(enableCgi() && enablePhp()) {
-            Stat tempStat = new Stat();
-            UnixFile phpFile = new UnixFile(cgibinDirectory, "php", false);
-            if(!phpFile.getStat(tempStat).exists()) {
-                HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
-                String phpCgiPath = osConfig.getPhpCgiPath(osConfig.getDefaultPhpVersion());
-                String postgresqlScriptInclude = osConfig.getOperatingSystemConfiguration().getScriptInclude(
-                    "postgresql-"+osConfig.getDefaultPhpPostgresMinorVersion()+".sh"
-                );
-
-                // Write to temp file first
-                UnixFile tempFile = UnixFile.mktemp(phpFile.getPath()+".", false);
-                try {
-                    ChainWriter out = new ChainWriter(new FileOutputStream(tempFile.getFile()));
-                    try {
-                        out.print("#!/bin/sh\n"
-                                  + ". ").print(postgresqlScriptInclude).print("\n"
-                                  + "exec ").print(phpCgiPath).print(" \"$@\"\n");
-                    } finally {
-                        out.close();
-                    }
-                    // Set permissions and ownership
-                    tempFile.setMode(0755);
-                    tempFile.chown(httpdSite.getLinuxServerAccount().getUID().getID(), httpdSite.getLinuxServerGroup().getGID().getID());
-                    // Move into place
-                    tempFile.renameTo(phpFile);
-                } finally {
-                    // If still exists then there was a problem, clean-up
-                    if(tempFile.getStat(tempStat).exists()) tempFile.delete();
-                }
-            }
-        }
-    }
-
-    /**
-     * If the cgi-bin/php script exists, will upgrade it if necessary.
-     * 
-     * @return  <code>true</code> if the script was modified
-     */
-    public boolean upgradeCgiPhpScript(UnixFile cgibinDirectory) throws IOException, SQLException {
-        boolean updated = false;
-        OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
-        if(osConfig==OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
-            UnixFile phpFile = new UnixFile(cgibinDirectory, "php", false);
+            HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
+            String phpVersion;
             if(phpFile.getStat().exists()) {
-                // Replace /usr/aoserv/etc in bin/profile
-                String results = AOServDaemon.execAndCapture(
-                    new String[] {
-                        osConfig.getReplaceCommand(),
-                        "/usr/aoserv/etc/postgresql",
-                        "/opt/aoserv-client/scripts/postgresql",
-
-                        "/usr/php/4/bin/php",
-                        "/opt/php-4-i686/bin/php",
-
-                        "/usr/php/5/bin/php",
-                        "/opt/php-5-i686/bin/php-cgi",
-
-                        "/usr/php/5/bin/php-cgi",
-                        "/opt/php-5-i686/bin/php-cgi",
-                        
-                        // Correct upgrade mistake
-                        "/opt/php-4/bin/php",
-                        "/opt/php-4-i686/bin/php",
-
-                        "/opt/php-5/bin/php-cgi",
-                        "/opt/php-5-i686/bin/php-cgi",
-                        
-                        "--",
-                        phpFile.getPath()
-                    }
-                );
-                if(results.length()>0) updated = true;
+                String contents = FileUtils.readFileAsString(phpFile);
+                if(
+                    // CentOS 5 + RedHat ES 4
+                    contents.contains("/opt/php-5/bin/php")
+                    || contents.contains("/opt/php-5-i686/bin/php")
+                    // Mandriva 2006.0
+                    || contents.contains("/usr/php-5.0.1/bin/php")
+                    || contents.contains("/usr/php/5.0/bin/php")
+                    || contents.contains("/usr/php/5/bin/php")
+                    || contents.contains("/usr/php/5/bin/php-cgi")
+                ) {
+                    phpVersion = "5";
+                } else if(
+                    // CentOS 5
+                    contents.contains("/opt/php-4/bin/php")
+                    || contents.contains("/opt/php-4-i686/bin/php")
+                    // Mandriva 2006.0
+                    || contents.contains("/usr/php-4.0.6/bin/php")
+                    || contents.contains("/usr/php-4.2.3/bin/php")
+                    || contents.contains("/usr/php-4.3.0/bin/php")
+                    || contents.contains("/usr/php-4.3.3/bin/php")
+                    || contents.contains("/usr/php-4.3.8/bin/php")
+                    || contents.contains("/usr/php/4.3/bin/php")
+                    || contents.contains("/usr/php/4/bin/php")
+                ) {
+                    phpVersion = "4";
+                } else {
+                    phpVersion = osConfig.getDefaultPhpVersion();
+                }
+            } else {
+                phpVersion = osConfig.getDefaultPhpVersion();
             }
+            String phpCgiPath = osConfig.getPhpCgiPath(phpVersion);
+
+            // Build to RAM first
+            ByteArrayOutputStream bout = new ByteArrayOutputStream();
+            ChainWriter out = new ChainWriter(bout);
+            try {
+                out.print("#!/bin/sh\n");
+                if(phpVersion.equals("4")) {
+                    out.print("export LD_LIBRARY_PATH=\"/opt/mysql-5.0-i686/lib:/opt/postgresql-7.3-i686/lib:${LD_LIBRARY_PATH}\"\n");
+                } else if(phpVersion.equals("5")) {
+                    out.print("export LD_LIBRARY_PATH=\"/opt/mysql-5.0-i686/lib:/opt/postgresql-8.1-i686/lib:${LD_LIBRARY_PATH}\"\n");
+                } else throw new SQLException("Unexpected version for php: "+phpVersion);
+                out.print("exec ").print(phpCgiPath).print(" \"$@\"\n");
+            } finally {
+                out.close();
+            }
+            // Only rewrite when needed
+            int uid = httpdSite.getLinuxServerAccount().getUID().getID();
+            int gid = httpdSite.getLinuxServerGroup().getGID().getID();
+            int mode = 0755;
+            // Create parent if missing
+            UnixFile parent = cgibinDirectory.getParent();
+            if(!parent.getStat().exists()) parent.mkdir(true, 0775, uid, gid);
+            // Create cgi-bin if missing
+            FileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
+            FileUtils.writeIfNeeded(
+                bout.toByteArray(),
+                null,
+                phpFile,
+                uid,
+                gid,
+                mode
+            );
+            // Make sure permissions correct
+            Stat phpStat = phpFile.getStat();
+            if(phpStat.getUID()!=uid || phpStat.getGID()!=gid) phpFile.chown(uid, gid);
+            if(phpStat.getMode()!=mode) phpFile.setMode(mode);
+        } else {
+            if(phpFile.getStat().exists()) phpFile.delete();
         }
-        return updated;
     }
 
     /**

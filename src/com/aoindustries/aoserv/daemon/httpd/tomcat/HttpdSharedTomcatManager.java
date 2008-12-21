@@ -242,6 +242,9 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
      */
     protected abstract boolean upgradeSharedTomcatDirectory(UnixFile siteDirectory) throws IOException, SQLException;
 
+    /**
+     * Gets the PID file.
+     */
     public UnixFile getPidFile() throws IOException, SQLException {
         return new UnixFile(
             HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
@@ -249,6 +252,10 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
             + sharedTomcat.getName()
             + "/var/run/tomcat.pid"
         );
+    }
+
+    public boolean isStartable() throws IOException, SQLException {
+        return sharedTomcat.getDisableLog()==null;
     }
 
     public String getStartStopScriptPath() throws IOException, SQLException {

@@ -51,6 +51,10 @@ public abstract class HttpdJBossSiteManager<TC extends TomcatCommon> extends Htt
         );
     }
 
+    public boolean isStartable() throws IOException, SQLException {
+        return httpdSite.getDisableLog()==null;
+    }
+    
     public String getStartStopScriptPath() throws IOException, SQLException {
         return
             HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
@@ -58,6 +62,10 @@ public abstract class HttpdJBossSiteManager<TC extends TomcatCommon> extends Htt
             + httpdSite.getSiteName()
             + "/bin/jboss"
         ;
+    }
+
+    public String getStartStopScriptUsername() throws IOException, SQLException {
+        return httpdSite.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername();
     }
 
     protected void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) {

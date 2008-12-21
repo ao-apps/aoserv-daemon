@@ -102,7 +102,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         UnixFile pidFile = getPidFile();
         if(pidFile.getStat().exists()) {
             AOServDaemon.suexec(
-                httpdSite.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername(),
+                getStartStopScriptUsername(),
                 getStartStopScriptPath()+" stop",
                 0
             );
@@ -117,7 +117,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         UnixFile pidFile = getPidFile();
         if(!pidFile.getStat().exists()) {
             AOServDaemon.suexec(
-                httpdSite.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername(),
+                getStartStopScriptUsername(),
                 getStartStopScriptPath()+" start",
                 0
             );
@@ -132,7 +132,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
                     System.err.println("Warning: Deleting PID file for dead process: "+pidFile.getPath());
                     pidFile.delete();
                     AOServDaemon.suexec(
-                        httpdSite.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername(),
+                        getStartStopScriptUsername(),
                         getStartStopScriptPath()+" start",
                         0
                     );
@@ -194,7 +194,10 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
     /**
      * Gets the PID file for the wrapper script.  When this file exists the
      * script is assumed to be running.  This PID file may be shared between
-     * multiple sites in the case of a shared Tomcat.
+     * multiple sites in the case of a shared Tomcat.  Also, it is possible
+     * that the JVM may be disabled while the site overall is not.
+     * 
+     * @return  the .pid file or <code>null</code> if should not be running
      */
     public abstract UnixFile getPidFile() throws IOException, SQLException;
     
@@ -202,6 +205,11 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
      * Gets the path to the start/stop script.
      */
     public abstract String getStartStopScriptPath() throws IOException, SQLException;
+
+    /**
+     * Gets the username to run the start/stop script as.
+     */
+    public abstract String getStartStopScriptUsername() throws IOException, SQLException;
 
     /**
      * Every Tomcat site is built through the same overall set of steps.
@@ -235,7 +243,6 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
                 FileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
                 FileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
                 createTestCGI(cgibinDirectory);
-                createCgiPhpScript(cgibinDirectory);
             }
 
             // index.html
@@ -253,7 +260,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         if(upgradeSiteDirectoryContents(siteDirectory)) needsRestart = true;
         
         // CGI-based PHP
-        upgradeCgiPhpScript(cgibinDirectory); // No need to restart on cgi-bin/php upgrade
+        createCgiPhpScript(cgibinDirectory);
 
         // Rebuild config files that need to be updated
         if(rebuildConfigFiles(siteDirectory)) needsRestart = true;

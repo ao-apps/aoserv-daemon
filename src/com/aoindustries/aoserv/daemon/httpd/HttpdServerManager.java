@@ -479,7 +479,7 @@ public class HttpdServerManager {
                     + "\n"
                     + "LoadModule auth_basic_module modules/mod_auth_basic.so\n"
                     + "#LoadModule auth_digest_module modules/mod_auth_digest.so\n"
-                    + "#LoadModule authn_file_module modules/mod_authn_file.so\n"
+                    + "LoadModule authn_file_module modules/mod_authn_file.so\n"
                     + "#LoadModule authn_alias_module modules/mod_authn_alias.so\n"
                     + "#LoadModule authn_anon_module modules/mod_authn_anon.so\n"
                     + "#LoadModule authn_dbm_module modules/mod_authn_dbm.so\n"
@@ -487,7 +487,7 @@ public class HttpdServerManager {
                     + "LoadModule authz_host_module modules/mod_authz_host.so\n"
                     + "#LoadModule authz_user_module modules/mod_authz_user.so\n"
                     + "#LoadModule authz_owner_module modules/mod_authz_owner.so\n"
-                    + "#LoadModule authz_groupfile_module modules/mod_authz_groupfile.so\n"
+                    + "LoadModule authz_groupfile_module modules/mod_authz_groupfile.so\n"
                     + "#LoadModule authz_dbm_module modules/mod_authz_dbm.so\n"
                     + "#LoadModule authz_default_module modules/mod_authz_default.so\n"
                     + "#LoadModule ldap_module modules/mod_ldap.so\n"
@@ -1154,7 +1154,7 @@ public class HttpdServerManager {
     /**
      * Rebuilds /etc/rc.d/init.d/httpd* init scripts.
      */
-    private static void doRebuildInitScripts(AOServer aoServer, ByteArrayOutputStream bout, List<File> deleteFileList, Set<HttpdServer> serversNeedingReloaded) throws IOException {
+    private static void doRebuildInitScripts(AOServer aoServer, ByteArrayOutputStream bout, List<File> deleteFileList, Set<HttpdServer> serversNeedingReloaded) throws IOException, SQLException {
         List<HttpdServer> hss = aoServer.getHttpdServers();
         Set<String> dontDeleteFilenames = new HashSet<String>(hss.size()*4/3+1);
         for(HttpdServer hs : hss) {
@@ -1172,8 +1172,22 @@ public class HttpdServerManager {
                         + "# processname: httpd").print(num).print("\n"
                         + "# config: /etc/httpd/conf/httpd").print(num).print(".conf\n"
                         + "# pidfile: /var/run/httpd").print(num).print(".pid\n"
-                        + "\n"
-                        + "NUM=").print(num).print("\n"
+                        + "\n");
+                // mod_php requires MySQL and PostgreSQL in the path
+                TechnologyVersion modPhpVersion = hs.getModPhpVersion();
+                if(modPhpVersion!=null) {
+                    String version = modPhpVersion.getVersion();
+                    if(version.startsWith("4.4.")) {
+                        out.print("export LD_LIBRARY_PATH=\"/opt/mysql-5.0-i686/lib:${LD_LIBRARY_PATH}\"\n"
+                                + "export LD_LIBRARY_PATH=\"/opt/postgresql-7.3-i686/lib:${LD_LIBRARY_PATH}\"\n"
+                                + "\n");
+                    } else if(version.startsWith("5.2.")) {
+                        out.print("export LD_LIBRARY_PATH=\"/opt/mysql-5.0-i686/lib:${LD_LIBRARY_PATH}\"\n"
+                                + "export LD_LIBRARY_PATH=\"/opt/postgresql-8.1-i686/lib:${LD_LIBRARY_PATH}\"\n"
+                                + "\n");
+                    } else throw new SQLException("Unexpected version for mod_php: "+version);
+                }
+                out.print("NUM=").print(num).print("\n"
                         + ". /opt/aoserv-daemon/init.d/httpd\n");
             } finally {
                 out.close();
