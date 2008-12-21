@@ -31,6 +31,9 @@ import java.util.Set;
 
 /**
  * Manages HttpdSharedTomcat version 3.X configurations.
+ * 
+ * TODO: Replace all uses of "replace" with a read file then call replace only if one of the "from" values is found.  Should be faster
+ *       be eliminating unnecessary subprocesses.
  *
  * @author  AO Industries, Inc.
  */
@@ -107,31 +110,32 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
                         + ". ").print(osConfig.getScriptInclude("php-"+httpdConfig.getDefaultPhpVersion()+".sh")).print('\n');
                 if(postgresServerMinorVersion!=null) out.print(". ").print(osConfig.getScriptInclude("postgresql-"+postgresServerMinorVersion+".sh")).print('\n');
                 out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("castor-0.8.8.sh")).print("\n"
+                        + ". ").print(osConfig.getScriptInclude("castor-0.8.sh")).print("\n"
                         + ". ").print(osConfig.getScriptInclude("cos-27May2002.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("ecs-1.3.3.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("freemarker-1.5.2.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("jaf-1.0.1.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("jakarta-slide-1.0m4.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("kavachart-3.1b2.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("javamail-1.1.3.sh")).print("\n"
+                        + ". ").print(osConfig.getScriptInclude("ecs-1.3.sh")).print("\n"
+                        + ". ").print(osConfig.getScriptInclude("freemarker-1.5.sh")).print("\n"
+                        + ". ").print(osConfig.getScriptInclude("gnu.regexp-1.0.sh")).print("\n"
+                        + ". ").print(osConfig.getScriptInclude("jaf-1.0.sh")).print("\n"
+                        + ". ").print(osConfig.getScriptInclude("slide-1.0.sh")).print("\n"
+                        + ". ").print(osConfig.getScriptInclude("kavachart-3.1.sh")).print("\n"
+                        + ". ").print(osConfig.getScriptInclude("javamail-1.1.sh")).print("\n"
                         + ". ").print(osConfig.getScriptInclude("jdbc-2.0.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("jsse-1.0.2.sh")).print("\n"
+                        + ". ").print(osConfig.getScriptInclude("jsse-1.0.sh")).print("\n"
                         + ". ").print(osConfig.getScriptInclude("jyve-20000907.sh")).print("\n"
                         + ". ").print(osConfig.getScriptInclude("mm.mysql-2.0.7.sh")).print("\n"
                         + ". ").print(osConfig.getScriptInclude("openxml-1.2.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("pop3-1.1.1.sh")).print("\n"
+                        + ". ").print(osConfig.getScriptInclude("pop3-1.1.sh")).print("\n"
                         + ". ").print(osConfig.getScriptInclude("soap-2.0.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("spfc-0.2.0.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("jakarta-turbine-20000907.sh")).print("\n"
+                        + ". ").print(osConfig.getScriptInclude("spfc-0.2.sh")).print("\n"
+                        + ". ").print(osConfig.getScriptInclude("turbine-20000907.sh")).print("\n"
                         + ". ").print(osConfig.getScriptInclude("village-1.3.sh")).print("\n"
                         + ". ").print(osConfig.getScriptInclude("webmacro-27-08-2000.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("xang-0.0.2.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("xmlrpc-1.0b3.sh")).print("\n"
+                        + ". ").print(osConfig.getScriptInclude("xang-0.0.sh")).print("\n"
+                        + ". ").print(osConfig.getScriptInclude("xmlrpc-1.0.sh")).print("\n"
                         + ". ").print(osConfig.getScriptInclude("interclient-2.0.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("poolman-1.4.1.sh")).print("\n"
+                        + ". ").print(osConfig.getScriptInclude("poolman-1.4.sh")).print("\n"
                         + "export \"CLASSPATH=/usr/aoserv/lib-1.3/aocode-public.jar:$CLASSPATH\"\n"
-                        + ". ").print(osConfig.getScriptInclude("fop-0.15.0.sh")).print('\n'
+                        //+ ". ").print(osConfig.getScriptInclude("fop-0.15.sh")).print('\n'
                         + "\n"
                         + "export PATH=${PATH}:").print(wwwGroupDir).print("/bin\n"
                         + "\n"
