@@ -426,13 +426,15 @@ public abstract class HttpdSiteManager {
                     || contents.contains("/usr/php-5.0.1/bin/php")
                     || contents.contains("/usr/php/5.0/bin/php")
                     || contents.contains("/usr/php/5/bin/php")
-                    || contents.contains("/usr/php/5/bin/php-cgi")
+                    //|| contents.contains("/usr/php/5/bin/php-cgi")  // Already matched by just ".../php"
                 ) {
                     phpVersion = "5";
                 } else if(
                     // CentOS 5
                     contents.contains("/opt/php-4/bin/php")
                     || contents.contains("/opt/php-4-i686/bin/php")
+                    //|| contents.contains("/opt/php-4/bin/php-cgi")  // Already matched by just ".../php"
+                    //|| contents.contains("/opt/php-4-i686/bin/php-cgi")  // Already matched by just ".../php"
                     // Mandriva 2006.0
                     || contents.contains("/usr/php-4.0.6/bin/php")
                     || contents.contains("/usr/php-4.2.3/bin/php")

@@ -8,6 +8,7 @@ import com.aoindustries.io.unix.UnixFile;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+import com.aoindustries.util.StringUtility;
 import java.io.IOException;
 
 /**
@@ -21,8 +22,13 @@ public class UpgradeSymlink {
     private final String oldLinkTarget;
     private final String newLinkTarget;
 
+    /**
+     * @param linkPath
+     * @param oldLinkTarget  if <code>null</code> the link will be created if missing
+     * @param newLinkTarget
+     */
     public UpgradeSymlink(String linkPath, String oldLinkTarget, String newLinkTarget) {
-        if(oldLinkTarget.equals(newLinkTarget)) throw new IllegalArgumentException("oldLinkTarget=newLinkTarget: "+oldLinkTarget);
+        if(StringUtility.equals(oldLinkTarget, newLinkTarget)) throw new IllegalArgumentException("oldLinkTarget=newLinkTarget: "+oldLinkTarget);
         this.linkPath = linkPath;
         this.oldLinkTarget = oldLinkTarget;
         this.newLinkTarget = newLinkTarget;
@@ -43,7 +49,7 @@ public class UpgradeSymlink {
     }
     
     /**
-     * Gets the new link target.
+     * Gets the new link target or <code>null</code> if should not exist.
      */
     public String getNewLinkTarget() {
         return newLinkTarget;
@@ -60,19 +66,25 @@ public class UpgradeSymlink {
         boolean needsRestart = false;
         UnixFile link = new UnixFile(baseDirectory.getPath()+"/"+linkPath);
         Stat linkStat = link.getStat();
-        if(linkStat.exists()) {
+        if(oldLinkTarget==null) {
+            if(!linkStat.exists()) {
+                link.symLink(newLinkTarget);
+                link.getStat(linkStat);
+                needsRestart = true;
+            }
+        } else if(linkStat.exists()) {
             if(linkStat.isSymLink()) {
                 String target = link.readLink();
                 if(target.equals(oldLinkTarget)) {
                     link.delete();
-                    link.symLink(newLinkTarget);
+                    if(newLinkTarget!=null) link.symLink(newLinkTarget);
                     link.getStat(linkStat);
                     needsRestart = true;
                 }
             }
-            // Check ownership
-            if(linkStat.getUID()!=uid || linkStat.getGID()!=gid) link.chown(uid, gid);
         }
+        // Check ownership
+        if(linkStat.exists() && (linkStat.getUID()!=uid || linkStat.getGID()!=gid)) link.chown(uid, gid);
         return needsRestart;
     }
 }

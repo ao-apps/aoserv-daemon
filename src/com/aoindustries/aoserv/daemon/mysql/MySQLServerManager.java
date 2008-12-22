@@ -138,8 +138,11 @@ final public class MySQLServerManager extends BuilderThread {
             ) {
                 path="/usr/mysql/"+mysqlServer.getMinorVersion()+"/bin/mysqladmin";
             } else if(
+                osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+            ) {
+                path="/opt/mysql-"+mysqlServer.getMinorVersion()+"-i686/bin/mysqladmin";
+            } else if(
                 osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
-                || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) {
                 path="/opt/mysql-"+mysqlServer.getMinorVersion()+"/bin/mysqladmin";
             } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);

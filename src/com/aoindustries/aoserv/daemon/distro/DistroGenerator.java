@@ -390,6 +390,7 @@ final public class DistroGenerator extends Thread {
         this.threadNum=threadNum;
     }
     
+    @Override
     public void run() {
         try {
             final OSFilename osFilename=new OSFilename();
@@ -455,26 +456,62 @@ final public class DistroGenerator extends Thread {
                                     "--md5",
                                     osFilename.filename
                                 };
-                                Process P = Runtime.getRuntime().exec(command);
                                 try {
-                                    P.getOutputStream().close();
-                                    BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()));
+                                    Process P = Runtime.getRuntime().exec(command);
                                     try {
-                                        String line = in.readLine();
-                                        if(line.length()<32) throw new IOException("Line too short, must be at least 32 characters: "+line);
-                                        String md5 = line.substring(0, 32);
-                                        SB.append(MD5.getMD5Hi(md5)).append("::int8, ").append(MD5.getMD5Lo(md5)).append("::int8");
+                                        P.getOutputStream().close();
+                                        BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()));
+                                        try {
+                                            String line = in.readLine();
+                                            if(line.length()<32) throw new IOException("Line too short, must be at least 32 characters: "+line);
+                                            String md5 = line.substring(0, 32);
+                                            SB.append(MD5.getMD5Hi(md5)).append("::int8, ").append(MD5.getMD5Lo(md5)).append("::int8");
+                                        } finally {
+                                            in.close();
+                                        }
                                     } finally {
-                                        in.close();
+                                        try {
+                                            int retCode = P.waitFor();
+                                            if(retCode!=0) throw new IOException("Non-zero response from command: "+AOServDaemon.getCommandString(command));
+                                        } catch(InterruptedException err) {
+                                            IOException ioErr = new InterruptedIOException();
+                                            ioErr.initCause(err);
+                                            throw ioErr;
+                                        }
                                     }
-                                } finally {
+                                } catch(IOException err) {
+                                    AOServDaemon.reportWarning(err, null);
+                                    String[] undoCommand = {
+                                        "/usr/sbin/chroot",
+                                        root+'/'+osFilename.getOSName()+'/'+osFilename.getOSVersion()+'/'+osFilename.getOSArchitecture(),
+                                        "/usr/sbin/prelink",
+                                        "--undo",
+                                        osFilename.filename
+                                    };
+                                    AOServDaemon.exec(undoCommand);
+
+                                    // Try again after undo
+                                    Process P = Runtime.getRuntime().exec(command);
                                     try {
-                                        int retCode = P.waitFor();
-                                        if(retCode!=0) throw new IOException("Non-zero response from command: "+AOServDaemon.getCommandString(command));
-                                    } catch(InterruptedException err) {
-                                        IOException ioErr = new InterruptedIOException();
-                                        ioErr.initCause(err);
-                                        throw ioErr;
+                                        P.getOutputStream().close();
+                                        BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()));
+                                        try {
+                                            String line = in.readLine();
+                                            if(line.length()<32) throw new IOException("Line too short, must be at least 32 characters: "+line);
+                                            String md5 = line.substring(0, 32);
+                                            SB.append(MD5.getMD5Hi(md5)).append("::int8, ").append(MD5.getMD5Lo(md5)).append("::int8");
+                                        } finally {
+                                            in.close();
+                                        }
+                                    } finally {
+                                        try {
+                                            int retCode = P.waitFor();
+                                            if(retCode!=0) throw new IOException("Non-zero response from command: "+AOServDaemon.getCommandString(command));
+                                        } catch(InterruptedException err2) {
+                                            IOException ioErr = new InterruptedIOException();
+                                            ioErr.initCause(err2);
+                                            throw ioErr;
+                                        }
                                     }
                                 }
                             } else throw new RuntimeException("Unexpected value for type: "+type);

@@ -1495,8 +1495,9 @@ final public class ImapManager extends BuilderThread {
                         IMAPFolder userFolder = (IMAPFolder)store.getFolder(cyrusFolder);
                         try {
                             if(!userFolder.exists()) throw new MessagingException("Folder doesn't exist: "+cyrusFolder);
-                            if(log.isDebugEnabled()) log.debug("Deleting mailbox: "+cyrusFolder);
+                            // TODO: Backup mailbox to /var/oldaccounts
                             rebuildAcl(userFolder, LinuxAccount.CYRUS, "default", new Rights("acdkrx")); // Adds the d permission
+                            if(log.isDebugEnabled()) log.debug("Deleting mailbox: "+cyrusFolder);
                             if(!userFolder.delete(true)) throw new IOException("Unable to delete mailbox: "+cyrusFolder);
                         } finally {
                             if(userFolder.isOpen()) userFolder.close(false);

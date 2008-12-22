@@ -139,6 +139,11 @@ class TomcatCommon_5_5_X extends TomcatCommon {
             "../../../../opt/postgresql-7.3/share/java/postgresql.jar"
         ),
         new UpgradeSymlink(
+            "common/lib/postgresql.jar",
+            "../../../../usr/postgresql/8.1/share/java/postgresql.jar",
+            "../../../../opt/postgresql-8.1/share/java/postgresql.jar"
+        ),
+        new UpgradeSymlink(
             "common/lib/servlet-api.jar",
             "../../../../usr/apache/jakarta/tomcat/5.5/common/lib/servlet-api.jar",
             "../../../../opt/apache-tomcat-5.5/common/lib/servlet-api.jar"
@@ -220,8 +225,18 @@ class TomcatCommon_5_5_X extends TomcatCommon {
         ),
         new UpgradeSymlink(
             "server/lib/commons-modeler.jar",
+            null,   // Add if missing
+            "../../../../opt/apache-tomcat-5.5/server/lib/commons-modeler.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/commons-modeler.jar",
             "../../../../usr/apache/jakarta/tomcat/5.5/server/lib/commons-modeler.jar",
             "../../../../opt/apache-tomcat-5.5/server/lib/commons-modeler.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/commons-modeler-2.0.1.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5/server/lib/commons-modeler-2.0.1.jar",
+            null
         ),
         new UpgradeSymlink(
             "server/lib/servlets-cgi.renametojar",

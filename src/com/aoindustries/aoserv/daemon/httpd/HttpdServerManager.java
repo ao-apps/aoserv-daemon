@@ -485,7 +485,7 @@ public class HttpdServerManager {
                     + "#LoadModule authn_dbm_module modules/mod_authn_dbm.so\n"
                     + "#LoadModule authn_default_module modules/mod_authn_default.so\n"
                     + "LoadModule authz_host_module modules/mod_authz_host.so\n"
-                    + "#LoadModule authz_user_module modules/mod_authz_user.so\n"
+                    + "LoadModule authz_user_module modules/mod_authz_user.so\n"
                     + "#LoadModule authz_owner_module modules/mod_authz_owner.so\n"
                     + "LoadModule authz_groupfile_module modules/mod_authz_groupfile.so\n"
                     + "#LoadModule authz_dbm_module modules/mod_authz_dbm.so\n"
@@ -523,9 +523,10 @@ public class HttpdServerManager {
                     + "#LoadModule proxy_ftp_module modules/mod_proxy_ftp.so\n"
                     + "LoadModule proxy_http_module modules/mod_proxy_http.so\n"
                     + "#LoadModule proxy_connect_module modules/mod_proxy_connect.so\n"
-                    + "#LoadModule cache_module modules/mod_cache.so\n"
-                    + "#LoadModule suexec_module modules/mod_suexec.so\n"
-                    + "#LoadModule disk_cache_module modules/mod_disk_cache.so\n"
+                    + "#LoadModule cache_module modules/mod_cache.so\n");
+            if(hs.useSuexec()) out.print("LoadModule suexec_module modules/mod_suexec.so\n");
+            else out.print("#LoadModule suexec_module modules/mod_suexec.so\n");
+            out.print("#LoadModule disk_cache_module modules/mod_disk_cache.so\n"
                     + "#LoadModule file_cache_module modules/mod_file_cache.so\n"
                     + "#LoadModule mem_cache_module modules/mod_mem_cache.so\n"
                     + "LoadModule cgi_module modules/mod_cgi.so\n"
@@ -533,7 +534,6 @@ public class HttpdServerManager {
                     + "#LoadModule asis_module modules/mod_asis.so\n"
                     + "LoadModule jk_module modules/mod_jk-1.2.27.so\n"
                     + "LoadModule ssl_module modules/mod_ssl.so\n");
-            if(hs.useSuexec()) out.print("LoadModule suexec_module modules/mod_suexec.so\n");
             if(isEnabled && phpVersion!=null) {
                 String version = phpVersion.getVersion();
                 String phpMajorVersion = getMajorPhpVersion(version);
