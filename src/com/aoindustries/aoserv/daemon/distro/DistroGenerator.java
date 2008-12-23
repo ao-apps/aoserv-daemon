@@ -448,9 +448,10 @@ final public class DistroGenerator extends Thread {
                                 byte[] md5=DistroManager.hashFile(osFilename.getFullPath(root));
                                 SB.append(MD5.getMD5Hi(md5)).append("::int8, ").append(MD5.getMD5Lo(md5)).append("::int8");
                             } else if(type.equals(DistroFileType.PRELINK)) {
+                                String chroot = root+'/'+osFilename.getOSName()+'/'+osFilename.getOSVersion()+'/'+osFilename.getOSArchitecture();
                                 String[] command = {
                                     "/usr/sbin/chroot",
-                                    root+'/'+osFilename.getOSName()+'/'+osFilename.getOSVersion()+'/'+osFilename.getOSArchitecture(),
+                                    chroot,
                                     "/usr/sbin/prelink",
                                     "--verify",
                                     "--md5",
@@ -480,10 +481,10 @@ final public class DistroGenerator extends Thread {
                                         }
                                     }
                                 } catch(IOException err) {
-                                    AOServDaemon.reportWarning(err, null);
+                                    System.err.println("Undoing prelink on \""+osFilename.filename+"\": "+err.toString());
                                     String[] undoCommand = {
                                         "/usr/sbin/chroot",
-                                        root+'/'+osFilename.getOSName()+'/'+osFilename.getOSVersion()+'/'+osFilename.getOSArchitecture(),
+                                        chroot,
                                         "/usr/sbin/prelink",
                                         "--undo",
                                         osFilename.filename
