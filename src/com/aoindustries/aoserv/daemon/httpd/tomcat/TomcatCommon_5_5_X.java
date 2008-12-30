@@ -53,6 +53,210 @@ class TomcatCommon_5_5_X extends TomcatCommon {
         return "1.5.0";
     }
 
+    private static final UpgradeSymlink[] upgradeSymlinks_5_5_20 = {
+        // Upgrade from Mandriva 2006.0 to CentOS 5
+        new UpgradeSymlink(
+            "bin/bootstrap.jar",
+            "../../../usr/apache/jakarta/tomcat/5.5.20/bin/bootstrap.jar",
+            "../../../opt/apache-tomcat-5.5.20/bin/bootstrap.jar"
+        ),
+        new UpgradeSymlink(
+            "bin/catalina.sh",
+            "../../../usr/apache/jakarta/tomcat/5.5.20/bin/catalina.sh",
+            "../../../opt/apache-tomcat-5.5.20/bin/catalina.sh"
+        ),
+        new UpgradeSymlink(
+            "bin/commons-daemon.jar",
+            "../../../usr/apache/jakarta/tomcat/5.5.20/bin/commons-daemon.jar",
+            "../../../opt/apache-tomcat-5.5.20/bin/commons-daemon.jar"
+        ),
+        new UpgradeSymlink(
+            "bin/commons-logging-api.jar",
+            "../../../usr/apache/jakarta/tomcat/5.5.20/bin/commons-logging-api.jar",
+            "../../../opt/apache-tomcat-5.5.20/bin/commons-logging-api.jar"
+        ),
+        new UpgradeSymlink(
+            "bin/digest.sh",
+            "../../../usr/apache/jakarta/tomcat/5.5.20/bin/digest.sh",
+            "../../../opt/apache-tomcat-5.5.20/bin/digest.sh"
+        ),
+        new UpgradeSymlink(
+            "bin/setclasspath.sh",
+            "../../../usr/apache/jakarta/tomcat/5.5.20/bin/setclasspath.sh",
+            "../../../opt/apache-tomcat-5.5.20/bin/setclasspath.sh"
+        ),
+        new UpgradeSymlink(
+            "bin/tomcat-juli.jar",
+            "../../../usr/apache/jakarta/tomcat/5.5.20/bin/tomcat-juli.jar",
+            "../../../opt/apache-tomcat-5.5.20/bin/tomcat-juli.jar"
+        ),
+        new UpgradeSymlink(
+            "bin/tool-wrapper.sh",
+            "../../../usr/apache/jakarta/tomcat/5.5.20/bin/tool-wrapper.sh",
+            "../../../opt/apache-tomcat-5.5.20/bin/tool-wrapper.sh"
+        ),
+        new UpgradeSymlink(
+            "bin/version.sh",
+            "../../../usr/apache/jakarta/tomcat/5.5.20/bin/version.sh",
+            "../../../opt/apache-tomcat-5.5.20/bin/version.sh"
+        ),
+        new UpgradeSymlink(
+            "common/i18n/tomcat-i18n-en.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/common/i18n/tomcat-i18n-en.jar",
+            "../../../../opt/apache-tomcat-5.5.20/common/i18n/tomcat-i18n-en.jar"
+        ),
+        new UpgradeSymlink(
+            "common/i18n/tomcat-i18n-es.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/common/i18n/tomcat-i18n-es.jar",
+            "../../../../opt/apache-tomcat-5.5.20/common/i18n/tomcat-i18n-es.jar"
+        ),
+        new UpgradeSymlink(
+            "common/i18n/tomcat-i18n-fr.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/common/i18n/tomcat-i18n-fr.jar",
+            "../../../../opt/apache-tomcat-5.5.20/common/i18n/tomcat-i18n-fr.jar"
+        ),
+        new UpgradeSymlink(
+            "common/i18n/tomcat-i18n-ja.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/common/i18n/tomcat-i18n-ja.jar",
+            "../../../../opt/apache-tomcat-5.5.20/common/i18n/tomcat-i18n-ja.jar"
+        ),
+        new UpgradeSymlink(
+            "common/lib/commons-el.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/common/lib/commons-el.jar",
+            "../../../../opt/apache-tomcat-5.5.20/common/lib/commons-el.jar"
+        ),
+        new UpgradeSymlink(
+            "common/lib/jasper-compiler.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/common/lib/jasper-compiler.jar",
+            "../../../../opt/apache-tomcat-5.5.20/common/lib/jasper-compiler.jar"
+        ),
+        new UpgradeSymlink(
+            "common/lib/jasper-compiler-jdt.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/common/lib/jasper-compiler-jdt.jar",
+            "../../../../opt/apache-tomcat-5.5.20/common/lib/jasper-compiler-jdt.jar"
+        ),
+        new UpgradeSymlink(
+            "common/lib/jasper-runtime.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/common/lib/jasper-runtime.jar",
+            "../../../../opt/apache-tomcat-5.5.20/common/lib/jasper-runtime.jar"
+        ),
+        new UpgradeSymlink(
+            "common/lib/jsp-api.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/common/lib/jsp-api.jar",
+            "../../../../opt/apache-tomcat-5.5.20/common/lib/jsp-api.jar"
+        ),
+        new UpgradeSymlink(
+            "common/lib/naming-factory-dbcp.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/common/lib/naming-factory-dbcp.jar",
+            "../../../../opt/apache-tomcat-5.5.20/common/lib/naming-factory-dbcp.jar"
+        ),
+        new UpgradeSymlink(
+            "common/lib/naming-factory.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/common/lib/naming-factory.jar",
+            "../../../../opt/apache-tomcat-5.5.20/common/lib/naming-factory.jar"
+        ),
+        new UpgradeSymlink(
+            "common/lib/naming-resources.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/common/lib/naming-resources.jar",
+            "../../../../opt/apache-tomcat-5.5.20/common/lib/naming-resources.jar"
+        ),
+        new UpgradeSymlink(
+            "common/lib/servlet-api.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/common/lib/servlet-api.jar",
+            "../../../../opt/apache-tomcat-5.5.20/common/lib/servlet-api.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/catalina.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/server/lib/catalina.jar",
+            "../../../../opt/apache-tomcat-5.5.20/server/lib/catalina.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/catalina-ant.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/server/lib/catalina-ant.jar",
+            "../../../../opt/apache-tomcat-5.5.20/server/lib/catalina-ant.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/catalina-ant-jmx.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/server/lib/catalina-ant-jmx.jar",
+            "../../../../opt/apache-tomcat-5.5.20/server/lib/catalina-ant-jmx.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/catalina-cluster.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/server/lib/catalina-cluster.jar",
+            "../../../../opt/apache-tomcat-5.5.20/server/lib/catalina-cluster.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/catalina-optional.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/server/lib/catalina-optional.jar",
+            "../../../../opt/apache-tomcat-5.5.20/server/lib/catalina-optional.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/catalina-storeconfig.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/server/lib/catalina-storeconfig.jar",
+            "../../../../opt/apache-tomcat-5.5.20/server/lib/catalina-storeconfig.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/commons-modeler.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/server/lib/commons-modeler.jar",
+            "../../../../opt/apache-tomcat-5.5.20/server/lib/commons-modeler.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/servlets-cgi.renametojar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/server/lib/servlets-cgi.renametojar",
+            "../../../../opt/apache-tomcat-5.5.20/server/lib/servlets-cgi.renametojar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/servlets-default.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/server/lib/servlets-default.jar",
+            "../../../../opt/apache-tomcat-5.5.20/server/lib/servlets-default.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/servlets-invoker.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/server/lib/servlets-invoker.jar",
+            "../../../../opt/apache-tomcat-5.5.20/server/lib/servlets-invoker.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/servlets-ssi.renametojar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/server/lib/servlets-ssi.renametojar",
+            "../../../../opt/apache-tomcat-5.5.20/server/lib/servlets-ssi.renametojar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/servlets-webdav.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/server/lib/servlets-webdav.jar",
+            "../../../../opt/apache-tomcat-5.5.20/server/lib/servlets-webdav.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/tomcat-ajp.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/server/lib/tomcat-ajp.jar",
+            "../../../../opt/apache-tomcat-5.5.20/server/lib/tomcat-ajp.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/tomcat-apr.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/server/lib/tomcat-apr.jar",
+            "../../../../opt/apache-tomcat-5.5.20/server/lib/tomcat-apr.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/tomcat-coyote.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/server/lib/tomcat-coyote.jar",
+            "../../../../opt/apache-tomcat-5.5.20/server/lib/tomcat-coyote.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/tomcat-http.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/server/lib/tomcat-http.jar",
+            "../../../../opt/apache-tomcat-5.5.20/server/lib/tomcat-http.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/tomcat-jkstatus-ant.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/server/lib/tomcat-jkstatus-ant.jar",
+            "../../../../opt/apache-tomcat-5.5.20/server/lib/tomcat-jkstatus-ant.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/tomcat-util.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5.20/server/lib/tomcat-util.jar",
+            "../../../../opt/apache-tomcat-5.5.20/server/lib/tomcat-util.jar"
+        )
+    };
+
     private static final UpgradeSymlink[] upgradeSymlinks_5_5_Newest = {
         // Upgrade from Mandriva 2006.0 to CentOS 5
         new UpgradeSymlink(
@@ -74,13 +278,6 @@ class TomcatCommon_5_5_X extends TomcatCommon {
             "common/i18n/tomcat-i18n-ja.jar",
             "../../../../usr/apache/jakarta/tomcat/5.5/common/i18n/tomcat-i18n-ja.jar",
             "../../../../opt/apache-tomcat-5.5/common/i18n/tomcat-i18n-ja.jar"
-        ),
-        new UpgradeSymlink("common/lib/mysql-connector-java-3.0.11-stable-bin.jar", "../../../../usr/mysql-connector-java-3.0.11-stable/mysql-connector-java-3.0.11-stable-bin.jar", "../../../../opt/mysql-connector-java-3.0.11-stable/mysql-connector-java-3.0.11-stable-bin.jar"),
-        new UpgradeSymlink("common/lib/mysql-connector-java-3.0.11-stable-bin.jar", "../../../../usr/mysql-connector-java/3.0.11-stable/mysql-connector-java-3.0.11-stable-bin.jar", "../../../../opt/mysql-connector-java-3.0.11-stable/mysql-connector-java-3.0.11-stable-bin.jar"),
-        new UpgradeSymlink(
-            "common/lib/mysql-connector-java-3.1.12-bin.jar",
-            "../../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar",
-            "../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar"
         ),
         new UpgradeSymlink(
             "common/lib/jsp-api.jar",
@@ -116,32 +313,6 @@ class TomcatCommon_5_5_X extends TomcatCommon {
             "common/lib/jasper-compiler-jdt.jar",
             "../../../../usr/apache/jakarta/tomcat/5.5/common/lib/jasper-compiler-jdt.jar",
             "../../../../opt/apache-tomcat-5.5/common/lib/jasper-compiler-jdt.jar"
-        ),
-        new UpgradeSymlink("common/lib/mm.mysql-2.0.7-bin.jar", "../../../../usr/mm.mysql-2.0.7/mm.mysql-2.0.7-bin.jar", "../../../../opt/mm.mysql-2.0.7/mm.mysql-2.0.7-bin.jar"),
-        new UpgradeSymlink(
-            "common/lib/postgresql.jar",
-            "../../../../usr/postgresql-7.3/share/java/postgresql.jar",
-            "../../../../opt/postgresql-7.3/share/java/postgresql.jar"
-        ),
-        new UpgradeSymlink(
-            "common/lib/postgresql.jar",
-            "../../../../usr/postgresql/7.3/share/java/postgresql.jar",
-            "../../../../opt/postgresql-7.3/share/java/postgresql.jar"
-        ),
-        new UpgradeSymlink(
-            "common/lib/postgresql.jar",
-            "../../../../usr/postgresql-7.3.3/share/java/postgresql.jar",
-            "../../../../opt/postgresql-7.3/share/java/postgresql.jar"
-        ),
-        new UpgradeSymlink(
-            "common/lib/postgresql.jar",
-            "../../../../usr/postgresql/7.3.3/share/java/postgresql.jar",
-            "../../../../opt/postgresql-7.3/share/java/postgresql.jar"
-        ),
-        new UpgradeSymlink(
-            "common/lib/postgresql.jar",
-            "../../../../usr/postgresql/8.1/share/java/postgresql.jar",
-            "../../../../opt/postgresql-8.1/share/java/postgresql.jar"
         ),
         new UpgradeSymlink(
             "common/lib/servlet-api.jar",
@@ -307,8 +478,20 @@ class TomcatCommon_5_5_X extends TomcatCommon {
         boolean needsRestart = false;
         OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
         if(osConfig==OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
+            // Tomcat 5.5.20
+            for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_5_5_20) {
+                if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+            }
             // Tomcat 5.5.Latest
             for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_5_5_Newest) {
+                if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+            }
+            // MySQL
+            for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_MySQL) {
+                if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+            }
+            // PostgreSQL
+            for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_PostgreSQL) {
                 if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
             }
             // Replace /usr/aoserv/etc in bin/profile

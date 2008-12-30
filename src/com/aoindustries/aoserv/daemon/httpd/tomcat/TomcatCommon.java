@@ -7,6 +7,7 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
  */
 import com.aoindustries.aoserv.client.HttpdTomcatDataSource;
 import com.aoindustries.aoserv.client.HttpdTomcatParameter;
+import com.aoindustries.aoserv.daemon.util.UpgradeSymlink;
 import com.aoindustries.io.ChainWriter;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -42,4 +43,50 @@ public abstract class TomcatCommon {
      * any "jdk".
      */
     public abstract String getDefaultJdkVersion() throws IOException, SQLException;
+
+    protected static final UpgradeSymlink[] upgradeSymlinks_MySQL = {
+        new UpgradeSymlink("common/lib/mm.mysql-2.0.7-bin.jar", "../../../../usr/mm.mysql-2.0.7/mm.mysql-2.0.7-bin.jar", "../../../../opt/mm.mysql-2.0.7/mm.mysql-2.0.7-bin.jar"),
+        new UpgradeSymlink("common/lib/mysql-connector-java-3.0.11-stable-bin.jar", "../../../../usr/mysql-connector-java-3.0.11-stable/mysql-connector-java-3.0.11-stable-bin.jar", "../../../../opt/mysql-connector-java-3.0.11-stable/mysql-connector-java-3.0.11-stable-bin.jar"),
+        new UpgradeSymlink("common/lib/mysql-connector-java-3.0.11-stable-bin.jar", "../../../../usr/mysql-connector-java/3.0.11-stable/mysql-connector-java-3.0.11-stable-bin.jar", "../../../../opt/mysql-connector-java-3.0.11-stable/mysql-connector-java-3.0.11-stable-bin.jar"),
+        new UpgradeSymlink("common/lib/mysql-connector-java-3.1.12-bin.jar", "../../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", "../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar"),
+        new UpgradeSymlink("common/lib/mysql-connector-java-3.1.12-bin.jar", "/usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", "../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar")
+    };
+
+    protected static final UpgradeSymlink[] upgradeSymlinks_PostgreSQL = {
+        new UpgradeSymlink(
+            "common/lib/postgresql.jar",
+            "../../../../usr/postgresql-7.1.3/share/java/postgresql.jar",
+            "../../../../opt/postgresql-7.1-i686/share/java/postgresql.jar"
+        ),
+        new UpgradeSymlink(
+            "common/lib/postgresql.jar",
+            "../../../../opt/postgresql-7.1/share/java/postgresql.jar",
+            "../../../../opt/postgresql-7.1-i686/share/java/postgresql.jar"
+        ),
+        new UpgradeSymlink(
+            "common/lib/postgresql.jar",
+            "../../../../usr/postgresql-7.3/share/java/postgresql.jar",
+            "../../../../opt/postgresql-7.3/share/java/postgresql.jar"
+        ),
+        new UpgradeSymlink(
+            "common/lib/postgresql.jar",
+            "../../../../usr/postgresql/7.3/share/java/postgresql.jar",
+            "../../../../opt/postgresql-7.3/share/java/postgresql.jar"
+        ),
+        new UpgradeSymlink(
+            "common/lib/postgresql.jar",
+            "../../../../usr/postgresql-7.3.3/share/java/postgresql.jar",
+            "../../../../opt/postgresql-7.3/share/java/postgresql.jar"
+        ),
+        new UpgradeSymlink(
+            "common/lib/postgresql.jar",
+            "../../../../usr/postgresql/7.3.3/share/java/postgresql.jar",
+            "../../../../opt/postgresql-7.3/share/java/postgresql.jar"
+        ),
+        new UpgradeSymlink(
+            "common/lib/postgresql.jar",
+            "../../../../usr/postgresql/8.1/share/java/postgresql.jar",
+            "../../../../opt/postgresql-8.1/share/java/postgresql.jar"
+        )
+    };
 }

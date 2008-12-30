@@ -872,6 +872,8 @@ final public class ImapManager extends BuilderThread {
     private static void convertImapDirectory(
         final PrintWriter logOut,
         final String username,
+        final int junkRetention,
+        final int trashRetention,
         final UnixFile directory,
         final UnixFile backupDirectory,
         final String folderPath,
@@ -930,9 +932,9 @@ final public class ImapManager extends BuilderThread {
                 // Recurse
                 UnixFile childBackupUf = new UnixFile(backupDirectory, childName, false);
                 if(isDirectory && !isFile) {
-                    convertImapDirectory(logOut, username, childUf, childBackupUf, folderName, tempPassword, passwordBackup, tempStat);
+                    convertImapDirectory(logOut, username, junkRetention, trashRetention, childUf, childBackupUf, folderName, tempPassword, passwordBackup, tempStat);
                 } else if(isFile && !isDirectory) {
-                    convertImapFile(logOut, username, childUf, childBackupUf, folderName, tempPassword, passwordBackup, tempStat);
+                    convertImapFile(logOut, username, junkRetention, trashRetention, childUf, childBackupUf, folderName, tempPassword, passwordBackup, tempStat);
                 } else {
                     throw new AssertionError("This should already have been caught by the isDirectory and isFile checks above");
                 }
@@ -1000,9 +1002,30 @@ final public class ImapManager extends BuilderThread {
         }
     }
 
+    /**
+     * Flags.equals is returning false when the objects are equal.  Perhaps there
+     * is a problem with one Flags having null user flags while the other
+     * has an empty array.  Don't really care - this is the fix.
+     */
+    private static boolean equals(Flags flags1, Flags flags2) {
+        Flags.Flag[] systemFlags1 = flags1.getSystemFlags();
+        Flags.Flag[] systemFlags2 = flags2.getSystemFlags();
+        if(systemFlags1.length!=systemFlags2.length) return false;
+        for(Flags.Flag flag : systemFlags1) if(!flags2.contains(flag)) return false;
+
+        String[] userFlags1 = flags1.getUserFlags();
+        String[] userFlags2 = flags2.getUserFlags();
+        if(userFlags1.length!=userFlags2.length) return false;
+        for(String flag : userFlags1) if(!flags2.contains(flag)) return false;
+        
+        return true;
+    }
+
     private static void convertImapFile(
         final PrintWriter logOut,
         final String username,
+        final int junkRetention,
+        final int trashRetention,
         final UnixFile file,
         final UnixFile backupFile,
         final String folderName,
@@ -1069,87 +1092,110 @@ final public class ImapManager extends BuilderThread {
                                 if(oldMessage.isSet(Flags.Flag.DELETED)) {
                                     log(logOut, LogLevel.TRACE, username, "\""+folderName+"\": Skipping deleted message "+(c+1)+" of "+len+" ("+StringUtility.getApproximateSize(oldMessage.getSize())+")");
                                 } else {
-                                    log(logOut, LogLevel.TRACE, username, "\""+folderName+"\": Copying message "+(c+1)+" of "+len+" ("+StringUtility.getApproximateSize(oldMessage.getSize())+")");
-                                    try {
-                                        Flags oldFlags = oldMessage.getFlags();
+                                    long messageAge = (System.currentTimeMillis() - oldMessage.getReceivedDate().getTime()) / (24L*60*60*1000);
+                                    if(
+                                        junkRetention!=-1
+                                        && "Junk".equals(folderName)
+                                        && messageAge>junkRetention
+                                    ) {
+                                        log(logOut, LogLevel.TRACE, username, "\""+folderName+"\": Deleting old junk message ("+messageAge+">"+junkRetention+" days) "+(c+1)+" of "+len+" ("+StringUtility.getApproximateSize(oldMessage.getSize())+")");
+                                        oldMessage.setFlag(Flags.Flag.DELETED, true);
+                                    } else if(
+                                        trashRetention!=-1
+                                        && "Trash".equals(folderName)
+                                        && messageAge>trashRetention
+                                    ) {
+                                        log(logOut, LogLevel.TRACE, username, "\""+folderName+"\": Deleting old trash message ("+messageAge+">"+trashRetention+" days) "+(c+1)+" of "+len+" ("+StringUtility.getApproximateSize(oldMessage.getSize())+")");
+                                        oldMessage.setFlag(Flags.Flag.DELETED, true);
+                                    } else {
+                                        log(logOut, LogLevel.TRACE, username, "\""+folderName+"\": Copying message "+(c+1)+" of "+len+" ("+StringUtility.getApproximateSize(oldMessage.getSize())+")");
+                                        try {
+                                            Flags oldFlags = oldMessage.getFlags();
 
-                                        // Copy to newFolder
-                                        incAppendCounter();
-                                        AppendUID[] newUids = newFolder.appendUIDMessages(new Message[] {oldMessage});
-                                        if(newUids.length!=1) throw new MessagingException("newUids.length!=1: "+newUids.length);
-                                        AppendUID newUid = newUids[0];
-                                        if(newUid==null) throw new MessagingException("newUid is null");
+                                            // Copy to newFolder
+                                            incAppendCounter();
+                                            AppendUID[] newUids = newFolder.appendUIDMessages(new Message[] {oldMessage});
+                                            if(newUids.length!=1) throw new MessagingException("newUids.length!=1: "+newUids.length);
+                                            AppendUID newUid = newUids[0];
+                                            if(newUid==null) throw new MessagingException("newUid is null");
 
-                                        // Make sure the flags match
-                                        long newUidNum = newUid.uid;
-                                        Message newMessage = newFolder.getMessageByUID(newUidNum);
-                                        if(newMessage==null) throw new MessagingException(username+": \""+folderName+"\": Unable to find new message by UID: "+newUidNum);
-                                        Flags newFlags = newMessage.getFlags();
+                                            // Make sure the flags match
+                                            long newUidNum = newUid.uid;
+                                            Message newMessage = newFolder.getMessageByUID(newUidNum);
+                                            if(newMessage==null) throw new MessagingException(username+": \""+folderName+"\": Unable to find new message by UID: "+newUidNum);
+                                            Flags newFlags = newMessage.getFlags();
 
-                                        // Remove the recent flag if added by append
-                                        Flags effectiveNewFlags = new Flags(newFlags);
-                                        for(Flags.Flag flag : systemFlags) {
-                                            if(oldFlags.contains(flag)) {
-                                                if(!newFlags.contains(flag)) {
-                                                    // New should have
-                                                }
-                                            } else {
-                                                if(newFlags.contains(flag)) {
-                                                    // New should not have
-                                                    if(
-                                                        // This is OK to ignore since it was added by append
-                                                        flag==Flags.Flag.RECENT
-                                                    ) {
-                                                        // This failed: newMessage.setFlag(flag, false);
-                                                        effectiveNewFlags.remove(flag);
-                                                    } else if(
-                                                        // This was set by append but needs to be unset
-                                                        flag==Flags.Flag.SEEN
-                                                    ) {
-                                                        newMessage.setFlag(flag, false);
-                                                        newFlags = newMessage.getFlags();
-                                                        effectiveNewFlags.remove(flag);
+                                            // Remove the recent flag if added by append
+                                            Flags effectiveOldFlags = new Flags(oldFlags);
+                                            Flags effectiveNewFlags = new Flags(newFlags);
+                                            for(Flags.Flag flag : systemFlags) {
+                                                if(oldFlags.contains(flag)) {
+                                                    if(!newFlags.contains(flag)) {
+                                                        // New should have
+                                                    }
+                                                } else {
+                                                    if(newFlags.contains(flag)) {
+                                                        // New should not have
+                                                        if(
+                                                            // This is OK to ignore since it was added by append
+                                                            flag==Flags.Flag.RECENT
+                                                        ) {
+                                                            // This failed: newMessage.setFlag(flag, false);
+                                                            effectiveNewFlags.remove(flag);
+                                                        } else if(
+                                                            // This was set by append but needs to be unset
+                                                            flag==Flags.Flag.SEEN
+                                                        ) {
+                                                            newMessage.setFlag(flag, false);
+                                                            newFlags = newMessage.getFlags();
+                                                            effectiveNewFlags.remove(flag);
+                                                        }
                                                     }
                                                 }
                                             }
-                                        }
-                                        for(String flag : oldFlags.getUserFlags()) {
-                                            if(!newFlags.contains(flag)) {
-                                                // Add the user flag
-                                                effectiveNewFlags.add(flag);
-                                                newMessage.setFlags(new Flags(flag), true);
-                                                newFlags = newMessage.getFlags();
-                                            }
-                                        }
-
-                                        if(!oldFlags.equals(effectiveNewFlags)) {
-                                            for(Flags.Flag flag : oldFlags.getSystemFlags()) {
-                                                log(logOut, LogLevel.ERROR, username, "\""+folderName+"\": oldFlags: system: \""+getFlagName(flag)+'"');
-                                            }
                                             for(String flag : oldFlags.getUserFlags()) {
-                                                log(logOut, LogLevel.ERROR, username, "\""+folderName+"\": oldFlags: user: \""+flag+'"');
+                                                if(!effectiveNewFlags.contains(flag)) {
+                                                    // Ignore "$NotJunk" on oldFlags
+                                                    //if(flag.equals("$NotJunk")) {
+                                                    //    effectiveOldFlags.remove(flag);
+                                                    //} else {
+                                                        // Add the user flag
+                                                        effectiveNewFlags.add(flag);
+                                                        newMessage.setFlags(new Flags(flag), true);
+                                                        newFlags = newMessage.getFlags();
+                                                    //}
+                                                }
                                             }
-                                            for(Flags.Flag flag : newFlags.getSystemFlags()) {
-                                                log(logOut, LogLevel.ERROR, username, "\""+folderName+"\": newFlags: system: \""+getFlagName(flag)+'"');
+
+                                            if(!equals(effectiveOldFlags, effectiveNewFlags)) {
+                                                for(Flags.Flag flag : effectiveOldFlags.getSystemFlags()) {
+                                                    log(logOut, LogLevel.ERROR, username, "\""+folderName+"\": effectiveOldFlags: system: \""+getFlagName(flag)+'"');
+                                                }
+                                                for(String flag : effectiveOldFlags.getUserFlags()) {
+                                                    log(logOut, LogLevel.ERROR, username, "\""+folderName+"\": effectiveOldFlags: user: \""+flag+'"');
+                                                }
+                                                for(Flags.Flag flag : effectiveNewFlags.getSystemFlags()) {
+                                                    log(logOut, LogLevel.ERROR, username, "\""+folderName+"\": effectiveNewFlags: system: \""+getFlagName(flag)+'"');
+                                                }
+                                                for(String flag : effectiveNewFlags.getUserFlags()) {
+                                                    log(logOut, LogLevel.ERROR, username, "\""+folderName+"\": effectiveNewFlags: user: \""+flag+'"');
+                                                }
+                                                throw new MessagingException(username+": \""+folderName+"\": effectiveOldFlags!=effectiveNewFlags: "+effectiveOldFlags+"!="+effectiveNewFlags);
                                             }
-                                            for(String flag : newFlags.getUserFlags()) {
-                                                log(logOut, LogLevel.ERROR, username, "\""+folderName+"\": newFlags: user: \""+flag+'"');
-                                            }
-                                            throw new MessagingException(username+": \""+folderName+"\": oldFlags!=newFlags: "+oldFlags+"!="+newFlags);
+
+                                            // Flag as deleted on the old folder
+                                            oldMessage.setFlag(Flags.Flag.DELETED, true);
+                                        } catch(MessagingException err) {
+                                            String message = err.getMessage();
+                                            if(message!=null && message.endsWith(" NO Message contains invalid header")) {
+                                                log(logOut, LogLevel.WARN, username, "\""+folderName+"\": Not able to copy message: "+message);
+                                                Enumeration headers = oldMessage.getAllHeaders();
+                                                while(headers.hasMoreElements()) {
+                                                    Header header = (Header)headers.nextElement();
+                                                    log(logOut, LogLevel.WARN, username, "\""+folderName+"\": \""+header.getName()+"\" = \""+header.getValue()+"\"");
+                                                }
+                                            } else throw err;
                                         }
-                                        
-                                        // Flag as deleted on the old folder
-                                        oldMessage.setFlag(Flags.Flag.DELETED, true);
-                                    } catch(MessagingException err) {
-                                        String message = err.getMessage();
-                                        if(message!=null && message.endsWith(" NO Message contains invalid header")) {
-                                            log(logOut, LogLevel.WARN, username, "\""+folderName+"\": Not able to copy message: "+message);
-                                            Enumeration headers = oldMessage.getAllHeaders();
-                                            while(headers.hasMoreElements()) {
-                                                Header header = (Header)headers.nextElement();
-                                                log(logOut, LogLevel.WARN, username, "\""+folderName+"\": \""+header.getName()+"\" = \""+header.getValue()+"\"");
-                                            }
-                                        } else throw err;
                                     }
                                 }
                             }
@@ -1241,7 +1287,7 @@ final public class ImapManager extends BuilderThread {
             Map<LinuxServerAccount,Future<Object>> convertors = WUIMAP_CONVERSION_ENABLED ? new HashMap<LinuxServerAccount,Future<Object>>(lsas.size()*4/3+1) : null;
             ExecutorService executorService = WUIMAP_CONVERSION_ENABLED ? Executors.newFixedThreadPool(WUIMAP_CONVERSION_CONCURRENCY) : null;
             try {
-                for(LinuxServerAccount lsa : lsas) {
+                for(final LinuxServerAccount lsa : lsas) {
                     LinuxAccount la = lsa.getLinuxAccount();
                     final String homePath = lsa.getHome();
                     if(la.getType().isEmail() && homePath.startsWith("/home/")) {
@@ -1370,12 +1416,13 @@ final public class ImapManager extends BuilderThread {
                                                 // The password will be reset to a random value upon first use, subsequent
                                                 // accesses will use the same password.
                                                 String[] tempPassword = new String[1];
-
+                                                int junkRetention = lsa.getJunkEmailRetention();
+                                                int trashRetention = lsa.getTrashEmailRetention();
                                                 // Convert old INBOX
                                                 UnixFile inboxFile = new UnixFile(mailSpool, laUsername);
                                                 if(inboxFile.getStat(tempStat).exists()) {
                                                     if(!tempStat.isRegularFile()) throw new IOException("Not a regular file: "+inboxFile.getPath());
-                                                    convertImapFile(logOut, laUsername, inboxFile, new UnixFile(userBackupDirectory, "INBOX", false), "INBOX", tempPassword, passwordBackup, tempStat);
+                                                    convertImapFile(logOut, laUsername, junkRetention, trashRetention, inboxFile, new UnixFile(userBackupDirectory, "INBOX", false), "INBOX", tempPassword, passwordBackup, tempStat);
                                                 }
 
                                                 // Convert old folders from UW software
@@ -1383,7 +1430,7 @@ final public class ImapManager extends BuilderThread {
                                                     UnixFile mailDir = new UnixFile(homeDir, "Mail", false);
                                                     if(mailDir.getStat(tempStat).exists()) {
                                                         if(!tempStat.isDirectory()) throw new IOException("Not a directory: "+mailDir.getPath());
-                                                        convertImapDirectory(logOut, laUsername, mailDir, new UnixFile(userBackupDirectory, "Mail", false), "", tempPassword, passwordBackup, tempStat);
+                                                        convertImapDirectory(logOut, laUsername, junkRetention, trashRetention, mailDir, new UnixFile(userBackupDirectory, "Mail", false), "", tempPassword, passwordBackup, tempStat);
                                                     }
                                                 }
 
