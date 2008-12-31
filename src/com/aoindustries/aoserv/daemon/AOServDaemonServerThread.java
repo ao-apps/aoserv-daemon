@@ -353,6 +353,15 @@ final public class AOServDaemonServerThread extends Thread {
                                 out.writeUTF(report);
                             }
                             break;
+                        case AOServDaemonProtocol.GET_AO_SERVER_SYSTEM_TIME_MILLIS :
+                            {
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_AO_SERVER_SYSTEM_TIME_MILLIS, Thread="+toString());
+                                if(key==null) throw new IOException("Only the master server may GET_AO_SERVER_SYSTEM_TIME_MILLIS");
+                                long currentTime = System.currentTimeMillis();
+                                out.write(AOServDaemonProtocol.DONE);
+                                out.writeLong(currentTime);
+                            }
+                            break;
                         case AOServDaemonProtocol.IS_PROCMAIL_MANUAL :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing IS_PROCMAIL_MANUAL, Thread="+toString());
