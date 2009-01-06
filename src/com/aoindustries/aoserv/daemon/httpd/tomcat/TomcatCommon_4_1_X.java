@@ -2,7 +2,7 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 
 /*
- * Copyright 2008 by AO Industries, Inc.,
+ * Copyright 2008-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -128,6 +128,7 @@ class TomcatCommon_4_1_X extends TomcatCommon {
     static {
         // Upgrade from Mandriva 2006.0 to CentOS 5
         upgradeSymlinks_4_1_Newest.add(new UpgradeSymlink("bin/bootstrap.jar", "../../../usr/apache/jakarta/tomcat/4.1/bin/bootstrap.jar", "../../../opt/apache-tomcat-4.1/bin/bootstrap.jar"));
+        upgradeSymlinks_4_1_Newest.add(new UpgradeSymlink("bin/catalina.sh", "../../../usr/apache/jakarta/tomcat/4.1/bin/catalina.sh", "../../../opt/apache-tomcat-4.1/bin/catalina.sh"));
         upgradeSymlinks_4_1_Newest.add(new UpgradeSymlink("bin/commons-daemon.jar", "../../../usr/apache/jakarta/tomcat/4.1/bin/commons-daemon.jar", "../../../opt/apache-tomcat-4.1/bin/commons-daemon.jar"));
         upgradeSymlinks_4_1_Newest.add(new UpgradeSymlink("bin/digest.sh", "../../../usr/apache/jakarta/tomcat/4.1/bin/digest.sh", "../../../opt/apache-tomcat-4.1/bin/digest.sh"));
         upgradeSymlinks_4_1_Newest.add(new UpgradeSymlink("bin/jasper.sh", "../../../usr/apache/jakarta/tomcat/4.1/bin/jasper.sh", "../../../opt/apache-tomcat-4.1/bin/jasper.sh"));

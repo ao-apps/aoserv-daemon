@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 /*
- * Copyright 2008 by AO Industries, Inc.,
+ * Copyright 2008-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -46,6 +46,7 @@ public abstract class TomcatCommon {
 
     protected static final UpgradeSymlink[] upgradeSymlinks_MySQL = {
         new UpgradeSymlink("common/lib/mm.mysql-2.0.7-bin.jar", "../../../../usr/mm.mysql-2.0.7/mm.mysql-2.0.7-bin.jar", "../../../../opt/mm.mysql-2.0.7/mm.mysql-2.0.7-bin.jar"),
+        new UpgradeSymlink("common/lib/mm.mysql-2.0.7-bin.jar", "/usr/mm.mysql/2.0.7/mm.mysql-2.0.7-bin.jar", "../../../../opt/mm.mysql-2.0.7/mm.mysql-2.0.7-bin.jar"),
         new UpgradeSymlink("common/lib/mysql-connector-java-3.0.11-stable-bin.jar", "../../../../usr/mysql-connector-java-3.0.11-stable/mysql-connector-java-3.0.11-stable-bin.jar", "../../../../opt/mysql-connector-java-3.0.11-stable/mysql-connector-java-3.0.11-stable-bin.jar"),
         new UpgradeSymlink("common/lib/mysql-connector-java-3.0.11-stable-bin.jar", "../../../../usr/mysql-connector-java/3.0.11-stable/mysql-connector-java-3.0.11-stable-bin.jar", "../../../../opt/mysql-connector-java-3.0.11-stable/mysql-connector-java-3.0.11-stable-bin.jar"),
         new UpgradeSymlink("common/lib/mysql-connector-java-3.1.12-bin.jar", "../../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", "../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar"),

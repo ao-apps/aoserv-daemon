@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 /*
- * Copyright 2008 by AO Industries, Inc.,
+ * Copyright 2008-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -408,6 +408,11 @@ class TomcatCommon_5_5_X extends TomcatCommon {
             "server/lib/commons-modeler-2.0.1.jar",
             "../../../../usr/apache/jakarta/tomcat/5.5/server/lib/commons-modeler-2.0.1.jar",
             null
+        ),
+        new UpgradeSymlink(
+            "server/lib/servlets-cgi.jar",
+            "../../../../usr/apache/jakarta/tomcat/5.5/server/lib/servlets-cgi.renametojar",
+            "../../../../opt/apache-tomcat-5.5/server/lib/servlets-cgi.renametojar"
         ),
         new UpgradeSymlink(
             "server/lib/servlets-cgi.renametojar",
