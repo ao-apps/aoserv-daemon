@@ -275,6 +275,8 @@ final public class EmailAddressManager extends BuilderThread {
          */
         BlackholeEmailAddress bea=ea.getBlackholeEmailAddress();
         List<EmailForwarding> efs=ea.getEmailForwardings();
+        // We need to not forward email for disabled accounts, but do we just reject it instead?
+        // List<EmailForwarding> efs=ea.getEnabledEmailForwardings();
         List<EmailListAddress> elas=ea.getEnabledEmailListAddresses();
         List<EmailPipeAddress> epas=ea.getEnabledEmailPipeAddresses();
         List<LinuxAccAddress> laas=ea.getLinuxAccAddresses();
@@ -487,6 +489,7 @@ final public class EmailAddressManager extends BuilderThread {
                 connector.emailPipeAddresses.addTableListener(emailAddressManager, 0);
                 connector.linuxServerAccounts.addTableListener(emailAddressManager, 0);
                 connector.linuxAccAddresses.addTableListener(emailAddressManager, 0);
+                connector.packages.addTableListener(emailAddressManager, 0);
                 connector.systemEmailAliases.addTableListener(emailAddressManager, 0);
                 System.out.println("Done");
             }

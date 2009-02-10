@@ -13,6 +13,7 @@ import com.aoindustries.aoserv.daemon.backup.AOServerEnvironment;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
+import com.aoindustries.io.ParallelDelete;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.md5.MD5;
@@ -20,6 +21,7 @@ import com.aoindustries.util.BufferManager;
 import com.aoindustries.util.LongArrayList;
 import com.aoindustries.util.LongList;
 import com.aoindustries.util.WrappedException;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -2024,39 +2026,45 @@ final public class FailoverFileReplicationManager {
                 }
             }
             
-            // 5) Delete all those that end in .deleted in one background rm call, from oldest to newest
+            // 5) Delete all those that end in .deleted, from oldest to newest
             if(!SAFE_DELETE) {
                 String[] list = serverRootUF.list();
                 if(list!=null && list.length>0) {
                     Arrays.sort(list);
-                    List<String> command = new ArrayList<String>();
-                    command.add("/bin/rm");
-                    command.add("-rf");
-                    boolean found = false;
+                    final List<File> directories = new ArrayList<File>(list.length);
                     for(int c=0;c<list.length;c++) {
                         String directory = list[c];
                         if(directory.endsWith(SAFE_DELETE_EXTENSION)) {
-                            found=true;
-                            String fullPath = new UnixFile(serverRootUF, directory, false).getPath();
-                            if(log.isDebugEnabled()) log.debug("Deleting: "+fullPath);
-                            command.add(fullPath);
+                            //found=true;
+                            UnixFile deleteUf = new UnixFile(serverRootUF, directory, false);
+                            if(log.isDebugEnabled()) log.debug("Deleting: "+deleteUf.getPath());
+                            directories.add(deleteUf.getFile());
                         }
                     }
-                    if(found) {
-                        final String[] cmd = command.toArray(new String[command.size()]);
-                        // Delete in the background using rm -rf
-                        (
-                            new Thread() {
+                    if(!directories.isEmpty()) {
+                        // Delete in the background
+                        AOServDaemon.executorService.submit(
+                            new Runnable() {
                                 @Override
                                 public void run() {
                                     try {
-                                        AOServDaemon.exec(cmd);
+                                        if(directories.size()==1) {
+                                            // Single directory - no parallel benefits, use system rm command
+                                            String[] command = {
+                                                "/bin/rm",
+                                                "-rf",
+                                                directories.get(0).getPath()
+                                            };
+                                            AOServDaemon.exec(command);
+                                        } else {
+                                            ParallelDelete.parallelDelete(directories, null, false);
+                                        }
                                     } catch(IOException err) {
                                         AOServDaemon.reportError(err, null);
                                     }
                                 }
                             }
-                        ).start();
+                        );
                     }
                 }
             }

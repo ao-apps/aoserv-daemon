@@ -188,6 +188,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
         filesystemRules.put("/mnt/cdrom", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/mnt/floppy", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/proc/", FilesystemIteratorRule.SKIP);
+        filesystemRules.put("/selinux/", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/swapfile.img", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/swapfile.aes128.img", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/swapfile.aes256.img", FilesystemIteratorRule.SKIP);
