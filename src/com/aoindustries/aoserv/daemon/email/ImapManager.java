@@ -1918,7 +1918,7 @@ final public class ImapManager extends BuilderThread {
         if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
             return new File(mailSpool, username).length();
         } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-            return getCyrusFolderSize(username, "", false);
+            return getCyrusFolderSize(username, "", true);
             /*
 ad GETANNOTATION user/cyrus.test/Junk@suspendo.aoindustries.com "*" "value.shared"
 * ANNOTATION "user/cyrus.test/Junk@suspendo.aoindustries.com" "/vendor/cmu/cyrus-imapd/expire" ("value.shared" "31")
