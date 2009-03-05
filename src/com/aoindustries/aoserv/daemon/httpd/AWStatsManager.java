@@ -14,6 +14,7 @@ import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.client.LinuxGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.client.Shell;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -61,6 +62,7 @@ final public class AWStatsManager extends BuilderThread {
 
         // Resolve the UID and GID before obtaining the lock
         AOServer aoServer=AOServDaemon.getThisAOServer();
+        Server server = aoServer.getServer();
         int awstatsUID=aoServer.getLinuxServerAccount(LinuxAccount.AWSTATS).getUID().getID();
         int awstatsGID=aoServer.getLinuxServerGroup(LinuxGroup.AWSTATS).getGID().getID();
 
@@ -164,7 +166,16 @@ final public class AWStatsManager extends BuilderThread {
                         + "ArchiveLogRecords=0\n"
                         + "KeepBackupOfHistoricFiles=1\n"
                         + "DefaultFile=\"index.html\"\n"
-                        + "SkipHosts=\"\"\n"
+                        + "SkipHosts=\"");
+                boolean didOne = false;
+                for(IPAddress ia : server.getIPAddresses()) {
+                    if(!ia.isWildcard()) {
+                        if(didOne) out.print(' ');
+                        else didOne = true;
+                        out.print(ia.getIPAddress());
+                    }
+                }
+                out.print("\"\n"
                         + "SkipUserAgents=\"\"\n"
                         + "SkipFiles=\"");
                 String awstatsSkipFiles=site.getAwstatsSkipFiles();
