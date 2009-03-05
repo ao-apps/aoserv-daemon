@@ -37,8 +37,10 @@ import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Controls the configuration files for AWStats and provides access to the AWStats system.
@@ -167,12 +169,15 @@ final public class AWStatsManager extends BuilderThread {
                         + "KeepBackupOfHistoricFiles=1\n"
                         + "DefaultFile=\"index.html\"\n"
                         + "SkipHosts=\"");
-                boolean didOne = false;
+                Set<String> finishedIPs = new HashSet<String>();
                 for(IPAddress ia : server.getIPAddresses()) {
                     if(!ia.isWildcard()) {
-                        if(didOne) out.print(' ');
-                        else didOne = true;
-                        out.print(ia.getIPAddress());
+                        String ip = ia.getIPAddress();
+                        if(!finishedIPs.contains(ip)) {
+                            if(!finishedIPs.isEmpty()) out.print(' ');
+                            out.print(ip);
+                            finishedIPs.add(ip);
+                        }
                     }
                 }
                 out.print("\"\n"
