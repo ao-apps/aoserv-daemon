@@ -317,6 +317,17 @@ final public class AOServDaemonServerThread extends Thread {
                                 out.writeUTF(report);
                             }
                             break;
+                        case AOServDaemonProtocol.GET_LVM_REPORT :
+                            {
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_LVM_REPORT, Thread="+toString());
+                                if(key==null) throw new IOException("Only the master server may GET_LVM_REPORT");
+                                String[] report = ServerManager.getLvmReport();
+                                out.write(AOServDaemonProtocol.DONE);
+                                out.writeUTF(report[0]);
+                                out.writeUTF(report[1]);
+                                out.writeUTF(report[2]);
+                            }
+                            break;
                         case AOServDaemonProtocol.GET_HDD_TEMP_REPORT :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_HDD_TEMP_REPORT, Thread="+toString());

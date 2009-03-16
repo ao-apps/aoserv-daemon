@@ -118,6 +118,39 @@ final public class ServerManager {
         return AOServDaemon.execAndCapture(command);
     }
 
+    public static String[] getLvmReport() throws IOException {
+        return new String[] {
+            AOServDaemon.execAndCapture(
+                new String[] {
+                    "/usr/sbin/vgs",
+                    "--noheadings",
+                    "--separator=\t",
+                    "--units=b",
+                    "-o",
+                    "vg_name,vg_extent_size,vg_extent_count,vg_free_count,pv_count,lv_count"
+                }
+            ),
+            AOServDaemon.execAndCapture(
+                new String[] {
+                    "/usr/sbin/pvs",
+                    "--noheadings",
+                    "--separator=\t",
+                    "-o",
+                    "pv_name,pv_pe_count,pv_pe_alloc_count,vg_name"
+                }
+            ),
+            AOServDaemon.execAndCapture(
+                new String[] {
+                    "/usr/sbin/lvs",
+                    "--noheadings",
+                    "--separator=\t",
+                    "-o",
+                    "vg_name,lv_name,seg_count,segtype,stripes,seg_start_pe,seg_pe_ranges"
+                }
+            )
+        };
+    }
+
     public static String getHddTempReport() throws IOException {
         /*List<String> command = new ArrayList<String>();
         command.add("/opt/aoserv-daemon/bin/hddtemp");

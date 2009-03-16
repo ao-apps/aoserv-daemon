@@ -383,7 +383,7 @@ class HttpdLogManager {
             }
 
             // Remove extra filenames
-            for(String extraFilename : logRotationFiles) deleteFileList.add(new File(siteLogRotationDir, extraFilename));
+            for(String extraFilename : logRotationFiles) deleteFileList.add(new File(serverLogRotationDir, extraFilename));
         }
     }
 }
