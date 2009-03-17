@@ -33,7 +33,7 @@ import java.util.List;
  */
 abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extends HttpdTomcatStdSiteManager<TC> {
 
-    HttpdTomcatStdSiteManager_3_X(HttpdTomcatStdSite tomcatStdSite) {
+    HttpdTomcatStdSiteManager_3_X(HttpdTomcatStdSite tomcatStdSite) throws SQLException, IOException {
         super(tomcatStdSite);
     }
 

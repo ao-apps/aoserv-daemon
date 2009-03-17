@@ -54,7 +54,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 
     final protected HttpdTomcatSite tomcatSite;
 
-    protected HttpdTomcatSiteManager(HttpdTomcatSite tomcatSite) {
+    protected HttpdTomcatSiteManager(HttpdTomcatSite tomcatSite) throws IOException, SQLException {
         super(tomcatSite.getHttpdSite());
         this.tomcatSite = tomcatSite;
     }
@@ -79,7 +79,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
      * paths.
      */
     @Override
-    public SortedSet<Location> getRejectedLocations() {
+    public SortedSet<Location> getRejectedLocations() throws IOException, SQLException {
         // If not using Apache, let Tomcat do its own protection
         SortedSet<Location> standardRejectedLocations = super.getRejectedLocations();
         if(!tomcatSite.useApache()) return standardRejectedLocations;
@@ -173,7 +173,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         return settings;
     }
 
-    public SortedMap<String,WebAppSettings> getWebapps() {
+    public SortedMap<String,WebAppSettings> getWebapps() throws IOException, SQLException {
         SortedMap<String,WebAppSettings> webapps = new TreeMap<String,WebAppSettings>();
 
         // Set up all of the webapps
@@ -310,5 +310,5 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
     /**
      * Flags that the site needs restarted.
      */
-    protected abstract void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted);
+    protected abstract void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws SQLException, IOException;
 }

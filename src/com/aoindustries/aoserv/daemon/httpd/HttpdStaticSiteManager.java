@@ -29,13 +29,13 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
     /**
      * Gets the specific manager for one type of web site.
      */
-    static HttpdStaticSiteManager getInstance(HttpdStaticSite staticSite) {
+    static HttpdStaticSiteManager getInstance(HttpdStaticSite staticSite) throws SQLException, IOException {
         return new HttpdStaticSiteManager(staticSite);
     }
 
     final protected HttpdStaticSite staticSite;
     
-    private HttpdStaticSiteManager(HttpdStaticSite staticSite) {
+    private HttpdStaticSiteManager(HttpdStaticSite staticSite) throws SQLException, IOException {
         super(staticSite.getHttpdSite());
         this.staticSite = staticSite;
     }

@@ -9,6 +9,7 @@ import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServProtocol;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.AOServerDaemonHost;
+import com.aoindustries.aoserv.client.BusinessAdministrator;
 import com.aoindustries.aoserv.client.DaemonProfile;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.MySQLDatabase;
@@ -102,6 +103,10 @@ final public class AOServDaemonServerThread extends Thread {
     }
 
     private static boolean passwordMatches(String password, String crypted) throws IOException {
+        // Try hash first
+        String hashed = BusinessAdministrator.hash(password);
+        if(hashed.equals(crypted)) return true;
+        // Try old crypt next
         if(crypted.length()<=2) return false;
         String salt=crypted.substring(0,2);
         return UnixCrypt.crypt(password, salt).equals(crypted);
@@ -333,6 +338,15 @@ final public class AOServDaemonServerThread extends Thread {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_HDD_TEMP_REPORT, Thread="+toString());
                                 if(key==null) throw new IOException("Only the master server may GET_HDD_TEMP_REPORT");
                                 String report = ServerManager.getHddTempReport();
+                                out.write(AOServDaemonProtocol.DONE);
+                                out.writeUTF(report);
+                            }
+                            break;
+                        case AOServDaemonProtocol.GET_HDD_MODEL_REPORT :
+                            {
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_HDD_MODEL_REPORT, Thread="+toString());
+                                if(key==null) throw new IOException("Only the master server may GET_HDD_MODEL_REPORT");
+                                String report = ServerManager.getHddModelReport();
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(report);
                             }

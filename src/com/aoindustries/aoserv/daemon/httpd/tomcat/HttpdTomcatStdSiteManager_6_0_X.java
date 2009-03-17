@@ -17,7 +17,7 @@ import java.sql.SQLException;
  */
 class HttpdTomcatStdSiteManager_6_0_X extends HttpdTomcatStdSiteManager<TomcatCommon_6_0_X> {
 
-    HttpdTomcatStdSiteManager_6_0_X(HttpdTomcatStdSite tomcatStdSite) {
+    HttpdTomcatStdSiteManager_6_0_X(HttpdTomcatStdSite tomcatStdSite) throws SQLException, IOException {
         super(tomcatStdSite);
     }
 

@@ -42,7 +42,7 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
 
     final protected HttpdTomcatSharedSite tomcatSharedSite;
     
-    HttpdTomcatSharedSiteManager(HttpdTomcatSharedSite tomcatSharedSite) {
+    HttpdTomcatSharedSiteManager(HttpdTomcatSharedSite tomcatSharedSite) throws SQLException, IOException {
         super(tomcatSharedSite.getHttpdTomcatSite());
         this.tomcatSharedSite = tomcatSharedSite;
     }
@@ -82,7 +82,7 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
         return tomcatSharedSite.getHttpdSharedTomcat().getLinuxServerAccount().getLinuxAccount().getUsername().getUsername();
     }
 
-    protected void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) {
+    protected void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws SQLException, IOException {
         sharedTomcatsNeedingRestarted.add(tomcatSharedSite.getHttpdSharedTomcat());
     }
 

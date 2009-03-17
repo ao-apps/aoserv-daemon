@@ -152,48 +152,17 @@ final public class ServerManager {
     }
 
     public static String getHddTempReport() throws IOException {
-        /*List<String> command = new ArrayList<String>();
-        command.add("/opt/aoserv-daemon/bin/hddtemp");
-
-        Stat tempStat = new Stat();
-
-        // IDE hard drives
-        for(char ch='a'; ch<='z'; ch++) {
-            String devPath = "/dev/hd"+ch;
-            UnixFile uf = new UnixFile(devPath);
-            uf.getStat(tempStat);
-            if(
-                tempStat.exists()
-                && tempStat.isBlockDevice()
-            ) {
-                command.add(devPath);
-            }
-        }
-        // SATA/USB/SCSI hard drives
-        for(char ch='a'; ch<='z'; ch++) {
-            String devPath = "/dev/sd"+ch;
-            UnixFile uf = new UnixFile(devPath);
-            uf.getStat(tempStat);
-            if(
-                tempStat.exists()
-                && tempStat.isBlockDevice()
-            ) {
-                command.add(devPath);
-            }
-        }
-
-        // Run the command
-        if(command.size()==1) {
-            // No hard drives detected
-            return "";
-        }
-        else {
-            String[] commandSA = command.toArray(new String[command.size()]);
-            return AOServDaemon.execAndCapture(commandSA);
-        }*/
         return AOServDaemon.execAndCapture(
             new String[] {
                 "/opt/aoserv-daemon/bin/hddtemp"
+            }
+        );
+    }
+
+    public static String getHddModelReport() throws IOException {
+        return AOServDaemon.execAndCapture(
+            new String[] {
+                "/opt/aoserv-daemon/bin/hddmodel"
             }
         );
     }

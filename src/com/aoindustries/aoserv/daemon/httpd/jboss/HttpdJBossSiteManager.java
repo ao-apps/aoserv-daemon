@@ -37,7 +37,7 @@ public abstract class HttpdJBossSiteManager<TC extends TomcatCommon> extends Htt
 
     final protected HttpdJBossSite jbossSite;
     
-    HttpdJBossSiteManager(HttpdJBossSite jbossSite) {
+    HttpdJBossSiteManager(HttpdJBossSite jbossSite) throws SQLException, IOException {
         super(jbossSite.getHttpdTomcatSite());
         this.jbossSite = jbossSite;
     }

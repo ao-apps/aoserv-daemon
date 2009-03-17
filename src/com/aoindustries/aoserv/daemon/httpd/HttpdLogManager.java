@@ -147,7 +147,7 @@ class HttpdLogManager {
         List<File> deleteFileList,
         Stat tempStat,
         Set<HttpdServer> serversNeedingReloaded
-    ) throws IOException {
+    ) throws IOException, SQLException {
         // Values used below
         final int awstatsUID = aoServer.getLinuxServerAccount(LinuxAccount.AWSTATS).getUID().getID();
 

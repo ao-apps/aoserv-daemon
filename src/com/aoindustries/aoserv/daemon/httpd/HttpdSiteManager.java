@@ -372,7 +372,7 @@ public abstract class HttpdSiteManager {
      * @see  #enableAnonymousFtp()
      * @see  FTPManager#doRebuildSharedFtpDirectory
      */
-    public void configureFtpDirectory(UnixFile ftpDirectory) throws IOException {
+    public void configureFtpDirectory(UnixFile ftpDirectory) throws IOException, SQLException {
         if(httpdSite.getDisableLog()!=null) {
             // Disabled
             FileUtils.mkdir(
@@ -716,7 +716,7 @@ public abstract class HttpdSiteManager {
     /**
      * Gets an unmodifable set of URL patterns that should be rejected.
      */
-    public SortedSet<Location> getRejectedLocations() {
+    public SortedSet<Location> getRejectedLocations() throws IOException, SQLException {
         return unmodifiableStandardRejectedLocations;
     }
     

@@ -21,7 +21,7 @@ import java.sql.SQLException;
  */
 class HttpdTomcatSharedSiteManager_5_5_X extends HttpdTomcatSharedSiteManager<TomcatCommon_5_5_X> {
 
-    HttpdTomcatSharedSiteManager_5_5_X(HttpdTomcatSharedSite tomcatSharedSite) {
+    HttpdTomcatSharedSiteManager_5_5_X(HttpdTomcatSharedSite tomcatSharedSite) throws SQLException, IOException {
         super(tomcatSharedSite);
     }
 

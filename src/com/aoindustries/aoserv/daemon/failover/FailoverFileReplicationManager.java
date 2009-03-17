@@ -20,7 +20,6 @@ import com.aoindustries.md5.MD5;
 import com.aoindustries.util.BufferManager;
 import com.aoindustries.util.LongArrayList;
 import com.aoindustries.util.LongList;
-import com.aoindustries.util.WrappedException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -188,8 +187,7 @@ final public class FailoverFileReplicationManager {
         final List<String> replicatedMySQLServers,
         final List<String> replicatedMySQLMinorVersions,
         final int quota_gid
-    
-    ) throws IOException {
+    ) throws IOException, SQLException {
         final PostPassChecklist postPassChecklist = new PostPassChecklist();
         try {
             if(fromServerYear<1000 || fromServerYear>9999) throw new IOException("Invalid fromServerYear (1000-9999): "+fromServerYear);
@@ -1256,12 +1254,12 @@ final public class FailoverFileReplicationManager {
                                 && effectiveUFStat.getModifyTime()!=modifyTime
                             ) {
                                 if(retention!=1) copyIfHardLinked(effectiveUF, effectiveUFStat);
-                                try {
+                                //try {
                                     effectiveUF.utime(effectiveUFStat.getAccessTime(), modifyTime);
                                     effectiveUF.getStat(effectiveUFStat);
-                                } catch(IOException err) {
-                                    throw new WrappedException(err, new Object[] {"effectiveUF="+effectiveUF.getPath()});
-                                }
+                                //} catch(IOException err) {
+                                //    throw new WrappedException(err, new Object[] {"effectiveUF="+effectiveUF.getPath()});
+                                //}
                                 if(result==AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_NO_CHANGE) {
                                     if(linkToUF!=null) {
                                         // Only modified if not in last backup set, too
@@ -1815,7 +1813,7 @@ final public class FailoverFileReplicationManager {
         return true;
     }
 
-    private static void cleanAndRecycleBackups(short retention, UnixFile serverRootUF, Stat tempStat, short fromServerYear, short fromServerMonth, short fromServerDay) {
+    private static void cleanAndRecycleBackups(short retention, UnixFile serverRootUF, Stat tempStat, short fromServerYear, short fromServerMonth, short fromServerDay) throws IOException, SQLException {
         try {
             // Build the lists of directories based on age, skipping safe deleted and recycled directories
             Calendar cal = Calendar.getInstance();

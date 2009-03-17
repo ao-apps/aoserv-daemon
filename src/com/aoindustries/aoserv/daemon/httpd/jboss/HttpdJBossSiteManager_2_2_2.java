@@ -39,7 +39,7 @@ import java.util.List;
  */
 class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2_4> {
 
-    HttpdJBossSiteManager_2_2_2(HttpdJBossSite jbossSite) {
+    HttpdJBossSiteManager_2_2_2(HttpdJBossSite jbossSite) throws SQLException, IOException {
         super(jbossSite);
     }
 

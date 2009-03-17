@@ -28,7 +28,7 @@ import java.util.List;
  */
 abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> extends HttpdTomcatSharedSiteManager<TC> {
 
-    HttpdTomcatSharedSiteManager_3_X(HttpdTomcatSharedSite tomcatSharedSite) {
+    HttpdTomcatSharedSiteManager_3_X(HttpdTomcatSharedSite tomcatSharedSite) throws SQLException, IOException {
         super(tomcatSharedSite);
     }
 

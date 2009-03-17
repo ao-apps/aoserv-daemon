@@ -54,7 +54,6 @@ import com.aoindustries.util.ErrorHandler;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.IntList;
 import com.aoindustries.util.StringUtility;
-import com.aoindustries.util.WrappedException;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -62,7 +61,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
 import java.io.Reader;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.Security;
 import java.sql.SQLException;
@@ -84,16 +82,8 @@ final public class AOServDaemon {
      * A single random number generator is shared by all daemon resources to provide better randomness.
      * Not synchronized because multiple instantiation is acceptable.
      */
-    private static Random random;
+    private static final Random random = new SecureRandom();
     public static Random getRandom() {
-        if(random==null) {
-            final String algorithm="SHA1PRNG";
-            try {
-                random=SecureRandom.getInstance(algorithm);
-            } catch(NoSuchAlgorithmException err) {
-                throw new WrappedException(err, new Object[] {"algorithm="+algorithm});
-            }
-        }
         return random;
     }
 

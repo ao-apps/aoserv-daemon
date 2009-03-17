@@ -45,7 +45,7 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 
     final protected HttpdTomcatStdSite tomcatStdSite;
     
-    HttpdTomcatStdSiteManager(HttpdTomcatStdSite tomcatStdSite) {
+    HttpdTomcatStdSiteManager(HttpdTomcatStdSite tomcatStdSite) throws SQLException, IOException {
         super(tomcatStdSite.getHttpdTomcatSite());
         this.tomcatStdSite = tomcatStdSite;
     }
