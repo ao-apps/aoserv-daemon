@@ -135,8 +135,9 @@ final public class ServerManager {
                     "/usr/sbin/pvs",
                     "--noheadings",
                     "--separator=\t",
+                    "--units=b",
                     "-o",
-                    "pv_name,pv_pe_count,pv_pe_alloc_count,vg_name"
+                    "pv_name,pv_pe_count,pv_pe_alloc_count,pv_size,vg_name"
                 }
             ),
             AOServDaemon.execAndCapture(
