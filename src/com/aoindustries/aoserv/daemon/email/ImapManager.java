@@ -1888,15 +1888,30 @@ final public class ImapManager extends BuilderThread {
                 return -1;
             }
             String folderName = getFolderName(user, domain, folder);
-            IMAPFolder mailbox = (IMAPFolder)store.getFolder(folderName);
-            try {
-                String value = getAnnotation(mailbox, "/vendor/cmu/cyrus-imapd/size", "value.shared");
-                if(value!=null) return Long.parseLong(value);
-                if(!notFoundOK) throw new MessagingException(folderName+": \"/vendor/cmu/cyrus-imapd/size\" \"value.shared\" annotation not found");
-                return -1;
-            } finally {
-                if(mailbox.isOpen()) mailbox.close(false);
+            int attempt=1;
+            for(; attempt<=10; attempt++) {
+                try {
+                    IMAPFolder mailbox = (IMAPFolder)store.getFolder(folderName);
+                    try {
+                        String value = getAnnotation(mailbox, "/vendor/cmu/cyrus-imapd/size", "value.shared");
+                        if(value!=null) return Long.parseLong(value);
+                        if(!notFoundOK) throw new MessagingException(folderName+": \"/vendor/cmu/cyrus-imapd/size\" \"value.shared\" annotation not found");
+                        return -1;
+                    } finally {
+                        if(mailbox.isOpen()) mailbox.close(false);
+                    }
+                } catch(MessagingException messagingException) {
+                    String message = messagingException.getMessage();
+                    if(message==null || !message.contains("* BYE idle for too long")) throw messagingException;
+                    AOServDaemon.reportError(messagingException, new Object[] {"attempt="+attempt});
+                    try {
+                        Thread.sleep(100);
+                    } catch(InterruptedException err) {
+                        AOServDaemon.reportWarning(err, null);
+                    }
+                }
             }
+            throw new MessagingException("Unable to get folder size after "+(attempt-1)+" attempts");
         } catch(RuntimeException err) {
             closeStore();
             throw err;
@@ -1929,6 +1944,8 @@ ad GETANNOTATION user/cyrus.test/Junk@suspendo.aoindustries.com "*" "value.share
 * ANNOTATION "user/cyrus.test/Junk@suspendo.aoindustries.com" "/vendor/cmu/cyrus-imapd/partition" ("value.shared" "default")
 ad OK Completed
 */
+        } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+            return -1;
         } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
     }
 
