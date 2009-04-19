@@ -1877,7 +1877,7 @@ final public class ImapManager extends BuilderThread {
     }
 
     /**
-     * @param notFoundOK if <code>true</code> will return <code>-1</code> if annotation not found, MessagingException otherwise
+     * @param notFoundOK if <code>true</code> will return <code>0</code> if annotation not found, MessagingException otherwise
      */
     private static long getCyrusFolderSize(String user, String folder, String domain, boolean notFoundOK) throws IOException, SQLException, MessagingException {
         try {
@@ -1885,7 +1885,7 @@ final public class ImapManager extends BuilderThread {
             IMAPStore store = getStore();
             if(store==null) {
                 if(!notFoundOK) throw new MessagingException("Not an IMAP server");
-                return -1;
+                return 0;
             }
             String folderName = getFolderName(user, domain, folder);
             int attempt=1;
@@ -1896,7 +1896,7 @@ final public class ImapManager extends BuilderThread {
                         String value = getAnnotation(mailbox, "/vendor/cmu/cyrus-imapd/size", "value.shared");
                         if(value!=null) return Long.parseLong(value);
                         if(!notFoundOK) throw new MessagingException(folderName+": \"/vendor/cmu/cyrus-imapd/size\" \"value.shared\" annotation not found");
-                        return -1;
+                        return 0;
                     } finally {
                         if(mailbox.isOpen()) mailbox.close(false);
                     }
@@ -1945,7 +1945,7 @@ ad GETANNOTATION user/cyrus.test/Junk@suspendo.aoindustries.com "*" "value.share
 ad OK Completed
 */
         } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-            return -1;
+            return 0;
         } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
     }
 
@@ -2043,6 +2043,9 @@ ad OK Completed
                 closeStore();
                 throw err;
             }
+        } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+            // Not an IMAP server, consistent with File.lastModified() above
+            return 0L;
         } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
     }
 }
