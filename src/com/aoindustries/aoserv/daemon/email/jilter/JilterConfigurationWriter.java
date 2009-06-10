@@ -55,13 +55,13 @@ public class JilterConfigurationWriter extends BuilderThread {
                 System.out.print("Starting JilterConfigurationWriter: ");
                 AOServConnector connector=AOServDaemon.getConnector();
                 configurationWriter=new JilterConfigurationWriter();
-                connector.aoServers.addTableListener(configurationWriter, 0);
-                connector.netDevices.addTableListener(configurationWriter, 0);
-                connector.ipAddresses.addTableListener(configurationWriter, 0);
-                connector.emailDomains.addTableListener(configurationWriter, 0);
-                connector.emailAddresses.addTableListener(configurationWriter, 0);
-                connector.emailSmtpRelays.addTableListener(configurationWriter, 0);
-                connector.packages.addTableListener(configurationWriter, 0);
+                connector.getAoServers().addTableListener(configurationWriter, 0);
+                connector.getNetDevices().addTableListener(configurationWriter, 0);
+                connector.getIpAddresses().addTableListener(configurationWriter, 0);
+                connector.getEmailDomains().addTableListener(configurationWriter, 0);
+                connector.getEmailAddresses().addTableListener(configurationWriter, 0);
+                connector.getEmailSmtpRelays().addTableListener(configurationWriter, 0);
+                connector.getPackages().addTableListener(configurationWriter, 0);
                 System.out.println("Done");
             }
         }
@@ -124,7 +124,7 @@ public class JilterConfigurationWriter extends BuilderThread {
         Map<String,EmailLimit> emailOutLimits = new HashMap<String,EmailLimit>(noGrowSize);
         Map<String,EmailLimit> emailRelayLimits = new HashMap<String,EmailLimit>(noGrowSize);
         for(String packageName : domainPackages.values()) {
-            Package pk = AOServDaemon.getConnector().packages.get(packageName);
+            Package pk = AOServDaemon.getConnector().getPackages().get(packageName);
             if(pk==null) throw new SQLException("Unable to find Package: "+packageName);
             int emailInBurst = pk.getEmailInBurst();
             float emailInRate = pk.getEmailInRate();

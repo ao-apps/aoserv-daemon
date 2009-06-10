@@ -48,7 +48,7 @@ public class TimeZoneManager extends BuilderThread {
                 System.out.print("Starting TimeZoneManager: ");
                 AOServConnector connector=AOServDaemon.getConnector();
                 timeZoneManager=new TimeZoneManager();
-                connector.aoServers.addTableListener(timeZoneManager, 0);
+                connector.getAoServers().addTableListener(timeZoneManager, 0);
                 System.out.println("Done");
             }
         }

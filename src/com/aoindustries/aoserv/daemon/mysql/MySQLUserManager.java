@@ -557,7 +557,7 @@ final public class MySQLUserManager extends BuilderThread {
                 System.out.print("Starting MySQLUserManager: ");
                 AOServConnector conn=AOServDaemon.getConnector();
                 mysqlUserManager=new MySQLUserManager();
-                conn.mysqlServerUsers.addTableListener(mysqlUserManager, 0);
+                conn.getMysqlServerUsers().addTableListener(mysqlUserManager, 0);
                 System.out.println("Done");
             }
         }

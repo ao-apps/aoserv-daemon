@@ -64,7 +64,7 @@ final public class SshdManager extends BuilderThread {
             // Find all the IPs that should be bound to
             SortedSet<String> ips;
             {
-                Protocol sshProtocol=connector.protocols.get(Protocol.SSH);
+                Protocol sshProtocol=connector.getProtocols().get(Protocol.SSH);
                 List<NetBind> nbs=thisAOServer.getServer().getNetBinds(sshProtocol);
                 ips=new TreeSet<String>();
                 for(int c=0;c<nbs.size();c++) {
@@ -197,7 +197,7 @@ final public class SshdManager extends BuilderThread {
                 System.out.print("Starting SshdManager: ");
                 AOServConnector conn=AOServDaemon.getConnector();
                 sshdManager=new SshdManager();
-                conn.netBinds.addTableListener(sshdManager, 0);
+                conn.getNetBinds().addTableListener(sshdManager, 0);
                 System.out.println("Done");
             }
         }

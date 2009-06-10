@@ -423,7 +423,7 @@ final public class PostgresUserManager extends BuilderThread {
                 System.out.print("Starting PostgresUserManager: ");
                 AOServConnector conn=AOServDaemon.getConnector();
                 postgresUserManager=new PostgresUserManager();
-                conn.postgresServerUsers.addTableListener(postgresUserManager, 0);
+                conn.getPostgresServerUsers().addTableListener(postgresUserManager, 0);
                 System.out.println("Done");
             }
         }

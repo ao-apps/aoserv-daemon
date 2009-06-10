@@ -266,8 +266,8 @@ public final class PgHbaManager extends BuilderThread {
                 System.out.print("Starting PgHbaManager: ");
                 AOServConnector conn=AOServDaemon.getConnector();
                 pgHbaManager=new PgHbaManager();
-                conn.postgresDatabases.addTableListener(pgHbaManager, 0);
-                conn.postgresServerUsers.addTableListener(pgHbaManager, 0);
+                conn.getPostgresDatabases().addTableListener(pgHbaManager, 0);
+                conn.getPostgresServerUsers().addTableListener(pgHbaManager, 0);
                 System.out.println("Done");
             }
         }

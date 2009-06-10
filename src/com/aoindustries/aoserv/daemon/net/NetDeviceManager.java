@@ -411,8 +411,8 @@ final public class NetDeviceManager extends BuilderThread {
                 System.out.print("Starting NetDeviceManager: ");
                 AOServConnector conn=AOServDaemon.getConnector();
                 netDeviceManager=new NetDeviceManager();
-                conn.ipAddresses.addTableListener(netDeviceManager, 0);
-                conn.netDevices.addTableListener(netDeviceManager, 0);
+                conn.getIpAddresses().addTableListener(netDeviceManager, 0);
+                conn.getNetDevices().addTableListener(netDeviceManager, 0);
                 System.out.println("Done");
             }
         }

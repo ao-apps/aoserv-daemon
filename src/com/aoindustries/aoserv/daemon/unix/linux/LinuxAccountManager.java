@@ -267,7 +267,7 @@ public class LinuxAccountManager extends BuilderThread {
                 /*
                  * Create any inboxes that need to exist.
                  */
-                LinuxServerGroup mailGroup=connector.linuxGroups.get(LinuxGroup.MAIL).getLinuxServerGroup(aoServer);
+                LinuxServerGroup mailGroup=connector.getLinuxGroups().get(LinuxGroup.MAIL).getLinuxServerGroup(aoServer);
                 if(mailGroup==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+aoServer.getHostname());
                 for (int c = 0; c < accounts.size(); c++) {
                     LinuxServerAccount account = accounts.get(c);
@@ -782,11 +782,11 @@ public class LinuxAccountManager extends BuilderThread {
                 System.out.print("Starting LinuxAccountManager: ");
                 AOServConnector conn=AOServDaemon.getConnector();
                 linuxAccountManager=new LinuxAccountManager();
-                conn.ftpGuestUsers.addTableListener(linuxAccountManager, 0);
-                conn.linuxAccounts.addTableListener(linuxAccountManager, 0);
-                conn.linuxGroupAccounts.addTableListener(linuxAccountManager, 0);
-                conn.linuxServerAccounts.addTableListener(linuxAccountManager, 0);
-                conn.linuxServerGroups.addTableListener(linuxAccountManager, 0);
+                conn.getFtpGuestUsers().addTableListener(linuxAccountManager, 0);
+                conn.getLinuxAccounts().addTableListener(linuxAccountManager, 0);
+                conn.getLinuxGroupAccounts().addTableListener(linuxAccountManager, 0);
+                conn.getLinuxServerAccounts().addTableListener(linuxAccountManager, 0);
+                conn.getLinuxServerGroups().addTableListener(linuxAccountManager, 0);
                 System.out.println("Done");
             }
         }

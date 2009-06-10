@@ -264,7 +264,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
                 System.out.print("Starting MySQLDatabaseManager: ");
                 AOServConnector conn=AOServDaemon.getConnector();
                 mysqlDatabaseManager=new MySQLDatabaseManager();
-                conn.mysqlDatabases.addTableListener(mysqlDatabaseManager, 0);
+                conn.getMysqlDatabases().addTableListener(mysqlDatabaseManager, 0);
                 System.out.println("Done");
             }
         }
@@ -280,7 +280,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
     
     public static void getMasterStatus(int mysqlServer, CompressedDataOutputStream out) throws IOException, SQLException {
         // Use the existing pools
-        MySQLServer ms = AOServDaemon.getConnector().mysqlServers.get(mysqlServer);
+        MySQLServer ms = AOServDaemon.getConnector().getMysqlServers().get(mysqlServer);
         if(ms==null) throw new SQLException("Unable to find MySQLServer: "+mysqlServer);
 
         AOConnectionPool pool=MySQLServerManager.getPool(ms);

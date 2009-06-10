@@ -135,7 +135,7 @@ final public class CvsManager extends BuilderThread {
                 System.out.print("Starting CvsManager: ");
                 AOServConnector conn=AOServDaemon.getConnector();
                 cvsManager=new CvsManager();
-                conn.cvsRepositories.addTableListener(cvsManager, 0);
+                conn.getCvsRepositories().addTableListener(cvsManager, 0);
                 System.out.println("Done");
             }
         }

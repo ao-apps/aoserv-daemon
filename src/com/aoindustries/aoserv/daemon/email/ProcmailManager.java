@@ -489,9 +489,9 @@ public final class ProcmailManager extends BuilderThread {
                 System.out.print("Starting ProcmailManager: ");
                 AOServConnector connector=AOServDaemon.getConnector();
                 procmailManager=new ProcmailManager();
-                if(EMAIL_ATTACHMENT_TYPES_ENABLED) connector.emailAttachmentBlocks.addTableListener(procmailManager, 0);
-                connector.ipAddresses.addTableListener(procmailManager, 0);
-                connector.linuxServerAccounts.addTableListener(procmailManager, 0);
+                if(EMAIL_ATTACHMENT_TYPES_ENABLED) connector.getEmailAttachmentBlocks().addTableListener(procmailManager, 0);
+                connector.getIpAddresses().addTableListener(procmailManager, 0);
+                connector.getLinuxServerAccounts().addTableListener(procmailManager, 0);
                 System.out.println("Done");
             }
         }

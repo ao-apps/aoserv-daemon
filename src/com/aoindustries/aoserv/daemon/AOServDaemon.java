@@ -141,7 +141,7 @@ final public class AOServDaemon {
 
     public static AOServer getThisAOServer() throws IOException, SQLException {
         String hostname=AOServDaemonConfiguration.getServerHostname();
-        Server server=getConnector().servers.get(hostname);
+        Server server=getConnector().getServers().get(hostname);
         if(server==null) throw new SQLException("Unable to find Server: "+hostname);
         AOServer ao=server.getAOServer();
         if(ao==null) throw new SQLException("Server is not an AOServer: "+hostname);

@@ -89,9 +89,9 @@ public final class XinetdManager extends BuilderThread {
                         null,
                         null,
                         "wuimap",
-                        connector.netProtocols.get(NetProtocol.TCP),
+                        connector.getNetProtocols().get(NetProtocol.TCP),
                         aoServer.getPrimaryIPAddress(),
-                        connector.netPorts.get(8143),
+                        connector.getNetPorts().get(8143),
                         false,
                         rootUser,
                         null,
@@ -770,9 +770,9 @@ public final class XinetdManager extends BuilderThread {
                 System.out.print("Starting XinetdManager: ");
                 AOServConnector conn=AOServDaemon.getConnector();
                 xinetdManager=new XinetdManager();
-                conn.cvsRepositories.addTableListener(xinetdManager, 0);
-                conn.netBinds.addTableListener(xinetdManager, 0);
-                conn.netTcpRedirects.addTableListener(xinetdManager, 0);
+                conn.getCvsRepositories().addTableListener(xinetdManager, 0);
+                conn.getNetBinds().addTableListener(xinetdManager, 0);
+                conn.getNetTcpRedirects().addTableListener(xinetdManager, 0);
                 System.out.println("Done");
             }
         }

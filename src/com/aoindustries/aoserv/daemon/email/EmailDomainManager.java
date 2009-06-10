@@ -124,7 +124,7 @@ public final class EmailDomainManager extends BuilderThread {
                 System.out.print("Starting EmailDomainManager: ");
                 AOServConnector connector=AOServDaemon.getConnector();
                 emailDomainManager=new EmailDomainManager();
-                connector.emailDomains.addTableListener(emailDomainManager, 0);
+                connector.getEmailDomains().addTableListener(emailDomainManager, 0);
                 System.out.println("Done");
             }
         }

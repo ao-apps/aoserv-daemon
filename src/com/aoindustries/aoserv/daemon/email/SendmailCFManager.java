@@ -65,9 +65,9 @@ final public class SendmailCFManager extends BuilderThread {
         
         synchronized(rebuildLock) {
             // Get the values used by different files once for internal consistency on dynamic data
-            List<NetBind> smtpNetBinds = server.getNetBinds(conn.protocols.get(Protocol.SMTP));
-            List<NetBind> smtpsNetBinds = server.getNetBinds(conn.protocols.get(Protocol.SMTPS));
-            List<NetBind> submissionNetBinds = server.getNetBinds(conn.protocols.get(Protocol.SUBMISSION));
+            List<NetBind> smtpNetBinds = server.getNetBinds(conn.getProtocols().get(Protocol.SMTP));
+            List<NetBind> smtpsNetBinds = server.getNetBinds(conn.getProtocols().get(Protocol.SMTPS));
+            List<NetBind> submissionNetBinds = server.getNetBinds(conn.getProtocols().get(Protocol.SUBMISSION));
 
             // Build the new version of /etc/mail/sendmail.mc in RAM
             {
@@ -442,10 +442,10 @@ final public class SendmailCFManager extends BuilderThread {
                 System.out.print("Starting SendmailCFManager: ");
                 AOServConnector connector=AOServDaemon.getConnector();
                 sendmailCFManager=new SendmailCFManager();
-                connector.ipAddresses.addTableListener(sendmailCFManager, 0);
-                connector.netBinds.addTableListener(sendmailCFManager, 0);
-                connector.aoServers.addTableListener(sendmailCFManager, 0);
-                connector.serverFarms.addTableListener(sendmailCFManager, 0);
+                connector.getIpAddresses().addTableListener(sendmailCFManager, 0);
+                connector.getNetBinds().addTableListener(sendmailCFManager, 0);
+                connector.getAoServers().addTableListener(sendmailCFManager, 0);
+                connector.getServerFarms().addTableListener(sendmailCFManager, 0);
                 System.out.println("Done");
             }
         }

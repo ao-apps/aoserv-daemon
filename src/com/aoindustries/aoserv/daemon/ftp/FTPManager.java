@@ -123,7 +123,7 @@ final public class FTPManager extends BuilderThread {
                         + "</Global>\n"
                 );
 
-                for(NetBind bind : thisAOServer.getServer().getNetBinds(conn.protocols.get(Protocol.FTP))) {
+                for(NetBind bind : thisAOServer.getServer().getNetBinds(conn.getProtocols().get(Protocol.FTP))) {
                     NetTcpRedirect redirect=bind.getNetTcpRedirect();
                     PrivateFTPServer privateServer=bind.getPrivateFTPServer();
                     if(redirect!=null) {
@@ -290,7 +290,7 @@ final public class FTPManager extends BuilderThread {
                 }
                 
                 // Find all the FTP binds
-                List<NetBind> binds = thisAOServer.getServer().getNetBinds(conn.protocols.get(Protocol.FTP));
+                List<NetBind> binds = thisAOServer.getServer().getNetBinds(conn.getProtocols().get(Protocol.FTP));
 
                 // Keep a list of the files that were verified
                 Set<String> existing = new HashSet<String>(binds.size()*4/3+1);
@@ -424,14 +424,14 @@ final public class FTPManager extends BuilderThread {
                 System.out.print("Starting FTPManager: ");
                 AOServConnector conn=AOServDaemon.getConnector();
                 ftpManager=new FTPManager();
-                conn.ftpGuestUsers.addTableListener(ftpManager, 0);
-                conn.httpdSites.addTableListener(ftpManager, 0);
-                conn.ipAddresses.addTableListener(ftpManager, 0);
-                conn.linuxAccounts.addTableListener(ftpManager, 0);
-                conn.linuxServerAccounts.addTableListener(ftpManager, 0);
-                conn.netBinds.addTableListener(ftpManager, 0);
-                conn.privateFTPServers.addTableListener(ftpManager, 0);
-                conn.usernames.addTableListener(ftpManager, 0);
+                conn.getFtpGuestUsers().addTableListener(ftpManager, 0);
+                conn.getHttpdSites().addTableListener(ftpManager, 0);
+                conn.getIpAddresses().addTableListener(ftpManager, 0);
+                conn.getLinuxAccounts().addTableListener(ftpManager, 0);
+                conn.getLinuxServerAccounts().addTableListener(ftpManager, 0);
+                conn.getNetBinds().addTableListener(ftpManager, 0);
+                conn.getPrivateFTPServers().addTableListener(ftpManager, 0);
+                conn.getUsernames().addTableListener(ftpManager, 0);
                 System.out.println("Done");
             }
         }

@@ -479,18 +479,18 @@ final public class EmailAddressManager extends BuilderThread {
                 System.out.print("Starting EmailAddressManager: ");
                 AOServConnector connector=AOServDaemon.getConnector();
                 emailAddressManager=new EmailAddressManager();
-                connector.emailDomains.addTableListener(emailAddressManager, 0);
-                connector.blackholeEmailAddresses.addTableListener(emailAddressManager, 0);
-                connector.emailAddresses.addTableListener(emailAddressManager, 0);
-                connector.emailForwardings.addTableListener(emailAddressManager, 0);
-                connector.emailLists.addTableListener(emailAddressManager, 0);
-                connector.emailListAddresses.addTableListener(emailAddressManager, 0);
-                connector.emailPipes.addTableListener(emailAddressManager, 0);
-                connector.emailPipeAddresses.addTableListener(emailAddressManager, 0);
-                connector.linuxServerAccounts.addTableListener(emailAddressManager, 0);
-                connector.linuxAccAddresses.addTableListener(emailAddressManager, 0);
-                connector.packages.addTableListener(emailAddressManager, 0);
-                connector.systemEmailAliases.addTableListener(emailAddressManager, 0);
+                connector.getEmailDomains().addTableListener(emailAddressManager, 0);
+                connector.getBlackholeEmailAddresses().addTableListener(emailAddressManager, 0);
+                connector.getEmailAddresses().addTableListener(emailAddressManager, 0);
+                connector.getEmailForwardings().addTableListener(emailAddressManager, 0);
+                connector.getEmailLists().addTableListener(emailAddressManager, 0);
+                connector.getEmailListAddresses().addTableListener(emailAddressManager, 0);
+                connector.getEmailPipes().addTableListener(emailAddressManager, 0);
+                connector.getEmailPipeAddresses().addTableListener(emailAddressManager, 0);
+                connector.getLinuxServerAccounts().addTableListener(emailAddressManager, 0);
+                connector.getLinuxAccAddresses().addTableListener(emailAddressManager, 0);
+                connector.getPackages().addTableListener(emailAddressManager, 0);
+                connector.getSystemEmailAliases().addTableListener(emailAddressManager, 0);
                 System.out.println("Done");
             }
         }

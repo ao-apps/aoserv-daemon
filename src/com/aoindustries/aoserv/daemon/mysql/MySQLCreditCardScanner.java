@@ -78,7 +78,7 @@ final public class MySQLCreditCardScanner implements CronJob {
     private static void scanMySQLForCards() {
         try {
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
-            List<MySQLReservedWord> mrws = AOServDaemon.getConnector().mysqlReservedWords.getRows();
+            List<MySQLReservedWord> mrws = AOServDaemon.getConnector().getMysqlReservedWords().getRows();
             List<String> reservedWords = new ArrayList<String>(mrws.size());
             for(MySQLReservedWord mrw : mrws) reservedWords.add(mrw.getWord());
 
@@ -110,6 +110,7 @@ final public class MySQLCreditCardScanner implements CronJob {
             for(Business business : reports.keySet()) {
                 StringBuilder report = reports.get(business);
                 if(report!=null && report.length()>0) {
+                    /* TODO
                     AOServDaemon.getConnector().getThisBusinessAdministrator().addTicket(
                         business,
                         TicketType.TODO_SECURITY,
@@ -121,7 +122,7 @@ final public class MySQLCreditCardScanner implements CronJob {
                         null,
                         null,
                         null
-                    );
+                    );*/
                 }
             }
         } catch(ClassNotFoundException err) {

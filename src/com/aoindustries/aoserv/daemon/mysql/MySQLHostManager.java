@@ -47,7 +47,7 @@ final public class MySQLHostManager extends BuilderThread {
         ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
         synchronized (rebuildLock) {
-            for(MySQLServer mysqlServer : connector.mysqlServers) {
+            for(MySQLServer mysqlServer : connector.getMysqlServers()) {
                 String version=mysqlServer.getVersion().getVersion();
                 boolean modified = false;
 
@@ -148,8 +148,8 @@ final public class MySQLHostManager extends BuilderThread {
                 System.out.print("Starting MySQLHostManager: ");
                 AOServConnector conn=AOServDaemon.getConnector();
                 mysqlHostManager=new MySQLHostManager();
-                conn.ipAddresses.addTableListener(mysqlHostManager, 0);
-                conn.mysqlServers.addTableListener(mysqlHostManager, 0);
+                conn.getIpAddresses().addTableListener(mysqlHostManager, 0);
+                conn.getMysqlServers().addTableListener(mysqlHostManager, 0);
                 System.out.println("Done");
             }
         }

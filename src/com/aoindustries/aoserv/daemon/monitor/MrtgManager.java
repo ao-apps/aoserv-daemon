@@ -492,11 +492,11 @@ final public class MrtgManager extends BuilderThread {
                 System.out.print("Starting MrtgManager: ");
                 AOServConnector conn=AOServDaemon.getConnector();
                 mrtgManager=new MrtgManager();
-                conn.aoServers.addTableListener(mrtgManager, 0);
-                conn.netDevices.addTableListener(mrtgManager, 0);
-                conn.netDeviceIDs.addTableListener(mrtgManager, 0);
-                conn.servers.addTableListener(mrtgManager, 0);
-                conn.timeZones.addTableListener(mrtgManager, 0);
+                conn.getAoServers().addTableListener(mrtgManager, 0);
+                conn.getNetDevices().addTableListener(mrtgManager, 0);
+                conn.getNetDeviceIDs().addTableListener(mrtgManager, 0);
+                conn.getServers().addTableListener(mrtgManager, 0);
+                conn.getTimeZones().addTableListener(mrtgManager, 0);
                 System.out.println("Done");
             }
         }

@@ -49,7 +49,7 @@ final public class MySQLDBUserManager extends BuilderThread {
         ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
         synchronized(rebuildLock) {
-            for(MySQLServer mysqlServer : connector.mysqlServers) {
+            for(MySQLServer mysqlServer : connector.getMysqlServers()) {
                 String version=mysqlServer.getVersion().getVersion();
                 boolean modified=false;
 
@@ -181,10 +181,10 @@ final public class MySQLDBUserManager extends BuilderThread {
                 System.out.print("Starting MySQLDBUserManager: ");
                 AOServConnector conn=AOServDaemon.getConnector();
                 mysqlDBUserManager=new MySQLDBUserManager();
-                conn.mysqlDBUsers.addTableListener(mysqlDBUserManager, 0);
-                conn.mysqlDatabases.addTableListener(mysqlDBUserManager, 0);
-                conn.mysqlServerUsers.addTableListener(mysqlDBUserManager, 0);
-                conn.mysqlUsers.addTableListener(mysqlDBUserManager, 0);
+                conn.getMysqlDBUsers().addTableListener(mysqlDBUserManager, 0);
+                conn.getMysqlDatabases().addTableListener(mysqlDBUserManager, 0);
+                conn.getMysqlServerUsers().addTableListener(mysqlDBUserManager, 0);
+                conn.getMysqlUsers().addTableListener(mysqlDBUserManager, 0);
                 System.out.println("Done");
             }
         }

@@ -84,7 +84,7 @@ final public class MySQLServerManager extends BuilderThread {
                 System.out.print("Starting MySQLServerManager: ");
                 AOServConnector conn=AOServDaemon.getConnector();
                 mysqlServerManager=new MySQLServerManager();
-                conn.mysqlServers.addTableListener(mysqlServerManager, 0);
+                conn.getMysqlServers().addTableListener(mysqlServerManager, 0);
                 System.out.println("Done");
             }
         }

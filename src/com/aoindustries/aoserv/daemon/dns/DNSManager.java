@@ -147,7 +147,7 @@ final public class DNSManager extends BuilderThread {
              * Create the new /var/named files
              */
             // By getting the list first, we get a snap-shot of the data
-            List<DNSZone> zones=connector.dnsZones.getRows();
+            List<DNSZone> zones=connector.getDnsZones().getRows();
             for(DNSZone zone : zones) {
                 long serial=zone.getSerial();
                 Long lastSerial=zoneSerials.get(zone);
@@ -228,7 +228,7 @@ final public class DNSManager extends BuilderThread {
                         + "\tallow-query { " + ACL + " };\n"
                         + "\tallow-recursion { " + ACL + " };\n");
                 Map<Integer,Set<String>> alreadyAddedIPs = new HashMap<Integer,Set<String>>();
-                for(NetBind nb : AOServDaemon.getThisAOServer().getServer().getNetBinds(connector.protocols.get(Protocol.DNS))) {
+                for(NetBind nb : AOServDaemon.getThisAOServer().getServer().getNetBinds(connector.getProtocols().get(Protocol.DNS))) {
                     int port = nb.getPort().getPort();
                     String ip = nb.getIPAddress().getIPAddress();
                     Set<String> ips = alreadyAddedIPs.get(port);
@@ -425,7 +425,7 @@ final public class DNSManager extends BuilderThread {
 
     private static final Object restartLock=new Object();
     private static void restart() throws IOException, SQLException {
-        Protocol dns = AOServDaemon.getConnector().protocols.get(Protocol.DNS);
+        Protocol dns = AOServDaemon.getConnector().getProtocols().get(Protocol.DNS);
         if(dns==null) throw new SQLException("Unable to find Protocol: "+Protocol.DNS);
         if(!AOServDaemon.getThisAOServer().getServer().getNetBinds(dns).isEmpty()) {
             synchronized(restartLock) {
@@ -437,7 +437,7 @@ final public class DNSManager extends BuilderThread {
     public static void start() throws IOException, SQLException {
         AOServer thisAOServer=AOServDaemon.getThisAOServer();
         int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
-        Protocol dns = AOServDaemon.getConnector().protocols.get(Protocol.DNS);
+        Protocol dns = AOServDaemon.getConnector().getProtocols().get(Protocol.DNS);
         if(dns==null) throw new SQLException("Unable to find Protocol: "+Protocol.DNS);
         List<NetBind> netBinds = AOServDaemon.getThisAOServer().getServer().getNetBinds(dns);
 
@@ -455,9 +455,9 @@ final public class DNSManager extends BuilderThread {
                 System.out.print("Starting DNSManager: ");
                 AOServConnector conn=AOServDaemon.getConnector();
                 dnsManager=new DNSManager();
-                conn.dnsZones.addTableListener(dnsManager, 0);
-                conn.dnsRecords.addTableListener(dnsManager, 0);
-                conn.netBinds.addTableListener(dnsManager, 0);
+                conn.getDnsZones().addTableListener(dnsManager, 0);
+                conn.getDnsRecords().addTableListener(dnsManager, 0);
+                conn.getNetBinds().addTableListener(dnsManager, 0);
                 System.out.println("Done");
             }
         }

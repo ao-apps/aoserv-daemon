@@ -552,11 +552,11 @@ final public class AWStatsManager extends BuilderThread {
                 System.out.print("Starting AWStatsManager: ");
                 AOServConnector connector=AOServDaemon.getConnector();
                 awstatsManager=new AWStatsManager();
-                connector.httpdSites.addTableListener(awstatsManager, 0);
-                connector.httpdSiteBinds.addTableListener(awstatsManager, 0);
-                connector.httpdSiteURLs.addTableListener(awstatsManager, 0);
-                connector.ipAddresses.addTableListener(awstatsManager, 0);
-                connector.netBinds.addTableListener(awstatsManager, 0);
+                connector.getHttpdSites().addTableListener(awstatsManager, 0);
+                connector.getHttpdSiteBinds().addTableListener(awstatsManager, 0);
+                connector.getHttpdSiteURLs().addTableListener(awstatsManager, 0);
+                connector.getIpAddresses().addTableListener(awstatsManager, 0);
+                connector.getNetBinds().addTableListener(awstatsManager, 0);
                 System.out.println("Done");
             }
         }

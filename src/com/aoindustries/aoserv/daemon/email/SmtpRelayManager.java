@@ -65,7 +65,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
             && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
         ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
-        EmailSmtpRelayType allowRelay=connector.emailSmtpRelayTypes.get(EmailSmtpRelayType.ALLOW_RELAY);
+        EmailSmtpRelayType allowRelay=connector.getEmailSmtpRelayTypes().get(EmailSmtpRelayType.ALLOW_RELAY);
         //boolean isQmail=server.isQmail();
 
         // The IP addresses that have been used
@@ -265,9 +265,9 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
                 System.out.print("Starting SmtpRelayManager: ");
                 AOServConnector connector=AOServDaemon.getConnector();
                 smtpRelayManager=new SmtpRelayManager();
-                connector.emailSmtpRelays.addTableListener(smtpRelayManager, 0);
-                connector.ipAddresses.addTableListener(smtpRelayManager, 0);
-                connector.netDevices.addTableListener(smtpRelayManager, 0);
+                connector.getEmailSmtpRelays().addTableListener(smtpRelayManager, 0);
+                connector.getIpAddresses().addTableListener(smtpRelayManager, 0);
+                connector.getNetDevices().addTableListener(smtpRelayManager, 0);
                 new Thread(smtpRelayManager, "SmtpRelayManaged").start();
                 System.out.println("Done");
             }

@@ -172,7 +172,7 @@ final public class DistroManager implements Runnable {
     private static List<String> checkFilesystem(boolean displayResults) throws IOException, SQLException {
         // Build the list of files that should exist
         AOServConnector conn=AOServDaemon.getConnector();
-        DistroFileTable distroFileTable=conn.distroFiles;
+        DistroFileTable distroFileTable=conn.getDistroFiles();
         List<String> results;
         // Getting this list provides a single, immutable, consistent snap-shot of the information
         List<DistroFile> distroFiles=distroFileTable.getRows();

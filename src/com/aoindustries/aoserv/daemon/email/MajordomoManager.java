@@ -63,7 +63,7 @@ final public class MajordomoManager extends BuilderThread {
             // Resolve the GID for "mail"
             int mailGID;
             {
-                LinuxGroup mailLG=connector.linuxGroups.get(LinuxGroup.MAIL);
+                LinuxGroup mailLG=connector.getLinuxGroups().get(LinuxGroup.MAIL);
                 if(mailLG==null) throw new SQLException("Unable to find LinuxGroup: "+LinuxGroup.MAIL);
                 LinuxServerGroup mailLSG=mailLG.getLinuxServerGroup(aoServer);
                 if(mailLSG==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+aoServer.getHostname());
@@ -989,8 +989,8 @@ final public class MajordomoManager extends BuilderThread {
                 System.out.print("Starting MajordomoManager: ");
                 AOServConnector connector=AOServDaemon.getConnector();
                 majordomoManager=new MajordomoManager();
-                connector.majordomoLists.addTableListener(majordomoManager, 0);
-                connector.majordomoServers.addTableListener(majordomoManager, 0);
+                connector.getMajordomoLists().addTableListener(majordomoManager, 0);
+                connector.getMajordomoServers().addTableListener(majordomoManager, 0);
                 System.out.println("Done");
             }
         }

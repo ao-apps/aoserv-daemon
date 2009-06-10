@@ -203,7 +203,7 @@ final public class ImapManager extends BuilderThread {
     private static String getImapServerIPAddress() throws IOException, SQLException {
         AOServer aoServer = AOServDaemon.getThisAOServer();
         AOServConnector conn = AOServDaemon.getConnector();
-        Protocol imapProtocol = conn.protocols.get(Protocol.IMAP2);
+        Protocol imapProtocol = conn.getProtocols().get(Protocol.IMAP2);
         if(imapProtocol==null) throw new SQLException("Protocol not found: "+Protocol.IMAP2);
         int imapPort = imapProtocol.getPort(conn).getPort();
         List<NetBind> netBinds = aoServer.getServer().getNetBinds(imapProtocol);
@@ -370,23 +370,23 @@ final public class ImapManager extends BuilderThread {
             AOServConnector conn = AOServDaemon.getConnector();
             Server server = thisAOServer.getServer();
 
-            Protocol imapProtocol = conn.protocols.get(Protocol.IMAP2);
+            Protocol imapProtocol = conn.getProtocols().get(Protocol.IMAP2);
             if(imapProtocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.IMAP2);
             List<NetBind> imapBinds = server.getNetBinds(imapProtocol);
 
-            Protocol imapsProtocol = conn.protocols.get(Protocol.SIMAP);
+            Protocol imapsProtocol = conn.getProtocols().get(Protocol.SIMAP);
             if(imapsProtocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.SIMAP);
             List<NetBind> imapsBinds = server.getNetBinds(imapsProtocol);
 
-            Protocol pop3Protocol = conn.protocols.get(Protocol.POP3);
+            Protocol pop3Protocol = conn.getProtocols().get(Protocol.POP3);
             if(pop3Protocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.POP3);
             List<NetBind> pop3Binds = server.getNetBinds(pop3Protocol);
 
-            Protocol pop3sProtocol = conn.protocols.get(Protocol.SPOP3);
+            Protocol pop3sProtocol = conn.getProtocols().get(Protocol.SPOP3);
             if(pop3sProtocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.SPOP3);
             List<NetBind> pop3sBinds = server.getNetBinds(pop3sProtocol);
 
-            Protocol sieveProtocol = conn.protocols.get(Protocol.SIEVE);
+            Protocol sieveProtocol = conn.getProtocols().get(Protocol.SIEVE);
             if(sieveProtocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.SIEVE);
             List<NetBind> sieveBinds = server.getNetBinds(sieveProtocol);
 
@@ -1611,12 +1611,12 @@ final public class ImapManager extends BuilderThread {
                 System.out.print("Starting ImapManager: ");
                 AOServConnector connector=AOServDaemon.getConnector();
                 imapManager=new ImapManager();
-                connector.aoServers.addTableListener(imapManager, 0);
-                connector.ipAddresses.addTableListener(imapManager, 0);
-                connector.linuxAccounts.addTableListener(imapManager, 0);
-                connector.linuxServerAccounts.addTableListener(imapManager, 0);
-                connector.netBinds.addTableListener(imapManager, 0);
-                connector.servers.addTableListener(imapManager, 0);
+                connector.getAoServers().addTableListener(imapManager, 0);
+                connector.getIpAddresses().addTableListener(imapManager, 0);
+                connector.getLinuxAccounts().addTableListener(imapManager, 0);
+                connector.getLinuxServerAccounts().addTableListener(imapManager, 0);
+                connector.getNetBinds().addTableListener(imapManager, 0);
+                connector.getServers().addTableListener(imapManager, 0);
                 System.out.println("Done");
             }
         }
