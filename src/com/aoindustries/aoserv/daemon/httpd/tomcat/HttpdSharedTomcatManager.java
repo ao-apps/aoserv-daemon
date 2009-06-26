@@ -115,7 +115,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
             final HttpdSharedTomcatManager manager = getInstance(sharedTomcat);
 
             Callable<Object> commandCallable;
-            if(sharedTomcat.getDisableLog()==null && !sharedTomcat.getHttpdTomcatSharedSites().isEmpty()) {
+            if(!sharedTomcat.isDisabled() && !sharedTomcat.getHttpdTomcatSharedSites().isEmpty()) {
                 // Enabled and has sites, start or restart
                 if(sharedTomcatsNeedingRestarted.contains(sharedTomcat)) {
                     commandCallable = new Callable<Object>() {
@@ -254,8 +254,8 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
         );
     }
 
-    public boolean isStartable() throws IOException, SQLException {
-        return sharedTomcat.getDisableLog()==null;
+    public boolean isStartable() {
+        return !sharedTomcat.isDisabled();
     }
 
     public String getStartStopScriptPath() throws IOException, SQLException {

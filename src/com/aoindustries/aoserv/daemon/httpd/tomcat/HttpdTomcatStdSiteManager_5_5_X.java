@@ -67,7 +67,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
         FileUtils.mkdir(siteDir+"/bin", 0770, uid, gid);
         FileUtils.mkdir(siteDir+"/conf", 0775, uid, gid);
         FileUtils.mkdir(siteDir+"/daemon", 0770, uid, gid);
-        if (httpdSite.getDisableLog()==null) FileUtils.ln("../bin/tomcat", siteDir+"/daemon/tomcat", uid, gid);
+        if (!httpdSite.isDisabled()) FileUtils.ln("../bin/tomcat", siteDir+"/daemon/tomcat", uid, gid);
         FileUtils.mkdir(siteDir+"/temp", 0770, uid, gid);
         FileUtils.ln("var/log", siteDir+"/logs", uid, gid);
         FileUtils.mkdir(siteDir+"/var", 0770, uid, gid);

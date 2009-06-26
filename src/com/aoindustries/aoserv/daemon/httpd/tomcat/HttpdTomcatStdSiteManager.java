@@ -77,8 +77,8 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
         );
     }
 
-    public boolean isStartable() throws IOException, SQLException {
-        return httpdSite.getDisableLog()==null;
+    public boolean isStartable() {
+        return !httpdSite.isDisabled();
     }
 
     public String getStartStopScriptPath() throws IOException, SQLException {
@@ -101,7 +101,7 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
     protected void enableDisable(UnixFile siteDirectory) throws IOException, SQLException {
         UnixFile daemonUF = new UnixFile(siteDirectory, "daemon", false);
         UnixFile daemonSymlink = new UnixFile(daemonUF, "tomcat", false);
-        if(httpdSite.getDisableLog()==null) {
+        if(!httpdSite.isDisabled()) {
             // Enabled
             if(!daemonSymlink.getStat().exists()) {
                 daemonSymlink.symLink("../bin/tomcat").chown(

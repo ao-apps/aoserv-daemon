@@ -75,7 +75,7 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
         FileUtils.mkdir(siteDir+"/bin", 0770, uid, gid);
         FileUtils.mkdir(siteDir+"/conf", 0775, uid, gid);
         FileUtils.mkdir(siteDir+"/daemon", 0770, uid, gid);
-        if (httpdSite.getDisableLog()==null) FileUtils.ln("../bin/tomcat", siteDir+"/daemon/tomcat", uid, gid);
+        if (!httpdSite.isDisabled()) FileUtils.ln("../bin/tomcat", siteDir+"/daemon/tomcat", uid, gid);
         FileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
         FileUtils.mkdir(siteDir+"/lib", 0770, uid, gid);
         FileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", siteDir+"/servlet", uid, gid);

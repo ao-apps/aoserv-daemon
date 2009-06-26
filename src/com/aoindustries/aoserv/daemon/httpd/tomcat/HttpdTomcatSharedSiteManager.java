@@ -66,7 +66,7 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
     }
 
     public boolean isStartable() throws IOException, SQLException {
-        return tomcatSharedSite.getHttpdSharedTomcat().getDisableLog()==null;
+        return !tomcatSharedSite.getHttpdSharedTomcat().isDisabled();
     }
 
     public String getStartStopScriptPath() throws IOException, SQLException {

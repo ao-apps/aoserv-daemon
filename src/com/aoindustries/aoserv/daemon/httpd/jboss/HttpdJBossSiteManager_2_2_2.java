@@ -378,7 +378,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
     protected void enableDisable(UnixFile siteDirectory) throws IOException, SQLException {
         UnixFile daemonUF = new UnixFile(siteDirectory, "daemon", false);
         UnixFile daemonSymlink = new UnixFile(daemonUF, "jboss", false);
-        if(httpdSite.getDisableLog()==null) {
+        if(!httpdSite.isDisabled()) {
             // Enabled
             if(!daemonSymlink.getStat().exists()) {
                 daemonSymlink.symLink("../bin/jboss").chown(

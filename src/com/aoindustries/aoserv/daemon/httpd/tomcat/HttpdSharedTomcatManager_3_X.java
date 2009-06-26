@@ -271,7 +271,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
             boolean didOne=false;
             for(int j = 0; j< sites.size(); j++) {
                 HttpdSite hs=sites.get(j).getHttpdTomcatSite().getHttpdSite();
-                if(hs.getDisableLog()==null) {
+                if(!hs.isDisabled()) {
                     if (didOne) out.print(' ');
                     else didOne=true;
                     out.print(hs.getSiteName());
@@ -300,7 +300,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
         }
         for (int j = 0; j< sites.size(); j++) {
             HttpdSite hs=sites.get(j).getHttpdTomcatSite().getHttpdSite();
-            if(hs.getDisableLog()==null) {
+            if(!hs.isDisabled()) {
                 String subwork = hs.getSiteName();
                 workFiles.remove(subwork);
                 UnixFile workDir = new UnixFile(workUF, subwork, false);
@@ -327,7 +327,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
         
         // Enable/Disable
         UnixFile daemonSymlink = new UnixFile(daemonUF, "tomcat", false);
-        if(sharedTomcat.getDisableLog()==null) {
+        if(!sharedTomcat.isDisabled()) {
             // Enabled
             if(!daemonSymlink.getStat(tempStat).exists()) {
                 daemonSymlink.symLink("../bin/tomcat").chown(
@@ -341,7 +341,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
         }
 
         // Start if needed
-        if(needRestart && sharedTomcat.getDisableLog()==null) sharedTomcatsNeedingRestarted.add(sharedTomcat);
+        if(needRestart && !sharedTomcat.isDisabled()) sharedTomcatsNeedingRestarted.add(sharedTomcat);
     }
 
     protected boolean upgradeSharedTomcatDirectory(UnixFile siteDirectory) throws IOException, SQLException {

@@ -177,7 +177,7 @@ final public class PostgresUserManager extends BuilderThread {
                                 } finally {
                                     results.close();
                                 }
-                                if(psu.getDisableLog()==null) {
+                                if(!psu.isDisabled()) {
                                     // Enable if needed
                                     if(!rolcanlogin) stmt.executeUpdate("alter role "+username+" login");
                                 } else {
@@ -199,7 +199,7 @@ final public class PostgresUserManager extends BuilderThread {
                     for(int d=0;d<users.size();d++) {
                         PostgresServerUser psu=users.get(d);
                         String prePassword=psu.getPredisablePassword();
-                        if(psu.getDisableLog()==null) {
+                        if(!psu.isDisabled()) {
                             if(prePassword!=null) {
                                 setPassword(psu, prePassword, true);
                                 psu.setPredisablePassword(null);

@@ -101,7 +101,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
                 // Deny first
                 List<EmailSmtpRelay> relays = aoServer.getEmailSmtpRelays();
                 for(EmailSmtpRelay ssr : relays) {
-                    if(ssr.getDisableLog()==null) {
+                    if(!ssr.isDisabled()) {
                         EmailSmtpRelayType esrt=ssr.getType();
                         String type=esrt.getName();
                         if(
@@ -122,7 +122,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 
                 // Allow last
                 for(EmailSmtpRelay ssr : relays) {
-                    if(ssr.getDisableLog()==null) {
+                    if(!ssr.isDisabled()) {
                         EmailSmtpRelayType esrt=ssr.getType();
                         String type=esrt.getName();
                         if(

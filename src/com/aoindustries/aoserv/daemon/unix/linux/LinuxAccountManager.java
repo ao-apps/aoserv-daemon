@@ -428,7 +428,7 @@ public class LinuxAccountManager extends BuilderThread {
             for(int c=0;c<accounts.size();c++) {
                 LinuxServerAccount lsa=accounts.get(c);
                 String prePassword=lsa.getPredisablePassword();
-                if(lsa.getDisableLog()==null) {
+                if(!lsa.isDisabled()) {
                     if(prePassword!=null) {
                         setEncryptedPassword(lsa.getLinuxAccount().getUsername().getUsername(), prePassword);
                         lsa.setPredisablePassword(null);
@@ -476,14 +476,14 @@ public class LinuxAccountManager extends BuilderThread {
                                     if(
                                         !uids.contains(uid)
                                         || (lsa=aoServer.getLinuxServerAccount(uid))==null
-                                        || lsa.getDisableLog()!=null
+                                        || lsa.isDisabled()
                                     ) {
                                         // Also must not be in a nested server
                                         boolean found=false;
                                         for(int d=0;d<nestedServers.size();d++) {
                                             if(
                                                 (lsa=nestedServers.get(d).getLinuxServerAccount(uid))!=null
-                                                && lsa.getDisableLog()==null
+                                                && !lsa.isDisabled()
                                             ) {
                                                 found=true;
                                                 break;

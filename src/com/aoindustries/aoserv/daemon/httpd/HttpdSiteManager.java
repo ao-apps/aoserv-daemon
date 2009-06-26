@@ -190,7 +190,7 @@ public abstract class HttpdSiteManager {
             int daemonUid=tempStat.getUID();
             LinuxServerAccount daemonLsa = AOServDaemon.getThisAOServer().getLinuxServerAccount(daemonUid);
             // If the account doesn't exist or is disabled, the process killer will kill any processes
-            if(daemonLsa!=null && daemonLsa.getDisableLog()==null) {
+            if(daemonLsa!=null && !daemonLsa.isDisabled()) {
                 String[] list = daemonDirectory.list();
                 if(list!=null) {
                     for(String scriptName : list) {
@@ -373,7 +373,7 @@ public abstract class HttpdSiteManager {
      * @see  FTPManager#doRebuildSharedFtpDirectory
      */
     public void configureFtpDirectory(UnixFile ftpDirectory) throws IOException, SQLException {
-        if(httpdSite.getDisableLog()!=null) {
+        if(httpdSite.isDisabled()) {
             // Disabled
             FileUtils.mkdir(
                 ftpDirectory,

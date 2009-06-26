@@ -171,7 +171,7 @@ public class HttpdServerManager {
             for(HttpdSiteBind bind : binds) {
                 // Some value used below
                 final boolean isManual = bind.isManual();
-                final boolean isDisabled = bind.getDisableLog()!=null;
+                final boolean isDisabled = bind.isDisabled();
                 final String predisableConfig = bind.getPredisableConfig();
                 final HttpdBind httpdBind = bind.getHttpdBind();
                 final NetBind nb = httpdBind.getNetBind();
@@ -464,7 +464,7 @@ public class HttpdServerManager {
         ChainWriter out = new ChainWriter(bout);
         try {
             LinuxServerAccount lsa=hs.getLinuxServerAccount();
-            boolean isEnabled=lsa.getDisableLog()==null;
+            boolean isEnabled=!lsa.isDisabled();
             // The version of PHP module to run
             TechnologyVersion phpVersion=hs.getModPhpVersion();
             out.print("ServerRoot \""+CONFIG_DIRECTORY+"\"\n"
@@ -631,7 +631,7 @@ public class HttpdServerManager {
         ChainWriter out = new ChainWriter(bout);
         try {
             LinuxServerAccount lsa=hs.getLinuxServerAccount();
-            boolean isEnabled=lsa.getDisableLog()==null;
+            boolean isEnabled=!lsa.isDisabled();
             // The version of PHP module to run
             TechnologyVersion phpVersion=hs.getModPhpVersion();
             out.print("ServerRoot \""+CONFIG_DIRECTORY+"\"\n"
@@ -781,7 +781,7 @@ public class HttpdServerManager {
         ChainWriter out = new ChainWriter(bout);
         try {
             LinuxServerAccount lsa=hs.getLinuxServerAccount();
-            boolean isEnabled=lsa.getDisableLog()==null;
+            boolean isEnabled=!lsa.isDisabled();
             // The version of PHP module to run
             TechnologyVersion phpVersion=hs.getModPhpVersion();
             out.print("ServerRoot \""+CONFIG_DIRECTORY+"\"\n"

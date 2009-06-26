@@ -51,8 +51,8 @@ public abstract class HttpdJBossSiteManager<TC extends TomcatCommon> extends Htt
         );
     }
 
-    public boolean isStartable() throws IOException, SQLException {
-        return httpdSite.getDisableLog()==null;
+    public boolean isStartable() {
+        return !httpdSite.isDisabled();
     }
     
     public String getStartStopScriptPath() throws IOException, SQLException {

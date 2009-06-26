@@ -432,7 +432,7 @@ final public class MySQLUserManager extends BuilderThread {
                 // Disable and enable accounts
                 for(MySQLServerUser msu : users) {
                     String prePassword=msu.getPredisablePassword();
-                    if(msu.getDisableLog()==null) {
+                    if(!msu.isDisabled()) {
                         if(prePassword!=null) {
                             setEncryptedPassword(mysqlServer, msu.getMySQLUser().getUsername().getUsername(), prePassword);
                             modified=true;

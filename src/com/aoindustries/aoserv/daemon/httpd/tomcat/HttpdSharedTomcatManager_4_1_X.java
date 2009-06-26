@@ -301,7 +301,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
             boolean didOne=false;
             for(int j = 0; j< sites.size(); j++) {
                 HttpdSite hs=sites.get(j).getHttpdTomcatSite().getHttpdSite();
-                if(hs.getDisableLog()==null) {
+                if(!hs.isDisabled()) {
                     if (didOne) out.print(' ');
                     else didOne=true;
                     out.print(hs.getSiteName());
@@ -330,7 +330,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
         }
         for (int j = 0; j< sites.size(); j++) {
             HttpdSite hs=sites.get(j).getHttpdTomcatSite().getHttpdSite();
-            if(hs.getDisableLog()==null) {
+            if(!hs.isDisabled()) {
                 String subwork = hs.getPrimaryHttpdSiteURL().getHostname();
                 workFiles.remove(subwork);
                 UnixFile workDir = new UnixFile(innerWorkUF, subwork, false);
@@ -423,7 +423,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
                         + "      <Realm className=\"org.apache.catalina.realm.UserDatabaseRealm\" debug=\"0\" resourceName=\"UserDatabase\" />\n");
                 for(int c=0;c<sites.size();c++) {
                     HttpdSite hs=sites.get(c).getHttpdTomcatSite().getHttpdSite();
-                    if(hs.getDisableLog()==null) {
+                    if(!hs.isDisabled()) {
                         String primaryHostname=hs.getPrimaryHttpdSiteURL().getHostname();
                         out.print("      <Host\n"
                                 + "        name=\"").print(primaryHostname).print("\"\n"
@@ -525,7 +525,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 
         // Enable/Disable
         UnixFile daemonSymlink = new UnixFile(daemonUF, "tomcat", false);
-        if(sharedTomcat.getDisableLog()==null) {
+        if(!sharedTomcat.isDisabled()) {
             // Enabled
             if(!daemonSymlink.getStat(tempStat).exists()) {
                 daemonSymlink.symLink("../bin/tomcat").chown(
@@ -539,7 +539,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
         }
 
         // Start if needed
-        if(needRestart && sharedTomcat.getDisableLog()==null) sharedTomcatsNeedingRestarted.add(sharedTomcat);
+        if(needRestart && !sharedTomcat.isDisabled()) sharedTomcatsNeedingRestarted.add(sharedTomcat);
     }
 
     protected boolean upgradeSharedTomcatDirectory(UnixFile siteDirectory) throws IOException, SQLException {

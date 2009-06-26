@@ -372,50 +372,50 @@ final public class MrtgManager extends BuilderThread {
                             + "\n"
                             + "      <hr>\n"
                             + "      <H2>Load Average (times 1000)</H2><BR>\n"
-                            + "      <A href=\"load.html\"><IMG BORDER=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"load-day.png\" ALT=\"load\"></A>\n"
+                            + "      <A href=\"load.html\"><IMG border=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"load-day.png\" ALT=\"load\"></A>\n"
                             + "      <hr>\n"
                             + "      <H2>Server CPU Utilization (%)</H2><BR>\n"
-                            + "      <A href=\"cpu.html\"><IMG BORDER=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"cpu-day.png\" ALT=\"cpu\"></A>\n"
+                            + "      <A href=\"cpu.html\"><IMG border=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"cpu-day.png\" ALT=\"cpu\"></A>\n"
                             + "      <hr>\n"
                             + "      <H2>Server Disk I/O (blocks per second)</H2><BR>\n"
                             + "\n"
-                            + "      <A href=\"diskio.html\"><IMG BORDER=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"diskio-day.png\" ALT=\"diskio\"></A>\n");
+                            + "      <A href=\"diskio.html\"><IMG border=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"diskio-day.png\" ALT=\"diskio\"></A>\n");
                     for(int c=0;c<dfDevices.size();c++) {
                         out.print("      <hr>\n"
                                 + "      <H2>").print(dfDevices.get(c)).print(" Space and Inodes (%)</H2><BR>\n"
-                                + "      <A href=\"").print(dfSafeNames.get(c)).print(".html\"><IMG BORDER=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"").print(dfSafeNames.get(c)).print("-day.png\" ALT=\"").print(dfDevices.get(c)).print("\"></A>\n");
+                                + "      <A href=\"").print(dfSafeNames.get(c)).print(".html\"><IMG border=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"").print(dfSafeNames.get(c)).print("-day.png\" ALT=\"").print(dfDevices.get(c)).print("\"></A>\n");
                     }
                     out.print("      <hr>\n"
                             + "      <H2>Server Memory and Swap space (%)</H2><BR>\n"
-                            + "      <A href=\"mem.html\"><IMG BORDER=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"mem-day.png\" ALT=\"mem\"></A>\n");
+                            + "      <A href=\"mem.html\"><IMG border=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"mem-day.png\" ALT=\"mem\"></A>\n");
                     for(NetDevice netDevice : netDevices) {
                         String deviceId=netDevice.getNetDeviceID().getName();
                         out.print("      <hr>\n"
                                 + "      <H2>").print(netDevice.getDescription()).print(" traffic</H2><BR>\n"
-                                + "      <A href=\"").print(deviceId).print(".html\"><IMG BORDER=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"").print(deviceId).print("-day.png\" ALT=\"").print(deviceId).print("\"></A>\n");
+                                + "      <A href=\"").print(deviceId).print(".html\"><IMG border=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"").print(deviceId).print("-day.png\" ALT=\"").print(deviceId).print("\"></A>\n");
                     }
                     out.print("      <hr>\n"
                             + "      <H2>Server Swap and Paging I/O (in+out blocks per second)</H2><BR>\n"
-                            + "      <A href=\"swap.html\"><IMG BORDER=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"swap-day.png\" ALT=\"swap\"></A>\n"
+                            + "      <A href=\"swap.html\"><IMG border=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"swap-day.png\" ALT=\"swap\"></A>\n"
                             + "<!-- Begin MRTG Block -->\n"
                             + "<BR><HR><BR>\n");
                     if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                        out.print("<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>\n"
+                        out.print("<table cellspacing='0' cellpadding='0'>\n"
                                 + "  <TR>\n"
                                 + "    <TD WIDTH=63><A\n"
                                 + "    HREF=\"http://people.ee.ethz.ch/~oetiker/webtools/mrtg/\"><IMG\n"
-                                + "    BORDER=0 SRC=\"mrtg-l.png\" WIDTH=63 HEIGHT=25 ALT=\"MRTG\"></A></TD>\n"
+                                + "    border=0 SRC=\"mrtg-l.png\" WIDTH=63 HEIGHT=25 ALT=\"MRTG\"></A></TD>\n"
                                 + "    <TD WIDTH=25><A\n"
                                 + "    HREF=\"http://people.ee.ethz.ch/~oetiker/webtools/mrtg/\"><IMG\n"
-                                + "    BORDER=0 SRC=\"mrtg-m.png\" WIDTH=25 HEIGHT=25 ALT=\"\"></A></TD>\n"
+                                + "    border=0 SRC=\"mrtg-m.png\" WIDTH=25 HEIGHT=25 ALT=\"\"></A></TD>\n"
                                 + "    <TD WIDTH=388><A\n"
                                 + "    HREF=\"http://people.ee.ethz.ch/~oetiker/webtools/mrtg/\"><IMG\n"
-                                + "    BORDER=0 SRC=\"mrtg-r.png\" WIDTH=388 HEIGHT=25\n"
+                                + "    border=0 SRC=\"mrtg-r.png\" WIDTH=388 HEIGHT=25\n"
                                 + "    ALT=\"Multi Router Traffic Grapher\"></A></TD>\n"
                                 + "  </TR>\n"
                                 + "\n"
                                 + "</TABLE>\n"
-                                + "<TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0>\n"
+                                + "<table cellspacing='0' cellpadding='0'>\n"
                                 + "  <TR VALIGN=top>\n"
                                 + "  <TD WIDTH=88 ALIGN=RIGHT><FONT FACE=\"Arial,Helvetica\" SIZE=2>2.10.15</FONT></TD>\n"
                                 + "  <TD WIDTH=388 ALIGN=RIGHT><FONT FACE=\"Arial,Helvetica\" SIZE=2>\n"
@@ -429,21 +429,21 @@ final public class MrtgManager extends BuilderThread {
                         osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                         || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                     ) {
-                        out.print("<TABLE BORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"0\" summary=\"\">\n"
+                        out.print("<TABLE border=\"0\" cellspacing=\"0\" cellpadding=\"0\" summary=\"\">\n"
                                 + "  <TR>\n"
                                 + "    <TD WIDTH=\"63\"><A\n"
                                 + "    HREF=\"mrtg.html\"><IMG\n"
-                                + "    ALT=\"\" BORDER=\"0\" SRC=\"mrtg-l.png\" width=\"63\" height=\"25\"></A></TD>\n"
+                                + "    ALT=\"\" border=\"0\" SRC=\"mrtg-l.png\" width=\"63\" height=\"25\"></A></TD>\n"
                                 + "    <TD WIDTH=\"25\"><A\n"
                                 + "    HREF=\"mrtg.html\"><IMG\n"
-                                + "    ALT=\"MRTG\" BORDER=\"0\" SRC=\"mrtg-m.png\" width=\"25\" height=\"25\"></A></TD>\n"
+                                + "    ALT=\"MRTG\" border=\"0\" SRC=\"mrtg-m.png\" width=\"25\" height=\"25\"></A></TD>\n"
                                 + "    <TD WIDTH=\"388\"><A\n"
                                 + "    HREF=\"mrtg.html\"><IMG\n"
-                                + "    ALT=\"\" BORDER=\"0\" SRC=\"mrtg-r.png\" width=\"388\" height=\"25\"></A></TD>\n"
+                                + "    ALT=\"\" border=\"0\" SRC=\"mrtg-r.png\" width=\"388\" height=\"25\"></A></TD>\n"
                                 + "  </TR>\n"
                                 + "</TABLE>\n"
                                 + "<img src=\"https://www.aoindustries.com/layout/ao/blank.gif\" alt=\"\" width=\"1\" height=\"4\" align=\"bottom\" border=\"0\">\n"
-                                + "<TABLE BORDER=\"0\" CELLSPACING=\"0\" CELLPADDING=\"0\" summary=\"\">\n"
+                                + "<TABLE border=\"0\" cellspacing=\"0\" cellpadding=\"0\" summary=\"\">\n"
                                 + "  <TR VALIGN=\"top\">\n"
                                 + "  <TD><FONT FACE=\"Arial,Helvetica\" SIZE=\"2\">\n"
                                 + "  <A HREF=\"http://people.ee.ethz.ch/~oetiker\">Tobias Oetiker</A>\n"

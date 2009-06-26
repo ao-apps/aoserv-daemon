@@ -247,7 +247,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
         ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
         mkdir(siteDir+"/conf", 0775, lsa, lsg);
         mkdir(siteDir+"/daemon", 0770, lsa, lsg);
-        if (site.getDisableLog()==null) ln("../bin/tomcat", siteDir+"/daemon/tomcat", uid, gid);
+        if (!site.isDisabled()) ln("../bin/tomcat", siteDir+"/daemon/tomcat", uid, gid);
         ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
         mkdir(siteDir+"/lib", 0770, lsa, lsg);
         ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", siteDir+"/servlet", uid, gid);
@@ -587,7 +587,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
         ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
         mkdir(siteDir+"/conf", 0775, lsa, lsg);
         mkdir(siteDir+"/daemon", 0770, lsa, lsg);
-        if (site.getDisableLog()==null) ln("../bin/tomcat", siteDir+"/daemon/tomcat", uid, gid);
+        if (!site.isDisabled()) ln("../bin/tomcat", siteDir+"/daemon/tomcat", uid, gid);
         ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
         mkdir(siteDir+"/lib", 0770, lsa, lsg);
         ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", siteDir+"/servlet", uid, gid);
@@ -941,7 +941,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
         mkdir(siteDir+"/bin", 0770, lsa, lsg);
         mkdir(siteDir+"/conf", 0775, lsa, lsg);
         mkdir(siteDir+"/daemon", 0770, lsa, lsg);
-        if (site.getDisableLog()==null) ln("../bin/tomcat", siteDir+"/daemon/tomcat", uid, gid);
+        if (!site.isDisabled()) ln("../bin/tomcat", siteDir+"/daemon/tomcat", uid, gid);
         mkdir(siteDir+"/temp", 0770, lsa, lsg);
         ln("var/log", siteDir+"/logs", uid, gid);
         mkdir(siteDir+"/var", 0770, lsa, lsg);
@@ -1208,7 +1208,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
         mkdir(siteDir+"/bin", 0770, lsa, lsg);
         mkdir(siteDir+"/conf", 0775, lsa, lsg);
         mkdir(siteDir+"/daemon", 0770, lsa, lsg);
-        if (site.getDisableLog()==null) ln("../bin/tomcat", siteDir+"/daemon/tomcat", uid, gid);
+        if (!site.isDisabled()) ln("../bin/tomcat", siteDir+"/daemon/tomcat", uid, gid);
         mkdir(siteDir+"/temp", 0770, lsa, lsg);
         ln("var/log", siteDir+"/logs", uid, gid);
         mkdir(siteDir+"/var", 0770, lsa, lsg);
@@ -2730,7 +2730,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
             );
             try {
                 LinuxServerAccount lsa=hs.getLinuxServerAccount();
-                boolean isEnabled=lsa.getDisableLog()==null;
+                boolean isEnabled=!lsa.isDisabled();
                 // The version of PHP module to run
                 TechnologyVersion phpVersion=hs.getModPhpVersion();
                 if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
@@ -3487,7 +3487,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
                             }
 
                             // Flag the JVM as needing a restart if the server.xml file has been modified
-                            if(site.getDisableLog()==null) {
+                            if(!site.isDisabled()) {
                                 boolean needsRestart;
                                 if(confServerXMLFile.getStat(tempStat).exists()) {
                                     needsRestart=!confServerXMLFile.contentEquals(newConfServerXML);
@@ -3824,7 +3824,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
                 if(!bind.isManual() || !bindFile.getStat(tempStat).exists()) {
                     String newBindConfig=bindConfig+".new";
                     UnixFile newBindFile=new UnixFile(newBindConfig);
-                    writeHttpdSiteBindFile(bind, newBindFile, bind.getDisableLog()!=null?HttpdSite.DISABLED:siteName);
+                    writeHttpdSiteBindFile(bind, newBindFile, bind.isDisabled()?HttpdSite.DISABLED:siteName);
                     if(!bindFile.getStat(tempStat).exists() || !bindFile.contentEquals(newBindFile)) {
                         int hsPKey=bind.getHttpdBind().getHttpdServer().getPkey();
                         if(!serversNeedingRestarted.contains(hsPKey)) serversNeedingRestarted.add(hsPKey);
@@ -4008,7 +4008,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
                 new UnixFile(wwwGroupDirUF, "bin", false).mkdir().chown(lsaUID, lsgGID).setMode(mgroup);
                 new UnixFile(wwwGroupDirUF, "conf", false).mkdir().chown(lsaUID, lsgGID).setMode(tomcat.isSecure() ? 0750 : 0770);
                 UnixFile daemonUF = new UnixFile(wwwGroupDirUF, "daemon", false).mkdir().chown(lsaUID, lsgGID).setMode(mprivate);
-                if(tomcat.getDisableLog()==null) new UnixFile(daemonUF, "tomcat", false).symLink("../bin/tomcat").chown(lsaUID, lsgGID);
+                if(!tomcat.isDisabled()) new UnixFile(daemonUF, "tomcat", false).symLink("../bin/tomcat").chown(lsaUID, lsgGID);
                 if(isTomcat4) {
                     ln("var/log", wwwGroupDir+"/logs", lsaUID, lsgGID);
                     mkdir(wwwGroupDir+"/temp", mprivate, lsa, lsg);
@@ -4416,7 +4416,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
                 boolean didOne=false;
                 for(int j = 0; j< sites.size(); j++) {
                     HttpdSite hs=sites.get(j).getHttpdTomcatSite().getHttpdSite();
-                    if(hs.getDisableLog()==null) {
+                    if(!hs.isDisabled()) {
                         if (didOne) out.print(' ');
                         else didOne=true;
                         out.print(hs.getSiteName());
@@ -4454,7 +4454,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
                             .print(tomcat.getTomcat4ShutdownPort().getPort().getPort());
                         for (int j = 0; j< sites.size(); j++) {
                             HttpdSite hs=sites.get(j).getHttpdTomcatSite().getHttpdSite();
-                            if(hs.getDisableLog()==null) out.print(" '").print(hs.getSiteName()).print('\'');
+                            if(!hs.isDisabled()) out.print(" '").print(hs.getSiteName()).print('\'');
                         }
                         out.print('\n');
                     } finally {
@@ -4482,7 +4482,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
             }
             for (int j = 0; j< sites.size(); j++) {
                 HttpdSite hs=sites.get(j).getHttpdTomcatSite().getHttpdSite();
-                if(hs.getDisableLog()==null) {
+                if(!hs.isDisabled()) {
                     String subwork= isTomcat4?hs.getPrimaryHttpdSiteURL().getHostname():hs.getSiteName();
                     workFiles.remove(subwork);
                     UnixFile workDir = new UnixFile((innerWorkUF==null?workUF:innerWorkUF), subwork, false);
@@ -4642,7 +4642,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
                         }
                         for(int c=0;c<sites.size();c++) {
                             HttpdSite hs=sites.get(c).getHttpdTomcatSite().getHttpdSite();
-                            if(hs.getDisableLog()==null) {
+                            if(!hs.isDisabled()) {
                                 String primaryHostname=hs.getPrimaryHttpdSiteURL().getHostname();
                                 out.print("      <Host\n"
                                         + "        name=\"").print(primaryHostname).print("\"\n"
@@ -4756,7 +4756,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
             }
 
             // Start if needed
-            if(needRestart && tomcat.getDisableLog()==null) {
+            if(needRestart && !tomcat.isDisabled()) {
                 int pkey=tomcat.getPkey();
                 if(!sharedTomcatsNeedingRestarted.contains(pkey)) sharedTomcatsNeedingRestarted.add(pkey);
             }
@@ -5095,7 +5095,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
             String tomcatName=hst.getName();
             UnixFile pidUF=new UnixFile(HttpdSharedTomcat.WWW_GROUP_DIR+'/'+tomcatName+"/var/run/tomcat.pid");
             UnixFile daemonUF=new UnixFile(HttpdSharedTomcat.WWW_GROUP_DIR+'/'+tomcatName+"/daemon/tomcat");
-            if(hst.getDisableLog()==null) {
+            if(!hst.isDisabled()) {
                 // Enabled, make sure running and auto
                 if(needStarted.contains(hst.getPkey()) || !pidUF.getStat(tempStat).exists()) startSharedTomcat(hst);
                 if(!daemonUF.getStat(tempStat).exists()) enableSharedTomcat(hst, tempStat);
@@ -5114,7 +5114,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
             String siteName=hs.getSiteName();
             try {
                 UnixFile ftpUF=new UnixFile("/var/ftp/pub/"+siteName);
-                if(hs.getDisableLog()==null) {
+                if(!hs.isDisabled()) {
                     // Enabled, make sure running and auto
                     if(ftpUF.getStat(tempStat).exists() && tempStat.getUID()==UnixFile.ROOT_UID) ftpUF.chown(
                         hs.getLinuxServerAccount().getUID().getID(),
@@ -5329,7 +5329,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
             for(int e=0;e<hsbs.size();e++) {
                 HttpdSiteBind hsb=hsbs.get(e);
                 String predisableConfig=hsb.getPredisableConfig();
-                if(hsb.getDisableLog()==null) {
+                if(!hsb.isDisabled()) {
                     if(predisableConfig!=null) {
                         if(hsb.isManual()) {
                             NetBind nb=hsb.getHttpdBind().getNetBind();
