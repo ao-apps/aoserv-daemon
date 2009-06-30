@@ -31,23 +31,23 @@ class TomcatCommon_4_1_X extends TomcatCommon {
 
     private TomcatCommon_4_1_X() {}
 
-    public void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws SQLException {
+    public void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws IOException, SQLException {
         out.print("          <Resource\n"
-                + "            name=\"").printXmlAttribute(dataSource.getName()).print("\"\n"
+                + "            name=\"").writeXmlAttribute(dataSource.getName()).print("\"\n"
                 + "            auth=\"Container\"\n"
                 + "            type=\"javax.sql.DataSource\"\n"
                 + "          />\n"
-                + "          <ResourceParams name=\"").printXmlAttribute(dataSource.getName()).print("\">\n"
+                + "          <ResourceParams name=\"").writeXmlAttribute(dataSource.getName()).print("\">\n"
                 + "            <parameter><name>factory</name><value>org.apache.commons.dbcp.BasicDataSourceFactory</value></parameter>\n"
-                + "            <parameter><name>username</name><value>").printXmlBody(dataSource.getUsername()).print("</value></parameter>\n"
-                + "            <parameter><name>password</name><value>").printXmlBody(dataSource.getPassword()).print("</value></parameter>\n"
-                + "            <parameter><name>driverClassName</name><value>").printXmlBody(dataSource.getDriverClassName()).print("</value></parameter>\n"
-                + "            <parameter><name>url</name><value>").printXmlBody(dataSource.getUrl()).print("</value></parameter>\n"
+                + "            <parameter><name>username</name><value>").writeXml(dataSource.getUsername()).print("</value></parameter>\n"
+                + "            <parameter><name>password</name><value>").writeXml(dataSource.getPassword()).print("</value></parameter>\n"
+                + "            <parameter><name>driverClassName</name><value>").writeXml(dataSource.getDriverClassName()).print("</value></parameter>\n"
+                + "            <parameter><name>url</name><value>").writeXml(dataSource.getUrl()).print("</value></parameter>\n"
                 + "            <parameter><name>maxActive</name><value>").print(dataSource.getMaxActive()).print("</value></parameter>\n"
                 + "            <parameter><name>maxIdle</name><value>").print(dataSource.getMaxIdle()).print("</value></parameter>\n"
                 + "            <parameter><name>maxWait</name><value>").print(dataSource.getMaxWait()).print("</value></parameter>\n");
         if(dataSource.getValidationQuery()!=null) {
-            out.print("            <parameter><name>validationQuery</name><value>").printXmlBody(dataSource.getValidationQuery()).print("</value></parameter>\n");
+            out.print("            <parameter><name>validationQuery</name><value>").writeXml(dataSource.getValidationQuery()).print("</value></parameter>\n");
         }
         out.print("            <parameter><name>removeAbandoned</name><value>true</value></parameter>\n"
                 + "            <parameter><name>removeAbandonedTimeout</name><value>300</value></parameter>\n"

@@ -28,20 +28,20 @@ class TomcatCommon_5_5_X extends TomcatCommon {
 
     private TomcatCommon_5_5_X() {}
 
-    public void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws SQLException {
+    public void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws SQLException, IOException {
         out.print("          <Resource\n"
-                + "            name=\"").printXmlAttribute(dataSource.getName()).print("\"\n"
+                + "            name=\"").writeXmlAttribute(dataSource.getName()).print("\"\n"
                 + "            auth=\"Container\"\n"
                 + "            type=\"javax.sql.DataSource\"\n"
-                + "            username=\"").printXmlAttribute(dataSource.getUsername()).print("\"\n"
-                + "            password=\"").printXmlAttribute(dataSource.getPassword()).print("\"\n"
-                + "            driverClassName=\"").printXmlAttribute(dataSource.getDriverClassName()).print("\"\n"
-                + "            url=\"").printXmlAttribute(dataSource.getUrl()).print("\"\n"
+                + "            username=\"").writeXmlAttribute(dataSource.getUsername()).print("\"\n"
+                + "            password=\"").writeXmlAttribute(dataSource.getPassword()).print("\"\n"
+                + "            driverClassName=\"").writeXmlAttribute(dataSource.getDriverClassName()).print("\"\n"
+                + "            url=\"").writeXmlAttribute(dataSource.getUrl()).print("\"\n"
                 + "            maxActive=\"").print(dataSource.getMaxActive()).print("\"\n"
                 + "            maxIdle=\"").print(dataSource.getMaxIdle()).print("\"\n"
                 + "            maxWait=\"").print(dataSource.getMaxWait()).print("\"\n");
         if(dataSource.getValidationQuery()!=null) {
-            out.print("            validationQuery=\"").printXmlAttribute(dataSource.getValidationQuery()).print("\"\n");
+            out.print("            validationQuery=\"").writeXmlAttribute(dataSource.getValidationQuery()).print("\"\n");
         }
         out.print("            removeAbandoned=\"true\"\n"
                 + "            removeAbandonedTimeout=\"300\"\n"

@@ -24,19 +24,19 @@ public abstract class TomcatCommon {
     /**
      * Writes a single paramter.
      */
-    public void writeHttpdTomcatParameter(HttpdTomcatParameter parameter, ChainWriter out) {
+    public void writeHttpdTomcatParameter(HttpdTomcatParameter parameter, ChainWriter out) throws IOException {
         out.print("          <Parameter\n"
-                + "            name=\"").printXmlAttribute(parameter.getName()).print("\"\n"
-                + "            value=\"").printXmlAttribute(parameter.getValue()).print("\"\n"
+                + "            name=\"").writeXmlAttribute(parameter.getName()).print("\"\n"
+                + "            value=\"").writeXmlAttribute(parameter.getValue()).print("\"\n"
                 + "            override=\"").print(parameter.getOverride()).print("\"\n");
-        if(parameter.getDescription()!=null) out.print("            description=\"").printXmlAttribute(parameter.getDescription()).print("\"\n");
+        if(parameter.getDescription()!=null) out.print("            description=\"").writeXmlAttribute(parameter.getDescription()).print("\"\n");
         out.print("          />\n");
     }
 
     /**
      * Writes a single data source.
      */
-    public abstract void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws SQLException;
+    public abstract void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws IOException, SQLException;
 
     /**
      * The default JDK version for this version of Tomcat, not including
