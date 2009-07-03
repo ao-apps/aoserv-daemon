@@ -26,10 +26,10 @@ public abstract class TomcatCommon {
      */
     public void writeHttpdTomcatParameter(HttpdTomcatParameter parameter, ChainWriter out) throws IOException {
         out.print("          <Parameter\n"
-                + "            name=\"").writeXmlAttribute(parameter.getName()).print("\"\n"
-                + "            value=\"").writeXmlAttribute(parameter.getValue()).print("\"\n"
+                + "            name=\"").encodeXmlAttribute(parameter.getName()).print("\"\n"
+                + "            value=\"").encodeXmlAttribute(parameter.getValue()).print("\"\n"
                 + "            override=\"").print(parameter.getOverride()).print("\"\n");
-        if(parameter.getDescription()!=null) out.print("            description=\"").writeXmlAttribute(parameter.getDescription()).print("\"\n");
+        if(parameter.getDescription()!=null) out.print("            description=\"").encodeXmlAttribute(parameter.getDescription()).print("\"\n");
         out.print("          />\n");
     }
 

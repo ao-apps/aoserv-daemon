@@ -30,18 +30,18 @@ class TomcatCommon_5_5_X extends TomcatCommon {
 
     public void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws SQLException, IOException {
         out.print("          <Resource\n"
-                + "            name=\"").writeXmlAttribute(dataSource.getName()).print("\"\n"
+                + "            name=\"").encodeXmlAttribute(dataSource.getName()).print("\"\n"
                 + "            auth=\"Container\"\n"
                 + "            type=\"javax.sql.DataSource\"\n"
-                + "            username=\"").writeXmlAttribute(dataSource.getUsername()).print("\"\n"
-                + "            password=\"").writeXmlAttribute(dataSource.getPassword()).print("\"\n"
-                + "            driverClassName=\"").writeXmlAttribute(dataSource.getDriverClassName()).print("\"\n"
-                + "            url=\"").writeXmlAttribute(dataSource.getUrl()).print("\"\n"
+                + "            username=\"").encodeXmlAttribute(dataSource.getUsername()).print("\"\n"
+                + "            password=\"").encodeXmlAttribute(dataSource.getPassword()).print("\"\n"
+                + "            driverClassName=\"").encodeXmlAttribute(dataSource.getDriverClassName()).print("\"\n"
+                + "            url=\"").encodeXmlAttribute(dataSource.getUrl()).print("\"\n"
                 + "            maxActive=\"").print(dataSource.getMaxActive()).print("\"\n"
                 + "            maxIdle=\"").print(dataSource.getMaxIdle()).print("\"\n"
                 + "            maxWait=\"").print(dataSource.getMaxWait()).print("\"\n");
         if(dataSource.getValidationQuery()!=null) {
-            out.print("            validationQuery=\"").writeXmlAttribute(dataSource.getValidationQuery()).print("\"\n");
+            out.print("            validationQuery=\"").encodeXmlAttribute(dataSource.getValidationQuery()).print("\"\n");
         }
         out.print("            removeAbandoned=\"true\"\n"
                 + "            removeAbandonedTimeout=\"300\"\n"

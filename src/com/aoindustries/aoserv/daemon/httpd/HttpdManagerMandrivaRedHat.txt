@@ -2609,11 +2609,11 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
             out.print("#!/usr/bin/perl\n"
                     + "print \"Content-type: text/html\\n\";\n"
                     + "print \"\\n\";\n"
-                    + "print \"<HTML>\\n\";\n"
-                    + "print \"  <BODY>\\n\";\n"
-                    + "print \"    <H1>Test CGI Script for ").print(hs.getPrimaryHttpdSiteURL().getHostname()).print("</H1>\\n\";\n"
-                    + "print \"  </BODY>\\n\";\n"
-                    + "print \"</HTML>\\n\";\n"
+                    + "print \"<html>\\n\";\n"
+                    + "print \"  <body>\\n\";\n"
+                    + "print \"    <h1>Test CGI Script for ").print(hs.getPrimaryHttpdSiteURL().getHostname()).print("</h1>\\n\";\n"
+                    + "print \"  </body>\\n\";\n"
+                    + "print \"</html>\\n\";\n"
             );
         } finally {
             out.flush();
@@ -2639,12 +2639,12 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
             )
         );
         try {
-            out.print("<HTML>\n"
-                    + "  <HEAD><TITLE>Test HTML Page for ").print(primaryUrl).print("</TITLE></HEAD>\n"
-                    + "  <BODY>\n"
+            out.print("<html>\n"
+                    + "  <head><title>Test HTML Page for ").print(primaryUrl).print("</title></head>\n"
+                    + "  <body>\n"
                     + "    Test HTML Page for ").print(primaryUrl).print("\n"
-                    + "  </BODY>\n"
-                    + "</HTML>\n"
+                    + "  </body>\n"
+                    + "</html>\n"
             );
         } finally {
             out.flush();

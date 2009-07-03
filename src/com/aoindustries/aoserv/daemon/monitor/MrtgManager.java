@@ -117,32 +117,32 @@ final public class MrtgManager extends BuilderThread {
                                 + "LogDir: /var/lib/mrtg\n"
                                 + "ThreshDir: /var/lib/mrtg\n");
                     } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-                    out.print("PageTop[^]: <font face=\"Verdana, Arial, Helvetica, sans-serif\">\n"
-                            + "  <center>\n"
+                    out.print("PageTop[^]: \n"
+                            + "  <div style='text-align:center'>\n"
                             + "  <h1>\n"
                             + "  <img src=\"https://www.aoindustries.com/images/clientarea/accounting/SendInvoices.jpg\"><br>\n"
-                            + "  <font color=\"000000\">").print(thisAOServer.getHostname());
-                    if(failoverServer!=null) out.print(" on ").print(failoverServer.getHostname());
-                    out.print("</font>\n"
+                            + "  <span style=\"color:#000000\">").encodeHtml(thisAOServer.getHostname());
+                    if(failoverServer!=null) out.print(" on ").encodeHtml(failoverServer.getHostname());
+                    out.print("</span>\n"
                             + "  </h1>\n"
-                            + "  <hr><font size=\"1\">\n"
+                            + "  <hr><span style=\"font-size:large\">\n"
                             + "  | <a href=\"../../MRTG.ao\" target=\"_parent\">Servers</a> |\n"
                             + "  <a href=\"stats.html\">Stats Overview</a> |\n"
                             + "  <a href=\"load.html\">Load</a> |\n"
                             + "  <a href=\"cpu.html\">CPU</a> |\n"
                             + "  <a href=\"diskio.html\">DiskIO</a> |\n");
                     for(int c=0;c<dfDevices.size();c++) {
-                        out.print("  <a href=\"").print(dfSafeNames.get(c)).print(".html\">").print(dfDevices.get(c)).print("</a> |\n");
+                        out.print("  <a href=\"").encodeXmlAttribute(dfSafeNames.get(c)).print(".html\">").encodeHtml(dfDevices.get(c)).print("</a> |\n");
                     }
                     out.print("  <a href=\"mem.html\"> Memory</a> |\n");
                     // Add the network devices
                     List<NetDevice> netDevices=thisServer.getNetDevices();
                     for(NetDevice netDevice : netDevices) {
-                        out.print("  <a href=\"").print(netDevice.getNetDeviceID().getName()).print(".html\"> ").print(netDevice.getDescription()).print("</a> |\n");
+                        out.print("  <a href=\"").encodeXmlAttribute(netDevice.getNetDeviceID().getName()).print(".html\"> ").encodeHtml(netDevice.getDescription()).print("</a> |\n");
                     }
                     out.print("  <a href=\"swap.html\">Swap</a> |\n"
-                            + "  </font>\n"
-                            + "  </center>\n"
+                            + "  </span>\n"
+                            + "  </div>\n"
                             + "  <hr>\n"
                             + "\n"
                             + "Interval: 5\n");
@@ -164,7 +164,7 @@ final public class MrtgManager extends BuilderThread {
                                 + "Timezone[").print(deviceId).print("]: ").print(thisAOServer.getTimeZone()).print("\n"
                                 + "Title[").print(deviceId).print("]: ").print(netDevice.getDescription()).print(" traffic\n"
                                 + "PageFoot[").print(deviceId).print("]: <p>\n"
-                                + "PageTop[").print(deviceId).print("]: <H2>").print(netDevice.getDescription()).print(" traffic</H2>\n"
+                                + "PageTop[").print(deviceId).print("]: <h2>").print(netDevice.getDescription()).print(" traffic</h2>\n"
                                 + "XSize[").print(deviceId).print("]: ").print(GRAPH_WIDTH).print("\n"
                                 + "YSize[").print(deviceId).print("]: ").print(GRAPH_HEIGHT).print("\n");
                     }
@@ -183,7 +183,7 @@ final public class MrtgManager extends BuilderThread {
                             + "Timezone[load]: ").print(thisAOServer.getTimeZone()).print("\n"
                             + "Title[load]: Load Average (x 1000)\n"
                             + "PageFoot[load]: <p>\n"
-                            + "PageTop[load]: <H2>Load Average (x 1000)</H2>\n"
+                            + "PageTop[load]: <h2>Load Average (x 1000)</h2>\n"
                             + "XSize[load]: ").print(GRAPH_WIDTH).print("\n"
                             + "YSize[load]: ").print(GRAPH_HEIGHT).print("\n");
                     // Figure out the number of CPUs
@@ -226,7 +226,7 @@ final public class MrtgManager extends BuilderThread {
                     out.print("Timezone[cpu]: ").print(thisAOServer.getTimeZone()).print("\n"
                             + "Title[cpu]: Server CPU Utilization (%)\n"
                             + "PageFoot[cpu]: <p>\n"
-                            + "PageTop[cpu]: <H2>Server CPU Utilization (%)</H2>\n"
+                            + "PageTop[cpu]: <h2>Server CPU Utilization (%)</h2>\n"
                             + "XSize[cpu]: ").print(GRAPH_WIDTH).print("\n"
                             + "YSize[cpu]: ").print(GRAPH_HEIGHT).print("\n"
                             + "\n"
@@ -244,7 +244,7 @@ final public class MrtgManager extends BuilderThread {
                             + "Timezone[mem]: ").print(thisAOServer.getTimeZone()).print("\n"
                             + "Title[mem]: Server Memory and Swap space\n"
                             + "PageFoot[mem]: <p>\n"
-                            + "PageTop[mem]: <H2>Server Memory and Swap space</H2>\n"
+                            + "PageTop[mem]: <h2>Server Memory and Swap space</h2>\n"
                             + "XSize[mem]: ").print(GRAPH_WIDTH).print("\n"
                             + "YSize[mem]: ").print(GRAPH_HEIGHT).print("\n"
                             + "\n"
@@ -262,7 +262,7 @@ final public class MrtgManager extends BuilderThread {
                             + "Timezone[diskio]: ").print(thisAOServer.getTimeZone()).print("\n"
                             + "Title[diskio]: Server Disk I/O (blocks per second)\n"
                             + "PageFoot[diskio]: <p>\n"
-                            + "PageTop[diskio]: <H2>Server Disk I/O (blocks per second)</H2>\n"
+                            + "PageTop[diskio]: <h2>Server Disk I/O (blocks per second)</h2>\n"
                             + "XSize[diskio]: ").print(GRAPH_WIDTH).print("\n"
                             + "YSize[diskio]: ").print(GRAPH_HEIGHT).print("\n");
                     for(int c=0;c<dfDevices.size();c++) {
@@ -283,7 +283,7 @@ final public class MrtgManager extends BuilderThread {
                                 + "Timezone[").print(safeName).print("]: ").print(thisAOServer.getTimeZone()).print("\n"
                                 + "Title[").print(safeName).print("]: ").print(device).print(" Space and Inodes (%)\n"
                                 + "PageFoot[").print(safeName).print("]: <p>\n"
-                                + "PageTop[").print(safeName).print("]: <H2>").print(device).print(" Space and Inodes (%)</H2>\n"
+                                + "PageTop[").print(safeName).print("]: <h2>").print(device).print(" Space and Inodes (%)</h2>\n"
                                 + "XSize[").print(safeName).print("]: ").print(GRAPH_WIDTH).print("\n"
                                 + "YSize[").print(safeName).print("]: ").print(GRAPH_HEIGHT).print("\n");
                     }
@@ -302,7 +302,7 @@ final public class MrtgManager extends BuilderThread {
                             + "Timezone[swap]: ").print(thisAOServer.getTimeZone()).print("\n"
                             + "Title[swap]: Server Swap and Paging I/O (in+out blocks per second)\n"
                             + "PageFoot[swap]: <p>\n"
-                            + "PageTop[swap]: <H2>Server Swap and Paging I/O (in+out blocks per second)</H2>\n"
+                            + "PageTop[swap]: <h2>Server Swap and Paging I/O (in+out blocks per second)</h2>\n"
                             + "XSize[swap]: ").print(GRAPH_WIDTH).print("\n"
                             + "YSize[swap]: ").print(GRAPH_HEIGHT).print("\n");
                     out.flush();
@@ -332,131 +332,130 @@ final public class MrtgManager extends BuilderThread {
                     out.print("<!--\n"
                             + "  Automatically generated by ").print(MrtgManager.class.getName()).print("\n"
                             + "-->\n"
-                            + "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 3.2//EN\">\n"
-                            + "<HTML>\n"
-                            + "  <HEAD>\n"
-                            + "    <TITLE>Stats Overview</TITLE>\n"
-                            + "    <META HTTP-EQUIV=\"Refresh\" CONTENT=\"300\">\n"
-                            + "    <META HTTP-EQUIV=\"Pragma\" CONTENT=\"no-cache\">\n"
-                            + "    <META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=iso-8859-1\">\n"
-                            + "  </HEAD>\n"
+                            + "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n"
+                            + "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en-US\" xml:lang=\"en-US\">\n"
+                            + "  <head>\n"
+                            + "    <title>Stats Overview</title>\n"
+                            + "    <meta http-equiv=\"Refresh\" content=\"300\" />\n"
+                            + "    <meta http-equiv=\"Pragma\" content=\"no-cache\" />\n"
+                            + "    <meta http-equiv=\"Content-Type\" CONTENT=\"text/html; charset=iso-8859-1\" />\n"
+                            + "  </head>\n"
                             + "\n"
-                            + "  <BODY BGCOLOR=\"#ffffff\">\n"
-                            + "    <font face=\"Verdana, Arial, Helvetica, sans-serif\">\n"
-                            + "      <center>\n"
+                            + "  <body style=\"background-color:#ffffff\">\n"
+                            + "      <div style=\"text-align:center\">\n"
                             + "        <h1>\n"
                             + "          <img src=\"https://www.aoindustries.com/images/clientarea/accounting/SendInvoices.jpg\"><br>\n"
-                            + "	  <font color=\"000000\">").print(thisAOServer.getHostname());
-                    if(failoverServer!=null) out.print(" on ").print(failoverServer.getHostname());
-                    out.print("</font>\n"
+                            + "	  <span style=\"color:#000000\">").encodeHtml(thisAOServer.getHostname());
+                    if(failoverServer!=null) out.print(" on ").encodeHtml(failoverServer.getHostname());
+                    out.print("</span>\n"
                             + "        </h1>\n"
                             + "        <hr>\n"
                             + "\n"
-                            + "        <font size=\"1\">\n"
+                            + "        <span style=\"font-size:large\">\n"
                             + "        | <a href=\"../../MRTG.ao\" target=\"_parent\">Servers</a> |\n"
                             + "        <a href=\"stats.html\">Stats Overview</a> |\n"
                             + "        <a href=\"load.html\">Load</a> |\n"
                             + "        <a href=\"cpu.html\">CPU</a> |\n"
                             + "        <a href=\"diskio.html\">DiskIO</a> |\n");
                     for(int c=0;c<dfDevices.size();c++) {
-                        out.print("        <a href=\"").print(dfSafeNames.get(c)).print(".html\">").print(dfDevices.get(c)).print("</a> |\n");
+                        out.print("        <a href=\"").encodeXmlAttribute(dfSafeNames.get(c)).print(".html\">").encodeHtml(dfDevices.get(c)).print("</a> |\n");
                     }
                     out.print("        <a href=\"mem.html\"> Memory</a> |\n");
                     // Add the network devices
                     List<NetDevice> netDevices=thisServer.getNetDevices();
                     for(NetDevice netDevice : netDevices) {
-                        out.print("        <a href=\"").print(netDevice.getNetDeviceID().getName()).print(".html\"> ").print(netDevice.getDescription()).print("</a> |\n");
+                        out.print("        <a href=\"").encodeXmlAttribute(netDevice.getNetDeviceID().getName()).print(".html\"> ").encodeHtml(netDevice.getDescription()).print("</a> |\n");
                     }
                     out.print("        <a href=\"swap.html\">Swap</a> |\n"
-                            + "      </font></center>\n"
+                            + "      </div>\n"
                             + "\n"
                             + "      <hr>\n"
-                            + "      <H2>Load Average (times 1000)</H2><BR>\n"
-                            + "      <A href=\"load.html\"><IMG border=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"load-day.png\" ALT=\"load\"></A>\n"
+                            + "      <h2>Load Average (times 1000)</h2><br />\n"
+                            + "      <a href=\"load.html\"><img style=\"border:0px; display:block;\" VSPACE=\"10\" width=\"700\" height=\"185\" src=\"load-day.png\" alt=\"load\" /></a>\n"
                             + "      <hr>\n"
-                            + "      <H2>Server CPU Utilization (%)</H2><BR>\n"
-                            + "      <A href=\"cpu.html\"><IMG border=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"cpu-day.png\" ALT=\"cpu\"></A>\n"
+                            + "      <h2>Server CPU Utilization (%)</h2><br />\n"
+                            + "      <a href=\"cpu.html\"><img style=\"border:0px; display:block;\" VSPACE=\"10\" width=\"700\" height=\"185\" src=\"cpu-day.png\" alt=\"cpu\" /></a>\n"
                             + "      <hr>\n"
-                            + "      <H2>Server Disk I/O (blocks per second)</H2><BR>\n"
+                            + "      <h2>Server Disk I/O (blocks per second)</h2><br />\n"
                             + "\n"
-                            + "      <A href=\"diskio.html\"><IMG border=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"diskio-day.png\" ALT=\"diskio\"></A>\n");
+                            + "      <a href=\"diskio.html\"><img style=\"border:0px; display:block;\" VSPACE=\"10\" width=\"700\" height=\"185\" src=\"diskio-day.png\" alt=\"diskio\" /></a>\n");
                     for(int c=0;c<dfDevices.size();c++) {
                         out.print("      <hr>\n"
-                                + "      <H2>").print(dfDevices.get(c)).print(" Space and Inodes (%)</H2><BR>\n"
-                                + "      <A href=\"").print(dfSafeNames.get(c)).print(".html\"><IMG border=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"").print(dfSafeNames.get(c)).print("-day.png\" ALT=\"").print(dfDevices.get(c)).print("\"></A>\n");
+                                + "      <h2>").encodeHtml(dfDevices.get(c)).print(" Space and Inodes (%)</h2><br />\n"
+                                + "      <a href=\"").encodeXmlAttribute(dfSafeNames.get(c)).print(".html\"><img style=\"border:0px; display:block;\" VSPACE=\"10\" width=\"700\" height=\"185\" ALIGN=\"TOP\" src=\"").encodeXmlAttribute(dfSafeNames.get(c)).print("-day.png\" alt=\"").encodeXmlAttribute(dfDevices.get(c)).print("\"></a>\n");
                     }
                     out.print("      <hr>\n"
-                            + "      <H2>Server Memory and Swap space (%)</H2><BR>\n"
-                            + "      <A href=\"mem.html\"><IMG border=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"mem-day.png\" ALT=\"mem\"></A>\n");
+                            + "      <h2>Server Memory and Swap space (%)</h2><br />\n"
+                            + "      <a href=\"mem.html\"><img style=\"border:0px; display:block;\" VSPACE=\"10\" width=\"700\" height=\"185\" src=\"mem-day.png\" alt=\"mem\" /></a>\n");
                     for(NetDevice netDevice : netDevices) {
                         String deviceId=netDevice.getNetDeviceID().getName();
                         out.print("      <hr>\n"
-                                + "      <H2>").print(netDevice.getDescription()).print(" traffic</H2><BR>\n"
-                                + "      <A href=\"").print(deviceId).print(".html\"><IMG border=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"").print(deviceId).print("-day.png\" ALT=\"").print(deviceId).print("\"></A>\n");
+                                + "      <h2>").encodeHtml(netDevice.getDescription()).print(" traffic</h2><br />\n"
+                                + "      <a href=\"").encodeXmlAttribute(deviceId).print(".html\"><img style=\"border:0px; display:block;\" VSPACE=\"10\" width=\"700\" height=\"185\" src=\"").encodeXmlAttribute(deviceId).print("-day.png\" alt=\"").encodeXmlAttribute(deviceId).print("\" /></a>\n");
                     }
                     out.print("      <hr>\n"
-                            + "      <H2>Server Swap and Paging I/O (in+out blocks per second)</H2><BR>\n"
-                            + "      <A href=\"swap.html\"><IMG border=0 VSPACE=10 WIDTH=700 HEIGHT=185 ALIGN=TOP SRC=\"swap-day.png\" ALT=\"swap\"></A>\n"
+                            + "      <h2>Server Swap and Paging I/O (in+out blocks per second)</h2><br />\n"
+                            + "      <a href=\"swap.html\"><img style=\"border:0px; display:block;\" VSPACE=\"10\" width=\"700\" height=\"185\" src=\"swap-day.png\" alt=\"swap\" /></a>\n"
                             + "<!-- Begin MRTG Block -->\n"
-                            + "<BR><HR><BR>\n");
+                            + "<br /><hr /><br />\n");
                     if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                        out.print("<table cellspacing='0' cellpadding='0'>\n"
-                                + "  <TR>\n"
-                                + "    <TD WIDTH=63><A\n"
-                                + "    HREF=\"http://people.ee.ethz.ch/~oetiker/webtools/mrtg/\"><IMG\n"
-                                + "    border=0 SRC=\"mrtg-l.png\" WIDTH=63 HEIGHT=25 ALT=\"MRTG\"></A></TD>\n"
-                                + "    <TD WIDTH=25><A\n"
-                                + "    HREF=\"http://people.ee.ethz.ch/~oetiker/webtools/mrtg/\"><IMG\n"
-                                + "    border=0 SRC=\"mrtg-m.png\" WIDTH=25 HEIGHT=25 ALT=\"\"></A></TD>\n"
-                                + "    <TD WIDTH=388><A\n"
-                                + "    HREF=\"http://people.ee.ethz.ch/~oetiker/webtools/mrtg/\"><IMG\n"
-                                + "    border=0 SRC=\"mrtg-r.png\" WIDTH=388 HEIGHT=25\n"
-                                + "    ALT=\"Multi Router Traffic Grapher\"></A></TD>\n"
-                                + "  </TR>\n"
+                        out.print("<table cellspacing=\"0\" cellpadding=\"0\">\n"
+                                + "  <tr>\n"
+                                + "    <td style=\"width:63px;\"><a\n"
+                                + "    href=\"http://people.ee.ethz.ch/~oetiker/webtools/mrtg/\"><img\n"
+                                + "    style=\"border:0px; display:block;\" src=\"mrtg-l.png\" width=\"63\" height=\"25\" alt=\"MRTG\" /></a></td>\n"
+                                + "    <td style=\"width:25px;\"><a\n"
+                                + "    href=\"http://people.ee.ethz.ch/~oetiker/webtools/mrtg/\"><img\n"
+                                + "    style=\"border:0px; display:block;\" src=\"mrtg-m.png\" width=\"25\" height=\"25\" alt=\"\"></a></td>\n"
+                                + "    <td style=\"width:388px;\" /><a\n"
+                                + "    href=\"http://people.ee.ethz.ch/~oetiker/webtools/mrtg/\"><img\n"
+                                + "    style=\"border:0px; display:block;\" src=\"mrtg-r.png\" width=\"388\" height=\"25\"\n"
+                                + "    alt=\"Multi Router Traffic Grapher\" /></a></td>\n"
+                                + "  </tr>\n"
                                 + "\n"
-                                + "</TABLE>\n"
-                                + "<table cellspacing='0' cellpadding='0'>\n"
-                                + "  <TR VALIGN=top>\n"
-                                + "  <TD WIDTH=88 ALIGN=RIGHT><FONT FACE=\"Arial,Helvetica\" SIZE=2>2.10.15</FONT></TD>\n"
-                                + "  <TD WIDTH=388 ALIGN=RIGHT><FONT FACE=\"Arial,Helvetica\" SIZE=2>\n"
-                                + "  <A HREF=\"http://people.ee.ethz.ch/~oetiker/\">Tobias Oetiker</A>\n"
-                                + "  <A HREF=\"mailto:oetiker@ee.ethz.ch\">&lt;oetiker@ee.ethz.ch&gt;</A> \n"
-                                + "and&nbsp;<A HREF=\"http://www.bungi.com/\">Dave&nbsp;Rand</A>&nbsp;<A HREF=\"mailto:dlr@bungi.com\">&lt;dlr@bungi.com&gt;</A></FONT>  </TD>\n"
+                                + "</table>\n"
+                                + "<table cellspacing=\"0\" cellpadding=\"0\">\n"
+                                + "  <tr valign=\"top\">\n"
+                                + "  <td style=\"width:88px; text-align:right;\"><span style=\"font-size:x-large\">2.10.15</span></td>\n"
+                                + "  <td style=\"width:388px; text-align:right;\"><span style=\"font-size:x-large\">\n"
+                                + "  <a href=\"http://people.ee.ethz.ch/~oetiker/\">Tobias Oetiker</a>\n"
+                                + "  <a href=\"mailto:oetiker@ee.ethz.ch\">&lt;oetiker@ee.ethz.ch&gt;</a> \n"
+                                + "and&#160;<a href=\"http://www.bungi.com/\">Dave&#160;Rand</a>&#160;<a href=\"mailto:dlr@bungi.com\">&lt;dlr@bungi.com&gt;</a></span>  </td>\n"
                                 + "\n"
-                                + "</TR>\n"
-                                + "</TABLE>\n");
+                                + "</tr>\n"
+                                + "</table>\n");
                     } else if(
                         osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                         || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                     ) {
-                        out.print("<TABLE border=\"0\" cellspacing=\"0\" cellpadding=\"0\" summary=\"\">\n"
-                                + "  <TR>\n"
-                                + "    <TD WIDTH=\"63\"><A\n"
-                                + "    HREF=\"mrtg.html\"><IMG\n"
-                                + "    ALT=\"\" border=\"0\" SRC=\"mrtg-l.png\" width=\"63\" height=\"25\"></A></TD>\n"
-                                + "    <TD WIDTH=\"25\"><A\n"
-                                + "    HREF=\"mrtg.html\"><IMG\n"
-                                + "    ALT=\"MRTG\" border=\"0\" SRC=\"mrtg-m.png\" width=\"25\" height=\"25\"></A></TD>\n"
-                                + "    <TD WIDTH=\"388\"><A\n"
-                                + "    HREF=\"mrtg.html\"><IMG\n"
-                                + "    ALT=\"\" border=\"0\" SRC=\"mrtg-r.png\" width=\"388\" height=\"25\"></A></TD>\n"
-                                + "  </TR>\n"
-                                + "</TABLE>\n"
-                                + "<img src=\"https://www.aoindustries.com/layout/ao/blank.gif\" alt=\"\" width=\"1\" height=\"4\" align=\"bottom\" border=\"0\">\n"
-                                + "<TABLE border=\"0\" cellspacing=\"0\" cellpadding=\"0\" summary=\"\">\n"
-                                + "  <TR VALIGN=\"top\">\n"
-                                + "  <TD><FONT FACE=\"Arial,Helvetica\" SIZE=\"2\">\n"
-                                + "  <A HREF=\"http://people.ee.ethz.ch/~oetiker\">Tobias Oetiker</A>\n"
-                                + "  <A HREF=\"mailto:oetiker@ee.ethz.ch\">&lt;oetiker@ee.ethz.ch&gt;</A>\n"
-                                + "  and&nbsp;<A HREF=\"http://www.bungi.com\">Dave&nbsp;Rand</A>&nbsp;<A HREF=\"mailto:dlr@bungi.com\">&lt;dlr@bungi.com&gt;</A></FONT>\n"
-                                + "  </TD>\n"
-                                + "</TR>\n"
-                                + "</TABLE>\n");
+                        out.print("<table style=\"border:0px;\" cellspacing=\"0\" cellpadding=\"0\" summary=\"\">\n"
+                                + "  <tr>\n"
+                                + "    <td style=\"width:63px;\"><a\n"
+                                + "    href=\"mrtg.html\"><img\n"
+                                + "    alt=\"\" style=\"border:0px; display:block;\" src=\"mrtg-l.png\" width=\"63\" height=\"25\" /></a></td>\n"
+                                + "    <td style=\"width:25px;\"><a\n"
+                                + "    href=\"mrtg.html\"><img\n"
+                                + "    alt=\"MRTG\" style=\"border:0px; display:block;\" src=\"mrtg-m.png\" width=\"25\" height=\"25\" /></a></td>\n"
+                                + "    <td style=\"width:388px;\"><a\n"
+                                + "    href=\"mrtg.html\"><img\n"
+                                + "    alt=\"\" style=\"border:0px; display:block;\" src=\"mrtg-r.png\" width=\"388\" height=\"25\" /></a></td>\n"
+                                + "  </tr>\n"
+                                + "</table>\n"
+                                + "<img src=\"https://www.aoindustries.com/layout/ao/blank.gif\" alt=\"\" style=\"border:0px; display:block;\" width=\"1\" height=\"4\" />\n"
+                                + "<table style=\"border:0px;\" cellspacing=\"0\" cellpadding=\"0\" summary=\"\">\n"
+                                + "  <tr valign=\"top\">\n"
+                                + "  <td><span style=\"font-size:x-large\">\n"
+                                + "  <a href=\"http://people.ee.ethz.ch/~oetiker\">Tobias Oetiker</a>\n"
+                                + "  <a href=\"mailto:oetiker@ee.ethz.ch\">&lt;oetiker@ee.ethz.ch&gt;</a>\n"
+                                + "  and&#160;<a href=\"http://www.bungi.com\">Dave&#160;Rand</a>&#160;<a href=\"mailto:dlr@bungi.com\">&lt;dlr@bungi.com&gt;</a></span>\n"
+                                + "  </td>\n"
+                                + "</tr>\n"
+                                + "</table>\n");
                     } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                     out.print("<!-- End MRTG Block -->\n"
                             + "    <p>\n"
-                            + "  </BODY>\n"
-                            + "</HTML>\n");
+                            + "  </body>\n"
+                            + "</html>\n");
                     out.flush();
                 } finally {
                     out.close();
@@ -508,6 +507,8 @@ final public class MrtgManager extends BuilderThread {
     
     /**
      * Reads /proc/cpuinfo and determines the number of CPUs.
+     * @return
+     * @throws IOException
      */
     public static int getNumberOfCPUs() throws IOException {
         BufferedReader in=new BufferedReader(new InputStreamReader(new FileInputStream("/proc/cpuinfo")));
@@ -525,6 +526,9 @@ final public class MrtgManager extends BuilderThread {
     
     /**
      * Gets the list of devices for df commands.  When in a failover state, returns empty list.
+     * @return
+     * @throws IOException
+     * @throws SQLException
      */
     public static List<String> getDFDevices() throws IOException, SQLException {
         AOServer thisAOServer = AOServDaemon.getThisAOServer();

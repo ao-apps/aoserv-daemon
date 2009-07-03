@@ -594,7 +594,7 @@ final public class ImapManager extends BuilderThread {
                             }
                             // service-specific certificates
                             //     file:///home/o/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
-                            //     value of "disabled" if the certificate file doesn't exist (or use server default)
+                            //     value of "disabled='disabled'" if the certificate file doesn't exist (or use server default)
                             //     openssl req -new -x509 -nodes -out cyrus-imapd.pem -keyout cyrus-imapd.pem -days 3650
                             for(Map.Entry<String,NetBind> entry : tlsServices.entrySet()) {
                                 String serviceName = entry.getKey();

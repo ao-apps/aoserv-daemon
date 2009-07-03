@@ -513,17 +513,17 @@ public abstract class HttpdSiteManager {
                         out.print("#!/usr/bin/perl\n"
                                 + "print \"Content-Type: text/html\\n\";\n"
                                 + "print \"\\n\";\n"
-                                + "print \"<HTML>\\n\";\n"
-                                + "print \"  <HEAD><TITLE>Test CGI Page for ").print(primaryUrl).print("</TITLE></HEAD>\\n\";\n"
-                                + "print \"  <BODY>\\n\";\n"
-                                + "print \"    Test CGI Page for ").print(primaryUrl).print("<BR>\\n\";\n"
-                                + "print \"    <BR>\\n\";\n"
+                                + "print \"<html>\\n\";\n"
+                                + "print \"  <head><title>Test CGI Page for ").print(primaryUrl).print("</title></head>\\n\";\n"
+                                + "print \"  <body>\\n\";\n"
+                                + "print \"    Test CGI Page for ").print(primaryUrl).print("<br />\\n\";\n"
+                                + "print \"    <br />\\n\";\n"
                                 + "print \"    The current time is \";\n"
                                 + "@date=`/bin/date -R`;\n"
                                 + "chop(@date);\n"
                                 + "print \"@date.\\n\";\n"
-                                + "print \"  </BODY>\\n\";\n"
-                                + "print \"</HTML>\\n\";\n");
+                                + "print \"  </body>\\n\";\n"
+                                + "print \"</html>\\n\";\n");
                     } finally {
                         out.close();
                     }
@@ -556,12 +556,12 @@ public abstract class HttpdSiteManager {
             try {
                 ChainWriter out = new ChainWriter(new FileOutputStream(tempFile.getFile()));
                 try {
-                    out.print("<HTML>\n"
-                            + "  <HEAD><TITLE>Test HTML Page for ").print(primaryUrl).print("</TITLE></HEAD>\n"
-                            + "  <BODY>\n"
+                    out.print("<html>\n"
+                            + "  <head><title>Test HTML Page for ").print(primaryUrl).print("</title></head>\n"
+                            + "  <body>\n"
                             + "    Test HTML Page for ").print(primaryUrl).print("\n"
-                            + "  </BODY>\n"
-                            + "</HTML>\n");
+                            + "  </body>\n"
+                            + "</html>\n");
                 } finally {
                     out.close();
                 }
@@ -595,14 +595,14 @@ public abstract class HttpdSiteManager {
                 try {
                     ChainWriter out = new ChainWriter(new FileOutputStream(tempFile.getFile()));
                     try {
-                    out.print("<HTML>\n"
-                            + "  <HEAD><TITLE>Test PHP Page for ").print(primaryUrl).print("</TITLE></HEAD>\n"
-                            + "  <BODY>\n"
-                            + "    Test PHP Page for ").print(primaryUrl).print("<BR>\n"
-                            + "    <BR>\n"
+                    out.print("<html>\n"
+                            + "  <head><title>Test PHP Page for ").print(primaryUrl).print("</title></head>\n"
+                            + "  <body>\n"
+                            + "    Test PHP Page for ").print(primaryUrl).print("<br />\n"
+                            + "    <br />\n"
                             + "    The current time is <?= date('r') ?>.\n"
-                            + "  </BODY>\n"
-                            + "</HTML>\n");
+                            + "  </body>\n"
+                            + "</html>\n");
                     } finally {
                         out.close();
                     }

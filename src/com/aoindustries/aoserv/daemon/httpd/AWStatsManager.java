@@ -284,8 +284,9 @@ final public class AWStatsManager extends BuilderThread {
                         + "ShowLinksOnUrl=1\n"
                         + "UseHTTPSLinkForUrl=\"\"\n"
                         + "MaxLengthOfShownURL=64\n"
-                        //+ "HTMLHeadSection=\"<DIV align='center'><A target='_new' href='http://www.aoindustries.com/'><IMG src='https://www.aoindustries.com/images/clientarea/accounting/SendInvoices.jpg' border='0' width='452' height='127' alt='Hosted by AO Industries, Inc.'></A><BR>Back to <A target='_top' href='../../../AWStats.ao'>Control Panels</A></DIV>\"\n"
-                        //+ "HTMLEndSection=\"<B>Hosted by <A target='_new' href='http://www.aoindustries.com/'>AO Industries, Inc.</A></B>\"\n"
+                        // TODO: Get from brands
+                        //+ "HTMLHeadSection=\"<div style='text-align:center'><a href='http://www.aoindustries.com/'><img src='https://www.aoindustries.com/images/clientarea/accounting/SendInvoices.jpg' style='border:0px;' width='452' height='127' alt='Hosted by AO Industries, Inc.' /></a><br />Back to <a href='../../../AWStats.ao'>Control Panels</a></div>\"\n"
+                        //+ "HTMLEndSection=\"<b>Hosted by <a href='http://www.aoindustries.com/'>AO Industries, Inc.</a></b>\"\n"
                         + "Logo=\"\"\n"
                         + "LogoLink=\"\"\n"
                         + "BarWidth=260\n"
