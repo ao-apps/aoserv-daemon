@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 
@@ -72,7 +73,7 @@ final public class AOServDaemonServer extends Thread {
                     Iterator I=accessKeys.keySet().iterator();
                     while(I.hasNext()) {
                         Long keyLong=(Long)I.next();
-                        DaemonAccessEntry entry=(DaemonAccessEntry)accessKeys.get(keyLong);
+                        DaemonAccessEntry entry=accessKeys.get(keyLong);
                         timeSince=System.currentTimeMillis()-entry.created;
                         if(timeSince<0 || timeSince>=(60L*60*1000)) {
                             removeKeys.add(keyLong);
@@ -142,7 +143,7 @@ final public class AOServDaemonServer extends Thread {
                             } catch(ThreadDeath TD) {
                                 throw TD;
                             } catch(Throwable T) {
-                                AOServDaemon.reportError(T, null);
+                                LogFactory.getLogger(AOServDaemonServer.class).log(Level.SEVERE, null, T);
                             }
                         }
                     } finally {
@@ -153,12 +154,12 @@ final public class AOServDaemonServer extends Thread {
             } catch (ThreadDeath TD) {
                 throw TD;
             } catch (Throwable T) {
-                AOServDaemon.reportError(T, null);
+                LogFactory.getLogger(AOServDaemonServer.class).log(Level.SEVERE, null, T);
             }
             try {
                 sleep(60000);
             } catch (InterruptedException err) {
-                AOServDaemon.reportWarning(err, null);
+                LogFactory.getLogger(AOServDaemonServer.class).log(Level.WARNING, null, err);
             }
         }
     }

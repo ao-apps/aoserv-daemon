@@ -16,6 +16,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 /**
  * Controls the MySQL databases.
@@ -37,7 +38,7 @@ final public class MySQLCreditCardScanner implements CronJob {
                 if(mySQLCreditCardScanner==null) {
                     System.out.print("Starting MySQLCreditCardScanner: ");
                     mySQLCreditCardScanner=new MySQLCreditCardScanner();
-                    CronDaemon.addCronJob(mySQLCreditCardScanner, AOServDaemon.getErrorHandler());
+                    CronDaemon.addCronJob(mySQLCreditCardScanner, LogFactory.getLogger(MySQLCreditCardScanner.class));
                     System.out.println("Done");
                 }
             }
@@ -125,16 +126,8 @@ final public class MySQLCreditCardScanner implements CronJob {
                     );*/
                 }
             }
-        } catch(ClassNotFoundException err) {
-            AOServDaemon.reportError(err, null);
-        } catch(InstantiationException err) {
-            AOServDaemon.reportError(err, null);
-        } catch(IllegalAccessException err) {
-            AOServDaemon.reportError(err, null);
-        } catch(IOException err) {
-            AOServDaemon.reportError(err, null);
-        } catch(SQLException err) {
-            AOServDaemon.reportError(err, null);
+        } catch(Exception err) {
+            LogFactory.getLogger(MySQLCreditCardScanner.class).log(Level.SEVERE, null, err);
         }
     }
     

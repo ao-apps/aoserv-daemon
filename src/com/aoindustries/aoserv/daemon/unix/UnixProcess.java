@@ -6,7 +6,9 @@ package com.aoindustries.aoserv.daemon.unix;
  * All rights reserved.
  */
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import java.io.IOException;
+import java.util.logging.Level;
 
 /**
  * A <code>UnixProcess</code> represents a process
@@ -64,7 +66,7 @@ abstract public class UnixProcess {
             try {
                 Thread.sleep(2000);
             } catch(InterruptedException err) {
-                AOServDaemon.reportWarning(err, null);
+                LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
             }
         }
         if(isRunning()) {

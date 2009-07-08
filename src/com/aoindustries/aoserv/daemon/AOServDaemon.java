@@ -45,15 +45,11 @@ import com.aoindustries.aoserv.daemon.postgres.PostgresUserManager;
 import com.aoindustries.aoserv.daemon.random.RandomEntropyManager;
 import com.aoindustries.aoserv.daemon.timezone.TimeZoneManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
-import com.aoindustries.email.ErrorMailer;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.profiler.Profiler;
 import com.aoindustries.util.BufferManager;
-import com.aoindustries.util.ErrorHandler;
-import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.IntList;
-import com.aoindustries.util.StringUtility;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -68,6 +64,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * The <code>AOServDaemon</code> starts all of the services that run inside the Java VM.
@@ -92,6 +90,9 @@ final public class AOServDaemon {
      */
     private static AOServConnector conn;
 
+    /**
+     * An unbounded executor for daemon-wide tasks.
+     */
     public final static ExecutorService executorService = Executors.newCachedThreadPool();
 
     /**
@@ -133,7 +134,7 @@ final public class AOServDaemon {
         synchronized(AOServDaemon.class) {
             if(conn==null) {
                 // Get the connector that will be used
-                conn=AOServConnector.getConnector(getErrorHandler());
+                conn=AOServConnector.getConnector(Logger.getLogger(AOServConnector.class.getName()));
             }
             return conn;
         }
@@ -235,167 +236,15 @@ final public class AOServDaemon {
             } catch (ThreadDeath TD) {
                 throw TD;
             } catch (Throwable T) {
-                reportError(T, null);
+                Logger logger = LogFactory.getLogger(AOServDaemon.class);
+                logger.log(Level.SEVERE, null, T);
                 try {
                     Thread.sleep(60000);
                 } catch(InterruptedException err) {
-                    reportWarning(err, null);
+                    logger.log(Level.WARNING, null, err);
                 }
             }
-	}
-    }
-
-    /**
-     * Logs an error message to <code>System.err</code>.
-     * Also sends email messages to <code>aoserv.daemon.error.email.to</code>.
-     */
-    public static void reportError(Throwable T, Object[] extraInfo) {
-        ErrorPrinter.printStackTraces(T, extraInfo);
-        try {
-            String smtp=AOServDaemonConfiguration.getErrorSmtpServer();
-            if(smtp!=null && smtp.length()>0) {
-                List<String> addys=StringUtility.splitStringCommaSpace(AOServDaemonConfiguration.getErrorEmailTo());
-                String from=AOServDaemonConfiguration.getErrorEmailFrom();
-                for(int c=0;c<addys.size();c++) {
-                    ErrorMailer.reportError(
-                        getRandom(),
-                        T,
-                        extraInfo,
-                        smtp,
-                        from,
-                        addys.get(c),
-                        "AOServDaemon Error"
-                    );
-                }
-            }
-        } catch(IOException err) {
-            ErrorPrinter.printStackTraces(err);
         }
-    }
-
-    /**
-     * Logs a warning message to <code>System.err</code>.
-     * Also sends email messages to <code>aoserv.daemon.warning.email.to</code>.
-     */
-    public static void reportWarning(Throwable T, Object[] extraInfo) {
-        ErrorPrinter.printStackTraces(T, extraInfo);
-        try {
-            String smtp=AOServDaemonConfiguration.getWarningSmtpServer();
-            if(smtp!=null && smtp.length()>0) {
-                List<String> addys=StringUtility.splitStringCommaSpace(AOServDaemonConfiguration.getWarningEmailTo());
-                String from=AOServDaemonConfiguration.getWarningEmailFrom();
-                for(int c=0;c<addys.size();c++) {
-                    ErrorMailer.reportError(
-                        getRandom(),
-                        T,
-                        extraInfo,
-                        smtp,
-                        from,
-                        addys.get(c),
-                        "AOServDaemon Warning"
-                    );
-                }
-            }
-        } catch(IOException err) {
-            ErrorPrinter.printStackTraces(err);
-        }
-    }
-
-    /**
-     * Logs a security message to <code>System.err</code>.
-     * Also sends email messages to <code>aoserv.daemon.security.email.to</code>.
-     */
-    public static void reportErrorMessage(String message) {
-        System.err.println(message);
-        try {
-            String smtp=AOServDaemonConfiguration.getErrorSmtpServer();
-            if(smtp!=null && smtp.length()>0) {
-                String from=AOServDaemonConfiguration.getErrorEmailFrom();
-                List<String> addys=StringUtility.splitStringCommaSpace(AOServDaemonConfiguration.getErrorEmailTo());
-                for(int c=0;c<addys.size();c++) {
-                    ErrorMailer.reportError(
-                        getRandom(),
-                        message,
-                        smtp,
-                        from,
-                        addys.get(c),
-                        "AOServDaemon Error"
-                    );
-                }
-            }
-        } catch(IOException err) {
-            ErrorPrinter.printStackTraces(err);
-        }
-    }
-
-    /**
-     * Logs a security message to <code>System.err</code>.
-     * Also sends email messages to <code>aoserv.daemon.security.email.to</code>.
-     */
-    public static void reportFullMonitoringMessage(String message) {
-        System.err.println(message);
-        try {
-            String smtp=AOServDaemonConfiguration.getMonitorSmtpServer();
-            if(smtp!=null && smtp.length()>0) {
-                String from=AOServDaemonConfiguration.getMonitorEmailFullFrom();
-                List<String> addys=StringUtility.splitStringCommaSpace(AOServDaemonConfiguration.getMonitorEmailFullTo());
-                for(int c=0;c<addys.size();c++) {
-                    ErrorMailer.reportError(
-                        getRandom(),
-                        message,
-                        smtp,
-                        from,
-                        addys.get(c),
-                        "AOServMonitoring"
-                    );
-                }
-            }
-        } catch(IOException err) {
-            ErrorPrinter.printStackTraces(err);
-        }
-    }
-
-    /**
-     * Logs a security message to <code>System.err</code>.
-     * Also sends email messages to <code>aoserv.daemon.security.email.to</code>.
-     */
-    public static void reportSecurityMessage(String message) {
-        System.err.println(message);
-        try {
-            String smtp=AOServDaemonConfiguration.getSecuritySmtpServer();
-            if(smtp!=null && smtp.length()>0) {
-                String from=AOServDaemonConfiguration.getSecurityEmailFrom();
-                List<String> addys=StringUtility.splitStringCommaSpace(AOServDaemonConfiguration.getSecurityEmailTo());
-                for(int c=0;c<addys.size();c++) {
-                    ErrorMailer.reportError(
-                        getRandom(),
-                        message,
-                        smtp,
-                        from,
-                        addys.get(c),
-                        "AOServDaemonSec"
-                    );
-                }
-            }
-        } catch(IOException err) {
-            ErrorPrinter.printStackTraces(err);
-        }
-    }
-
-    private static ErrorHandler errorHandler;
-    public synchronized static ErrorHandler getErrorHandler() {
-        if(errorHandler==null) {
-            errorHandler=new ErrorHandler() {
-                public final void reportError(Throwable T, Object[] extraInfo) {
-                    AOServDaemon.reportError(T, extraInfo);
-                }
-
-                public final void reportWarning(Throwable T, Object[] extraInfo) {
-                    AOServDaemon.reportWarning(T, extraInfo);
-                }
-            };
-        }
-        return errorHandler;
     }
 
     /**

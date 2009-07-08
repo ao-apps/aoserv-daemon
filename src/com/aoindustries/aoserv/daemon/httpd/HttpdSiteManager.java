@@ -17,6 +17,7 @@ import com.aoindustries.aoserv.client.HttpdTomcatSite;
 import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
 import com.aoindustries.aoserv.daemon.util.FileUtils;
 import com.aoindustries.io.ChainWriter;
@@ -40,6 +41,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
 
 /**
  * Manages HttpdSite configurations.
@@ -136,7 +138,7 @@ public abstract class HttpdSiteManager {
                                     try {
                                         Thread.sleep(5000);
                                     } catch(InterruptedException err) {
-                                        AOServDaemon.reportWarning(err, null);
+                                        LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
                                     }
                                 }
                                 stopStartRestartable.start();
@@ -164,11 +166,11 @@ public abstract class HttpdSiteManager {
                     Future commandFuture = AOServDaemon.executorService.submit(commandCallable);
                     commandFuture.get(60, TimeUnit.SECONDS);
                 } catch(InterruptedException err) {
-                    AOServDaemon.reportWarning(err, null);
+                    LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
                 } catch(ExecutionException err) {
-                    AOServDaemon.reportWarning(err, null);
+                    LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
                 } catch(TimeoutException err) {
-                    AOServDaemon.reportWarning(err, null);
+                    LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
                 }
             }
         }
@@ -213,11 +215,11 @@ public abstract class HttpdSiteManager {
                                 );
                                 stopFuture.get(60, TimeUnit.SECONDS);
                             } catch(InterruptedException err) {
-                                AOServDaemon.reportWarning(err, null);
+                                LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
                             } catch(ExecutionException err) {
-                                AOServDaemon.reportWarning(err, null);
+                                LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
                             } catch(TimeoutException err) {
-                                AOServDaemon.reportWarning(err, null);
+                                LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
                             }
                         }
                         // Remove the file
@@ -248,7 +250,7 @@ public abstract class HttpdSiteManager {
                     try {
                         Thread.sleep(5000);
                     } catch(InterruptedException err) {
-                        AOServDaemon.reportWarning(err, null);
+                        LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
                     }
                 }
                 stopStartable.start();

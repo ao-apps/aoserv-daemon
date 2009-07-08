@@ -12,6 +12,7 @@ import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.ChainWriter;
@@ -30,6 +31,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
 
 /**
  * Handles the building of name server processes and files.
@@ -553,7 +555,7 @@ final public class MrtgManager extends BuilderThread {
                 String line;
                 while((line=in.readLine())!=null) {
                     if(devices.contains(line)) {
-                        AOServDaemon.reportWarning(new Throwable("Warning: duplicate device from list_partitions: "+line), null);
+                        LogFactory.getLogger(MrtgManager.class).log(Level.WARNING, null, new Throwable("Warning: duplicate device from list_partitions: "+line));
                     } else {
                         devices.add(line);
                     }
@@ -566,7 +568,7 @@ final public class MrtgManager extends BuilderThread {
                 int retCode = P.waitFor();
                 if(retCode!=0) throw new IOException("Non-zero return value from list_partitions: "+retCode);
             } catch(InterruptedException err) {
-                AOServDaemon.reportWarning(err, null);
+                LogFactory.getLogger(MrtgManager.class).log(Level.WARNING, null, err);
             }
         }
 

@@ -5,12 +5,13 @@ package com.aoindustries.aoserv.daemon.util;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.io.AOPool;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.logging.Level;
 
 /**
  * Handles incoming connections on one <code>ServerSocket</code>.
@@ -59,11 +60,11 @@ abstract public class SocketServerThread extends Thread {
             } catch(ThreadDeath TD) {
                 throw TD;
             } catch(Throwable T) {
-                AOServDaemon.reportError(T, null);
+                LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, T);
                 try {
                     Thread.sleep(60000);
                 } catch(InterruptedException err) {
-                    AOServDaemon.reportWarning(err, null);
+                    LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
                 }
             }
         }
@@ -74,7 +75,7 @@ abstract public class SocketServerThread extends Thread {
         try {
             SS.close();
         } catch(IOException err) {
-            AOServDaemon.reportError(err, null);
+            LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, err);
         }
     }
 

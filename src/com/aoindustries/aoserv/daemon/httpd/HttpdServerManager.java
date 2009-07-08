@@ -22,6 +22,7 @@ import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.TechnologyVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.util.FileUtils;
 import com.aoindustries.io.ChainWriter;
@@ -37,6 +38,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.logging.Level;
 
 /**
  * Manages HttpdServer configurations and control.
@@ -1242,7 +1244,7 @@ public class HttpdServerManager {
                         deleteFileList.add(new File(fullPath));
                     }
                 } catch(NumberFormatException err) {
-                    AOServDaemon.reportWarning(err, null);
+                    LogFactory.getLogger(HttpdServerManager.class).log(Level.WARNING, null, err);
                 }
             }
         }

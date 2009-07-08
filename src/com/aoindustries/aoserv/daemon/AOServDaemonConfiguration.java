@@ -19,6 +19,9 @@ import java.util.Properties;
  */
 final public class AOServDaemonConfiguration {
 
+    private AOServDaemonConfiguration() {
+    }
+
     private static Properties props;
 
     private static String getProperty(String name) throws IOException {
@@ -43,42 +46,6 @@ final public class AOServDaemonConfiguration {
 
     public static boolean isNested() throws IOException {
         return "true".equalsIgnoreCase(getProperty("nested"));
-    }
-
-    public static String getErrorEmailTo() throws IOException {
-        return getProperty("error.email.to");
-    }
-
-    public static String getErrorEmailFrom() throws IOException {
-        return getProperty("error.email.from");
-    }
-
-    public static String getErrorSmtpServer() throws IOException {
-        return getProperty("error.smtp.server");
-    }
-
-    public static String getWarningEmailTo() throws IOException {
-        return getProperty("warning.email.to");
-    }
-
-    public static String getWarningEmailFrom() throws IOException {
-        return getProperty("warning.email.from");
-    }
-
-    public static String getWarningSmtpServer() throws IOException {
-        return getProperty("warning.smtp.server");
-    }
-
-    public static String getSecurityEmailTo() throws IOException {
-        return getProperty("security.email.to");
-    }
-
-    public static String getSecurityEmailFrom() throws IOException {
-        return getProperty("security.email.from");
-    }
-
-    public static String getSecuritySmtpServer() throws IOException {
-        return getProperty("security.smtp.server");
     }
 
     public static String getMonitorEmailFullTo() throws IOException {
@@ -113,22 +80,6 @@ final public class AOServDaemonConfiguration {
         return getProperty("ssl.keystore.path");
     }
 
-    /**
-     * Gets the maximum backup bandwidth in bits per second or <code>-1</code> if unlimited.
-     */
-    public static int getBackupBandwidthLimit() throws IOException {
-        String S=getProperty("backup.bandwidth.limit");
-        return S==null || S.length()==0 ? -1 : Integer.parseInt(S);
-    }
-
-    public static int getBackupReplicatorConcurrency() throws IOException {
-        return Integer.parseInt(getProperty("backup.replicator.concurrency"));
-    }
-
-    public static String getBackupReplicatorPath() throws IOException {
-        return getProperty("backup.replicator.path");
-    }
-
     public static String getPostgresPassword() throws IOException {
         return getProperty("postgres.password");
     }
@@ -160,19 +111,6 @@ final public class AOServDaemonConfiguration {
 
     public static long getMySqlMaxConnectionAge() throws IOException {
         String S=getProperty("mysql.max_connection_age");
-        return S==null || S.length()==0 ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(S);
-    }
-
-    public static String getInterBasePassword() throws IOException {
-        return getProperty("interbase.password");
-    }
-
-    public static int getInterBaseConnections() throws IOException {
-        return Integer.parseInt(getProperty("interbase.connections"));
-    }
-
-    public static long getInterBaseMaxConnectionAge() throws IOException {
-        String S=getProperty("interbase.max_connection_age");
         return S==null || S.length()==0 ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(S);
     }
 

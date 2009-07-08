@@ -15,6 +15,7 @@ import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
@@ -26,6 +27,7 @@ import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Controls access to the mail server, supports auto-expiring SMTP access.
@@ -218,7 +220,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
                     try {
                         Thread.sleep(REFRESH_PERIOD);
                     } catch(InterruptedException err) {
-                        AOServDaemon.reportWarning(err, null);
+                        LogFactory.getLogger(SmtpRelayManager.class).log(Level.WARNING, null, err);
                     }
                     long time=System.currentTimeMillis();
                     boolean needRebuild=false;
@@ -239,11 +241,11 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
             } catch(ThreadDeath TD) {
                 throw TD;
             } catch(Throwable T) {
-                AOServDaemon.reportError(T, null);
+                LogFactory.getLogger(SmtpRelayManager.class).log(Level.SEVERE, null, T);
                 try {
                     Thread.sleep(REFRESH_PERIOD);
                 } catch(InterruptedException err) {
-                    AOServDaemon.reportWarning(err, null);
+                    LogFactory.getLogger(SmtpRelayManager.class).log(Level.WARNING, null, err);
                 }
             }
         }

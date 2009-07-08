@@ -14,6 +14,7 @@ import com.aoindustries.aoserv.client.HttpdTomcatSite;
 import com.aoindustries.aoserv.client.HttpdTomcatStdSite;
 import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.httpd.HttpdSiteManager;
 import com.aoindustries.aoserv.daemon.httpd.StopStartable;
 import com.aoindustries.aoserv.daemon.httpd.jboss.HttpdJBossSiteManager;
@@ -28,6 +29,7 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.logging.Level;
 
 /**
  * Manages HttpdTomcatSite configurations.
@@ -139,7 +141,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
                     return true;
                 }
             } catch(NumberFormatException err) {
-                AOServDaemon.reportWarning(err, null);
+                LogFactory.getLogger(HttpdTomcatSiteManager.class).log(Level.WARNING, null, err);
             }
             return false;
         }

@@ -17,6 +17,7 @@ import com.aoindustries.aoserv.client.Package;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.jilter.config.EmailLimit;
 import com.aoindustries.aoserv.jilter.config.JilterConfiguration;
@@ -27,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Writes new configuration files for the JilterConfiguration when AOServ tables have been updated.
@@ -115,7 +117,7 @@ public class JilterConfigurationWriter extends BuilderThread {
             if(EmailSmtpRelayType.DENY.equals(type)) denies.add(host);
             else if(EmailSmtpRelayType.DENY_SPAM.equals(type)) denySpams.add(host);
             else if(EmailSmtpRelayType.ALLOW_RELAY.equals(type)) allowRelays.add(host);
-            else AOServDaemon.reportWarning(new SQLException("Unexpected value for type: "+type), null);
+            else LogFactory.getLogger(JilterConfigurationWriter.class).log(Level.WARNING, null, new SQLException("Unexpected value for type: "+type));
         }
         
         // Builds email limits only for the packages referenced in domainPackages

@@ -4,10 +4,12 @@ import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.NetDevice;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.sql.SQLException;
+import java.util.logging.Level;
 
 /**
  * Watches the IP address of the server and tells the master when the IP address changes.
@@ -77,7 +79,7 @@ final public class DhcpManager implements Runnable {
                     try {
                         Thread.sleep(POLL_INTERVAL);
                     } catch(InterruptedException err) {
-                        AOServDaemon.reportWarning(err, null);
+                        LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
                     }
                     for(NetDevice nd : AOServDaemon.getThisAOServer().getServer().getNetDevices()) {
                         IPAddress primaryIP=nd.getPrimaryIPAddress();
@@ -92,11 +94,11 @@ final public class DhcpManager implements Runnable {
             } catch(ThreadDeath TD) {
                 throw TD;
             } catch(Throwable T) {
-                AOServDaemon.reportError(T, null);
+                LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, T);
                 try {
                     Thread.sleep(POLL_INTERVAL);
                 } catch(InterruptedException err) {
-                    AOServDaemon.reportWarning(err, null);
+                    LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
                 }
             }
         }

@@ -8,6 +8,7 @@ import com.aoindustries.aoserv.client.NetDeviceID;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
@@ -26,6 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Handles the building of IP address configs and files.
@@ -670,19 +672,19 @@ final public class NetDeviceManager extends BuilderThread {
                                     try {
                                         updateCounts(netDevice, tempSB);
                                     } catch(Exception err) {
-                                        AOServDaemon.reportError(err, null);
+                                        LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, err);
                                     }
                                 }
                             }
                         } catch(ThreadDeath TD) {
                             throw TD;
                         } catch(Throwable T) {
-                            AOServDaemon.reportError(T, null);
+                            LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, T);
                         }
                         try {
                             Thread.sleep(5000);
                         } catch(InterruptedException err) {
-                            AOServDaemon.reportWarning(err, null);
+                            LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
                         }
                     }
                 }

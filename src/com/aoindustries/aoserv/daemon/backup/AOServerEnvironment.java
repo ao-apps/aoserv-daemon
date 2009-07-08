@@ -16,6 +16,7 @@ import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.MySQLServer;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.io.FileExistsRule;
 import com.aoindustries.io.FilesystemIteratorRule;
 import java.io.IOException;
@@ -25,8 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * An <code>AOServerEnvironment</code> controls the backup system on
@@ -47,8 +48,6 @@ import org.apache.commons.logging.LogFactory;
  * @author  AO Industries, Inc.
  */
 public class AOServerEnvironment extends UnixFileEnvironment {
-    
-    private static final Log log = LogFactory.getLog(AOServerEnvironment.class);
 
     @Override
     public AOServConnector getConnector() throws IOException, SQLException {
@@ -83,15 +82,17 @@ public class AOServerEnvironment extends UnixFileEnvironment {
             List<FailoverMySQLReplication> fmrs = ffr.getFailoverMySQLReplications();
             List<String> replicatedMySQLServers = new ArrayList<String>(fmrs.size());
             List<String> replicatedMySQLMinorVersions = new ArrayList<String>(fmrs.size());
+            Logger logger = getLogger();
+            boolean isDebug = logger.isLoggable(Level.FINE);
             for(FailoverMySQLReplication fmr : fmrs) {
                 MySQLServer mysqlServer = fmr.getMySQLServer();
                 String name = mysqlServer.getName();
                 String minorVersion = mysqlServer.getMinorVersion();
                 replicatedMySQLServers.add(name);
                 replicatedMySQLMinorVersions.add(minorVersion);
-                if(isDebugEnabled()) {
-                    debug(getClass(), "init", "runFailoverCopy to "+toServer+", replicatedMySQLServer: "+name, null);
-                    debug(getClass(), "init", "runFailoverCopy to "+toServer+", replicatedMySQLMinorVersion: "+minorVersion, null);
+                if(isDebug) {
+                    logger.logp(Level.FINE, getClass().getName(), "init", "runFailoverCopy to "+toServer+", replicatedMySQLServer: "+name);
+                    logger.logp(Level.FINE, getClass().getName(), "init", "runFailoverCopy to "+toServer+", replicatedMySQLMinorVersion: "+minorVersion);
                 }
             }
             synchronized(replicatedMySQLServerses) {
@@ -381,32 +382,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
     }
 
     @Override
-    public boolean isDebugEnabled() {
-        return log.isDebugEnabled();
-    }
-
-    @Override
-    public void debug(Class clazz, String method, Object message, Throwable throwable) {
-        log.debug(message, throwable);
-    }
-
-    @Override
-    public boolean isErrorEnabled() {
-        return log.isErrorEnabled();
-    }
-
-    @Override
-    public void error(Class clazz, String method, Object message, Throwable throwable) {
-        log.error(message, throwable);
-    }
-
-    @Override
-    public boolean isWarnEnabled() {
-        return log.isWarnEnabled();
-    }
-
-    @Override
-    public void warn(Class clazz, String method, Object message, Throwable throwable) {
-        log.warn(message, throwable);
+    public Logger getLogger() {
+        return LogFactory.getLogger(AOServerEnvironment.class);
     }
 }

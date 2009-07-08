@@ -17,6 +17,7 @@ import com.aoindustries.aoserv.client.PostgresUser;
 import com.aoindustries.aoserv.client.PostgresVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.cron.CronDaemon;
@@ -38,6 +39,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.logging.Level;
 
 /**
  * Controls the PostgreSQL server.
@@ -144,7 +146,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                             SSLConnector.sslProviderLoaded,
                             AOServClientConfiguration.getSslTruststorePath(),
                             AOServClientConfiguration.getSslTruststorePassword(),
-                            AOServDaemon.getErrorHandler()
+                            TODO
                         );
                         AOServDaemonConnection daemonConn=daemonConnector.getConnection();
                         try {
@@ -297,7 +299,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                         stmt.executeUpdate("drop database "+name);
                                         conn.commit();
                                     } catch(SQLException err2) {
-                                        AOServDaemon.reportError(err2, null);
+                                        LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.SEVERE, null, err2);
                                         throw err2;
                                     }
                                     throw err;
@@ -307,7 +309,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                         stmt.executeUpdate("drop database "+name);
                                         conn.commit();
                                     } catch(SQLException err2) {
-                                        AOServDaemon.reportError(err2, null);
+                                        LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.SEVERE, null, err2);
                                         throw err2;
                                     }
                                     throw err;
@@ -409,7 +411,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                     conn.getPostgresDatabases().addTableListener(postgresDatabaseManager, 0);
                 }
                 if(!cronStarted) {
-                    CronDaemon.addCronJob(postgresDatabaseManager, AOServDaemon.getErrorHandler());
+                    CronDaemon.addCronJob(postgresDatabaseManager, LogFactory.getLogger(PostgresDatabaseManager.class));
                     cronStarted=true;
                 }
                 System.out.println("Done");
@@ -534,16 +536,10 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                             );
                                         }
                                     } else {
-                                        AOServDaemon.reportWarning(
-                                            new SQLWarning("Warning: not calling VACUUM or REINDEX because schema name does not pass the database name checks.  This is to make sure specially-crafted schema names cannot be used to execute arbitrary SQL with administrative privileges."),
-                                            new Object[] {"schema="+schema}
-                                        );
+                                        LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.WARNING, "schema="+schema, new SQLWarning("Warning: not calling VACUUM or REINDEX because schema name does not pass the database name checks.  This is to make sure specially-crafted schema names cannot be used to execute arbitrary SQL with administrative privileges."));
                                     }
                                 } else {
-                                    AOServDaemon.reportWarning(
-                                        new SQLWarning("Warning: not calling VACUUM or REINDEX because table name does not pass the database name checks.  This is to make sure specially-crafted table names cannot be used to execute arbitrary SQL with administrative privileges."),
-                                        new Object[] {"tableName="+tableName}
-                                    );
+                                    LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.WARNING, "tableName="+tableName, new SQLWarning("Warning: not calling VACUUM or REINDEX because table name does not pass the database name checks.  This is to make sure specially-crafted table names cannot be used to execute arbitrary SQL with administrative privileges."));
                                 }
                             }
                             stmt.close();
@@ -557,7 +553,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
         } catch(ThreadDeath TD) {
             throw TD;
         } catch(Throwable T) {
-            AOServDaemon.reportError(T, null);
+            LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.SEVERE, null, T);
         }
     }
 }

@@ -12,6 +12,7 @@ import com.aoindustries.aoserv.client.MySQLServer;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.server.ServerManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.sql.AOConnectionPool;
@@ -59,7 +60,7 @@ final public class MySQLServerManager extends BuilderThread {
                     AOServDaemonConfiguration.getMySqlPassword(),
                     AOServDaemonConfiguration.getMySqlConnections(),
                     AOServDaemonConfiguration.getMySqlMaxConnectionAge(),
-                    AOServDaemon.getErrorHandler()
+                    LogFactory.getLogger(MySQLServerManager.class)
                 );
                 pools.put(I, pool);
             }

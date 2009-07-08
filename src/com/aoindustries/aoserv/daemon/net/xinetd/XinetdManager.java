@@ -20,6 +20,7 @@ import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Protocol;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.email.ImapManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.ChainWriter;
@@ -35,6 +36,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Handles the building of xinetd configs and files.
@@ -723,7 +725,7 @@ public final class XinetdManager extends BuilderThread {
                                 }
                             );
                         } catch(IOException err) {
-                            AOServDaemon.reportError(err, null);*/
+                            LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, err);*/
 
                             // Try more forceful stop/start
                             try {
@@ -734,12 +736,12 @@ public final class XinetdManager extends BuilderThread {
                                     }
                                 );
                             } catch(IOException err2) {
-                                AOServDaemon.reportError(err2, null);
+                                LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, err2);
                             }
                             try {
                                 Thread.sleep(1000);
                             } catch(InterruptedException err2) {
-                                AOServDaemon.reportWarning(err2, null);
+                                LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err2);
                             }
                             AOServDaemon.exec(
                                 new String[] {

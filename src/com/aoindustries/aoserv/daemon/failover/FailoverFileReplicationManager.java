@@ -9,6 +9,7 @@ import com.aoindustries.aoserv.backup.BackupDaemon;
 import com.aoindustries.aoserv.client.BackupRetention;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.backup.AOServerEnvironment;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.io.CompressedDataInputStream;
@@ -41,10 +42,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 //import java.util.zip.DeflaterOutputStream;
 //import java.util.zip.GZIPInputStream;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 /**
  * Handles the replication of data for the failover system.
@@ -58,8 +59,6 @@ import org.apache.commons.logging.LogFactory;
  * @author  AO Industries, Inc.
  */
 final public class FailoverFileReplicationManager {
-
-    private static final Log log = LogFactory.getLog(FailoverFileReplicationManager.class);
 
     /**
      * When true, runs both the old and new implementations of log directory hard linking and verifies consistent behavior of the two.
@@ -161,7 +160,8 @@ final public class FailoverFileReplicationManager {
                 || relativePath.startsWith("/opt/mysql-")
             )
         ) {
-            if(log.isDebugEnabled()) log.debug("Flagging postPassChecklist.restartMySQLs=true for path="+relativePath);
+            Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
+            if(logger.isLoggable(Level.FINE)) logger.fine("Flagging postPassChecklist.restartMySQLs=true for path="+relativePath);
             postPassChecklist.restartMySQLs=true;
         }
     }
@@ -189,6 +189,10 @@ final public class FailoverFileReplicationManager {
         final int quota_gid
     ) throws IOException, SQLException {
         final PostPassChecklist postPassChecklist = new PostPassChecklist();
+        Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
+        boolean isInfo = logger.isLoggable(Level.INFO);
+        boolean isDebug = logger.isLoggable(Level.FINE);
+        boolean isTrace = logger.isLoggable(Level.FINER);
         try {
             if(fromServerYear<1000 || fromServerYear>9999) throw new IOException("Invalid fromServerYear (1000-9999): "+fromServerYear);
             if(fromServerMonth<1 || fromServerMonth>12) throw new IOException("Invalid fromServerMonth (1-12): "+fromServerMonth);
@@ -196,11 +200,11 @@ final public class FailoverFileReplicationManager {
 
             // Make sure no / or .. in these names, so calls as root to the chroot /etc/rc.d/init.d/mysql-... restart aren't exploitable
             for(String replicatedMySQLServer : replicatedMySQLServers) {
-                if(log.isDebugEnabled()) log.debug("failoverServer from \""+fromServer+"\", replicatedMySQLServer: "+replicatedMySQLServer);
+                if(isDebug) logger.fine("failoverServer from \""+fromServer+"\", replicatedMySQLServer: "+replicatedMySQLServer);
                 if(replicatedMySQLServer.indexOf('/')!=-1 || replicatedMySQLServer.indexOf("..")!=-1) throw new IOException("Invalid replicatedMySQLServer: "+replicatedMySQLServer);
             }
             for(String replicatedMySQLMinorVersion : replicatedMySQLMinorVersions) {
-                if(log.isDebugEnabled()) log.debug("failoverServer from \""+fromServer+"\", replicatedMySQLMinorVersion: "+replicatedMySQLMinorVersion);
+                if(isDebug) logger.fine("failoverServer from \""+fromServer+"\", replicatedMySQLMinorVersion: "+replicatedMySQLMinorVersion);
                 if(replicatedMySQLMinorVersion.indexOf('/')!=-1 || replicatedMySQLMinorVersion.indexOf("..")!=-1) throw new IOException("Invalid replicatedMySQLMinorVersion: "+replicatedMySQLMinorVersion);
             }
 
@@ -276,7 +280,7 @@ final public class FailoverFileReplicationManager {
                 // is used when multiple passes are performed in a single day, it is basically the same behavior as a failover replication.
                 UnixFile finalUF = new UnixFile(finalMirrorRoot);
                 if(finalUF.getStat(tempStat).exists()) {
-                    if(log.isDebugEnabled()) log.debug("Renaming existing \""+finalMirrorRoot+"\" to \""+partialMirrorRoot+'"');
+                    if(isDebug) logger.fine("Renaming existing \""+finalMirrorRoot+"\" to \""+partialMirrorRoot+'"');
                     UnixFile partialUF = new UnixFile(partialMirrorRoot);
                     finalUF.renameTo(partialUF);
                     linkToRoot = null;
@@ -390,12 +394,12 @@ final public class FailoverFileReplicationManager {
                     }
                 }
             }
-            if(log.isDebugEnabled()) {
-                log.debug("partialMirrorRoot="+partialMirrorRoot);
-                log.debug("recycledPartialMirrorRoot="+recycledPartialMirrorRoot);
-                log.debug("finalMirrorRoot="+finalMirrorRoot);
-                log.debug("linkToRoot="+linkToRoot);
-                log.debug("isRecycling="+isRecycling);
+            if(isDebug) {
+                logger.fine("partialMirrorRoot="+partialMirrorRoot);
+                logger.fine("recycledPartialMirrorRoot="+recycledPartialMirrorRoot);
+                logger.fine("finalMirrorRoot="+finalMirrorRoot);
+                logger.fine("linkToRoot="+linkToRoot);
+                logger.fine("isRecycling="+isRecycling);
             }
             // Safety checks to make sure above logic isn't linking in obviously incorrect ways
             if(linkToRoot!=null) {
@@ -469,12 +473,12 @@ final public class FailoverFileReplicationManager {
 
                     for(int c=0;c<batchSize;c++) {
                         if(in.readBoolean()) {
-                            if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING && log.isInfoEnabled()) {
+                            if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING && isInfo) {
                                 long currentTime = System.currentTimeMillis();
                                 if(lastLogDirNanosDisplayTime==-1 || Math.abs(currentTime-lastLogDirNanosDisplayTime)>60000) {
-                                    log.info("modifyTimeAndSizeCachesSize="+modifyTimeAndSizeCaches.size());
-                                    log.info("totalNewLogDirNanos="+totalNewLogDirNanos);
-                                    log.info("totalOldLogDirNanos="+totalOldLogDirNanos);
+                                    logger.info("modifyTimeAndSizeCachesSize="+modifyTimeAndSizeCaches.size());
+                                    logger.info("totalNewLogDirNanos="+totalNewLogDirNanos);
+                                    logger.info("totalOldLogDirNanos="+totalOldLogDirNanos);
                                     lastLogDirNanosDisplayTime = currentTime;
                                 }
                             }
@@ -555,7 +559,7 @@ final public class FailoverFileReplicationManager {
                                         || ufStat.getDeviceIdentifier()!=deviceID
                                     )
                                 ) {
-                                    if(log.isTraceEnabled()) log.trace("Deleting to create block device: "+uf.getPath());
+                                    if(isTrace) logger.finer("Deleting to create block device: "+uf.getPath());
                                     // Update caches
                                     long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
                                     removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
@@ -590,7 +594,7 @@ final public class FailoverFileReplicationManager {
                                         || ufStat.getDeviceIdentifier()!=deviceID
                                     )
                                 ) {
-                                    if(log.isTraceEnabled()) log.trace("Deleting to create character device: "+uf.getPath());
+                                    if(isTrace) logger.finer("Deleting to create character device: "+uf.getPath());
                                     // Update caches
                                     long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
                                     removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
@@ -622,7 +626,7 @@ final public class FailoverFileReplicationManager {
                                     ufStat.exists()
                                     && !ufStat.isDirectory()
                                 ) {
-                                    if(log.isTraceEnabled()) log.trace("Deleting to create directory: "+uf.getPath());
+                                    if(isTrace) logger.finer("Deleting to create directory: "+uf.getPath());
                                     // Update caches
                                     long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
                                     removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
@@ -661,7 +665,7 @@ final public class FailoverFileReplicationManager {
                                     ufStat.exists()
                                     && !ufStat.isFIFO()
                                 ) {
-                                    if(log.isTraceEnabled()) log.trace("Deleting to create FIFO: "+uf.getPath());
+                                    if(isTrace) logger.finer("Deleting to create FIFO: "+uf.getPath());
                                     // Update caches
                                     long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
                                     removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
@@ -1068,7 +1072,7 @@ final public class FailoverFileReplicationManager {
                                                         String tempPath = templateUF.getPath()+'.';
                                                         UnixFile tempUF = UnixFile.mktemp(tempPath, false);
                                                         tempNewFiles[c] = tempUF;
-                                                        if(log.isTraceEnabled()) log.trace("Using temp file (chunked): "+tempUF.getPath());
+                                                        if(isTrace) logger.finer("Using temp file (chunked): "+tempUF.getPath());
                                                         // modifyTimeAndSizeCaches is not updated here, it will be updated below when the data is received
                                                     } else {
                                                         if(!ufStat.exists()) {
@@ -1128,7 +1132,7 @@ final public class FailoverFileReplicationManager {
                                                     String tempPath = templateUF.getPath()+'.';
                                                     UnixFile tempUF = UnixFile.mktemp(tempPath, false);
                                                     tempNewFiles[c] = tempUF;
-                                                    if(log.isTraceEnabled()) log.trace("Using temp file (not chunked): "+tempUF.getPath());
+                                                    if(isTrace) logger.finer("Using temp file (not chunked): "+tempUF.getPath());
                                                     // modifyTimeAndSizeCaches is not updated here, it will be updated below when the data is received
                                                 }
                                             }
@@ -1143,7 +1147,7 @@ final public class FailoverFileReplicationManager {
                                         || !uf.readLink().equals(symlinkTarget)
                                     )
                                 ) {
-                                    if(log.isTraceEnabled()) log.trace("Deleting to create sybolic link: "+uf.getPath());
+                                    if(isTrace) logger.finer("Deleting to create sybolic link: "+uf.getPath());
                                     // Update cache
                                     long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
                                     removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
@@ -1195,7 +1199,7 @@ final public class FailoverFileReplicationManager {
                                     effectiveUF.setMode(mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK));
                                     effectiveUF.getStat(effectiveUFStat);
                                 } catch(FileNotFoundException err) {
-                                    AOServDaemon.reportWarning(err, new Object[] {"path="+path, "mode="+Long.toOctalString(mode)});
+                                    logger.log(Level.WARNING, "path="+path+", mode="+Long.toOctalString(mode), err);
                                 }
                                 if(result==AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_NO_CHANGE) {
                                     if(linkToUF!=null) {
@@ -1363,7 +1367,7 @@ final public class FailoverFileReplicationManager {
                                         uf.getStat(ufStat);
                                         if(!ufStat.exists()) {
                                             // If it doesn't exist, can't compare file sizes, just rename
-                                            if(log.isDebugEnabled()) log.debug("Renaming partial temp file to final filename because final filename doesn't exist: "+uf.getPath());
+                                            if(isDebug) logger.fine("Renaming partial temp file to final filename because final filename doesn't exist: "+uf.getPath());
                                             tempUF.renameTo(uf);
                                             // This should only happen during exceptions, so no need to keep directory caches synchronized
                                         } else {
@@ -1371,7 +1375,7 @@ final public class FailoverFileReplicationManager {
                                             tempUF.getStat(tempStat);
                                             long tempUFSize = tempStat.getSize();
                                             if(tempUFSize>ufSize) {
-                                                if(log.isDebugEnabled()) log.debug("Renaming partial temp file to final filename because temp file is longer than the final file: "+uf.getPath());
+                                                if(isDebug) logger.fine("Renaming partial temp file to final filename because temp file is longer than the final file: "+uf.getPath());
                                                 tempUF.renameTo(uf);
                                                 // This should only happen during exceptions, so no need to keep directory caches synchronized
                                             }
@@ -1460,11 +1464,11 @@ final public class FailoverFileReplicationManager {
                                 String fullpath=dirPath+filename;
                                 if(!dirContents.contains(fullpath)) {
                                     if(deleteOnCleanup(fromServer, retention, relativePath+'/'+filename, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
-                                        if(log.isTraceEnabled()) log.trace("Deleting extra file: "+fullpath);
+                                        if(isTrace) logger.finer("Deleting extra file: "+fullpath);
                                         try {
                                             new UnixFile(fullpath).deleteRecursive();
                                         } catch(FileNotFoundException err) {
-                                            AOServDaemon.reportError(err, new Object[] {"fullpath="+fullpath});
+                                            logger.log(Level.SEVERE, "fullpath="+fullpath, err);
                                         }
                                     }
                                 }
@@ -1499,11 +1503,11 @@ final public class FailoverFileReplicationManager {
                             String fullpath=dirPath+filename;
                             if(!dirContents.contains(fullpath)) {
                                 if(deleteOnCleanup(fromServer, retention, relativePath+'/'+filename, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
-                                    if(log.isTraceEnabled()) log.trace("Deleting final clean-up: "+fullpath);
+                                    if(isTrace) logger.finer("Deleting final clean-up: "+fullpath);
                                     try {
                                         new UnixFile(fullpath).deleteRecursive();
                                     } catch(FileNotFoundException err) {
-                                        AOServDaemon.reportError(err, new Object[] {"fullpath="+fullpath});
+                                        logger.log(Level.SEVERE, "fullpath="+fullpath, err);
                                     }
                                 }
                             }
@@ -1514,16 +1518,16 @@ final public class FailoverFileReplicationManager {
                 }
                 
                 // Log the final timings
-                if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) {
-                    log.info("modifyTimeAndSizeCachesSize="+modifyTimeAndSizeCachesSize);
-                    log.info("totalNewLogDirNanos="+totalNewLogDirNanos+" (successful pass completed)");
-                    log.info("totalOldLogDirNanos="+totalOldLogDirNanos+" (successful pass completed)");
+                if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING && isInfo) {
+                    logger.info("modifyTimeAndSizeCachesSize="+modifyTimeAndSizeCachesSize);
+                    logger.info("totalNewLogDirNanos="+totalNewLogDirNanos+" (successful pass completed)");
+                    logger.info("totalOldLogDirNanos="+totalOldLogDirNanos+" (successful pass completed)");
                 }
 
                 if(retention!=1) {
                     // The pass was successful, now rename partial to final
                     String from = isRecycling ? recycledPartialMirrorRoot : partialMirrorRoot;
-                    if(log.isDebugEnabled()) log.debug("Renaming "+from+" to "+finalMirrorRoot);
+                    if(isDebug) logger.fine("Renaming "+from+" to "+finalMirrorRoot);
                     new UnixFile(from).renameTo(new UnixFile(finalMirrorRoot));
 
                     // The pass was successful, now cleanup old directories based on retention settings
@@ -1545,7 +1549,7 @@ final public class FailoverFileReplicationManager {
         } finally {
             if(postPassChecklist.restartMySQLs && retention==1) {
                 for(String mysqlServer : replicatedMySQLServers) {
-                    if(log.isDebugEnabled()) log.debug("Restarting MySQL "+mysqlServer+" in \""+toPath+'"');
+                    if(isDebug) logger.fine("Restarting MySQL "+mysqlServer+" in \""+toPath+'"');
                     String[] command = {
                         "/usr/sbin/chroot",
                         toPath,
@@ -1557,7 +1561,7 @@ final public class FailoverFileReplicationManager {
                             command
                         );
                     } catch(IOException err) {
-                        AOServDaemon.reportError(err, command);
+                        logger.log(Level.SEVERE, AOServDaemon.getCommandString(command), err);
                     }
                 }
             }
@@ -1782,6 +1786,8 @@ final public class FailoverFileReplicationManager {
      * Don't delete anything in /proc/*, /sys/*, /dev/pts/*, or MySQL replication-related files
      */
     private static boolean deleteOnCleanup(String fromServer, int retention, String relativePath, List<String> replicatedMySQLServers, List<String> replicatedMySQLMinorVersions) {
+        Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
+        boolean isDebug = logger.isLoggable(Level.FINE);
         if(
             relativePath.equals("/proc")
             || relativePath.startsWith("/proc/")
@@ -1790,7 +1796,7 @@ final public class FailoverFileReplicationManager {
             || relativePath.equals("/dev/pts")
             || relativePath.startsWith("/dev/pts/")
         ) {
-            if(log.isDebugEnabled()) log.debug("Skipping delete on cleanup: \""+fromServer+"\":"+relativePath);
+            if(isDebug) logger.fine("Skipping delete on cleanup: \""+fromServer+"\":"+relativePath);
             return false;
         }
         if(retention==1) {
@@ -1799,13 +1805,13 @@ final public class FailoverFileReplicationManager {
                     relativePath.equals("/var/lib/mysql/"+name)
                     || relativePath.startsWith("/var/lib/mysql/"+name+"/")
                 ) {
-                    if(log.isDebugEnabled()) log.debug("Skipping delete on cleanup: \""+fromServer+"\":"+relativePath);
+                    if(isDebug) logger.fine("Skipping delete on cleanup: \""+fromServer+"\":"+relativePath);
                     return false;
                 }
             }
             for(String minorVersion : replicatedMySQLMinorVersions) {
                 if(relativePath.equals("/var/lock/subsys/mysql-"+minorVersion)) {
-                    if(log.isDebugEnabled()) log.debug("Skipping delete on cleanup: \""+fromServer+"\":"+relativePath);
+                    if(isDebug) logger.fine("Skipping delete on cleanup: \""+fromServer+"\":"+relativePath);
                     return false;
                 }
             }
@@ -1814,6 +1820,8 @@ final public class FailoverFileReplicationManager {
     }
 
     private static void cleanAndRecycleBackups(short retention, UnixFile serverRootUF, Stat tempStat, short fromServerYear, short fromServerMonth, short fromServerDay) throws IOException, SQLException {
+        final Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
+        final boolean isDebug = logger.isLoggable(Level.FINE);
         try {
             // Build the lists of directories based on age, skipping safe deleted and recycled directories
             Calendar cal = Calendar.getInstance();
@@ -1854,32 +1862,32 @@ final public class FailoverFileReplicationManager {
                                                 if(directories==null) directoriesByAge.put(age, directories=new ArrayList<String>());
                                                 directories.add(filename);
                                             } else {
-                                                AOServDaemon.reportWarning(new IOException("Directory date in future: "+filename), null);
+                                                logger.log(Level.WARNING, null, new IOException("Directory date in future: "+filename));
                                             }
                                         } else {
-                                            AOServDaemon.reportWarning(new IOException("Unable to parse filename: "+filename), null);
+                                            logger.log(Level.WARNING, null, new IOException("Unable to parse filename: "+filename));
                                         }
                                     } else {
-                                        AOServDaemon.reportWarning(new IOException("Unable to parse filename: "+filename), null);
+                                        logger.log(Level.WARNING, null, new IOException("Unable to parse filename: "+filename));
                                     }
                                 } catch(NumberFormatException err) {
-                                    AOServDaemon.reportWarning(new IOException("Unable to parse filename: "+filename), null);
+                                    logger.log(Level.WARNING, null, new IOException("Unable to parse filename: "+filename));
                                 }
                             } else {
-                                AOServDaemon.reportWarning(new IOException("Filename too short: "+filename), null);
+                                logger.log(Level.WARNING, null, new IOException("Filename too short: "+filename));
                             }
                         }
                     }
                 }
             }
 
-            if(log.isDebugEnabled()) {
+            if(isDebug) {
                 List<Integer> ages = new ArrayList<Integer>(directoriesByAge.keySet());
                 Collections.sort(ages);
                 for(Integer age : ages) {
                     List<String> directories = directoriesByAge.get(age);
                     for(String directory : directories) {
-                        log.debug(age + ": " + directory);
+                        logger.fine(age + ": " + directory);
                     }
                 }
             }
@@ -1982,7 +1990,7 @@ final public class FailoverFileReplicationManager {
                     // 1) Flag all those that were completed as recycled
                     final UnixFile currentUF = new UnixFile(serverRootUF, directory, false);
                     final UnixFile newUF = new UnixFile(serverRootUF, directory+RECYCLED_EXTENSION, false);
-                    if(log.isDebugEnabled()) log.debug("Renaming "+currentUF.getPath()+" to "+newUF.getPath());
+                    if(isDebug) logger.fine("Renaming "+currentUF.getPath()+" to "+newUF.getPath());
                     if(newUF.getStat(tempStat).exists()) throw new IOException("newUF exists: "+newUF.getPath());
                     currentUF.renameTo(newUF);
                 } else {
@@ -1990,7 +1998,7 @@ final public class FailoverFileReplicationManager {
                     if(!directory.endsWith(SAFE_DELETE_EXTENSION)) {
                         final UnixFile currentUF = new UnixFile(serverRootUF, directory, false);
                         final UnixFile newUF = new UnixFile(serverRootUF, directory+SAFE_DELETE_EXTENSION, false);
-                        if(log.isDebugEnabled()) log.debug("Renaming "+currentUF.getPath()+" to "+newUF.getPath());
+                        if(isDebug) logger.fine("Renaming "+currentUF.getPath()+" to "+newUF.getPath());
                         if(newUF.getStat(tempStat).exists()) throw new IOException("newUF exists: "+newUF.getPath());
                         currentUF.renameTo(newUF);
                     }
@@ -2015,7 +2023,7 @@ final public class FailoverFileReplicationManager {
                                 String newFilename = directory.substring(0, directory.length()-RECYCLED_EXTENSION.length())+SAFE_DELETE_EXTENSION;
                                 final UnixFile currentUF = new UnixFile(serverRootUF, directory, false);
                                 final UnixFile newUF = new UnixFile(serverRootUF, newFilename, false);
-                                if(log.isDebugEnabled()) log.debug("Renaming "+currentUF.getPath()+" to "+newUF.getPath());
+                                if(isDebug) logger.fine("Renaming "+currentUF.getPath()+" to "+newUF.getPath());
                                 if(newUF.getStat(tempStat).exists()) throw new IOException("newUF exists: "+newUF.getPath());
                                 currentUF.renameTo(newUF);
                             }
@@ -2035,7 +2043,7 @@ final public class FailoverFileReplicationManager {
                         if(directory.endsWith(SAFE_DELETE_EXTENSION)) {
                             //found=true;
                             UnixFile deleteUf = new UnixFile(serverRootUF, directory, false);
-                            if(log.isDebugEnabled()) log.debug("Deleting: "+deleteUf.getPath());
+                            if(isDebug) logger.fine("Deleting: "+deleteUf.getPath());
                             directories.add(deleteUf.getFile());
                         }
                     }
@@ -2058,7 +2066,7 @@ final public class FailoverFileReplicationManager {
                                             ParallelDelete.parallelDelete(directories, null, false);
                                         }
                                     } catch(IOException err) {
-                                        AOServDaemon.reportError(err, null);
+                                        logger.log(Level.SEVERE, null, err);
                                     }
                                 }
                             }
@@ -2067,9 +2075,9 @@ final public class FailoverFileReplicationManager {
                 }
             }
         } catch(RuntimeException err) {
-            AOServDaemon.reportError(err, null);
+            logger.log(Level.SEVERE, null, err);
         } catch(IOException err) {
-            AOServDaemon.reportError(err, null);
+            logger.log(Level.SEVERE, null, err);
         }
     }
 
@@ -2130,7 +2138,8 @@ final public class FailoverFileReplicationManager {
      */
     private static boolean copyIfHardLinked(UnixFile uf, Stat ufStat) throws IOException {
         if(ufStat.isRegularFile() && ufStat.getNumberLinks()>1) {
-            if(log.isTraceEnabled()) log.trace("Copying file due to hard link: "+uf);
+            Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
+            if(logger.isLoggable(Level.FINER)) logger.finer("Copying file due to hard link: "+uf);
             UnixFile temp = UnixFile.mktemp(uf.getPath()+'.', false);
             uf.copyTo(temp, true);
             temp.chown(ufStat.getUID(), ufStat.getGID());

@@ -6,12 +6,14 @@ package com.aoindustries.aoserv.daemon.util;
  * All rights reserved.
  */
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.email.ProcessTimer;
 import com.aoindustries.table.Table;
 import com.aoindustries.table.TableListener;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.mail.MessagingException;
 
 /**
@@ -54,6 +56,7 @@ abstract public class BuilderThread implements TableListener {
                 rebuildThread = new Thread() {
                         @Override
                         public void run() {
+                            Logger logger = LogFactory.getLogger(getClass().getName());
                             try {
                                 long lastBuilt = -1;
                                 long updateCopy;
@@ -73,17 +76,15 @@ abstract public class BuilderThread implements TableListener {
                                     }
                                     try {
                                         ProcessTimer timer=new ProcessTimer(
+                                            logger,
                                             AOServDaemon.getRandom(),
-                                            AOServDaemonConfiguration.getWarningSmtpServer(),
-                                            AOServDaemonConfiguration.getWarningEmailFrom(),
-                                            AOServDaemonConfiguration.getWarningEmailTo(),
                                             getProcessTimerSubject(),
                                             getProcessTimerDescription(),
                                             getProcessTimerMaximumTime(),
                                             getProcessTimerReminderInterval()
                                         );
                                         try {
-                                            timer.start();
+                                            AOServDaemon.executorService.submit(timer);
                                             long buildStart=System.currentTimeMillis();
                                             doRebuild();
                                             lastBuilt = buildStart;
@@ -92,16 +93,16 @@ abstract public class BuilderThread implements TableListener {
                                                 BuilderThread.this.notify();
                                             }
                                         } finally {
-                                            timer.stop();
+                                            timer.finished();
                                         }
                                     } catch(ThreadDeath TD) {
                                         throw TD;
                                     } catch(Throwable T) {
-                                        AOServDaemon.reportError(T, null);
+                                        logger.log(Level.SEVERE, null, T);
                                         try {
                                             Thread.sleep(getRandomDelay());
                                         } catch(InterruptedException err) {
-                                            AOServDaemon.reportWarning(err, null);
+                                            logger.log(Level.WARNING, null, err);
                                         }
                                     }
                                     synchronized(BuilderThread.this) {
@@ -113,7 +114,7 @@ abstract public class BuilderThread implements TableListener {
                             } catch(ThreadDeath TD) {
                                 throw TD;
                             } catch(Throwable T) {
-                                AOServDaemon.reportError(T, null);
+                                logger.log(Level.SEVERE, null, T);
                             }
                         }
                     };
@@ -138,7 +139,7 @@ abstract public class BuilderThread implements TableListener {
                     try {
                         wait();
                     } catch(InterruptedException err) {
-                        AOServDaemon.reportWarning(err, null);
+                        LogFactory.getLogger(getClass()).log(Level.WARNING, null, err);
                     }
                 }
             } finally {

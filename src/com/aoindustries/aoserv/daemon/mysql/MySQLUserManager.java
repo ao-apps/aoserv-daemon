@@ -13,6 +13,7 @@ import com.aoindustries.aoserv.client.MySQLUser;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.util.StringUtility;
@@ -25,6 +26,7 @@ import java.sql.Statement;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Controls the MySQL Users.
@@ -412,7 +414,7 @@ final public class MySQLUserManager extends BuilderThread {
                                 String host=key.substring(0, pos);
                                 String user=key.substring(pos+1);
                                 if(user.equals(MySQLUser.ROOT)) {
-                                    AOServDaemon.reportWarning(new SQLException("Refusing to remove the "+MySQLUser.ROOT+" user for host "+host+", please remove manually."), null);
+                                    LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, new SQLException("Refusing to remove the "+MySQLUser.ROOT+" user for host "+host+", please remove manually."));
                                 } else {
                                     pstmt.setString(1, host);
                                     pstmt.setString(2, user);

@@ -16,6 +16,7 @@ import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.email.ImapManager;
@@ -49,6 +50,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 /**
  * @author  AO Industries, Inc.
@@ -495,7 +497,7 @@ public class LinuxAccountManager extends BuilderThread {
                             } catch(FileNotFoundException err) {
                                 // It is normal that this is thrown if the process has already closed
                             } catch(IOException err) {
-                                AOServDaemon.reportError(err, new Object[] {"filename="+filename});
+                                LogFactory.getLogger(LinuxAccountManager.class).log(Level.SEVERE, "filename="+filename, err);
                             }
                         }
                     }

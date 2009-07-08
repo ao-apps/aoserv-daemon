@@ -8,11 +8,12 @@ package com.aoindustries.aoserv.daemon.random;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.io.unix.linux.DevRandom;
 import com.aoindustries.util.BufferManager;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.logging.Level;
 
 /**
  * Watches the amount of entropy available in the system, obtains entropy from the master when running low,
@@ -141,17 +142,17 @@ public final class RandomEntropyManager implements Runnable {
                     try {
                         Thread.sleep(sleepyTime);
                     } catch(InterruptedException err) {
-                        AOServDaemon.reportWarning(err, null);
+                        LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
                     }
                 }
             } catch(ThreadDeath TD) {
                 throw TD;
             } catch(Throwable T) {
-                AOServDaemon.reportError(T, null);
+                LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, T);
                 try {
                     Thread.sleep(ERROR_DELAY);
                 } catch(InterruptedException err) {
-                    AOServDaemon.reportWarning(err, null);
+                    LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
                 }
             }
         }

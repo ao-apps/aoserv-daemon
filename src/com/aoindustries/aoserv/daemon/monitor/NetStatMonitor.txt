@@ -59,7 +59,7 @@ final public class NetStatMonitor implements Runnable {
                     try {
                         Thread.sleep(getRandomDelay());
                     } catch(InterruptedException err) {
-                        AOServDaemon.reportWarning(err, null);
+                        LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
                     }
 
                     // Get the current list of binds for this server
@@ -147,11 +147,11 @@ final public class NetStatMonitor implements Runnable {
             } catch(ThreadDeath TD) {
                 throw TD;
             } catch(Throwable T) {
-                AOServDaemon.reportError(T, null);
+                LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, T);
                 try {
                     Thread.sleep(Math.max(MIN_ERROR_DELAY, getRandomDelay()));
                 } catch(InterruptedException err) {
-                    AOServDaemon.reportWarning(err, null);
+                    LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
                 }
             }
         }

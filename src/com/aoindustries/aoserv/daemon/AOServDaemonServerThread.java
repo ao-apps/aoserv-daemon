@@ -57,6 +57,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
 
 /**
  * The <code>AOServServerThread</code> handles a connection once it is accepted.
@@ -151,7 +152,7 @@ final public class AOServDaemonServerThread extends Thread {
                         return;
                     }
                 } else {
-                    AOServDaemon.reportSecurityMessage("Connection attempted from " + hostAddress + " but not listed in server_daemon_hosts");
+                    LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.WARNING, "Connection attempted from " + hostAddress + " but not listed in server_daemon_hosts");
                     out.writeBoolean(false);
                     out.flush();
                     return;
@@ -907,11 +908,13 @@ final public class AOServDaemonServerThread extends Thread {
                     String message=err.getMessage();
                     if(
                         !"Connection reset by peer".equals(message)
-                    ) AOServDaemon.reportError(err, null);
+                    ) {
+                        LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.SEVERE, null, err);
+                    }
                     out.write(AOServDaemonProtocol.IO_EXCEPTION);
                     out.writeUTF(message == null ? "null" : message);
                 } catch (SQLException err) {
-                    AOServDaemon.reportError(err, null);
+                    LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.SEVERE, null, err);
                     out.write(AOServDaemonProtocol.SQL_EXCEPTION);
                     String message = err.getMessage();
                     out.writeUTF(message == null ? "null" : message);
@@ -926,9 +929,11 @@ final public class AOServDaemonServerThread extends Thread {
             String message=err.getMessage();
             if(
                 !"Socket closed".equals(message)
-            ) AOServDaemon.reportError(err, null);
+            ) {
+                LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.SEVERE, null, err);
+            }
         } catch(Throwable T) {
-            AOServDaemon.reportError(T, null);
+            LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.SEVERE, null, T);
         } finally {
             // Close the socket
             try {

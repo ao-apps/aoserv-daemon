@@ -14,6 +14,7 @@ import com.aoindustries.aoserv.client.PostgresUser;
 import com.aoindustries.aoserv.client.PostgresVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.server.ServerManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.cron.CronDaemon;
@@ -26,6 +27,7 @@ import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
 /**
  * Controls the PostgreSQL servers.
@@ -63,7 +65,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
                     AOServDaemonConfiguration.getPostgresPassword(),
                     AOServDaemonConfiguration.getPostgresConnections(),
                     AOServDaemonConfiguration.getPostgresMaxConnectionAge(),
-                    AOServDaemon.getErrorHandler()
+                    LogFactory.getLogger(PostgresServerManager.class)
                 );
                 pools.put(I, pool);
             }
@@ -90,7 +92,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
                 postgresServerManager=new PostgresServerManager();
                 conn.getPostgresServers().addTableListener(postgresServerManager, 0);
                 // Register in CronDaemon
-                CronDaemon.addCronJob(postgresServerManager, AOServDaemon.getErrorHandler());
+                CronDaemon.addCronJob(postgresServerManager, LogFactory.getLogger(PostgresServerManager.class));
                 System.out.println("Done");
             }
         }
@@ -187,7 +189,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
                                     || filename.charAt(30)!='o'
                                     || filename.charAt(31)!='g'
                                 ) {
-                                    AOServDaemon.reportWarning(new IOException("Warning, unexpected filename, will not remove: "+logDirectory.getPath()+"/"+filename), null);
+                                    LogFactory.getLogger(PostgresServerManager.class).log(Level.WARNING, null, new IOException("Warning, unexpected filename, will not remove: "+logDirectory.getPath()+"/"+filename));
                                 } else {
                                     // Determine the timestamp of the file
                                     Calendar fileDate=Calendar.getInstance();
@@ -214,7 +216,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
         } catch(ThreadDeath TD) {
             throw TD;
         } catch(Throwable T) {
-            AOServDaemon.reportError(T, null);
+            LogFactory.getLogger(PostgresServerManager.class).log(Level.SEVERE, null, T);
         }
     }
 }

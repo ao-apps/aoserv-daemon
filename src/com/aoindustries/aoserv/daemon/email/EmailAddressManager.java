@@ -20,6 +20,7 @@ import com.aoindustries.aoserv.client.SystemEmailAlias;
 import com.aoindustries.aoserv.client.Username;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
@@ -39,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * @author  AO Industries, Inc.
@@ -453,7 +455,7 @@ final public class EmailAddressManager extends BuilderThread {
                     int retCode = P.waitFor();
                     if(retCode!=0) throw new IOException("Non-zero return status: "+retCode);
                 } catch (InterruptedException err) {
-                    AOServDaemon.reportWarning(err, null);
+                    LogFactory.getLogger(EmailAddressManager.class).log(Level.WARNING, null, err);
                 }
             }
 

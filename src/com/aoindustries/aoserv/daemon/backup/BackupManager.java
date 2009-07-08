@@ -5,20 +5,12 @@ package com.aoindustries.aoserv.daemon.backup;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.*;
 import com.aoindustries.aoserv.daemon.*;
-import com.aoindustries.email.*;
-import com.aoindustries.io.*;
 import com.aoindustries.io.unix.*;
-import com.aoindustries.md5.*;
-import com.aoindustries.sql.*;
 import com.aoindustries.util.*;
-import com.aoindustries.util.sort.*;
-import com.aoindustries.util.zip.*;
-import com.oreilly.servlet.*;
 import java.io.*;
-import java.sql.*;
 import java.util.*;
+import java.util.logging.Level;
 
 /**
  * The BackupManager handles the storing and retrieval of backup data from
@@ -87,7 +79,7 @@ final public class BackupManager {
                 60*60*1000
             );
             try {
-                timer.start();
+                AOServDaemon.executorService.submit(timer);
                 try {
                     for(InterBaseDatabase id : AOServDaemon.getThisAOServer().getInterBaseDatabases()) {
                         if(id.getBackupLevel().getLevel()>0) {
@@ -95,7 +87,7 @@ final public class BackupManager {
                             try {
                                 id.backup();
                             } catch(RuntimeException err) {
-                                AOServDaemon.reportError(
+                                LogFactory.getLogger(this.getClass()).log(Level.SEVERE, 
                                     err,
                                     new Object[] {"id="+id}
                                 );
@@ -105,7 +97,7 @@ final public class BackupManager {
                 } catch(ThreadDeath TD) {
                     throw TD;
                 } catch(Throwable T) {
-                    AOServDaemon.reportError(T, null);
+                    LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, T);
                 }
             } finally {
                 timer.stop();
@@ -126,7 +118,7 @@ final public class BackupManager {
             60*60*1000
         );
         try {
-            timer.start();
+            AOServDaemon.executorService.submit(timer);
             try {
                 for(MySQLServer ms : AOServDaemon.getThisAOServer().getMySQLServers()) {
                     for(MySQLDatabase md : ms.getMySQLDatabases()) {
@@ -135,7 +127,7 @@ final public class BackupManager {
                             try {
                                 md.backup();
                             } catch(RuntimeException err) {
-                                AOServDaemon.reportError(
+                                LogFactory.getLogger(this.getClass()).log(Level.SEVERE, 
                                     err,
                                     new Object[] {"md="+md}
                                 );
@@ -146,7 +138,7 @@ final public class BackupManager {
             } catch(ThreadDeath TD) {
                 throw TD;
             } catch(Throwable T) {
-                AOServDaemon.reportError(T, null);
+                LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, T);
             }
         } finally {
             timer.stop();
@@ -167,7 +159,7 @@ final public class BackupManager {
             60*60*1000
         );
         try {
-            timer.start();
+            AOServDaemon.executorService.submit(timer);
             try {
                 for(PostgresServer ps : AOServDaemon.getThisAOServer().getPostgresServers()) {
                     for(PostgresDatabase pd : ps.getPostgresDatabases()) {
@@ -176,7 +168,7 @@ final public class BackupManager {
                             try {
                                 pd.backup();
                             } catch(RuntimeException err) {
-                                AOServDaemon.reportError(
+                                LogFactory.getLogger(this.getClass()).log(Level.SEVERE, 
                                     err,
                                     new Object[] {"pd="+pd}
                                 );
@@ -187,7 +179,7 @@ final public class BackupManager {
             } catch(ThreadDeath TD) {
                 throw TD;
             } catch(Throwable T) {
-                AOServDaemon.reportError(T, null);
+                LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, T);
             }
         } finally {
             timer.stop();
@@ -220,7 +212,7 @@ final public class BackupManager {
         } catch(ThreadDeath TD) {
             throw TD;
         } catch(Throwable T) {
-            AOServDaemon.reportError(T, null);
+            LogFactory.getLogger(BackupManager.class).log(Level.SEVERE, null, T);
         }
     }
 

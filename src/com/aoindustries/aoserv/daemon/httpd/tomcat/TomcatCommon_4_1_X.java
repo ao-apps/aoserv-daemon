@@ -39,15 +39,15 @@ class TomcatCommon_4_1_X extends TomcatCommon {
                 + "          />\n"
                 + "          <ResourceParams name=\"").encodeXmlAttribute(dataSource.getName()).print("\">\n"
                 + "            <parameter><name>factory</name><value>org.apache.commons.dbcp.BasicDataSourceFactory</value></parameter>\n"
-                + "            <parameter><name>username</name><value>").encodeXml(dataSource.getUsername()).print("</value></parameter>\n"
-                + "            <parameter><name>password</name><value>").encodeXml(dataSource.getPassword()).print("</value></parameter>\n"
-                + "            <parameter><name>driverClassName</name><value>").encodeXml(dataSource.getDriverClassName()).print("</value></parameter>\n"
-                + "            <parameter><name>url</name><value>").encodeXml(dataSource.getUrl()).print("</value></parameter>\n"
+                + "            <parameter><name>username</name><value>").encodeXhtml(dataSource.getUsername()).print("</value></parameter>\n"
+                + "            <parameter><name>password</name><value>").encodeXhtml(dataSource.getPassword()).print("</value></parameter>\n"
+                + "            <parameter><name>driverClassName</name><value>").encodeXhtml(dataSource.getDriverClassName()).print("</value></parameter>\n"
+                + "            <parameter><name>url</name><value>").encodeXhtml(dataSource.getUrl()).print("</value></parameter>\n"
                 + "            <parameter><name>maxActive</name><value>").print(dataSource.getMaxActive()).print("</value></parameter>\n"
                 + "            <parameter><name>maxIdle</name><value>").print(dataSource.getMaxIdle()).print("</value></parameter>\n"
                 + "            <parameter><name>maxWait</name><value>").print(dataSource.getMaxWait()).print("</value></parameter>\n");
         if(dataSource.getValidationQuery()!=null) {
-            out.print("            <parameter><name>validationQuery</name><value>").encodeXml(dataSource.getValidationQuery()).print("</value></parameter>\n");
+            out.print("            <parameter><name>validationQuery</name><value>").encodeXhtml(dataSource.getValidationQuery()).print("</value></parameter>\n");
         }
         out.print("            <parameter><name>removeAbandoned</name><value>true</value></parameter>\n"
                 + "            <parameter><name>removeAbandonedTimeout</name><value>300</value></parameter>\n"

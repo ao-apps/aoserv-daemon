@@ -18,6 +18,7 @@ import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.client.Shell;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
@@ -41,6 +42,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Controls the configuration files for AWStats and provides access to the AWStats system.
@@ -655,7 +657,7 @@ final public class AWStatsManager extends BuilderThread {
                         int retCode = P.waitFor();
                         if(retCode!=0) throw new IOException("Non-zero return status: "+retCode);
                     } catch (InterruptedException err) {
-                        AOServDaemon.reportWarning(err, null);
+                        LogFactory.getLogger(AWStatsManager.class).log(Level.WARNING, null, err);
                     }
                 }
             } else {

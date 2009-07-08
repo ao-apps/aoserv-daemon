@@ -8,10 +8,12 @@ package com.aoindustries.aoserv.daemon.util;
 import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 
 /**
  * Manages a group of <code>SocketServer</code>.  Servers may be
@@ -44,11 +46,11 @@ abstract public class SocketServerManager {
                         } catch(ThreadDeath TD) {
                             throw TD;
                         } catch(Throwable T) {
-                            AOServDaemon.reportError(T, null);
+                            LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, T);
                             try {
                                 Thread.sleep(15000);
                             } catch(InterruptedException err) {
-                                AOServDaemon.reportWarning(err, null);
+                                LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
                             }
                         }
                     }

@@ -12,6 +12,7 @@ import com.aoindustries.aoserv.client.MySQLServer;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.CompressedDataOutputStream;
@@ -30,6 +31,7 @@ import java.sql.Statement;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Controls the MySQL databases.
@@ -90,7 +92,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
                                 dbName.equals(MySQLDatabase.MYSQL)
                                 || (version.startsWith("5.0.") && dbName.equals(MySQLDatabase.INFORMATION_SCHEMA))
                             ) {
-                                AOServDaemon.reportWarning(new SQLException("Refusing to drop critical MySQL Database: "+dbName+" on "+mysqlServer), null);
+                                LogFactory.getLogger(MySQLDatabaseManager.class).log(Level.WARNING, null, new SQLException("Refusing to drop critical MySQL Database: "+dbName+" on "+mysqlServer));
                             } else {
                                 // Remove the extra database
                                 stmt.executeUpdate("drop database "+dbName);
@@ -354,7 +356,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
                 password
             );
         } catch(SQLException err) {
-            AOServDaemon.reportError(err, null);
+            LogFactory.getLogger(MySQLDatabaseManager.class).log(Level.SEVERE, null, err);
             throw new SQLException("Unable to connect to slave.");
         }
         try {

@@ -17,6 +17,7 @@ import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.cron.CronDaemon;
@@ -45,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * The primary purpose of the manager is to decouple the IMAP server from the SpamAssassin training.
@@ -125,7 +127,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                         try {
                             Thread.sleep(DELAY_INTERVAL);
                         } catch(InterruptedException err) {
-                            AOServDaemon.reportWarning(err, null);
+                            LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, null, err);
                         }
                     }
                     lastStartTime=System.currentTimeMillis();
@@ -144,11 +146,11 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
             } catch(ThreadDeath TD) {
                 throw TD;
             } catch(Throwable T) {
-                AOServDaemon.reportError(T, null);
+                LogFactory.getLogger(SpamAssassinManager.class).log(Level.SEVERE, null, T);
                 try {
                     Thread.sleep(60000);
                 } catch(InterruptedException err) {
-                    AOServDaemon.reportWarning(err, null);
+                    LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, null, err);
                 }
             }
         }
@@ -174,7 +176,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                 connector.getIpAddresses().addTableListener(spamAssassinManager, 0);
                 new Thread(spamAssassinManager, "SpamAssassinManager").start();
                 // Once per day, the razor logs will be trimmed to only include the last 1000 lines
-                CronDaemon.addCronJob(new RazorLogTrimmer(), AOServDaemon.getErrorHandler());
+                CronDaemon.addCronJob(new RazorLogTrimmer(), LogFactory.getLogger(SpamAssassinManager.class));
                 System.out.println("Done");
             }
         }
@@ -220,19 +222,26 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                     Stat ufStat = uf.getStat();
                     if(ufStat.isDirectory()) {
                         long mtime=ufStat.getModifyTime();
-                        if(mtime==-1) AOServDaemon.reportWarning(new IOException("getModify() returned -1"), new Object[] {"incomingDirectory="+incomingDirectory.getPath(), "filename="+filename});
-                        else {
+                        if(mtime==-1) {
+                            LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectory="+incomingDirectory.getPath()+", filename="+filename, new IOException("getModifyTime() returned -1"));
+                        } else {
                             long currentTime=System.currentTimeMillis();
                             if(
                                 (mtime-currentTime)>60000
                                 || (currentTime-mtime)>60000
                             ) {
                                 if(isFilenameOk(filename)) readyList.add(uf);
-                                else AOServDaemon.reportWarning(new IOException("Invalid directory name"), new Object[] {"incomingDirectory="+incomingDirectory.getPath(), "filename="+filename});
+                                else {
+                                    LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectory="+incomingDirectory.getPath()+", filename="+filename, new IOException("Invalid directory name"));
+                                }
                             }
                         }
-                    } else AOServDaemon.reportWarning(new IOException("Not a directory"), new Object[] {"incomingDirectory="+incomingDirectory.getPath(), "filename="+filename});
-                } else AOServDaemon.reportWarning(new IOException("Unexpected filename, should start with spam_ or ham_"), new Object[] {"incomingDirectory="+incomingDirectory.getPath(), "filename="+filename});
+                    } else {
+                        LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectory="+incomingDirectory.getPath()+", filename="+filename, new IOException("Not a directory"));
+                    }
+                } else {
+                    LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectory="+incomingDirectory.getPath()+", filename="+filename, new IOException("Unexpected filename, should start with spam_ or ham_"));
+                }
             }
             if(!readyList.isEmpty()) {
                 // Sort the list by oldest time first
@@ -291,8 +300,9 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 
                     // Find the account based on UID
                     LinuxServerAccount lsa=aoServer.getLinuxServerAccount(currentUID);
-                    if(lsa==null) AOServDaemon.reportWarning(new SQLException("Unable to find LinuxServerAccount"), new Object[] {"aoServer="+aoServer.getHostname(), "currentUID="+currentUID});
-                    else {
+                    if(lsa==null) {
+                        LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "aoServer="+aoServer.getHostname()+", currentUID="+currentUID, new SQLException("Unable to find LinuxServerAccount"));
+                    } else {
                         String username=lsa.getLinuxAccount().getUsername().getUsername();
 
                         // Only train SpamAssassin when integration mode not set to none
@@ -383,15 +393,15 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                 LinuxServerAccount lsa = aoServer.getLinuxServerAccount(incomingDirectoryFilename);
                 if(lsa==null) {
                     // user not found, backup and then remove
-                    AOServDaemon.reportWarning(new IOException("User not found, deleting"), new Object[] {"incomingDirectoryFilename="+incomingDirectoryFilename});
+                    LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectoryFilename="+incomingDirectoryFilename, new IOException("User not found, deleting"));
                     deleteFileList.add(userDirectoryFile);
                 } else if(!lsa.getLinuxAccount().getType().isEmail()) {
                     // user not email type, backup and then remove
-                    AOServDaemon.reportWarning(new IOException("User not email type, deleting"), new Object[] {"incomingDirectoryFilename="+incomingDirectoryFilename});
+                    LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectoryFilename="+incomingDirectoryFilename, new IOException("User not email type, deleting"));
                     deleteFileList.add(userDirectoryFile);
                 } else if(!lsa.getHome().startsWith("/home/")) {
                     // user doesn't have home directory in /home/, backup and then remove
-                    AOServDaemon.reportWarning(new IOException("User home not in /home/, deleting"), new Object[] {"incomingDirectoryFilename="+incomingDirectoryFilename});
+                    LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectoryFilename="+incomingDirectoryFilename, new IOException("User home not in /home/, deleting"));
                     deleteFileList.add(userDirectoryFile);
                 } else {
                     // Set permissions, should be 0770
@@ -437,26 +447,26 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                                                         oldestTimestamp = timestamp;
                                                     }
                                                 } else {
-                                                    AOServDaemon.reportWarning(new IOException("Invalid character in filename, deleting"), new Object[] {"userDirectoryUf="+userDirectoryUf.getPath(), "userFilename="+userFilename});
+                                                    LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "userDirectoryUf="+userDirectoryUf.getPath()+", userFilename="+userFilename, new IOException("Invalid character in filename, deleting"));
                                                     deleteFileList.add(userFile);
                                                 }
                                             }
                                         } catch(NumberFormatException err) {
                                             IOException ioErr = new IOException("Unable to find parse timestamp in filename, deleting");
                                             ioErr.initCause(err);
-                                            AOServDaemon.reportWarning(ioErr, new Object[] {"userDirectoryUf="+userDirectoryUf.getPath(), "userFilename="+userFilename});
+                                            LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "userDirectoryUf="+userDirectoryUf.getPath()+", userFilename="+userFilename, ioErr);
                                             deleteFileList.add(userFile);
                                         }
                                     } else {
-                                        AOServDaemon.reportWarning(new IOException("Unable to find second underscore (_) in filename, deleting"), new Object[] {"userDirectoryUf="+userDirectoryUf.getPath(), "userFilename="+userFilename});
+                                        LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "userDirectoryUf="+userDirectoryUf.getPath()+", userFilename="+userFilename, new IOException("Unable to find second underscore (_) in filename, deleting"));
                                         deleteFileList.add(userFile);
                                     }
                                 } else {
-                                    AOServDaemon.reportWarning(new IOException("Not a regular file, deleting"), new Object[] {"userDirectoryUf="+userDirectoryUf.getPath(), "userFilename="+userFilename});
+                                    LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "userDirectoryUf="+userDirectoryUf.getPath()+", userFilename="+userFilename, new IOException("Not a regular file, deleting"));
                                     deleteFileList.add(userFile);
                                 }
                             } else {
-                                AOServDaemon.reportWarning(new IOException("Unexpected filename, should start with \"spam_\" or \"ham_\", deleting"), new Object[] {"userDirectoryUf="+userDirectoryUf.getPath(), "userFilename="+userFilename});
+                                LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "userDirectoryUf="+userDirectoryUf.getPath()+", userFilename="+userFilename, new IOException("Unexpected filename, should start with \"spam_\" or \"ham_\", deleting"));
                                 deleteFileList.add(userFile);
                             }
                         }
@@ -752,17 +762,13 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                                     }
                                 }
                             } catch(IOException err) {
-                                AOServDaemon.reportWarning(err, new Object[] {"lsa="+lsa});
+                                LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "lsa="+lsa, err);
                             }
                         }
                     }
                 }
-            } catch(RuntimeException err) {
-                AOServDaemon.reportError(err, null);
-            } catch(IOException err) {
-                AOServDaemon.reportError(err, null);
-            } catch(SQLException err) {
-                AOServDaemon.reportError(err, null);
+            } catch(Exception err) {
+                LogFactory.getLogger(SpamAssassinManager.class).log(Level.SEVERE, null, err);
             }
         }
 

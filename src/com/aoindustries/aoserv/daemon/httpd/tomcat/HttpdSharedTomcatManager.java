@@ -11,6 +11,7 @@ import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdTomcatVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.HttpdSiteManager;
 import com.aoindustries.aoserv.daemon.httpd.StopStartable;
@@ -28,6 +29,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
 
 /**
  * Manages HttpdSharedTomcat configurations.
@@ -124,7 +126,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
                                 try {
                                     Thread.sleep(5000);
                                 } catch(InterruptedException err) {
-                                    AOServDaemon.reportWarning(err, null);
+                                    LogFactory.getLogger(HttpdSharedTomcatManager.class).log(Level.WARNING, null, err);
                                 }
                             }
                             manager.start();
@@ -152,11 +154,11 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
                 Future commandFuture = AOServDaemon.executorService.submit(commandCallable);
                 commandFuture.get(60, TimeUnit.SECONDS);
             } catch(InterruptedException err) {
-                AOServDaemon.reportWarning(err, null);
+                LogFactory.getLogger(HttpdSharedTomcatManager.class).log(Level.WARNING, null, err);
             } catch(ExecutionException err) {
-                AOServDaemon.reportWarning(err, null);
+                LogFactory.getLogger(HttpdSharedTomcatManager.class).log(Level.WARNING, null, err);
             } catch(TimeoutException err) {
-                AOServDaemon.reportWarning(err, null);
+                LogFactory.getLogger(HttpdSharedTomcatManager.class).log(Level.WARNING, null, err);
             }
         }
     }
@@ -308,7 +310,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
                     return true;
                 }
             } catch(NumberFormatException err) {
-                AOServDaemon.reportWarning(err, null);
+                LogFactory.getLogger(HttpdSharedTomcatManager.class).log(Level.WARNING, null, err);
             }
             return false;
         }
