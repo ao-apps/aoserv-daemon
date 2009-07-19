@@ -35,7 +35,7 @@ final public class MySQLServerManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
-    protected void doRebuild() throws IOException, SQLException {
+    protected boolean doRebuild() {
         //AOServConnector connector=AOServDaemon.getConnector();
 
         synchronized(rebuildLock) {
@@ -43,6 +43,7 @@ final public class MySQLServerManager extends BuilderThread {
             // TODO: Add/update any /etc/rc.d/init.d/mysql-name
             // TODO: restart any that need started/restarted
         }
+        return true;
     }
 
     private static final Map<Integer,AOConnectionPool> pools=new HashMap<Integer,AOConnectionPool>();

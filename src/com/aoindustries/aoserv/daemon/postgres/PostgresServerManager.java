@@ -42,12 +42,13 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
     }
 
     private static final Object rebuildLock=new Object();
-    protected void doRebuild() throws IOException, SQLException {
+    protected boolean doRebuild() {
         synchronized(rebuildLock) {
             // TODO: Add and initialize any missing /var/lib/pgsql/name
             // TODO: Add/update any /etc/rc.d/init.d/postgresql-name
             // TODO: restart any that need started/restarted
         }
+        return true;
     }
 
     private static final Map<Integer,AOConnectionPool> pools=new HashMap<Integer,AOConnectionPool>();

@@ -7,14 +7,11 @@ package com.aoindustries.aoserv.daemon.util;
  */
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
-import com.aoindustries.email.ProcessTimer;
+import com.aoindustries.util.logging.ProcessTimer;
 import com.aoindustries.table.Table;
 import com.aoindustries.table.TableListener;
-import java.io.IOException;
-import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.mail.MessagingException;
 
 /**
  * Handles the building of CVS repositories and configs.
@@ -32,10 +29,10 @@ abstract public class BuilderThread implements TableListener {
         DEFAULT_MAXIMUM_DELAY=35*1000
     ;
 
-    private Thread rebuildThread;
+    private volatile Thread rebuildThread;
     private long lastUpdated;
     private long lastRebuild;
-    private boolean isSleeping=false;
+    private volatile boolean isSleeping=false;
 
     public BuilderThread() {
         // Always rebuild the configs after start-up
@@ -54,76 +51,89 @@ abstract public class BuilderThread implements TableListener {
             lastUpdated = System.currentTimeMillis();
             if (rebuildThread == null) {
                 rebuildThread = new Thread() {
-                        @Override
-                        public void run() {
-                            Logger logger = LogFactory.getLogger(getClass().getName());
-                            try {
-                                long lastBuilt = -1;
-                                long updateCopy;
-                                synchronized (BuilderThread.this) {
+                    @Override
+                    public void run() {
+                        Logger logger = LogFactory.getLogger(getClass().getName());
+                        try {
+                            long lastBuilt = -1;
+                            long updateCopy;
+                            synchronized (BuilderThread.this) {
+                                updateCopy = lastUpdated;
+                            }
+                            while (lastBuilt == -1 || lastBuilt < updateCopy) {
+                                if(waitForBuildCount==0) {
+                                    try {
+                                        isSleeping=true;
+                                        sleep(getRandomDelay());
+                                    } catch (InterruptedException err) {
+                                        // Interrupted by waitForRebuild call
+                                    }
+                                    isSleeping=false;
+                                }
+                                try {
+                                    ProcessTimer timer=new ProcessTimer(
+                                        logger,
+                                        AOServDaemon.getRandom(),
+                                        BuilderThread.this.getClass().getName(),
+                                        "delayAndRebuild",
+                                        getProcessTimerSubject(),
+                                        getProcessTimerDescription(),
+                                        getProcessTimerMaximumTime(),
+                                        getProcessTimerReminderInterval()
+                                    );
+                                    try {
+                                        AOServDaemon.executorService.submit(timer);
+                                        long buildStart=System.currentTimeMillis();
+                                        while(!doRebuild()) {
+                                            try {
+                                                isSleeping=true;
+                                                Thread.sleep(getRandomDelay());
+                                            } catch(InterruptedException err) {
+                                                logger.logp(Level.WARNING, BuilderThread.this.getClass().getName(), "run", null, err);
+                                            }
+                                            isSleeping=false;
+                                        }
+                                        lastBuilt = buildStart;
+                                        synchronized(BuilderThread.this) {
+                                            lastRebuild=buildStart;
+                                            BuilderThread.this.notify();
+                                        }
+                                    } finally {
+                                        timer.finished();
+                                    }
+                                } catch(ThreadDeath TD) {
+                                    throw TD;
+                                } catch(Throwable T) {
+                                    logger.logp(Level.SEVERE, BuilderThread.this.getClass().getName(), "run", null, T);
+                                    try {
+                                        isSleeping=true;
+                                        Thread.sleep(getRandomDelay());
+                                    } catch(InterruptedException err) {
+                                        logger.logp(Level.WARNING, BuilderThread.this.getClass().getName(), "run", null, err);
+                                    }
+                                    isSleeping=false;
+                                }
+                                synchronized(BuilderThread.this) {
                                     updateCopy = lastUpdated;
                                 }
-                                int delay=getRandomDelay();
-                                while (lastBuilt == -1 || lastBuilt < updateCopy) {
-                                    if(waitForBuildCount==0) {
-                                        try {
-                                            isSleeping=true;
-                                            sleep(delay);
-                                        } catch (InterruptedException err) {
-                                            // Interrupted by waitForRebuild call
-                                        }
-                                        isSleeping=false;
-                                    }
-                                    try {
-                                        ProcessTimer timer=new ProcessTimer(
-                                            logger,
-                                            AOServDaemon.getRandom(),
-                                            getProcessTimerSubject(),
-                                            getProcessTimerDescription(),
-                                            getProcessTimerMaximumTime(),
-                                            getProcessTimerReminderInterval()
-                                        );
-                                        try {
-                                            AOServDaemon.executorService.submit(timer);
-                                            long buildStart=System.currentTimeMillis();
-                                            doRebuild();
-                                            lastBuilt = buildStart;
-                                            synchronized(BuilderThread.this) {
-                                                lastRebuild=buildStart;
-                                                BuilderThread.this.notify();
-                                            }
-                                        } finally {
-                                            timer.finished();
-                                        }
-                                    } catch(ThreadDeath TD) {
-                                        throw TD;
-                                    } catch(Throwable T) {
-                                        logger.log(Level.SEVERE, null, T);
-                                        try {
-                                            Thread.sleep(getRandomDelay());
-                                        } catch(InterruptedException err) {
-                                            logger.log(Level.WARNING, null, err);
-                                        }
-                                    }
-                                    synchronized(BuilderThread.this) {
-                                        updateCopy = lastUpdated;
-                                    }
-                                    delay=60000;
-                                }
-                                BuilderThread.this.rebuildThread = null;
-                            } catch(ThreadDeath TD) {
-                                throw TD;
-                            } catch(Throwable T) {
-                                logger.log(Level.SEVERE, null, T);
                             }
+                            BuilderThread.this.rebuildThread = null;
+                        } catch(ThreadDeath TD) {
+                            throw TD;
+                        } catch(Throwable T) {
+                            logger.logp(Level.SEVERE, BuilderThread.this.getClass().getName(), "run", null, T);
                         }
-                    };
+                    }
+                };
                 rebuildThread.start();
             }
         }
     }
-    
-    protected abstract void doRebuild() throws IOException, SQLException, MessagingException;
+
+    /**
+     * @return  <code>true</code> if successful or <code>false</code> if unsuccessful and needs to be retried.
+     */
+    protected abstract boolean doRebuild();
 
     private int waitForBuildCount=0;
     public void waitForBuild() {

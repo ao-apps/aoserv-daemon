@@ -44,70 +44,78 @@ final public class MySQLDatabaseManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
-    protected void doRebuild() throws IOException, SQLException {
-        //AOServConnector connector=AOServDaemon.getConnector();
-        AOServer thisAOServer=AOServDaemon.getThisAOServer();
+    protected boolean doRebuild() {
+        try {
+            //AOServConnector connector=AOServDaemon.getConnector();
+            AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
-        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
-        if(
-            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-            && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+            if(
+                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+                && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
-        synchronized(rebuildLock) {
-            for(MySQLServer mysqlServer : thisAOServer.getMySQLServers()) {
-                String version=mysqlServer.getVersion().getVersion();
-                boolean modified=false;
-                // Get the connection to work through
-                AOConnectionPool pool=MySQLServerManager.getPool(mysqlServer);
-                Connection conn=pool.getConnection(false);
-                try {
-                    // Get the list of all existing databases
-                    Set<String> existing=new HashSet<String>();
-                    Statement stmt=conn.createStatement();
+            synchronized(rebuildLock) {
+                for(MySQLServer mysqlServer : thisAOServer.getMySQLServers()) {
+                    String version=mysqlServer.getVersion().getVersion();
+                    boolean modified=false;
+                    // Get the connection to work through
+                    AOConnectionPool pool=MySQLServerManager.getPool(mysqlServer);
+                    Connection conn=pool.getConnection(false);
                     try {
-                        ResultSet results=stmt.executeQuery("show databases");
+                        // Get the list of all existing databases
+                        Set<String> existing=new HashSet<String>();
+                        Statement stmt=conn.createStatement();
                         try {
-                            while(results.next()) existing.add(results.getString(1));
+                            ResultSet results=stmt.executeQuery("show databases");
+                            try {
+                                while(results.next()) existing.add(results.getString(1));
+                            } finally {
+                                results.close();
+                            }
+
+                            // Create the databases that do not exist and should
+                            for(MySQLDatabase database : mysqlServer.getMySQLDatabases()) {
+                                String name=database.getName();
+                                if(existing.contains(name)) existing.remove(name);
+                                else {
+                                    // Create the database
+                                    stmt.executeUpdate("create database "+name);
+
+                                    modified=true;
+                                }
+                            }
+
+                            // Remove the extra databases
+                            for(String dbName : existing) {
+                                if(
+                                    dbName.equals(MySQLDatabase.MYSQL)
+                                    || (version.startsWith("5.0.") && dbName.equals(MySQLDatabase.INFORMATION_SCHEMA))
+                                ) {
+                                    LogFactory.getLogger(MySQLDatabaseManager.class).log(Level.WARNING, null, new SQLException("Refusing to drop critical MySQL Database: "+dbName+" on "+mysqlServer));
+                                } else {
+                                    // Remove the extra database
+                                    stmt.executeUpdate("drop database "+dbName);
+
+                                    modified=true;
+                                }
+                            }
                         } finally {
-                            results.close();
-                        }
-
-                        // Create the databases that do not exist and should
-                        for(MySQLDatabase database : mysqlServer.getMySQLDatabases()) {
-                            String name=database.getName();
-                            if(existing.contains(name)) existing.remove(name);
-                            else {
-                                // Create the database
-                                stmt.executeUpdate("create database "+name);
-
-                                modified=true;
-                            }
-                        }
-
-                        // Remove the extra databases
-                        for(String dbName : existing) {
-                            if(
-                                dbName.equals(MySQLDatabase.MYSQL)
-                                || (version.startsWith("5.0.") && dbName.equals(MySQLDatabase.INFORMATION_SCHEMA))
-                            ) {
-                                LogFactory.getLogger(MySQLDatabaseManager.class).log(Level.WARNING, null, new SQLException("Refusing to drop critical MySQL Database: "+dbName+" on "+mysqlServer));
-                            } else {
-                                // Remove the extra database
-                                stmt.executeUpdate("drop database "+dbName);
-
-                                modified=true;
-                            }
+                            stmt.close();
                         }
                     } finally {
-                        stmt.close();
+                        pool.releaseConnection(conn);
                     }
-                } finally {
-                    pool.releaseConnection(conn);
+                    if(modified) MySQLServerManager.flushPrivileges(mysqlServer);
                 }
-                if(modified) MySQLServerManager.flushPrivileges(mysqlServer);
             }
+            return true;
+        } catch(ThreadDeath TD) {
+            throw TD;
+        } catch(Throwable T) {
+            LogFactory.getLogger(MySQLDatabaseManager.class).log(Level.SEVERE, null, T);
+            return false;
         }
     }
 

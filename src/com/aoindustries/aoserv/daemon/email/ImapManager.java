@@ -74,6 +74,7 @@ import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.ReadOnlyFolderException;
 import javax.mail.Session;
+import javax.mail.StoreClosedException;
 
 /**
  * Any IMAP/Cyrus-specific features are here.
@@ -359,383 +360,394 @@ final public class ImapManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
-    protected void doRebuild() throws IOException, SQLException, MessagingException {
-        AOServer thisAOServer=AOServDaemon.getThisAOServer();
-        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
-        if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-            // Used inside synchronized block
-            Stat tempStat = new Stat();
-            ByteArrayOutputStream bout = new ByteArrayOutputStream();
-            AOServConnector conn = AOServDaemon.getConnector();
-            Server server = thisAOServer.getServer();
+    protected boolean doRebuild() {
+        Logger logger = LogFactory.getLogger(ImapManager.class);
+        boolean isDebug = logger.isLoggable(Level.FINE);
+        try {
+            AOServer thisAOServer=AOServDaemon.getThisAOServer();
+            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+            if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                // Used inside synchronized block
+                Stat tempStat = new Stat();
+                ByteArrayOutputStream bout = new ByteArrayOutputStream();
+                AOServConnector conn = AOServDaemon.getConnector();
+                Server server = thisAOServer.getServer();
 
-            Protocol imapProtocol = conn.getProtocols().get(Protocol.IMAP2);
-            if(imapProtocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.IMAP2);
-            List<NetBind> imapBinds = server.getNetBinds(imapProtocol);
+                Protocol imapProtocol = conn.getProtocols().get(Protocol.IMAP2);
+                if(imapProtocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.IMAP2);
+                List<NetBind> imapBinds = server.getNetBinds(imapProtocol);
 
-            Protocol imapsProtocol = conn.getProtocols().get(Protocol.SIMAP);
-            if(imapsProtocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.SIMAP);
-            List<NetBind> imapsBinds = server.getNetBinds(imapsProtocol);
+                Protocol imapsProtocol = conn.getProtocols().get(Protocol.SIMAP);
+                if(imapsProtocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.SIMAP);
+                List<NetBind> imapsBinds = server.getNetBinds(imapsProtocol);
 
-            Protocol pop3Protocol = conn.getProtocols().get(Protocol.POP3);
-            if(pop3Protocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.POP3);
-            List<NetBind> pop3Binds = server.getNetBinds(pop3Protocol);
+                Protocol pop3Protocol = conn.getProtocols().get(Protocol.POP3);
+                if(pop3Protocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.POP3);
+                List<NetBind> pop3Binds = server.getNetBinds(pop3Protocol);
 
-            Protocol pop3sProtocol = conn.getProtocols().get(Protocol.SPOP3);
-            if(pop3sProtocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.SPOP3);
-            List<NetBind> pop3sBinds = server.getNetBinds(pop3sProtocol);
+                Protocol pop3sProtocol = conn.getProtocols().get(Protocol.SPOP3);
+                if(pop3sProtocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.SPOP3);
+                List<NetBind> pop3sBinds = server.getNetBinds(pop3sProtocol);
 
-            Protocol sieveProtocol = conn.getProtocols().get(Protocol.SIEVE);
-            if(sieveProtocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.SIEVE);
-            List<NetBind> sieveBinds = server.getNetBinds(sieveProtocol);
+                Protocol sieveProtocol = conn.getProtocols().get(Protocol.SIEVE);
+                if(sieveProtocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.SIEVE);
+                List<NetBind> sieveBinds = server.getNetBinds(sieveProtocol);
 
-            Logger logger = LogFactory.getLogger(ImapManager.class);
-            boolean isDebug = logger.isLoggable(Level.FINE);
+                synchronized(rebuildLock) {
+                    // If there are no IMAP(S)/POP3(S) binds
+                    if(imapBinds.isEmpty() && imapsBinds.isEmpty() && pop3Binds.isEmpty() && pop3sBinds.isEmpty()) {
+                        // Should not have any sieve binds
+                        if(!sieveBinds.isEmpty()) throw new SQLException("Should not have sieve without any imap, imaps, pop3, or pop3s");
 
-            synchronized(rebuildLock) {
-                // If there are no IMAP(S)/POP3(S) binds
-                if(imapBinds.isEmpty() && imapsBinds.isEmpty() && pop3Binds.isEmpty() && pop3sBinds.isEmpty()) {
-                    // Should not have any sieve binds
-                    if(!sieveBinds.isEmpty()) throw new SQLException("Should not have sieve without any imap, imaps, pop3, or pop3s");
-
-                    // Stop service if running
-                    if(subsysLockFile.exists()) {
-                        if(isDebug) logger.fine("Stopping cyrus-imapd service");
-                        AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/cyrus-imapd", "stop"});
-                        if(subsysLockFile.exists()) throw new IOException(subsysLockFile.getPath()+" still exists after service stop");
-                    }
-
-                    // chkconfig off if needed
-                    if(cyrusRcFile.getStat(tempStat).exists()) {
-                        if(isDebug) logger.fine("Disabling cyrus-imapd service");
-                        AOServDaemon.exec(new String[] {"/sbin/chkconfig", "cyrus-imapd", "off"});
-                        if(cyrusRcFile.getStat(tempStat).exists()) throw new IOException(cyrusRcFile.getPath()+" still exists after chkconfig off");
-                    }
-
-                    // Delete config files if exist
-                    if(imapdConfNewFile.getStat(tempStat).exists()) {
-                        if(isDebug) logger.fine("Deleting unnecessary config file: "+imapdConfNewFile.getPath());
-                        imapdConfNewFile.delete();
-                    }
-                    if(imapdConfFile.getStat(tempStat).exists()) {
-                        if(isDebug) logger.fine("Deleting unnecessary config file: "+imapdConfFile.getPath());
-                        imapdConfFile.delete();
-                    }
-                    if(cyrusConfNewFile.getStat(tempStat).exists()) {
-                        if(isDebug) logger.fine("Deleting unnecessary config file: "+cyrusConfNewFile.getPath());
-                        cyrusConfNewFile.delete();
-                    }
-                    if(cyrusConfFile.getStat(tempStat).exists()) {
-                        if(isDebug) logger.fine("Deleting unnecessary config file: "+cyrusConfFile.getPath());
-                        cyrusConfFile.delete();
-                    }
-                } else {
-                    // Require sieve
-                    if(sieveBinds.isEmpty()) throw new SQLException("sieve is required with any of imap, imaps, pop3, and pop3s");
-
-                    // Required IMAP at least once on any default port
-                    int defaultImapPort = imapProtocol.getPort(conn).getPort();
-                    boolean foundOnDefault = false;
-                    for(NetBind nb : imapBinds) {
-                        if(nb.getPort().getPort()==defaultImapPort) {
-                            foundOnDefault = true;
-                            break;
+                        // Stop service if running
+                        if(subsysLockFile.exists()) {
+                            if(isDebug) logger.fine("Stopping cyrus-imapd service");
+                            AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/cyrus-imapd", "stop"});
+                            if(subsysLockFile.exists()) throw new IOException(subsysLockFile.getPath()+" still exists after service stop");
                         }
-                    }
-                    if(!foundOnDefault) throw new SQLException("imap is required on a default port with any of imap, imaps, pop3, and pop3s");
 
-                    // The worst-case number of services, used to initialize storage to avoid rehash/resize
-                    int maxServices =
-                        imapBinds.size()
-                        + imapsBinds.size()
-                        + pop3Binds.size()
-                        + pop3sBinds.size()
-                        + sieveBinds.size()
-                        + 1 // lmtpunix
-                    ;
-                    // All services that support TLS or SSL will be added here
-                    Map<String,NetBind> tlsServices = new LinkedHashMap<String,NetBind>(maxServices*4/3+1);
-
-                    boolean needsReload = false;
-                    // Update /etc/cyrus.conf
-                    {
-                        bout.reset();
-                        ChainWriter out = new ChainWriter(bout);
-                        try {
-                            out.print("#\n"
-                                    + "# Automatically generated by ").print(ImapManager.class.getName()).print("\n"
-                                    + "#\n"
-                                    + "START {\n"
-                                    //+ "  # do not delete this entry!\n"
-                                    + "  recover cmd=\"ctl_cyrusdb -r\"\n"
-                                    //+ "  # this is only necessary if using idled for IMAP IDLE\n"
-                                    + "  idled cmd=\"idled\"\n"
-                                    + "}\n"
-                                    //+ "# UNIX sockets start with a slash and are put into /var/lib/imap/sockets\n"
-                                    + "SERVICES {\n");
-                                    //+ "  # add or remove based on preferences\n"
-                            // imap
-                            int counter = 1;
-                            for(NetBind imapBind : imapBinds) {
-                                if(!imapBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("imap requires TCP protocol");
-                                String serviceName = "imap"+(counter++);
-                                out.print("  ").print(serviceName).print(" cmd=\"imapd\" listen=\"[").print(imapBind.getIPAddress().getIPAddress()).print("]:").print(imapBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=5\n");
-                                tlsServices.put(serviceName, imapBind);
-                            }
-                            // imaps
-                            counter = 1;
-                            for(NetBind imapsBind : imapsBinds) {
-                                if(!imapsBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("imaps requires TCP protocol");
-                                String serviceName = "imaps"+(counter++);
-                                out.print("  ").print(serviceName).print(" cmd=\"imapd -s\" listen=\"[").print(imapsBind.getIPAddress().getIPAddress()).print("]:").print(imapsBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=1\n");
-                                tlsServices.put(serviceName, imapsBind);
-                            }
-                            // pop3
-                            counter = 1;
-                            for(NetBind pop3Bind : pop3Binds) {
-                                if(!pop3Bind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("pop3 requires TCP protocol");
-                                String serviceName = "pop3"+(counter++);
-                                out.print("  ").print(serviceName).print(" cmd=\"pop3d\" listen=\"[").print(pop3Bind.getIPAddress().getIPAddress()).print("]:").print(pop3Bind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=3\n");
-                                tlsServices.put(serviceName, pop3Bind);
-                            }
-                            // pop3s
-                            counter = 1;
-                            for(NetBind pop3sBind : pop3sBinds) {
-                                if(!pop3sBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("pop3s requires TCP protocol");
-                                String serviceName = "pop3s"+(counter++);
-                                out.print("  ").print(serviceName).print(" cmd=\"pop3d -s\" listen=\"[").print(pop3sBind.getIPAddress().getIPAddress()).print("]:").print(pop3sBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=1\n");
-                                tlsServices.put(serviceName, pop3sBind);
-                            }
-                            // sieve
-                            counter = 1;
-                            for(NetBind sieveBind : sieveBinds) {
-                                if(!sieveBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("sieve requires TCP protocol");
-                                out.print("  sieve").print(counter++).print(" cmd=\"timsieved\" listen=\"[").print(sieveBind.getIPAddress().getIPAddress()).print("]:").print(sieveBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=0\n");
-                            }
-                                    //+ "  # these are only necessary if receiving/exporting usenet via NNTP\n"
-                                    //+ "#  nntp         cmd=\"nntpd\" listen=\"nntp\" prefork=3\n"
-                                    //+ "#  nntps                cmd=\"nntpd -s\" listen=\"nntps\" prefork=1\n"
-                                    //+ "  # at least one LMTP is required for delivery\n"
-                                    //+ "#  lmtp         cmd=\"lmtpd\" listen=\"lmtp\" prefork=0\n"
-                            out.print("  lmtpunix cmd=\"lmtpd\" listen=\"/var/lib/imap/socket/lmtp\" prefork=1\n"
-                                    //+ "  # this is only necessary if using notifications\n"
-                                    //+ "#  notify       cmd=\"notifyd\" listen=\"/var/lib/imap/socket/notify\" proto=\"udp\" prefork=1\n"
-                                    + "}\n"
-                                    + "EVENTS {\n"
-                                    //+ "  # this is required\n"
-                                    + "  checkpoint cmd=\"ctl_cyrusdb -c\" period=30\n"
-                                    //+ "  # this is only necessary if using duplicate delivery suppression,\n"
-                                    //+ "  # Sieve or NNTP\n"
-                                    // -X 3 added to allow 3 day "unexpunge" capability
-                                    + "  delprune cmd=\"cyr_expire -E 3 -X 3\" at=0400\n"
-                                    //+ "  # this is only necessary if caching TLS sessions\n"
-                                    + "  tlsprune cmd=\"tls_prune\" at=0400\n"
-                                    + "}\n");
-                        } finally {
-                            out.close();
+                        // chkconfig off if needed
+                        if(cyrusRcFile.getStat(tempStat).exists()) {
+                            if(isDebug) logger.fine("Disabling cyrus-imapd service");
+                            AOServDaemon.exec(new String[] {"/sbin/chkconfig", "cyrus-imapd", "off"});
+                            if(cyrusRcFile.getStat(tempStat).exists()) throw new IOException(cyrusRcFile.getPath()+" still exists after chkconfig off");
                         }
-                        byte[] newBytes = bout.toByteArray();
 
-                        // Only write when changed
-                        if(!cyrusConfFile.getStat(tempStat).exists() || !cyrusConfFile.contentEquals(newBytes)) {
-                            if(isDebug) logger.fine("Writing new config file: "+cyrusConfFile.getPath());
-                            FileOutputStream newOut = new FileOutputStream(cyrusConfNewFile.getFile());
+                        // Delete config files if exist
+                        if(imapdConfNewFile.getStat(tempStat).exists()) {
+                            if(isDebug) logger.fine("Deleting unnecessary config file: "+imapdConfNewFile.getPath());
+                            imapdConfNewFile.delete();
+                        }
+                        if(imapdConfFile.getStat(tempStat).exists()) {
+                            if(isDebug) logger.fine("Deleting unnecessary config file: "+imapdConfFile.getPath());
+                            imapdConfFile.delete();
+                        }
+                        if(cyrusConfNewFile.getStat(tempStat).exists()) {
+                            if(isDebug) logger.fine("Deleting unnecessary config file: "+cyrusConfNewFile.getPath());
+                            cyrusConfNewFile.delete();
+                        }
+                        if(cyrusConfFile.getStat(tempStat).exists()) {
+                            if(isDebug) logger.fine("Deleting unnecessary config file: "+cyrusConfFile.getPath());
+                            cyrusConfFile.delete();
+                        }
+                    } else {
+                        // Require sieve
+                        if(sieveBinds.isEmpty()) throw new SQLException("sieve is required with any of imap, imaps, pop3, and pop3s");
+
+                        // Required IMAP at least once on any default port
+                        int defaultImapPort = imapProtocol.getPort(conn).getPort();
+                        boolean foundOnDefault = false;
+                        for(NetBind nb : imapBinds) {
+                            if(nb.getPort().getPort()==defaultImapPort) {
+                                foundOnDefault = true;
+                                break;
+                            }
+                        }
+                        if(!foundOnDefault) throw new SQLException("imap is required on a default port with any of imap, imaps, pop3, and pop3s");
+
+                        // The worst-case number of services, used to initialize storage to avoid rehash/resize
+                        int maxServices =
+                            imapBinds.size()
+                            + imapsBinds.size()
+                            + pop3Binds.size()
+                            + pop3sBinds.size()
+                            + sieveBinds.size()
+                            + 1 // lmtpunix
+                        ;
+                        // All services that support TLS or SSL will be added here
+                        Map<String,NetBind> tlsServices = new LinkedHashMap<String,NetBind>(maxServices*4/3+1);
+
+                        boolean needsReload = false;
+                        // Update /etc/cyrus.conf
+                        {
+                            bout.reset();
+                            ChainWriter out = new ChainWriter(bout);
                             try {
-                                newOut.write(newBytes);
+                                out.print("#\n"
+                                        + "# Automatically generated by ").print(ImapManager.class.getName()).print("\n"
+                                        + "#\n"
+                                        + "START {\n"
+                                        //+ "  # do not delete this entry!\n"
+                                        + "  recover cmd=\"ctl_cyrusdb -r\"\n"
+                                        //+ "  # this is only necessary if using idled for IMAP IDLE\n"
+                                        + "  idled cmd=\"idled\"\n"
+                                        + "}\n"
+                                        //+ "# UNIX sockets start with a slash and are put into /var/lib/imap/sockets\n"
+                                        + "SERVICES {\n");
+                                        //+ "  # add or remove based on preferences\n"
+                                // imap
+                                int counter = 1;
+                                for(NetBind imapBind : imapBinds) {
+                                    if(!imapBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("imap requires TCP protocol");
+                                    String serviceName = "imap"+(counter++);
+                                    out.print("  ").print(serviceName).print(" cmd=\"imapd\" listen=\"[").print(imapBind.getIPAddress().getIPAddress()).print("]:").print(imapBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=5\n");
+                                    tlsServices.put(serviceName, imapBind);
+                                }
+                                // imaps
+                                counter = 1;
+                                for(NetBind imapsBind : imapsBinds) {
+                                    if(!imapsBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("imaps requires TCP protocol");
+                                    String serviceName = "imaps"+(counter++);
+                                    out.print("  ").print(serviceName).print(" cmd=\"imapd -s\" listen=\"[").print(imapsBind.getIPAddress().getIPAddress()).print("]:").print(imapsBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=1\n");
+                                    tlsServices.put(serviceName, imapsBind);
+                                }
+                                // pop3
+                                counter = 1;
+                                for(NetBind pop3Bind : pop3Binds) {
+                                    if(!pop3Bind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("pop3 requires TCP protocol");
+                                    String serviceName = "pop3"+(counter++);
+                                    out.print("  ").print(serviceName).print(" cmd=\"pop3d\" listen=\"[").print(pop3Bind.getIPAddress().getIPAddress()).print("]:").print(pop3Bind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=3\n");
+                                    tlsServices.put(serviceName, pop3Bind);
+                                }
+                                // pop3s
+                                counter = 1;
+                                for(NetBind pop3sBind : pop3sBinds) {
+                                    if(!pop3sBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("pop3s requires TCP protocol");
+                                    String serviceName = "pop3s"+(counter++);
+                                    out.print("  ").print(serviceName).print(" cmd=\"pop3d -s\" listen=\"[").print(pop3sBind.getIPAddress().getIPAddress()).print("]:").print(pop3sBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=1\n");
+                                    tlsServices.put(serviceName, pop3sBind);
+                                }
+                                // sieve
+                                counter = 1;
+                                for(NetBind sieveBind : sieveBinds) {
+                                    if(!sieveBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("sieve requires TCP protocol");
+                                    out.print("  sieve").print(counter++).print(" cmd=\"timsieved\" listen=\"[").print(sieveBind.getIPAddress().getIPAddress()).print("]:").print(sieveBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=0\n");
+                                }
+                                        //+ "  # these are only necessary if receiving/exporting usenet via NNTP\n"
+                                        //+ "#  nntp         cmd=\"nntpd\" listen=\"nntp\" prefork=3\n"
+                                        //+ "#  nntps                cmd=\"nntpd -s\" listen=\"nntps\" prefork=1\n"
+                                        //+ "  # at least one LMTP is required for delivery\n"
+                                        //+ "#  lmtp         cmd=\"lmtpd\" listen=\"lmtp\" prefork=0\n"
+                                out.print("  lmtpunix cmd=\"lmtpd\" listen=\"/var/lib/imap/socket/lmtp\" prefork=1\n"
+                                        //+ "  # this is only necessary if using notifications\n"
+                                        //+ "#  notify       cmd=\"notifyd\" listen=\"/var/lib/imap/socket/notify\" proto=\"udp\" prefork=1\n"
+                                        + "}\n"
+                                        + "EVENTS {\n"
+                                        //+ "  # this is required\n"
+                                        + "  checkpoint cmd=\"ctl_cyrusdb -c\" period=30\n"
+                                        //+ "  # this is only necessary if using duplicate delivery suppression,\n"
+                                        //+ "  # Sieve or NNTP\n"
+                                        // -X 3 added to allow 3 day "unexpunge" capability
+                                        + "  delprune cmd=\"cyr_expire -E 3 -X 3\" at=0400\n"
+                                        //+ "  # this is only necessary if caching TLS sessions\n"
+                                        + "  tlsprune cmd=\"tls_prune\" at=0400\n"
+                                        + "}\n");
                             } finally {
-                                newOut.close();
+                                out.close();
                             }
-                            cyrusConfNewFile.renameTo(cyrusConfFile);
-                            needsReload = true;
+                            byte[] newBytes = bout.toByteArray();
+
+                            // Only write when changed
+                            if(!cyrusConfFile.getStat(tempStat).exists() || !cyrusConfFile.contentEquals(newBytes)) {
+                                if(isDebug) logger.fine("Writing new config file: "+cyrusConfFile.getPath());
+                                FileOutputStream newOut = new FileOutputStream(cyrusConfNewFile.getFile());
+                                try {
+                                    newOut.write(newBytes);
+                                } finally {
+                                    newOut.close();
+                                }
+                                cyrusConfNewFile.renameTo(cyrusConfFile);
+                                needsReload = true;
+                            }
                         }
-                    }
 
-                    // Any files in /etc/pki/cyrus-imapd/vhosts that are not in this list are subject to removal
-                    Set<String> vhostsFiles = new HashSet<String>(3 * (maxServices*4/3+1)); // Three files per service
+                        // Any files in /etc/pki/cyrus-imapd/vhosts that are not in this list are subject to removal
+                        Set<String> vhostsFiles = new HashSet<String>(3 * (maxServices*4/3+1)); // Three files per service
 
-                    // Update /etc/imapd.conf
-                    {
-                        bout.reset();
-                        ChainWriter out = new ChainWriter(bout);
-                        try {
-                            out.print("#\n"
-                                    + "# Automatically generated by ").print(ImapManager.class.getName()).print("\n"
-                                    + "#\n"
-                                    + "configdirectory: /var/lib/imap\n"
-                                    + "\n"
-                                    + "# Default partition\n"
-                                    + "defaultpartition: default\n"
-                                    + "partition-default: /var/spool/imap\n"
-                                    + "\n"
-                                    + "# Authentication\n"
-                                    + "username_tolower: no\n" // This is to be consistent with authenticated SMTP, which always has case-sensitive usernames.
-                                    + "unix_group_enable: no\n"
-                                    + "sasl_pwcheck_method: saslauthd\n"
-                                    + "sasl_mech_list: PLAIN\n"
-                                    + "sasl_minimum_layer: 0\n"
-                                    + "allowplaintext: yes\n"
-                                    + "allowplainwithouttls: yes\n"
-                                    + "\n"
-                                    + "# SSL/TLS\n"
-                                    + "tls_cert_file: /etc/pki/cyrus-imapd/cyrus-imapd.pem\n"
-                                    + "tls_key_file: /etc/pki/cyrus-imapd/cyrus-imapd.pem\n"
-                                    + "tls_ca_file: /etc/pki/tls/certs/ca-bundle.crt\n");
-                            // Make sure directory exists and has proper permissions
-                            {
-                                Stat pkiVostsDirectoryStat = pkiVostsDirectory.getStat();
-                                if(!pkiVostsDirectoryStat.exists()) {
-                                    if(isDebug) logger.fine("Creating vhosts directory: "+pkiVostsDirectory.getPath());
-                                    pkiVostsDirectory.mkdir();
-                                    pkiVostsDirectory.getStat(pkiVostsDirectoryStat);
-                                }
-                                if(pkiVostsDirectoryStat.getMode()!=0755) {
-                                    if(isDebug) logger.fine("Setting vhosts directory permissions: "+pkiVostsDirectory.getPath());
-                                    pkiVostsDirectory.setMode(0755);
-                                    // Not needed because last use: pkiVostsDirectory.getStat(pkiVostsDirectoryStat);
-                                }
-                            }
-                            // service-specific certificates
-                            //     file:///home/o/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
-                            //     value of "disabled='disabled'" if the certificate file doesn't exist (or use server default)
-                            //     openssl req -new -x509 -nodes -out cyrus-imapd.pem -keyout cyrus-imapd.pem -days 3650
-                            for(Map.Entry<String,NetBind> entry : tlsServices.entrySet()) {
-                                String serviceName = entry.getKey();
-                                NetBind netBind = entry.getValue();
-                                String ipAddress = netBind.getIPAddress().getIPAddress();
-                                int port = netBind.getPort().getPort();
-                                String protocol;
-                                String appProtocol = netBind.getAppProtocol().getProtocol();
-                                if(Protocol.IMAP2.equals(appProtocol)) protocol = "imap";
-                                else if(Protocol.SIMAP.equals(appProtocol)) protocol = "imaps";
-                                else if(Protocol.POP3.equals(appProtocol)) protocol = "pop3";
-                                else if(Protocol.SPOP3.equals(appProtocol)) protocol = "pop3s";
-                                else throw new SQLException("Unexpected Protocol: "+appProtocol);
-
-                                // cert file
-                                String certFilename = protocol+"_"+ipAddress+"_"+port+".cert";
-                                UnixFile certFile = new UnixFile(pkiVostsDirectory, certFilename, false);
-                                if(!certFile.getStat(tempStat).exists()) {
-                                    if(isDebug) logger.fine("Creating default cert symlink: "+certFile.getPath()+"->"+DEFAULT_CERT_SYMLINK);
-                                    certFile.symLink(DEFAULT_CERT_SYMLINK);
-                                }
-                                vhostsFiles.add(certFilename);
-                                out.print(serviceName).print("_tls_cert_file: ").print(certFile.getPath()).print('\n');
-
-                                // key file
-                                String keyFilename = protocol+"_"+ipAddress+"_"+port+".key";
-                                UnixFile keyFile = new UnixFile(pkiVostsDirectory, keyFilename, false);
-                                if(!keyFile.getStat(tempStat).exists()) {
-                                    if(isDebug) logger.fine("Creating default key symlink: "+keyFile.getPath()+"->"+DEFAULT_KEY_SYMLINK);
-                                    keyFile.symLink(DEFAULT_KEY_SYMLINK);
-                                }
-                                vhostsFiles.add(keyFilename);
-                                out.print(serviceName).print("_tls_key_file: ").print(keyFile.getPath()).print('\n');
-                                
-                                // ca file
-                                String caFilename = protocol+"_"+ipAddress+"_"+port+".ca";
-                                UnixFile caFile = new UnixFile(pkiVostsDirectory, caFilename, false);
-                                if(!caFile.getStat(tempStat).exists()) {
-                                    if(isDebug) logger.fine("Creating default ca symlink: "+caFile.getPath()+"->"+DEFAULT_CA_SYMLINK);
-                                    caFile.symLink(DEFAULT_CA_SYMLINK);
-                                }
-                                vhostsFiles.add(caFilename);
-                                out.print(serviceName).print("_tls_ca_file: ").print(caFile.getPath()).print('\n');
-                            }
-                            out.print("\n"
-                                    + "# Performance\n"
-                                    + "expunge_mode: delayed\n"
-                                    + "hashimapspool: true\n"
-                                    + "\n"
-                                    + "# Outlook compatibility\n"
-                                    + "flushseenstate: yes\n"
-                                    + "\n"
-                                    + "# WU IMAPD compatibility\n"
-                                    + "altnamespace: yes\n"
-                                    + "unixhierarchysep: yes\n"
-                                    + "virtdomains: userid\n"
-                                    + "defaultdomain: default\n"
-                                    + "\n"
-                                    + "# Security\n"
-                                    + "imapidresponse: no\n"
-                                    + "admins: cyrus\n"
-                                    + "\n"
-                                    + "# Allows users to read for sa-learn after hard linking to user readable directory\n"
-                                    + "umask: 022\n"
-                                    + "\n"
-                                    + "# Proper hostname in chroot fail-over state\n"
-                                    + "servername: ").print(thisAOServer.getHostname()).print("\n"
-                                    + "\n"
-                                    + "# Sieve\n"
-                                    + "sievedir: /var/lib/imap/sieve\n"
-                                    + "autosievefolders: Junk\n"
-                                    + "sendmail: /usr/sbin/sendmail\n");
-                        } finally {
-                            out.close();
-                        }
-                        byte[] newBytes = bout.toByteArray();
-
-                        // Only write when changed
-                        if(!imapdConfFile.getStat(tempStat).exists() || !imapdConfFile.contentEquals(newBytes)) {
-                            if(isDebug) logger.fine("Writing new config file: "+imapdConfFile.getPath());
-                            FileOutputStream newOut = new FileOutputStream(imapdConfNewFile.getFile());
+                        // Update /etc/imapd.conf
+                        {
+                            bout.reset();
+                            ChainWriter out = new ChainWriter(bout);
                             try {
-                                newOut.write(newBytes);
-                            } finally {
-                                newOut.close();
-                            }
-                            imapdConfNewFile.renameTo(imapdConfFile);
-                            needsReload = true;
-                        }
-                    }
+                                out.print("#\n"
+                                        + "# Automatically generated by ").print(ImapManager.class.getName()).print("\n"
+                                        + "#\n"
+                                        + "configdirectory: /var/lib/imap\n"
+                                        + "\n"
+                                        + "# Default partition\n"
+                                        + "defaultpartition: default\n"
+                                        + "partition-default: /var/spool/imap\n"
+                                        + "\n"
+                                        + "# Authentication\n"
+                                        + "username_tolower: no\n" // This is to be consistent with authenticated SMTP, which always has case-sensitive usernames.
+                                        + "unix_group_enable: no\n"
+                                        + "sasl_pwcheck_method: saslauthd\n"
+                                        + "sasl_mech_list: PLAIN\n"
+                                        + "sasl_minimum_layer: 0\n"
+                                        + "allowplaintext: yes\n"
+                                        + "allowplainwithouttls: yes\n"
+                                        + "\n"
+                                        + "# SSL/TLS\n"
+                                        + "tls_cert_file: /etc/pki/cyrus-imapd/cyrus-imapd.pem\n"
+                                        + "tls_key_file: /etc/pki/cyrus-imapd/cyrus-imapd.pem\n"
+                                        + "tls_ca_file: /etc/pki/tls/certs/ca-bundle.crt\n");
+                                // Make sure directory exists and has proper permissions
+                                {
+                                    Stat pkiVostsDirectoryStat = pkiVostsDirectory.getStat();
+                                    if(!pkiVostsDirectoryStat.exists()) {
+                                        if(isDebug) logger.fine("Creating vhosts directory: "+pkiVostsDirectory.getPath());
+                                        pkiVostsDirectory.mkdir();
+                                        pkiVostsDirectory.getStat(pkiVostsDirectoryStat);
+                                    }
+                                    if(pkiVostsDirectoryStat.getMode()!=0755) {
+                                        if(isDebug) logger.fine("Setting vhosts directory permissions: "+pkiVostsDirectory.getPath());
+                                        pkiVostsDirectory.setMode(0755);
+                                        // Not needed because last use: pkiVostsDirectory.getStat(pkiVostsDirectoryStat);
+                                    }
+                                }
+                                // service-specific certificates
+                                //     file:///home/o/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
+                                //     value of "disabled='disabled'" if the certificate file doesn't exist (or use server default)
+                                //     openssl req -new -x509 -nodes -out cyrus-imapd.pem -keyout cyrus-imapd.pem -days 3650
+                                for(Map.Entry<String,NetBind> entry : tlsServices.entrySet()) {
+                                    String serviceName = entry.getKey();
+                                    NetBind netBind = entry.getValue();
+                                    String ipAddress = netBind.getIPAddress().getIPAddress();
+                                    int port = netBind.getPort().getPort();
+                                    String protocol;
+                                    String appProtocol = netBind.getAppProtocol().getProtocol();
+                                    if(Protocol.IMAP2.equals(appProtocol)) protocol = "imap";
+                                    else if(Protocol.SIMAP.equals(appProtocol)) protocol = "imaps";
+                                    else if(Protocol.POP3.equals(appProtocol)) protocol = "pop3";
+                                    else if(Protocol.SPOP3.equals(appProtocol)) protocol = "pop3s";
+                                    else throw new SQLException("Unexpected Protocol: "+appProtocol);
 
-                    // Remove default links in /etc/pki/cyrus-imapd/vhosts that are no longer used
-                    String[] list = pkiVostsDirectory.list();
-                    if(list!=null) {
-                        for(String filename : list) {
-                            if(!vhostsFiles.contains(filename)) {
-                                UnixFile vhostsFile = new UnixFile(pkiVostsDirectory, filename, false);
-                                vhostsFile.getStat(tempStat);
-                                if(tempStat.isSymLink()) {
-                                    String target = vhostsFile.readLink();
-                                    if(
-                                        target.equals(DEFAULT_CERT_SYMLINK)
-                                        || target.equals(DEFAULT_KEY_SYMLINK)
-                                        || target.equals(DEFAULT_CA_SYMLINK)
-                                    ) {
-                                        if(isDebug) logger.fine("Deleting default symlink: "+vhostsFile.getPath()+"->"+target);
-                                        vhostsFile.delete();
+                                    // cert file
+                                    String certFilename = protocol+"_"+ipAddress+"_"+port+".cert";
+                                    UnixFile certFile = new UnixFile(pkiVostsDirectory, certFilename, false);
+                                    if(!certFile.getStat(tempStat).exists()) {
+                                        if(isDebug) logger.fine("Creating default cert symlink: "+certFile.getPath()+"->"+DEFAULT_CERT_SYMLINK);
+                                        certFile.symLink(DEFAULT_CERT_SYMLINK);
+                                    }
+                                    vhostsFiles.add(certFilename);
+                                    out.print(serviceName).print("_tls_cert_file: ").print(certFile.getPath()).print('\n');
+
+                                    // key file
+                                    String keyFilename = protocol+"_"+ipAddress+"_"+port+".key";
+                                    UnixFile keyFile = new UnixFile(pkiVostsDirectory, keyFilename, false);
+                                    if(!keyFile.getStat(tempStat).exists()) {
+                                        if(isDebug) logger.fine("Creating default key symlink: "+keyFile.getPath()+"->"+DEFAULT_KEY_SYMLINK);
+                                        keyFile.symLink(DEFAULT_KEY_SYMLINK);
+                                    }
+                                    vhostsFiles.add(keyFilename);
+                                    out.print(serviceName).print("_tls_key_file: ").print(keyFile.getPath()).print('\n');
+
+                                    // ca file
+                                    String caFilename = protocol+"_"+ipAddress+"_"+port+".ca";
+                                    UnixFile caFile = new UnixFile(pkiVostsDirectory, caFilename, false);
+                                    if(!caFile.getStat(tempStat).exists()) {
+                                        if(isDebug) logger.fine("Creating default ca symlink: "+caFile.getPath()+"->"+DEFAULT_CA_SYMLINK);
+                                        caFile.symLink(DEFAULT_CA_SYMLINK);
+                                    }
+                                    vhostsFiles.add(caFilename);
+                                    out.print(serviceName).print("_tls_ca_file: ").print(caFile.getPath()).print('\n');
+                                }
+                                out.print("\n"
+                                        + "# Performance\n"
+                                        + "expunge_mode: delayed\n"
+                                        + "hashimapspool: true\n"
+                                        + "\n"
+                                        + "# Outlook compatibility\n"
+                                        + "flushseenstate: yes\n"
+                                        + "\n"
+                                        + "# WU IMAPD compatibility\n"
+                                        + "altnamespace: yes\n"
+                                        + "unixhierarchysep: yes\n"
+                                        + "virtdomains: userid\n"
+                                        + "defaultdomain: default\n"
+                                        + "\n"
+                                        + "# Security\n"
+                                        + "imapidresponse: no\n"
+                                        + "admins: cyrus\n"
+                                        + "\n"
+                                        + "# Allows users to read for sa-learn after hard linking to user readable directory\n"
+                                        + "umask: 022\n"
+                                        + "\n"
+                                        + "# Proper hostname in chroot fail-over state\n"
+                                        + "servername: ").print(thisAOServer.getHostname()).print("\n"
+                                        + "\n"
+                                        + "# Sieve\n"
+                                        + "sievedir: /var/lib/imap/sieve\n"
+                                        + "autosievefolders: Junk\n"
+                                        + "sendmail: /usr/sbin/sendmail\n");
+                            } finally {
+                                out.close();
+                            }
+                            byte[] newBytes = bout.toByteArray();
+
+                            // Only write when changed
+                            if(!imapdConfFile.getStat(tempStat).exists() || !imapdConfFile.contentEquals(newBytes)) {
+                                if(isDebug) logger.fine("Writing new config file: "+imapdConfFile.getPath());
+                                FileOutputStream newOut = new FileOutputStream(imapdConfNewFile.getFile());
+                                try {
+                                    newOut.write(newBytes);
+                                } finally {
+                                    newOut.close();
+                                }
+                                imapdConfNewFile.renameTo(imapdConfFile);
+                                needsReload = true;
+                            }
+                        }
+
+                        // Remove default links in /etc/pki/cyrus-imapd/vhosts that are no longer used
+                        String[] list = pkiVostsDirectory.list();
+                        if(list!=null) {
+                            for(String filename : list) {
+                                if(!vhostsFiles.contains(filename)) {
+                                    UnixFile vhostsFile = new UnixFile(pkiVostsDirectory, filename, false);
+                                    vhostsFile.getStat(tempStat);
+                                    if(tempStat.isSymLink()) {
+                                        String target = vhostsFile.readLink();
+                                        if(
+                                            target.equals(DEFAULT_CERT_SYMLINK)
+                                            || target.equals(DEFAULT_KEY_SYMLINK)
+                                            || target.equals(DEFAULT_CA_SYMLINK)
+                                        ) {
+                                            if(isDebug) logger.fine("Deleting default symlink: "+vhostsFile.getPath()+"->"+target);
+                                            vhostsFile.delete();
+                                        } else {
+                                            // Warn here to help admin keep clean?
+                                        }
                                     } else {
                                         // Warn here to help admin keep clean?
                                     }
-                                } else {
-                                    // Warn here to help admin keep clean?
                                 }
                             }
                         }
-                    }
-                    
-                    // chkconfig on if needed
-                    if(!cyrusRcFile.getStat(tempStat).exists()) {
-                        if(isDebug) logger.fine("Enabling cyrus-imapd service");
-                        AOServDaemon.exec(new String[] {"/sbin/chkconfig", "cyrus-imapd", "on"});
-                        if(!cyrusRcFile.getStat(tempStat).exists()) throw new IOException(cyrusRcFile.getPath()+" still does not exists after chkconfig on");
-                    }
 
-                    // Start service if not running
-                    if(!subsysLockFile.exists()) {
-                        if(isDebug) logger.fine("Starting cyrus-imapd service");
-                        AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/cyrus-imapd", "start"});
-                        if(!subsysLockFile.exists()) throw new IOException(subsysLockFile.getPath()+" still does not exists after service start");
-                    } else {
-                        if(needsReload) {
-                            if(isDebug) logger.fine("Reloading cyrus-imapd service");
-                            AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/cyrus-imapd", "reload"});
+                        // chkconfig on if needed
+                        if(!cyrusRcFile.getStat(tempStat).exists()) {
+                            if(isDebug) logger.fine("Enabling cyrus-imapd service");
+                            AOServDaemon.exec(new String[] {"/sbin/chkconfig", "cyrus-imapd", "on"});
+                            if(!cyrusRcFile.getStat(tempStat).exists()) throw new IOException(cyrusRcFile.getPath()+" still does not exists after chkconfig on");
                         }
-                    }
 
-                    rebuildUsers();
+                        // Start service if not running
+                        if(!subsysLockFile.exists()) {
+                            if(isDebug) logger.fine("Starting cyrus-imapd service");
+                            AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/cyrus-imapd", "start"});
+                            if(!subsysLockFile.exists()) throw new IOException(subsysLockFile.getPath()+" still does not exists after service start");
+                        } else {
+                            if(needsReload) {
+                                if(isDebug) logger.fine("Reloading cyrus-imapd service");
+                                AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/cyrus-imapd", "reload"});
+                            }
+                        }
+
+                        rebuildUsers();
+                    }
                 }
             }
+            return true;
+        } catch(StoreClosedException err) {
+            if("* BYE idle for too long".equals(err.getMessage())) logger.log(Level.INFO, null, err);
+            else logger.log(Level.SEVERE, null, err);
+            return false;
+        } catch(ThreadDeath TD) {
+            throw TD;
+        } catch(Throwable T) {
+            logger.log(Level.SEVERE, null, T);
+            return false;
         }
     }
 

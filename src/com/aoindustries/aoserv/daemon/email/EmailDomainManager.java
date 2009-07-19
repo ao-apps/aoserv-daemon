@@ -11,6 +11,7 @@ import com.aoindustries.aoserv.client.EmailDomain;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
@@ -19,6 +20,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.logging.Level;
 
 /**
  * @author  AO Industries, Inc.
@@ -39,43 +41,51 @@ public final class EmailDomainManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
-    protected void doRebuild() throws IOException, SQLException {
-        AOServer thisAOServer=AOServDaemon.getThisAOServer();
+    protected boolean doRebuild() {
+        try {
+            AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
-        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
-        if(
-            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-            && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+            if(
+                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+                && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
-        synchronized(rebuildLock) {
-            // Grab the list of domains from the database
-            List<EmailDomain> domains = thisAOServer.getEmailDomains();
+            synchronized(rebuildLock) {
+                // Grab the list of domains from the database
+                List<EmailDomain> domains = thisAOServer.getEmailDomains();
 
-            // Create the new file
-            ByteArrayOutputStream bout = new ByteArrayOutputStream();
-            ChainWriter out = new ChainWriter(bout);
-            try {
-                for(EmailDomain domain : domains) out.println(domain.getDomain());
-            } finally {
-                out.close();
-            }
-            byte[] newBytes = bout.toByteArray();
-
-            // Write new file only when needed
-            if(!configFile.getStat().exists() || !configFile.contentEquals(newBytes)) {
-                FileOutputStream newOut = newFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, false);
+                // Create the new file
+                ByteArrayOutputStream bout = new ByteArrayOutputStream();
+                ChainWriter out = new ChainWriter(bout);
                 try {
-                    newOut.write(newBytes);
+                    for(EmailDomain domain : domains) out.println(domain.getDomain());
                 } finally {
-                    newOut.close();
+                    out.close();
                 }
-                newFile.renameTo(configFile);
+                byte[] newBytes = bout.toByteArray();
 
-                // Reload the MTA
-                reloadMTA();
+                // Write new file only when needed
+                if(!configFile.getStat().exists() || !configFile.contentEquals(newBytes)) {
+                    FileOutputStream newOut = newFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, false);
+                    try {
+                        newOut.write(newBytes);
+                    } finally {
+                        newOut.close();
+                    }
+                    newFile.renameTo(configFile);
+
+                    // Reload the MTA
+                    reloadMTA();
+                }
             }
+            return true;
+        } catch(ThreadDeath TD) {
+            throw TD;
+        } catch(Throwable T) {
+            LogFactory.getLogger(EmailDomainManager.class).log(Level.SEVERE, null, T);
+            return false;
         }
     }
 

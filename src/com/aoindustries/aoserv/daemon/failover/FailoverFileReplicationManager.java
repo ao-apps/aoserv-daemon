@@ -21,6 +21,7 @@ import com.aoindustries.md5.MD5;
 import com.aoindustries.util.BufferManager;
 import com.aoindustries.util.LongArrayList;
 import com.aoindustries.util.LongList;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -1347,7 +1348,8 @@ final public class FailoverFileReplicationManager {
                                                     bytesWritten+=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE;
                                                 } else throw new RuntimeException("Unexpected value for response: "+response);
                                             }
-                                            if(response!=AOServDaemonProtocol.DONE) throw new IOException("Unexpected response code: "+response);
+                                            if(response==-1) throw new EOFException();
+                                            else if(response!=AOServDaemonProtocol.DONE) throw new IOException("Unexpected response code: "+response);
                                         } finally {
                                             raf.close();
                                         }

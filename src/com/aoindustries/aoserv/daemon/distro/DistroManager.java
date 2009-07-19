@@ -21,7 +21,7 @@ import com.aoindustries.aoserv.client.SQLExpression;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
-import com.aoindustries.email.ProcessTimer;
+import com.aoindustries.util.logging.ProcessTimer;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.md5.MD5;
@@ -30,14 +30,12 @@ import com.aoindustries.util.BufferManager;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.StringUtility;
 import com.aoindustries.util.sort.AutoSort;
-import com.oreilly.servlet.MailMessage;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
-import java.io.PrintStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -135,6 +133,8 @@ final public class DistroManager implements Runnable {
                             ProcessTimer timer=new ProcessTimer(
                                 LogFactory.getLogger(DistroManager.class),
                                 AOServDaemon.getRandom(),
+                                DistroManager.class.getName(),
+                                "run",
                                 "Distro verification taking too long",
                                 "Distro Verification",
                                 12*60*60*1000,
@@ -395,34 +395,14 @@ final public class DistroManager implements Runnable {
                                 long startTime=System.currentTimeMillis();
 
                                 String md5;
-                                {
-                                    String[] command = {
-                                        "/usr/sbin/prelink",
-                                        "--verify",
-                                        "--md5",
-                                        file.getPath()
-                                    };
-                                    Process P = Runtime.getRuntime().exec(command);
-                                    try {
-                                        P.getOutputStream().close();
-                                        BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()));
-                                        try {
-                                            String line = in.readLine();
-                                            if(line.length()<32) throw new IOException("Line too short, must be at least 32 characters: "+line);
-                                            md5 = line.substring(0, 32);
-                                        } finally {
-                                            in.close();
-                                        }
-                                    } finally {
-                                        try {
-                                            int retCode = P.waitFor();
-                                            if(retCode!=0) throw new IOException("Non-zero response from command: "+AOServDaemon.getCommandString(command));
-                                        } catch(InterruptedException err) {
-                                            IOException ioErr = new InterruptedIOException();
-                                            ioErr.initCause(err);
-                                            throw ioErr;
-                                        }
-                                    }
+                                try {
+                                    md5 = getPrelinkMD5(file.getPath());
+                                } catch(IOException err) {
+                                    LogFactory.getLogger(DistroManager.class).log(Level.INFO, "IOException getting MD5 from prelink, will now re-prelink and retry getting MD5", err);
+                                    // Re-prelink
+                                    AOServDaemon.exec(new String[] {"/usr/sbin/prelink", file.getPath()});
+                                    // Retry
+                                    md5 = getPrelinkMD5(file.getPath());
                                 }
                                 long file_md5_hi=MD5.getMD5Hi(md5);
                                 long file_md5_lo=MD5.getMD5Lo(md5);
@@ -534,7 +514,40 @@ final public class DistroManager implements Runnable {
             }
         }
     }
-    
+
+    /**
+     * Gets the original filename MD5 using <code>/usr/sbin/prelink --verify --md5</code>
+     */
+    private static String getPrelinkMD5(String filename) throws IOException {
+        String[] command = {
+            "/usr/sbin/prelink",
+            "--verify",
+            "--md5",
+            filename
+        };
+        Process P = Runtime.getRuntime().exec(command);
+        try {
+            P.getOutputStream().close();
+            BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()));
+            try {
+                String line = in.readLine();
+                if(line.length()<32) throw new IOException("Line too short, must be at least 32 characters: "+line);
+                return line.substring(0, 32);
+            } finally {
+                in.close();
+            }
+        } finally {
+            try {
+                int retCode = P.waitFor();
+                if(retCode!=0) throw new IOException("Non-zero response from command: "+AOServDaemon.getCommandString(command));
+            } catch(InterruptedException err) {
+                IOException ioErr = new InterruptedIOException();
+                ioErr.initCause(err);
+                throw ioErr;
+            }
+        }
+    }
+
     public static byte[] hashFile(String filename) throws IOException {
         MD5InputStream md5in=new MD5InputStream(new FileInputStream(filename));
         try {
@@ -677,7 +690,12 @@ final public class DistroManager implements Runnable {
             // Log full version
             Logger logger = LogFactory.getLogger(DistroManager.class);
             if(logger.isLoggable(Level.INFO)) {
-                for(int c=0;c<size;c++) logger.info(results.get(c));
+                StringBuilder combinedResults = new StringBuilder();
+                for(int c=0;c<size;c++) {
+                    if(c>0) combinedResults.append('\n');
+                    combinedResults.append(results.get(c));
+                }
+                logger.info(combinedResults.toString());
             }
 
             // Compile the counters for each of the different codes

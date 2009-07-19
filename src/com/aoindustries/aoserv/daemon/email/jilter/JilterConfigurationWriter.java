@@ -74,90 +74,98 @@ public class JilterConfigurationWriter extends BuilderThread {
     }
     private static final Object rebuildLock=new Object();
 
-    protected void doRebuild() throws IOException, SQLException {
-        AOServer aoServer = AOServDaemon.getThisAOServer();
-        Server server = aoServer.getServer();
-        
-        // primaryIP
-        String primaryIP = aoServer.getPrimaryIPAddress().getIPAddress();
+    protected boolean doRebuild() {
+        try {
+            AOServer aoServer = AOServDaemon.getThisAOServer();
+            Server server = aoServer.getServer();
 
-        // restrict_outbound_email
-        boolean restrict_outbound_email = aoServer.getRestrictOutboundEmail();
+            // primaryIP
+            String primaryIP = aoServer.getPrimaryIPAddress().getIPAddress();
 
-        // domainPackages and domainAddresses
-        Map<String,String> domainPackages = new HashMap<String,String>();
-        Map<String,Set<String>> domainAddresses = new HashMap<String,Set<String>>();
-        for(EmailDomain ed : aoServer.getEmailDomains()) {
-            String domain = ed.getDomain();
-            // domainPackages
-            domainPackages.put(domain, ed.getPackage().getName());
-            // domainAddresses
-            List<EmailAddress> eas = ed.getEmailAddresses();
-            Set<String> addresses = new HashSet<String>(eas.size()*4/3+1);
-            for(EmailAddress ea : eas) addresses.add(ea.getAddress());
-            domainAddresses.put(domain, addresses);
-        }
+            // restrict_outbound_email
+            boolean restrict_outbound_email = aoServer.getRestrictOutboundEmail();
 
-        // ips
-        List<IPAddress> ias = server.getIPAddresses();
-        Set<String> ips = new HashSet<String>(ias.size()*4/3+1);
-        for(IPAddress ia : ias) {
-            if(!ia.isWildcard()) {
-                ips.add(ia.getIPAddress());
+            // domainPackages and domainAddresses
+            Map<String,String> domainPackages = new HashMap<String,String>();
+            Map<String,Set<String>> domainAddresses = new HashMap<String,Set<String>>();
+            for(EmailDomain ed : aoServer.getEmailDomains()) {
+                String domain = ed.getDomain();
+                // domainPackages
+                domainPackages.put(domain, ed.getPackage().getName());
+                // domainAddresses
+                List<EmailAddress> eas = ed.getEmailAddresses();
+                Set<String> addresses = new HashSet<String>(eas.size()*4/3+1);
+                for(EmailAddress ea : eas) addresses.add(ea.getAddress());
+                domainAddresses.put(domain, addresses);
             }
-        }
 
-        // email_smtp_relays
-        Set<String> denies = new HashSet<String>();
-        Set<String> denySpams = new HashSet<String>();
-        Set<String> allowRelays = new HashSet<String>();
-        for(EmailSmtpRelay esr : aoServer.getEmailSmtpRelays()) {
-            String host = esr.getHost();
-            String type = esr.getType().getName();
-            if(EmailSmtpRelayType.DENY.equals(type)) denies.add(host);
-            else if(EmailSmtpRelayType.DENY_SPAM.equals(type)) denySpams.add(host);
-            else if(EmailSmtpRelayType.ALLOW_RELAY.equals(type)) allowRelays.add(host);
-            else LogFactory.getLogger(JilterConfigurationWriter.class).log(Level.WARNING, null, new SQLException("Unexpected value for type: "+type));
-        }
-        
-        // Builds email limits only for the packages referenced in domainPackages
-        int noGrowSize = domainPackages.size() * 4 / 3 + 1;
-        Map<String,EmailLimit> emailInLimits = new HashMap<String,EmailLimit>(noGrowSize);
-        Map<String,EmailLimit> emailOutLimits = new HashMap<String,EmailLimit>(noGrowSize);
-        Map<String,EmailLimit> emailRelayLimits = new HashMap<String,EmailLimit>(noGrowSize);
-        for(String packageName : domainPackages.values()) {
-            Package pk = AOServDaemon.getConnector().getPackages().get(packageName);
-            if(pk==null) throw new SQLException("Unable to find Package: "+packageName);
-            int emailInBurst = pk.getEmailInBurst();
-            float emailInRate = pk.getEmailInRate();
-            if(emailInBurst!=-1 && !Float.isNaN(emailInRate)) emailInLimits.put(packageName, new EmailLimit(emailInBurst, emailInRate));
-            int emailOutBurst = pk.getEmailOutBurst();
-            float emailOutRate = pk.getEmailOutRate();
-            if(emailOutBurst!=-1 && !Float.isNaN(emailOutRate)) emailOutLimits.put(packageName, new EmailLimit(emailOutBurst, emailOutRate));
-            int emailRelayBurst = pk.getEmailRelayBurst();
-            float emailRelayRate = pk.getEmailRelayRate();
-            if(emailRelayBurst!=-1 && !Float.isNaN(emailRelayRate)) emailRelayLimits.put(packageName, new EmailLimit(emailRelayBurst, emailRelayRate));
-        }
-        synchronized(rebuildLock) {
-            JilterConfiguration jilterConfiguration = new JilterConfiguration(
-                primaryIP,
-                restrict_outbound_email,
-                AOServDaemonConfiguration.getMonitorSmtpServer(),
-                AOServDaemonConfiguration.getMonitorEmailSummaryFrom(),
-                AOServDaemonConfiguration.getMonitorEmailSummaryTo(),
-                AOServDaemonConfiguration.getMonitorEmailFullFrom(),
-                AOServDaemonConfiguration.getMonitorEmailFullTo(),
-                domainPackages,
-                domainAddresses,
-                ips,
-                denies,
-                denySpams,
-                allowRelays,
-                emailInLimits,
-                emailOutLimits,
-                emailRelayLimits
-            );
-            jilterConfiguration.saveIfChanged("This file is automatically generated by "+JilterConfigurationWriter.class.getName());
+            // ips
+            List<IPAddress> ias = server.getIPAddresses();
+            Set<String> ips = new HashSet<String>(ias.size()*4/3+1);
+            for(IPAddress ia : ias) {
+                if(!ia.isWildcard()) {
+                    ips.add(ia.getIPAddress());
+                }
+            }
+
+            // email_smtp_relays
+            Set<String> denies = new HashSet<String>();
+            Set<String> denySpams = new HashSet<String>();
+            Set<String> allowRelays = new HashSet<String>();
+            for(EmailSmtpRelay esr : aoServer.getEmailSmtpRelays()) {
+                String host = esr.getHost();
+                String type = esr.getType().getName();
+                if(EmailSmtpRelayType.DENY.equals(type)) denies.add(host);
+                else if(EmailSmtpRelayType.DENY_SPAM.equals(type)) denySpams.add(host);
+                else if(EmailSmtpRelayType.ALLOW_RELAY.equals(type)) allowRelays.add(host);
+                else LogFactory.getLogger(JilterConfigurationWriter.class).log(Level.WARNING, null, new SQLException("Unexpected value for type: "+type));
+            }
+
+            // Builds email limits only for the packages referenced in domainPackages
+            int noGrowSize = domainPackages.size() * 4 / 3 + 1;
+            Map<String,EmailLimit> emailInLimits = new HashMap<String,EmailLimit>(noGrowSize);
+            Map<String,EmailLimit> emailOutLimits = new HashMap<String,EmailLimit>(noGrowSize);
+            Map<String,EmailLimit> emailRelayLimits = new HashMap<String,EmailLimit>(noGrowSize);
+            for(String packageName : domainPackages.values()) {
+                Package pk = AOServDaemon.getConnector().getPackages().get(packageName);
+                if(pk==null) throw new SQLException("Unable to find Package: "+packageName);
+                int emailInBurst = pk.getEmailInBurst();
+                float emailInRate = pk.getEmailInRate();
+                if(emailInBurst!=-1 && !Float.isNaN(emailInRate)) emailInLimits.put(packageName, new EmailLimit(emailInBurst, emailInRate));
+                int emailOutBurst = pk.getEmailOutBurst();
+                float emailOutRate = pk.getEmailOutRate();
+                if(emailOutBurst!=-1 && !Float.isNaN(emailOutRate)) emailOutLimits.put(packageName, new EmailLimit(emailOutBurst, emailOutRate));
+                int emailRelayBurst = pk.getEmailRelayBurst();
+                float emailRelayRate = pk.getEmailRelayRate();
+                if(emailRelayBurst!=-1 && !Float.isNaN(emailRelayRate)) emailRelayLimits.put(packageName, new EmailLimit(emailRelayBurst, emailRelayRate));
+            }
+            synchronized(rebuildLock) {
+                JilterConfiguration jilterConfiguration = new JilterConfiguration(
+                    primaryIP,
+                    restrict_outbound_email,
+                    AOServDaemonConfiguration.getMonitorSmtpServer(),
+                    AOServDaemonConfiguration.getMonitorEmailSummaryFrom(),
+                    AOServDaemonConfiguration.getMonitorEmailSummaryTo(),
+                    AOServDaemonConfiguration.getMonitorEmailFullFrom(),
+                    AOServDaemonConfiguration.getMonitorEmailFullTo(),
+                    domainPackages,
+                    domainAddresses,
+                    ips,
+                    denies,
+                    denySpams,
+                    allowRelays,
+                    emailInLimits,
+                    emailOutLimits,
+                    emailRelayLimits
+                );
+                jilterConfiguration.saveIfChanged("This file is automatically generated by "+JilterConfigurationWriter.class.getName());
+            }
+            return true;
+        } catch(ThreadDeath TD) {
+            throw TD;
+        } catch(Throwable T) {
+            LogFactory.getLogger(JilterConfigurationWriter.class).log(Level.SEVERE, null, T);
+            return false;
         }
     }
 }

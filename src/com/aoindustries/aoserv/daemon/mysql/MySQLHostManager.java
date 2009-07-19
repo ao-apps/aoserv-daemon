@@ -13,6 +13,7 @@ import com.aoindustries.aoserv.client.NetDevice;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.sql.AOConnectionPool;
 import java.io.IOException;
@@ -23,6 +24,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Controls the MySQL Hosts.
@@ -35,99 +37,107 @@ final public class MySQLHostManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
-    protected void doRebuild() throws IOException, SQLException {
-        AOServConnector connector = AOServDaemon.getConnector();
-        AOServer thisAOServer=AOServDaemon.getThisAOServer();
+    protected boolean doRebuild() {
+        try {
+            AOServConnector connector = AOServDaemon.getConnector();
+            AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
-        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
-        if(
-            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-            && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+            if(
+                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+                && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
-        synchronized (rebuildLock) {
-            for(MySQLServer mysqlServer : connector.getMysqlServers()) {
-                String version=mysqlServer.getVersion().getVersion();
-                boolean modified = false;
+            synchronized (rebuildLock) {
+                for(MySQLServer mysqlServer : connector.getMysqlServers()) {
+                    String version=mysqlServer.getVersion().getVersion();
+                    boolean modified = false;
 
-                // Get the connection to work through
-                AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
-                Connection conn = pool.getConnection();
-                try {
-                    // Get the list of all existing hosts
-                    Set<String> existing = new HashSet<String>();
-                    Statement stmt = conn.createStatement();
+                    // Get the connection to work through
+                    AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
+                    Connection conn = pool.getConnection();
                     try {
-                        ResultSet results = stmt.executeQuery("select host from host");
+                        // Get the list of all existing hosts
+                        Set<String> existing = new HashSet<String>();
+                        Statement stmt = conn.createStatement();
                         try {
-                            while (results.next()) existing.add(results.getString(1));
+                            ResultSet results = stmt.executeQuery("select host from host");
+                            try {
+                                while (results.next()) existing.add(results.getString(1));
+                            } finally {
+                                results.close();
+                            }
                         } finally {
-                            results.close();
+                            stmt.close();
                         }
-                    } finally {
-                        stmt.close();
-                    }
 
-                    // Get the list of all hosts that should exist
-                    Set<String> hosts=new HashSet<String>();
-                    // Always include loopback, just in case of data errors
-                    hosts.add(IPAddress.LOOPBACK_IP);
-                    hosts.add("localhost");
-                    hosts.add("localhost.localdomain");
-                    // Include all of the local IP addresses
-                    for(NetDevice nd : thisAOServer.getServer().getNetDevices()) {
-                        for(IPAddress ia : nd.getIPAddresses()) {
-                            if(!ia.isWildcard()) {
-                                String ip=ia.getIPAddress();
-                                if(!hosts.contains(ip)) hosts.add(ip);
+                        // Get the list of all hosts that should exist
+                        Set<String> hosts=new HashSet<String>();
+                        // Always include loopback, just in case of data errors
+                        hosts.add(IPAddress.LOOPBACK_IP);
+                        hosts.add("localhost");
+                        hosts.add("localhost.localdomain");
+                        // Include all of the local IP addresses
+                        for(NetDevice nd : thisAOServer.getServer().getNetDevices()) {
+                            for(IPAddress ia : nd.getIPAddresses()) {
+                                if(!ia.isWildcard()) {
+                                    String ip=ia.getIPAddress();
+                                    if(!hosts.contains(ip)) hosts.add(ip);
+                                }
                             }
                         }
-                    }
 
-                    // Add the hosts that do not exist and should
-                    String insertSQL;
-                    if(version.startsWith("4.0.")) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
-                    else if(version.startsWith("4.1.")) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
-                    else if(version.startsWith("5.0.")) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
-                    else throw new SQLException("Unsupported MySQL version: "+version);
+                        // Add the hosts that do not exist and should
+                        String insertSQL;
+                        if(version.startsWith("4.0.")) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
+                        else if(version.startsWith("4.1.")) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
+                        else if(version.startsWith("5.0.")) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
+                        else throw new SQLException("Unsupported MySQL version: "+version);
 
-                    PreparedStatement pstmt = conn.prepareStatement(insertSQL);
-                    try {
-                        for (String hostname : hosts) {
-                            if (existing.contains(hostname)) existing.remove(hostname);
-                            else {
-                                // Add the host
-                                pstmt.setString(1, hostname);
-                                pstmt.executeUpdate();
-
-                                modified = true;
-                            }
-                        }
-                    } finally {
-                        pstmt.close();
-                    }
-
-                    // Remove the extra hosts
-                    if (!existing.isEmpty()) {
-                        pstmt = conn.prepareStatement("delete from host where host=?");
+                        PreparedStatement pstmt = conn.prepareStatement(insertSQL);
                         try {
-                            for (String dbName : existing) {
-                                // Remove the extra host entry
-                                pstmt.setString(1, dbName);
-                                pstmt.executeUpdate();
+                            for (String hostname : hosts) {
+                                if (existing.contains(hostname)) existing.remove(hostname);
+                                else {
+                                    // Add the host
+                                    pstmt.setString(1, hostname);
+                                    pstmt.executeUpdate();
 
-                                modified = true;
+                                    modified = true;
+                                }
                             }
                         } finally {
                             pstmt.close();
                         }
+
+                        // Remove the extra hosts
+                        if (!existing.isEmpty()) {
+                            pstmt = conn.prepareStatement("delete from host where host=?");
+                            try {
+                                for (String dbName : existing) {
+                                    // Remove the extra host entry
+                                    pstmt.setString(1, dbName);
+                                    pstmt.executeUpdate();
+
+                                    modified = true;
+                                }
+                            } finally {
+                                pstmt.close();
+                            }
+                        }
+                    } finally {
+                        pool.releaseConnection(conn);
                     }
-                } finally {
-                    pool.releaseConnection(conn);
+                    if(modified) MySQLServerManager.flushPrivileges(mysqlServer);
                 }
-                if(modified) MySQLServerManager.flushPrivileges(mysqlServer);
             }
+            return true;
+        } catch(ThreadDeath TD) {
+            throw TD;
+        } catch(Throwable T) {
+            LogFactory.getLogger(MySQLHostManager.class).log(Level.SEVERE, null, T);
+            return false;
         }
     }
 

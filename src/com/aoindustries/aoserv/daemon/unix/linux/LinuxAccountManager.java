@@ -98,8 +98,16 @@ public class LinuxAccountManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
-    protected void doRebuild() throws IOException, SQLException {
-        rebuildLinuxAccountSettings();
+    protected boolean doRebuild() {
+        try {
+            rebuildLinuxAccountSettings();
+            return true;
+        } catch(ThreadDeath TD) {
+            throw TD;
+        } catch(Throwable T) {
+            LogFactory.getLogger(LinuxAccountManager.class).log(Level.SEVERE, null, T);
+            return false;
+        }
     }
 
     private static void rebuildLinuxAccountSettings() throws IOException, SQLException {

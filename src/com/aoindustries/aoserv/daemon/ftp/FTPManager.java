@@ -20,6 +20,7 @@ import com.aoindustries.aoserv.client.PrivateFTPServer;
 import com.aoindustries.aoserv.client.Protocol;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.httpd.HttpdSiteManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
@@ -36,6 +37,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Handles the building of FTP configs and files.
@@ -66,17 +68,25 @@ final public class FTPManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
-    protected void doRebuild() throws IOException, SQLException {
-        AOServer thisAOServer=AOServDaemon.getThisAOServer();
-        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
-        synchronized(rebuildLock) {
-            if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                doRebuildProFtpd();
-            } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                doRebuildVsFtpd();
-            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-            
-            doRebuildSharedFtpDirectory();
+    protected boolean doRebuild() {
+        try {
+            AOServer thisAOServer=AOServDaemon.getThisAOServer();
+            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+            synchronized(rebuildLock) {
+                if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                    doRebuildProFtpd();
+                } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                    doRebuildVsFtpd();
+                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+
+                doRebuildSharedFtpDirectory();
+            }
+            return true;
+        } catch(ThreadDeath TD) {
+            throw TD;
+        } catch(Throwable T) {
+            LogFactory.getLogger(FTPManager.class).log(Level.SEVERE, null, T);
+            return false;
         }
     }
 
