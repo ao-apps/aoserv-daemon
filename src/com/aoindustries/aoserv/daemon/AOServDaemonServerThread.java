@@ -122,7 +122,7 @@ final public class AOServDaemonServerThread extends Thread {
             // Read the key first so that any failed connection looks the same from the outside,
             // regardless of reason
             String protocolVersion=in.readUTF();
-            String key=in.readBoolean()?in.readUTF():null;
+            String daemonKey=in.readBoolean()?in.readUTF():null;
             if(!protocolVersion.equals(AOServDaemonProtocol.CURRENT_VERSION)) {
                 out.writeBoolean(false);
                 out.writeUTF(AOServDaemonProtocol.CURRENT_VERSION);
@@ -131,7 +131,7 @@ final public class AOServDaemonServerThread extends Thread {
             } else {
                 out.writeBoolean(true);
             }
-            if(key!=null) {
+            if(daemonKey!=null) {
                 // Must come from one of the hosts listed in the database
                 String hostAddress = socket.getInetAddress().getHostAddress();
                 boolean isOK=false;
@@ -145,8 +145,8 @@ final public class AOServDaemonServerThread extends Thread {
                 if(isOK) {
                     // Authenticate the client first
                     String correctKey=thisAOServer.getDaemonKey();
-                    if(!passwordMatches(key, correctKey)) {
-                        System.err.println("Connection attempted from " + hostAddress + " with invalid key: " + key);
+                    if(!passwordMatches(daemonKey, correctKey)) {
+                        System.err.println("Connection attempted from " + hostAddress + " with invalid key: " + daemonKey);
                         out.writeBoolean(false);
                         out.flush();
                         return;
@@ -171,7 +171,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing COMPARE_LINUX_ACCOUNT_PASSWORD, Thread="+toString());
                                 String username=in.readUTF();
                                 String password=in.readUTF();
-                                if(key==null) throw new IOException("Only the master server may COMPARE_LINUX_ACCOUNT_PASSWORD");
+                                if(daemonKey==null) throw new IOException("Only the master server may COMPARE_LINUX_ACCOUNT_PASSWORD");
                                 boolean matches=LinuxAccountManager.comparePassword(username, password);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeBoolean(matches);
@@ -181,7 +181,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing DUMP_MYSQL_DATABASE, Thread="+toString());
                                 int pkey=in.readCompressedInt();
-                                if(key==null) throw new IOException("Only the master server may DUMP_MYSQL_DATABASE");
+                                if(daemonKey==null) throw new IOException("Only the master server may DUMP_MYSQL_DATABASE");
                                 MySQLDatabase md=connector.getMysqlDatabases().get(pkey);
                                 if(md==null) throw new SQLException("Unable to find MySQLDatabase: "+pkey);
                                 MySQLDatabaseManager.dumpDatabase(md, out);
@@ -192,7 +192,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing DUMP_POSTGRES_DATABASE, Thread="+toString());
                                 int pkey=in.readCompressedInt();
-                                if(key==null) throw new IOException("Only the master server may DUMP_POSTGRES_DATABASE");
+                                if(daemonKey==null) throw new IOException("Only the master server may DUMP_POSTGRES_DATABASE");
                                 PostgresDatabase pd=connector.getPostgresDatabases().get(pkey);
                                 if(pd==null) throw new SQLException("Unable to find PostgresDatabase: "+pkey);
                                 PostgresDatabaseManager.dumpDatabase(pd, out);
@@ -202,7 +202,7 @@ final public class AOServDaemonServerThread extends Thread {
                         case AOServDaemonProtocol.FAILOVER_FILE_REPLICATION :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing FAILOVER_FILE_REPLICATION, Thread="+toString());
-                                long daemonKey=in.readLong();
+                                long daemonAccessKey=in.readLong();
                                 boolean useCompression = in.readBoolean();
                                 short retention = in.readShort();
                                 short fromServerYear = in.readShort();
@@ -222,7 +222,7 @@ final public class AOServDaemonServerThread extends Thread {
                                     replicatedMySQLServers=Collections.emptyList();
                                     replicatedMySQLMinorVersions=Collections.emptyList();
                                 }
-                                DaemonAccessEntry dae=AOServDaemonServer.getDaemonAccessEntry(daemonKey);
+                                DaemonAccessEntry dae=AOServDaemonServer.getDaemonAccessEntry(daemonAccessKey);
                                 if(dae.command!=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION) throw new IOException("Mismatched DaemonAccessEntry command, dae.command!="+AOServDaemonProtocol.FAILOVER_FILE_REPLICATION);
                                 FailoverFileReplicationManager.failoverServer(
                                     socket,
@@ -245,7 +245,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_AUTORESPONDER_CONTENT, Thread="+toString());
                                 String path=in.readUTF();
-                                if(key==null) throw new IOException("Only the master server may GET_AUTORESPONDER_CONTENT");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_AUTORESPONDER_CONTENT");
                                 String content=LinuxAccountManager.getAutoresponderContent(path);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(content);
@@ -257,7 +257,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 String siteName=in.readUTF();
                                 String path=in.readUTF();
                                 String queryString=in.readUTF();
-                                if(key==null) throw new IOException("Only the master server may GET_AWSTATS_FILE");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_AWSTATS_FILE");
                                 AWStatsManager.getAWStatsFile(siteName, path, queryString, out);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
@@ -266,7 +266,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_CRON_TABLE, Thread="+toString());
                                 String username=in.readUTF();
-                                if(key==null) throw new IOException("Only the master server may GET_CRON_TABLE");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_CRON_TABLE");
                                 String cronTable=LinuxAccountManager.getCronTable(username);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(cronTable);
@@ -276,7 +276,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_NET_DEVICE_BONDING_REPORT, Thread="+toString());
                                 int pkey = in.readCompressedInt();
-                                if(key==null) throw new IOException("Only the master server may GET_NET_DEVICE_BONDING_REPORT");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_NET_DEVICE_BONDING_REPORT");
                                 NetDevice netDevice = connector.getNetDevices().get(pkey);
                                 if(netDevice==null) throw new SQLException("Unable to find NetDevice: "+pkey);
                                 String report = NetDeviceManager.getNetDeviceBondingReport(netDevice);
@@ -288,7 +288,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_NET_DEVICE_STATISTICS_REPORT, Thread="+toString());
                                 int pkey = in.readCompressedInt();
-                                if(key==null) throw new IOException("Only the master server may GET_NET_DEVICE_STATISTICS_REPORT");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_NET_DEVICE_STATISTICS_REPORT");
                                 NetDevice netDevice = connector.getNetDevices().get(pkey);
                                 if(netDevice==null) throw new SQLException("Unable to find NetDevice: "+pkey);
                                 String report = NetDeviceManager.getNetDeviceStatisticsReport(netDevice);
@@ -299,7 +299,7 @@ final public class AOServDaemonServerThread extends Thread {
                         case AOServDaemonProtocol.GET_3WARE_RAID_REPORT :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_3WARE_RAID_REPORT, Thread="+toString());
-                                if(key==null) throw new IOException("Only the master server may GET_3WARE_RAID_REPORT");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_3WARE_RAID_REPORT");
                                 String report = ServerManager.get3wareRaidReport();
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(report);
@@ -308,7 +308,7 @@ final public class AOServDaemonServerThread extends Thread {
                         case AOServDaemonProtocol.GET_MD_RAID_REPORT :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_MD_RAID_REPORT, Thread="+toString());
-                                if(key==null) throw new IOException("Only the master server may GET_MD_RAID_REPORT");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_MD_RAID_REPORT");
                                 String report = ServerManager.getMdRaidReport();
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(report);
@@ -317,7 +317,7 @@ final public class AOServDaemonServerThread extends Thread {
                         case AOServDaemonProtocol.GET_DRBD_REPORT :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_DRBD_REPORT, Thread="+toString());
-                                if(key==null) throw new IOException("Only the master server may GET_DRBD_REPORT");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_DRBD_REPORT");
                                 String report = ServerManager.getDrbdReport();
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(report);
@@ -326,7 +326,7 @@ final public class AOServDaemonServerThread extends Thread {
                         case AOServDaemonProtocol.GET_LVM_REPORT :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_LVM_REPORT, Thread="+toString());
-                                if(key==null) throw new IOException("Only the master server may GET_LVM_REPORT");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_LVM_REPORT");
                                 String[] report = ServerManager.getLvmReport();
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(report[0]);
@@ -337,7 +337,7 @@ final public class AOServDaemonServerThread extends Thread {
                         case AOServDaemonProtocol.GET_HDD_TEMP_REPORT :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_HDD_TEMP_REPORT, Thread="+toString());
-                                if(key==null) throw new IOException("Only the master server may GET_HDD_TEMP_REPORT");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_HDD_TEMP_REPORT");
                                 String report = ServerManager.getHddTempReport();
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(report);
@@ -346,7 +346,7 @@ final public class AOServDaemonServerThread extends Thread {
                         case AOServDaemonProtocol.GET_HDD_MODEL_REPORT :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_HDD_MODEL_REPORT, Thread="+toString());
-                                if(key==null) throw new IOException("Only the master server may GET_HDD_MODEL_REPORT");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_HDD_MODEL_REPORT");
                                 String report = ServerManager.getHddModelReport();
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(report);
@@ -355,7 +355,7 @@ final public class AOServDaemonServerThread extends Thread {
                         case AOServDaemonProtocol.GET_FILESYSTEMS_CSV_REPORT :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_FILESYSTEMS_CSV_REPORT, Thread="+toString());
-                                if(key==null) throw new IOException("Only the master server may GET_FILESYSTEMS_CSV_REPORT");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_FILESYSTEMS_CSV_REPORT");
                                 String report = ServerManager.getFilesystemsCsvReport();
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(report);
@@ -364,7 +364,7 @@ final public class AOServDaemonServerThread extends Thread {
                         case AOServDaemonProtocol.GET_AO_SERVER_LOADAVG_REPORT :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_AO_SERVER_LOADAVG_REPORT, Thread="+toString());
-                                if(key==null) throw new IOException("Only the master server may GET_AO_SERVER_LOADAVG_REPORT");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_AO_SERVER_LOADAVG_REPORT");
                                 String report = ServerManager.getLoadAvgReport();
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(report);
@@ -373,7 +373,7 @@ final public class AOServDaemonServerThread extends Thread {
                         case AOServDaemonProtocol.GET_AO_SERVER_MEMINFO_REPORT :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_AO_SERVER_MEMINFO_REPORT, Thread="+toString());
-                                if(key==null) throw new IOException("Only the master server may GET_AO_SERVER_MEMINFO_REPORT");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_AO_SERVER_MEMINFO_REPORT");
                                 String report = ServerManager.getMemInfoReport();
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(report);
@@ -382,7 +382,7 @@ final public class AOServDaemonServerThread extends Thread {
                         case AOServDaemonProtocol.GET_AO_SERVER_SYSTEM_TIME_MILLIS :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_AO_SERVER_SYSTEM_TIME_MILLIS, Thread="+toString());
-                                if(key==null) throw new IOException("Only the master server may GET_AO_SERVER_SYSTEM_TIME_MILLIS");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_AO_SERVER_SYSTEM_TIME_MILLIS");
                                 long currentTime = System.currentTimeMillis();
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeLong(currentTime);
@@ -392,7 +392,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing IS_PROCMAIL_MANUAL, Thread="+toString());
                                 int lsaPKey=in.readCompressedInt();
-                                if(key==null) throw new IOException("Only the master server may IS_PROCMAIL_MANUAL");
+                                if(daemonKey==null) throw new IOException("Only the master server may IS_PROCMAIL_MANUAL");
                                 LinuxServerAccount lsa=connector.getLinuxServerAccounts().get(lsaPKey);
                                 if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+lsaPKey);
                                 boolean isManual=ProcmailManager.isManual(lsa);
@@ -403,7 +403,7 @@ final public class AOServDaemonServerThread extends Thread {
                         case AOServDaemonProtocol.GET_DAEMON_PROFILE :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_DAEMON_PROFILE, Thread="+toString());
-                                if(key==null) throw new IOException("Only the master server may GET_DAEMON_PROFILE");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_DAEMON_PROFILE");
                                 if(Profiler.getProfilerLevel()>Profiler.NONE) {
                                     String hostname=AOServDaemon.getThisAOServer().getHostname();
                                     List<MethodProfile> profs=Profiler.getMethodProfiles();
@@ -424,7 +424,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_DISK_DEVICE_TOTAL_SIZE, Thread="+toString());
                                 String path=in.readUTF();
-                                if(key==null) throw new IOException("Only the master server may GET_DISK_DEVICE_TOTAL_SIZE");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_DISK_DEVICE_TOTAL_SIZE");
                                 long bytes=BackupManager.getDiskDeviceTotalSize(path);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeLong(bytes);
@@ -434,7 +434,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_DISK_DEVICE_USED_SIZE, Thread="+toString());
                                 String path=in.readUTF();
-                                if(key==null) throw new IOException("Only the master server may GET_DISK_DEVICE_USED_SIZE");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_DISK_DEVICE_USED_SIZE");
                                 long bytes=BackupManager.getDiskDeviceUsedSize(path);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeLong(bytes);
@@ -444,7 +444,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_EMAIL_LIST_FILE, Thread="+toString());
                                 String path=in.readUTF();
-                                if(key==null) throw new IOException("Only the master server may GET_EMAIL_LIST_FILE");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_EMAIL_LIST_FILE");
                                 String file=EmailListManager.getEmailListFile(path);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(file);
@@ -454,7 +454,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_ENCRYPTED_LINUX_ACCOUNT_PASSWORD, Thread="+toString());
                                 String username=in.readUTF();
-                                if(key==null) throw new IOException("Only the master server may GET_ENCRYPTED_LINUX_ACCOUNT_PASSWORD");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_ENCRYPTED_LINUX_ACCOUNT_PASSWORD");
                                 String encryptedPassword=LinuxAccountManager.getEncryptedPassword(username);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(encryptedPassword);
@@ -465,7 +465,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_ENCRYPTED_MYSQL_USER_PASSWORD, Thread="+toString());
                                 int pkey=in.readCompressedInt();
                                 String username=in.readUTF();
-                                if(key==null) throw new IOException("Only the master server may GET_ENCRYPTED_MYSQL_USER_PASSWORD");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_ENCRYPTED_MYSQL_USER_PASSWORD");
                                 MySQLServer mysqlServer=connector.getMysqlServers().get(pkey);
                                 if(mysqlServer==null) throw new SQLException("Unable to find MySQLServer: "+pkey);
                                 String encryptedPassword=MySQLUserManager.getEncryptedPassword(mysqlServer, username);
@@ -480,7 +480,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 int numFolders=in.readCompressedInt();
                                 String[] folderNames=new String[numFolders];
                                 for(int c=0;c<numFolders;c++) folderNames[c]=in.readUTF();
-                                if(key==null) throw new IOException("Only the master server may GET_IMAP_FOLDER_SIZES");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_IMAP_FOLDER_SIZES");
                                 long[] sizes=ImapManager.getImapFolderSizes(username, folderNames);
                                 out.write(AOServDaemonProtocol.DONE);
                                 for(int c=0;c<numFolders;c++) out.writeLong(sizes[c]);
@@ -490,7 +490,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_INBOX_ATTRIBUTES, Thread="+toString());
                                 String username=in.readUTF();
-                                if(key==null) throw new IOException("Only the master server may GET_INBOX_ATTRIBUTES");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_INBOX_ATTRIBUTES");
                                 long fileSize=ImapManager.getInboxSize(username);
                                 long lastModified=ImapManager.getInboxModified(username);
                                 out.write(AOServDaemonProtocol.DONE);
@@ -502,7 +502,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_MRTG_FILE, Thread="+toString());
                                 String filename=in.readUTF();
-                                if(key==null) throw new IOException("Only the master server may GET_MRTG_FILE");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_MRTG_FILE");
                                 MrtgManager.getMrtgFile(filename, out);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
@@ -511,7 +511,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_MYSQL_MASTER_STATUS, Thread="+toString());
                                 int mysqlServer = in.readCompressedInt();
-                                if(key==null) throw new IOException("Only the master server may GET_MYSQL_MASTER_STATUS");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_MYSQL_MASTER_STATUS");
                                 MySQLDatabaseManager.getMasterStatus(mysqlServer, out);
                             }
                             break;
@@ -521,7 +521,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 String failoverRoot = in.readUTF();
                                 int nestedOperatingSystemVersion = in.readCompressedInt();
                                 int port = in.readCompressedInt();
-                                if(key==null) throw new IOException("Only the master server may GET_MYSQL_SLAVE_STATUS");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_MYSQL_SLAVE_STATUS");
                                 MySQLDatabaseManager.getSlaveStatus(failoverRoot, nestedOperatingSystemVersion, port, out);
                             }
                             break;
@@ -529,7 +529,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_POSTGRES_PASSWORD, Thread="+toString());
                                 int pkey=in.readCompressedInt();
-                                if(key==null) throw new IOException("Only the master server may GET_POSTGRES_PASSWORD");
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_POSTGRES_PASSWORD");
                                 PostgresServerUser psu=connector.getPostgresServerUsers().get(pkey);
                                 if(psu==null) throw new SQLException("Unable to find PostgresServerUser: "+pkey);
                                 String password=PostgresUserManager.getPassword(psu);
@@ -545,7 +545,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 String param1 = in.readBoolean() ? in.readUTF() : null;
                                 String param2 = in.readBoolean() ? in.readUTF() : null;
                                 String param3 = in.readBoolean() ? in.readUTF() : null;
-                                if(key==null) throw new IOException("Only the master server may GRANT_DAEMON_ACCESS");
+                                if(daemonKey==null) throw new IOException("Only the master server may GRANT_DAEMON_ACCESS");
                                 AOServDaemonServer.grantDaemonAccess(accessKey, command, param1, param2, param3);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
@@ -570,7 +570,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing REMOVE_EMAIL_LIST, Thread="+toString());
                                 String path=in.readUTF();
-                                if(key==null) throw new IOException("Only the master server may REMOVE_EMAIL_LIST");
+                                if(daemonKey==null) throw new IOException("Only the master server may REMOVE_EMAIL_LIST");
                                 EmailListManager.removeEmailListAddresses(path);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
@@ -578,14 +578,14 @@ final public class AOServDaemonServerThread extends Thread {
                         case AOServDaemonProtocol.RESTART_APACHE :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing RESTART_APACHE, Thread="+toString());
-                                if(key==null) throw new IOException("Only the master server may RESTART_APACHE");
+                                if(daemonKey==null) throw new IOException("Only the master server may RESTART_APACHE");
                                 HttpdServerManager.restartApache();
                                 out.write(AOServDaemonProtocol.DONE);
                             }
                             break;
                         case AOServDaemonProtocol.RESTART_CRON :
                             if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing RESTART_CRON, Thread="+toString());
-                            if(key==null) throw new IOException("Only the master server may RESTART_CRON");
+                            if(daemonKey==null) throw new IOException("Only the master server may RESTART_CRON");
                             ServerManager.restartCron();
                             out.write(AOServDaemonProtocol.DONE);
                             break;
@@ -593,7 +593,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing RESTART_MYSQL, Thread="+toString());
                                 int pkey=in.readCompressedInt();
-                                if(key==null) throw new IOException("Only the master server may RESTART_MYSQL");
+                                if(daemonKey==null) throw new IOException("Only the master server may RESTART_MYSQL");
                                 MySQLServer mysqlServer=connector.getMysqlServers().get(pkey);
                                 if(mysqlServer==null) throw new SQLException("Unable to find MySQLServer: "+pkey);
                                 MySQLServerManager.restartMySQL(mysqlServer);
@@ -604,7 +604,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing RESTART_POSTGRES, Thread="+toString());
                                 int pkey=in.readCompressedInt();
-                                if(key==null) throw new IOException("Only the master server may RESTART_POSTGRES");
+                                if(daemonKey==null) throw new IOException("Only the master server may RESTART_POSTGRES");
                                 PostgresServer ps=connector.getPostgresServers().get(pkey);
                                 if(ps==null) throw new SQLException("Unable to find PostgresServer: "+pkey);
                                 PostgresServerManager.restartPostgreSQL(ps);
@@ -613,13 +613,13 @@ final public class AOServDaemonServerThread extends Thread {
                             break;
                         case AOServDaemonProtocol.RESTART_XFS :
                             if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing RESTART_XFS, Thread="+toString());
-                            if(key==null) throw new IOException("Only the master server may RESTART_XFS");
+                            if(daemonKey==null) throw new IOException("Only the master server may RESTART_XFS");
                             ServerManager.restartXfs();
                             out.write(AOServDaemonProtocol.DONE);
                             break;
                         case AOServDaemonProtocol.RESTART_XVFB :
                             if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing RESTART_XVFB, Thread="+toString());
-                            if(key==null) throw new IOException("Only the master server may RESTART_XVFB");
+                            if(daemonKey==null) throw new IOException("Only the master server may RESTART_XVFB");
                             ServerManager.restartXvfb();
                             out.write(AOServDaemonProtocol.DONE);
                             break;
@@ -630,7 +630,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 String content=in.readBoolean()?in.readUTF():null;
                                 int uid=in.readCompressedInt();
                                 int gid=in.readCompressedInt();
-                                if(key==null) throw new IOException("Only the master server may SET_AUTORESPONDER_CONTENT");
+                                if(daemonKey==null) throw new IOException("Only the master server may SET_AUTORESPONDER_CONTENT");
                                 LinuxAccountManager.setAutoresponderContent(
                                     path,
                                     content,
@@ -645,7 +645,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing SET_CRON_TABLE, Thread="+toString());
                                 String username=in.readUTF();
                                 String cronTable=in.readUTF();
-                                if(key==null) throw new IOException("Only the master server may SET_CRON_TABLE");
+                                if(daemonKey==null) throw new IOException("Only the master server may SET_CRON_TABLE");
                                 LinuxAccountManager.setCronTable(username, cronTable);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
@@ -655,7 +655,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing SET_ENCRYPTED_LINUX_ACCOUNT_PASSWORD, Thread="+toString());
                                 String username=in.readUTF();
                                 String encryptedPassword=in.readUTF();
-                                if(key==null) throw new IOException("Only the master server may SET_ENCRYPTED_LINUX_ACCOUNT_PASSWORD");
+                                if(daemonKey==null) throw new IOException("Only the master server may SET_ENCRYPTED_LINUX_ACCOUNT_PASSWORD");
                                 LinuxAccountManager.setEncryptedPassword(username, encryptedPassword);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
@@ -668,7 +668,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 int uid=in.readCompressedInt();
                                 int gid=in.readCompressedInt();
                                 int mode=in.readCompressedInt();
-                                if(key==null) throw new IOException("Only the master server may SET_EMAIL_LIST_FILE");
+                                if(daemonKey==null) throw new IOException("Only the master server may SET_EMAIL_LIST_FILE");
                                 EmailListManager.setEmailListFile(
                                     path,
                                     file,
@@ -685,7 +685,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 String username=in.readUTF();
                                 String folderName=in.readUTF();
                                 boolean subscribed=in.readBoolean();
-                                if(key==null) throw new IOException("Only the master server may SET_IMAP_FOLDER_SUBSCRIBED");
+                                if(daemonKey==null) throw new IOException("Only the master server may SET_IMAP_FOLDER_SUBSCRIBED");
                                 ImapManager.setImapFolderSubscribed(username, folderName, subscribed);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
@@ -695,7 +695,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing SET_LINUX_SERVER_ACCOUNT_PASSWORD, Thread="+toString());
                                 String username=in.readUTF();
                                 String plainPassword=in.readUTF();
-                                if(key==null) throw new IOException("Only the master server may SET_LINUX_SERVER_ACCOUNT_PASSWORD");
+                                if(daemonKey==null) throw new IOException("Only the master server may SET_LINUX_SERVER_ACCOUNT_PASSWORD");
                                 LinuxAccountManager.setPassword(username, plainPassword);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
@@ -706,7 +706,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 int mysqlServerPKey=in.readCompressedInt();
                                 String username=in.readUTF();
                                 String password=in.readBoolean()?in.readUTF():null;
-                                if(key==null) throw new IOException("Only the master server may SET_MYSQL_USER_PASSWORD");
+                                if(daemonKey==null) throw new IOException("Only the master server may SET_MYSQL_USER_PASSWORD");
                                 MySQLServer mysqlServer=connector.getMysqlServers().get(mysqlServerPKey);
                                 if(mysqlServer==null) throw new SQLException("Unable to find MySQLServer: "+mysqlServerPKey);
                                 MySQLUserManager.setPassword(mysqlServer, username, password);
@@ -726,13 +726,13 @@ final public class AOServDaemonServerThread extends Thread {
                             break;
                         case AOServDaemonProtocol.START_APACHE :
                             if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing START_APACHE, Thread="+toString());
-                            if(key==null) throw new IOException("Only the master server may START_APACHE");
+                            if(daemonKey==null) throw new IOException("Only the master server may START_APACHE");
                             HttpdServerManager.startApache();
                             out.write(AOServDaemonProtocol.DONE);
                             break;
                         case AOServDaemonProtocol.START_CRON :
                             if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing START_CRON, Thread="+toString());
-                            if(key==null) throw new IOException("Only the master server may START_CRON");
+                            if(daemonKey==null) throw new IOException("Only the master server may START_CRON");
                             ServerManager.startCron();
                             out.write(AOServDaemonProtocol.DONE);
                             break;
@@ -740,7 +740,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing START_DISTRO, Thread="+toString());
                                 boolean includeUser=in.readBoolean();
-                                if(key==null) throw new IOException("Only the master server may START_DISTRO");
+                                if(daemonKey==null) throw new IOException("Only the master server may START_DISTRO");
                                 DistroManager.startDistro(includeUser);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
@@ -749,7 +749,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing START_JVM, Thread="+toString());
                                 int sitePKey=in.readCompressedInt();
-                                if(key==null) throw new IOException("Only the master server may START_JVM");
+                                if(daemonKey==null) throw new IOException("Only the master server may START_JVM");
                                 String message=HttpdSiteManager.startHttpdSite(sitePKey);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeBoolean(message!=null);
@@ -760,7 +760,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing START_MYSQL, Thread="+toString());
                                 int pkey=in.readCompressedInt();
-                                if(key==null) throw new IOException("Only the master server may START_MYSQL");
+                                if(daemonKey==null) throw new IOException("Only the master server may START_MYSQL");
                                 MySQLServer mysqlServer=connector.getMysqlServers().get(pkey);
                                 if(mysqlServer==null) throw new SQLException("Unable to find MySQLServer: "+pkey);
                                 MySQLServerManager.startMySQL(mysqlServer);
@@ -771,7 +771,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing START_POSTGRESQL, Thread="+toString());
                                 int pkey=in.readCompressedInt();
-                                if(key==null) throw new IOException("Only the master server may START_POSTGRESQL");
+                                if(daemonKey==null) throw new IOException("Only the master server may START_POSTGRESQL");
                                 PostgresServer ps=connector.getPostgresServers().get(pkey);
                                 if(ps==null) throw new SQLException("Unable to find PostgresServer: "+pkey);
                                 PostgresServerManager.startPostgreSQL(ps);
@@ -780,25 +780,25 @@ final public class AOServDaemonServerThread extends Thread {
                             break;
                         case AOServDaemonProtocol.START_XFS :
                             if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing START_XFS, Thread="+toString());
-                            if(key==null) throw new IOException("Only the master server may START_XFS");
+                            if(daemonKey==null) throw new IOException("Only the master server may START_XFS");
                             ServerManager.startXfs();
                             out.write(AOServDaemonProtocol.DONE);
                             break;
                         case AOServDaemonProtocol.START_XVFB :
                             if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing START_XVFB, Thread="+toString());
-                            if(key==null) throw new IOException("Only the master server may START_XVFB");
+                            if(daemonKey==null) throw new IOException("Only the master server may START_XVFB");
                             ServerManager.startXvfb();
                             out.write(AOServDaemonProtocol.DONE);
                             break;
                         case AOServDaemonProtocol.STOP_APACHE :
                             if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing STOP_APACHE, Thread="+toString());
-                            if(key==null) throw new IOException("Only the master server may STOP_APACHE");
+                            if(daemonKey==null) throw new IOException("Only the master server may STOP_APACHE");
                             HttpdServerManager.stopApache();
                             out.write(AOServDaemonProtocol.DONE);
                             break;
                         case AOServDaemonProtocol.STOP_CRON :
                             if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing STOP_CRON, Thread="+toString());
-                            if(key==null) throw new IOException("Only the master server may STOP_CRON");
+                            if(daemonKey==null) throw new IOException("Only the master server may STOP_CRON");
                             ServerManager.stopCron();
                             out.write(AOServDaemonProtocol.DONE);
                             break;
@@ -806,7 +806,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing STOP_JVM, Thread="+toString());
                                 int sitePKey=in.readCompressedInt();
-                                if(key==null) throw new IOException("Only the master server may STOP_JVM");
+                                if(daemonKey==null) throw new IOException("Only the master server may STOP_JVM");
                                 String message=HttpdSiteManager.stopHttpdSite(sitePKey);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeBoolean(message!=null);
@@ -817,7 +817,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing STOP_MYSQL, Thread="+toString());
                                 int pkey=in.readCompressedInt();
-                                if(key==null) throw new IOException("Only the master server may STOP_MYSQL");
+                                if(daemonKey==null) throw new IOException("Only the master server may STOP_MYSQL");
                                 MySQLServer mysqlServer=connector.getMysqlServers().get(pkey);
                                 if(mysqlServer==null) throw new SQLException("Unable to find MySQLServer: "+pkey);
                                 MySQLServerManager.stopMySQL(mysqlServer);
@@ -828,7 +828,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing STOP_POSTGRESQL, Thread="+toString());
                                 int pkey=in.readCompressedInt();
-                                if(key==null) throw new IOException("Only the master server may STOP_POSTGRESQL");
+                                if(daemonKey==null) throw new IOException("Only the master server may STOP_POSTGRESQL");
                                 PostgresServer ps=connector.getPostgresServers().get(pkey);
                                 if(ps==null) throw new SQLException("Unable to find PostgresServer: "+pkey);
                                 PostgresServerManager.stopPostgreSQL(ps);
@@ -837,13 +837,13 @@ final public class AOServDaemonServerThread extends Thread {
                             break;
                         case AOServDaemonProtocol.STOP_XFS :
                             if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing STOP_XFS, Thread="+toString());
-                            if(key==null) throw new IOException("Only the master server may STOP_XFS");
+                            if(daemonKey==null) throw new IOException("Only the master server may STOP_XFS");
                             ServerManager.stopXfs();
                             out.write(AOServDaemonProtocol.DONE);
                             break;
                         case AOServDaemonProtocol.STOP_XVFB :
                             if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing STOP_XVFB, Thread="+toString());
-                            if(key==null) throw new IOException("Only the master server may STOP_XVFB");
+                            if(daemonKey==null) throw new IOException("Only the master server may STOP_XVFB");
                             ServerManager.stopXvfb();
                             out.write(AOServDaemonProtocol.DONE);
                             break;
@@ -851,7 +851,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing TAR_HOME_DIRECTORY, Thread="+toString());
                                 String username=in.readUTF();
-                                if(key==null) throw new IOException("Only the master server may TAR_HOME_DIRECTORY");
+                                if(daemonKey==null) throw new IOException("Only the master server may TAR_HOME_DIRECTORY");
                                 LinuxAccountManager.tarHomeDirectory(out, username);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
@@ -860,7 +860,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing UNTAR_HOME_DIRECTORY, Thread="+toString());
                                 String username=in.readUTF();
-                                if(key==null) throw new IOException("Only the master server may UNTAR_HOME_DIRECTORY");
+                                if(daemonKey==null) throw new IOException("Only the master server may UNTAR_HOME_DIRECTORY");
                                 LinuxAccountManager.untarHomeDirectory(in, username);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
@@ -869,7 +869,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing WAIT_FOR_REBUILD, Thread="+toString());
                                 SchemaTable.TableID tableID=tableIDs[in.readCompressedInt()];
-                                if(key==null) throw new IOException("Only the master server may WAIT_FOR_REBUILD");
+                                if(daemonKey==null) throw new IOException("Only the master server may WAIT_FOR_REBUILD");
                                 switch(tableID) {
                                     case HTTPD_SITES :
                                         HttpdManager.waitForRebuild();
