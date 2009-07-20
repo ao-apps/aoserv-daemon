@@ -241,6 +241,20 @@ final public class AOServDaemonServerThread extends Thread {
                                 );
                             }
                             break;
+                        case AOServDaemonProtocol.VNC_CONSOLE :
+                            {
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing VNC_CONSOLE, Thread="+toString());
+                                long daemonAccessKey=in.readLong();
+                                DaemonAccessEntry dae=AOServDaemonServer.getDaemonAccessEntry(daemonAccessKey);
+                                if(dae.command!=AOServDaemonProtocol.VNC_CONSOLE) throw new IOException("Mismatched DaemonAccessEntry command, dae.command!="+AOServDaemonProtocol.VNC_CONSOLE);
+                                ServerManager.vncConsole(
+                                    socket,
+                                    in,
+                                    out,
+                                    dae.param1 // server_name
+                                );
+                            }
+                            break;
                         case AOServDaemonProtocol.GET_AUTORESPONDER_CONTENT :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_AUTORESPONDER_CONTENT, Thread="+toString());

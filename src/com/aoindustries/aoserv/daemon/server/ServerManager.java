@@ -8,6 +8,7 @@ package com.aoindustries.aoserv.daemon.server;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
+import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.util.StringUtility;
@@ -261,34 +262,36 @@ final public class ServerManager {
             while(pos<len) {
                 // Look for the next non-whitespace character
                 while(pos<len && result.charAt(pos)<=' ') pos++;
-                if(pos>=len) throw new ParseException("Unexpected end of result", pos);
-                if(result.charAt(pos)=='(') {
-                    // If is a (, start a sublist
-                    int nameStart = ++pos;
-                    while(pos<len && result.charAt(pos)>' ') pos++;
-                    if(pos>=len) throw new ParseException("Unexpected end of result", pos);
-                    String name = result.substring(nameStart, pos);
-                    if(name.length()==0) throw new ParseException("Empty name", nameStart);
-                    XmListNode newNode = new XmListNode(name);
-                    pos = parseResult(newNode, result, pos);
-                    if(pos>=len) throw new ParseException("Unexpected end of result", pos);
-                    // Character at pos should be )
-                    if(result.charAt(pos)!=')') throw new ParseException("')' expected", pos);
-                    pos++; // Skip past )
-                } else {
-                    // Is a raw value, parse up to either whitespace or )
-                    int valueStart = pos;
-                    while(pos<len && (result.charAt(pos)>' ' && result.charAt(pos)!=')')) pos++;
-                    if(pos>=len) throw new ParseException("Unexpected end of result", pos);
-                    String value = result.substring(valueStart, pos).trim();
-                    if(value.length()>0) node.list.add(value);
-                    if(result.charAt(pos)==')') {
-                        // Found ), end list
-                        return pos;
+                if(pos<len) {
+                    if(result.charAt(pos)=='(') {
+                        // If is a (, start a sublist
+                        int nameStart = ++pos;
+                        while(pos<len && result.charAt(pos)>' ') pos++;
+                        if(pos>=len) throw new ParseException("Unexpected end of result", pos);
+                        String name = result.substring(nameStart, pos);
+                        if(name.length()==0) throw new ParseException("Empty name", nameStart);
+                        XmListNode newNode = new XmListNode(name);
+                        pos = parseResult(newNode, result, pos);
+                        if(pos>=len) throw new ParseException("Unexpected end of result", pos);
+                        // Character at pos should be )
+                        if(result.charAt(pos)!=')') throw new ParseException("')' expected", pos);
+                        node.list.add(newNode);
+                        pos++; // Skip past )
+                    } else {
+                        // Is a raw value, parse up to either whitespace or )
+                        int valueStart = pos;
+                        while(pos<len && (result.charAt(pos)>' ' && result.charAt(pos)!=')')) pos++;
+                        if(pos>=len) throw new ParseException("Unexpected end of result", pos);
+                        String value = result.substring(valueStart, pos).trim();
+                        if(value.length()>0) node.list.add(value);
+                        if(result.charAt(pos)==')') {
+                            // Found ), end list
+                            return pos;
+                        }
                     }
                 }
             }
-            throw new ParseException("Unexpected end of result", pos);
+            return pos;
         }
 
         private final String id;
@@ -559,7 +562,7 @@ final public class ServerManager {
      * Parses the output of xm list -l for a specific domain.
      */
     public static void vncConsole(
-        Socket socket,
+        final Socket socket,
         final CompressedDataInputStream socketIn,
         CompressedDataOutputStream socketOut,
         String serverName
@@ -590,21 +593,36 @@ final public class ServerManager {
                         }
                     );
                     String[] values = StringUtility.splitString(lsof, '\u0000');
+                    System.out.println("values.length="+values.length);
                     if(
-                        values.length!=6
-                        || !values[0].trim().equals("p"+pid)
-                        || !values[1].equals("PTCP")
-                        || !values[2].startsWith("n127.0.0.1:")
-                        || !values[3].equals("TST=LISTEN")
-                        || !values[4].startsWith("TQR=")
-                        || !values[5].startsWith("TQS=")
-                    ) {
-                        throw new ParseException("Unexpected output from lsof: "+lsof, 0);
+                        values.length<7
+                        || (values.length%5)!=2
+                        || !values[0].equals("p"+pid)
+                        || values[values.length-1].trim().length()!=0
+                    ) throw new ParseException("Unexpected output from lsof: "+lsof, 0);
+                    int vncPort = Integer.MIN_VALUE;
+                    for(int c=1; c<values.length; c+=5) {
+                        if(
+                            !values[c].trim().equals("PTCP")
+                            || !values[c+2].startsWith("TST=")
+                            || !values[c+3].startsWith("TQR=")
+                            || !values[c+4].startsWith("TQS=")
+                        ) {
+                            throw new ParseException("Unexpected output from lsof: "+lsof, 0);
+                        }
+                        if(
+                            (values[c+1].startsWith("n127.0.0.1:") || values[c+1].startsWith("n*:"))
+                            && values[c+2].equals("TST=LISTEN")
+                        ) {
+                            vncPort = Integer.parseInt(values[c+1].substring(values[c+1].indexOf(':')+1));
+                            break;
+                        }
                     }
-                    int vncPort = Integer.parseInt(values[2].substring(11));
+                    System.out.println("vncPort="+vncPort);
+                    if(vncPort==Integer.MIN_VALUE) throw new ParseException("Unexpected output from lsof: "+lsof, 0);
 
                     // Connect to port and tunnel through all data until EOF
-                    Socket vncSocket = new Socket("127.0.0.1", vncPort);
+                    final Socket vncSocket = new Socket("127.0.0.1", vncPort);
                     try {
                         InputStream vncIn = vncSocket.getInputStream();
                         try {
@@ -615,11 +633,15 @@ final public class ServerManager {
                                     new Runnable() {
                                         public void run() {
                                             try {
-                                                byte[] buff = new byte[4096];
-                                                int ret;
-                                                while((ret=socketIn.read(buff, 0, 4096))!=-1) {
-                                                    vncOut.write(buff, 0, ret);
-                                                    vncOut.flush();
+                                                try {
+                                                    byte[] buff = new byte[4096];
+                                                    int ret;
+                                                    while((ret=socketIn.read(buff, 0, 4096))!=-1) {
+                                                        vncOut.write(buff, 0, ret);
+                                                        vncOut.flush();
+                                                    }
+                                                } finally {
+                                                    vncSocket.close();
                                                 }
                                             } catch(ThreadDeath TD) {
                                                 throw TD;
@@ -630,7 +652,9 @@ final public class ServerManager {
                                     }
                                 );
                                 inThread.start();
-                                try {
+                                //try {
+                                    // Tell it DONE OK
+                                    socketOut.write(AOServDaemonProtocol.NEXT);
                                     // vncIn -> socketOut in this thread
                                     byte[] buff = new byte[4096];
                                     int ret;
@@ -638,16 +662,16 @@ final public class ServerManager {
                                         socketOut.write(buff, 0, ret);
                                         socketOut.flush();
                                     }
-                                } finally {
-                                    try {
+                                //} finally {
+                                    //try {
                                         // Let the in thread complete its work before closing streams
-                                        inThread.join();
-                                    } catch(InterruptedException err) {
-                                        IOException ioErr = new InterruptedIOException();
-                                        ioErr.initCause(err);
-                                        throw ioErr;
-                                    }
-                                }
+                                    //    inThread.join();
+                                    //} catch(InterruptedException err) {
+                                    //    IOException ioErr = new InterruptedIOException();
+                                    //    ioErr.initCause(err);
+                                    //    throw ioErr;
+                                    //}
+                                //}
                             } finally {
                                 vncOut.close();
                             }
