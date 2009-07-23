@@ -9,7 +9,6 @@ import com.aoindustries.aoserv.client.AOServClientConfiguration;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.NetBind;
-import com.aoindustries.aoserv.client.SSLConnector;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.client.Shell;
 import com.aoindustries.aoserv.daemon.cvsd.CvsManager;
@@ -58,7 +57,6 @@ import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
 import java.io.Reader;
 import java.security.SecureRandom;
-import java.security.Security;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Random;
@@ -161,34 +159,21 @@ final public class AOServDaemon {
                 Profiler.setProfilerLevel(AOServDaemonConfiguration.getProfilerLevel());
 
                 // Configure the SSL
-                synchronized(SSLConnector.class) {
-                    if(!SSLConnector.sslProviderLoaded[0]) {
-                        boolean useSSL=false;
-                        String trustStorePath=AOServClientConfiguration.getSslTruststorePath();
-                        if(trustStorePath!=null && trustStorePath.length()>0) {
-                            System.setProperty("javax.net.ssl.trustStore", trustStorePath);
-                            useSSL=true;
-                        }
-                        String trustStorePassword=AOServClientConfiguration.getSslTruststorePassword();
-                        if(trustStorePassword!=null && trustStorePassword.length()>0) {
-                            System.setProperty("javax.net.ssl.trustStorePassword", trustStorePassword);
-                            useSSL=true;
-                        }
-                        String keyStorePath=AOServDaemonConfiguration.getSSLKeystorePath();
-                        if(keyStorePath!=null && keyStorePath.length()>0) {
-                            System.setProperty("javax.net.ssl.keyStore", keyStorePath);
-                            useSSL=true;
-                        }
-                        String keyStorePassword=AOServDaemonConfiguration.getSSLKeystorePassword();
-                        if(keyStorePassword!=null && keyStorePassword.length()>0) {
-                            System.setProperty("javax.net.ssl.keyStorePassword", keyStorePassword);
-                            useSSL=true;
-                        }
-                        if(useSSL) {
-                            Security.addProvider(new com.sun.net.ssl.internal.ssl.Provider());
-                            SSLConnector.sslProviderLoaded[0]=true;
-                        }
-                    }
+                String trustStorePath=AOServClientConfiguration.getSslTruststorePath();
+                if(trustStorePath!=null && trustStorePath.length()>0) {
+                    System.setProperty("javax.net.ssl.trustStore", trustStorePath);
+                }
+                String trustStorePassword=AOServClientConfiguration.getSslTruststorePassword();
+                if(trustStorePassword!=null && trustStorePassword.length()>0) {
+                    System.setProperty("javax.net.ssl.trustStorePassword", trustStorePassword);
+                }
+                String keyStorePath=AOServDaemonConfiguration.getSSLKeystorePath();
+                if(keyStorePath!=null && keyStorePath.length()>0) {
+                    System.setProperty("javax.net.ssl.keyStore", keyStorePath);
+                }
+                String keyStorePassword=AOServDaemonConfiguration.getSSLKeystorePassword();
+                if(keyStorePassword!=null && keyStorePassword.length()>0) {
+                    System.setProperty("javax.net.ssl.keyStorePassword", keyStorePassword);
                 }
 
                 // Start up the managers

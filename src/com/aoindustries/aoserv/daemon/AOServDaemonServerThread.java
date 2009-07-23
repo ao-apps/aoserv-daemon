@@ -943,6 +943,7 @@ final public class AOServDaemonServerThread extends Thread {
             String message=err.getMessage();
             if(
                 !"Socket closed".equals(message)
+                && !"Socket is closed".equals(message)
             ) {
                 LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.SEVERE, null, err);
             }

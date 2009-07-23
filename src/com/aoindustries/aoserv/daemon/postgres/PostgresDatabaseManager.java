@@ -142,8 +142,6 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                             null,
                             toPoolSize,
                             AOPool.DEFAULT_MAX_CONNECTION_AGE,
-                            SSLConnector.class,
-                            SSLConnector.sslProviderLoaded,
                             AOServClientConfiguration.getSslTruststorePath(),
                             AOServClientConfiguration.getSslTruststorePassword(),
                             TODO

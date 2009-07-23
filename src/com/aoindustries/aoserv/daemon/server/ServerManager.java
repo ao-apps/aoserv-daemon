@@ -17,7 +17,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.sql.SQLException;
@@ -34,6 +33,9 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 final public class ServerManager {
+
+    private ServerManager() {
+    }
 
     private static final File procLoadavg = new File("/proc/loadavg");
     private static final File procMeminfo = new File("/proc/meminfo");
@@ -522,6 +524,7 @@ final public class ServerManager {
 
     /**
      * Finds a PID given its exact command line as found in /proc/.../cmdline
+     * Returns PID or <code>-1</code> if not found.
      */
     public static int findPid(String cmdlinePrefix) throws IOException {
         File procFile = new File("/proc");
@@ -555,7 +558,7 @@ final public class ServerManager {
                 }
             }
         }
-        throw new IOException("Unable to find PID");
+        return -1;
     }
 
     /**
@@ -576,7 +579,9 @@ final public class ServerManager {
                     int domid = xmList.getDomid();
 
                     // Find the PID of its qemu handler from its ID
-                    int pid = findPid("/usr/lib64/xen/bin/qemu-dm\u0000-d\u0000"+domid+"\u0000");
+                    int pid = findPid("/usr/lib64/xen/bin/qemu-dm\u0000-d\u0000"+domid+"\u0000"); // Hardware virtualized
+                    if(pid==-1) pid = findPid("/usr/lib64/xen/bin/xen-vncfb\u0000--unused\u0000--listen\u0000127.0.0.1\u0000--domid\u0000"+domid+"\u0000"); // Paravirtualized
+                    if(pid==-1) throw new IOException("Unable to find PID");
 
                     // Find its port from lsof given its PID
                     String lsof = AOServDaemon.execAndCapture(
@@ -622,7 +627,7 @@ final public class ServerManager {
                     if(vncPort==Integer.MIN_VALUE) throw new ParseException("Unexpected output from lsof: "+lsof, 0);
 
                     // Connect to port and tunnel through all data until EOF
-                    final Socket vncSocket = new Socket("127.0.0.1", vncPort);
+                    final Socket vncSocket = getVncSocket(vncPort);
                     try {
                         InputStream vncIn = vncSocket.getInputStream();
                         try {
@@ -679,7 +684,7 @@ final public class ServerManager {
                             vncIn.close();
                         }
                     } finally {
-                        vncSocket.close();
+                        closeVncSocket(vncPort, vncSocket);
                     }
                 } finally {
                     socketIn.close();
@@ -693,6 +698,52 @@ final public class ServerManager {
             throw ioErr;
         } finally {
             socket.close();
+        }
+    }
+
+    /**
+     * Tracks the open connections to close them when new connections are established.
+     */
+    private static final Map<Integer,Socket> openVncSockets = new HashMap<Integer,Socket>();
+
+    /**
+     * Gets a socket connection to the provided VNC port.  If any connection
+     * exists to that port, closes the existing connection and then creates
+     * the new connection.  The socket that is returned should be closed using
+     * <code>closeVncSocket(Socket)</code> in a try/finally block to ensure
+     * minimal data structures.
+     *
+     * @see  #closeVncSocket
+     */
+    private static Socket getVncSocket(int vncPort) throws IOException {
+        synchronized(openVncSockets) {
+            Socket existingSocket = openVncSockets.get(vncPort);
+            if(existingSocket!=null) {
+                try {
+                    existingSocket.close();
+                } catch(IOException err) {
+                    LogFactory.getLogger(ServerManager.class).log(Level.INFO, null, err);
+                }
+            }
+            Socket vncSocket = new Socket("127.0.0.1", vncPort);
+            openVncSockets.put(vncPort, vncSocket);
+            return vncSocket;
+        }
+    }
+
+    /**
+     * Closes the socket and removes it from the map of active sockets.
+     *
+     * @see  #getVncSocket
+     */
+    private static void closeVncSocket(int vncPort, Socket vncSocket) {
+        synchronized(openVncSockets) {
+            try {
+                vncSocket.close();
+            } catch(IOException err) {
+                LogFactory.getLogger(ServerManager.class).log(Level.INFO, null, err);
+            }
+            if(openVncSockets.get(vncPort)==vncSocket) openVncSockets.remove(vncPort);
         }
     }
 }
