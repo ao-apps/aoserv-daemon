@@ -524,9 +524,8 @@ final public class ServerManager {
 
     /**
      * Finds a PID given its exact command line as found in /proc/.../cmdline
-     * Returns PID or <code>-1</code> if not found.
      */
-    public static int findPid(String cmdlinePrefix) throws IOException {
+    public static int findPid(String ... cmdlinePrefixes) throws IOException {
         File procFile = new File("/proc");
         String[] list = procFile.list();
         if(list!=null) {
@@ -546,7 +545,9 @@ final public class ServerManager {
                                 } finally {
                                     in.close();
                                 }
-                                if(SB.toString().startsWith(cmdlinePrefix)) return pid;
+                                for(String cmdlinePrefix : cmdlinePrefixes) {
+                                    if(SB.toString().startsWith(cmdlinePrefix)) return pid;
+                                }
                             }
                         } catch(NumberFormatException err) {
                             // Not a PID directory
@@ -558,7 +559,7 @@ final public class ServerManager {
                 }
             }
         }
-        return -1;
+        throw new IOException("Unable to find PID");
     }
 
     /**
@@ -579,9 +580,10 @@ final public class ServerManager {
                     int domid = xmList.getDomid();
 
                     // Find the PID of its qemu handler from its ID
-                    int pid = findPid("/usr/lib64/xen/bin/qemu-dm\u0000-d\u0000"+domid+"\u0000"); // Hardware virtualized
-                    if(pid==-1) pid = findPid("/usr/lib64/xen/bin/xen-vncfb\u0000--unused\u0000--listen\u0000127.0.0.1\u0000--domid\u0000"+domid+"\u0000"); // Paravirtualized
-                    if(pid==-1) throw new IOException("Unable to find PID");
+                    int pid = findPid(
+                        "/usr/lib64/xen/bin/qemu-dm\u0000-d\u0000"+domid+"\u0000", // Hardware virtualized
+                        "/usr/lib64/xen/bin/xen-vncfb\u0000--unused\u0000--listen\u0000127.0.0.1\u0000--domid\u0000"+domid+"\u0000" // Paravirtualized
+                    );
 
                     // Find its port from lsof given its PID
                     String lsof = AOServDaemon.execAndCapture(
