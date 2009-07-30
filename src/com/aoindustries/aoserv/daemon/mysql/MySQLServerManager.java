@@ -101,15 +101,15 @@ final public class MySQLServerManager extends BuilderThread {
     }
 
     public static void restartMySQL(MySQLServer ms) throws IOException, SQLException {
-        ServerManager.controlProcess("mysql-"+ms.getMinorVersion(), "restart");
+        ServerManager.controlProcess("mysql-"+ms.getName(), "restart");
     }
 
     public static void startMySQL(MySQLServer ms) throws IOException, SQLException {
-        ServerManager.controlProcess("mysql-"+ms.getMinorVersion(), "start");
+        ServerManager.controlProcess("mysql-"+ms.getName(), "start");
     }
 
     public static void stopMySQL(MySQLServer ms) throws IOException, SQLException {
-        ServerManager.controlProcess("mysql-"+ms.getMinorVersion(), "stop");
+        ServerManager.controlProcess("mysql-"+ms.getName(), "stop");
     }
 
     private static final Object flushLock=new Object();

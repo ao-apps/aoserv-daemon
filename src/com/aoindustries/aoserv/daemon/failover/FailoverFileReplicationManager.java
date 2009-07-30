@@ -158,7 +158,9 @@ final public class FailoverFileReplicationManager {
             && (
                 relativePath.startsWith("/etc/rc.d/init.d/mysql-")
                 || relativePath.startsWith("/usr/mysql/")
+                || relativePath.startsWith("/usr/aoserv/etc/mysql-")
                 || relativePath.startsWith("/opt/mysql-")
+                || relativePath.startsWith("/opt/aoserv-client/scripts/mysql-")
             )
         ) {
             Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
@@ -1806,13 +1808,8 @@ final public class FailoverFileReplicationManager {
                 if(
                     relativePath.equals("/var/lib/mysql/"+name)
                     || relativePath.startsWith("/var/lib/mysql/"+name+"/")
+                    || relativePath.equals("/var/lock/subsys/mysql-"+name)
                 ) {
-                    if(isDebug) logger.fine("Skipping delete on cleanup: \""+fromServer+"\":"+relativePath);
-                    return false;
-                }
-            }
-            for(String minorVersion : replicatedMySQLMinorVersions) {
-                if(relativePath.equals("/var/lock/subsys/mysql-"+minorVersion)) {
                     if(isDebug) logger.fine("Skipping delete on cleanup: \""+fromServer+"\":"+relativePath);
                     return false;
                 }

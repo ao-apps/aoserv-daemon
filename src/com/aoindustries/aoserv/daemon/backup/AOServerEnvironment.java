@@ -216,6 +216,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
         filesystemRules.put("/var/lib/mysql/4.0/"+hostname+".pid", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lib/mysql/4.1/"+hostname+".pid", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lib/mysql/5.0/"+hostname+".pid", FilesystemIteratorRule.SKIP);
+        filesystemRules.put("/var/lib/mysql/5.1/"+hostname+".pid", FilesystemIteratorRule.SKIP);
         if(retention==1) {
             // Skip files for any MySQL Server that is being replicated through MySQL replication
             List<String> replicatedMySQLServers;
@@ -263,11 +264,10 @@ public class AOServerEnvironment extends UnixFileEnvironment {
         filesystemRules.put("/var/lock/subsys/identd", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lock/subsys/local", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lock/subsys/messagebus", FilesystemIteratorRule.SKIP);
-        filesystemRules.put("/var/lock/subsys/mysql-4.0-max", FilesystemIteratorRule.SKIP);
+        filesystemRules.put("/var/lock/subsys/mysql-4.0", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lock/subsys/mysql-4.1", FilesystemIteratorRule.SKIP);
-        filesystemRules.put("/var/lock/subsys/mysql-4.1-max", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lock/subsys/mysql-5.0", FilesystemIteratorRule.SKIP);
-        filesystemRules.put("/var/lock/subsys/mysql-5.0-max", FilesystemIteratorRule.SKIP);
+        filesystemRules.put("/var/lock/subsys/mysql-5.1", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lock/subsys/network", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lock/subsys/numlock", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lock/subsys/postgresql-7.1", FilesystemIteratorRule.SKIP);
@@ -346,6 +346,8 @@ public class AOServerEnvironment extends UnixFileEnvironment {
         Map<String,FilesystemIteratorRule> filesystemPrefixRules=new HashMap<String,FilesystemIteratorRule>();
         filesystemPrefixRules.put("/var/lib/mysql/5.0/mysql-bin.", FilesystemIteratorRule.SKIP);
         filesystemPrefixRules.put("/var/lib/mysql/5.0/relay-log.", FilesystemIteratorRule.SKIP);
+        filesystemPrefixRules.put("/var/lib/mysql/5.1/mysql-bin.", FilesystemIteratorRule.SKIP);
+        filesystemPrefixRules.put("/var/lib/mysql/5.1/relay-log.", FilesystemIteratorRule.SKIP);
         return filesystemPrefixRules;
     }
 

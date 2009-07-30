@@ -90,9 +90,10 @@ final public class MySQLHostManager extends BuilderThread {
 
                         // Add the hosts that do not exist and should
                         String insertSQL;
-                        if(version.startsWith("4.0.")) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
-                        else if(version.startsWith("4.1.")) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
-                        else if(version.startsWith("5.0.")) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
+                        if(version.startsWith(MySQLServer.VERSION_4_0_PREFIX))      insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
+                        else if(version.startsWith(MySQLServer.VERSION_4_1_PREFIX)) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
+                        else if(version.startsWith(MySQLServer.VERSION_5_0_PREFIX)) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
+                        else if(version.startsWith(MySQLServer.VERSION_5_1_PREFIX)) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
                         else throw new SQLException("Unsupported MySQL version: "+version);
 
                         PreparedStatement pstmt = conn.prepareStatement(insertSQL);
