@@ -1210,6 +1210,13 @@ public class HttpdServerManager {
                 AOServDaemon.exec(
                     new String[] {
                         "/sbin/chkconfig",
+                        "--add",
+                        filename
+                    }
+                );
+                AOServDaemon.exec(
+                    new String[] {
+                        "/sbin/chkconfig",
                         filename,
                         "on"
                     }

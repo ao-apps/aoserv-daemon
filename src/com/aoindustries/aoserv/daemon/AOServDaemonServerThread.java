@@ -539,6 +539,31 @@ final public class AOServDaemonServerThread extends Thread {
                                 MySQLDatabaseManager.getSlaveStatus(failoverRoot, nestedOperatingSystemVersion, port, out);
                             }
                             break;
+                        case AOServDaemonProtocol.GET_MYSQL_TABLE_STATUS :
+                            {
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_MYSQL_TABLE_STATUS, Thread="+toString());
+                                int mysqlDatabase = in.readCompressedInt();
+                                MySQLDatabase md = connector.getMysqlDatabases().get(mysqlDatabase);
+                                if(md==null) throw new SQLException("Unable to find MySQLDatabase: "+md);
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_MYSQL_TABLE_STATUS");
+                                MySQLDatabaseManager.getTableStatus(md, out);
+                            }
+                            break;
+                        case AOServDaemonProtocol.CHECK_MYSQL_TABLES :
+                            {
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing CHECK_MYSQL_TABLES, Thread="+toString());
+                                int mysqlDatabase = in.readCompressedInt();
+                                int numTables = in.readCompressedInt();
+                                List<String> tableNames = new ArrayList<String>(numTables);
+                                for(int c=0;c<numTables;c++) {
+                                    tableNames.add(in.readUTF());
+                                }
+                                MySQLDatabase md = connector.getMysqlDatabases().get(mysqlDatabase);
+                                if(md==null) throw new SQLException("Unable to find MySQLDatabase: "+md);
+                                if(daemonKey==null) throw new IOException("Only the master server may CHECK_MYSQL_TABLES");
+                                MySQLDatabaseManager.checkTables(md, tableNames, out);
+                            }
+                            break;
                         case AOServDaemonProtocol.GET_POSTGRES_PASSWORD :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_POSTGRES_PASSWORD, Thread="+toString());

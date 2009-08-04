@@ -261,7 +261,7 @@ public final class XinetdManager extends BuilderThread {
                                     service=new Service(
                                         portMatches?null:UNLISTED,
                                         100,
-                                        5,
+                                        20, // Was 5, but confsys03 on www7.fc.aoindustries.com hit this limit on 2009-07-31
                                         "100 30",
                                         "/etc/vsftpd/busy_banner",
                                         "IPv4",

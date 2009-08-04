@@ -28,7 +28,9 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
@@ -400,6 +402,187 @@ final public class MySQLDatabaseManager extends BuilderThread {
             }
         } finally {
             conn.close();
+        }
+    }
+
+    public static void getTableStatus(MySQLDatabase mysqlDatabase, CompressedDataOutputStream out) throws IOException, SQLException {
+        List<MySQLDatabase.TableStatus> tableStatuses = new ArrayList<MySQLDatabase.TableStatus>();
+        MySQLServer mysqlServer = mysqlDatabase.getMySQLServer();
+        String mysqlVersion = mysqlServer.getVersion().getVersion();
+        boolean isMySQL40 = mysqlVersion.startsWith(MySQLServer.VERSION_4_0_PREFIX);
+        AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
+        Connection conn = pool.getConnection(true);
+        try {
+            Statement stmt = conn.createStatement();
+            try {
+                ResultSet results = stmt.executeQuery("SHOW TABLE STATUS FROM "+mysqlDatabase.getName());
+                try {
+                    while(results.next()) {
+                        String engine = results.getString(isMySQL40 ? "Type" : "Engine");
+                        Integer version;
+                        if(isMySQL40) version = null;
+                        else {
+                            version = results.getInt("Version");
+                            if(results.wasNull()) version = null;
+                        }
+                        String rowFormat = results.getString("Row_format");
+                        Long rows = results.getLong("Rows");
+                        if(results.wasNull()) rows = null;
+                        Long avgRowLength = results.getLong("Avg_row_length");
+                        if(results.wasNull()) avgRowLength = null;
+                        Long dataLength = results.getLong("Data_length");
+                        if(results.wasNull()) dataLength = null;
+                        Long maxDataLength = results.getLong("Max_data_length");
+                        if(results.wasNull()) maxDataLength = null;
+                        Long indexLength = results.getLong("Index_length");
+                        if(results.wasNull()) indexLength = null;
+                        Long dataFree = results.getLong("Data_free");
+                        if(results.wasNull()) dataFree = null;
+                        Long autoIncrement = results.getLong("Auto_increment");
+                        if(results.wasNull()) autoIncrement = null;
+                        String collation;
+                        if(isMySQL40) {
+                            collation = null;
+                        } else {
+                            collation = results.getString("Collation");
+                        }
+                        try {
+                            tableStatuses.add(
+                                new MySQLDatabase.TableStatus(
+                                    results.getString("Name"),
+                                    engine==null ? null : MySQLDatabase.Engine.valueOf(engine),
+                                    version,
+                                    rowFormat==null ? null : MySQLDatabase.TableStatus.RowFormat.valueOf(rowFormat),
+                                    rows,
+                                    avgRowLength,
+                                    dataLength,
+                                    maxDataLength,
+                                    indexLength,
+                                    dataFree,
+                                    autoIncrement,
+                                    results.getString("Create_time"),
+                                    isMySQL40 ? null : results.getString("Update_time"),
+                                    results.getString("Check_time"),
+                                    collation==null ? null : MySQLDatabase.TableStatus.Collation.valueOf(collation),
+                                    isMySQL40 ? null : results.getString("Checksum"),
+                                    results.getString("Create_options"),
+                                    results.getString("Comment")
+                                )
+                            );
+                        } catch(IllegalArgumentException err) {
+                            IOException ioErr = new IOException(err.toString());
+                            ioErr.initCause(err);
+                            throw ioErr;
+                        }
+                    }
+                } finally {
+                    results.close();
+                }
+            } finally {
+                stmt.close();
+            }
+        } catch(SQLException err) {
+            conn.close();
+            throw err;
+        } finally {
+            pool.releaseConnection(conn);
+        }
+        out.write(AOServDaemonProtocol.NEXT);
+        int size = tableStatuses.size();
+        out.writeCompressedInt(size);
+        for(int c=0;c<size;c++) {
+            MySQLDatabase.TableStatus tableStatus = tableStatuses.get(c);
+            out.writeUTF(tableStatus.getName());
+            out.writeNullEnum(tableStatus.getEngine());
+            out.writeNullInteger(tableStatus.getVersion());
+            out.writeNullEnum(tableStatus.getRowFormat());
+            out.writeNullLong(tableStatus.getRows());
+            out.writeNullLong(tableStatus.getAvgRowLength());
+            out.writeNullLong(tableStatus.getDataLength());
+            out.writeNullLong(tableStatus.getMaxDataLength());
+            out.writeNullLong(tableStatus.getIndexLength());
+            out.writeNullLong(tableStatus.getDataFree());
+            out.writeNullLong(tableStatus.getAutoIncrement());
+            out.writeNullUTF(tableStatus.getCreateTime());
+            out.writeNullUTF(tableStatus.getUpdateTime());
+            out.writeNullUTF(tableStatus.getCheckTime());
+            out.writeNullEnum(tableStatus.getCollation());
+            out.writeNullUTF(tableStatus.getChecksum());
+            out.writeNullUTF(tableStatus.getCreateOptions());
+            out.writeNullUTF(tableStatus.getComment());
+        }
+    }
+
+    public static void checkTables(MySQLDatabase mysqlDatabase, List<String> tableNames, CompressedDataOutputStream out) throws IOException, SQLException {
+        String dbName = mysqlDatabase.getName();
+        String dbNamePrefix = dbName+".";
+        List<MySQLDatabase.CheckTableResult> checkTableResults = new ArrayList<MySQLDatabase.CheckTableResult>();
+        MySQLServer mysqlServer = mysqlDatabase.getMySQLServer();
+        AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
+        Connection conn = pool.getConnection(true);
+        try {
+            Statement stmt = conn.createStatement();
+            try {
+                for(String tableName : tableNames) {
+                    long startTime = System.currentTimeMillis();
+                    if(!MySQLDatabase.isSafeName(tableName)) {
+                        long duration = System.currentTimeMillis() - startTime;
+                        if(duration<0) duration = 0;
+                        checkTableResults.add(
+                            new MySQLDatabase.CheckTableResult(
+                                tableName,
+                                duration,
+                                MySQLDatabase.CheckTableResult.MsgType.error,
+                                "Unsafe table name, refusing to check table"
+                            )
+                        );
+                    } else {
+                        ResultSet results = stmt.executeQuery("CHECK TABLE `"+dbName+"`.`"+tableName+"` FAST QUICK");
+                        try {
+                            long duration = System.currentTimeMillis() - startTime;
+                            if(duration<0) duration = 0;
+                            while(results.next()) {
+                                try {
+                                    String table = results.getString("Table");
+                                    if(table.startsWith(dbNamePrefix)) table = table.substring(dbNamePrefix.length());
+                                    String msgType = results.getString("Msg_type");
+                                    checkTableResults.add(
+                                        new MySQLDatabase.CheckTableResult(
+                                            table,
+                                            duration,
+                                            msgType==null ? null : MySQLDatabase.CheckTableResult.MsgType.valueOf(msgType),
+                                            results.getString("Msg_text")
+                                        )
+                                    );
+                                } catch(IllegalArgumentException err) {
+                                    IOException ioErr = new IOException(err.toString());
+                                    ioErr.initCause(err);
+                                    throw ioErr;
+                                }
+                            }
+                        } finally {
+                            results.close();
+                        }
+                    }
+                }
+            } finally {
+                stmt.close();
+            }
+        } catch(SQLException err) {
+            conn.close();
+            throw err;
+        } finally {
+            pool.releaseConnection(conn);
+        }
+        out.write(AOServDaemonProtocol.NEXT);
+        int size = checkTableResults.size();
+        out.writeCompressedInt(size);
+        for(int c=0;c<size;c++) {
+            MySQLDatabase.CheckTableResult checkTableResult = checkTableResults.get(c);
+            out.writeUTF(checkTableResult.getTable());
+            out.writeLong(checkTableResult.getDuration());
+            out.writeNullEnum(checkTableResult.getMsgType());
+            out.writeNullUTF(checkTableResult.getMsgText());
         }
     }
 }
