@@ -14,6 +14,7 @@ import com.aoindustries.aoserv.client.DaemonProfile;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.MySQLDatabase;
 import com.aoindustries.aoserv.client.MySQLServer;
+import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.NetDevice;
 import com.aoindustries.aoserv.client.PostgresDatabase;
 import com.aoindustries.aoserv.client.PostgresServer;
@@ -43,6 +44,7 @@ import com.aoindustries.aoserv.daemon.server.ServerManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
+import com.aoindustries.noc.monitor.portmon.PortMonitor;
 import com.aoindustries.profiler.MethodProfile;
 import com.aoindustries.profiler.Profiler;
 import com.aoindustries.util.UnixCrypt;
@@ -391,6 +393,20 @@ final public class AOServDaemonServerThread extends Thread {
                                 String report = ServerManager.getMemInfoReport();
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(report);
+                            }
+                            break;
+                        case AOServDaemonProtocol.CHECK_PORT :
+                            {
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing CHECK_PORT, Thread="+toString());
+                                if(daemonKey==null) throw new IOException("Only the master server may CHECK_PORT");
+                                String ipAddress = in.readUTF();
+                                int port = in.readCompressedInt();
+                                String netProtocol = in.readUTF();
+                                String appProtocol = in.readUTF();
+                                String monitoringParameters = in.readUTF();
+                                String result = PortMonitor.getPortMonitor(ipAddress, port, netProtocol, appProtocol, NetBind.decodeParameters(monitoringParameters)).checkPort();
+                                out.write(AOServDaemonProtocol.DONE);
+                                out.writeUTF(result);
                             }
                             break;
                         case AOServDaemonProtocol.GET_AO_SERVER_SYSTEM_TIME_MILLIS :
