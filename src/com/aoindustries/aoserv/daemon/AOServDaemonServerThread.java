@@ -60,6 +60,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
+import javax.net.ssl.SSLHandshakeException;
 
 /**
  * The <code>AOServServerThread</code> handles a connection once it is accepted.
@@ -978,6 +979,9 @@ final public class AOServDaemonServerThread extends Thread {
             }
         } catch(EOFException err) {
             // Normal for abrupt connection closing
+        } catch(SSLHandshakeException err) {
+            String message = err.getMessage();
+            if(!"Remote host closed connection during handshake".equals(message)) LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.SEVERE, null, err);
         } catch(ThreadDeath TD) {
             throw TD;
         } catch(SocketException err) {
