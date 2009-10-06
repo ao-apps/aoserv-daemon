@@ -70,18 +70,23 @@ final public class PostgresUserManager extends BuilderThread {
                         List<String> existing=new SortedArrayList<String>();
                         Statement stmt=conn.createStatement();
                         try {
-                            ResultSet results=stmt.executeQuery(
+                            String sqlString =
                                 version.startsWith(PostgresVersion.VERSION_7_1+'.')
                                 || version.startsWith(PostgresVersion.VERSION_7_2+'.')
                                 || version.startsWith(PostgresVersion.VERSION_7_3+'.')
                                 || version.startsWith(PostgresVersion.VERSION_8_0+'.')
                                 ? "select usename from pg_user"
                                 : "select rolname from pg_authid"
-                            );
+                            ;
                             try {
-                                while (results.next()) existing.add(results.getString(1));
-                            } finally {
-                                results.close();
+                                ResultSet results=stmt.executeQuery(sqlString);
+                                try {
+                                    while (results.next()) existing.add(results.getString(1));
+                                } finally {
+                                    results.close();
+                                }
+                            } catch(SQLException err) {
+                                throw new WrappedSQLException(err, sqlString);
                             }
 
                             // Find the users that do not exist and should be added
@@ -104,7 +109,12 @@ final public class PostgresUserManager extends BuilderThread {
                                     || username.equals(PostgresUser.AOSERV_APP)
                                     || username.equals(PostgresUser.AOWEB_APP)
                                 ) throw new SQLException("AOServ Daemon will not automatically drop user, please drop manually: "+username+" on "+ps.getName());
-                                stmt.executeUpdate("DROP USER "+username);
+                                sqlString = "DROP USER "+username;
+                                try {
+                                    stmt.executeUpdate(sqlString);
+                                } catch(SQLException err) {
+                                    throw new WrappedSQLException(err, sqlString);
+                                }
                             }
 
                             // Add the new users
@@ -125,15 +135,15 @@ final public class PostgresUserManager extends BuilderThread {
                                         : "CREATE USER "
                                     )
                                     .append(username)
-                                    .append(
-                                        (
-                                            version.startsWith(PostgresVersion.VERSION_7_1+'.')
-                                        )
-                                        ? " PASSWORD '"
-                                        : " UNENCRYPTED PASSWORD '"
-                                    )
-                                    .append(PostgresUser.NO_PASSWORD_DB_VALUE)
-                                    .append("' ")
+                                    //.append(
+                                    //    (
+                                    //        version.startsWith(PostgresVersion.VERSION_7_1+'.')
+                                    //    )
+                                    //    ? " PASSWORD '"
+                                    //    : " UNENCRYPTED PASSWORD '"
+                                    //)
+                                    //.append(PostgresUser.NO_PASSWORD_DB_VALUE)
+                                    //.append("' ")
                                     .append(pu.canCreateDB()?"CREATEDB":"NOCREATEDB")
                                     .append(' ')
                                     .append(
@@ -154,7 +164,12 @@ final public class PostgresUserManager extends BuilderThread {
                                         : ""
                                     )
                                 ;
-                                stmt.executeUpdate(sql.toString());
+                                sqlString = sql.toString();
+                                try {
+                                    stmt.executeUpdate(sqlString);
+                                } catch(SQLException err) {
+                                    throw new WrappedSQLException(err, sqlString);
+                                }
                             }
                             if(
                                 !(
@@ -170,22 +185,41 @@ final public class PostgresUserManager extends BuilderThread {
                                     String username=psu.getPostgresUser().getUsername().getUsername();
                                     // Get the current login state
                                     boolean rolcanlogin;
-                                    results=stmt.executeQuery("select rolcanlogin from pg_authid where rolname='"+username+"'");
+                                    sqlString = "select rolcanlogin from pg_authid where rolname='"+username+"'";
                                     try {
-                                        if(results.next()) {
-                                            rolcanlogin = results.getBoolean(1);
-                                        } else {
-                                            throw new SQLException("Unable to find pg_authid entry for rolname='"+username+"'");
+                                        ResultSet results=stmt.executeQuery(sqlString);
+                                        try {
+                                            if(results.next()) {
+                                                rolcanlogin = results.getBoolean(1);
+                                            } else {
+                                                throw new SQLException("Unable to find pg_authid entry for rolname='"+username+"'");
+                                            }
+                                        } finally {
+                                            results.close();
                                         }
-                                    } finally {
-                                        results.close();
+                                    } catch(SQLException err) {
+                                        throw new WrappedSQLException(err, sqlString);
                                     }
                                     if(!psu.isDisabled()) {
                                         // Enable if needed
-                                        if(!rolcanlogin) stmt.executeUpdate("alter role "+username+" login");
+                                        if(!rolcanlogin) {
+                                            sqlString = "alter role "+username+" login";
+                                            try {
+                                                stmt.executeUpdate(sqlString);
+                                            } catch(SQLException err) {
+                                                throw new WrappedSQLException(err, sqlString);
+                                            }
+                                        }
                                     } else {
                                         // Disable if needed
-                                        if(rolcanlogin) stmt.executeUpdate("alter role "+username+" nologin");
+                                        if(rolcanlogin) {
+                                            sqlString = "alter role "+username+" nologin";
+                                            try {
+                                                stmt.executeUpdate(sqlString);
+                                            } catch(SQLException err) {
+                                                throw new WrappedSQLException(err, sqlString);
+                                            }
+                                        }
                                     }
                                 }
                                 disableEnableDone=true;
@@ -251,8 +285,7 @@ final public class PostgresUserManager extends BuilderThread {
                     result.close();
                 }
             } catch(SQLException err) {
-                System.err.println("Error from query: "+pstmt);
-                throw err;
+                throw new WrappedSQLException(err, pstmt);
             } finally {
                 pstmt.close();
             }
