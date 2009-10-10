@@ -321,7 +321,10 @@ final public class MySQLDatabaseManager extends BuilderThread {
         }
     }
 
-    public static void getSlaveStatus(String failoverRoot, int nestedOperatingSystemVersion, int port, CompressedDataOutputStream out) throws IOException, SQLException {
+    /**
+     * Gets a connection to the MySQL server, this handles both master and slave scenarios.
+     */
+    public static Connection getMySQLConnection(String failoverRoot, int nestedOperatingSystemVersion, int port) throws IOException, SQLException {
         // Load the properties from the failover image
         File file;
         if(nestedOperatingSystemVersion==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
@@ -359,9 +362,8 @@ final public class MySQLDatabaseManager extends BuilderThread {
             sqlErr.initCause(err);
             throw sqlErr;
         }
-        Connection conn;
         try {
-            conn = DriverManager.getConnection(
+            return DriverManager.getConnection(
                 "jdbc:mysql://127.0.0.1:"+port+"/mysql",
                 user,
                 password
@@ -370,6 +372,10 @@ final public class MySQLDatabaseManager extends BuilderThread {
             LogFactory.getLogger(MySQLDatabaseManager.class).log(Level.SEVERE, null, err);
             throw new SQLException("Unable to connect to slave.");
         }
+    }
+
+    public static void getSlaveStatus(String failoverRoot, int nestedOperatingSystemVersion, int port, CompressedDataOutputStream out) throws IOException, SQLException {
+        Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, port);
         try {
             Statement stmt = conn.createStatement();
             try {
@@ -405,17 +411,21 @@ final public class MySQLDatabaseManager extends BuilderThread {
         }
     }
 
-    public static void getTableStatus(MySQLDatabase mysqlDatabase, CompressedDataOutputStream out) throws IOException, SQLException {
+    public static void getTableStatus(String failoverRoot, int nestedOperatingSystemVersion, int port, String databaseName, CompressedDataOutputStream out) throws IOException, SQLException {
         List<MySQLDatabase.TableStatus> tableStatuses = new ArrayList<MySQLDatabase.TableStatus>();
-        MySQLServer mysqlServer = mysqlDatabase.getMySQLServer();
-        String mysqlVersion = mysqlServer.getVersion().getVersion();
-        boolean isMySQL40 = mysqlVersion.startsWith(MySQLServer.VERSION_4_0_PREFIX);
-        AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
-        Connection conn = pool.getConnection(true);
+        Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, port);
         try {
             Statement stmt = conn.createStatement();
             try {
-                ResultSet results = stmt.executeQuery("SHOW TABLE STATUS FROM "+mysqlDatabase.getName());
+                boolean isMySQL40;
+                ResultSet results = stmt.executeQuery("SELECT version()");
+                try {
+                    if(!results.next()) throw new SQLException("No row returned");
+                    isMySQL40 = results.getString(1).startsWith(MySQLServer.VERSION_4_0_PREFIX);
+                } finally {
+                    results.close();
+                }
+                results = stmt.executeQuery("SHOW TABLE STATUS FROM "+databaseName);
                 try {
                     while(results.next()) {
                         String engine = results.getString(isMySQL40 ? "Type" : "Engine");
@@ -481,11 +491,8 @@ final public class MySQLDatabaseManager extends BuilderThread {
             } finally {
                 stmt.close();
             }
-        } catch(SQLException err) {
-            conn.close();
-            throw err;
         } finally {
-            pool.releaseConnection(conn);
+            conn.close();
         }
         out.write(AOServDaemonProtocol.NEXT);
         int size = tableStatuses.size();
@@ -513,13 +520,10 @@ final public class MySQLDatabaseManager extends BuilderThread {
         }
     }
 
-    public static void checkTables(MySQLDatabase mysqlDatabase, List<String> tableNames, CompressedDataOutputStream out) throws IOException, SQLException {
-        String dbName = mysqlDatabase.getName();
-        String dbNamePrefix = dbName+".";
+    public static void checkTables(String failoverRoot, int nestedOperatingSystemVersion, int port, String databaseName, List<String> tableNames, CompressedDataOutputStream out) throws IOException, SQLException {
+        String dbNamePrefix = databaseName+".";
         List<MySQLDatabase.CheckTableResult> checkTableResults = new ArrayList<MySQLDatabase.CheckTableResult>();
-        MySQLServer mysqlServer = mysqlDatabase.getMySQLServer();
-        AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
-        Connection conn = pool.getConnection(true);
+        Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, port);
         try {
             Statement stmt = conn.createStatement();
             try {
@@ -537,7 +541,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
                             )
                         );
                     } else {
-                        ResultSet results = stmt.executeQuery("CHECK TABLE `"+dbName+"`.`"+tableName+"` FAST QUICK");
+                        ResultSet results = stmt.executeQuery("CHECK TABLE `"+databaseName+"`.`"+tableName+"` FAST QUICK");
                         try {
                             long duration = System.currentTimeMillis() - startTime;
                             if(duration<0) duration = 0;
@@ -568,11 +572,8 @@ final public class MySQLDatabaseManager extends BuilderThread {
             } finally {
                 stmt.close();
             }
-        } catch(SQLException err) {
-            conn.close();
-            throw err;
         } finally {
-            pool.releaseConnection(conn);
+            conn.close();
         }
         out.write(AOServDaemonProtocol.NEXT);
         int size = checkTableResults.size();

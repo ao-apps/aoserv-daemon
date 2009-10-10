@@ -559,26 +559,28 @@ final public class AOServDaemonServerThread extends Thread {
                         case AOServDaemonProtocol.GET_MYSQL_TABLE_STATUS :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_MYSQL_TABLE_STATUS, Thread="+toString());
-                                int mysqlDatabase = in.readCompressedInt();
-                                MySQLDatabase md = connector.getMysqlDatabases().get(mysqlDatabase);
-                                if(md==null) throw new SQLException("Unable to find MySQLDatabase: "+md);
+                                String failoverRoot = in.readUTF();
+                                int nestedOperatingSystemVersion = in.readCompressedInt();
+                                int port = in.readCompressedInt();
+                                String databaseName = in.readUTF();
                                 if(daemonKey==null) throw new IOException("Only the master server may GET_MYSQL_TABLE_STATUS");
-                                MySQLDatabaseManager.getTableStatus(md, out);
+                                MySQLDatabaseManager.getTableStatus(failoverRoot, nestedOperatingSystemVersion, port, databaseName, out);
                             }
                             break;
                         case AOServDaemonProtocol.CHECK_MYSQL_TABLES :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing CHECK_MYSQL_TABLES, Thread="+toString());
-                                int mysqlDatabase = in.readCompressedInt();
+                                String failoverRoot = in.readUTF();
+                                int nestedOperatingSystemVersion = in.readCompressedInt();
+                                int port = in.readCompressedInt();
+                                String databaseName = in.readUTF();
                                 int numTables = in.readCompressedInt();
                                 List<String> tableNames = new ArrayList<String>(numTables);
                                 for(int c=0;c<numTables;c++) {
                                     tableNames.add(in.readUTF());
                                 }
-                                MySQLDatabase md = connector.getMysqlDatabases().get(mysqlDatabase);
-                                if(md==null) throw new SQLException("Unable to find MySQLDatabase: "+md);
                                 if(daemonKey==null) throw new IOException("Only the master server may CHECK_MYSQL_TABLES");
-                                MySQLDatabaseManager.checkTables(md, tableNames, out);
+                                MySQLDatabaseManager.checkTables(failoverRoot, nestedOperatingSystemVersion, port, databaseName, tableNames, out);
                             }
                             break;
                         case AOServDaemonProtocol.GET_POSTGRES_PASSWORD :
