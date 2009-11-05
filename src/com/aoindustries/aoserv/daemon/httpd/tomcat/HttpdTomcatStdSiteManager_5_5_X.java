@@ -116,9 +116,9 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
                     + "export CATALINA_BASE=\"").print(siteDir).print("\"\n"
                     + "export CATALINA_TEMP=\"").print(siteDir).print("/temp\"\n"
                     + "\n"
-                    + "export PATH=${PATH}:").print(siteDir).print("/bin\n"
+                    + "export PATH=\"${PATH}:").print(siteDir).print("/bin\"\n"
                     + "\n"
-                    + "export JAVA_OPTS='-server -Djava.awt.headless=true'\n");
+                    + "export JAVA_OPTS='-server -Djava.awt.headless=true -Xmx128M'\n");
         } finally {
             out.close();
         }
@@ -145,7 +145,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
                     + "if [ \"$1\" = \"start\" ]; then\n"
                     + "    \"$0\" stop\n"
                     + "    \"$0\" daemon &\n"
-                    + "    echo $! >\"${TOMCAT_HOME}/var/run/tomcat.pid\"\n"
+                    + "    echo \"$!\" >\"${TOMCAT_HOME}/var/run/tomcat.pid\"\n"
                     + "elif [ \"$1\" = \"stop\" ]; then\n"
                     + "    if [ -f \"${TOMCAT_HOME}/var/run/tomcat.pid\" ]; then\n"
                     + "        kill `cat \"${TOMCAT_HOME}/var/run/tomcat.pid\"`\n"
@@ -169,9 +169,9 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
                     + "        export DISPLAY=:0.0\n"
                     + "        mv -f \"${TOMCAT_HOME}/var/log/tomcat_err\" \"${TOMCAT_HOME}/var/log/tomcat_err.old\"\n"
                     + "        \"${TOMCAT_HOME}/bin/catalina.sh\" run >&\"${TOMCAT_HOME}/var/log/tomcat_err\" &\n"
-                    + "        echo $! >\"${TOMCAT_HOME}/var/run/java.pid\"\n"
+                    + "        echo \"$!\" >\"${TOMCAT_HOME}/var/run/java.pid\"\n"
                     + "        wait\n"
-                    + "        RETCODE=$?\n"
+                    + "        RETCODE=\"$?\"\n"
                     + "        echo \"`date`: JVM died with a return code of $RETCODE, restarting in 5 seconds\" >>\"${TOMCAT_HOME}/var/log/jvm_crashes.log\"\n"
                     + "        sleep 5\n"
                     + "    done\n"
@@ -190,7 +190,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
         out=new ChainWriter(new UnixFile(siteDir+"/bin/shutdown.sh").getSecureOutputStream(uid, gid, 0700, true));
         try {
             out.print("#!/bin/sh\n"
-                    + "exec ").print(siteDir).print("/bin/tomcat stop\n");
+                    + "exec \"").print(siteDir).print("/bin/tomcat\" stop\n");
         } finally {
             out.close();
         }
@@ -198,7 +198,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
         out=new ChainWriter(new UnixFile(siteDir+"/bin/startup.sh").getSecureOutputStream(uid, gid, 0700, true));
         try {
             out.print("#!/bin/sh\n"
-                    + "exec ").print(siteDir).print("/bin/tomcat start\n");
+                    + "exec \"").print(siteDir).print("/bin/tomcat\" start\n");
         } finally {
             out.close();
         }

@@ -137,16 +137,16 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
                 );
 
                 out.print("\n"
-                        + "export PATH=${PATH}:").print(wwwGroupDir).print("/bin\n"
+                        + "export PATH=\"${PATH}:").print(wwwGroupDir).print("/bin\"\n"
                         + "\n"
-                        + "export JAVA_OPTS='-server -Djava.awt.headless=true'\n"
+                        + "export JAVA_OPTS='-server -Djava.awt.headless=true -Xmx128M'\n"
                         + "\n");
                 out.print(". ").print(wwwGroupDir).print("/bin/profile.sites\n"
                         + "\n"
-                        + "for SITE in $SITES ; do\n"
-                        + "    export PATH=${PATH}:").print(wwwDirectory).print("/${SITE}/bin\n");
-                out.print("done\n"
-                        + "export CLASSPATH\n");
+                        + "for SITE in $SITES\n"
+                        + "do\n"
+                        + "    export PATH=\"${PATH}:").print(wwwDirectory).print("/${SITE}/bin\"\n");
+                out.print("done\n");
             } finally {
                 out.close();
             }
@@ -167,7 +167,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
                         + "if [ \"$1\" = \"start\" ]; then\n"
                         + "    \"$0\" stop\n"
                         + "    \"$0\" daemon &\n"
-                        + "    echo $! >\"${TOMCAT_HOME}/var/run/tomcat.pid\"\n"
+                        + "    echo \"$!\" >\"${TOMCAT_HOME}/var/run/tomcat.pid\"\n"
                         + "elif [ \"$1\" = \"stop\" ]; then\n"
                         + "    if [ -f \"${TOMCAT_HOME}/var/run/tomcat.pid\" ]; then\n"
                         + "        kill `cat \"${TOMCAT_HOME}/var/run/tomcat.pid\"`\n"
@@ -192,9 +192,9 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
                 );
                 out.print("            mv -f \"${TOMCAT_HOME}/var/log/tomcat_err\" \"${TOMCAT_HOME}/var/log/tomcat_err.old\"\n"
                         + "            \"${TOMCAT_HOME}/bin/catalina.sh\" run >&\"${TOMCAT_HOME}/var/log/tomcat_err\" &\n");
-                out.print("            echo $! >var/run/java.pid\n"
+                out.print("            echo \"$!\" >\"${TOMCAT_HOME}/var/run/java.pid\"\n"
                         + "            wait\n"
-                        + "            RETCODE=$?\n"
+                        + "            RETCODE=\"$?\"\n"
                         + "            echo \"`date`: JVM died with a return code of $RETCODE, restarting in 5 seconds\" >>\"${TOMCAT_HOME}/var/log/jvm_crashes.log\"\n"
                         + "            sleep 5\n"
                         + "        done\n"
@@ -217,7 +217,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
             out=new ChainWriter(shutdown.getSecureOutputStream(lsaUID, lsgGID, 0700, true));
             try {
                 out.print("#!/bin/sh\n"
-                          + "exec ").print(wwwGroupDir).print("/bin/tomcat stop\n");
+                          + "exec \"").print(wwwGroupDir).print("/bin/tomcat\" stop\n");
             } finally {
                 out.close();
             }
@@ -226,7 +226,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
             out=new ChainWriter(startup.getSecureOutputStream(lsaUID, lsgGID, 0700, true));
             try {
                 out.print("#!/bin/sh\n"
-                          + "exec ").print(wwwGroupDir).print("/bin/tomcat start\n");
+                          + "exec \"").print(wwwGroupDir).print("/bin/tomcat\" start\n");
             } finally {
                 out.close();
             }
