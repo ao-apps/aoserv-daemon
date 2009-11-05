@@ -243,7 +243,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
             // CGI
             if(enableCgi()) {
                 FileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
-                FileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
+                //FileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
                 createTestCGI(cgibinDirectory);
             }
 
