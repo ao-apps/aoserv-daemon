@@ -3,6 +3,7 @@ package com.aoindustries.aoserv.daemon.net;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.IPAddress;
+import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.NetDevice;
 import com.aoindustries.aoserv.client.NetDeviceID;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
@@ -10,16 +11,24 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
+import com.aoindustries.io.AOPool;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.util.ErrorPrinter;
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.nio.charset.Charset;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -721,5 +730,68 @@ final public class NetDeviceManager extends BuilderThread {
             ;
         }
         return tempSB.toString();
+    }
+
+    private final static List<Integer> privilegedPorts = new ArrayList<Integer>();
+
+    /**
+     * Gets the next privileged source port in the range 1<=port<=1023.  Will never return
+     * any port referenced in the NetBinds for this server.  Will return all ports before
+     * cycling back through the ports.  The ports are returned in a random order.
+     * The returned port may be in use, and the resulting exception must be caught and
+     * the next port tried in that case.
+     */
+    public static int getNextPrivilegedPort() throws IOException, SQLException {
+        synchronized(privilegedPorts) {
+            if(privilegedPorts.isEmpty()) {
+                List<NetBind> netBinds = AOServDaemon.getThisAOServer().getServer().getNetBinds();
+                Set<Integer> netBindPorts = new HashSet<Integer>(netBinds.size()*4/3+1);
+                for(NetBind netBind : netBinds) netBindPorts.add(netBind.getPort().getPort());
+                for(Integer port=1; port<=1023; port++) {
+                    if(!netBindPorts.contains(port)) privilegedPorts.add(port);
+                }
+            }
+            int size = privilegedPorts.size();
+            if(size==0) throw new AssertionError("privilegedPorts is empty");
+            if(size==1) return privilegedPorts.remove(0);
+            return privilegedPorts.remove(AOServDaemon.getRandom().nextInt(size));
+        }
+    }
+
+    public static String checkSmtpBlacklist(String sourceIp, String connectIp) throws IOException, SQLException {
+        Charset charset = Charset.forName("US-ASCII");
+        // Try 100 times maximum
+        final int numAttempts = 100;
+        for(int attempt=1; attempt<=numAttempts; attempt++) {
+            int sourcePort = getNextPrivilegedPort();
+            try {
+                Socket socket=new Socket();
+                try {
+                    socket.setKeepAlive(true);
+                    socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
+                    //socket.setTcpNoDelay(true);
+                    socket.setSoTimeout(60000);
+                    socket.bind(new InetSocketAddress(sourceIp, sourcePort));
+                    socket.connect(new InetSocketAddress(connectIp, 25), 60*1000);
+
+                    BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), charset));
+                    try {
+                        // Status line
+                        String line = in.readLine();
+                        if(line==null) throw new EOFException("End of file reading status");
+                        return line;
+                    } finally {
+                        in.close();
+                    }
+                } finally {
+                    socket.close();
+                }
+            } catch(IOException err) {
+                // TODO: Catch specific exception
+                ErrorPrinter.printStackTraces(err);
+                throw err;
+            }
+        }
+        throw new IOException("Unable to find available privileged port after "+numAttempts+" attempts");
     }
 }

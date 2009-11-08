@@ -410,6 +410,17 @@ final public class AOServDaemonServerThread extends Thread {
                                 out.writeUTF(result);
                             }
                             break;
+                        case AOServDaemonProtocol.CHECK_SMTP_BLACKLIST :
+                            {
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing CHECK_SMTP_BLACKLIST, Thread="+toString());
+                                if(daemonKey==null) throw new IOException("Only the master server may CHECK_SMTP_BLACKLIST");
+                                String sourceIp = in.readUTF();
+                                String connectIp = in.readUTF();
+                                String result = NetDeviceManager.checkSmtpBlacklist(sourceIp, connectIp);
+                                out.write(AOServDaemonProtocol.DONE);
+                                out.writeUTF(result);
+                            }
+                            break;
                         case AOServDaemonProtocol.GET_AO_SERVER_SYSTEM_TIME_MILLIS :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_AO_SERVER_SYSTEM_TIME_MILLIS, Thread="+toString());

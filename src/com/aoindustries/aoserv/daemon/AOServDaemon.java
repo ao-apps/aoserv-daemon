@@ -76,7 +76,6 @@ final public class AOServDaemon {
 
     /**
      * A single random number generator is shared by all daemon resources to provide better randomness.
-     * Not synchronized because multiple instantiation is acceptable.
      */
     private static final Random random = new SecureRandom();
     public static Random getRandom() {
