@@ -26,6 +26,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.Charset;
@@ -774,20 +776,27 @@ final public class NetDeviceManager extends BuilderThread {
                     socket.bind(new InetSocketAddress(sourceIp, sourcePort));
                     socket.connect(new InetSocketAddress(connectIp, 25), 60*1000);
 
-                    BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), charset));
+                    PrintWriter out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), charset));
                     try {
-                        // Status line
-                        String line = in.readLine();
-                        if(line==null) throw new EOFException("End of file reading status");
-                        return line;
+                        BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), charset));
+                        try {
+                            // Status line
+                            String line = in.readLine();
+                            if(line==null) throw new EOFException("End of file reading status");
+                            out.println("QUIT");
+                            out.flush();
+                            return line;
+                        } finally {
+                            in.close();
+                        }
                     } finally {
-                        in.close();
+                        out.close();
                     }
                 } finally {
                     socket.close();
                 }
             } catch(IOException err) {
-                // TODO: Catch specific exception
+                // TODO: Catch specific exception for local port in use
                 ErrorPrinter.printStackTraces(err);
                 throw err;
             }

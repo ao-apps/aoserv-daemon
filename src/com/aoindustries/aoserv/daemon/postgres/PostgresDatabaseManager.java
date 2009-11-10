@@ -519,7 +519,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                 if(
                                     postgresDatabaseTable.isValidDatabaseName(tableName.toLowerCase())
                                 ) {
-                                    if(!postgresServerHasSchemas || postgresDatabaseTable.isValidDatabaseName(schema.toLowerCase())) {
+                                    if(!postgresServerHasSchemas || "public".equals(schema) || postgresDatabaseTable.isValidDatabaseName(schema.toLowerCase())) {
                                         // VACUUM the table
                                         stmt.executeUpdate(
                                             postgresServerHasVacuumFull
