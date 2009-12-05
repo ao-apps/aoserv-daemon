@@ -124,7 +124,8 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
         final String siteDir = siteDirectory.getPath();
         final Stat tempStat = new Stat();
         boolean needsRestart = false;
-        String autoWarning=getAutoWarningXml();
+        String autoWarning = getAutoWarningXml();
+        String autoWarningOld = getAutoWarningXmlOld();
 
         String confServerXML=siteDir+"/conf/server.xml";
         UnixFile confServerXMLFile=new UnixFile(confServerXML);
@@ -145,6 +146,11 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
             }
         } else {
             try {
+                FileUtils.stripFilePrefix(
+                    confServerXMLFile,
+                    autoWarningOld,
+                    tempStat
+                );
                 FileUtils.stripFilePrefix(
                     confServerXMLFile,
                     autoWarning,

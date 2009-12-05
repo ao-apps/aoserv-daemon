@@ -460,7 +460,8 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
         final String siteDir = siteDirectory.getPath();
         final Stat tempStat = new Stat();
         boolean needsRestart = false;
-        String autoWarning=getAutoWarningXml();
+        String autoWarning = getAutoWarningXml();
+        String autoWarningOld = getAutoWarningXmlOld();
 
         String confServerXML=siteDir+"/conf/server.xml";
         UnixFile confServerXMLFile=new UnixFile(confServerXML);
@@ -481,6 +482,11 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
             }
         } else {
             try {
+                FileUtils.stripFilePrefix(
+                    confServerXMLFile,
+                    autoWarningOld,
+                    tempStat
+                );
                 FileUtils.stripFilePrefix(
                     confServerXMLFile,
                     autoWarning,

@@ -302,7 +302,7 @@ public abstract class HttpdSiteManager {
      * may be used on any config files that a user would be tempted to change
      * directly.
      */
-    public String getAutoWarningXml() throws IOException, SQLException {
+    public String getAutoWarningXmlOld() throws IOException, SQLException {
         return
             "<!--\n"
             + "  Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
@@ -320,11 +320,33 @@ public abstract class HttpdSiteManager {
     }
 
     /**
+     * Gets the auto-mode warning for this website for use in XML files.  This
+     * may be used on any config files that a user would be tempted to change
+     * directly.
+     */
+    public String getAutoWarningXml() throws IOException, SQLException {
+        return
+            "<!--\n"
+            + "  Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
+            + "  to this file will be overwritten.  Please set the is_manual flag for this website\n"
+            + "  to be able to make permanent changes to this file.\n"
+            + "\n"
+            + "  Control Panel: https://www.aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey="+httpdSite.getPkey()+"\n"
+            + "\n"
+            + "  AOSH: "+AOSHCommand.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getSiteName()+' '+httpdSite.getAOServer().getHostname()+" true\n"
+            + "\n"
+            + "  support@aoindustries.com\n"
+            + "  (205) 454-2556\n"
+            + "-->\n"
+        ;
+    }
+
+    /**
      * Gets the auto-mode warning using Unix-style comments (#).  This
      * may be used on any config files that a user would be tempted to change
      * directly.
      */
-    public String getAutoWarningUnix() throws IOException, SQLException {
+    /* Change to 2054542556 if re-enabled: public String getAutoWarningUnix() throws IOException, SQLException {
         return
             "#\n"
             + "# Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
@@ -339,7 +361,7 @@ public abstract class HttpdSiteManager {
             + "# (866) 270-6195\n"
             + "#\n"
         ;
-    }
+    }*/
 
     /**
      * (Re)builds the site directory, from scratch if it doesn't exist.

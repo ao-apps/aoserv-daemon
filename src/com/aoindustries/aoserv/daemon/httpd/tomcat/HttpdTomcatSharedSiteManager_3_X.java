@@ -280,7 +280,8 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
         final String siteDir = siteDirectory.getPath();
         final Stat tempStat = new Stat();
         boolean needsRestart = false;
-        String autoWarning=getAutoWarningXml();
+        String autoWarning = getAutoWarningXml();
+        String autoWarningOld = getAutoWarningXmlOld();
 
         String confServerXML=siteDir+"/conf/server.xml";
         UnixFile confServerXMLFile=new UnixFile(confServerXML);
@@ -301,6 +302,11 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
             }
         } else {
             try {
+                FileUtils.stripFilePrefix(
+                    confServerXMLFile,
+                    autoWarningOld,
+                    tempStat
+                );
                 FileUtils.stripFilePrefix(
                     confServerXMLFile,
                     autoWarning,

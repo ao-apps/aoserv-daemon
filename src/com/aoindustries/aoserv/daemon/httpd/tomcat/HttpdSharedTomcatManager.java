@@ -181,7 +181,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
      * may be used on any config files that a user would be tempted to change
      * directly.
      */
-    String getAutoWarningXml() throws IOException, SQLException {
+    String getAutoWarningXmlOld() throws IOException, SQLException {
         return
             "<!--\n"
             + "  Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
@@ -199,11 +199,33 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
     }
 
     /**
+     * Gets the auto-mode warning for this website for use in XML files.  This
+     * may be used on any config files that a user would be tempted to change
+     * directly.
+     */
+    String getAutoWarningXml() throws IOException, SQLException {
+        return
+            "<!--\n"
+            + "  Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
+            + "  to this file will be overwritten.  Please set the is_manual flag for this multi-site\n"
+            + "  JVM to be able to make permanent changes to this file.\n"
+            + "\n"
+            + "  Control Panel: https://www.aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey="+sharedTomcat.getPkey()+"\n"
+            + "\n"
+            + "  AOSH: "+AOSHCommand.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+' '+sharedTomcat.getAOServer().getHostname()+" true\n"
+            + "\n"
+            + "  support@aoindustries.com\n"
+            + "  (205) 454-2556\n"
+            + "-->\n"
+        ;
+    }
+
+    /**
      * Gets the auto-mode warning using Unix-style comments (#).  This
      * may be used on any config files that a user would be tempted to change
      * directly.
      */
-    String getAutoWarningUnix() throws IOException, SQLException {
+    /*String getAutoWarningUnixOld() throws IOException, SQLException {
         return
             "#\n"
             + "# Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
@@ -218,7 +240,29 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
             + "# (866) 270-6195\n"
             + "#\n"
         ;
-    }
+    }*/
+
+    /**
+     * Gets the auto-mode warning using Unix-style comments (#).  This
+     * may be used on any config files that a user would be tempted to change
+     * directly.
+     */
+    /*String getAutoWarningUnix() throws IOException, SQLException {
+        return
+            "#\n"
+            + "# Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
+            + "# to this file will be overwritten.  Please set the is_manual flag for this multi-site\n"
+            + "# JVM to be able to make permanent changes to this file.\n"
+            + "#\n"
+            + "# Control Panel: https://www.aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey="+sharedTomcat.getPkey()+"\n"
+            + "#\n"
+            + "# AOSH: "+AOSHCommand.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+' '+sharedTomcat.getAOServer().getHostname()+" true\n"
+            + "#\n"
+            + "# support@aoindustries.com\n"
+            + "# (205) 454-2556\n"
+            + "#\n"
+        ;
+    }*/
 
     /**
      * (Re)builds the shared tomcat directory, from scratch if it doesn't exist.

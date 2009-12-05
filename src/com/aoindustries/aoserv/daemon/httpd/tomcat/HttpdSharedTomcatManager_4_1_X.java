@@ -357,6 +357,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 
         // Rebuild the server.xml for Tomcat 4 and Tomcat 5 JVMs
         String autoWarning = getAutoWarningXml();
+        String autoWarningOld = getAutoWarningXmlOld();
         String confServerXML=wwwGroupDir+"/conf/server.xml";
         UnixFile confServerXMLUF=new UnixFile(confServerXML);
         if(!sharedTomcat.isManual() || !confServerXMLUF.getStat(tempStat).exists()) {
@@ -513,6 +514,11 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
             } else newConfServerXMLUF.delete();
         } else {
             try {
+                FileUtils.stripFilePrefix(
+                    confServerXMLUF,
+                    autoWarningOld,
+                    tempStat
+                );
                 FileUtils.stripFilePrefix(
                     confServerXMLUF,
                     autoWarning,
