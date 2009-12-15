@@ -96,7 +96,7 @@ public final class PgHbaManager extends BuilderThread {
                                         || psu.equals(db.getDatDBA())
 
                                         // Allow in same business
-                                        || un.getPackage().getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness())
+                                        || un.getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getBusiness())
                                     ) {
                                         if(didOne) out.print(',');
                                         else didOne=true;
@@ -117,7 +117,7 @@ public final class PgHbaManager extends BuilderThread {
                                         || psu.equals(db.getDatDBA())
 
                                         // Allow in same business
-                                        || un.getPackage().getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness())
+                                        || un.getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getBusiness())
                                     ) {
                                         if(didOne) out.print(',');
                                         else didOne=true;
@@ -147,7 +147,7 @@ public final class PgHbaManager extends BuilderThread {
                                         || psu.equals(db.getDatDBA())
 
                                         // Allow in same business
-                                        || un.getPackage().getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness())
+                                        || un.getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getBusiness())
                                     ) {
                                         if(didOne) out.print(',');
                                         else didOne=true;
@@ -170,7 +170,7 @@ public final class PgHbaManager extends BuilderThread {
                                         || psu.equals(db.getDatDBA())
 
                                         // Allow in same business
-                                        || un.getPackage().getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness())
+                                        || un.getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getBusiness())
                                     ) {
                                         if(didOne) out.print(',');
                                         else didOne=true;
@@ -193,7 +193,7 @@ public final class PgHbaManager extends BuilderThread {
                                         || psu.equals(db.getDatDBA())
 
                                         // Allow in same business
-                                        || un.getPackage().getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness())
+                                        || un.getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getBusiness())
                                     ) {
                                         if(didOne) out.print(',');
                                         else didOne=true;
@@ -216,7 +216,7 @@ public final class PgHbaManager extends BuilderThread {
                                         || psu.equals(db.getDatDBA())
 
                                         // Allow in same business
-                                        || un.getPackage().getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness())
+                                        || un.getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getBusiness())
                                     ) {
                                         if(didOne) out.print(',');
                                         else didOne=true;

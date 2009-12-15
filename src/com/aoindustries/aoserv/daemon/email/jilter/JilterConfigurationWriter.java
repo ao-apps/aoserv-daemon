@@ -7,13 +7,14 @@ package com.aoindustries.aoserv.daemon.email.jilter;
  */
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.Business;
+import com.aoindustries.aoserv.client.BusinessTable;
 import com.aoindustries.aoserv.client.EmailAddress;
 import com.aoindustries.aoserv.client.EmailDomain;
 import com.aoindustries.aoserv.client.EmailSmtpRelay;
 import com.aoindustries.aoserv.client.EmailSmtpRelayType;
 import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.Package;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -63,7 +64,7 @@ public class JilterConfigurationWriter extends BuilderThread {
                 connector.getEmailDomains().addTableListener(configurationWriter, 0);
                 connector.getEmailAddresses().addTableListener(configurationWriter, 0);
                 connector.getEmailSmtpRelays().addTableListener(configurationWriter, 0);
-                connector.getPackages().addTableListener(configurationWriter, 0);
+                connector.getBusinesses().addTableListener(configurationWriter, 0);
                 System.out.println("Done");
             }
         }
@@ -85,13 +86,13 @@ public class JilterConfigurationWriter extends BuilderThread {
             // restrict_outbound_email
             boolean restrict_outbound_email = aoServer.getRestrictOutboundEmail();
 
-            // domainPackages and domainAddresses
-            Map<String,String> domainPackages = new HashMap<String,String>();
+            // domainBusinesses and domainAddresses
+            Map<String,String> domainBusinesses = new HashMap<String,String>();
             Map<String,Set<String>> domainAddresses = new HashMap<String,Set<String>>();
             for(EmailDomain ed : aoServer.getEmailDomains()) {
                 String domain = ed.getDomain();
-                // domainPackages
-                domainPackages.put(domain, ed.getPackage().getName());
+                // domainBusinesses
+                domainBusinesses.put(domain, ed.getBusiness().getAccounting());
                 // domainAddresses
                 List<EmailAddress> eas = ed.getEmailAddresses();
                 Set<String> addresses = new HashSet<String>(eas.size()*4/3+1);
@@ -121,23 +122,24 @@ public class JilterConfigurationWriter extends BuilderThread {
                 else LogFactory.getLogger(JilterConfigurationWriter.class).log(Level.WARNING, null, new SQLException("Unexpected value for type: "+type));
             }
 
-            // Builds email limits only for the packages referenced in domainPackages
-            int noGrowSize = domainPackages.size() * 4 / 3 + 1;
+            // Builds email limits only for the businesses referenced in domainBusinesses
+            int noGrowSize = domainBusinesses.size() * 4 / 3 + 1;
             Map<String,EmailLimit> emailInLimits = new HashMap<String,EmailLimit>(noGrowSize);
             Map<String,EmailLimit> emailOutLimits = new HashMap<String,EmailLimit>(noGrowSize);
             Map<String,EmailLimit> emailRelayLimits = new HashMap<String,EmailLimit>(noGrowSize);
-            for(String packageName : domainPackages.values()) {
-                Package pk = AOServDaemon.getConnector().getPackages().get(packageName);
-                if(pk==null) throw new SQLException("Unable to find Package: "+packageName);
-                int emailInBurst = pk.getEmailInBurst();
-                float emailInRate = pk.getEmailInRate();
-                if(emailInBurst!=-1 && !Float.isNaN(emailInRate)) emailInLimits.put(packageName, new EmailLimit(emailInBurst, emailInRate));
-                int emailOutBurst = pk.getEmailOutBurst();
-                float emailOutRate = pk.getEmailOutRate();
-                if(emailOutBurst!=-1 && !Float.isNaN(emailOutRate)) emailOutLimits.put(packageName, new EmailLimit(emailOutBurst, emailOutRate));
-                int emailRelayBurst = pk.getEmailRelayBurst();
-                float emailRelayRate = pk.getEmailRelayRate();
-                if(emailRelayBurst!=-1 && !Float.isNaN(emailRelayRate)) emailRelayLimits.put(packageName, new EmailLimit(emailRelayBurst, emailRelayRate));
+            BusinessTable businessTable = AOServDaemon.getConnector().getBusinesses();
+            for(String accounting : domainBusinesses.values()) {
+                Business bu = businessTable.get(accounting);
+                if(bu==null) throw new SQLException("Unable to find Business: "+accounting);
+                int emailInBurst = bu.getEmailInBurst();
+                float emailInRate = bu.getEmailInRate();
+                if(emailInBurst!=-1 && !Float.isNaN(emailInRate)) emailInLimits.put(accounting, new EmailLimit(emailInBurst, emailInRate));
+                int emailOutBurst = bu.getEmailOutBurst();
+                float emailOutRate = bu.getEmailOutRate();
+                if(emailOutBurst!=-1 && !Float.isNaN(emailOutRate)) emailOutLimits.put(accounting, new EmailLimit(emailOutBurst, emailOutRate));
+                int emailRelayBurst = bu.getEmailRelayBurst();
+                float emailRelayRate = bu.getEmailRelayRate();
+                if(emailRelayBurst!=-1 && !Float.isNaN(emailRelayRate)) emailRelayLimits.put(accounting, new EmailLimit(emailRelayBurst, emailRelayRate));
             }
             synchronized(rebuildLock) {
                 JilterConfiguration jilterConfiguration = new JilterConfiguration(
@@ -148,7 +150,7 @@ public class JilterConfigurationWriter extends BuilderThread {
                     AOServDaemonConfiguration.getMonitorEmailSummaryTo(),
                     AOServDaemonConfiguration.getMonitorEmailFullFrom(),
                     AOServDaemonConfiguration.getMonitorEmailFullTo(),
-                    domainPackages,
+                    domainBusinesses,
                     domainAddresses,
                     ips,
                     denies,

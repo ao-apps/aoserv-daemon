@@ -499,7 +499,7 @@ final public class EmailAddressManager extends BuilderThread {
                 connector.getEmailPipeAddresses().addTableListener(emailAddressManager, 0);
                 connector.getLinuxServerAccounts().addTableListener(emailAddressManager, 0);
                 connector.getLinuxAccAddresses().addTableListener(emailAddressManager, 0);
-                connector.getPackages().addTableListener(emailAddressManager, 0);
+                connector.getBusinesses().addTableListener(emailAddressManager, 0);
                 connector.getSystemEmailAliases().addTableListener(emailAddressManager, 0);
                 System.out.println("Done");
             }

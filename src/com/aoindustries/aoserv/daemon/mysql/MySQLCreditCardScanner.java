@@ -96,7 +96,7 @@ final public class MySQLCreditCardScanner implements CronJob {
                         AOServDaemonConfiguration.getMySqlPassword()
                     );
                     try {
-                        Business business = database.getPackage().getBusiness();
+                        Business business = database.getBusiness();
                         StringBuilder report = reports.get(business);
                         if(report==null) reports.put(business, report=new StringBuilder());
                         scanForCards(thisAOServer, mysqlServer, database, conn, name, report);
