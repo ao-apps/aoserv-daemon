@@ -10,7 +10,7 @@ import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.MySQLDBUser;
 import com.aoindustries.aoserv.client.MySQLDatabase;
 import com.aoindustries.aoserv.client.MySQLServer;
-import com.aoindustries.aoserv.client.MySQLServerUser;
+import com.aoindustries.aoserv.client.MySQLUser;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -89,21 +89,21 @@ final public class MySQLDBUserManager extends BuilderThread {
                             for(MySQLDBUser mdu : dbUsers) {
                                 MySQLDatabase md = mdu.getMySQLDatabase();
                                 String db=md.getName();
-                                MySQLServerUser msu=mdu.getMySQLServerUser();
-                                String user=msu.getMySQLUser().getUsername().getUsername();
+                                MySQLUser mu=mdu.getMySQLUser();
+                                String user=mu.getUsername().getUsername();
 
                                 // These must both be on the same server !!!
-                                if(!md.getMySQLServer().equals(msu.getMySQLServer())) throw new SQLException(
+                                if(!md.getMySQLServer().equals(mu.getMySQLServer())) throw new SQLException(
                                     "Server mismatch in mysql_db_users.pkey="
                                     +mdu.getPkey()
                                     +": ((mysql_databases.pkey="
                                     +md.getPkey()
                                     +").mysql_server="
                                     +md.getMySQLServer().getPkey()
-                                    +")!=((mysql_server_users.pkey="
-                                    +msu.getPkey()
+                                    +")!=((mysql_users.pkey="
+                                    +mu.getPkey()
                                     +").mysql_server="
-                                    +msu.getMySQLServer().getPkey()
+                                    +mu.getMySQLServer().getPkey()
                                     +')'
                                 );
 
@@ -111,7 +111,7 @@ final public class MySQLDBUserManager extends BuilderThread {
                                 if (existing.contains(key)) existing.remove(key);
                                 else {
                                     // Add the db entry
-                                    String host=MySQLServerUser.ANY_HOST;
+                                    String host=MySQLUser.ANY_HOST;
                                     pstmt.setString(1, host);
                                     pstmt.setString(2, db);
                                     pstmt.setString(3, user);
@@ -201,7 +201,7 @@ final public class MySQLDBUserManager extends BuilderThread {
                 mysqlDBUserManager=new MySQLDBUserManager();
                 conn.getMysqlDBUsers().addTableListener(mysqlDBUserManager, 0);
                 conn.getMysqlDatabases().addTableListener(mysqlDBUserManager, 0);
-                conn.getMysqlServerUsers().addTableListener(mysqlDBUserManager, 0);
+                conn.getMysqlUsers().addTableListener(mysqlDBUserManager, 0);
                 conn.getMysqlUsers().addTableListener(mysqlDBUserManager, 0);
                 System.out.println("Done");
             }
