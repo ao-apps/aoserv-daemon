@@ -5,6 +5,8 @@ package com.aoindustries.aoserv.daemon.unix;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+import com.aoindustries.aoserv.client.validator.LinuxID;
+import com.aoindustries.aoserv.client.validator.ValidationException;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import java.io.IOException;
@@ -33,7 +35,7 @@ abstract public class UnixProcess {
      * the method on a <code>UnixProcess</code> will result in an
      * <code>IOException</code>.
      */
-    abstract public int getGID() throws IOException;
+    abstract public LinuxID getGID() throws IOException, ValidationException;
 
     /**
      * Determines the user ID of a process.  The subclasses of
@@ -41,7 +43,7 @@ abstract public class UnixProcess {
      * the method on a <code>UnixProcess</code> will result in an
      * <code>IOException</code>.
      */
-    abstract public int getUID() throws IOException;
+    abstract public LinuxID getUID() throws IOException, ValidationException;
 
     /**
      * Determines if the process is currently running.  The subclasses of

@@ -8,14 +8,11 @@ package com.aoindustries.aoserv.daemon.email.jilter;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.Business;
-import com.aoindustries.aoserv.client.BusinessTable;
-import com.aoindustries.aoserv.client.EmailAddress;
-import com.aoindustries.aoserv.client.EmailDomain;
-import com.aoindustries.aoserv.client.EmailSmtpRelay;
-import com.aoindustries.aoserv.client.EmailSmtpRelayType;
-import com.aoindustries.aoserv.client.IPAddress;
+import com.aoindustries.aoserv.client.BusinessService;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Server;
+import com.aoindustries.aoserv.client.validator.AccountingCode;
+import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -56,15 +53,15 @@ public class JilterConfigurationWriter extends BuilderThread {
                 && configurationWriter==null
             ) {
                 System.out.print("Starting JilterConfigurationWriter: ");
-                AOServConnector connector=AOServDaemon.getConnector();
+                AOServConnector<?,?> connector=AOServDaemon.getConnector();
                 configurationWriter=new JilterConfigurationWriter();
-                connector.getAoServers().addTableListener(configurationWriter, 0);
-                connector.getNetDevices().addTableListener(configurationWriter, 0);
-                connector.getIpAddresses().addTableListener(configurationWriter, 0);
-                connector.getEmailDomains().addTableListener(configurationWriter, 0);
-                connector.getEmailAddresses().addTableListener(configurationWriter, 0);
-                connector.getEmailSmtpRelays().addTableListener(configurationWriter, 0);
-                connector.getBusinesses().addTableListener(configurationWriter, 0);
+                connector.getAoServers().getTable().addTableListener(configurationWriter, 0);
+                connector.getNetDevices().getTable().addTableListener(configurationWriter, 0);
+                connector.getIpAddresses().getTable().addTableListener(configurationWriter, 0);
+                connector.getEmailDomains().getTable().addTableListener(configurationWriter, 0);
+                connector.getEmailAddresses().getTable().addTableListener(configurationWriter, 0);
+                connector.getEmailSmtpRelays().getTable().addTableListener(configurationWriter, 0);
+                connector.getBusinesses().getTable().addTableListener(configurationWriter, 0);
                 System.out.println("Done");
             }
         }
@@ -81,7 +78,7 @@ public class JilterConfigurationWriter extends BuilderThread {
             Server server = aoServer.getServer();
 
             // primaryIP
-            String primaryIP = aoServer.getPrimaryIPAddress().getIPAddress();
+            InetAddress primaryIP = aoServer.getPrimaryIPAddress().getIPAddress();
 
             // restrict_outbound_email
             boolean restrict_outbound_email = aoServer.getRestrictOutboundEmail();
@@ -127,9 +124,9 @@ public class JilterConfigurationWriter extends BuilderThread {
             Map<String,EmailLimit> emailInLimits = new HashMap<String,EmailLimit>(noGrowSize);
             Map<String,EmailLimit> emailOutLimits = new HashMap<String,EmailLimit>(noGrowSize);
             Map<String,EmailLimit> emailRelayLimits = new HashMap<String,EmailLimit>(noGrowSize);
-            BusinessTable businessTable = AOServDaemon.getConnector().getBusinesses();
+            BusinessService<?,?> businessTable = AOServDaemon.getConnector().getBusinesses();
             for(String accounting : domainBusinesses.values()) {
-                Business bu = businessTable.get(accounting);
+                Business bu = businessTable.get(AccountingCode.valueOf(accounting));
                 if(bu==null) throw new SQLException("Unable to find Business: "+accounting);
                 int emailInBurst = bu.getEmailInBurst();
                 float emailInRate = bu.getEmailInRate();
@@ -143,13 +140,13 @@ public class JilterConfigurationWriter extends BuilderThread {
             }
             synchronized(rebuildLock) {
                 JilterConfiguration jilterConfiguration = new JilterConfiguration(
-                    primaryIP,
+                    primaryIP.getAddress(),
                     restrict_outbound_email,
-                    AOServDaemonConfiguration.getMonitorSmtpServer(),
-                    AOServDaemonConfiguration.getMonitorEmailSummaryFrom(),
-                    AOServDaemonConfiguration.getMonitorEmailSummaryTo(),
-                    AOServDaemonConfiguration.getMonitorEmailFullFrom(),
-                    AOServDaemonConfiguration.getMonitorEmailFullTo(),
+                    AOServDaemonConfiguration.getMonitorSmtpServer().toString(),
+                    AOServDaemonConfiguration.getMonitorEmailSummaryFrom().toString(),
+                    AOServDaemonConfiguration.getMonitorEmailSummaryTo().toString(),
+                    AOServDaemonConfiguration.getMonitorEmailFullFrom().toString(),
+                    AOServDaemonConfiguration.getMonitorEmailFullTo().toString(),
                     domainBusinesses,
                     domainAddresses,
                     ips,

@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.mysql;
 
 /*
- * Copyright 2006-2009 by AO Industries, Inc.,
+ * Copyright 2006-2010 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -46,24 +46,22 @@ final public class MySQLServerManager extends BuilderThread {
         return true;
     }
 
-    private static final Map<Integer,AOConnectionPool> pools=new HashMap<Integer,AOConnectionPool>();
+    private static final Map<MySQLServer,AOConnectionPool> pools=new HashMap<MySQLServer,AOConnectionPool>();
     static AOConnectionPool getPool(MySQLServer ms) throws IOException, SQLException {
         synchronized(pools) {
-            Integer I=Integer.valueOf(ms.getPkey());
-            AOConnectionPool pool=pools.get(I);
+            AOConnectionPool pool=pools.get(ms);
             if(pool==null) {
-                MySQLDatabase md=ms.getMySQLDatabase(MySQLDatabase.MYSQL);
-                if(md==null) throw new SQLException("Unable to find MySQLDatabase: "+MySQLDatabase.MYSQL+" on "+ms.toString());
+                MySQLDatabase md=ms.getMysqlDatabase(MySQLDatabase.MYSQL);
                 pool=new AOConnectionPool(
-                    AOServDaemonConfiguration.getMySqlDriver(),
+                    AOServDaemonConfiguration.getMysqlDriver(),
                     "jdbc:mysql://127.0.0.1:"+md.getMySQLServer().getNetBind().getPort().getPort()+"/"+md.getName(),
-                    AOServDaemonConfiguration.getMySqlUser(),
-                    AOServDaemonConfiguration.getMySqlPassword(),
+                    AOServDaemonConfiguration.getMysqlUser().getId(),
+                    AOServDaemonConfiguration.getMysqlPassword(),
                     AOServDaemonConfiguration.getMySqlConnections(),
                     AOServDaemonConfiguration.getMySqlMaxConnectionAge(),
                     LogFactory.getLogger(MySQLServerManager.class)
                 );
-                pools.put(I, pool);
+                pools.put(ms, pool);
             }
             return pool;
         }
@@ -84,9 +82,9 @@ final public class MySQLServerManager extends BuilderThread {
                 && mysqlServerManager==null
             ) {
                 System.out.print("Starting MySQLServerManager: ");
-                AOServConnector conn=AOServDaemon.getConnector();
+                AOServConnector<?,?> conn=AOServDaemon.getConnector();
                 mysqlServerManager=new MySQLServerManager();
-                conn.getMysqlServers().addTableListener(mysqlServerManager, 0);
+                conn.getMysqlServers().getTable().addTableListener(mysqlServerManager, 0);
                 System.out.println("Done");
             }
         }
@@ -136,10 +134,6 @@ final public class MySQLServerManager extends BuilderThread {
             */
             String path;
             if(
-                osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-            ) {
-                path="/usr/mysql/"+mysqlServer.getMinorVersion()+"/bin/mysqladmin";
-            } else if(
                 osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) {
                 path="/opt/mysql-"+mysqlServer.getMinorVersion()+"-i686/bin/mysqladmin";
@@ -157,7 +151,7 @@ final public class MySQLServerManager extends BuilderThread {
                 Integer.toString(mysqlServer.getNetBind().getPort().getPort()),
                 "-u",
                 "root",
-                "--password="+AOServDaemonConfiguration.getMySqlPassword(),
+                "--password="+AOServDaemonConfiguration.getMysqlPassword(),
                 "reload"
             };
             AOServDaemon.exec(cmd);

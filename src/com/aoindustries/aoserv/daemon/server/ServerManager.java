@@ -45,8 +45,7 @@ final public class ServerManager {
     public static void controlProcess(String process, String command) throws IOException, SQLException {
         int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
         if(
-            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+            osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
         ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
@@ -196,14 +195,6 @@ final public class ServerManager {
                 return AOServDaemon.execAndCapture(
                     new String[] {
                         "/opt/aoserv-daemon/bin/filesystemscsv"
-                    }
-                );
-            } else if(
-                osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-            ) {
-                return AOServDaemon.execAndCapture(
-                    new String[] {
-                        "/usr/aoserv/daemon/bin/filesystemscsv"
                     }
                 );
             } else {
@@ -524,8 +515,9 @@ final public class ServerManager {
 
     /**
      * Finds a PID given its exact command line as found in /proc/.../cmdline
+     * Returns PID or <code>-1</code> if not found.
      */
-    public static int findPid(String ... cmdlinePrefixes) throws IOException {
+    public static int findPid(String cmdlinePrefix) throws IOException {
         File procFile = new File("/proc");
         String[] list = procFile.list();
         if(list!=null) {
@@ -545,9 +537,7 @@ final public class ServerManager {
                                 } finally {
                                     in.close();
                                 }
-                                for(String cmdlinePrefix : cmdlinePrefixes) {
-                                    if(SB.toString().startsWith(cmdlinePrefix)) return pid;
-                                }
+                                if(SB.toString().startsWith(cmdlinePrefix)) return pid;
                             }
                         } catch(NumberFormatException err) {
                             // Not a PID directory
@@ -559,7 +549,7 @@ final public class ServerManager {
                 }
             }
         }
-        throw new IOException("Unable to find PID");
+        return -1;
     }
 
     /**
@@ -580,10 +570,9 @@ final public class ServerManager {
                     int domid = xmList.getDomid();
 
                     // Find the PID of its qemu handler from its ID
-                    int pid = findPid(
-                        "/usr/lib64/xen/bin/qemu-dm\u0000-d\u0000"+domid+"\u0000", // Hardware virtualized
-                        "/usr/lib64/xen/bin/xen-vncfb\u0000--unused\u0000--listen\u0000127.0.0.1\u0000--domid\u0000"+domid+"\u0000" // Paravirtualized
-                    );
+                    int pid = findPid("/usr/lib64/xen/bin/qemu-dm\u0000-d\u0000"+domid+"\u0000"); // Hardware virtualized
+                    if(pid==-1) pid = findPid("/usr/lib64/xen/bin/xen-vncfb\u0000--unused\u0000--listen\u0000127.0.0.1\u0000--domid\u0000"+domid+"\u0000"); // Paravirtualized
+                    if(pid==-1) throw new IOException("Unable to find PID");
 
                     // Find its port from lsof given its PID
                     String lsof = AOServDaemon.execAndCapture(

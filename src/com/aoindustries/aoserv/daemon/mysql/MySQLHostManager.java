@@ -11,6 +11,7 @@ import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.MySQLServer;
 import com.aoindustries.aoserv.client.NetDevice;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.validator.Hostname;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -39,18 +40,17 @@ final public class MySQLHostManager extends BuilderThread {
     private static final Object rebuildLock=new Object();
     protected boolean doRebuild() {
         try {
-            AOServConnector connector = AOServDaemon.getConnector();
+            AOServConnector<?,?> connector = AOServDaemon.getConnector();
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
             int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
             if(
-                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+                osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized (rebuildLock) {
-                for(MySQLServer mysqlServer : connector.getMysqlServers()) {
+                for(MySQLServer mysqlServer : connector.getMysqlServers().getSet()) {
                     String version=mysqlServer.getVersion().getVersion();
                     boolean modified = false;
 
@@ -59,12 +59,12 @@ final public class MySQLHostManager extends BuilderThread {
                     Connection conn = pool.getConnection();
                     try {
                         // Get the list of all existing hosts
-                        Set<String> existing = new HashSet<String>();
+                        Set<Hostname> existing = new HashSet<Hostname>();
                         Statement stmt = conn.createStatement();
                         try {
                             ResultSet results = stmt.executeQuery("select host from host");
                             try {
-                                while (results.next()) existing.add(results.getString(1));
+                                while (results.next()) existing.add(Hostname.valueOf(results.getString(1)));
                             } finally {
                                 results.close();
                             }
@@ -73,19 +73,14 @@ final public class MySQLHostManager extends BuilderThread {
                         }
 
                         // Get the list of all hosts that should exist
-                        Set<String> hosts=new HashSet<String>();
+                        Set<Hostname> hosts=new HashSet<Hostname>();
                         // Always include loopback, just in case of data errors
-                        hosts.add(IPAddress.LOOPBACK_IP);
-                        hosts.add("localhost");
-                        hosts.add("localhost.localdomain");
+                        hosts.add(Hostname.valueOf("127.0.0.1"));
+                        hosts.add(Hostname.valueOf("localhost"));
+                        hosts.add(Hostname.valueOf("localhost.localdomain"));
                         // Include all of the local IP addresses
                         for(NetDevice nd : thisAOServer.getServer().getNetDevices()) {
-                            for(IPAddress ia : nd.getIPAddresses()) {
-                                if(!ia.isWildcard()) {
-                                    String ip=ia.getIPAddress();
-                                    if(!hosts.contains(ip)) hosts.add(ip);
-                                }
-                            }
+                            for(IPAddress ia : nd.getIpAddresses()) hosts.add(Hostname.valueOf(ia.getIpAddress()));
                         }
 
                         // Add the hosts that do not exist and should
@@ -98,11 +93,10 @@ final public class MySQLHostManager extends BuilderThread {
 
                         PreparedStatement pstmt = conn.prepareStatement(insertSQL);
                         try {
-                            for (String hostname : hosts) {
-                                if (existing.contains(hostname)) existing.remove(hostname);
-                                else {
+                            for (Hostname hostname : hosts) {
+                                if(!existing.remove(hostname)) {
                                     // Add the host
-                                    pstmt.setString(1, hostname);
+                                    pstmt.setString(1, hostname.toString());
                                     pstmt.executeUpdate();
 
                                     modified = true;
@@ -116,9 +110,9 @@ final public class MySQLHostManager extends BuilderThread {
                         if (!existing.isEmpty()) {
                             pstmt = conn.prepareStatement("delete from host where host=?");
                             try {
-                                for (String dbName : existing) {
+                                for(Hostname dbName : existing) {
                                     // Remove the extra host entry
-                                    pstmt.setString(1, dbName);
+                                    pstmt.setString(1, dbName.toString());
                                     pstmt.executeUpdate();
 
                                     modified = true;
@@ -157,10 +151,10 @@ final public class MySQLHostManager extends BuilderThread {
                 && mysqlHostManager==null
             ) {
                 System.out.print("Starting MySQLHostManager: ");
-                AOServConnector conn=AOServDaemon.getConnector();
+                AOServConnector<?,?> conn=AOServDaemon.getConnector();
                 mysqlHostManager=new MySQLHostManager();
-                conn.getIpAddresses().addTableListener(mysqlHostManager, 0);
-                conn.getMysqlServers().addTableListener(mysqlHostManager, 0);
+                conn.getIpAddresses().getTable().addTableListener(mysqlHostManager, 0);
+                conn.getMysqlServers().getTable().addTableListener(mysqlHostManager, 0);
                 System.out.println("Done");
             }
         }

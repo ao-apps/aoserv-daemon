@@ -6,8 +6,9 @@ package com.aoindustries.aoserv.daemon.unix;
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.LinuxAccount;
-import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.validator.UserId;
+import com.aoindustries.aoserv.client.validator.ValidationException;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
@@ -17,11 +18,11 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedSet;
 
 /**
  * A <code>ShadowFileEntry</code> represents one line of the
@@ -49,13 +50,12 @@ final public class ShadowFile {
      * This method is synchronized with <code>doRebuild</code> to ensure that
      * passwords are never lost during updates.
      */
-    public static String getEncryptedPassword(String username) throws IOException, SQLException {
+    public static String getEncryptedPassword(UserId username) throws IOException, ValidationException {
         int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
         if(
-            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+            osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
         synchronized(shadowLock) {
             BufferedReader in = new BufferedReader(new InputStreamReader(new BufferedInputStream(new FileInputStream(shadowFile.getFile()))));
@@ -78,19 +78,18 @@ final public class ShadowFile {
         }
     }
 
-    public static void rebuildShadowFile(List<LinuxServerAccount> accounts) throws IOException, SQLException {
+    public static void rebuildShadowFile(SortedSet<LinuxAccount> accounts) throws IOException, ValidationException {
         int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
         if(
-            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+            osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
         synchronized(shadowLock) {
             /*
              * Get the old data from /etc/shadow
              */
-            Map<String,ShadowFileEntry> shadowEntries = new HashMap<String,ShadowFileEntry>();
+            Map<UserId,ShadowFileEntry> shadowEntries = new HashMap<UserId,ShadowFileEntry>();
             BufferedReader in = new BufferedReader(new InputStreamReader(new BufferedInputStream(new FileInputStream(shadowFile.getFile()))));
             try {
                 String line;
@@ -113,25 +112,23 @@ final public class ShadowFile {
             );
             try {
                 boolean rootFound=false;
-                for (int c = 0; c < accounts.size(); c++) {
-                    String username = accounts.get(c)
-                        .getLinuxAccount()
+                for(LinuxAccount account : accounts) {
+                    UserId username = account
                         .getUsername()
                         .getUsername()
                     ;
                     if(username.equals(LinuxAccount.ROOT)) {
                         ShadowFileEntry entry = shadowEntries.get(username);
-                        if (entry == null) entry = new ShadowFileEntry(username);
+                        if(entry == null) throw new AssertionError("root user not found in /etc/shadow");
                         out.print(entry.toString());
                         out.print('\n');
                         rootFound=true;
                         break;
                     }
                 }
-                if(!rootFound) throw new SQLException("root user not found while creating "+newShadowFile.getPath());
-                for (int c = 0; c < accounts.size(); c++) {
-                    String username = accounts.get(c)
-                        .getLinuxAccount()
+                if(!rootFound) throw new AssertionError("root user not found while creating "+newShadowFile.getPath());
+                for(LinuxAccount account : accounts) {
+                    UserId username = account
                         .getUsername()
                         .getUsername()
                     ;
@@ -148,13 +145,11 @@ final public class ShadowFile {
             }
 
             if(newShadowFile.getStat().getSize()>0) {
-                if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                    // Do nothing
-                } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                     // Do nothing
                 } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                     newShadowFile.setMode(0400);
-                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                 shadowFile.renameTo(backupShadowFile);
                 newShadowFile.renameTo(shadowFile);
             } else throw new IOException(newShadowFile.getPath()+" has zero or unknown length");
@@ -168,13 +163,12 @@ final public class ShadowFile {
      * This method is synchronized with <code>doRebuild</code> to ensure that
      * passwords are never lost during updates.
      */
-    public static void setEncryptedPassword(String username, String encryptedPassword) throws IOException, SQLException {
+    public static void setEncryptedPassword(UserId username, String encryptedPassword) throws IOException, ValidationException {
         int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
         if(
-            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+            osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
         synchronized(shadowLock) {
             /*
@@ -199,7 +193,7 @@ final public class ShadowFile {
             }
 
             // Add if does not yet exist
-            if(!userFound) shadowEntries.add(new ShadowFileEntry(username+':'+encryptedPassword));
+            if(!userFound) shadowEntries.add(new ShadowFileEntry(username+":"+encryptedPassword));
 
             /*
              * Write the new /etc/shadow file.
@@ -230,7 +224,7 @@ final public class ShadowFile {
     /**
      * Sets the password for one user on the system.
      */
-    public static void setPassword(String username, String plaintext) throws IOException, SQLException {
+    public static void setPassword(UserId username, String plaintext) throws IOException, ValidationException {
         setEncryptedPassword(
             username,
             plaintext==null || plaintext.length()==0

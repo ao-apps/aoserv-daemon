@@ -5,13 +5,19 @@ package com.aoindustries.aoserv.daemon.report;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.*;
-import com.aoindustries.aoserv.daemon.*;
-import com.aoindustries.io.unix.*;
-import com.aoindustries.sql.*;
-import com.aoindustries.util.*;
-import java.io.*;
-import java.sql.*;
+import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.validator.LinuxID;
+import com.aoindustries.aoserv.client.validator.ValidationException;
+import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.util.ErrorPrinter;
+import com.aoindustries.util.StringUtility;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 /**
  * Encapsulates the output of the /proc/<I>PID</I>/status files.
@@ -37,20 +43,20 @@ final public class ProcStates {
         user_unknown
     ;
 
-    public ProcStates() throws IOException, SQLException {
+    public ProcStates() throws IOException, ValidationException {
         int
-            total_sleep=0,
-            user_sleep=0,
-            total_run=0,
-            user_run=0,
-            total_zombie=0,
-            user_zombie=0,
-            total_trace=0,
-            user_trace=0,
-            total_uninterruptible=0,
-            user_uninterruptible=0,
-            total_unknown=0,
-            user_unknown=0
+            total_sleep0=0,
+            user_sleep0=0,
+            total_run0=0,
+            user_run0=0,
+            total_zombie0=0,
+            user_zombie0=0,
+            total_trace0=0,
+            user_trace0=0,
+            total_uninterruptible0=0,
+            user_uninterruptible0=0,
+            total_unknown0=0,
+            user_unknown0=0
         ;
 
         AOServer aoServer=AOServDaemon.getThisAOServer();
@@ -80,30 +86,30 @@ final public class ProcStates {
                             }
                         }
                         if(isOuterServer) {
-                            if(state==null) total_unknown++;
+                            if(state==null) total_unknown0++;
                             else {
                                 ch=state.charAt(0);
-                                if(ch=='S') total_sleep++;
-                                else if(ch=='R') total_run++;
-                                else if(ch=='Z') total_zombie++;
-                                else if(ch=='T') total_trace++;
-                                else if(ch=='D') total_uninterruptible++;
-                                else total_unknown++;
+                                if(ch=='S') total_sleep0++;
+                                else if(ch=='R') total_run0++;
+                                else if(ch=='Z') total_zombie0++;
+                                else if(ch=='T') total_trace0++;
+                                else if(ch=='D') total_uninterruptible0++;
+                                else total_unknown0++;
                             }
                         }
                         if(
                             uid>=UnixFile.MINIMUM_USER_UID
-                            && aoServer.getLinuxServerAccount(uid)!=null
+                            && !aoServer.getLinuxAccounts(LinuxID.valueOf(uid)).isEmpty()
                         ) {
-                            if(state==null) user_unknown++;
+                            if(state==null) user_unknown0++;
                             else {
                                 ch=state.charAt(0);
-                                if(ch=='S') user_sleep++;
-                                else if(ch=='R') user_run++;
-                                else if(ch=='Z') user_zombie++;
-                                else if(ch=='T') user_trace++;
-                                else if(ch=='D') user_uninterruptible++;
-                                else user_unknown++;
+                                if(ch=='S') user_sleep0++;
+                                else if(ch=='R') user_run0++;
+                                else if(ch=='Z') user_zombie0++;
+                                else if(ch=='T') user_trace0++;
+                                else if(ch=='D') user_uninterruptible0++;
+                                else user_unknown0++;
                             }
                         }
                         in.close();
@@ -115,18 +121,18 @@ final public class ProcStates {
         }
 
         // Copy into instance
-        this.total_sleep=total_sleep;
-        this.user_sleep=user_sleep;
-        this.total_run=total_run;
-        this.user_run=user_run;
-        this.total_zombie=total_zombie;
-        this.user_zombie=user_zombie;
-        this.total_trace=total_trace;
-        this.user_trace=user_trace;
-        this.total_uninterruptible=total_uninterruptible;
-        this.user_uninterruptible=user_uninterruptible;
-        this.total_unknown=total_unknown;
-        this.user_unknown=user_unknown;
+        this.total_sleep=total_sleep0;
+        this.user_sleep=user_sleep0;
+        this.total_run=total_run0;
+        this.user_run=user_run0;
+        this.total_zombie=total_zombie0;
+        this.user_zombie=user_zombie0;
+        this.total_trace=total_trace0;
+        this.user_trace=user_trace0;
+        this.total_uninterruptible=total_uninterruptible0;
+        this.user_uninterruptible=user_uninterruptible0;
+        this.total_unknown=total_unknown0;
+        this.user_unknown=user_unknown0;
     }
 
     public static void main(String[] args) {
@@ -136,12 +142,13 @@ final public class ProcStates {
         } catch(IOException err) {
             ErrorPrinter.printStackTraces(err);
             System.exit(1);
-        } catch(SQLException err) {
+        } catch(ValidationException err) {
             ErrorPrinter.printStackTraces(err);
             System.exit(2);
         }
     }
 
+    @Override
     public String toString() {
         return
             getClass().getName()

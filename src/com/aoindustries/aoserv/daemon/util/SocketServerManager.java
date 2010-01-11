@@ -7,7 +7,8 @@ package com.aoindustries.aoserv.daemon.util;
  */
 import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.NetBind;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.client.validator.InetAddress;
+import com.aoindustries.aoserv.client.validator.NetPort;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -73,44 +74,44 @@ abstract public class SocketServerManager {
 
             for(int c=0;c<nbs.length;c++) {
                 NetBind nb=nbs[c];
-                String nbIP=nb.getIPAddress().getIPAddress();
-                if(
-                    !nbIP.equals(IPAddress.LOOPBACK_IP)
-                    && !nbIP.equals(IPAddress.WILDCARD_IP)
-                ) {
-                    int nbPort=nb.getPort().getPort();
+                IPAddress ip = nb.getIpAddress();
+                if(ip!=null) {
+                    InetAddress nbIP=ip.getIpAddress();
+                    if(!nbIP.isLooback()) {
+                        NetPort nbPort=nb.getPort();
 
-                    // Find in the existing list
-                    boolean found=false;
-                    for(int d=0;d<existing.size();d++) {
-                        SocketServerThread socketServer=(SocketServerThread)existing.get(d);
-                        if(socketServer.runMore && socketServer.ipAddress.equals(nbIP) && socketServer.port==nbPort) {
-                            existing.remove(d);
-                            found=true;
-                            break;
+                        // Find in the existing list
+                        boolean found=false;
+                        for(int d=0;d<existing.size();d++) {
+                            SocketServerThread socketServer=existing.get(d);
+                            if(socketServer.runMore && socketServer.ipAddress.equals(nbIP) && socketServer.port.equals(nbPort)) {
+                                existing.remove(d);
+                                found=true;
+                                break;
+                            }
                         }
-                    }
-                    if(!found) {
-                        // Add a new one
-                        synchronized(System.out) {
-                            System.out.print("Starting ");
-                            System.out.print(getServiceName());
-                            System.out.print(" on ");
-                            System.out.print(nbIP);
-                            System.out.print(':');
-                            System.out.print(nbPort);
-                            System.out.print(": ");
-                            SocketServerThread newServer=createSocketServerThread(nbIP, nbPort);
-                            socketServers.add(newServer);
-                            newServer.start();
-                            System.out.println("Done");
+                        if(!found) {
+                            // Add a new one
+                            synchronized(System.out) {
+                                System.out.print("Starting ");
+                                System.out.print(getServiceName());
+                                System.out.print(" on ");
+                                System.out.print(nbIP);
+                                System.out.print(':');
+                                System.out.print(nbPort);
+                                System.out.print(": ");
+                                SocketServerThread newServer=createSocketServerThread(nbIP, nbPort);
+                                socketServers.add(newServer);
+                                newServer.start();
+                                System.out.println("Done");
+                            }
                         }
                     }
                 }
             }
             // Shut down the extra ones
             for(int c=0;c<existing.size();c++) {
-                SocketServerThread socketServer=(SocketServerThread)existing.get(c);
+                SocketServerThread socketServer=existing.get(c);
                 synchronized(System.out) {
                     System.out.print("Stopping ");
                     System.out.print(getServiceName());
@@ -138,5 +139,5 @@ abstract public class SocketServerManager {
 
     public abstract String getServiceName();
     
-    public abstract SocketServerThread createSocketServerThread(String ipAddress, int port);
+    public abstract SocketServerThread createSocketServerThread(com.aoindustries.aoserv.client.validator.InetAddress ipAddress, NetPort port);
 }

@@ -9,8 +9,12 @@ import com.aoindustries.aoserv.client.AOServClientConfiguration;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.NetBind;
-import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.client.Shell;
+import com.aoindustries.aoserv.client.validator.DomainName;
+import com.aoindustries.aoserv.client.validator.LinuxID;
+import com.aoindustries.aoserv.client.validator.UnixPath;
+import com.aoindustries.aoserv.client.validator.UserId;
+import com.aoindustries.aoserv.client.validator.ValidationException;
 import com.aoindustries.aoserv.daemon.cvsd.CvsManager;
 import com.aoindustries.aoserv.daemon.distro.DistroManager;
 import com.aoindustries.aoserv.daemon.dns.DNSManager;
@@ -41,14 +45,12 @@ import com.aoindustries.aoserv.daemon.postgres.PgHbaManager;
 import com.aoindustries.aoserv.daemon.postgres.PostgresDatabaseManager;
 import com.aoindustries.aoserv.daemon.postgres.PostgresServerManager;
 import com.aoindustries.aoserv.daemon.postgres.PostgresUserManager;
-import com.aoindustries.aoserv.daemon.random.RandomEntropyManager;
 import com.aoindustries.aoserv.daemon.timezone.TimeZoneManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.profiler.Profiler;
+import com.aoindustries.security.LoginException;
 import com.aoindustries.util.BufferManager;
-import com.aoindustries.util.IntList;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -56,10 +58,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
 import java.io.Reader;
+import java.rmi.RemoteException;
 import java.security.SecureRandom;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -75,7 +78,7 @@ final public class AOServDaemon {
     public static final boolean DEBUG=false;
 
     /**
-     * A single random number generator is shared by all daemon resources to provide better randomness.
+     * A single random number generator is shared by all daemon resources.
      */
     private static final Random random = new SecureRandom();
     public static Random getRandom() {
@@ -85,7 +88,7 @@ final public class AOServDaemon {
     /**
      * The default connection is used to the database, because it should be configured in the properties files.
      */
-    private static AOServConnector conn;
+    private static AOServConnector<?,?> conn;
 
     /**
      * An unbounded executor for daemon-wide tasks.
@@ -107,12 +110,12 @@ final public class AOServDaemon {
      * @param  file  the <code>File</code> to search from
      * @param  uids  the <code>IntList</code> containing the list of uids
      */
-    public static void findUnownedFiles(File file, IntList uids, List<File> deleteFileList, int recursionLevel) throws IOException {
+    public static void findUnownedFiles(File file, Set<LinuxID> uids, List<File> deleteFileList, int recursionLevel) throws IOException, ValidationException {
         if(file.exists()) {
             // Figure out the ownership
             UnixFile unixFile=new UnixFile(file.getPath());
             Stat stat = unixFile.getStat();
-            int uid=stat.getUID();
+            LinuxID uid=LinuxID.valueOf(stat.getUID());
             if(uids.contains(uid)) {
                 if(!stat.isSymLink()) {
                     // Search any children files
@@ -127,23 +130,31 @@ final public class AOServDaemon {
         }
     }
 
-    public static AOServConnector getConnector() throws IOException {
+    public static AOServConnector<?,?> getConnector() throws RemoteException {
         synchronized(AOServDaemon.class) {
             if(conn==null) {
-                // Get the connector that will be used
-                conn=AOServConnector.getConnector(Logger.getLogger(AOServConnector.class.getName()));
+                try {
+                    // Get the connector that will be used
+                    conn=AOServClientConfiguration.getConnector();
+                } catch(LoginException err) {
+                    throw new RemoteException(err.getMessage(), err);
+                }
             }
             return conn;
         }
     }
 
-    public static AOServer getThisAOServer() throws IOException, SQLException {
-        String hostname=AOServDaemonConfiguration.getServerHostname();
-        Server server=getConnector().getServers().get(hostname);
-        if(server==null) throw new SQLException("Unable to find Server: "+hostname);
-        AOServer ao=server.getAOServer();
-        if(ao==null) throw new SQLException("Server is not an AOServer: "+hostname);
-        return ao;
+    public static AOServer getThisAOServer() throws RemoteException {
+        try {
+            DomainName hostname=AOServDaemonConfiguration.getServerHostname();
+            AOServer ao=getConnector().getAoServers().filterUnique(AOServer.COLUMN_HOSTNAME, hostname);
+            if(ao==null) throw new RemoteException("Server is not an AOServer: "+hostname);
+            return ao;
+        } catch(RemoteException err) {
+            throw err;
+        } catch(IOException err) {
+            throw new RemoteException(err.getMessage(), err);
+        }
     }
 
     /**
@@ -155,25 +166,15 @@ final public class AOServDaemon {
 	boolean done=false;
 	while(!done) {
             try {
-                Profiler.setProfilerLevel(AOServDaemonConfiguration.getProfilerLevel());
-
                 // Configure the SSL
-                String trustStorePath=AOServClientConfiguration.getSslTruststorePath();
-                if(trustStorePath!=null && trustStorePath.length()>0) {
-                    System.setProperty("javax.net.ssl.trustStore", trustStorePath);
-                }
-                String trustStorePassword=AOServClientConfiguration.getSslTruststorePassword();
-                if(trustStorePassword!=null && trustStorePassword.length()>0) {
-                    System.setProperty("javax.net.ssl.trustStorePassword", trustStorePassword);
-                }
-                String keyStorePath=AOServDaemonConfiguration.getSSLKeystorePath();
-                if(keyStorePath!=null && keyStorePath.length()>0) {
-                    System.setProperty("javax.net.ssl.keyStore", keyStorePath);
-                }
+                String trustStorePath=AOServClientConfiguration.getTrustStorePath();
+                if(trustStorePath!=null) System.setProperty("javax.net.ssl.trustStore", trustStorePath);
+                String trustStorePassword=AOServClientConfiguration.getTrustStorePassword();
+                if(trustStorePassword!=null) System.setProperty("javax.net.ssl.trustStorePassword", trustStorePassword);
+                UnixPath keyStorePath=AOServDaemonConfiguration.getSSLKeystorePath();
+                if(keyStorePath!=null) System.setProperty("javax.net.ssl.keyStore", keyStorePath.getPath());
                 String keyStorePassword=AOServDaemonConfiguration.getSSLKeystorePassword();
-                if(keyStorePassword!=null && keyStorePassword.length()>0) {
-                    System.setProperty("javax.net.ssl.keyStorePassword", keyStorePassword);
-                }
+                if(keyStorePassword!=null) System.setProperty("javax.net.ssl.keyStorePassword", keyStorePassword);
 
                 // Start up the managers
                 AWStatsManager.start();
@@ -192,7 +193,7 @@ final public class AOServDaemon {
                 LinuxAccountManager.start();
                 MajordomoManager.start();
                 MrtgManager.start();
-                // TODO: Move to aoserv-daemon: MySQLCreditCardScanner.start();
+                // TODO: Move to noc: MySQLCreditCardScanner.start();
                 MySQLDatabaseManager.start();
                 MySQLDBUserManager.start();
                 MySQLHostManager.start();
@@ -204,7 +205,6 @@ final public class AOServDaemon {
                 PostgresServerManager.start();
                 PostgresUserManager.start();
                 ProcmailManager.start();
-                RandomEntropyManager.start();
                 SendmailCFManager.start();
                 SpamAssassinManager.start();
                 SshdManager.start();
@@ -214,7 +214,7 @@ final public class AOServDaemon {
 
                 // Start up the AOServDaemonServers
                 NetBind bind=getThisAOServer().getDaemonBind();
-                if(bind!=null) new AOServDaemonServer(bind.getIPAddress().getIPAddress(), bind.getPort().getPort(), bind.getAppProtocol().getProtocol());
+                if(bind!=null) new AOServDaemonServer(bind.getIpAddress().getIpAddress(), bind.getPort(), bind.getAppProtocol().getProtocol());
 
                 done=true;
             } catch (ThreadDeath TD) {
@@ -393,10 +393,7 @@ final public class AOServDaemon {
      * 
      * @param  nice  a nice level passed to /bin/nice, a value of zero (0) will cause nice to not be called
      */
-    public static void suexec(String username, String command, int nice) throws IOException {
-        /*
-         * Not needed because command is passed as String[] and any funny stuff will
-         * be executed as the proper user.
+    public static void suexec(UserId username, String command, int nice) throws IOException {
         if(command==null) throw new IllegalArgumentException("command is null");
         int len = command.length();
         if(len==0) throw new IllegalArgumentException("command is empty");
@@ -414,7 +411,7 @@ final public class AOServDaemon {
             ) {
                 throw new IllegalArgumentException("Invalid command character: "+ch);
             }
-        }*/
+        }
 
         String[] cmd;
         if(nice!=0) {
@@ -424,19 +421,19 @@ final public class AOServDaemon {
                 Integer.toString(nice),
                 "/bin/su",
                 "-s",
-                Shell.BASH,
+                Shell.BASH.getPath(),
                 "-c",
                 command,
-                username
+                username.getId()
             };
         } else {
             cmd = new String[] {
                 "/bin/su",
                 "-s",
-                Shell.BASH,
+                Shell.BASH.getPath(),
                 "-c",
                 command,
-                username
+                username.getId()
             };
         }
         exec(cmd);

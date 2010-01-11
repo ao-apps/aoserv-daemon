@@ -1,15 +1,17 @@
 package com.aoindustries.aoserv.daemon.cvsd;
 
 /*
- * Copyright 2002-2009 by AO Industries, Inc.,
+ * Copyright 2002-2010 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.CvsRepository;
-import com.aoindustries.aoserv.client.LinuxServerAccount;
+import com.aoindustries.aoserv.client.LinuxAccount;
+import com.aoindustries.aoserv.client.LinuxAccountGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -37,6 +39,25 @@ final public class CvsManager extends BuilderThread {
 
     private static CvsManager cvsManager;
 
+    public static boolean isSafePath(UnixPath path) {
+        if(path==null) return false;
+        String pathString = path.getPath();
+        int len=pathString.length();
+        for(int c=1;c<len;c++) {
+            char ch=pathString.charAt(c);
+            if(
+                (ch<'a' || ch>'z')
+                && (ch<'A' || ch>'Z')
+                && (ch<'0' || ch>'9')
+                && ch!='_'
+                && ch!='.'
+                && ch!='-'
+                && ch!='/'
+            ) return false;
+        }
+        return true;
+    }
+
     private CvsManager() {
     }
 
@@ -48,8 +69,7 @@ final public class CvsManager extends BuilderThread {
 
             int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
             if(
-                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-                && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(rebuildLock) {
@@ -58,14 +78,14 @@ final public class CvsManager extends BuilderThread {
                 if(!cvsDir.exists()) new UnixFile(cvsDir).mkdir(false, 0755, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
                 String[] list=cvsDir.list();
                 int listLen=list.length;
-                Set<String> existing = new HashSet<String>(listLen);
-                for(int c=0;c<listLen;c++) existing.add(CVS_DIRECTORY+'/'+list[c]);
+                Set<UnixPath> existing = new HashSet<UnixPath>(listLen);
+                for(int c=0;c<listLen;c++) existing.add(UnixPath.valueOf(CVS_DIRECTORY+'/'+list[c]));
 
                 // Add each directory that doesn't exist, fix permissions and ownerships, too
                 // while removing existing directories from existing
                 for(CvsRepository cvs : thisAOServer.getCvsRepositories()) {
-                    String path=cvs.getPath();
-                    UnixFile cvsUF=new UnixFile(path);
+                    UnixPath path=cvs.getPath();
+                    UnixFile cvsUF=new UnixFile(path.getPath());
                     Stat cvsStat = cvsUF.getStat();
                     long cvsMode=cvs.getMode();
                     // Make the directory
@@ -79,9 +99,10 @@ final public class CvsManager extends BuilderThread {
                         cvsUF.getStat(cvsStat);
                     }
                     // Set the owner and group
-                    LinuxServerAccount lsa=cvs.getLinuxServerAccount();
-                    int uid=lsa.getUID().getID();
-                    int gid=cvs.getLinuxServerGroup().getGID().getID();
+                    LinuxAccountGroup lag = cvs.getLinuxAccountGroup();
+                    LinuxAccount la=lag.getLinuxAccount();
+                    int uid=la.getUid().getId();
+                    int gid=lag.getLinuxGroup().getGid().getId();
                     if(uid!=cvsStat.getUID() || gid!=cvsStat.getGID()) {
                         cvsUF.chown(uid, gid);
                         cvsUF.getStat(cvsStat);
@@ -89,23 +110,24 @@ final public class CvsManager extends BuilderThread {
                     // Init if needed
                     UnixFile cvsRootUF=new UnixFile(cvsUF, "CVSROOT", false);
                     if(!cvsRootUF.getStat().exists()) {
+                        if(!isSafePath(path)) throw new AssertionError("Refusing to call shell.  Not safe path: "+path);
                         AOServDaemon.suexec(
-                            lsa.getLinuxAccount().getUsername().getUsername(),
+                            la.getUsername().getUsername(),
                             "/usr/bin/cvs -d "+path+" init",
                             0
                         );
                     }
                     // Remove from list
-                    if(existing.contains(path)) existing.remove(path);
+                    existing.remove(path);
                 }
 
                 /*
                  * Back up the files scheduled for removal.
                  */
                 int svLen=existing.size();
-                if(svLen>0) {
+                if(svLen!=0) {
                     List<File> deleteFileList=new ArrayList<File>(svLen);
-                    for(String deleteFilename : existing) deleteFileList.add(new File(deleteFilename));
+                    for(UnixPath deleteFilename : existing) deleteFileList.add(new File(deleteFilename.getPath()));
 
                     // Get the next backup filename
                     File backupFile=BackupManager.getNextBackupFile();
@@ -143,9 +165,9 @@ final public class CvsManager extends BuilderThread {
                 && cvsManager==null
             ) {
                 System.out.print("Starting CvsManager: ");
-                AOServConnector conn=AOServDaemon.getConnector();
+                AOServConnector<?,?> conn=AOServDaemon.getConnector();
                 cvsManager=new CvsManager();
-                conn.getCvsRepositories().addTableListener(cvsManager, 0);
+                conn.getCvsRepositories().getTable().addTableListener(cvsManager, 0);
                 System.out.println("Done");
             }
         }

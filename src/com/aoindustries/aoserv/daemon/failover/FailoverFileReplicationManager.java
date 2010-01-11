@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
-import java.sql.SQLException;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,11 +41,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.Stack;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-//import java.util.zip.DeflaterOutputStream;
-//import java.util.zip.GZIPInputStream;
 
 /**
  * Handles the replication of data for the failover system.
@@ -190,7 +189,7 @@ final public class FailoverFileReplicationManager {
         final List<String> replicatedMySQLServers,
         final List<String> replicatedMySQLMinorVersions,
         final int quota_gid
-    ) throws IOException, SQLException {
+    ) throws IOException {
         final PostPassChecklist postPassChecklist = new PostPassChecklist();
         Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
         boolean isInfo = logger.isLoggable(Level.INFO);
@@ -1818,7 +1817,7 @@ final public class FailoverFileReplicationManager {
         return true;
     }
 
-    private static void cleanAndRecycleBackups(short retention, UnixFile serverRootUF, Stat tempStat, short fromServerYear, short fromServerMonth, short fromServerDay) throws IOException, SQLException {
+    private static void cleanAndRecycleBackups(short retention, UnixFile serverRootUF, Stat tempStat, short fromServerYear, short fromServerMonth, short fromServerDay) throws IOException {
         final Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
         final boolean isDebug = logger.isLoggable(Level.FINE);
         try {
@@ -1915,7 +1914,7 @@ final public class FailoverFileReplicationManager {
                 }
             }
             // Go through each retention level >= 14
-            List<BackupRetention> brs = AOServDaemon.getConnector().getBackupRetentions().getRows();
+            SortedSet<BackupRetention> brs = new TreeSet<BackupRetention>(AOServDaemon.getConnector().getBackupRetentions().getSet());
             int lastLevel = 0;
             for(BackupRetention br : brs) {
                 int currentLevel = br.getDays();
@@ -2112,7 +2111,7 @@ final public class FailoverFileReplicationManager {
     }
 
     private static boolean started = false;
-    public static void start() throws IOException, SQLException {
+    public static void start() throws IOException {
         if(AOServDaemonConfiguration.isManagerEnabled(FailoverFileReplicationManager.class)) {
             synchronized(System.out) {
                 if(!started) {

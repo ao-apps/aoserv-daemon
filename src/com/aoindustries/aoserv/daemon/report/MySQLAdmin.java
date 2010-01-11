@@ -5,10 +5,15 @@ package com.aoindustries.aoserv.daemon.report;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.*;
-import com.aoindustries.aoserv.daemon.*;
-import com.aoindustries.util.*;
-import java.io.*;
+import com.aoindustries.aoserv.client.validator.MySQLUserId;
+import com.aoindustries.aoserv.client.validator.ValidationException;
+import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.util.ErrorPrinter;
+import com.aoindustries.util.StringUtility;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.InterruptedIOException;
 
 /**
  * Encapsulates the output of the /usr/bin/mysqladmin command.
@@ -24,16 +29,16 @@ final public class MySQLAdmin extends DBReportData {
     final public int open_tables;
     final public float queries_per_second;
 
-    public MySQLAdmin() throws IOException {
-        String user=AOServDaemonConfiguration.getMySqlUser();
-        String password=AOServDaemonConfiguration.getMySqlPassword();
-        if(user!=null && user.length()>0 && password!=null && password.length()>0) {
+    public MySQLAdmin() throws IOException, ValidationException {
+        MySQLUserId user=AOServDaemonConfiguration.getMysqlUser();
+        String password=AOServDaemonConfiguration.getMysqlPassword();
+        if(user!=null && password!=null && password.length()>0) {
             String[] cmd={
                 "/usr/bin/mysqladmin",
                 "-h",
-                IPAddress.LOOPBACK_IP,
+                "127.0.0.1",
                 "-u",
-                user,
+                user.getId(),
                 "--password="+password,
                 "status"
             };
@@ -80,9 +85,13 @@ final public class MySQLAdmin extends DBReportData {
         } catch(IOException err) {
             ErrorPrinter.printStackTraces(err);
             System.exit(1);
+        } catch(ValidationException err) {
+            ErrorPrinter.printStackTraces(err);
+            System.exit(2);
         }
     }
 
+    @Override
     public String toString() {
         return
             super.toString()

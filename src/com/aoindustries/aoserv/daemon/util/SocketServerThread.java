@@ -5,6 +5,7 @@ package com.aoindustries.aoserv.daemon.util;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+import com.aoindustries.aoserv.client.validator.NetPort;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.io.AOPool;
 import java.io.IOException;
@@ -20,20 +21,20 @@ import java.util.logging.Level;
  */
 abstract public class SocketServerThread extends Thread {
 
-    final String ipAddress;
-    final int port;
+    final com.aoindustries.aoserv.client.validator.InetAddress ipAddress;
+    final NetPort port;
 
-    public SocketServerThread(String name, String ipAddress, int port) {
-        super(name+" on "+ipAddress+":"+port);
+    public SocketServerThread(String name, com.aoindustries.aoserv.client.validator.InetAddress ipAddress, NetPort port) {
+        super(name+" on "+(ipAddress.getAddress().indexOf(':')==-1 ? ipAddress.getAddress() : ("["+ipAddress.getAddress()+"]"))+":"+port);
         this.ipAddress=ipAddress;
         this.port=port;
     }
 
-    public String getIPAddress() {
+    public com.aoindustries.aoserv.client.validator.InetAddress getIPAddress() {
         return ipAddress;
     }
     
-    public int getPort() {
+    public NetPort getPort() {
         return port;
     }
 
@@ -45,7 +46,7 @@ abstract public class SocketServerThread extends Thread {
     public void run() {
         while(runMore) {
             try {
-                SS=new ServerSocket(port, 50, InetAddress.getByName(ipAddress));
+                SS=new ServerSocket(port.getPort(), 50, InetAddress.getByName(ipAddress.getAddress()));
                 try {
                     while(runMore) {
                         Socket socket=SS.accept();

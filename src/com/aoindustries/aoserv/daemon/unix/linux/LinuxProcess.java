@@ -5,6 +5,8 @@ package com.aoindustries.aoserv.daemon.unix.linux;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+import com.aoindustries.aoserv.client.validator.LinuxID;
+import com.aoindustries.aoserv.client.validator.ValidationException;
 import com.aoindustries.aoserv.daemon.unix.UnixProcess;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.File;
@@ -28,7 +30,7 @@ public class LinuxProcess extends UnixProcess {
      * Constructs a Linux process given its process ID.
      */
     public LinuxProcess(int pid) {
-	super(pid);
+        super(pid);
     }
 
     /**
@@ -37,8 +39,8 @@ public class LinuxProcess extends UnixProcess {
      * /proc directory.  If the process is not running, a
      * FileNotFoundException is thrown.
      */
-    public int getGID() throws IOException {
-        return new UnixFile(getProc().getPath()).getStat().getGID();
+    public LinuxID getGID() throws IOException, ValidationException {
+        return LinuxID.valueOf(new UnixFile(getProc().getPath()).getStat().getGID());
     }
 
     /**
@@ -66,8 +68,8 @@ public class LinuxProcess extends UnixProcess {
      * /proc directory.  If the process is not running, a
      * FileNotFoundException is thrown.
      */
-    public int getUID() throws IOException {
-        return new UnixFile(getProc().getPath()).getStat().getUID();
+    public LinuxID getUID() throws IOException, ValidationException {
+        return LinuxID.valueOf(new UnixFile(getProc().getPath()).getStat().getUID());
     }
 
     /**

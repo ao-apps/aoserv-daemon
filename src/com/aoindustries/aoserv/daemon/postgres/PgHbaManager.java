@@ -12,7 +12,6 @@ import com.aoindustries.aoserv.client.LinuxGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.PostgresDatabase;
 import com.aoindustries.aoserv.client.PostgresServer;
-import com.aoindustries.aoserv.client.PostgresServerUser;
 import com.aoindustries.aoserv.client.PostgresUser;
 import com.aoindustries.aoserv.client.PostgresVersion;
 import com.aoindustries.aoserv.client.Username;
@@ -31,7 +30,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.sql.SQLException;
-import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.logging.Level;
 
 /**
@@ -47,14 +47,11 @@ public final class PgHbaManager extends BuilderThread {
     private static final Object rebuildLock=new Object();
     protected boolean doRebuild() {
         try {
-            AOServConnector connector=AOServDaemon.getConnector();
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
-
 
             int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
             if(
-                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+                osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
@@ -62,11 +59,10 @@ public final class PgHbaManager extends BuilderThread {
 
             synchronized(rebuildLock) {
                 for(PostgresServer ps : thisAOServer.getPostgresServers()) {
-                    String version=ps.getPostgresVersion().getTechnologyVersion(connector).getVersion();
-                    int postgresUID=thisAOServer.getLinuxServerAccount(LinuxAccount.POSTGRES).getUID().getID();
-                    int postgresGID=thisAOServer.getLinuxServerGroup(LinuxGroup.POSTGRES).getGID().getID();
-                    String serverName=ps.getName();
-                    File serverDir=new File(PostgresServerManager.pgsqlDirectory, serverName);
+                    String version=ps.getPostgresVersion().getTechnologyVersion().getVersion();
+                    int postgresUID=thisAOServer.getLinuxAccount(LinuxAccount.POSTGRES).getUid().getId();
+                    int postgresGID=thisAOServer.getLinuxGroup(LinuxGroup.POSTGRES).getGid().getId();
+                    File serverDir=new File(PostgresServerManager.pgsqlDirectory, ps.getName().getName());
                     UnixFile newHbaUF=new UnixFile(serverDir, "pg_hba.conf.new");
                     ChainWriter out=new ChainWriter(new FileOutputStream(newHbaUF.getFile()));
                     try {
@@ -81,22 +77,21 @@ public final class PgHbaManager extends BuilderThread {
                                     + "host all 0.0.0.0 0.0.0.0 password\n");
                         } else if(version.startsWith(PostgresVersion.VERSION_7_3+'.')) {
                             out.print("local all all trust\n");
-                            List<PostgresServerUser> users=ps.getPostgresServerUsers();
+                            SortedSet<PostgresUser> users=new TreeSet<PostgresUser>(ps.getPostgresUsers());
                             for(PostgresDatabase db : ps.getPostgresDatabases()) {
                                 out.print("host ").print(db.getName()).print(' ');
                                 boolean didOne=false;
-                                for(PostgresServerUser psu : users) {
-                                    Username un=psu.getPostgresUser().getUsername();
-
+                                for(PostgresUser pu : users) {
+                                    Username un=pu.getUsername();
                                     if(
                                         // Allow postgres to all databases
-                                        un.getUsername().equals(PostgresUser.POSTGRES)
+                                        un.getUsername().getId().equals(PostgresUser.POSTGRES)
 
                                         // Allow database admin
-                                        || psu.equals(db.getDatDBA())
+                                        || pu.equals(db.getDatDBA())
 
                                         // Allow in same business
-                                        || un.getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getBusiness())
+                                        || un.getBusiness().equals(db.getDatDBA().getUsername().getBusiness())
                                     ) {
                                         if(didOne) out.print(',');
                                         else didOne=true;
@@ -106,18 +101,17 @@ public final class PgHbaManager extends BuilderThread {
                                 out.print(" 127.0.0.1 255.255.255.255 ident sameuser\n"
                                         + "host ").print(db.getName()).print(' ');
                                 didOne=false;
-                                for(PostgresServerUser psu : users) {
-                                    Username un=psu.getPostgresUser().getUsername();
-
+                                for(PostgresUser pu : users) {
+                                    Username un=pu.getUsername();
                                     if(
                                         // Allow postgres to all databases
-                                        un.getUsername().equals(PostgresUser.POSTGRES)
+                                        un.getUsername().getId().equals(PostgresUser.POSTGRES)
 
                                         // Allow database admin
-                                        || psu.equals(db.getDatDBA())
+                                        || pu.equals(db.getDatDBA())
 
                                         // Allow in same business
-                                        || un.getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getBusiness())
+                                        || un.getBusiness().equals(db.getDatDBA().getUsername().getBusiness())
                                     ) {
                                         if(didOne) out.print(',');
                                         else didOne=true;
@@ -131,23 +125,22 @@ public final class PgHbaManager extends BuilderThread {
                             || version.startsWith(PostgresVersion.VERSION_8_3+'.')
                             || version.startsWith(PostgresVersion.VERSION_8_3+'R')
                         ) {
-                            List<PostgresServerUser> users=ps.getPostgresServerUsers();
+                            SortedSet<PostgresUser> users=new TreeSet<PostgresUser>(ps.getPostgresUsers());
                             for(PostgresDatabase db : ps.getPostgresDatabases()) {
                                 // ident used from local
                                 out.print("local ").print(db.getName()).print(' ');
                                 boolean didOne=false;
-                                for(PostgresServerUser psu : users) {
-                                    Username un=psu.getPostgresUser().getUsername();
-
+                                for(PostgresUser pu : users) {
+                                    Username un=pu.getUsername();
                                     if(
                                         // Allow postgres to all databases
-                                        un.getUsername().equals(PostgresUser.POSTGRES)
+                                        un.getUsername().getId().equals(PostgresUser.POSTGRES)
 
                                         // Allow database admin
-                                        || psu.equals(db.getDatDBA())
+                                        || pu.equals(db.getDatDBA())
 
                                         // Allow in same business
-                                        || un.getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getBusiness())
+                                        || un.getBusiness().equals(db.getDatDBA().getUsername().getBusiness())
                                     ) {
                                         if(didOne) out.print(',');
                                         else didOne=true;
@@ -159,18 +152,17 @@ public final class PgHbaManager extends BuilderThread {
                                 // ident used from 127.0.0.1
                                 out.print("host ").print(db.getName()).print(' ');
                                 didOne=false;
-                                for(PostgresServerUser psu : users) {
-                                    Username un=psu.getPostgresUser().getUsername();
-
+                                for(PostgresUser pu : users) {
+                                    Username un=pu.getUsername();
                                     if(
                                         // Allow postgres to all databases
-                                        un.getUsername().equals(PostgresUser.POSTGRES)
+                                        un.getUsername().getId().equals(PostgresUser.POSTGRES)
 
                                         // Allow database admin
-                                        || psu.equals(db.getDatDBA())
+                                        || pu.equals(db.getDatDBA())
 
                                         // Allow in same business
-                                        || un.getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getBusiness())
+                                        || un.getBusiness().equals(db.getDatDBA().getUsername().getBusiness())
                                     ) {
                                         if(didOne) out.print(',');
                                         else didOne=true;
@@ -182,18 +174,17 @@ public final class PgHbaManager extends BuilderThread {
                                 // ident used from ::1/128
                                 out.print("host ").print(db.getName()).print(' ');
                                 didOne=false;
-                                for(PostgresServerUser psu : users) {
-                                    Username un=psu.getPostgresUser().getUsername();
-
+                                for(PostgresUser pu : users) {
+                                    Username un=pu.getUsername();
                                     if(
                                         // Allow postgres to all databases
-                                        un.getUsername().equals(PostgresUser.POSTGRES)
+                                        un.getUsername().getId().equals(PostgresUser.POSTGRES)
 
                                         // Allow database admin
-                                        || psu.equals(db.getDatDBA())
+                                        || pu.equals(db.getDatDBA())
 
                                         // Allow in same business
-                                        || un.getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getBusiness())
+                                        || un.getBusiness().equals(db.getDatDBA().getUsername().getBusiness())
                                     ) {
                                         if(didOne) out.print(',');
                                         else didOne=true;
@@ -205,18 +196,17 @@ public final class PgHbaManager extends BuilderThread {
                                 // md5 used for other connections
                                 out.print("host ").print(db.getName()).print(' ');
                                 didOne=false;
-                                for(PostgresServerUser psu : users) {
-                                    Username un=psu.getPostgresUser().getUsername();
-
+                                for(PostgresUser pu : users) {
+                                    Username un=pu.getUsername();
                                     if(
                                         // Allow postgres to all databases
-                                        un.getUsername().equals(PostgresUser.POSTGRES)
+                                        un.getUsername().getId().equals(PostgresUser.POSTGRES)
 
                                         // Allow database admin
-                                        || psu.equals(db.getDatDBA())
+                                        || pu.equals(db.getDatDBA())
 
                                         // Allow in same business
-                                        || un.getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getBusiness())
+                                        || un.getBusiness().equals(db.getDatDBA().getUsername().getBusiness())
                                     ) {
                                         if(didOne) out.print(',');
                                         else didOne=true;
@@ -274,10 +264,10 @@ public final class PgHbaManager extends BuilderThread {
                 && pgHbaManager==null
             ) {
                 System.out.print("Starting PgHbaManager: ");
-                AOServConnector conn=AOServDaemon.getConnector();
+                AOServConnector<?,?> conn=AOServDaemon.getConnector();
                 pgHbaManager=new PgHbaManager();
-                conn.getPostgresDatabases().addTableListener(pgHbaManager, 0);
-                conn.getPostgresServerUsers().addTableListener(pgHbaManager, 0);
+                conn.getPostgresDatabases().getTable().addTableListener(pgHbaManager, 0);
+                conn.getPostgresUsers().getTable().addTableListener(pgHbaManager, 0);
                 System.out.println("Done");
             }
         }

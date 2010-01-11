@@ -51,14 +51,12 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
         return true;
     }
 
-    private static final Map<Integer,AOConnectionPool> pools=new HashMap<Integer,AOConnectionPool>();
+    private static final Map<PostgresServer,AOConnectionPool> pools=new HashMap<PostgresServer,AOConnectionPool>();
     static AOConnectionPool getPool(PostgresServer ps) throws IOException, SQLException {
         synchronized(pools) {
-            Integer I=Integer.valueOf(ps.getPkey());
-            AOConnectionPool pool=pools.get(I);
+            AOConnectionPool pool=pools.get(ps);
             if(pool==null) {
                 PostgresDatabase pd=ps.getPostgresDatabase(PostgresDatabase.AOSERV);
-                if(pd==null) throw new SQLException("Unable to find PostgresDatabase: "+PostgresDatabase.AOSERV+" on "+ps.toString());
                 pool=new AOConnectionPool(
                     pd.getJdbcDriver(),
                     pd.getJdbcUrl(true),
@@ -68,7 +66,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
                     AOServDaemonConfiguration.getPostgresMaxConnectionAge(),
                     LogFactory.getLogger(PostgresServerManager.class)
                 );
-                pools.put(I, pool);
+                pools.put(ps, pool);
             }
             return pool;
         }
@@ -89,9 +87,9 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
                 && postgresServerManager==null
             ) {
                 System.out.print("Starting PostgresServerManager: ");
-                AOServConnector conn=AOServDaemon.getConnector();
+                AOServConnector<?,?> conn=AOServDaemon.getConnector();
                 postgresServerManager=new PostgresServerManager();
-                conn.getPostgresServers().addTableListener(postgresServerManager, 0);
+                conn.getPostgresServers().getTable().addTableListener(postgresServerManager, 0);
                 // Register in CronDaemon
                 CronDaemon.addCronJob(postgresServerManager, LogFactory.getLogger(PostgresServerManager.class));
                 System.out.println("Done");
@@ -146,9 +144,8 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
      */
     public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
         try {
-            AOServConnector conn = AOServDaemon.getConnector();
             for(PostgresServer postgresServer : AOServDaemon.getThisAOServer().getPostgresServers()) {
-                String version=postgresServer.getPostgresVersion().getTechnologyVersion(conn).getVersion();
+                String version=postgresServer.getPostgresVersion().getTechnologyVersion().getVersion();
                 if(
                     !version.startsWith(PostgresVersion.VERSION_7_1+'.')
                     && !version.startsWith(PostgresVersion.VERSION_7_2+'.')
@@ -156,7 +153,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
                     && !version.startsWith(PostgresVersion.VERSION_8_0+'.')
                 ) {
                     // Is 8.1 or newer, need to compress and rotate logs
-                    File logDirectory=new File("/var/log/postgresql", postgresServer.getName());
+                    File logDirectory=new File("/var/log/postgresql", postgresServer.getName().getName());
                     String[] list=logDirectory.list();
                     if(list!=null) {
                         for(String filename : list) {

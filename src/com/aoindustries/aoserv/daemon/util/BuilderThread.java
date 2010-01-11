@@ -5,8 +5,10 @@ package com.aoindustries.aoserv.daemon.util;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+import com.aoindustries.aoserv.client.MethodColumn;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
+import com.aoindustries.table.Row;
 import com.aoindustries.util.logging.ProcessTimer;
 import com.aoindustries.table.Table;
 import com.aoindustries.table.TableListener;
@@ -18,7 +20,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-abstract public class BuilderThread implements TableListener {
+abstract public class BuilderThread implements TableListener<MethodColumn,Row> {
 
     public static final long
         DEFAULT_PROCESS_TIMER_MAXIMUM_TIME=5*60*1000,
@@ -39,7 +41,7 @@ abstract public class BuilderThread implements TableListener {
         delayAndRebuild();
     }
 
-    public void tableUpdated(Table table) {
+    public void tableUpdated(Table<? extends MethodColumn,? extends Row> table) {
         delayAndRebuild();
     }
 

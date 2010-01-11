@@ -11,7 +11,6 @@ import com.aoindustries.util.BufferManager;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -24,6 +23,9 @@ import java.io.OutputStream;
  * @author  AO Industries, Inc.
  */
 public class FileUtils {
+
+    private FileUtils() {
+    }
 
     /**
      * Copies a resource to the provided output stream.

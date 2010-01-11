@@ -48,9 +48,9 @@ public class TimeZoneManager extends BuilderThread {
                 && timeZoneManager==null
             ) {
                 System.out.print("Starting TimeZoneManager: ");
-                AOServConnector connector=AOServDaemon.getConnector();
+                AOServConnector<?,?> connector=AOServDaemon.getConnector();
                 timeZoneManager=new TimeZoneManager();
-                connector.getAoServers().addTableListener(timeZoneManager, 0);
+                connector.getAoServers().getTable().addTableListener(timeZoneManager, 0);
                 System.out.println("Done");
             }
         }
@@ -63,8 +63,7 @@ public class TimeZoneManager extends BuilderThread {
 
             int osv=server.getServer().getOperatingSystemVersion().getPkey();
             if(
-                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+                osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
@@ -103,8 +102,7 @@ public class TimeZoneManager extends BuilderThread {
                                    + "UTC=true\n"
                                    + "ARC=false\n");
                     } else if(
-                        osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-                        || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+                        osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                     ) {
                         newOut.print("ARC=false\n"
                                    + "ZONE=").print(timeZone).print("\n"
