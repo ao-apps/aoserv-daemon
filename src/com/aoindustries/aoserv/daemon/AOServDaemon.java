@@ -214,7 +214,7 @@ final public class AOServDaemon {
 
                 // Start up the AOServDaemonServers
                 NetBind bind=getThisAOServer().getDaemonBind();
-                if(bind!=null) new AOServDaemonServer(bind.getIpAddress().getIpAddress(), bind.getPort(), bind.getAppProtocol().getProtocol());
+                if(bind!=null) new AOServDaemonServer(bind.getIpAddress().getIPAddress(), bind.getPort(), bind.getAppProtocol().getProtocol());
 
                 done=true;
             } catch (ThreadDeath TD) {
@@ -394,6 +394,9 @@ final public class AOServDaemon {
      * @param  nice  a nice level passed to /bin/nice, a value of zero (0) will cause nice to not be called
      */
     public static void suexec(UserId username, String command, int nice) throws IOException {
+        /*
+         * Not needed because command is passed as String[] and any funny stuff will
+         * be executed as the proper user.
         if(command==null) throw new IllegalArgumentException("command is null");
         int len = command.length();
         if(len==0) throw new IllegalArgumentException("command is empty");
@@ -411,7 +414,7 @@ final public class AOServDaemon {
             ) {
                 throw new IllegalArgumentException("Invalid command character: "+ch);
             }
-        }
+        }*/
 
         String[] cmd;
         if(nice!=0) {

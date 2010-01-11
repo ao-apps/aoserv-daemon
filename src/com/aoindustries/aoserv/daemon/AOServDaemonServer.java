@@ -6,6 +6,7 @@ package com.aoindustries.aoserv.daemon;
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.Protocol;
+import com.aoindustries.aoserv.client.validator.NetPort;
 import com.aoindustries.io.AOPool;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -34,12 +35,12 @@ final public class AOServDaemonServer extends Thread {
     /**
      * The address that this server will bind to.
      */
-    public final String serverBind;
+    public final com.aoindustries.aoserv.client.validator.InetAddress serverBind;
 
     /**
      * The port that this server will listen on.
      */
-    public final int serverPort;
+    public final NetPort serverPort;
 
     /**
      * The protocol to support.
@@ -49,7 +50,7 @@ final public class AOServDaemonServer extends Thread {
     /**
      * Creates a new, running <code>AOServServer</code>.
      */
-    public AOServDaemonServer(String serverBind, int serverPort, String protocol) {
+    public AOServDaemonServer(com.aoindustries.aoserv.client.validator.InetAddress serverBind, NetPort serverPort, String protocol) {
 	super(AOServDaemonServer.class.getName()+"?address="+serverBind+"&port="+serverPort+"&protocol="+protocol);
         this.serverBind = serverBind;
         this.serverPort = serverPort;
@@ -105,7 +106,7 @@ final public class AOServDaemonServer extends Thread {
     public void run() {
         while (true) {
             try {
-                InetAddress address=InetAddress.getByName(serverBind);
+                InetAddress address=InetAddress.getByName(serverBind.getAddress());
                 synchronized(System.out) {
                     System.out.print("Accepting connections on ");
                     System.out.print(address.getHostAddress());
@@ -116,7 +117,7 @@ final public class AOServDaemonServer extends Thread {
                     System.out.println(')');
                 }
                 if(protocol.equals(Protocol.AOSERV_DAEMON)) {
-                    ServerSocket SS = new ServerSocket(serverPort, 50, address.getHostAddress().equals("0.0.0.0") ? null : address);
+                    ServerSocket SS = new ServerSocket(serverPort.getPort(), 50, address.getHostAddress().equals("0.0.0.0") ? null : address);
                     try {
                         while(true) {
                             Socket socket=SS.accept();
@@ -130,7 +131,7 @@ final public class AOServDaemonServer extends Thread {
                     }
                 } else if(protocol.equals(Protocol.AOSERV_DAEMON_SSL)) {
                     SSLServerSocketFactory factory = (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
-                    SSLServerSocket SS=(SSLServerSocket)factory.createServerSocket(serverPort, 50, address);
+                    SSLServerSocket SS=(SSLServerSocket)factory.createServerSocket(serverPort.getPort(), 50, address);
 
                     try {
                         while (true) {

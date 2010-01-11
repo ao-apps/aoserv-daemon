@@ -5,11 +5,18 @@ package com.aoindustries.aoserv.daemon.backup;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.daemon.*;
-import com.aoindustries.io.unix.*;
-import com.aoindustries.util.*;
-import java.io.*;
-import java.util.*;
+import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.LogFactory;
+import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.util.StringUtility;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.InterruptedIOException;
+import java.util.Calendar;
+import java.util.List;
 import java.util.logging.Level;
 
 /**
@@ -65,46 +72,6 @@ final public class BackupManager {
         AOServDaemon.exec(cmd);
     }
 
-    /*
-    static void backupInterBaseDatabases() throws IOException, SQLException {
-        if(AOServDaemon.getThisAOServer().isInterBase()) {
-            ProcessTimer timer=new ProcessTimer(
-                AOServDaemon.getRandom(),
-                AOServDaemonConfiguration.getWarningSmtpServer(),
-                AOServDaemonConfiguration.getWarningEmailFrom(),
-                AOServDaemonConfiguration.getWarningEmailTo(),
-                "InterBase backup taking too long",
-                "InterBase Backup",
-                3*60*60*1000,
-                60*60*1000
-            );
-            try {
-                AOServDaemon.executorService.submit(timer);
-                try {
-                    for(InterBaseDatabase id : AOServDaemon.getThisAOServer().getInterBaseDatabases()) {
-                        if(id.getBackupLevel().getLevel()>0) {
-                            long startTime=System.currentTimeMillis();
-                            try {
-                                id.backup();
-                            } catch(RuntimeException err) {
-                                LogFactory.getLogger(this.getClass()).log(Level.SEVERE, 
-                                    err,
-                                    new Object[] {"id="+id}
-                                );
-                            }
-                        }
-                    }
-                } catch(ThreadDeath TD) {
-                    throw TD;
-                } catch(Throwable T) {
-                    LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, T);
-                }
-            } finally {
-                timer.stop();
-            }
-        }
-    }
-*/
     /*
     static void backupMySQLDatabases() throws IOException, SQLException {
         ProcessTimer timer=new ProcessTimer(
@@ -308,30 +275,4 @@ final public class BackupManager {
             throw new IOException("Unable to allocate backup file for "+oldaccountsDir.getPath()+'/'+prefix);
         }
     }
-
-    /*
-    private static final int CACHED_DIRECTORY_SIZE=64;
-    private static final Object cachedDirectoryLock=new Object();
-    private static String[] cachedPaths;
-    private static String[][] cachedLists;
-    public static String[] getCachedDirectory(String path) throws IOException {
-        synchronized(cachedDirectoryLock) {
-            if(cachedPaths==null) {
-                cachedPaths=new String[CACHED_DIRECTORY_SIZE];
-                cachedLists=new String[CACHED_DIRECTORY_SIZE][];
-            }
-            for(int c=0;c<CACHED_DIRECTORY_SIZE;c++) {
-                String cpath=cachedPaths[c];
-                if(cpath==null) break;
-                if(cpath.equals(path)) return cachedLists[c];
-            }
-            // Insert at the top of the cache
-            String[] list=new File(path).list();
-            System.arraycopy(cachedPaths, 0, cachedPaths, 1, CACHED_DIRECTORY_SIZE-1);
-            cachedPaths[0]=path;
-            System.arraycopy(cachedLists, 0, cachedLists, 1, CACHED_DIRECTORY_SIZE-1);
-            cachedLists[0]=list;
-            return list;
-        }
-    }*/
 }
