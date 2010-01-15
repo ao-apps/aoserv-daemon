@@ -9,6 +9,7 @@ import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.TicketCategory;
 import com.aoindustries.aoserv.client.TicketLoggingHandler;
 import com.aoindustries.util.ErrorPrinter;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Handler;
@@ -54,10 +55,11 @@ public class LogFactory {
         if(logger==null) {
             Handler handler;
             try {
-                AOServConnector connector = AOServDaemon.getConnector();
-                TicketCategory category = connector.getTicketCategories().getTicketCategoryByDotPath("aoserv.aoserv_daemon");
+                AOServConnector<?,?> connector = AOServDaemon.getConnector();
+                TicketCategory category = connector.getTicketCategories().filterUnique(TicketCategory.COLUMN_DOT_PATH, "aoserv.aoserv_daemon");
+                if(category==null) throw new NoSuchElementException("Unable to find TicketCategory: aoserv.aoserv_daemon");
                 handler = TicketLoggingHandler.getHandler(
-                    AOServDaemonConfiguration.getServerHostname(),
+                    AOServDaemonConfiguration.getServerHostname().getDomain(),
                     connector,
                     category
                 );

@@ -222,7 +222,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
         UnixFile tempFile=UnixFile.mktemp("/tmp/dump_mysql_database.sql.", true);
         try {
             MySQLDatabaseName dbName=md.getName();
-            MySQLServer ms=md.getMySQLServer();
+            MySQLServer ms=md.getMysqlServer();
             String path;
             if(
                 osv==OperatingSystemVersion.REDHAT_ES_4_X86_64

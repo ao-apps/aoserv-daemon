@@ -7,11 +7,14 @@ package com.aoindustries.aoserv.daemon.mysql;
  */
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.IndexedSet;
 import com.aoindustries.aoserv.client.MySQLDBUser;
 import com.aoindustries.aoserv.client.MySQLDatabase;
 import com.aoindustries.aoserv.client.MySQLServer;
 import com.aoindustries.aoserv.client.MySQLUser;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.validator.MySQLDatabaseName;
+import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -24,7 +27,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -41,18 +43,17 @@ final public class MySQLDBUserManager extends BuilderThread {
     private static final Object rebuildLock=new Object();
     protected boolean doRebuild() {
         try {
-            AOServConnector connector=AOServDaemon.getConnector();
+            AOServConnector<?,?> connector=AOServDaemon.getConnector();
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
             int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
             if(
-                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+                osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(rebuildLock) {
-                for(MySQLServer mysqlServer : connector.getMysqlServers()) {
+                for(MySQLServer mysqlServer : connector.getMysqlServers().getSet()) {
                     String version=mysqlServer.getVersion().getVersion();
                     boolean modified=false;
 
@@ -75,7 +76,7 @@ final public class MySQLDBUserManager extends BuilderThread {
                         }
 
                         // Get the list of all db entries that should exist
-                        List<MySQLDBUser> dbUsers = mysqlServer.getMySQLDBUsers();
+                        IndexedSet<MySQLDBUser> dbUsers = mysqlServer.getMySQLDBUsers();
 
                         // Add the db entries that do not exist and should
                         String insertSQL;
@@ -87,34 +88,34 @@ final public class MySQLDBUserManager extends BuilderThread {
                         PreparedStatement pstmt = conn.prepareStatement(insertSQL);
                         try {
                             for(MySQLDBUser mdu : dbUsers) {
-                                MySQLDatabase md = mdu.getMySQLDatabase();
-                                String db=md.getName();
-                                MySQLUser mu=mdu.getMySQLUser();
-                                String user=mu.getUsername().getUsername();
+                                MySQLDatabase md = mdu.getMysqlDatabase();
+                                MySQLDatabaseName db=md.getName();
+                                MySQLUser mu=mdu.getMysqlUser();
+                                UserId user=mu.getUsername().getUsername();
 
                                 // These must both be on the same server !!!
-                                if(!md.getMySQLServer().equals(mu.getMySQLServer())) throw new SQLException(
+                                if(!md.getMysqlServer().equals(mu.getMysqlServer())) throw new SQLException(
                                     "Server mismatch in mysql_db_users.pkey="
-                                    +mdu.getPkey()
+                                    +mdu.getKey()
                                     +": ((mysql_databases.pkey="
-                                    +md.getPkey()
+                                    +md.getKey()
                                     +").mysql_server="
-                                    +md.getMySQLServer().getPkey()
+                                    +md.getMysqlServer().getKey()
                                     +")!=((mysql_users.pkey="
-                                    +mu.getPkey()
+                                    +mu.getKey()
                                     +").mysql_server="
-                                    +mu.getMySQLServer().getPkey()
+                                    +mu.getMysqlServer().getKey()
                                     +')'
                                 );
 
-                                String key=db+'|'+user;
+                                String key=db.getName()+'|'+user.getId();
                                 if (existing.contains(key)) existing.remove(key);
                                 else {
                                     // Add the db entry
                                     String host=MySQLUser.ANY_HOST;
                                     pstmt.setString(1, host);
-                                    pstmt.setString(2, db);
-                                    pstmt.setString(3, user);
+                                    pstmt.setString(2, db.getName());
+                                    pstmt.setString(3, user.getId());
                                     pstmt.setString(4, mdu.canSelect()?"Y":"N");
                                     pstmt.setString(5, mdu.canInsert()?"Y":"N");
                                     pstmt.setString(6, mdu.canUpdate()?"Y":"N");
@@ -197,12 +198,12 @@ final public class MySQLDBUserManager extends BuilderThread {
                 && mysqlDBUserManager==null
             ) {
                 System.out.print("Starting MySQLDBUserManager: ");
-                AOServConnector conn=AOServDaemon.getConnector();
+                AOServConnector<?,?> conn=AOServDaemon.getConnector();
                 mysqlDBUserManager=new MySQLDBUserManager();
-                conn.getMysqlDBUsers().addTableListener(mysqlDBUserManager, 0);
-                conn.getMysqlDatabases().addTableListener(mysqlDBUserManager, 0);
-                conn.getMysqlUsers().addTableListener(mysqlDBUserManager, 0);
-                conn.getMysqlUsers().addTableListener(mysqlDBUserManager, 0);
+                conn.getMysqlDBUsers().getTable().addTableListener(mysqlDBUserManager, 0);
+                conn.getMysqlDatabases().getTable().addTableListener(mysqlDBUserManager, 0);
+                conn.getMysqlUsers().getTable().addTableListener(mysqlDBUserManager, 0);
+                conn.getMysqlUsers().getTable().addTableListener(mysqlDBUserManager, 0);
                 System.out.println("Done");
             }
         }

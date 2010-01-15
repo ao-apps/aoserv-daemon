@@ -2,6 +2,8 @@ package com.aoindustries.aoserv.daemon.net;
 
 import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.NetDevice;
+import com.aoindustries.aoserv.client.validator.InetAddress;
+import com.aoindustries.aoserv.client.validator.ValidationException;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -25,26 +27,32 @@ final public class DhcpManager implements Runnable {
     private DhcpManager() {
     }
 
-    public static String getDhcpAddress(String device) throws IOException {
-        String[] cmd={
-            GET_DHCP_ADDRESS,
-            device
-        };
-        String ip;
-        Process P=Runtime.getRuntime().exec(cmd);
+    public static InetAddress getDhcpAddress(String device) throws IOException {
         try {
-            P.getOutputStream().close();
-            BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
+            String[] cmd={
+                GET_DHCP_ADDRESS,
+                device
+            };
+            String ip;
+            Process P=Runtime.getRuntime().exec(cmd);
             try {
-                ip=in.readLine();
+                P.getOutputStream().close();
+                BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
+                try {
+                    ip=in.readLine();
+                } finally {
+                    in.close();
+                }
             } finally {
-                in.close();
+                AOServDaemon.waitFor(cmd, P);
             }
-        } finally {
-            AOServDaemon.waitFor(cmd, P);
+            if(ip==null || (ip=ip.trim()).length()==0) throw new IOException("Unable to find IP address for device: "+device);
+            return InetAddress.valueOf(ip);
+        } catch(ValidationException err) {
+            IOException ioErr = new IOException(err.getMessage());
+            ioErr.initCause(err);
+            throw ioErr;
         }
-        if(ip==null || (ip=ip.trim()).length()==0) throw new IOException("Unable to find IP address for device: "+device);
-        return ip;
     }
 
     public static void start() throws IOException, SQLException {
@@ -54,7 +62,7 @@ final public class DhcpManager implements Runnable {
                     // Only start if at least one IP Address on the server is DHCP-enabled
                     boolean found=false;
                     for(IPAddress ia : AOServDaemon.getThisAOServer().getServer().getIPAddresses()) {
-                        if(ia.isDHCP()) {
+                        if(ia.isDhcp()) {
                             found=true;
                             break;
                         }
@@ -83,10 +91,10 @@ final public class DhcpManager implements Runnable {
                     }
                     for(NetDevice nd : AOServDaemon.getThisAOServer().getServer().getNetDevices()) {
                         IPAddress primaryIP=nd.getPrimaryIPAddress();
-                        if(primaryIP.isDHCP()) {
-                            String dhcpAddress=getDhcpAddress(nd.getNetDeviceID().getName());
-                            if(!primaryIP.getIPAddress().equals(dhcpAddress)) {
-                                primaryIP.setDHCPAddress(dhcpAddress);
+                        if(primaryIP.isDhcp()) {
+                            InetAddress dhcpAddress=getDhcpAddress(nd.getNetDeviceID().getName());
+                            if(!primaryIP.getIpAddress().equals(dhcpAddress)) {
+                                primaryIP.setDhcpAddress(dhcpAddress);
                             }
                         }
                     }

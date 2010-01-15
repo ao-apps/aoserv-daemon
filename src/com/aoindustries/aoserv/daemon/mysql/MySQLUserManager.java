@@ -7,9 +7,13 @@ package com.aoindustries.aoserv.daemon.mysql;
  */
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.IndexedSet;
 import com.aoindustries.aoserv.client.MySQLServer;
 import com.aoindustries.aoserv.client.MySQLUser;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.validator.InetAddress;
+import com.aoindustries.aoserv.client.validator.MySQLUserId;
+import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -23,7 +27,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -45,16 +48,15 @@ final public class MySQLUserManager extends BuilderThread {
 
             int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
             if(
-                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+                osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized (rebuildLock) {
-                for(MySQLServer mysqlServer : thisAOServer.getMySQLServers()) {
+                for(MySQLServer mysqlServer : thisAOServer.getMysqlServers()) {
                     final String version=mysqlServer.getVersion().getVersion();
                     // Get the list of all users that should exist.  By getting the list and reusing it we have a snapshot of the configuration.
-                    List<MySQLUser> users = mysqlServer.getMySQLUsers();
+                    IndexedSet<MySQLUser> users = mysqlServer.getMysqlUsers();
 
                     boolean modified = false;
 
@@ -331,10 +333,9 @@ final public class MySQLUserManager extends BuilderThread {
                         PreparedStatement pstmt = conn.prepareStatement(updateSQL);
                         try {
                             for(MySQLUser mu : users) {
-                                String host=mu.getHost();
-                                if(host==null) host="";
-                                String username=mu.getUsername().getUsername();
-                                String key=host+'|'+username;
+                                InetAddress host=mu.getHost();
+                                UserId username=mu.getUsername().getUsername();
+                                String key=(host==null ? "" : host.getAddress())+'|'+username.getId();
                                 if(existing.contains(key)) {
                                     int pos=1;
                                     // set
@@ -381,8 +382,8 @@ final public class MySQLUserManager extends BuilderThread {
                                         || version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
                                     ) pstmt.setInt(pos++, mu.getMaxUserConnections());
                                     // where
-                                    pstmt.setString(pos++, host);
-                                    pstmt.setString(pos++, username);
+                                    pstmt.setString(pos++, host==null ? "" : host.getAddress());
+                                    pstmt.setString(pos++, username.getId());
                                     pstmt.setString(pos++, mu.canSelect()?"Y":"N");
                                     pstmt.setString(pos++, mu.canInsert()?"Y":"N");
                                     pstmt.setString(pos++, mu.canUpdate()?"Y":"N");
@@ -444,15 +445,14 @@ final public class MySQLUserManager extends BuilderThread {
                         pstmt = conn.prepareStatement(insertSQL);
                         try {
                             for(MySQLUser mu : users) {
-                                String host=mu.getHost();
-                                if(host==null) host="";
-                                String username=mu.getUsername().getUsername();
-                                String key=host+'|'+username;
+                                InetAddress host=mu.getHost();
+                                UserId username=mu.getUsername().getUsername();
+                                String key=(host==null ? "" : host.getAddress())+'|'+username.getId();
                                 if (!existing.remove(key)) {
                                     // Add the user
                                     int pos=1;
-                                    pstmt.setString(pos++, host);
-                                    pstmt.setString(pos++, username);
+                                    pstmt.setString(pos++, host==null ? "" : host.getAddress());
+                                    pstmt.setString(pos++, username.getId());
                                     pstmt.setString(pos++, mu.canSelect()?"Y":"N");
                                     pstmt.setString(pos++, mu.canInsert()?"Y":"N");
                                     pstmt.setString(pos++, mu.canUpdate()?"Y":"N");
@@ -512,12 +512,12 @@ final public class MySQLUserManager extends BuilderThread {
                                     // Remove the extra host entry
                                     int pos=key.indexOf('|');
                                     String host=key.substring(0, pos);
-                                    String user=key.substring(pos+1);
+                                    MySQLUserId user = MySQLUserId.valueOf(key.substring(pos+1));
                                     if(user.equals(MySQLUser.ROOT)) {
                                         LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, new SQLException("Refusing to remove the "+MySQLUser.ROOT+" user for host "+host+", please remove manually."));
                                     } else {
                                         pstmt.setString(1, host);
-                                        pstmt.setString(2, user);
+                                        pstmt.setString(2, user.getId());
                                         pstmt.executeUpdate();
 
                                         modified = true;
@@ -534,17 +534,16 @@ final public class MySQLUserManager extends BuilderThread {
                     // Disable and enable accounts
                     for(MySQLUser mu : users) {
                         String prePassword=mu.getPredisablePassword();
-                        if(!mu.isDisabled()) {
+                        if(mu.getAoServerResource().getResource().getDisableLog()==null) {
                             if(prePassword!=null) {
-                                setEncryptedPassword(mysqlServer, mu.getUsername().getUsername(), prePassword);
+                                setEncryptedPassword(mu, prePassword);
                                 modified=true;
                                 mu.setPredisablePassword(null);
                             }
                         } else {
                             if(prePassword==null) {
-                                String username=mu.getUsername().getUsername();
-                                mu.setPredisablePassword(getEncryptedPassword(mysqlServer, username));
-                                setPassword(mysqlServer, username, MySQLUser.NO_PASSWORD);
+                                mu.setPredisablePassword(getEncryptedPassword(mu));
+                                setPassword(mu, MySQLUser.NO_PASSWORD);
                                 modified=true;
                             }
                         }
@@ -561,13 +560,14 @@ final public class MySQLUserManager extends BuilderThread {
         }
     }
 
-    public static String getEncryptedPassword(MySQLServer mysqlServer, String username) throws IOException, SQLException {
+    public static String getEncryptedPassword(MySQLUser mu) throws IOException, SQLException {
+        MySQLServer mysqlServer = mu.getMysqlServer();
         AOConnectionPool pool=MySQLServerManager.getPool(mysqlServer);
         Connection conn=pool.getConnection(true);
         try {
             PreparedStatement pstmt=conn.prepareStatement("select password from user where user=?");
             try {
-                pstmt.setString(1, username);
+                pstmt.setString(1, mu.getUsername().getUsername().getId());
                 ResultSet result=pstmt.executeQuery();
                 try {
                     if(result.next()) {
@@ -587,7 +587,8 @@ final public class MySQLUserManager extends BuilderThread {
         }
     }
 
-    public static void setPassword(MySQLServer mysqlServer, String username, String password) throws IOException, SQLException {
+    public static void setPassword(MySQLUser mu, String password) throws IOException, SQLException {
+        MySQLServer mysqlServer = mu.getMysqlServer();
         // Get the connection to work through
         AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
         Connection conn = pool.getConnection();
@@ -596,7 +597,7 @@ final public class MySQLUserManager extends BuilderThread {
                 // Disable the account
                 PreparedStatement pstmt = conn.prepareStatement("update user set password='"+MySQLUser.NO_PASSWORD_DB_VALUE+"' where user=?");
                 try {
-                    pstmt.setString(1, username);
+                    pstmt.setString(1, mu.getUsername().getUsername().getId());
                     pstmt.executeUpdate();
                 } finally {
                     pstmt.close();
@@ -606,7 +607,7 @@ final public class MySQLUserManager extends BuilderThread {
                 PreparedStatement pstmt = conn.prepareStatement("update user set password=password(?) where user=?");
                 try {
                     pstmt.setString(1, password);
-                    pstmt.setString(2, username);
+                    pstmt.setString(2, mu.getUsername().getUsername().getId());
                     pstmt.executeUpdate();
                 } finally {
                     pstmt.close();
@@ -618,8 +619,9 @@ final public class MySQLUserManager extends BuilderThread {
         MySQLServerManager.flushPrivileges(mysqlServer);
     }
 
-    public static void setEncryptedPassword(MySQLServer mysqlServer, String username, String password) throws IOException, SQLException {
+    public static void setEncryptedPassword(MySQLUser mu, String password) throws IOException, SQLException {
         // Get the connection to work through
+        MySQLServer mysqlServer = mu.getMysqlServer();
         AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
         Connection conn = pool.getConnection();
         try {
@@ -627,7 +629,7 @@ final public class MySQLUserManager extends BuilderThread {
                 // Disable the account
                 PreparedStatement pstmt = conn.prepareStatement("update user set password='"+MySQLUser.NO_PASSWORD_DB_VALUE+"' where user=?");
                 try {
-                    pstmt.setString(1, username);
+                    pstmt.setString(1, mu.getUsername().getUsername().getId());
                     pstmt.executeUpdate();
                 } finally {
                     pstmt.close();
@@ -637,7 +639,7 @@ final public class MySQLUserManager extends BuilderThread {
                 PreparedStatement pstmt = conn.prepareStatement("update user set password=? where user=?");
                 try {
                     pstmt.setString(1, password);
-                    pstmt.setString(2, username);
+                    pstmt.setString(2, mu.getUsername().getUsername().getId());
                     pstmt.executeUpdate();
                 } finally {
                     pstmt.close();
@@ -664,9 +666,9 @@ final public class MySQLUserManager extends BuilderThread {
                 && mysqlUserManager==null
             ) {
                 System.out.print("Starting MySQLUserManager: ");
-                AOServConnector conn=AOServDaemon.getConnector();
+                AOServConnector<?,?> conn=AOServDaemon.getConnector();
                 mysqlUserManager=new MySQLUserManager();
-                conn.getMysqlUsers().addTableListener(mysqlUserManager, 0);
+                conn.getMysqlUsers().getTable().addTableListener(mysqlUserManager, 0);
                 System.out.println("Done");
             }
         }

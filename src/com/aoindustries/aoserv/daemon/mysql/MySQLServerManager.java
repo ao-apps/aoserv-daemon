@@ -54,7 +54,7 @@ final public class MySQLServerManager extends BuilderThread {
                 MySQLDatabase md=ms.getMysqlDatabase(MySQLDatabase.MYSQL);
                 pool=new AOConnectionPool(
                     AOServDaemonConfiguration.getMysqlDriver(),
-                    "jdbc:mysql://127.0.0.1:"+md.getMySQLServer().getNetBind().getPort().getPort()+"/"+md.getName(),
+                    "jdbc:mysql://127.0.0.1:"+md.getMysqlServer().getNetBind().getPort().getPort()+"/"+md.getName(),
                     AOServDaemonConfiguration.getMysqlUser().getId(),
                     AOServDaemonConfiguration.getMysqlPassword(),
                     AOServDaemonConfiguration.getMySqlConnections(),

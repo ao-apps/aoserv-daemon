@@ -16,7 +16,6 @@ import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.client.validator.ValidationException;
 import com.aoindustries.aoserv.daemon.cvsd.CvsManager;
-import com.aoindustries.aoserv.daemon.distro.DistroManager;
 import com.aoindustries.aoserv.daemon.dns.DNSManager;
 import com.aoindustries.aoserv.daemon.email.EmailAddressManager;
 import com.aoindustries.aoserv.daemon.email.EmailDomainManager;
@@ -180,14 +179,13 @@ final public class AOServDaemon {
                 AWStatsManager.start();
                 CvsManager.start();
                 DhcpManager.start();
-                DistroManager.start();
+                // TODO: DistroManager.start();
                 DNSManager.start();
                 EmailAddressManager.start();
                 EmailDomainManager.start();
                 FailoverFileReplicationManager.start();
                 FTPManager.start();
                 HttpdManager.start();
-                // TODO: Enable once data is created InterBaseManager.start();
                 ImapManager.start();
                 JilterConfigurationWriter.start();
                 LinuxAccountManager.start();
@@ -214,7 +212,7 @@ final public class AOServDaemon {
 
                 // Start up the AOServDaemonServers
                 NetBind bind=getThisAOServer().getDaemonBind();
-                if(bind!=null) new AOServDaemonServer(bind.getIpAddress().getIPAddress(), bind.getPort(), bind.getAppProtocol().getProtocol());
+                if(bind!=null) new AOServDaemonServer(bind.getIpAddress().getIpAddress(), bind.getPort(), bind.getAppProtocol().getProtocol());
 
                 done=true;
             } catch (ThreadDeath TD) {
@@ -394,9 +392,6 @@ final public class AOServDaemon {
      * @param  nice  a nice level passed to /bin/nice, a value of zero (0) will cause nice to not be called
      */
     public static void suexec(UserId username, String command, int nice) throws IOException {
-        /*
-         * Not needed because command is passed as String[] and any funny stuff will
-         * be executed as the proper user.
         if(command==null) throw new IllegalArgumentException("command is null");
         int len = command.length();
         if(len==0) throw new IllegalArgumentException("command is empty");
@@ -414,7 +409,7 @@ final public class AOServDaemon {
             ) {
                 throw new IllegalArgumentException("Invalid command character: "+ch);
             }
-        }*/
+        }
 
         String[] cmd;
         if(nice!=0) {

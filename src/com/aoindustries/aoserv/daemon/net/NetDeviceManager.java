@@ -205,7 +205,7 @@ final public class NetDeviceManager extends BuilderThread {
                         Collections.sort(children);
                         for(int d=-1;d<children.size();d++) {
                             AOServer aoServer=d==-1?thisAOServer:children.get(d).getServer().getAoServer();
-                            NetDevice curDevice=d==-1?device:aoServer.getServer().getNetDevice(device.getNetDeviceID().getName());
+                            NetDevice curDevice=d==-1?device:aoServer.getServer().getNetDevice(device.getNetDeviceID());
                             if(curDevice!=null) {
                                 for(IPAddress ip : curDevice.getIpAddresses()) {
                                     if(d!=-1 || ip.isAlias()) {

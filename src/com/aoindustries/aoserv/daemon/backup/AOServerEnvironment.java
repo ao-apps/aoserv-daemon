@@ -12,20 +12,23 @@ import com.aoindustries.aoserv.client.BackupPartition;
 import com.aoindustries.aoserv.client.FailoverFileReplication;
 import com.aoindustries.aoserv.client.FailoverMySQLReplication;
 import com.aoindustries.aoserv.client.HttpdServer;
-import com.aoindustries.aoserv.client.IPAddress;
+import com.aoindustries.aoserv.client.IndexedSet;
 import com.aoindustries.aoserv.client.MySQLServer;
 import com.aoindustries.aoserv.client.Server;
+import com.aoindustries.aoserv.client.validator.DomainName;
+import com.aoindustries.aoserv.client.validator.InetAddress;
+import com.aoindustries.aoserv.client.validator.MySQLServerName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.io.FileExistsRule;
 import com.aoindustries.io.FilesystemIteratorRule;
-import java.io.IOException;
-import java.sql.SQLException;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -50,17 +53,17 @@ import java.util.logging.Logger;
 public class AOServerEnvironment extends UnixFileEnvironment {
 
     @Override
-    public AOServConnector getConnector() throws IOException, SQLException {
+    public AOServConnector getConnector() throws RemoteException {
         return AOServDaemon.getConnector();
     }
 
     @Override
-    public Server getThisServer() throws IOException, SQLException {
+    public Server getThisServer() throws RemoteException {
         return AOServDaemon.getThisAOServer().getServer();
     }
 
     @Override
-    public void preBackup(FailoverFileReplication ffr) throws IOException, SQLException {
+    public void preBackup(FailoverFileReplication ffr) {
         super.preBackup(ffr);
         BackupManager.cleanVarOldaccounts();
 
@@ -69,24 +72,24 @@ public class AOServerEnvironment extends UnixFileEnvironment {
         // TODO: BackupManager.backupPostgresDatabases();
     }
 
-    private final Map<FailoverFileReplication,List<String>> replicatedMySQLServerses = new HashMap<FailoverFileReplication,List<String>>();
+    private final Map<FailoverFileReplication,List<MySQLServerName>> replicatedMySQLServerses = new HashMap<FailoverFileReplication,List<MySQLServerName>>();
     private final Map<FailoverFileReplication,List<String>> replicatedMySQLMinorVersionses = new HashMap<FailoverFileReplication,List<String>>();
 
     @Override
-    public void init(FailoverFileReplication ffr) throws IOException, SQLException {
+    public void init(FailoverFileReplication ffr) throws RemoteException {
         super.init(ffr);
         // Determine which MySQL Servers are replicated (not mirrored with failover code)
         short retention = ffr.getRetention().getDays();
         if(retention==1) {
             AOServer toServer = ffr.getBackupPartition().getAOServer();
-            List<FailoverMySQLReplication> fmrs = ffr.getFailoverMySQLReplications();
-            List<String> replicatedMySQLServers = new ArrayList<String>(fmrs.size());
+            Set<FailoverMySQLReplication> fmrs = ffr.getFailoverMySQLReplications();
+            List<MySQLServerName> replicatedMySQLServers = new ArrayList<MySQLServerName>(fmrs.size());
             List<String> replicatedMySQLMinorVersions = new ArrayList<String>(fmrs.size());
             Logger logger = getLogger();
             boolean isDebug = logger.isLoggable(Level.FINE);
             for(FailoverMySQLReplication fmr : fmrs) {
                 MySQLServer mysqlServer = fmr.getMySQLServer();
-                String name = mysqlServer.getName();
+                MySQLServerName name = mysqlServer.getName();
                 String minorVersion = mysqlServer.getMinorVersion();
                 replicatedMySQLServers.add(name);
                 replicatedMySQLMinorVersions.add(minorVersion);
@@ -105,7 +108,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
     }
 
     @Override
-    public void cleanup(FailoverFileReplication ffr) throws IOException, SQLException {
+    public void cleanup(FailoverFileReplication ffr) throws RemoteException {
         try {
             short retention = ffr.getRetention().getDays();
             if(retention==1) {
@@ -122,12 +125,12 @@ public class AOServerEnvironment extends UnixFileEnvironment {
     }
 
     @Override
-    public int getFailoverBatchSize(FailoverFileReplication ffr) throws IOException, SQLException {
+    public int getFailoverBatchSize(FailoverFileReplication ffr) throws RemoteException {
         return AOServDaemon.getThisAOServer().getFailoverBatchSize();
     }
 
     @Override
-    protected Map<String,FilesystemIteratorRule> getFilesystemIteratorRules(FailoverFileReplication ffr) throws IOException, SQLException {
+    protected Map<String,FilesystemIteratorRule> getFilesystemIteratorRules(FailoverFileReplication ffr) throws RemoteException {
         AOServer thisServer = AOServDaemon.getThisAOServer();
         short retention = ffr.getRetention().getDays();
         Map<String,FilesystemIteratorRule> filesystemRules=new HashMap<String,FilesystemIteratorRule>();
@@ -212,18 +215,18 @@ public class AOServerEnvironment extends UnixFileEnvironment {
             )
         );
         filesystemRules.put("/var/lib/mysql/.journal", FilesystemIteratorRule.SKIP);
-        final String hostname = thisServer.getHostname();
+        final DomainName hostname = thisServer.getHostname();
         filesystemRules.put("/var/lib/mysql/4.0/"+hostname+".pid", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lib/mysql/4.1/"+hostname+".pid", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lib/mysql/5.0/"+hostname+".pid", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lib/mysql/5.1/"+hostname+".pid", FilesystemIteratorRule.SKIP);
         if(retention==1) {
             // Skip files for any MySQL Server that is being replicated through MySQL replication
-            List<String> replicatedMySQLServers;
+            List<MySQLServerName> replicatedMySQLServers;
             synchronized(replicatedMySQLServerses) {
                 replicatedMySQLServers = replicatedMySQLServerses.get(ffr);
             }
-            for(String name : replicatedMySQLServers) {
+            for(MySQLServerName name : replicatedMySQLServers) {
                 String path = "/var/lib/mysql/"+name;
                 filesystemRules.put(path, FilesystemIteratorRule.SKIP);
                 //if(log.isDebugEnabled()) log.debug("runFailoverCopy to "+toServer+", added skip rule for "+path);
@@ -288,7 +291,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
         filesystemRules.put("/var/lock/subsys/xinetd", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lock/subsys/xvfb", FilesystemIteratorRule.SKIP);
 
-        List<HttpdServer> httpdServers = thisServer.getHttpdServers();
+        IndexedSet<HttpdServer> httpdServers = thisServer.getHttpdServers();
         for(HttpdServer hs : httpdServers) {
             filesystemRules.put("/var/log/httpd"+hs.getNumber()+"/ssl_scache.sem", FilesystemIteratorRule.SKIP);
         }
@@ -336,13 +339,13 @@ public class AOServerEnvironment extends UnixFileEnvironment {
         filesystemRules.put("/www/lost+found", FilesystemIteratorRule.SKIP);
         // Do not replicate the backup directories
         for(BackupPartition bp : thisServer.getBackupPartitions()) {
-            filesystemRules.put(bp.getPath()+'/', FilesystemIteratorRule.SKIP);
+            filesystemRules.put(bp.getPath()+"/", FilesystemIteratorRule.SKIP);
         }
         return filesystemRules;
     }
 
     @Override
-    protected Map<String,FilesystemIteratorRule> getFilesystemIteratorPrefixRules(FailoverFileReplication ffr) throws IOException, SQLException {
+    protected Map<String,FilesystemIteratorRule> getFilesystemIteratorPrefixRules(FailoverFileReplication ffr) {
         Map<String,FilesystemIteratorRule> filesystemPrefixRules=new HashMap<String,FilesystemIteratorRule>();
         filesystemPrefixRules.put("/var/lib/mysql/5.0/mysql-bin.", FilesystemIteratorRule.SKIP);
         filesystemPrefixRules.put("/var/lib/mysql/5.0/relay-log.", FilesystemIteratorRule.SKIP);
@@ -352,24 +355,24 @@ public class AOServerEnvironment extends UnixFileEnvironment {
     }
 
     @Override
-    public String getDefaultSourceIPAddress() throws IOException, SQLException {
+    public InetAddress getDefaultSourceIPAddress() throws RemoteException {
         AOServer thisServer = AOServDaemon.getThisAOServer();
         // Next, it will use the daemon bind address
-        String sourceIPAddress = thisServer.getDaemonBind().getIPAddress().getIPAddress();
+        InetAddress sourceIPAddress = thisServer.getDaemonBind().getIpAddress().getIpAddress();
         // If daemon is binding to wildcard, then use source IP address of primary IP
-        if(sourceIPAddress.equals(IPAddress.WILDCARD_IP)) sourceIPAddress = thisServer.getPrimaryIPAddress().getIPAddress();
+        if(sourceIPAddress.isUnspecified()) sourceIPAddress = thisServer.getPrimaryIPAddress().getIpAddress();
         return sourceIPAddress;
     }
 
     @Override
-    public List<String> getReplicatedMySQLServers(FailoverFileReplication ffr) throws IOException, SQLException {
+    public List<MySQLServerName> getReplicatedMySQLServers(FailoverFileReplication ffr) {
         synchronized(replicatedMySQLServerses) {
             return replicatedMySQLServerses.get(ffr);
         }
     }
 
     @Override
-    public List<String> getReplicatedMySQLMinorVersions(FailoverFileReplication ffr) throws IOException, SQLException {
+    public List<String> getReplicatedMySQLMinorVersions(FailoverFileReplication ffr) {
         synchronized(replicatedMySQLMinorVersionses) {
             return replicatedMySQLMinorVersionses.get(ffr);
         }

@@ -6,18 +6,10 @@ package com.aoindustries.aoserv.daemon.distro;
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.AOServTable;
+import com.aoindustries.aoserv.client.AOServService;
 import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.DistroFile;
-import com.aoindustries.aoserv.client.DistroFileTable;
-import com.aoindustries.aoserv.client.DistroFileType;
 import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.client.LinuxGroup;
-import com.aoindustries.aoserv.client.LinuxServerAccount;
-import com.aoindustries.aoserv.client.LinuxServerGroup;
-import com.aoindustries.aoserv.client.SQLColumnValue;
-import com.aoindustries.aoserv.client.SQLComparator;
-import com.aoindustries.aoserv.client.SQLExpression;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -37,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -111,8 +104,8 @@ final public class DistroManager implements Runnable {
 
                     // It is time to run if it is the backup hour and the backup has not been run for at least 12 hours
                     AOServer thisAOServer=AOServDaemon.getThisAOServer();
-                    long distroStartTime=System.currentTimeMillis();
-                    long lastDistroTime=thisAOServer.getLastDistroTime();
+                    Timestamp distroStartTime=new Timestamp(System.currentTimeMillis());
+                    Timestamp lastDistroTime=thisAOServer.getLastDistroTime();
                     Logger logger = LogFactory.getLogger(DistroManager.class);
                     boolean isTrace = logger.isLoggable(Level.FINER);
                     if(isTrace) {
@@ -120,10 +113,10 @@ final public class DistroManager implements Runnable {
                         logger.finer("distroStartTime="+distroStartTime);
                         logger.finer("lastDistroTime="+lastDistroTime);
                     }
-                    if(runNow || lastDistroTime>distroStartTime || (distroStartTime-lastDistroTime)>=12L*60*60*1000) {
+                    if(runNow || lastDistroTime.compareTo(distroStartTime)>0 || (distroStartTime.getTime()-lastDistroTime.getTime())>=12L*60*60*1000) {
                         int distroHour=thisAOServer.getDistroHour();
                         Calendar cal=Calendar.getInstance();
-                        cal.setTimeInMillis(distroStartTime);
+                        cal.setTimeInMillis(distroStartTime.getTime());
                         int currentHour = cal.get(Calendar.HOUR_OF_DAY);
                         if(isTrace) {
                             logger.finer("distroHour="+distroHour);
@@ -184,7 +177,7 @@ final public class DistroManager implements Runnable {
                 new SQLColumnValue(conn, distroFileTable.getTableSchema().getSchemaColumn(conn, DistroFile.COLUMN_PATH)),
                 new SQLColumnValue(conn, distroFileTable.getTableSchema().getSchemaColumn(conn, DistroFile.COLUMN_OPERATING_SYSTEM_VERSION))
             },
-            new boolean[] {AOServTable.ASCENDING, AOServTable.ASCENDING}
+            new boolean[] {AOServService.ASCENDING, AOServService.ASCENDING}
         );
 
         // Verify all the files, from the root to the lowest directory, accumulating the results in the results List

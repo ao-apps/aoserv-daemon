@@ -6,7 +6,6 @@ package com.aoindustries.aoserv.daemon.distro;
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.Architecture;
-import com.aoindustries.aoserv.client.DistroFileType;
 import com.aoindustries.aoserv.client.OperatingSystem;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -50,6 +49,11 @@ final public class DistroGenerator extends Thread {
     private static final ChainWriter out=new ChainWriter(System.out);
 
     private static String root = "/distro";
+
+    @SuppressWarnings("deprecation")
+    private static String escapeSQL(String value) {
+        return SQLUtility.escapeSQL(value);
+    }
 
     /**
      * HashMap of Integer->HashMap(String filename, Boolean wasFound).
@@ -428,7 +432,7 @@ final public class DistroGenerator extends Thread {
                             .append("insert into distro_files_tmp values (nextval('distro_files_pkey_seq'), ")
                             .append(osFilename.operating_system_version)
                             .append(", '")
-                            .append(SQLUtility.escapeSQL(osFilename.filename.length()==0?"/":osFilename.filename))
+                            .append(escapeSQL(osFilename.filename.length()==0?"/":osFilename.filename))
                             .append("', ")
                             .append(isOptional(osFilename)?"true":"false")
                             .append(", '")
@@ -436,9 +440,9 @@ final public class DistroGenerator extends Thread {
                             .append("', ")
                             .append(statMode)
                             .append("::int8, '")
-                            .append(SQLUtility.escapeSQL(getUsername(osFilename, fileStat.getUID())))
+                            .append(escapeSQL(getUsername(osFilename, fileStat.getUID())))
                             .append("', '")
-                            .append(SQLUtility.escapeSQL(getGroupname(osFilename, fileStat.getGID())))
+                            .append(escapeSQL(getGroupname(osFilename, fileStat.getGID())))
                             .append("', ");
                         if(storeSize) SB.append(fileStat.getSize()).append("::int8");
                         else SB.append("null");
@@ -518,7 +522,7 @@ final public class DistroGenerator extends Thread {
                             } else throw new RuntimeException("Unexpected value for type: "+type);
                         } else SB.append("null, null");
                         SB.append(", ");
-                        if(UnixFile.isSymLink(statMode)) SB.append('\'').append(SQLUtility.escapeSQL(file.readLink())).append('\'');
+                        if(UnixFile.isSymLink(statMode)) SB.append('\'').append(escapeSQL(file.readLink())).append('\'');
                         else SB.append("null");
                         SB.append(");");
                         print(SB.toString());
@@ -571,11 +575,6 @@ final public class DistroGenerator extends Thread {
     
     public static int getOperatingSystemVersion(String name, String version, String architecture) {
         if(
-            name.equals(OperatingSystem.MANDRIVA)
-            && version.equals(OperatingSystemVersion.VERSION_2006_0)
-            && architecture.equals(Architecture.I586)
-        ) return OperatingSystemVersion.MANDRIVA_2006_0_I586;
-        if(
             name.equals(OperatingSystem.REDHAT)
             && version.equals(OperatingSystemVersion.VERSION_ES_4)
             && architecture.equals(Architecture.X86_64)
@@ -597,8 +596,8 @@ final public class DistroGenerator extends Thread {
             Map<String,Boolean> filenameMap=lists.get(OSV);
             List<String> filenames=sort(filenameMap.keySet().iterator());
             for(int d=0;d<filenames.size();d++) {
-                String path=(String)filenames.get(d);
-                boolean found=((Boolean)filenameMap.get(path)).booleanValue();
+                String path=filenames.get(d);
+                boolean found=filenameMap.get(path);
                 if(!found) {
                     if(!reportedOne) {
                         reportedOne=true;
@@ -610,7 +609,6 @@ final public class DistroGenerator extends Thread {
                         System.err.println("*************************************************************************");
                     }
                     if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) System.err.print("centos/5/i686,x86_64");
-                    else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) System.err.print("mandriva/2006.0/i586");
                     else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) System.err.print("redhat/ES 4/x86_64");
                     else throw new RuntimeException("Unknown value for osv: "+osv);
                     System.err.println(path);
@@ -622,7 +620,6 @@ final public class DistroGenerator extends Thread {
     
     private static String getOperatingSystemPath(int osv) {
         if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) return root+"/centos/5/i686,x86_64";
-        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) return root+"/mandriva/2006.0/i586";
         if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) return root+"/redhat/ES 4/x86_64";
         else throw new RuntimeException("Unknown value for osv: "+osv);
     }
