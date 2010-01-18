@@ -7,19 +7,22 @@ package com.aoindustries.aoserv.daemon.unix.linux;
  */
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.FTPGuestUser;
 import com.aoindustries.aoserv.client.LinuxAccount;
-import com.aoindustries.aoserv.client.LinuxAccountType;
+import com.aoindustries.aoserv.client.LinuxAccountGroup;
 import com.aoindustries.aoserv.client.LinuxGroup;
-import com.aoindustries.aoserv.client.LinuxServerAccount;
-import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.ResourceType;
+import com.aoindustries.aoserv.client.validator.Gecos;
+import com.aoindustries.aoserv.client.validator.GroupId;
+import com.aoindustries.aoserv.client.validator.LinuxID;
+import com.aoindustries.aoserv.client.validator.UnixPath;
+import com.aoindustries.aoserv.client.validator.UserId;
+import com.aoindustries.aoserv.client.validator.ValidationException;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
-import com.aoindustries.aoserv.daemon.email.ImapManager;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.ShadowFile;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
@@ -30,9 +33,6 @@ import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.util.BufferManager;
 import com.aoindustries.util.ErrorPrinter;
-import com.aoindustries.util.IntList;
-import com.aoindustries.util.SortedArrayList;
-import com.aoindustries.util.SortedIntArrayList;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -45,11 +45,13 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
-import java.sql.SQLException;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.logging.Level;
 
 /**
@@ -81,7 +83,7 @@ public class LinuxAccountManager extends BuilderThread {
     private LinuxAccountManager() {
     }
 
-    public static boolean comparePassword(String username, String password) throws IOException, SQLException {
+    public static boolean comparePassword(UserId username, String password) throws IOException, ValidationException {
         String crypted=ShadowFile.getEncryptedPassword(username);
         if(crypted.equals(LinuxAccount.NO_PASSWORD_CONFIG_VALUE)) return false;
         int len=crypted.length();
@@ -110,18 +112,16 @@ public class LinuxAccountManager extends BuilderThread {
         }
     }
 
-    private static void rebuildLinuxAccountSettings() throws IOException, SQLException {
-        AOServConnector connector=AOServDaemon.getConnector();
+    private static void rebuildLinuxAccountSettings() throws IOException, ValidationException {
         AOServer aoServer=AOServDaemon.getThisAOServer();
         HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
         final String wwwDirectory = osConfig.getHttpdSitesDirectory();
 
         int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
         if(
-            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+            osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        ) throw new RemoteException("Unsupported OperatingSystemVersion: "+osv);
 
         synchronized(rebuildLock) {
             // A list of all files to delete is created so that all the data can
@@ -129,22 +129,21 @@ public class LinuxAccountManager extends BuilderThread {
             List<File> deleteFileList=new ArrayList<File>();
 
             // Get the list of users from the database
-            List<LinuxServerAccount> accounts = aoServer.getLinuxServerAccounts();
+            SortedSet<LinuxAccount> accounts = new TreeSet<LinuxAccount>(aoServer.getLinuxAccounts());
             int accountsLen = accounts.size();
 
             // Build a sorted vector of all the usernames, user ids, and home directories
-            final List<String> usernames=new SortedArrayList<String>(accountsLen);
-            final IntList uids=new SortedIntArrayList(accountsLen);
-            final List<String> homeDirs=new SortedArrayList<String>(accountsLen);
-            for(int c=0;c<accountsLen;c++) {
-                LinuxServerAccount lsa=accounts.get(c);
-                usernames.add(lsa.getLinuxAccount().getUsername().getUsername());
+            final Set<UserId> usernames=new HashSet<UserId>(accountsLen*4/3+1);
+            final Set<LinuxID> allUids=new HashSet<LinuxID>(accountsLen*4/3+1);
+            final Set<LinuxID> enabledUids = new HashSet<LinuxID>(accountsLen*4/3+1);
+            final Set<UnixPath> homeDirs=new HashSet<UnixPath>(accountsLen*4/3+1);
+            for(LinuxAccount la : accounts) {
+                usernames.add(la.getUsername().getUsername());
                 // UIDs are not always unique, only need to store once in the list
-                int uid = lsa.getUID().getID();
-                if(!uids.contains(uid)) uids.add(uid);
-                // Home directories are not always unique, only need to store once in the list
-                String home = lsa.getHome();
-                if(!homeDirs.contains(home)) homeDirs.add(home);
+                LinuxID uid = la.getUid();
+                allUids.add(uid);
+                if(la.getAoServerResource().getResource().getDisableLog()==null) enabledUids.add(uid);
+                homeDirs.add(la.getHome());
             }
 
             /*
@@ -158,18 +157,16 @@ public class LinuxAccountManager extends BuilderThread {
             try {
                 // Write root first
                 boolean rootFound=false;
-                for (int c = 0; c < accountsLen; c++) {
-                    LinuxServerAccount account = accounts.get(c);
-                    if(account.getLinuxAccount().getUsername().getUsername().equals(LinuxAccount.ROOT)) {
+                for(LinuxAccount account : accounts) {
+                    if(account.getUsername().getUsername().equals(LinuxAccount.ROOT)) {
                         printPasswdLine(account, out, true);
                         rootFound=true;
                         break;
                     }
                 }
-                if(!rootFound) throw new SQLException("root user not found while creating "+newPasswd.getPath());
-                for (int c = 0; c < accountsLen; c++) {
-                    LinuxServerAccount account = accounts.get(c);
-                    if(!account.getLinuxAccount().getUsername().getUsername().equals(LinuxAccount.ROOT)) {
+                if(!rootFound) throw new AssertionError("root user not found while creating "+newPasswd.getPath());
+                for(LinuxAccount account : accounts) {
+                    if(!account.getUsername().getUsername().equals(LinuxAccount.ROOT)) {
                         printPasswdLine(account, out, true);
                     }
                 }
@@ -181,30 +178,26 @@ public class LinuxAccountManager extends BuilderThread {
             /*
              * Write the new /etc/group file.
              */
-            List<LinuxServerGroup> groups = aoServer.getLinuxServerGroups();
-            int groupsLen = groups.size();
+            SortedSet<LinuxGroup> groups = new TreeSet<LinuxGroup>(aoServer.getLinuxGroups());
             out = new ChainWriter(
                 new BufferedOutputStream(
                     new UnixFile(newGroup).getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)
                 )
             );
             try {
-                Map<String,Object> tempMap=new HashMap<String,Object>();
                 boolean rootFound=false;
                 // Write root first
-                for (int c = 0; c < groupsLen; c++) {
-                    LinuxServerGroup lsg=groups.get(c);
-                    if(lsg.getLinuxGroup().getName().equals(LinuxGroup.ROOT)) {
-                        printGroupLine(groups.get(c), out, true, tempMap);
+                for(LinuxGroup lg : groups) {
+                    if(lg.getGroupName().getGroupName().equals(LinuxGroup.ROOT)) {
+                        printGroupLine(lg, out, true);
                         rootFound=true;
                         break;
                     }
                 }
-                if(!rootFound) throw new SQLException("root group not found while creating "+newGroup.getPath());
-                for (int c = 0; c < groupsLen; c++) {
-                    LinuxServerGroup lsg=groups.get(c);
-                    if(!lsg.getLinuxGroup().getName().equals(LinuxGroup.ROOT)) {
-                        printGroupLine(groups.get(c), out, true, tempMap);
+                if(!rootFound) throw new AssertionError("root group not found while creating "+newGroup.getPath());
+                for(LinuxGroup lg : groups) {
+                    if(!lg.getGroupName().getGroupName().equals(LinuxGroup.ROOT)) {
+                        printGroupLine(lg, out, true);
                     }
                 }
             } finally {
@@ -224,19 +217,19 @@ public class LinuxAccountManager extends BuilderThread {
             try {
                 // Write root first
                 boolean rootFound=false;
-                for (int c = 0; c < groupsLen; c++) {
-                    LinuxServerGroup lsg=groups.get(c);
-                    if(lsg.getLinuxGroup().getName().equals(LinuxGroup.ROOT)) {
-                        printGShadowLine(groups.get(c), out);
+                for(LinuxGroup lg : groups) {
+                    GroupId groupId = lg.getGroupName().getGroupName();
+                    if(groupId.equals(LinuxGroup.ROOT)) {
+                        printGShadowLine(groupId, out);
                         rootFound=true;
                         break;
                     }
                 }
-                if(!rootFound) throw new SQLException("root group not found while creating "+newGShadow.getPath());
-                for (int c = 0; c < groupsLen; c++) {
-                    LinuxServerGroup lsg=groups.get(c);
-                    if(!lsg.getLinuxGroup().getName().equals(LinuxGroup.ROOT)) {
-                        printGShadowLine(groups.get(c), out);
+                if(!rootFound) throw new AssertionError("root group not found while creating "+newGShadow.getPath());
+                for(LinuxGroup lg : groups) {
+                    GroupId groupId = lg.getGroupName().getGroupName();
+                    if(!groupId.equals(LinuxGroup.ROOT)) {
+                        printGShadowLine(groupId, out);
                     }
                 }
             } finally {
@@ -260,85 +253,27 @@ public class LinuxAccountManager extends BuilderThread {
             } else throw new IOException(newGroup.getPath()+" is zero or unknown length");
 
             if(newGShadow.length()>0) {
-                if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                    // Do nothing
-                } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                     // Do nothing
                 } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                     newGShadowUF.setMode(0400);
-                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                 gshadow.renameTo(backupGShadow);
                 newGShadow.renameTo(gshadow);
             } else throw new IOException(newGShadow.getPath()+" is zero or unknown length");
 
-            if(
-                osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-            ) {
-                /*
-                 * Create any inboxes that need to exist.
-                 */
-                LinuxServerGroup mailGroup=connector.getLinuxGroups().get(LinuxGroup.MAIL).getLinuxServerGroup(aoServer);
-                if(mailGroup==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+aoServer.getHostname());
-                for (int c = 0; c < accounts.size(); c++) {
-                    LinuxServerAccount account = accounts.get(c);
-                    LinuxAccount linuxAccount = account.getLinuxAccount();
-                    if(linuxAccount.getType().isEmail()) {
-                        String username=linuxAccount.getUsername().getUsername();
-                        File file=new File(ImapManager.mailSpool, username);
-                        if(!file.exists()) {
-                            UnixFile unixFile=new UnixFile(file.getPath());
-                            unixFile.getSecureOutputStream(
-                                account.getUID().getID(),
-                                mailGroup.getGID().getID(),
-                                0660,
-                                false
-                            ).close();
-                        }
-                    }
-                }
-                /*
-                 * Remove any inboxes that should not exist.
-                 */
-                String[] list=ImapManager.mailSpool.list();
-                if(list!=null) {
-                    int len=list.length;
-                    for(int c=0;c<len;c++) {
-                        String filename=list[c];
-                        if(!usernames.contains(filename)) {
-                            // Also allow a username.lock file to remain
-                            if(
-                                !filename.endsWith(".lock")
-                                || !usernames.contains(filename.substring(0, filename.length()-5))
-                            ) {
-                                File spoolFile=new File(ImapManager.mailSpool, filename);
-                                deleteFileList.add(spoolFile);
-                            }
-                        }
-                    }
-                }
-            } else if(
-                osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
-                || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-            ) {
-                // Nothing done, user management put in ImapManager
-            } else {
-                throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-            }
-
             /*
              * Create any home directories that do not exist.
              */
-            for (int c = 0; c < accountsLen; c++) {
-                LinuxServerAccount account = accounts.get(c);
-                LinuxAccount linuxAccount=account.getLinuxAccount();
-                String type=linuxAccount.getType().getName();
+            for(LinuxAccount linuxAccount : accounts) {
+                String type=linuxAccount.getLinuxAccountType().getResourceType().getName();
                 //String username=linuxAccount.getUsername().getUsername();
-                LinuxServerGroup primaryGroup=account.getPrimaryLinuxServerGroup();
+                LinuxGroup primaryGroup=linuxAccount.getPrimaryLinuxGroup();
                 //String groupname=group.getLinuxGroup().getName();
-                int uid=account.getUID().getID();
-                int gid=primaryGroup.getGID().getID();
+                int uid=linuxAccount.getUid().getId();
+                int gid=primaryGroup.getGid().getId();
 
-                File homeDir=new File(account.getHome());
+                File homeDir=new File(linuxAccount.getHome().getPath());
                 if(!homeDir.exists()) {
                     // Make the parent of the home directory if it does not exist
                     File parent=homeDir.getParentFile();
@@ -359,8 +294,8 @@ public class LinuxAccountManager extends BuilderThread {
                 boolean isWWWAndUser=
                     th.length()>(wwwDirectory.length()+1)
                     && th.substring(0, wwwDirectory.length()+1).equals(wwwDirectory+'/')
-                    && (type.equals(LinuxAccountType.USER) || type.equals(LinuxAccountType.APPLICATION))
-                    && linuxAccount.getFTPGuestUser()==null
+                    && type.equals(ResourceType.SHELL_ACCOUNT)
+                    && linuxAccount.getFtpGuestUser()==null
                 ;
                 // Only build directories for accounts that are in /home/ or user account in /www/
                 if(
@@ -389,7 +324,7 @@ public class LinuxAccountManager extends BuilderThread {
                             // Copy the file
                             String filename=skelList[d];
                             // Only copy the files for user accounts
-                            if(type.equals(LinuxAccountType.USER) || type.equals(LinuxAccountType.APPLICATION)) {
+                            if(type.equals(ResourceType.SHELL_ACCOUNT)) {
                                 // Only do the rest of the files for user accounts
                                 UnixFile skelFile=new UnixFile(skel, filename);
                                 UnixFile homeFile=new UnixFile(homeDir, filename);
@@ -414,7 +349,7 @@ public class LinuxAccountManager extends BuilderThread {
                     for(int c=0;c<len;c++) {
                         String dirName=homeList[c];
                         File dir=new File(homeDir, dirName);
-                        String dirPath=dir.getPath();
+                        UnixPath dirPath=UnixPath.valueOf(dir.getPath());
                         if(!homeDirs.contains(dirPath)) deleteFileList.add(dir);
                     }
                 }
@@ -430,23 +365,22 @@ public class LinuxAccountManager extends BuilderThread {
                     String filename=cronList[c];
 
                     // Filename must be the username of one of the users to be kept in tact
-                    if(!usernames.contains(filename)) deleteFileList.add(new File(cronDirectory, filename));
+                    if(!usernames.contains(UserId.valueOf(filename))) deleteFileList.add(new File(cronDirectory, filename));
                 }
             }
 
             // Disable and enable accounts
-            for(int c=0;c<accounts.size();c++) {
-                LinuxServerAccount lsa=accounts.get(c);
-                String prePassword=lsa.getPredisablePassword();
-                if(!lsa.isDisabled()) {
+            for(LinuxAccount la : accounts) {
+                String prePassword=la.getPredisablePassword();
+                if(la.getAoServerResource().getResource().getDisableLog()==null) {
                     if(prePassword!=null) {
-                        setEncryptedPassword(lsa.getLinuxAccount().getUsername().getUsername(), prePassword);
-                        lsa.setPredisablePassword(null);
+                        setEncryptedPassword(la.getUsername().getUsername(), prePassword);
+                        la.setPredisablePassword(null);
                     }
                 } else {
                     if(prePassword==null) {
-                        String username=lsa.getLinuxAccount().getUsername().getUsername();
-                        lsa.setPredisablePassword(getEncryptedPassword(username));
+                        UserId username=la.getUsername().getUsername();
+                        la.setPredisablePassword(getEncryptedPassword(username));
                         setPassword(username, null);
                     }
                 }
@@ -454,7 +388,12 @@ public class LinuxAccountManager extends BuilderThread {
 
             // Only the top level server in a physical server gets to kill processes
             if(!AOServDaemonConfiguration.isNested() && aoServer.getFailoverServer()==null) {
-                List<AOServer> nestedServers=aoServer.getNestedAOServers();
+                // Build the set of UIDs that are allowed for any nested servers
+                for(AOServer nested : aoServer.getNestedAoServers()) {
+                    for(LinuxAccount la : nested.getLinuxAccounts()) {
+                        if(la.getAoServerResource().getResource().getDisableLog()==null) enabledUids.add(la.getUid());
+                    }
+                }
 
                 /*
                  * Kill any processes that are running as a UID that
@@ -478,30 +417,12 @@ public class LinuxAccountManager extends BuilderThread {
                         if(allNum) {
                             try {
                                 LinuxProcess process=new LinuxProcess(Integer.parseInt(filename));
-                                int uid=process.getUID();
-                                // Don't kill root processes, just to be safe
-                                if(uid!=0) {
-                                    // Search each server
-                                    LinuxServerAccount lsa;
-                                    if(
-                                        !uids.contains(uid)
-                                        || (lsa=aoServer.getLinuxServerAccount(uid))==null
-                                        || lsa.isDisabled()
-                                    ) {
-                                        // Also must not be in a nested server
-                                        boolean found=false;
-                                        for(int d=0;d<nestedServers.size();d++) {
-                                            if(
-                                                (lsa=nestedServers.get(d).getLinuxServerAccount(uid))!=null
-                                                && !lsa.isDisabled()
-                                            ) {
-                                                found=true;
-                                                break;
-                                            }
-                                        }
-                                        if(!found) process.killProc();
-                                    }
-                                }
+                                LinuxID uid=process.getUID();
+                                if(
+                                    // Don't kill root processes, just to be safe
+                                    uid.getId()!=UnixFile.ROOT_UID
+                                    && !enabledUids.contains(uid)
+                                ) process.killProc();
                             } catch(FileNotFoundException err) {
                                 // It is normal that this is thrown if the process has already closed
                             } catch(IOException err) {
@@ -516,8 +437,8 @@ public class LinuxAccountManager extends BuilderThread {
              * Recursively find and remove any temporary files that should not exist.
              */
             try {
-                AOServDaemon.findUnownedFiles(new File("/tmp"), uids, deleteFileList, 0);
-                AOServDaemon.findUnownedFiles(new File("/var/tmp"), uids, deleteFileList, 0);
+                AOServDaemon.findUnownedFiles(new File("/tmp"), allUids, deleteFileList, 0);
+                AOServDaemon.findUnownedFiles(new File("/var/tmp"), allUids, deleteFileList, 0);
             } catch(FileNotFoundException err) {
                 // This may normally occur because of the dynamic nature of the tmp directories
             }
@@ -542,8 +463,8 @@ public class LinuxAccountManager extends BuilderThread {
         }
     }
 
-    public static String getAutoresponderContent(String path) throws IOException, SQLException {
-        UnixFile file=new UnixFile(path);
+    public static String getAutoresponderContent(UnixPath path) throws IOException {
+        UnixFile file=new UnixFile(path.getPath());
         String content;
         if(file.getStat().exists()) {
             StringBuilder SB=new StringBuilder();
@@ -559,8 +480,8 @@ public class LinuxAccountManager extends BuilderThread {
         return content;
     }
 
-    public static String getCronTable(String username) throws IOException, SQLException {
-        File cronFile=new File(cronDirectory, username);
+    public static String getCronTable(UserId username) throws IOException {
+        File cronFile=new File(cronDirectory, username.getId());
         String cronTable;
         if(cronFile.exists()) {
             StringBuilder SB=new StringBuilder();
@@ -576,7 +497,7 @@ public class LinuxAccountManager extends BuilderThread {
         return cronTable;
     }
 
-    public static String getEncryptedPassword(String username) throws IOException, SQLException {
+    public static String getEncryptedPassword(UserId username) throws IOException, ValidationException {
         return ShadowFile.getEncryptedPassword(username);
     }
 
@@ -588,64 +509,29 @@ public class LinuxAccountManager extends BuilderThread {
      * @param  complete  if <code>true</code>, a complete line will be printed, otherwise
      *                   only the groupname and gid are included
      */
-    public static void printGroupLine(LinuxServerGroup group, ChainWriter out, boolean complete, Map<String,Object> tempMap) throws IOException, SQLException {
-        LinuxGroup linuxGroup = group.getLinuxGroup();
-        String groupName=linuxGroup.getName();
+    public static void printGroupLine(LinuxGroup group, ChainWriter out, boolean complete) throws IOException {
+        String groupName=group.getGroupName().getGroupName().getId();
         out
             .print(groupName)
             .print(complete?":*:":"::")
-            .print(group.getGID().getID())
+            .print(group.getGid())
             .print(':')
         ;
         if(complete) {
-            tempMap.clear();
-            List<LinuxServerAccount> altAccounts = group.getAlternateLinuxServerAccounts();
+            SortedSet<LinuxAccount> altAccounts = new TreeSet<LinuxAccount>();
+            for(LinuxAccountGroup lag : group.getAlternateLinuxAccountGroups()) altAccounts.add(lag.getLinuxAccount());
             boolean didOne=false;
-            int len = altAccounts.size();
-            for (int d = 0; d < len; d++) {
-                String username = altAccounts.get(d)
-                    .getLinuxAccount()
-                    .getUsername()
-                    .getUsername()
-                ;
-                if(!tempMap.containsKey(username)) {
-                    if(didOne) out.print(',');
-                    else didOne=true;
-                    out.print(username);
-                    tempMap.put(username, null);
-                }
-            }
-            if(groupName.equals(LinuxGroup.PROFTPD_JAILED)) {
-                AOServer aoServer=group.getAOServer();
-                int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
-                boolean addJailed;
-                if(
-                    osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-                    || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
-                ) {
-                    addJailed = true;
-                } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                    addJailed = false;
-                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-                if(addJailed) {
-                    for(FTPGuestUser guestUser : aoServer.getFTPGuestUsers()) {
-                        String username=guestUser.getLinuxAccount().getUsername().getUsername();
-                        if(!tempMap.containsKey(username)) {
-                            if(didOne) out.print(',');
-                            else didOne=true;
-                            out.print(username);
-                            tempMap.put(username, null);
-                        }
-                    }
-                }
+            for(LinuxAccount la : altAccounts) {
+                if(didOne) out.print(',');
+                else didOne=true;
+                out.print(la.getUsername().getUsername());
             }
         }
         out.print('\n');
     }
 
-    public static void printGShadowLine(LinuxServerGroup group, ChainWriter out) throws IOException, SQLException {
-        LinuxGroup linuxGroup = group.getLinuxGroup();
-        out.print(linuxGroup.getName()).print(":::\n");
+    public static void printGShadowLine(GroupId groupId, ChainWriter out) throws IOException {
+        out.print(groupId).print(":::\n");
     }
 
     /**
@@ -656,23 +542,21 @@ public class LinuxAccountManager extends BuilderThread {
      * @param  complete  if <code>true</code>, a complete line will be printed, otherwise
      *                   only the username, uid, gid, and full name are included
      */
-    public static void printPasswdLine(LinuxServerAccount account, ChainWriter out, boolean complete) throws IOException, SQLException {
-        LinuxAccount linuxAccount = account.getLinuxAccount();
-        String username=linuxAccount.getUsername().getUsername();
-        LinuxServerGroup primaryGroup = account.getPrimaryLinuxServerGroup();
-        if(primaryGroup==null) throw new SQLException("Unable to find primary LinuxServerGroup for username="+username+" on "+account.getAOServer().getHostname());
+    public static void printPasswdLine(LinuxAccount linuxAccount, ChainWriter out, boolean complete) throws IOException {
+        UserId username=linuxAccount.getUsername().getUsername();
+        LinuxGroup primaryGroup = linuxAccount.getPrimaryLinuxGroup();
         out
             .print(username)
             .print(":x:")
-            .print(account.getUID().getID())
+            .print(linuxAccount.getUid())
             .print(':')
-            .print(primaryGroup.getGID().getID())
+            .print(primaryGroup.getGid())
             .print(':')
             .print(linuxAccount.getName())
             .print(',')
         ;
         if(complete) {
-            String S=linuxAccount.getOfficeLocation();
+            Gecos S=linuxAccount.getOfficeLocation();
             if(S!=null) out.print(S);
             out.print(',');
             S=linuxAccount.getOfficePhone();
@@ -682,7 +566,7 @@ public class LinuxAccountManager extends BuilderThread {
             if(S!=null) out.print(S);
             out
                 .print(':')
-                .print(account.getHome())
+                .print(linuxAccount.getHome())
                 .print(':')
                 .print(linuxAccount.getShell().getPath())
                 .print('\n')
@@ -690,10 +574,10 @@ public class LinuxAccountManager extends BuilderThread {
         } else out.print(",,::\n");
     }
 
-    public static void setBashProfile(LinuxServerAccount lsa, String profile) throws IOException {
+    public static void setBashProfile(LinuxAccount la, UnixPath profile) throws IOException {
         String profileLine=". "+profile;
 
-        UnixFile profileFile=new UnixFile(lsa.getHome(), BASHRC);
+        UnixFile profileFile=new UnixFile(la.getHome().getPath(), BASHRC);
 
         // Make sure the file exists
         if(profileFile.getStat().exists()) {
@@ -720,8 +604,8 @@ public class LinuxAccountManager extends BuilderThread {
         }
     }
 
-    public static void setAutoresponderContent(String path, String content, int uid, int gid) throws IOException, SQLException {
-        File file=new File(path);
+    public static void setAutoresponderContent(UnixPath path, String content, int uid, int gid) throws IOException {
+        File file=new File(path.getPath());
         synchronized(rebuildLock) {
             if(content==null) {
                 if(file.exists() && !file.delete()) throw new IOException("Unable to delete file: "+file.getPath());
@@ -738,9 +622,9 @@ public class LinuxAccountManager extends BuilderThread {
         }
     }
 
-    public static void setCronTable(String username, String cronTable) throws IOException, SQLException {
+    public static void setCronTable(UserId username, String cronTable) throws IOException {
         int len=cronTable.length();
-        File cronFile=new File(cronDirectory, username);
+        File cronFile=new File(cronDirectory, username.getId());
         synchronized(rebuildLock) {
             if(cronTable.length()==0) {
                 if(cronFile.exists()) cronFile.delete();
@@ -749,7 +633,7 @@ public class LinuxAccountManager extends BuilderThread {
                     new BufferedOutputStream(
                         new UnixFile(cronFile).getSecureOutputStream(
                             UnixFile.ROOT_UID,
-                            AOServDaemon.getThisAOServer().getLinuxServerAccount(username).getPrimaryLinuxServerGroup().getGID().getID(),
+                            AOServDaemon.getThisAOServer().getLinuxAccount(username).getPrimaryLinuxGroup().getGid().getId(),
                             0600,
                             true
                         )
@@ -761,22 +645,22 @@ public class LinuxAccountManager extends BuilderThread {
         }
     }
 
-    public static void setEncryptedPassword(String username, String encryptedPassword) throws IOException, SQLException {
+    public static void setEncryptedPassword(UserId username, String encryptedPassword) throws IOException, ValidationException {
         AOServer aoServer=AOServDaemon.getThisAOServer();
-        LinuxServerAccount lsa=aoServer.getLinuxServerAccount(username);
-        if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+username+" on "+aoServer.getHostname());
+        LinuxAccount la=aoServer.getLinuxAccount(username);
+        if(la==null) throw new AssertionError("Unable to find LinuxServerAccount: "+username+" on "+aoServer.getHostname());
         ShadowFile.setEncryptedPassword(username, encryptedPassword);
     }
 
-    public static void setPassword(String username, String plain_password) throws IOException, SQLException {
+    public static void setPassword(UserId username, String plain_password) throws IOException, ValidationException {
         AOServer aoServer=AOServDaemon.getThisAOServer();
-        LinuxServerAccount lsa=aoServer.getLinuxServerAccount(username);
-        if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+username+" on "+aoServer.getHostname());
+        LinuxAccount la=aoServer.getLinuxAccount(username);
+        if(la==null) throw new AssertionError("Unable to find LinuxAccount: "+username+" on "+aoServer.getHostname());
         ShadowFile.setPassword(username, plain_password);
     }
 
     private static LinuxAccountManager linuxAccountManager;
-    public static void start() throws IOException, SQLException {
+    public static void start() throws IOException {
         AOServer thisAOServer=AOServDaemon.getThisAOServer();
         int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
 
@@ -790,28 +674,27 @@ public class LinuxAccountManager extends BuilderThread {
                 && linuxAccountManager==null
             ) {
                 System.out.print("Starting LinuxAccountManager: ");
-                AOServConnector conn=AOServDaemon.getConnector();
+                AOServConnector<?,?> conn=AOServDaemon.getConnector();
                 linuxAccountManager=new LinuxAccountManager();
-                conn.getFtpGuestUsers().addTableListener(linuxAccountManager, 0);
-                conn.getLinuxAccounts().addTableListener(linuxAccountManager, 0);
-                conn.getLinuxGroupAccounts().addTableListener(linuxAccountManager, 0);
-                conn.getLinuxServerAccounts().addTableListener(linuxAccountManager, 0);
-                conn.getLinuxServerGroups().addTableListener(linuxAccountManager, 0);
+                conn.getFtpGuestUsers().getTable().addTableListener(linuxAccountManager, 0);
+                conn.getLinuxAccounts().getTable().addTableListener(linuxAccountManager, 0);
+                conn.getLinuxAccountGroups().getTable().addTableListener(linuxAccountManager, 0);
+                conn.getLinuxGroups().getTable().addTableListener(linuxAccountManager, 0);
                 System.out.println("Done");
             }
         }
     }
 
-    public static void tarHomeDirectory(CompressedDataOutputStream out, String username) throws IOException, SQLException {
-        LinuxServerAccount lsa=AOServDaemon.getThisAOServer().getLinuxServerAccount(username);
-        String home=lsa.getHome();
+    public static void tarHomeDirectory(CompressedDataOutputStream out, UserId username) throws IOException {
+        LinuxAccount la=AOServDaemon.getThisAOServer().getLinuxAccount(username);
+        UnixPath home=la.getHome();
         UnixFile tempUF=UnixFile.mktemp("/tmp/tar_home_directory.tar.", true);
         try {
             String[] cmd={
                 "/bin/tar",
                 "-c",
                 "-C",
-                home,
+                home.getPath(),
                 "-f",
                 tempUF.getPath(),
                 "."
@@ -835,10 +718,10 @@ public class LinuxAccountManager extends BuilderThread {
         }
     }
 
-    public static void untarHomeDirectory(CompressedDataInputStream in, String username) throws IOException, SQLException {
+    public static void untarHomeDirectory(CompressedDataInputStream in, UserId username) throws IOException {
         synchronized(rebuildLock) {
-            LinuxServerAccount lsa=AOServDaemon.getThisAOServer().getLinuxServerAccount(username);
-            String home=lsa.getHome();
+            LinuxAccount la=AOServDaemon.getThisAOServer().getLinuxAccount(username);
+            UnixPath home=la.getHome();
             UnixFile tempUF=UnixFile.mktemp("/tmp/untar_home_directory.tar.", true);
             try {
                 OutputStream out=tempUF.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true);
@@ -855,15 +738,14 @@ public class LinuxAccountManager extends BuilderThread {
                 }
                 out.close();
                 if(code!=AOServDaemonProtocol.DONE) {
-                    if(code==AOServDaemonProtocol.IO_EXCEPTION) throw new IOException(in.readUTF());
-                    else if(code==AOServDaemonProtocol.SQL_EXCEPTION) throw new SQLException(in.readUTF());
+                    if(code==AOServDaemonProtocol.REMOTE_EXCEPTION) throw new RemoteException(in.readUTF());
                     else throw new IOException("Unknown result: " + code);
                 }
                 String[] cmd={
                     "/bin/tar",
                     "-x",
                     "-C",
-                    home,
+                    home.getPath(),
                     "-f",
                     tempUF.getPath()
                 };
@@ -893,10 +775,15 @@ public class LinuxAccountManager extends BuilderThread {
     public static void main(String[] args) {
         try {
             rebuildLinuxAccountSettings();
+        } catch(RuntimeException err) {
+            ErrorPrinter.printStackTraces(err);
+            System.exit(1);
         } catch(IOException err) {
             ErrorPrinter.printStackTraces(err);
-        } catch(SQLException err) {
+            System.exit(2);
+        } catch(ValidationException err) {
             ErrorPrinter.printStackTraces(err);
+            System.exit(3);
         }
     }
 }

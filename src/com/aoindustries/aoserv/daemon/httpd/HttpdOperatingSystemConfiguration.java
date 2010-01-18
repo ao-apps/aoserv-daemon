@@ -9,7 +9,6 @@ import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import java.io.IOException;
-import java.sql.SQLException;
 
 /**
  * Operating system-specific configurations.
@@ -17,34 +16,34 @@ import java.sql.SQLException;
  * @author  AO Industries, Inc.
  */
 public enum HttpdOperatingSystemConfiguration {
-    MANDRIVA_2006_0_I586 {
-        public OperatingSystemConfiguration getOperatingSystemConfiguration() {
-            return OperatingSystemConfiguration.MANDRIVA_2006_0_I586;
-        }
-        public String getDefaultPhpVersion() {
-            return "5";
-        }
-        public String getDefaultPhpPostgresMinorVersion() {
-            return "8.1";
-        }
-        public String getPhpCgiPath(String version) {
-            if("4".equals(version)) return "/usr/php/4/bin/php";
-            else if("5".equals(version)) return "/usr/php/5/bin/php-cgi";
-            else throw new AssertionError("Unexpected PHP version: "+version);
-        }
-        public String getHttpdSitesDirectory() {
-            return OperatingSystemVersion.getHttpdSitesDirectory(OperatingSystemVersion.MANDRIVA_2006_0_I586);
-        }
-        public String getHttpdSharedTomcatsDirectory() {
-            return OperatingSystemVersion.getHttpdSharedTomcatsDirectory(OperatingSystemVersion.MANDRIVA_2006_0_I586);
-        }
-        public String getAwstatsDirectory() {
-            return "/var/lib/awstats";
-        }
-        public String getAwstatsBinDirectory() {
-            return "/usr/awstats/current";
-        }
-    },
+//    MANDRIVA_2006_0_I586 {
+//        public OperatingSystemConfiguration getOperatingSystemConfiguration() {
+//            return OperatingSystemConfiguration.MANDRIVA_2006_0_I586;
+//        }
+//        public String getDefaultPhpVersion() {
+//            return "5";
+//        }
+//        public String getDefaultPhpPostgresMinorVersion() {
+//            return "8.1";
+//        }
+//        public String getPhpCgiPath(String version) {
+//            if("4".equals(version)) return "/usr/php/4/bin/php";
+//            else if("5".equals(version)) return "/usr/php/5/bin/php-cgi";
+//            else throw new AssertionError("Unexpected PHP version: "+version);
+//        }
+//        public String getHttpdSitesDirectory() {
+//            return OperatingSystemVersion.getHttpdSitesDirectory(OperatingSystemVersion.MANDRIVA_2006_0_I586);
+//        }
+//        public String getHttpdSharedTomcatsDirectory() {
+//            return OperatingSystemVersion.getHttpdSharedTomcatsDirectory(OperatingSystemVersion.MANDRIVA_2006_0_I586);
+//        }
+//        public String getAwstatsDirectory() {
+//            return "/var/lib/awstats";
+//        }
+//        public String getAwstatsBinDirectory() {
+//            return "/usr/awstats/current";
+//        }
+//    },
     REDHAT_ES_4_X86_64 {
         public OperatingSystemConfiguration getOperatingSystemConfiguration() {
             return OperatingSystemConfiguration.REDHAT_ES_4_X86_64;
@@ -109,17 +108,15 @@ public enum HttpdOperatingSystemConfiguration {
      * 
      * @see  AOServDaemon#getThisServer()
      */
-    public static HttpdOperatingSystemConfiguration getHttpOperatingSystemConfiguration() throws IOException, SQLException {
+    public static HttpdOperatingSystemConfiguration getHttpOperatingSystemConfiguration() throws IOException {
         int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
         switch(osv) {
-            case OperatingSystemVersion.MANDRIVA_2006_0_I586 :
-                return MANDRIVA_2006_0_I586;
             case OperatingSystemVersion.REDHAT_ES_4_X86_64 :
                 return REDHAT_ES_4_X86_64;
             case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
                 return CENTOS_5_I686_AND_X86_64;
             default :
-                throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
         }
     }
 

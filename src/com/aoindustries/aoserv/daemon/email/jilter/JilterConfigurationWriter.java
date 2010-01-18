@@ -9,6 +9,8 @@ import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.Business;
 import com.aoindustries.aoserv.client.BusinessService;
+import com.aoindustries.aoserv.client.IPAddress;
+import com.aoindustries.aoserv.client.IndexedSet;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.client.validator.AccountingCode;
@@ -98,13 +100,9 @@ public class JilterConfigurationWriter extends BuilderThread {
             }
 
             // ips
-            List<IPAddress> ias = server.getIPAddresses();
+            IndexedSet<IPAddress> ias = server.getIpAddresses();
             Set<String> ips = new HashSet<String>(ias.size()*4/3+1);
-            for(IPAddress ia : ias) {
-                if(!ia.isWildcard()) {
-                    ips.add(ia.getIPAddress());
-                }
-            }
+            for(IPAddress ia : ias) ips.add(ia.getIpAddress().getAddress());
 
             // email_smtp_relays
             Set<String> denies = new HashSet<String>();
@@ -127,7 +125,6 @@ public class JilterConfigurationWriter extends BuilderThread {
             BusinessService<?,?> businessTable = AOServDaemon.getConnector().getBusinesses();
             for(String accounting : domainBusinesses.values()) {
                 Business bu = businessTable.get(AccountingCode.valueOf(accounting));
-                if(bu==null) throw new SQLException("Unable to find Business: "+accounting);
                 int emailInBurst = bu.getEmailInBurst();
                 float emailInRate = bu.getEmailInRate();
                 if(emailInBurst!=-1 && !Float.isNaN(emailInRate)) emailInLimits.put(accounting, new EmailLimit(emailInBurst, emailInRate));

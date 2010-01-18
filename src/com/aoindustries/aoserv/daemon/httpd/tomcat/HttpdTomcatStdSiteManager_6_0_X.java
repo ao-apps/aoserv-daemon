@@ -304,9 +304,7 @@ class HttpdTomcatStdSiteManager_6_0_X extends HttpdTomcatStdSiteManager<TomcatCo
             }
             if(!httpdSite.isManual()) out.print(autoWarning);
             NetBind shutdownPort=tomcatStdSite.getTomcat4ShutdownPort();
-            if(shutdownPort==null) throw new SQLException("Unable to find shutdown port for HttpdTomcatStdSite="+tomcatStdSite);
             String shutdownKey=tomcatStdSite.getTomcat4ShutdownKey();
-            if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for HttpdTomcatStdSite="+tomcatStdSite);
             out.print("<Server port=\"").print(shutdownPort.getPort().getPort()).print("\" shutdown=\"").print(shutdownKey).print("\">\n"
                     + "  <Listener className=\"org.apache.catalina.core.AprLifecycleListener\" SSLEngine=\"on\" />\n"
                     + "  <Listener className=\"org.apache.catalina.core.JasperListener\" />\n"

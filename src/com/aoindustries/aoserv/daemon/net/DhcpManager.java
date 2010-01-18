@@ -61,7 +61,7 @@ final public class DhcpManager implements Runnable {
                 if(thread==null) {
                     // Only start if at least one IP Address on the server is DHCP-enabled
                     boolean found=false;
-                    for(IPAddress ia : AOServDaemon.getThisAOServer().getServer().getIPAddresses()) {
+                    for(IPAddress ia : AOServDaemon.getThisAOServer().getServer().getIpAddresses()) {
                         if(ia.isDhcp()) {
                             found=true;
                             break;

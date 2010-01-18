@@ -362,9 +362,7 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
                 HttpdWorker hw=sharedTomcat.getTomcat4Worker();
                 if(!sharedTomcat.isManual()) out.print(autoWarning);
                 NetBind shutdownPort = sharedTomcat.getTomcat4ShutdownPort();
-                if(shutdownPort==null) throw new SQLException("Unable to find shutdown key for HttpdSharedTomcat: "+sharedTomcat);
                 String shutdownKey=sharedTomcat.getTomcat4ShutdownKey();
-                if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for HttpdSharedTomcat: "+sharedTomcat);
                 out.print("<Server port=\"").print(shutdownPort.getPort().getPort()).print("\" shutdown=\"").print(shutdownKey).print("\">\n"
                         + "  <Listener className=\"org.apache.catalina.core.AprLifecycleListener\" SSLEngine=\"on\" />\n"
                         + "  <Listener className=\"org.apache.catalina.core.JasperListener\" />\n"

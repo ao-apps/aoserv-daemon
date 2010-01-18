@@ -5,14 +5,7 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.HttpdJBossSite;
-import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
-import com.aoindustries.aoserv.client.HttpdTomcatContext;
-import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
-import com.aoindustries.aoserv.client.HttpdTomcatSite;
-import com.aoindustries.aoserv.client.HttpdTomcatStdSite;
-import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.httpd.HttpdSiteManager;
@@ -22,7 +15,6 @@ import com.aoindustries.aoserv.daemon.util.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Set;
 import java.util.SortedMap;
@@ -41,7 +33,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
     /**
      * Gets the specific manager for one type of web site.
      */
-    public static HttpdTomcatSiteManager<? extends TomcatCommon> getInstance(HttpdTomcatSite tomcatSite) throws IOException, SQLException {
+    public static HttpdTomcatSiteManager<? extends TomcatCommon> getInstance(HttpdTomcatSite tomcatSite) throws IOException {
         HttpdTomcatStdSite stdSite=tomcatSite.getHttpdTomcatStdSite();
         if(stdSite!=null) return HttpdTomcatStdSiteManager.getInstance(stdSite);
 
@@ -51,12 +43,12 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         HttpdTomcatSharedSite shrSite = tomcatSite.getHttpdTomcatSharedSite();
         if(shrSite!=null) return HttpdTomcatSharedSiteManager.getInstance(shrSite);
 
-        throw new SQLException("HttpdTomcatSite must be one of HttpdTomcatStdSite, HttpdJBossSite, or HttpdTomcatSharedSite: "+tomcatSite);
+        throw new AssertionError("HttpdTomcatSite must be one of HttpdTomcatStdSite, HttpdJBossSite, or HttpdTomcatSharedSite: "+tomcatSite);
     }
 
     final protected HttpdTomcatSite tomcatSite;
 
-    protected HttpdTomcatSiteManager(HttpdTomcatSite tomcatSite) throws IOException, SQLException {
+    protected HttpdTomcatSiteManager(HttpdTomcatSite tomcatSite) throws IOException {
         super(tomcatSite.getHttpdSite());
         this.tomcatSite = tomcatSite;
     }
@@ -81,7 +73,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
      * paths.
      */
     @Override
-    public SortedSet<Location> getRejectedLocations() throws IOException, SQLException {
+    public SortedSet<Location> getRejectedLocations() throws IOException {
         // If not using Apache, let Tomcat do its own protection
         SortedSet<Location> standardRejectedLocations = super.getRejectedLocations();
         if(!tomcatSite.useApache()) return standardRejectedLocations;
@@ -98,9 +90,9 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
     /**
      * Gets the Jk worker for the site.
      */
-    protected abstract HttpdWorker getHttpdWorker() throws IOException, SQLException;
+    protected abstract HttpdWorker getHttpdWorker() throws IOException;
 
-    public boolean stop() throws IOException, SQLException {
+    public boolean stop() throws IOException {
         UnixFile pidFile = getPidFile();
         if(pidFile.getStat().exists()) {
             AOServDaemon.suexec(
@@ -115,7 +107,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         }
     }
 
-    public boolean start() throws IOException, SQLException {
+    public boolean start() throws IOException {
         UnixFile pidFile = getPidFile();
         if(!pidFile.getStat().exists()) {
             AOServDaemon.suexec(
@@ -148,7 +140,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
     }
 
     @Override
-    public SortedSet<JkSetting> getJkSettings() throws IOException, SQLException {
+    public SortedSet<JkSetting> getJkSettings() throws IOException {
         final String jkCode = getHttpdWorker().getCode().getCode();
         SortedSet<JkSetting> settings = new TreeSet<JkSetting>();
         if(tomcatSite.useApache()) {
@@ -175,7 +167,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         return settings;
     }
 
-    public SortedMap<String,WebAppSettings> getWebapps() throws IOException, SQLException {
+    public SortedMap<String,WebAppSettings> getWebapps() throws IOException {
         SortedMap<String,WebAppSettings> webapps = new TreeMap<String,WebAppSettings>();
 
         // Set up all of the webapps
@@ -201,22 +193,22 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
      * 
      * @return  the .pid file or <code>null</code> if should not be running
      */
-    public abstract UnixFile getPidFile() throws IOException, SQLException;
+    public abstract UnixFile getPidFile() throws IOException;
     
     /**
      * Gets the path to the start/stop script.
      */
-    public abstract String getStartStopScriptPath() throws IOException, SQLException;
+    public abstract String getStartStopScriptPath() throws IOException;
 
     /**
      * Gets the username to run the start/stop script as.
      */
-    public abstract String getStartStopScriptUsername() throws IOException, SQLException;
+    public abstract String getStartStopScriptUsername() throws IOException;
 
     /**
      * Every Tomcat site is built through the same overall set of steps.
      */
-    final protected void buildSiteDirectory(UnixFile siteDirectory, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
+    final protected void buildSiteDirectory(UnixFile siteDirectory, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException {
         final int apacheUid = getApacheUid();
         final int uid = httpdSite.getLinuxServerAccount().getUID().getID();
         final int gid = httpdSite.getLinuxServerGroup().getGID().getID();
@@ -286,14 +278,14 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
      * 
      * This doesn't need to create the cgi-bin, cgi-bin/test, test.php, or index.html
      */
-    protected abstract void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException;
+    protected abstract void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException;
 
     /**
      * Upgrades the site directory contents for an auto-upgrade.
      *
      * @return  <code>true</code> if the site needs to be restarted.
      */
-    protected abstract boolean upgradeSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException;
+    protected abstract boolean upgradeSiteDirectoryContents(UnixFile siteDirectory) throws IOException;
 
     /**
      * Rebuilds any config files that need updated.  This should not include any
@@ -301,16 +293,16 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
      *
      * @return  <code>true</code> if the site needs to be restarted.
      */
-    protected abstract boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException;
+    protected abstract boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException;
 
     /**
      * Enables/disables the site by adding/removing symlinks, if appropriate for
      * the type of site.
      */
-    protected abstract void enableDisable(UnixFile siteDirectory) throws IOException, SQLException;
+    protected abstract void enableDisable(UnixFile siteDirectory) throws IOException;
 
     /**
      * Flags that the site needs restarted.
      */
-    protected abstract void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws SQLException, IOException;
+    protected abstract void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException;
 }

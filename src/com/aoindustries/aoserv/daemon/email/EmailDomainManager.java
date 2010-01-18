@@ -7,7 +7,6 @@ package com.aoindustries.aoserv.daemon.email;
  */
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.EmailDomain;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -47,8 +46,7 @@ public final class EmailDomainManager extends BuilderThread {
 
             int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
             if(
-                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+                osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
@@ -95,20 +93,11 @@ public final class EmailDomainManager extends BuilderThread {
         "-HUP",
         "sendmail"
     };
-    private static final String[] reloadSendmailCommandMandriva={
-        "/usr/bin/killall",
-        "-HUP",
-        "sendmail.sendmail"
-    };
     public static void reloadMTA() throws IOException, SQLException {
         synchronized(reloadLock) {
             int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
             String[] cmd;
             if(
-                osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-            ) {
-                cmd=reloadSendmailCommandMandriva;
-            } else if(
                 osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                 || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) {
@@ -132,9 +121,9 @@ public final class EmailDomainManager extends BuilderThread {
                 && emailDomainManager==null
             ) {
                 System.out.print("Starting EmailDomainManager: ");
-                AOServConnector connector=AOServDaemon.getConnector();
+                AOServConnector<?,?> connector=AOServDaemon.getConnector();
                 emailDomainManager=new EmailDomainManager();
-                connector.getEmailDomains().addTableListener(emailDomainManager, 0);
+                connector.getEmailDomains().getTable().addTableListener(emailDomainManager, 0);
                 System.out.println("Done");
             }
         }

@@ -5,12 +5,9 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.HttpdTomcatDataSource;
-import com.aoindustries.aoserv.client.HttpdTomcatParameter;
 import com.aoindustries.aoserv.daemon.util.UpgradeSymlink;
 import com.aoindustries.io.ChainWriter;
 import java.io.IOException;
-import java.sql.SQLException;
 
 /**
  * Some common code for all installations of Tomcat.
@@ -36,13 +33,13 @@ public abstract class TomcatCommon {
     /**
      * Writes a single data source.
      */
-    public abstract void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws IOException, SQLException;
+    public abstract void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws IOException;
 
     /**
      * The default JDK version for this version of Tomcat, not including
      * any "jdk".
      */
-    public abstract String getDefaultJdkVersion() throws IOException, SQLException;
+    public abstract String getDefaultJdkVersion() throws IOException;
 
     protected static final UpgradeSymlink[] upgradeSymlinks_MySQL = {
         new UpgradeSymlink("common/lib/mm.mysql-2.0.7-bin.jar", "../../../../usr/mm.mysql-2.0.7/mm.mysql-2.0.7-bin.jar", "../../../../opt/mm.mysql-2.0.7/mm.mysql-2.0.7-bin.jar"),

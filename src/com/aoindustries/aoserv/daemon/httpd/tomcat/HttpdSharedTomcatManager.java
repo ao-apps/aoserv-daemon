@@ -5,11 +5,8 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.AOSHCommand;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.HttpdSharedTomcat;
-import com.aoindustries.aoserv.client.HttpdTomcatVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
@@ -20,7 +17,6 @@ import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.File;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -41,7 +37,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
     /**
      * Gets the specific manager for one version of shared Tomcat.
      */
-    static HttpdSharedTomcatManager<? extends TomcatCommon> getInstance(HttpdSharedTomcat sharedTomcat) throws IOException, SQLException {
+    static HttpdSharedTomcatManager<? extends TomcatCommon> getInstance(HttpdSharedTomcat sharedTomcat) throws IOException{
         AOServConnector connector=AOServDaemon.getConnector();
 
         HttpdTomcatVersion htv=sharedTomcat.getHttpdTomcatVersion();
@@ -50,7 +46,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
         if(htv.isTomcat4_1_X(connector)) return new HttpdSharedTomcatManager_4_1_X(sharedTomcat);
         if(htv.isTomcat5_5_X(connector)) return new HttpdSharedTomcatManager_5_5_X(sharedTomcat);
         if(htv.isTomcat6_0_X(connector)) return new HttpdSharedTomcatManager_6_0_X(sharedTomcat);
-        throw new SQLException("Unsupported version of shared Tomcat: "+htv.getTechnologyVersion(connector).getVersion()+" on "+sharedTomcat);
+        throw new AssertionError("Unsupported version of shared Tomcat: "+htv.getTechnologyVersion(connector).getVersion()+" on "+sharedTomcat);
     }
 
     /**
@@ -61,7 +57,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
     public static void doRebuild(
 	List<File> deleteFileList,
         Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted
-    ) throws IOException, SQLException {
+    ) throws IOException {
         // Get values used in the rest of the method.
         HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
         AOServer aoServer = AOServDaemon.getThisAOServer();
@@ -112,7 +108,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
      *
      * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
      */
-    public static void stopStartAndRestart(Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
+    public static void stopStartAndRestart(Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException {
         for(HttpdSharedTomcat sharedTomcat : AOServDaemon.getThisAOServer().getHttpdSharedTomcats()) {
             final HttpdSharedTomcatManager manager = getInstance(sharedTomcat);
 
@@ -121,7 +117,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
                 // Enabled and has sites, start or restart
                 if(sharedTomcatsNeedingRestarted.contains(sharedTomcat)) {
                     commandCallable = new Callable<Object>() {
-                        public Object call() throws IOException, SQLException {
+                        public Object call() throws IOException {
                             if(manager.stop()) {
                                 try {
                                     Thread.sleep(5000);
@@ -135,7 +131,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
                     };
                 } else {
                     commandCallable = new Callable<Object>() {
-                        public Object call() throws IOException, SQLException {
+                        public Object call() throws IOException {
                             manager.start();
                             return null;
                         }
@@ -144,7 +140,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
             } else {
                 // Disabled or has no sites, can only stop if needed
                 commandCallable = new Callable<Object>() {
-                    public Object call() throws IOException, SQLException {
+                    public Object call() throws IOException {
                         manager.stop();
                         return null;
                     }
@@ -166,7 +162,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
     /**
      * @see  HttpdSiteManager#stopAndDisableDaemons
      */
-    private static void stopAndDisableDaemons(UnixFile sharedTomcatDirectory, Stat tempStat) throws IOException, SQLException {
+    private static void stopAndDisableDaemons(UnixFile sharedTomcatDirectory, Stat tempStat) throws IOException {
         HttpdSiteManager.stopAndDisableDaemons(sharedTomcatDirectory, tempStat);
     }
 
@@ -181,7 +177,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
      * may be used on any config files that a user would be tempted to change
      * directly.
      */
-    String getAutoWarningXmlOld() throws IOException, SQLException {
+    String getAutoWarningXmlOld() throws IOException {
         return
             "<!--\n"
             + "  Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
@@ -203,7 +199,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
      * may be used on any config files that a user would be tempted to change
      * directly.
      */
-    String getAutoWarningXml() throws IOException, SQLException {
+    String getAutoWarningXml() throws IOException {
         return
             "<!--\n"
             + "  Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
@@ -225,7 +221,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
      * may be used on any config files that a user would be tempted to change
      * directly.
      */
-    /*String getAutoWarningUnixOld() throws IOException, SQLException {
+    /*String getAutoWarningUnixOld() throws IOException {
         return
             "#\n"
             + "# Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
@@ -247,7 +243,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
      * may be used on any config files that a user would be tempted to change
      * directly.
      */
-    /*String getAutoWarningUnix() throws IOException, SQLException {
+    /*String getAutoWarningUnix() throws IOException {
         return
             "#\n"
             + "# Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
@@ -279,19 +275,19 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
      *   <li>Otherwise, make necessary config changes or upgrades while adhering to the manual flag</li>
      * </ol>
      */
-    abstract void buildSharedTomcatDirectory(UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException;
+    abstract void buildSharedTomcatDirectory(UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException;
 
     /**
      * Upgrades the site directory contents for an auto-upgrade.
      *
      * @return  <code>true</code> if the site needs to be restarted.
      */
-    protected abstract boolean upgradeSharedTomcatDirectory(UnixFile siteDirectory) throws IOException, SQLException;
+    protected abstract boolean upgradeSharedTomcatDirectory(UnixFile siteDirectory) throws IOException;
 
     /**
      * Gets the PID file.
      */
-    public UnixFile getPidFile() throws IOException, SQLException {
+    public UnixFile getPidFile() throws IOException {
         return new UnixFile(
             HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
             + "/"
@@ -304,7 +300,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
         return !sharedTomcat.isDisabled();
     }
 
-    public String getStartStopScriptPath() throws IOException, SQLException {
+    public String getStartStopScriptPath() throws IOException {
         return
             HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
             + "/"
@@ -313,7 +309,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
         ;
     }
 
-    public boolean stop() throws IOException, SQLException {
+    public boolean stop() throws IOException {
         UnixFile pidFile = getPidFile();
         if(pidFile.getStat().exists()) {
             AOServDaemon.suexec(
@@ -328,7 +324,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
         }
     }
 
-    public boolean start() throws IOException, SQLException {
+    public boolean start() throws IOException {
         UnixFile pidFile = getPidFile();
         if(!pidFile.getStat().exists()) {
             AOServDaemon.suexec(

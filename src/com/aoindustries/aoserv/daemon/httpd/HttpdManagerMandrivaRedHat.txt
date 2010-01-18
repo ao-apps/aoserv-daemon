@@ -3066,14 +3066,14 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
         final String username = (osv==OperatingSystemVersion.REDHAT_ES_4_X86_64 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) ? LinuxAccount.APACHE : LinuxAccount.HTTPD;
 
         Username httpdUsername=conn.usernames.get(username);
-        if(httpdUsername==null) throw new SQLException("Unable to find Username: "+username);
+        if(httpdUsername==null) throw new AssertionError("Unable to find Username: "+username);
         LinuxAccount httpdLA=httpdUsername.getLinuxAccount();
-        if(httpdLA==null) throw new SQLException("Unable to find LinuxAccount: "+httpdUsername);
+        if(httpdLA==null) throw new AssertionError("Unable to find LinuxAccount: "+httpdUsername);
         LinuxServerAccount httpdLSA=httpdLA.getLinuxServerAccount(aoServer);
-        if(httpdLSA==null) throw new SQLException("Unable to find LinuxServerAccount: "+httpdLA+" on "+aoServer.getHostname());
+        if(httpdLSA==null) throw new AssertionError("Unable to find LinuxServerAccount: "+httpdLA+" on "+aoServer.getHostname());
         int httpdUID=httpdLSA.getUID().getID();
         LinuxServerAccount awstatsLSA=aoServer.getLinuxServerAccount(LinuxAccount.AWSTATS);
-        if(awstatsLSA==null) throw new SQLException("Unable to find LinuxServerAccount: "+LinuxAccount.AWSTATS+" on "+aoServer.getHostname());
+        if(awstatsLSA==null) throw new AssertionError("Unable to find LinuxServerAccount: "+LinuxAccount.AWSTATS+" on "+aoServer.getHostname());
         int awstatsUID=awstatsLSA.getUID().getID();
 
         // Iterate through each site
@@ -3348,9 +3348,9 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
                                     }
                                     if(!site.isManual()) out.print(autoWarning);
                                     NetBind shutdownPort=stdSite.getTomcat4ShutdownPort();
-                                    if(shutdownPort==null) throw new SQLException("Unable to find shutdown port for HttpdTomcatStdSite="+stdSite);
+                                    if(shutdownPort==null) throw new AssertionError("Unable to find shutdown port for HttpdTomcatStdSite="+stdSite);
                                     String shutdownKey=stdSite.getTomcat4ShutdownKey();
-                                    if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for HttpdTomcatStdSite="+stdSite);
+                                    if(shutdownKey==null) throw new AssertionError("Unable to find shutdown key for HttpdTomcatStdSite="+stdSite);
                                     out.print("<Server port=\"").print(shutdownPort.getPort().getPort()).print("\" shutdown=\"").print(shutdownKey).print("\" debug=\"0\">\n");
                                     if(isTomcat55) {
                                         out.print("  <GlobalNamingResources>\n"
@@ -4568,9 +4568,9 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
                         HttpdWorker hw=tomcat.getTomcat4Worker();
                         if(!tomcat.isManual()) out.print(autoWarning);
                         NetBind shutdownPort = tomcat.getTomcat4ShutdownPort();
-                        if(shutdownPort==null) throw new SQLException("Unable to find shutdown key for HttpdSharedTomcat: "+tomcat);
+                        if(shutdownPort==null) throw new AssertionError("Unable to find shutdown key for HttpdSharedTomcat: "+tomcat);
                         String shutdownKey=tomcat.getTomcat4ShutdownKey();
-                        if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for HttpdSharedTomcat: "+tomcat);
+                        if(shutdownKey==null) throw new AssertionError("Unable to find shutdown key for HttpdSharedTomcat: "+tomcat);
                         out.print("<Server port=\"").print(shutdownPort.getPort().getPort()).print("\" shutdown=\"").print(shutdownKey).print("\" debug=\"0\">\n");
                         if(isTomcat55) {
                             out.print("  <GlobalNamingResources>\n"
@@ -4898,7 +4898,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
             if(!httpdSite.getAOServer().equals(thisAOServer)) throw new SQLException("HttpdSite #"+sitePKey+" has server of "+httpdSite.getAOServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')');
 
             HttpdTomcatSite tomcatSite=httpdSite.getHttpdTomcatSite();
-            if(tomcatSite==null) throw new SQLException("Unable to find HttpdTomcatSite for HttpdSite #"+sitePKey);
+            if(tomcatSite==null) throw new AssertionError("Unable to find HttpdTomcatSite for HttpdSite #"+sitePKey);
 
             HttpdTomcatStdSite stdSite=tomcatSite.getHttpdTomcatStdSite();
             if(stdSite!=null) {
@@ -4977,7 +4977,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
 
                         // Make sure we don't start too quickly
                         startJVMTimes.put(key, Long.valueOf(System.currentTimeMillis()));
-                    } else throw new SQLException("Unable to find HttpdTomcatStdSite, HttpdTomcatSharedSite or HttpdJBossSite for HttpdSite #"+sitePKey);
+                    } else throw new AssertionError("Unable to find HttpdTomcatStdSite, HttpdTomcatSharedSite or HttpdJBossSite for HttpdSite #"+sitePKey);
                 }
             }
 
@@ -4996,7 +4996,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
             if(!httpdSite.getAOServer().equals(thisAOServer)) throw new SQLException("HttpdSite #"+sitePKey+" has server of "+httpdSite.getAOServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')');
 
             HttpdTomcatSite tomcatSite=httpdSite.getHttpdTomcatSite();
-            if(tomcatSite==null) throw new SQLException("Unable to find HttpdTomcatSite for HttpdSite #"+sitePKey);
+            if(tomcatSite==null) throw new AssertionError("Unable to find HttpdTomcatSite for HttpdSite #"+sitePKey);
 
             HttpdTomcatStdSite stdSite=tomcatSite.getHttpdTomcatStdSite();
             if(stdSite!=null) {
@@ -5075,7 +5075,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
 
                         // Make sure we don't start too quickly
                         startJVMTimes.put(key, Long.valueOf(System.currentTimeMillis()));
-                    } else throw new SQLException("Unable to find HttpdTomcatStdSite, HttpdTomcatSharedSite or HttpdJBossSite for HttpdSite #"+sitePKey);
+                    } else throw new AssertionError("Unable to find HttpdTomcatStdSite, HttpdTomcatSharedSite or HttpdJBossSite for HttpdSite #"+sitePKey);
                 }
             }
 
@@ -5615,7 +5615,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
     ) throws IOException, SQLException {
         AOServer aoServer=AOServDaemon.getThisAOServer();
         LinuxServerAccount awstatsLSA=aoServer.getLinuxServerAccount(LinuxAccount.AWSTATS);
-        if(awstatsLSA==null) throw new SQLException("Unable to find LinuxServerAccount: "+LinuxAccount.AWSTATS+" on "+aoServer.getHostname());
+        if(awstatsLSA==null) throw new AssertionError("Unable to find LinuxServerAccount: "+LinuxAccount.AWSTATS+" on "+aoServer.getHostname());
         int awstatsUID=awstatsLSA.getUID().getID();
         int lsgGID=site.getLinuxServerGroup().getGID().getID();
 

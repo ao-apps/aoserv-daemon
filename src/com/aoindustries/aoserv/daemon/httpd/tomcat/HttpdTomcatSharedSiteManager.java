@@ -51,9 +51,7 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
      * Worker is associated with the shared JVM.
      */
     protected HttpdWorker getHttpdWorker() throws IOException, SQLException {
-        HttpdWorker hw = tomcatSharedSite.getHttpdSharedTomcat().getTomcat4Worker();
-        if(hw==null) throw new SQLException("Unable to find shared HttpdWorker");
-        return hw;
+        return tomcatSharedSite.getHttpdSharedTomcat().getTomcat4Worker();
     }
 
     public UnixFile getPidFile() throws IOException, SQLException {

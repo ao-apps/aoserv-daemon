@@ -89,7 +89,7 @@ class HttpdTomcatSharedSiteManager_3_2_4 extends HttpdTomcatSharedSiteManager_3_
                 out.print("\"/>\n"
                         + "      <Parameter name=\"port\" value=\"").print(netBind.getPort()).print("\"/>\n");
                 IPAddress ip=netBind.getIPAddress();
-                if(!ip.isWildcard()) out.print("      <Parameter name=\"inet\" value=\"").print(ip.getIPAddress()).print("\"/>\n");
+                if(!ip.isWildcard()) out.print("      <Parameter name=\"inet\" value=\"").print(ip.getIpAddress()).print("\"/>\n");
                 out.print("      <Parameter name=\"max_threads\" value=\"30\"/>\n"
                         + "      <Parameter name=\"max_spare_threads\" value=\"10\"/>\n"
                         + "      <Parameter name=\"min_spare_threads\" value=\"1\"/>\n"

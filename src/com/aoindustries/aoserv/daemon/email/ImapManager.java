@@ -7,15 +7,16 @@ package com.aoindustries.aoserv.daemon.email;
  */
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.EmailSpamAssassinIntegrationMode;
 import com.aoindustries.aoserv.client.LinuxAccount;
-import com.aoindustries.aoserv.client.LinuxAccountTable;
-import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.NetProtocol;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Protocol;
 import com.aoindustries.aoserv.client.Server;
+import com.aoindustries.aoserv.client.validator.InetAddress;
+import com.aoindustries.aoserv.client.validator.NetPort;
+import com.aoindustries.aoserv.client.validator.UserId;
+import com.aoindustries.aoserv.client.validator.ValidationException;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -58,6 +59,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -200,23 +202,23 @@ final public class ImapManager extends BuilderThread {
      * 
      * @return  The IP address or <code>null</code> if not an IMAP server.
      */
-    private static String getImapServerIPAddress() throws IOException, SQLException {
+    private static InetAddress getImapServerIPAddress() throws IOException, SQLException {
         AOServer aoServer = AOServDaemon.getThisAOServer();
-        AOServConnector conn = AOServDaemon.getConnector();
+        AOServConnector<?,?> conn = AOServDaemon.getConnector();
         Protocol imapProtocol = conn.getProtocols().get(Protocol.IMAP2);
         if(imapProtocol==null) throw new SQLException("Protocol not found: "+Protocol.IMAP2);
-        int imapPort = imapProtocol.getPort(conn).getPort();
+        NetPort imapPort = imapProtocol.getPort();
         List<NetBind> netBinds = aoServer.getServer().getNetBinds(imapProtocol);
         // Look for primary IP match
-        String primaryIp = aoServer.getPrimaryIPAddress().getIPAddress();
+        InetAddress primaryIp = aoServer.getPrimaryIPAddress().getInetAddress();
         NetBind firstImap = null;
         for(NetBind nb : netBinds) {
-            if(nb.getPort().getPort()==imapPort) {
-                if(nb.getIPAddress().getIPAddress().equals(primaryIp)) return primaryIp;
+            if(nb.getPort().equals(imapPort)) {
+                if(nb.getIPAddress().getInetAddress().equals(primaryIp)) return primaryIp;
                 if(firstImap==null) firstImap = nb;
             }
         }
-        return firstImap==null ? null : firstImap.getIPAddress().getIPAddress();
+        return firstImap==null ? null : firstImap.getIPAddress().getInetAddress();
     }
 
     /**
@@ -265,14 +267,14 @@ final public class ImapManager extends BuilderThread {
      */
     private static IMAPStore getOldUserStore(
         PrintWriter logOut,
-        String username,
+        UserId username,
         String[] tempPassword,
         UnixFile passwordBackup,
         Stat tempStat
     ) throws IOException, SQLException, MessagingException {
         return getUserStore(
             logOut,
-            AOServDaemon.getThisAOServer().getPrimaryIPAddress().getIPAddress(),
+            AOServDaemon.getThisAOServer().getPrimaryIPAddress().getInetAddress(),
             8143,
             username,
             username,
@@ -287,19 +289,19 @@ final public class ImapManager extends BuilderThread {
      */
     private static IMAPStore getNewUserStore(
         PrintWriter logOut,
-        String username,
+        UserId username,
         String[] tempPassword,
         UnixFile passwordBackup,
         Stat tempStat
     ) throws IOException, SQLException, MessagingException {
-        String host = getImapServerIPAddress();
+        InetAddress host = getImapServerIPAddress();
         if(host==null) throw new IOException("Not an IMAP server");
         return getUserStore(
             logOut,
             host,
             143,
             username,
-            username.indexOf('@')==-1 ? (username+"@default") : username,
+            username.getId().indexOf('@')==-1 ? (username+"@default") : username.getId(),
             tempPassword,
             passwordBackup,
             tempStat
@@ -311,9 +313,9 @@ final public class ImapManager extends BuilderThread {
      */
     private static IMAPStore getUserStore(
         PrintWriter logOut,
-        String host,
+        InetAddress host,
         int port,
-        String username,
+        UserId username,
         String imapUsername,
         String[] tempPassword,
         UnixFile passwordBackup,
@@ -352,7 +354,7 @@ final public class ImapManager extends BuilderThread {
         // Create new store
         IMAPStore store = (IMAPStore)session.getStore();
         store.connect(
-            host,
+            host.getAddress(),
             imapUsername,
             password
         );
@@ -370,27 +372,22 @@ final public class ImapManager extends BuilderThread {
                 // Used inside synchronized block
                 Stat tempStat = new Stat();
                 ByteArrayOutputStream bout = new ByteArrayOutputStream();
-                AOServConnector conn = AOServDaemon.getConnector();
+                AOServConnector<?,?> conn = AOServDaemon.getConnector();
                 Server server = thisAOServer.getServer();
 
                 Protocol imapProtocol = conn.getProtocols().get(Protocol.IMAP2);
-                if(imapProtocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.IMAP2);
                 List<NetBind> imapBinds = server.getNetBinds(imapProtocol);
 
                 Protocol imapsProtocol = conn.getProtocols().get(Protocol.SIMAP);
-                if(imapsProtocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.SIMAP);
                 List<NetBind> imapsBinds = server.getNetBinds(imapsProtocol);
 
                 Protocol pop3Protocol = conn.getProtocols().get(Protocol.POP3);
-                if(pop3Protocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.POP3);
                 List<NetBind> pop3Binds = server.getNetBinds(pop3Protocol);
 
                 Protocol pop3sProtocol = conn.getProtocols().get(Protocol.SPOP3);
-                if(pop3sProtocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.SPOP3);
                 List<NetBind> pop3sBinds = server.getNetBinds(pop3sProtocol);
 
                 Protocol sieveProtocol = conn.getProtocols().get(Protocol.SIEVE);
-                if(sieveProtocol==null) throw new SQLException("Unable to find Protocol: "+Protocol.SIEVE);
                 List<NetBind> sieveBinds = server.getNetBinds(sieveProtocol);
 
                 synchronized(rebuildLock) {
@@ -496,7 +493,7 @@ final public class ImapManager extends BuilderThread {
                                 for(NetBind pop3Bind : pop3Binds) {
                                     if(!pop3Bind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("pop3 requires TCP protocol");
                                     String serviceName = "pop3"+(counter++);
-                                    out.print("  ").print(serviceName).print(" cmd=\"pop3d\" listen=\"[").print(pop3Bind.getIPAddress().getIPAddress()).print("]:").print(pop3Bind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=3\n");
+                                    out.print("  ").print(serviceName).print(" cmd=\"pop3d\" listen=\"[").print(pop3Bind.getIpAddress().getIpAddress()).print("]:").print(pop3Bind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=3\n");
                                     tlsServices.put(serviceName, pop3Bind);
                                 }
                                 // pop3s
@@ -504,14 +501,14 @@ final public class ImapManager extends BuilderThread {
                                 for(NetBind pop3sBind : pop3sBinds) {
                                     if(!pop3sBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("pop3s requires TCP protocol");
                                     String serviceName = "pop3s"+(counter++);
-                                    out.print("  ").print(serviceName).print(" cmd=\"pop3d -s\" listen=\"[").print(pop3sBind.getIPAddress().getIPAddress()).print("]:").print(pop3sBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=1\n");
+                                    out.print("  ").print(serviceName).print(" cmd=\"pop3d -s\" listen=\"[").print(pop3sBind.getIpAddress().getIpAddress()).print("]:").print(pop3sBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=1\n");
                                     tlsServices.put(serviceName, pop3sBind);
                                 }
                                 // sieve
                                 counter = 1;
                                 for(NetBind sieveBind : sieveBinds) {
                                     if(!sieveBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("sieve requires TCP protocol");
-                                    out.print("  sieve").print(counter++).print(" cmd=\"timsieved\" listen=\"[").print(sieveBind.getIPAddress().getIPAddress()).print("]:").print(sieveBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=0\n");
+                                    out.print("  sieve").print(counter++).print(" cmd=\"timsieved\" listen=\"[").print(sieveBind.getIpAddress().getIpAddress()).print("]:").print(sieveBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=0\n");
                                 }
                                         //+ "  # these are only necessary if receiving/exporting usenet via NNTP\n"
                                         //+ "#  nntp         cmd=\"nntpd\" listen=\"nntp\" prefork=3\n"
@@ -889,7 +886,7 @@ final public class ImapManager extends BuilderThread {
 
     private static void convertImapDirectory(
         final PrintWriter logOut,
-        final String username,
+        final UserId username,
         final int junkRetention,
         final int trashRetention,
         final UnixFile directory,
@@ -1042,7 +1039,7 @@ final public class ImapManager extends BuilderThread {
 
     private static void convertImapFile(
         final PrintWriter logOut,
-        final String username,
+        final UserId username,
         final int junkRetention,
         final int trashRetention,
         final UnixFile file,
@@ -1264,7 +1261,7 @@ final public class ImapManager extends BuilderThread {
     /**
      * Logs a message as trace on commons-logging and on the per-user log.
      */
-    private static void log(PrintWriter userLogOut, Level level, String username, String message) {
+    private static void log(PrintWriter userLogOut, Level level, UserId username, String message) {
         Logger logger = LogFactory.getLogger(ImapManager.class);
         if(logger.isLoggable(level)) logger.log(level, username+" - "+message);
         synchronized(userLogOut) {
@@ -1282,20 +1279,19 @@ final public class ImapManager extends BuilderThread {
             IMAPStore store = getStore();
             if(store==null) throw new SQLException("Not an IMAP server");
             // Verify all email users - only users who have a home under /home/ are considered
-            List<LinuxServerAccount> lsas = AOServDaemon.getThisAOServer().getLinuxServerAccounts();
+            SortedSet<LinuxAccount> las = AOServDaemon.getThisAOServer().getSortedLinuxAccounts();
             Set<String> validEmailUsernames = new HashSet<String>(lsas.size()*4/3+1);
             // Conversions are done concurrently
-            Map<LinuxServerAccount,Future<Object>> convertors = WUIMAP_CONVERSION_ENABLED ? new HashMap<LinuxServerAccount,Future<Object>>(lsas.size()*4/3+1) : null;
+            Map<LinuxAccount,Future<Object>> convertors = WUIMAP_CONVERSION_ENABLED ? new HashMap<LinuxAccount,Future<Object>>(las.size()*4/3+1) : null;
             ExecutorService executorService = WUIMAP_CONVERSION_ENABLED ? Executors.newFixedThreadPool(WUIMAP_CONVERSION_CONCURRENCY) : null;
             try {
-                for(final LinuxServerAccount lsa : lsas) {
-                    LinuxAccount la = lsa.getLinuxAccount();
-                    final String homePath = lsa.getHome();
+                for(final LinuxAccount la : las) {
+                    final String homePath = la.getHome().getPath();
                     if(la.getType().isEmail() && homePath.startsWith("/home/")) {
                         // Split into user and domain
-                        final String laUsername = la.getUsername().getUsername();
-                        String user = getUser(laUsername);
-                        String domain = getDomain(laUsername);
+                        final UserId laUsername = la.getUsername().getUsername();
+                        String user = getUser(laUsername.getId());
+                        String domain = getDomain(laUsername.getId());
                         validEmailUsernames.add(laUsername);
 
                         // INBOX
@@ -1330,7 +1326,7 @@ final public class ImapManager extends BuilderThread {
 
                             // Set/update expire annotation
                             String existingValue = getAnnotation(trashFolder, "/vendor/cmu/cyrus-imapd/expire", "value.shared");
-                            int trashRetention = lsa.getTrashEmailRetention();
+                            int trashRetention = la.getTrashEmailRetention();
                             String expectedValue = trashRetention==-1 ? null : Integer.toString(trashRetention);
                             if(!StringUtility.equals(existingValue, expectedValue)) {
                                 if(isDebug) logger.fine("Setting mailbox expiration: "+trashFolderName+": "+expectedValue);
@@ -1345,7 +1341,7 @@ final public class ImapManager extends BuilderThread {
                         String junkFolderName = getFolderName(user, domain, "Junk");
                         IMAPFolder junkFolder = (IMAPFolder)store.getFolder(junkFolderName);
                         try {
-                            if(lsa.getEmailSpamAssassinIntegrationMode().getName().equals(EmailSpamAssassinIntegrationMode.IMAP)) {
+                            if(la.getEmailSpamAssassinIntegrationMode().getName().equals(EmailSpamAssassinIntegrationMode.IMAP)) {
                                 // Junk folder required for IMAP mode
                                 if(!junkFolder.exists()) {
                                     if(isDebug) logger.fine("Creating mailbox: "+junkFolderName);
@@ -1374,17 +1370,17 @@ final public class ImapManager extends BuilderThread {
 
                         if(WUIMAP_CONVERSION_ENABLED) {
                             convertors.put(
-                                lsa,
+                                la,
                                 executorService.submit(
                                     new Callable<Object>() {
-                                        public Object call() throws IOException, SQLException, MessagingException {
+                                        public Object call() throws IOException, SQLException, MessagingException, ValidationException {
                                             Stat tempStat = new Stat();
                                             // Create the backup directory
                                             if(!wuBackupDirectory.getStat(tempStat).exists()) {
                                                 if(isDebug) logger.fine("Creating directory: "+wuBackupDirectory.getPath());
                                                 wuBackupDirectory.mkdir(true, 0700);
                                             }
-                                            UnixFile userBackupDirectory = new UnixFile(wuBackupDirectory, laUsername, false);
+                                            UnixFile userBackupDirectory = new UnixFile(wuBackupDirectory, laUsername.getId(), false);
                                             if(!userBackupDirectory.getStat(tempStat).exists()) {
                                                 if(isDebug) logger.fine(laUsername+": Creating backup directory: "+userBackupDirectory.getPath());
                                                 userBackupDirectory.mkdir(false, 0700);
@@ -1417,10 +1413,10 @@ final public class ImapManager extends BuilderThread {
                                                 // The password will be reset to a random value upon first use, subsequent
                                                 // accesses will use the same password.
                                                 String[] tempPassword = new String[1];
-                                                int junkRetention = lsa.getJunkEmailRetention();
-                                                int trashRetention = lsa.getTrashEmailRetention();
+                                                int junkRetention = la.getJunkEmailRetention();
+                                                int trashRetention = la.getTrashEmailRetention();
                                                 // Convert old INBOX
-                                                UnixFile inboxFile = new UnixFile(mailSpool, laUsername);
+                                                UnixFile inboxFile = new UnixFile(mailSpool, laUsername.getId());
                                                 if(inboxFile.getStat(tempStat).exists()) {
                                                     if(!tempStat.isRegularFile()) throw new IOException("Not a regular file: "+inboxFile.getPath());
                                                     convertImapFile(logOut, laUsername, junkRetention, trashRetention, inboxFile, new UnixFile(userBackupDirectory, "INBOX", false), "INBOX", tempPassword, passwordBackup, tempStat);
@@ -1470,35 +1466,35 @@ final public class ImapManager extends BuilderThread {
                     }
                 }
                 if(WUIMAP_CONVERSION_ENABLED) {
-                    List<LinuxServerAccount> deleteMe = new ArrayList<LinuxServerAccount>();
+                    List<LinuxAccount> deleteMe = new ArrayList<LinuxAccount>();
                     while(!convertors.isEmpty()) {
                         deleteMe.clear();
-                        for(Map.Entry<LinuxServerAccount,Future<Object>> entry : convertors.entrySet()) {
-                            LinuxServerAccount lsa = entry.getKey();
+                        for(Map.Entry<LinuxAccount,Future<Object>> entry : convertors.entrySet()) {
+                            LinuxAccount la = entry.getKey();
                             Future<Object> future = entry.getValue();
                             // Wait for completion
                             try {
                                 future.get(1, TimeUnit.SECONDS);
-                                deleteMe.add(lsa);
+                                deleteMe.add(la);
                             } catch(InterruptedException err) {
-                                logger.log(Level.WARNING, "lsa="+lsa, err);
+                                logger.log(Level.WARNING, "la="+la, err);
                                 // Will retry on next loop
                             } catch(ExecutionException err) {
                                 String extraInfo;
                                 Throwable cause = err.getCause();
                                 if(cause!=null && (cause instanceof ReadOnlyFolderException)) {
                                     ReadOnlyFolderException rofe = (ReadOnlyFolderException)cause;
-                                    extraInfo = "lsa="+lsa+", folder="+rofe.getFolder().getFullName();
+                                    extraInfo = "la="+la+", folder="+rofe.getFolder().getFullName();
                                 } else {
-                                    extraInfo = "lsa="+lsa;
+                                    extraInfo = "la="+la;
                                 }
                                 logger.log(Level.SEVERE, extraInfo, err);
-                                deleteMe.add(lsa);
+                                deleteMe.add(la);
                             } catch(TimeoutException err) {
                                 // This is OK, will just retry on next loop
                             }
                         }
-                        for(LinuxServerAccount lsa : deleteMe) convertors.remove(lsa);
+                        for(LinuxAccount la : deleteMe) convertors.remove(la);
                     }
                 }
             } finally {
@@ -1607,14 +1603,14 @@ final public class ImapManager extends BuilderThread {
                 && imapManager==null
             ) {
                 System.out.print("Starting ImapManager: ");
-                AOServConnector connector=AOServDaemon.getConnector();
+                AOServConnector<?,?> connector=AOServDaemon.getConnector();
                 imapManager=new ImapManager();
-                connector.getAoServers().addTableListener(imapManager, 0);
+                connector.getAoServers().getTable().addTableListener(imapManager, 0);
                 connector.getIpAddresses().addTableListener(imapManager, 0);
-                connector.getLinuxAccounts().addTableListener(imapManager, 0);
+                connector.getLinuxAccounts().getTable().addTableListener(imapManager, 0);
                 connector.getLinuxServerAccounts().addTableListener(imapManager, 0);
-                connector.getNetBinds().addTableListener(imapManager, 0);
-                connector.getServers().addTableListener(imapManager, 0);
+                connector.getNetBinds().getTable().addTableListener(imapManager, 0);
+                connector.getServers().getTable().addTableListener(imapManager, 0);
                 System.out.println("Done");
             }
         }
@@ -1624,27 +1620,14 @@ final public class ImapManager extends BuilderThread {
         return "Rebuild IMAP and Cyrus configurations";
     }
 
-    public static long[] getImapFolderSizes(String username, String[] folderNames) throws IOException, SQLException, MessagingException {
+    public static long[] getImapFolderSizes(UserId username, String[] folderNames) throws IOException, SQLException, MessagingException {
         AOServer thisAOServer=AOServDaemon.getThisAOServer();
         int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
-        LinuxServerAccount lsa=thisAOServer.getLinuxServerAccount(username);
-        if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+username+" on "+thisAOServer);
+        LinuxAccount lsa=thisAOServer.getLinuxAccount(username);
         long[] sizes=new long[folderNames.length];
-        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-            for(int c=0;c<folderNames.length;c++) {
-                String folderName = folderNames[c];
-                if(folderName.indexOf("..") !=-1) sizes[c]=-1;
-                else {
-                    File folderFile;
-                    if(folderName.equals("INBOX")) folderFile=new File(mailSpool, username);
-                    else folderFile=new File(new File(lsa.getHome(), "Mail"), folderName);
-                    if(folderFile.exists()) sizes[c]=folderFile.length();
-                    else sizes[c]=-1;
-                }
-            }
-        } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-            String user = getUser(username);
-            String domain = getDomain(username);
+        if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+            String user = getUser(username.getId());
+            String domain = getDomain(username.getId());
             for(int c=0;c<folderNames.length;c++) {
                 String folderName = folderNames[c];
                 if(folderName.indexOf("..") !=-1) sizes[c]=-1;
@@ -1655,56 +1638,6 @@ final public class ImapManager extends BuilderThread {
             }
         } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
         return sizes;
-    }
-
-    public static void setImapFolderSubscribed(String username, String folderName, boolean subscribed) throws IOException, SQLException {
-        AOServer thisAOServer=AOServDaemon.getThisAOServer();
-        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
-        LinuxServerAccount lsa=thisAOServer.getLinuxServerAccount(username);
-        if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+username+" on "+thisAOServer);
-        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-            UnixFile mailboxlist=new UnixFile(lsa.getHome(), ".mailboxlist");
-            List<String> lines=new ArrayList<String>();
-            boolean currentlySubscribed=false;
-            if(mailboxlist.getStat().exists()) {
-                BufferedReader in=new BufferedReader(new InputStreamReader(mailboxlist.getSecureInputStream()));
-                try {
-                    String line;
-                    while((line=in.readLine())!=null) {
-                        lines.add(line);
-                        if(line.equals(folderName)) currentlySubscribed=true;
-                    }
-                } finally {
-                    in.close();
-                }
-            }
-            if(subscribed!=currentlySubscribed) {
-                PrintWriter out=new PrintWriter(mailboxlist.getSecureOutputStream(lsa.getUID().getID(), lsa.getPrimaryLinuxServerGroup().getGID().getID(), 0644, true));
-                try {
-                    for(int c=0;c<lines.size();c++) {
-                        String line=lines.get(c);
-                        if(subscribed || !line.equals(folderName)) {
-                            // Only print if the folder still exists
-                            if(
-                                line.equals("INBOX")
-                                || line.equals("Drafts")
-                                || line.equals("Trash")
-                                || line.equals("Junk")
-                            ) out.println(line);
-                            else {
-                                File folderFile=new File(new File(lsa.getHome(), "Mail"), line);
-                                if(folderFile.exists()) out.println(line);
-                            }
-                        }
-                    }
-                    if(subscribed) out.println(folderName);
-                } finally {
-                    out.close();
-                }
-            }
-        } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-            throw new SQLException("Cyrus folders should be subscribed/unsubscribed from IMAP directly because subscribe list is stored per user basis.");
-        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
     }
 
     static class Annotation {
@@ -1929,9 +1862,7 @@ final public class ImapManager extends BuilderThread {
     public static long getInboxSize(String username) throws IOException, SQLException, MessagingException {
         AOServer thisAOServer=AOServDaemon.getThisAOServer();
         int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
-        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-            return new File(mailSpool, username).length();
-        } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+        if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
             return getCyrusFolderSize(username, "", true);
             /*
 ad GETANNOTATION user/cyrus.test/Junk@suspendo.aoindustries.com "*" "value.shared"
@@ -1951,9 +1882,7 @@ ad OK Completed
     public static long getInboxModified(String username) throws IOException, SQLException, MessagingException, ParseException {
         AOServer thisAOServer=AOServDaemon.getThisAOServer();
         int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
-        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-            return new File(mailSpool, username).lastModified();
-        } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+        if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
             try {
                 // Connect to the store
                 IMAPStore store = getStore();

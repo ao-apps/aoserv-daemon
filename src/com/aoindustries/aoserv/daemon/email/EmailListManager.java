@@ -5,7 +5,6 @@ package com.aoindustries.aoserv.daemon.email;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.MajordomoServer;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.io.unix.Stat;
@@ -32,8 +31,7 @@ final public class EmailListManager {
     public static String getEmailListFile(String path) throws IOException, SQLException {
         int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
         if(
-            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+            osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
         ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
@@ -53,8 +51,7 @@ final public class EmailListManager {
     public static void removeEmailListAddresses(String path) throws IOException, SQLException {
         int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
         if(
-            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+            osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
         ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
@@ -74,8 +71,7 @@ final public class EmailListManager {
     ) throws IOException, SQLException {
         int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
         if(
-            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+            osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
         ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 

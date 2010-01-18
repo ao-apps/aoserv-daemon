@@ -8,10 +8,6 @@ package com.aoindustries.aoserv.daemon.email;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.LinuxGroup;
-import com.aoindustries.aoserv.client.LinuxServerAccount;
-import com.aoindustries.aoserv.client.LinuxServerGroup;
-import com.aoindustries.aoserv.client.MajordomoList;
-import com.aoindustries.aoserv.client.MajordomoServer;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -49,8 +45,7 @@ final public class MajordomoManager extends BuilderThread {
 
             int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
             if(
-                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-                && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             // Reused during processing below
@@ -67,9 +62,7 @@ final public class MajordomoManager extends BuilderThread {
                 int mailGID;
                 {
                     LinuxGroup mailLG=connector.getLinuxGroups().get(LinuxGroup.MAIL);
-                    if(mailLG==null) throw new SQLException("Unable to find LinuxGroup: "+LinuxGroup.MAIL);
                     LinuxServerGroup mailLSG=mailLG.getLinuxServerGroup(aoServer);
-                    if(mailLSG==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+aoServer.getHostname());
                     mailGID=mailLSG.getGID().getID();
                 }
 
@@ -102,9 +95,7 @@ final public class MajordomoManager extends BuilderThread {
                     ) {
                         // Add a new install
                         String sharedPath;
-                        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                            sharedPath="../../../../usr/majordomo/"+version;
-                        } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                        if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                             sharedPath="../../../../opt/majordomo-"+version;
                         } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
@@ -465,9 +456,7 @@ final public class MajordomoManager extends BuilderThread {
 
                         // Compile, install, and remove the wrapper
                         String source;
-                        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                            source = "/usr/aoserv/bin/majordomo-wrapper-"+version+".c";
-                        } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                        if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                             source = "/opt/aoserv-daemon/src/majordomo-wrapper-"+version+".c";
                         } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                         String[] cc={
@@ -997,7 +986,7 @@ final public class MajordomoManager extends BuilderThread {
                 && majordomoManager==null
             ) {
                 System.out.print("Starting MajordomoManager: ");
-                AOServConnector connector=AOServDaemon.getConnector();
+                AOServConnector<?,?> connector=AOServDaemon.getConnector();
                 majordomoManager=new MajordomoManager();
                 connector.getMajordomoLists().addTableListener(majordomoManager, 0);
                 connector.getMajordomoServers().addTableListener(majordomoManager, 0);

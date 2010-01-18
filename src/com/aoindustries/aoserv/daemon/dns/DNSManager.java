@@ -7,12 +7,14 @@ package com.aoindustries.aoserv.daemon.dns;
  */
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.DNSZone;
+import com.aoindustries.aoserv.client.DnsZone;
+import com.aoindustries.aoserv.client.IndexedSet;
 import com.aoindustries.aoserv.client.LinuxGroup;
-import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Protocol;
+import com.aoindustries.aoserv.client.validator.InetAddress;
+import com.aoindustries.aoserv.client.validator.NetPort;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -32,6 +34,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.logging.Level;
 
 /**
@@ -51,7 +55,7 @@ final public class DNSManager extends BuilderThread {
      */
     private static final String ACL =
         // Private IP addresses used internally
-          "10.0.0.0/8;"
+        "10.0.0.0/8;"
         + " 172.16.0.0/24;"
         + " 192.168.0.0/16;"
         // Loopback IP
@@ -66,7 +70,7 @@ final public class DNSManager extends BuilderThread {
         + " 64.62.145.40/29;"  // Firewalls
         + " 64.71.144.0/25;"   // Hosts
         // Mobile
-        + " 70.91.161.42;"     // 7262 Bull Pen Cir
+        + " 67.177.66.203;"    // 7262 Bull Pen Cir
         // Spain
         + " 81.19.103.96/28;"  // Firewalls
         + " 81.19.103.64/27;"  // Hosts
@@ -82,20 +86,8 @@ final public class DNSManager extends BuilderThread {
     private static final UnixFile namedZoneDir=new UnixFile("/var/named");
 
     /**
-     * The file that stores the root server cache.
-     */
-    public static final String
-        MANDRIVA_ROOT_CACHE="named.ca",
-        NEW_MANDRIVA_ROOT_CACHE="named.ca.new"
-    ;
-
-    /**
      * Files and directories in /var/named that are never removed.
      */
-    private static final String[] mandrivaStaticFiles={
-        MANDRIVA_ROOT_CACHE,
-        "named_dump.db"
-    };
     private static final String[] centos5StaticFiles={
         "chroot",
         "data",
@@ -109,7 +101,6 @@ final public class DNSManager extends BuilderThread {
         "slaves"
     };
     private static String[] getStaticFiles(int osv) throws IllegalArgumentException {
-        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) return mandrivaStaticFiles;
         if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) return centos5StaticFiles;
         throw new IllegalArgumentException("Unsupported OperatingSystemVersion: "+osv);
     }
@@ -120,20 +111,19 @@ final public class DNSManager extends BuilderThread {
     }
 
     /**
-     * Each zone is only rebuild if the zone file does not exist or its serial has changed.
+     * Each zone is only rebuilt if the zone file does not exist or its serial has changed.
      */
-    private static final Map<DNSZone,Long> zoneSerials=new HashMap<DNSZone,Long>();
+    private static final Map<DnsZone,Long> zoneSerials=new HashMap<DnsZone,Long>();
 
     private static final Object rebuildLock=new Object();
     protected boolean doRebuild() {
         try {
-            AOServConnector connector=AOServDaemon.getConnector();
+            AOServConnector<?,?> connector=AOServDaemon.getConnector();
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
             int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
             if(
-                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-                && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(rebuildLock) {
@@ -150,15 +140,13 @@ final public class DNSManager extends BuilderThread {
                  * Create the new /var/named files
                  */
                 // By getting the list first, we get a snap-shot of the data
-                List<DNSZone> zones=connector.getDnsZones().getRows();
-                for(DNSZone zone : zones) {
+                SortedSet<DnsZone> zones = new TreeSet<DnsZone>(connector.getDnsZones().getSet());
+                for(DnsZone zone : zones) {
                     long serial=zone.getSerial();
                     Long lastSerial=zoneSerials.get(zone);
                     String file=zone.getFile();
                     boolean skip;
-                    if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                        skip = false;
-                    } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                    if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                         // Skip the named.local file for CentOS 5
                         skip = "named.local".equals(file);
                     } else {
@@ -208,14 +196,8 @@ final public class DNSManager extends BuilderThread {
                 bout.reset();
                 ChainWriter out=new ChainWriter(bout);
                 try {
-                    out.print("options {\n");
-                    if(
-                        osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-                    ) {
-                        out.print("\tpid-file \"/var/run/named/named.pid\";\n"
-                                + "\tquery-source address * port 53;\n");
-                    }
-                    out.print("\tdirectory \"").print(namedZoneDir.getPath()).print("\";\n");
+                    out.print("options {\n"
+                            + "\tdirectory \"").print(namedZoneDir.getPath()).print("\";\n");
                     if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                         out.print("\tlisten-on-v6 port 53 { ::1; };\n"
                                 + "\tdump-file \"/var/named/data/cache_dump.db\";\n"
@@ -230,24 +212,19 @@ final public class DNSManager extends BuilderThread {
                             + "\talso-notify { 216.218.130.2; 216.218.131.2; 216.218.132.2; };\n"
                             + "\tallow-query { " + ACL + " };\n"
                             + "\tallow-recursion { " + ACL + " };\n");
-                    Map<Integer,Set<String>> alreadyAddedIPs = new HashMap<Integer,Set<String>>();
+                    Map<NetPort,Set<InetAddress>> alreadyAddedIPs = new HashMap<NetPort,Set<InetAddress>>();
                     for(NetBind nb : AOServDaemon.getThisAOServer().getServer().getNetBinds(connector.getProtocols().get(Protocol.DNS))) {
-                        int port = nb.getPort().getPort();
-                        String ip = nb.getIPAddress().getIPAddress();
-                        Set<String> ips = alreadyAddedIPs.get(port);
-                        if(ips==null) alreadyAddedIPs.put(port, ips = new HashSet<String>());
+                        NetPort port = nb.getPort();
+                        InetAddress ip = nb.getIpAddress().getIpAddress();
+                        Set<InetAddress> ips = alreadyAddedIPs.get(port);
+                        if(ips==null) alreadyAddedIPs.put(port, ips = new HashSet<InetAddress>());
                         if(!ips.contains(ip)) {
                             out.print("\tlisten-on port ").print(port).print(" { ").print(ip).print("; };\n");
                             ips.add(ip);
                         }
                     }
                     out.print("};\n");
-                    if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                        out.print("zone \".\" IN {\n"
-                                + "\ttype hint;\n"
-                                + "\tfile \"named.ca\";\n"
-                                + "};\n");
-                    } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                    if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                         out.print("logging {\n"
                                 + "\tchannel default_debug {\n"
                                 + "\t\tfile \"data/named.run\";\n"
@@ -256,12 +233,10 @@ final public class DNSManager extends BuilderThread {
                                 + "};\n"
                                 + "include \"/etc/named.rfc1912.zones\";\n");
                     } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-                    for(DNSZone zone : zones) {
+                    for(DnsZone zone : zones) {
                         String file = zone.getFile();
                         boolean skip;
-                        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                            skip = false;
-                        } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                        if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                             // Skip the named.local file for CentOS 5
                             skip = "named.local".equals(file);
                         } else {
@@ -277,13 +252,6 @@ final public class DNSManager extends BuilderThread {
                                     + "};\n");
                         }
                     }
-                    if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                        // Print the key
-                        out.print("key \"key\" {\n"
-                                  + "\talgorithm hmac-md5;\n"
-                                  + "\tsecret \"JvWjWXkcPvOzMcDdFt0wtEbLfhwOQVzXviyeaZoEjZCdWpNXaOHRzQYNmcij\";\n"
-                                  + "};\n");
-                    }
                 } finally {
                     out.flush();
                     out.close();
@@ -292,12 +260,9 @@ final public class DNSManager extends BuilderThread {
                 if(!confFile.getStat().exists() || !confFile.contentEquals(newContents)) {
                     needsRestart=true;
                     OutputStream newOut;
-                    if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                        newOut = newConfFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true);
-                    } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-                        LinuxServerGroup lsg = thisAOServer.getLinuxServerGroup(LinuxGroup.NAMED);
-                        if(lsg==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.NAMED+" on "+thisAOServer.getHostname());
-                        newOut = newConfFile.getSecureOutputStream(UnixFile.ROOT_UID, lsg.getGID().getID(), 0640, true);
+                    if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                        LinuxGroup lg = thisAOServer.getLinuxGroup(LinuxGroup.NAMED);
+                        newOut = newConfFile.getSecureOutputStream(UnixFile.ROOT_UID, lg.getGid().getId(), 0640, true);
                     } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                     try {
                         newOut.write(newContents);
@@ -306,110 +271,6 @@ final public class DNSManager extends BuilderThread {
                         newOut.close();
                     }
                     newConfFile.renameTo(confFile);
-                }
-
-                if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-                    /*
-                     * Write the new root cache file.
-                     */
-                    UnixFile newRoot=new UnixFile(namedZoneDir, NEW_MANDRIVA_ROOT_CACHE, false);
-                    out=new ChainWriter(
-                        newRoot.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)
-                    );
-                    try {
-                        out.print("; Use \"dig @A.ROOT-SERVERS.NET . ns\" to update this file if it's outdated.\n"
-                                + ";       This file holds the information on root name servers needed to\n"
-                                + ";       initialize cache of Internet domain name servers\n"
-                                + ";       (e.g. reference this file in the \"cache  .  <file>\"\n"
-                                + ";       configuration file of BIND domain name servers).\n"
-                                + ";\n"
-                                + ";       This file is made available by InterNIC\n"
-                                + ";       under anonymous FTP as\n"
-                                + ";           file                /domain/named.root\n"
-                                + ";           on server           FTP.INTERNIC.NET\n"
-                                + ";       -OR-                    RS.INTERNIC.NET\n"
-                                + ";\n"
-                                + ";       last update:    Jan 29, 2004\n"
-                                + ";       related version of root zone:   2004012900\n"
-                                + ";\n"
-                                + ";\n"
-                                + "; formerly NS.INTERNIC.NET\n"
-                                + ";\n"
-                                + ".                        3600000  IN  NS    A.ROOT-SERVERS.NET.\n"
-                                + "A.ROOT-SERVERS.NET.      3600000      A     198.41.0.4\n"
-                                + ";\n"
-                                + "; formerly NS1.ISI.EDU\n"
-                                + ";\n"
-                                + ".                        3600000      NS    B.ROOT-SERVERS.NET.\n"
-                                + "B.ROOT-SERVERS.NET.      3600000      A     192.228.79.201\n"
-                                + ";\n"
-                                + "; formerly C.PSI.NET\n"
-                                + ";\n"
-                                + ".                        3600000      NS    C.ROOT-SERVERS.NET.\n"
-                                + "C.ROOT-SERVERS.NET.      3600000      A     192.33.4.12\n"
-                                + ";\n"
-                                + "; formerly TERP.UMD.EDU\n"
-                                + ";\n"
-                                + ".                        3600000      NS    D.ROOT-SERVERS.NET.\n"
-                                + "D.ROOT-SERVERS.NET.      3600000      A     128.8.10.90\n"
-                                + ";\n"
-                                + "; formerly NS.NASA.GOV\n"
-                                + ";\n"
-                                + ".                        3600000      NS    E.ROOT-SERVERS.NET.\n"
-                                + "E.ROOT-SERVERS.NET.      3600000      A     192.203.230.10\n"
-                                + ";\n"
-                                + "; formerly NS.ISC.ORG\n"
-                                + ";\n"
-                                + ".                        3600000      NS    F.ROOT-SERVERS.NET.\n"
-                                + "F.ROOT-SERVERS.NET.      3600000      A     192.5.5.241\n"
-                                + ";\n"
-                                + "; formerly NS.NIC.DDN.MIL\n"
-                                + ";\n"
-                                + ".                        3600000      NS    G.ROOT-SERVERS.NET.\n"
-                                + "G.ROOT-SERVERS.NET.      3600000      A     192.112.36.4\n"
-                                + ";\n"
-                                + "; formerly AOS.ARL.ARMY.MIL\n"
-                                + ";\n"
-                                + ".                        3600000      NS    H.ROOT-SERVERS.NET.\n"
-                                + "H.ROOT-SERVERS.NET.      3600000      A     128.63.2.53\n"
-                                + ";\n"
-                                + "; formerly NIC.NORDU.NET\n"
-                                + ";\n"
-                                + ".                        3600000      NS    I.ROOT-SERVERS.NET.\n"
-                                + "I.ROOT-SERVERS.NET.      3600000      A     192.36.148.17\n"
-                                + ";\n"
-                                + "; operated by VeriSign, Inc.\n"
-                                + ";\n"
-                                + ".                        3600000      NS    J.ROOT-SERVERS.NET.\n"
-                                + "J.ROOT-SERVERS.NET.      3600000      A     192.58.128.30\n"
-                                + ";\n"
-                                + "; operated by RIPE NCC\n"
-                                + ";\n"
-                                + ".                        3600000      NS    K.ROOT-SERVERS.NET.\n"
-                                + "K.ROOT-SERVERS.NET.      3600000      A     193.0.14.129\n"
-                                + ";\n"
-                                + "; operated by ICANN\n"
-                                + ";\n"
-                                + ".                        3600000      NS    L.ROOT-SERVERS.NET.\n"
-                                + "L.ROOT-SERVERS.NET.      3600000      A     198.32.64.12\n"
-                                + ";\n"
-                                + "; operated by WIDE\n"
-                                + ";\n"
-                                + ".                        3600000      NS    M.ROOT-SERVERS.NET.\n"
-                                + "M.ROOT-SERVERS.NET.      3600000      A     202.12.27.33\n"
-                                + "; End of File\n"
-                        );
-                    } finally {
-                        out.flush();
-                        out.close();
-                    }
-                    UnixFile rootCache=new UnixFile(namedZoneDir, MANDRIVA_ROOT_CACHE, false);
-                    if(rootCache.getStat().exists() && newRoot.contentEquals(rootCache)) {
-                        newRoot.delete();
-                    } else {
-                        needsRestart=true;
-                        newRoot.renameTo(rootCache);
-                    }
                 }
 
                 /*
@@ -436,7 +297,6 @@ final public class DNSManager extends BuilderThread {
     private static final Object restartLock=new Object();
     private static void restart() throws IOException, SQLException {
         Protocol dns = AOServDaemon.getConnector().getProtocols().get(Protocol.DNS);
-        if(dns==null) throw new SQLException("Unable to find Protocol: "+Protocol.DNS);
         if(!AOServDaemon.getThisAOServer().getServer().getNetBinds(dns).isEmpty()) {
             synchronized(restartLock) {
                 AOServDaemon.exec(restartCommand);
@@ -447,10 +307,7 @@ final public class DNSManager extends BuilderThread {
     public static void start() throws IOException, SQLException {
         AOServer thisAOServer=AOServDaemon.getThisAOServer();
         int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
-        Protocol dns = AOServDaemon.getConnector().getProtocols().get(Protocol.DNS);
-        if(dns==null) throw new SQLException("Unable to find Protocol: "+Protocol.DNS);
-        List<NetBind> netBinds = AOServDaemon.getThisAOServer().getServer().getNetBinds(dns);
-
+        IndexedSet<NetBind> netBinds = AOServDaemon.getThisAOServer().getServer().getNetBinds(AOServDaemon.getConnector().getProtocols().get(Protocol.DNS));
         synchronized(System.out) {
             if(
                 // Nothing is done for these operating systems
@@ -463,11 +320,11 @@ final public class DNSManager extends BuilderThread {
                 && !netBinds.isEmpty()
             ) {
                 System.out.print("Starting DNSManager: ");
-                AOServConnector conn=AOServDaemon.getConnector();
+                AOServConnector<?,?> conn=AOServDaemon.getConnector();
                 dnsManager=new DNSManager();
-                conn.getDnsZones().addTableListener(dnsManager, 0);
-                conn.getDnsRecords().addTableListener(dnsManager, 0);
-                conn.getNetBinds().addTableListener(dnsManager, 0);
+                conn.getDnsZones().getTable().addTableListener(dnsManager, 0);
+                conn.getDnsRecords().getTable().addTableListener(dnsManager, 0);
+                conn.getNetBinds().getTable().addTableListener(dnsManager, 0);
                 System.out.println("Done");
             }
         }
