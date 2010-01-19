@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
 
@@ -91,7 +92,7 @@ final public class FTPManager extends BuilderThread {
      * Rebuilds a vsftpd installation.
      */
     private static void doRebuildVsFtpd() throws IOException {
-        AOServConnector conn=AOServDaemon.getConnector();
+        AOServConnector<?,?> conn=AOServDaemon.getConnector();
         AOServer thisAOServer=AOServDaemon.getThisAOServer();
         int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
         if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
@@ -183,7 +184,7 @@ final public class FTPManager extends BuilderThread {
                 }
                 
                 // Find all the FTP binds
-                List<NetBind> binds = thisAOServer.getServer().getNetBinds(conn.getProtocols().get(Protocol.FTP));
+                SortedSet<NetBind> binds = new TreeSet<NetBind>(thisAOServer.getServer().getNetBinds(conn.getProtocols().get(Protocol.FTP)));
 
                 // Keep a list of the files that were verified
                 Set<String> existing = new HashSet<String>(binds.size()*4/3+1);
@@ -193,7 +194,7 @@ final public class FTPManager extends BuilderThread {
                     NetTcpRedirect redirect=bind.getNetTcpRedirect();
                     PrivateFtpServer privateServer=bind.getPrivateFtpServer();
                     if(redirect!=null) {
-                        if(privateServer!=null) throw new AssertionError("NetBind allocated as both NetTcpRedirect and PrivateFTPServer: "+bind.getPkey());
+                        if(privateServer!=null) throw new AssertionError("NetBind allocated as both NetTcpRedirect and PrivateFtpServer: "+bind.getPkey());
                     } else {
                         String netProtocol=bind.getNetProtocol().getProtocol();
                         if(!netProtocol.equals(NetProtocol.TCP)) throw new AssertionError("vsftpd may only be configured for TCP service:  (net_binds.pkey="+bind.getPkey()+").net_protocol="+netProtocol);
@@ -231,7 +232,7 @@ final public class FTPManager extends BuilderThread {
                                     + "# STRING OPTIONS\n"
                                     + "chroot_list_file=/etc/vsftpd/chroot_list\n");
                             if(privateServer!=null) {
-                                out.print("ftp_username=").print(privateServer.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername()).print('\n');
+                                out.print("ftp_username=").print(privateServer.getLinuxAccountGroup().getLinuxAccount().getUsername().getUsername()).print('\n');
                             }
                             out
                                 .print("ftpd_banner=FTP Server [")
