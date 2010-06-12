@@ -579,6 +579,7 @@ final public class ServerManager {
                         new String[] {
                             "/usr/sbin/lsof",
                             "-n",
+                            "-P",
                             "-a",
                             "-p",
                             Integer.toString(pid),

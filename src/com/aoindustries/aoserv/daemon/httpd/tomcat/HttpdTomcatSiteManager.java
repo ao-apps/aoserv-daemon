@@ -224,7 +224,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         } else if(!siteDirectoryStat.isDirectory()) throw new IOException("Not a directory: "+siteDirectory);
 
         // New if still owned by root
-        final boolean isNew = siteDirectoryStat.getUID() == UnixFile.ROOT_UID;
+        final boolean isNew = siteDirectoryStat.getUid() == UnixFile.ROOT_UID;
 
         // Build directory contents if is new or incomplete
         boolean needsRestart = false;
@@ -262,7 +262,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         // Complete, set permission and ownership
         siteDirectory.getStat(siteDirectoryStat);
         if(siteDirectoryStat.getMode()!=0770) siteDirectory.setMode(0770);
-        if(siteDirectoryStat.getUID()!=apacheUid || siteDirectoryStat.getGID()!=gid) siteDirectory.chown(apacheUid, gid);
+        if(siteDirectoryStat.getUid()!=apacheUid || siteDirectoryStat.getGid()!=gid) siteDirectory.chown(apacheUid, gid);
 
         // Enable/disables now that all is setup (including proper permissions)
         enableDisable(siteDirectory);

@@ -90,8 +90,8 @@ final public class MajordomoManager extends BuilderThread {
                     UnixFile listsUF=new UnixFile(msUF, "lists", false);
                     if(
                         !msUFStat.exists()
-                        || msUFStat.getUID()==UnixFile.ROOT_UID
-                        || msUFStat.getGID()==UnixFile.ROOT_GID
+                        || msUFStat.getUid()==UnixFile.ROOT_UID
+                        || msUFStat.getGid()==UnixFile.ROOT_GID
                     ) {
                         // Add a new install
                         String sharedPath;

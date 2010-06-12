@@ -104,7 +104,7 @@ public class FileUtils {
             uf.getStat(ufStat);
         } else if(!ufStat.isDirectory()) throw new IOException("File exists and is not a directory: "+uf.getPath());
         if(ufStat.getMode()!=mode) uf.setMode(mode);
-        if(ufStat.getUID()!=uid || ufStat.getGID()!=gid) uf.chown(uid, gid);
+        if(ufStat.getUid()!=uid || ufStat.getGid()!=gid) uf.chown(uid, gid);
     }
 
     /**
@@ -128,8 +128,8 @@ public class FileUtils {
                     newUF=UnixFile.mktemp(uf.getPath()+'.', false);
                     OutputStream out=new BufferedOutputStream(
                         newUF.getSecureOutputStream(
-                            tempStat.getUID(),
-                            tempStat.getGID(),
+                            tempStat.getUid(),
+                            tempStat.getGid(),
                             tempStat.getMode(),
                             true
                         )

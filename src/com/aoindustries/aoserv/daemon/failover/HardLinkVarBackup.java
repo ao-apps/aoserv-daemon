@@ -201,8 +201,8 @@ final public class HardLinkVarBackup {
                                     if(size==-1) throw new IOException("Size unknown: "+uf);
                                     totalNumberFileBytes += size;
                                     long modifyTime = ufStat.getModifyTime();
-                                    int uid = ufStat.getUID();
-                                    int gid = ufStat.getGID();
+                                    int uid = ufStat.getUid();
+                                    int gid = ufStat.getGid();
 
                                     // Look for regular file up the list to link to
                                     for(int d=(c-1);d>=0;d--) {
@@ -231,8 +231,8 @@ final public class HardLinkVarBackup {
                                                     // Have matching permissions
                                                     && mode==otherUFStat.getMode()
                                                     // Have matching ownership
-                                                    && uid==otherUFStat.getUID()
-                                                    && gid==otherUFStat.getGID()
+                                                    && uid==otherUFStat.getUid()
+                                                    && gid==otherUFStat.getGid()
                                                 ) {
                                                     LinkKey linkKey = new LinkKey(device, inode, otherUFStat.getDevice(), otherUFStat.getInode());
                                                     // Has already been linked for this path

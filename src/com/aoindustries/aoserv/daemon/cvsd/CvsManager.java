@@ -103,7 +103,7 @@ final public class CvsManager extends BuilderThread {
                     LinuxAccount la=lag.getLinuxAccount();
                     int uid=la.getUid().getId();
                     int gid=lag.getLinuxGroup().getGid().getId();
-                    if(uid!=cvsStat.getUID() || gid!=cvsStat.getGID()) {
+                    if(uid!=cvsStat.getUid() || gid!=cvsStat.getGid()) {
                         cvsUF.chown(uid, gid);
                         cvsUF.getStat(cvsStat);
                     }

@@ -84,7 +84,7 @@ public class UpgradeSymlink {
             }
         }
         // Check ownership
-        if(linkStat.exists() && (linkStat.getUID()!=uid || linkStat.getGID()!=gid)) link.chown(uid, gid);
+        if(linkStat.exists() && (linkStat.getUid()!=uid || linkStat.getGid()!=gid)) link.chown(uid, gid);
         return needsRestart;
     }
 }

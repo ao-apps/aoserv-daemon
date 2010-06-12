@@ -662,10 +662,10 @@ final public class FailoverFileReplicationManager {
                                 directoryUFRelativePaths.push(relativePath);
                                 directoryModifyTimes.push(Long.valueOf(modifyTime));
                                 directoryContents.push(new HashSet<String>());
-                            } else if(UnixFile.isFIFO(mode)) {
+                            } else if(UnixFile.isFifo(mode)) {
                                 if(
                                     ufStat.exists()
-                                    && !ufStat.isFIFO()
+                                    && !ufStat.isFifo()
                                 ) {
                                     if(isTrace) logger.finer("Deleting to create FIFO: "+uf.getPath());
                                     // Update caches
@@ -683,7 +683,7 @@ final public class FailoverFileReplicationManager {
                                         // Only modified if not in last backup set, too
                                         if(
                                             !linkToUFStat.exists()
-                                            || !linkToUFStat.isFIFO()
+                                            || !linkToUFStat.isFifo()
                                         ) {
                                             result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
                                             updated(retention, postPassChecklist, relativePath);
@@ -1225,9 +1225,9 @@ final public class FailoverFileReplicationManager {
 
                             // Update the ownership
                             if(
-                                effectiveUFStat.getUID()!=uid
+                                effectiveUFStat.getUid()!=uid
                                 // TODO: Store GID in xattr (if not 0)
-                                || effectiveUFStat.getGID()!=(quota_gid==-1 ? gid : quota_gid)
+                                || effectiveUFStat.getGid()!=(quota_gid==-1 ? gid : quota_gid)
                             ) {
                                 if(retention!=1) copyIfHardLinked(effectiveUF, effectiveUFStat);
                                 // TODO: Store GID in xattr (if not 0)
@@ -1238,9 +1238,9 @@ final public class FailoverFileReplicationManager {
                                         // Only modified if not in last backup set, too
                                         if(
                                             !linkToUFStat.exists()
-                                            || linkToUFStat.getUID()!=uid
+                                            || linkToUFStat.getUid()!=uid
                                             // TODO: Store GID in xattr
-                                            || linkToUFStat.getGID()!=(quota_gid==-1 ? gid : quota_gid)
+                                            || linkToUFStat.getGid()!=(quota_gid==-1 ? gid : quota_gid)
                                         ) {
                                             result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
                                             updated(retention, postPassChecklist, relativePath);
@@ -2140,7 +2140,7 @@ final public class FailoverFileReplicationManager {
             if(logger.isLoggable(Level.FINER)) logger.finer("Copying file due to hard link: "+uf);
             UnixFile temp = UnixFile.mktemp(uf.getPath()+'.', false);
             uf.copyTo(temp, true);
-            temp.chown(ufStat.getUID(), ufStat.getGID());
+            temp.chown(ufStat.getUid(), ufStat.getGid());
             temp.setMode(ufStat.getMode());
             long atime = ufStat.getAccessTime();
             long mtime = ufStat.getModifyTime();

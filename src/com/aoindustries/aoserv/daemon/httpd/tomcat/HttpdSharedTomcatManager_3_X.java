@@ -65,7 +65,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
         final UnixFile workUF = new UnixFile(sharedTomcatDirectory, "work", false);
 
         boolean needRestart=false;
-        if (!sharedTomcatDirectory.getStat(tempStat).exists() || sharedTomcatDirectory.getStat(tempStat).getUID() == UnixFile.ROOT_GID) {
+        if (!sharedTomcatDirectory.getStat(tempStat).exists() || sharedTomcatDirectory.getStat(tempStat).getUid() == UnixFile.ROOT_GID) {
 
             // Create the /wwwgroup/name/...
 

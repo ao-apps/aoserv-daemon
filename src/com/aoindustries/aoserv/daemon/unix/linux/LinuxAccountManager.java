@@ -307,8 +307,8 @@ public class LinuxAccountManager extends BuilderThread {
                     if(
                         !isWWWAndUser
                         && (
-                            unixFileStat.getUID()==UnixFile.ROOT_UID
-                            || unixFileStat.getGID()==UnixFile.ROOT_GID
+                            unixFileStat.getUid()==UnixFile.ROOT_UID
+                            || unixFileStat.getGid()==UnixFile.ROOT_GID
                         )
                     ) {
                         unixFile.chown(uid, gid);

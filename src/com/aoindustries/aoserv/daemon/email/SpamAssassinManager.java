@@ -11,6 +11,8 @@ import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.client.LinuxGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Server;
+import com.aoindustries.aoserv.client.validator.UserId;
+import com.aoindustries.aoserv.client.validator.ValidationException;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -38,6 +40,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
@@ -218,8 +221,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
         LinuxAccount cyrus = aoServer.getLinuxAccount(LinuxAccount.CYRUS);
         int cyrusUid = cyrus.getUid().getId();
         LinuxGroup mail = aoServer.getLinuxGroup(LinuxGroup.MAIL);
-        int mailGid = mail.getGID().getID();
-        if(incomingStat.getUID()!=cyrusUid || incomingStat.getGID()!=mailGid) {
+        int mailGid = mail.getGid().getId();
+        if(incomingStat.getUid()!=cyrusUid || incomingStat.getGid()!=mailGid) {
             incomingDirectory.chown(cyrusUid, mailGid);
             incomingDirectory.getStat(incomingStat);
         }
@@ -236,7 +239,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
             if(incomingDirectoryList==null || incomingDirectoryList.length==0) break;
 
             // Find the username that has the oldest timestamp that is also at least one minute old or one minute in the future
-            LinuxServerAccount oldestLsa = null;
+            LinuxAccount oldestLsa = null;
             Map<UnixFile,Long> oldestReadyMap = null;
             long oldestTimestamp = -1;
 
@@ -249,16 +252,23 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                 File userDirectoryFile = userDirectoryUf.getFile();
 
                 // Each filename should be a username
-                LinuxServerAccount lsa = aoServer.getLinuxServerAccount(incomingDirectoryFilename);
+                LinuxAccount lsa;
+                try {
+                    lsa = aoServer.getLinuxAccount(UserId.valueOf(incomingDirectoryFilename));
+                } catch(ValidationException err) {
+                    lsa = null;
+                } catch(NoSuchElementException err) {
+                    lsa = null;
+                }
                 if(lsa==null) {
                     // user not found, backup and then remove
                     LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectoryFilename="+incomingDirectoryFilename, new IOException("User not found, deleting"));
                     deleteFileList.add(userDirectoryFile);
-                } else if(!lsa.getLinuxAccount().getType().isEmail()) {
+                } else if(!lsa.getType().isEmail()) {
                     // user not email type, backup and then remove
                     LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectoryFilename="+incomingDirectoryFilename, new IOException("User not email type, deleting"));
                     deleteFileList.add(userDirectoryFile);
-                } else if(!lsa.getHome().startsWith("/home/")) {
+                } else if(!lsa.getHome().getPath().startsWith("/home/")) {
                     // user doesn't have home directory in /home/, backup and then remove
                     LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectoryFilename="+incomingDirectoryFilename, new IOException("User home not in /home/, deleting"));
                     deleteFileList.add(userDirectoryFile);
@@ -270,8 +280,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                         userDirectoryUf.getStat(userDirectoryUfStat);
                     }
                     // Set ownership, should by username and group mail
-                    int lsaUid = lsa.getUID().getID();
-                    if(userDirectoryUfStat.getUID()!=lsaUid || userDirectoryUfStat.getGID()!=mailGid) {
+                    int lsaUid = lsa.getUid().getId();
+                    if(userDirectoryUfStat.getUid()!=lsaUid || userDirectoryUfStat.getGid()!=mailGid) {
                         userDirectoryUf.chown(lsaUid, mailGid);
                         userDirectoryUf.getStat(userDirectoryUfStat);
                     }

@@ -78,7 +78,7 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
         UnixFile innerWorkUF = new UnixFile(workUF, "Catalina", false);
 
         boolean needRestart=false;
-        if (!sharedTomcatDirectory.getStat(tempStat).exists() || sharedTomcatDirectory.getStat(tempStat).getUID() == UnixFile.ROOT_GID) {
+        if (!sharedTomcatDirectory.getStat(tempStat).exists() || sharedTomcatDirectory.getStat(tempStat).getUid() == UnixFile.ROOT_GID) {
 
             // Create the /wwwgroup/name/...
 

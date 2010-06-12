@@ -40,7 +40,7 @@ public class LinuxProcess extends UnixProcess {
      * FileNotFoundException is thrown.
      */
     public LinuxID getGID() throws IOException, ValidationException {
-        return LinuxID.valueOf(new UnixFile(getProc().getPath()).getStat().getGID());
+        return LinuxID.valueOf(new UnixFile(getProc().getPath()).getStat().getGid());
     }
 
     /**
@@ -69,7 +69,7 @@ public class LinuxProcess extends UnixProcess {
      * FileNotFoundException is thrown.
      */
     public LinuxID getUID() throws IOException, ValidationException {
-        return LinuxID.valueOf(new UnixFile(getProc().getPath()).getStat().getUID());
+        return LinuxID.valueOf(new UnixFile(getProc().getPath()).getStat().getUid());
     }
 
     /**

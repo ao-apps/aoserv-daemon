@@ -54,7 +54,7 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
         } else if(!tempStat.isDirectory()) throw new IOException("Not a directory: "+siteDirectory);
 
         // New if still owned by root
-        final boolean isNew = tempStat.getUID() == UnixFile.ROOT_UID;
+        final boolean isNew = tempStat.getUid() == UnixFile.ROOT_UID;
 
         // conf/
         if(isNew || isAuto) FileUtils.mkdir(new UnixFile(siteDirectory, "conf", false), 0775, uid, gid);
@@ -67,7 +67,7 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
         // Complete, set permission and ownership
         siteDirectory.getStat(tempStat);
         if(tempStat.getMode()!=0770) siteDirectory.setMode(0770);
-        if(tempStat.getUID()!=apacheUid || tempStat.getGID()!=gid) siteDirectory.chown(apacheUid, gid);
+        if(tempStat.getUid()!=apacheUid || tempStat.getGid()!=gid) siteDirectory.chown(apacheUid, gid);
     }
 
     /**

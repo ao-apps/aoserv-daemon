@@ -339,8 +339,8 @@ final public class AWStatsManager extends BuilderThread {
                     } else {
                         if(tempStat.getMode()!=0640) configFile.setMode(0640);
                         if(
-                            tempStat.getUID()!=UnixFile.ROOT_UID
-                            || tempStat.getGID()!=awstatsGID
+                            tempStat.getUid()!=UnixFile.ROOT_UID
+                            || tempStat.getGid()!=awstatsGID
                         ) configFile.chown(UnixFile.ROOT_UID, awstatsGID);
                     }
 
@@ -351,8 +351,8 @@ final public class AWStatsManager extends BuilderThread {
                     else {
                         if(tempStat.getMode()!=0750) hostDirectory.setMode(0750);
                         if(
-                            tempStat.getUID()!=UnixFile.ROOT_UID
-                            || tempStat.getGID()!=awstatsGID
+                            tempStat.getUid()!=UnixFile.ROOT_UID
+                            || tempStat.getGid()!=awstatsGID
                         ) hostDirectory.chown(UnixFile.ROOT_UID, awstatsGID);
                     }
 
@@ -363,8 +363,8 @@ final public class AWStatsManager extends BuilderThread {
                     else {
                         if(tempStat.getMode()!=0750) dataDirectory.setMode(0750);
                         if(
-                            tempStat.getUID()!=awstatsUID
-                            || tempStat.getGID()!=awstatsGID
+                            tempStat.getUid()!=awstatsUID
+                            || tempStat.getGid()!=awstatsGID
                         ) dataDirectory.chown(awstatsUID, awstatsGID);
                     }
 
@@ -375,8 +375,8 @@ final public class AWStatsManager extends BuilderThread {
                     else {
                         if(tempStat.getMode()==0640) dnscachelastupdate.setMode(0640);
                         if(
-                            tempStat.getUID()!=awstatsUID
-                            || tempStat.getGID()!=awstatsGID
+                            tempStat.getUid()!=awstatsUID
+                            || tempStat.getGid()!=awstatsGID
                         ) dnscachelastupdate.chown(awstatsUID, awstatsGID);
                     }
 
@@ -417,8 +417,8 @@ final public class AWStatsManager extends BuilderThread {
                     } else {
                         if(tempStat.getMode()!=0750) logviewFile.setMode(0750);
                         if(
-                            tempStat.getUID()!=UnixFile.ROOT_UID
-                            || tempStat.getGID()!=awstatsGID
+                            tempStat.getUid()!=UnixFile.ROOT_UID
+                            || tempStat.getGid()!=awstatsGID
                         ) logviewFile.chown(UnixFile.ROOT_UID, awstatsGID);
                     }
 
@@ -478,8 +478,8 @@ final public class AWStatsManager extends BuilderThread {
                     } else {
                         if(tempStat.getMode()!=0750) runascgiFile.setMode(0750);
                         if(
-                            tempStat.getUID()!=UnixFile.ROOT_UID
-                            || tempStat.getGID()!=awstatsGID
+                            tempStat.getUid()!=UnixFile.ROOT_UID
+                            || tempStat.getGid()!=awstatsGID
                         ) runascgiFile.chown(UnixFile.ROOT_UID, awstatsGID);
                     }
 
@@ -509,8 +509,8 @@ final public class AWStatsManager extends BuilderThread {
                     } else {
                         if(tempStat.getMode()!=0750) updateFile.setMode(0750);
                         if(
-                            tempStat.getUID()!=UnixFile.ROOT_UID
-                            || tempStat.getGID()!=awstatsGID
+                            tempStat.getUid()!=UnixFile.ROOT_UID
+                            || tempStat.getGid()!=awstatsGID
                         ) updateFile.chown(UnixFile.ROOT_UID, awstatsGID);
                     }
                 }

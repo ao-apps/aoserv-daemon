@@ -181,7 +181,7 @@ public abstract class HttpdSiteManager {
         UnixFile daemonDirectory = new UnixFile(siteDirectory, "daemon", false);
         daemonDirectory.getStat(tempStat);
         if(tempStat.exists()) {
-            int daemonUid=tempStat.getUID();
+            int daemonUid=tempStat.getUid();
             LinuxServerAccount daemonLsa = AOServDaemon.getThisAOServer().getLinuxServerAccount(daemonUid);
             // If the account doesn't exist or is disabled, the process killer will kill any processes
             if(daemonLsa!=null && !daemonLsa.isDisabled()) {
@@ -263,7 +263,7 @@ public abstract class HttpdSiteManager {
      * @return  <code>null</code> if successful or a user-readable reason if not success.
      */
     public static String stopHttpdSite(int sitePKey) throws IOException {
-        AOServConnector conn = AOServDaemon.getConnector();
+        AOServConnector<?,?> conn = AOServDaemon.getConnector();
 
         HttpdSite httpdSite=conn.getHttpdSites().get(sitePKey);
         AOServer thisAOServer = AOServDaemon.getThisAOServer();
@@ -502,7 +502,7 @@ public abstract class HttpdSiteManager {
             );
             // Make sure permissions correct
             Stat phpStat = phpFile.getStat();
-            if(phpStat.getUID()!=uid || phpStat.getGID()!=gid) phpFile.chown(uid, gid);
+            if(phpStat.getUid()!=uid || phpStat.getGid()!=gid) phpFile.chown(uid, gid);
             if(phpStat.getMode()!=mode) phpFile.setMode(mode);
         } else {
             if(phpFile.getStat().exists()) phpFile.delete();

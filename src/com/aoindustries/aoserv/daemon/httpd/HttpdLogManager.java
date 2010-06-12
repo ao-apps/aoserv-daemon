@@ -172,7 +172,7 @@ class HttpdLogManager {
                 logDirectory.mkdir();
                 logDirectory.getStat(tempStat);
             }
-            if(tempStat.getUID()!=awstatsUID || tempStat.getGID()!=lsgGID) logDirectory.chown(awstatsUID, lsgGID);
+            if(tempStat.getUid()!=awstatsUID || tempStat.getGid()!=lsgGID) logDirectory.chown(awstatsUID, lsgGID);
             if(tempStat.getMode()!=0750) logDirectory.setMode(0750);
 
             // Remove from list so it will not be deleted
@@ -199,7 +199,7 @@ class HttpdLogManager {
                     }
                 }
                 if(tempStat.getMode()!=0640) accessLogFile.setMode(0640);
-                if(tempStat.getUID()!=awstatsUID || tempStat.getGID()!=lsgGID) accessLogFile.chown(awstatsUID, lsgGID);
+                if(tempStat.getUid()!=awstatsUID || tempStat.getGid()!=lsgGID) accessLogFile.chown(awstatsUID, lsgGID);
                 
                 // error_log
                 String errorLog = hsb.getErrorLog();
@@ -219,7 +219,7 @@ class HttpdLogManager {
                     }
                 }
                 if(tempStat.getMode()!=0640) errorLogFile.setMode(0640);
-                if(tempStat.getUID()!=awstatsUID || tempStat.getGID()!=lsgGID) errorLogFile.chown(awstatsUID, lsgGID);
+                if(tempStat.getUid()!=awstatsUID || tempStat.getGid()!=lsgGID) errorLogFile.chown(awstatsUID, lsgGID);
             }
         }
 

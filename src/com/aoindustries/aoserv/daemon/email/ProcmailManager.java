@@ -87,7 +87,7 @@ public final class ProcmailManager extends BuilderThread {
                 // Setting here because RPM updates will change permissions
                 if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                     Stat deliverStat = cyrusDeliverCentOs.getStat();
-                    if(deliverStat.getUID()!=UnixFile.ROOT_UID || deliverStat.getGID()!=mailGid) {
+                    if(deliverStat.getUid()!=UnixFile.ROOT_UID || deliverStat.getGid()!=mailGid) {
                         cyrusDeliverCentOs.chown(UnixFile.ROOT_UID, mailGid);
                         cyrusDeliverCentOs.getStat(deliverStat);
                     }
@@ -96,7 +96,7 @@ public final class ProcmailManager extends BuilderThread {
                     }
                 } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                     Stat deliverStat = cyrusDeliverRedHat.getStat();
-                    if(deliverStat.getUID()!=UnixFile.ROOT_UID || deliverStat.getGID()!=mailGid) {
+                    if(deliverStat.getUid()!=UnixFile.ROOT_UID || deliverStat.getGid()!=mailGid) {
                         cyrusDeliverRedHat.chown(UnixFile.ROOT_UID, mailGid);
                         cyrusDeliverRedHat.getStat(deliverStat);
                     }

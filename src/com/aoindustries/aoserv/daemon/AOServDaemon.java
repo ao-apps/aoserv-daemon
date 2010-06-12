@@ -114,7 +114,7 @@ final public class AOServDaemon {
             // Figure out the ownership
             UnixFile unixFile=new UnixFile(file.getPath());
             Stat stat = unixFile.getStat();
-            LinuxID uid=LinuxID.valueOf(stat.getUID());
+            LinuxID uid=LinuxID.valueOf(stat.getUid());
             if(uids.contains(uid)) {
                 if(!stat.isSymLink()) {
                     // Search any children files

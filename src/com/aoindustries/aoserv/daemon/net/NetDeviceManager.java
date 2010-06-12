@@ -788,7 +788,7 @@ final public class NetDeviceManager extends BuilderThread {
                 try {
                     socket.setKeepAlive(true);
                     socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
-                    //socket.setTcpNoDelay(true);
+                    socket.setTcpNoDelay(true);
                     socket.setSoTimeout(60000);
                     socket.bind(new InetSocketAddress(sourceIp, sourcePort));
                     socket.connect(new InetSocketAddress(connectIp, 25), 60*1000);
