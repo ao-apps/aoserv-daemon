@@ -60,7 +60,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
                 pool=new AOConnectionPool(
                     pd.getJdbcDriver(),
                     pd.getJdbcUrl(true),
-                    PostgresUser.POSTGRES,
+                    PostgresUser.POSTGRES.getId(),
                     AOServDaemonConfiguration.getPostgresPassword(),
                     AOServDaemonConfiguration.getPostgresConnections(),
                     AOServDaemonConfiguration.getPostgresMaxConnectionAge(),

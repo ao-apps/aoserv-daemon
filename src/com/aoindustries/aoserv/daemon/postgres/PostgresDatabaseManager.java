@@ -489,7 +489,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                             Class.forName(postgresDatabase.getJdbcDriver()).newInstance();
                             conn=DriverManager.getConnection(
                                 postgresDatabase.getJdbcUrl(true),
-                                PostgresUser.POSTGRES,
+                                PostgresUser.POSTGRES.getId(),
                                 AOServDaemonConfiguration.getPostgresPassword()
                             );
                         }
