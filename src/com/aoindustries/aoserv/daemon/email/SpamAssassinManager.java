@@ -1,16 +1,21 @@
-package com.aoindustries.aoserv.daemon.email;
-
 /*
- * Copyright 2005-2010 by AO Industries, Inc.,
+ * Copyright 2005-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.email;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.EmailInbox;
+import com.aoindustries.aoserv.client.EmailSpamAssassinIntegrationMode;
+import com.aoindustries.aoserv.client.IPAddress;
+import com.aoindustries.aoserv.client.IndexedSet;
 import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.client.LinuxGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Server;
+import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.client.validator.ValidationException;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -20,10 +25,12 @@ import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
+import com.aoindustries.cron.CronJobScheduleMode;
+import com.aoindustries.cron.MatcherSchedule;
+import com.aoindustries.cron.Schedule;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.util.sort.AutoSort;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -34,6 +41,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -109,6 +117,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
     private SpamAssassinManager() {
     }
 
+    @Override
     public void run() {
         long lastStartTime=-1;
         while(true) {
@@ -165,7 +174,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                 && spamAssassinManager==null
             ) {
                 System.out.print("Starting SpamAssassinManager: ");
-                AOServConnector<?,?> connector=AOServDaemon.getConnector();
+                AOServConnector connector=AOServDaemon.getConnector();
                 spamAssassinManager=new SpamAssassinManager();
                 connector.getLinuxAccounts().getTable().addTableListener(spamAssassinManager, 0);
                 connector.getIpAddresses().getTable().addTableListener(spamAssassinManager, 0);
@@ -240,6 +249,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 
             // Find the username that has the oldest timestamp that is also at least one minute old or one minute in the future
             LinuxAccount oldestLsa = null;
+            EmailInbox oldestInbox = null;
             Map<UnixFile,Long> oldestReadyMap = null;
             long oldestTimestamp = -1;
 
@@ -264,79 +274,83 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                     // user not found, backup and then remove
                     LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectoryFilename="+incomingDirectoryFilename, new IOException("User not found, deleting"));
                     deleteFileList.add(userDirectoryFile);
-                } else if(!lsa.getType().isEmail()) {
-                    // user not email type, backup and then remove
-                    LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectoryFilename="+incomingDirectoryFilename, new IOException("User not email type, deleting"));
-                    deleteFileList.add(userDirectoryFile);
-                } else if(!lsa.getHome().getPath().startsWith("/home/")) {
-                    // user doesn't have home directory in /home/, backup and then remove
-                    LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectoryFilename="+incomingDirectoryFilename, new IOException("User home not in /home/, deleting"));
-                    deleteFileList.add(userDirectoryFile);
                 } else {
-                    // Set permissions, should be 0770
-                    userDirectoryUf.getStat(userDirectoryUfStat);
-                    if(userDirectoryUfStat.getMode()!=0770) {
-                        userDirectoryUf.setMode(0770);
+                    EmailInbox inbox = lsa.getEmailInbox();
+                    if(inbox==null) {
+                        // user has no inbox
+                        LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectoryFilename="+incomingDirectoryFilename, new IOException("User not email type, deleting"));
+                        deleteFileList.add(userDirectoryFile);
+                    } else if(!lsa.getHome().toString().startsWith("/home/")) {
+                        // user doesn't have home directory in /home/, backup and then remove
+                        LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectoryFilename="+incomingDirectoryFilename, new IOException("User home not in /home/, deleting"));
+                        deleteFileList.add(userDirectoryFile);
+                    } else {
+                        // Set permissions, should be 0770
                         userDirectoryUf.getStat(userDirectoryUfStat);
-                    }
-                    // Set ownership, should by username and group mail
-                    int lsaUid = lsa.getUid().getId();
-                    if(userDirectoryUfStat.getUid()!=lsaUid || userDirectoryUfStat.getGid()!=mailGid) {
-                        userDirectoryUf.chown(lsaUid, mailGid);
-                        userDirectoryUf.getStat(userDirectoryUfStat);
-                    }
-                    // Check each filename, searching if this lsa has the oldest timestamp (older or newer than one minute)
-                    String[] userDirectoryList = userDirectoryUf.list();
-                    if(userDirectoryList!=null && userDirectoryList.length>0) {
-                        Map<UnixFile,Long> readyMap = new HashMap<UnixFile,Long>(userDirectoryList.length*4/3+1);
-                        for(String userFilename : userDirectoryList) {
-                            UnixFile userUf=new UnixFile(userDirectoryUf, userFilename, false);
-                            File userFile = userUf.getFile();
-                            if(userFilename.startsWith("ham_") || userFilename.startsWith("spam_")) {
-                                // Must be a regular file
-                                Stat userUfStat = userUf.getStat();
-                                if(userUfStat.isRegularFile()) {
-                                    int pos1 = userFilename.indexOf('_');
-                                    if(pos1==-1) throw new AssertionError("pos1==-1"); // This should not happen because of check against ham_ or spam_ above.
-                                    int pos2 = userFilename.indexOf('_', pos1+1);
-                                    if(pos2!=-1) {
-                                        try {
-                                            long timestamp = Long.parseLong(userFilename.substring(pos1+1, pos2)) * 1000;
-                                            if(
-                                                (timestamp-currentTime)>60000
-                                                || (currentTime-timestamp)>60000
-                                            ) {
-                                                if(isFilenameOk(userFilename)) {
-                                                    readyMap.put(userUf, timestamp);
-                                                    
-                                                    // Is the oldest?
-                                                    if(oldestLsa==null || timestamp < oldestTimestamp) {
-                                                        oldestLsa = lsa;
-                                                        oldestReadyMap = readyMap;
-                                                        oldestTimestamp = timestamp;
+                        if(userDirectoryUfStat.getMode()!=0770) {
+                            userDirectoryUf.setMode(0770);
+                            userDirectoryUf.getStat(userDirectoryUfStat);
+                        }
+                        // Set ownership, should by username and group mail
+                        int lsaUid = lsa.getUid().getId();
+                        if(userDirectoryUfStat.getUid()!=lsaUid || userDirectoryUfStat.getGid()!=mailGid) {
+                            userDirectoryUf.chown(lsaUid, mailGid);
+                            userDirectoryUf.getStat(userDirectoryUfStat);
+                        }
+                        // Check each filename, searching if this lsa has the oldest timestamp (older or newer than one minute)
+                        String[] userDirectoryList = userDirectoryUf.list();
+                        if(userDirectoryList!=null && userDirectoryList.length>0) {
+                            Map<UnixFile,Long> readyMap = new HashMap<UnixFile,Long>(userDirectoryList.length*4/3+1);
+                            for(String userFilename : userDirectoryList) {
+                                UnixFile userUf=new UnixFile(userDirectoryUf, userFilename, false);
+                                File userFile = userUf.getFile();
+                                if(userFilename.startsWith("ham_") || userFilename.startsWith("spam_")) {
+                                    // Must be a regular file
+                                    Stat userUfStat = userUf.getStat();
+                                    if(userUfStat.isRegularFile()) {
+                                        int pos1 = userFilename.indexOf('_');
+                                        if(pos1==-1) throw new AssertionError("pos1==-1"); // This should not happen because of check against ham_ or spam_ above.
+                                        int pos2 = userFilename.indexOf('_', pos1+1);
+                                        if(pos2!=-1) {
+                                            try {
+                                                long timestamp = Long.parseLong(userFilename.substring(pos1+1, pos2)) * 1000;
+                                                if(
+                                                    (timestamp-currentTime)>60000
+                                                    || (currentTime-timestamp)>60000
+                                                ) {
+                                                    if(isFilenameOk(userFilename)) {
+                                                        readyMap.put(userUf, timestamp);
+
+                                                        // Is the oldest?
+                                                        if(oldestLsa==null || timestamp < oldestTimestamp) {
+                                                            oldestLsa = lsa;
+                                                            oldestInbox = inbox;
+                                                            oldestReadyMap = readyMap;
+                                                            oldestTimestamp = timestamp;
+                                                        }
+                                                    } else {
+                                                        LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "userDirectoryUf="+userDirectoryUf.getPath()+", userFilename="+userFilename, new IOException("Invalid character in filename, deleting"));
+                                                        deleteFileList.add(userFile);
                                                     }
-                                                } else {
-                                                    LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "userDirectoryUf="+userDirectoryUf.getPath()+", userFilename="+userFilename, new IOException("Invalid character in filename, deleting"));
-                                                    deleteFileList.add(userFile);
                                                 }
+                                            } catch(NumberFormatException err) {
+                                                IOException ioErr = new IOException("Unable to find parse timestamp in filename, deleting");
+                                                ioErr.initCause(err);
+                                                LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "userDirectoryUf="+userDirectoryUf.getPath()+", userFilename="+userFilename, ioErr);
+                                                deleteFileList.add(userFile);
                                             }
-                                        } catch(NumberFormatException err) {
-                                            IOException ioErr = new IOException("Unable to find parse timestamp in filename, deleting");
-                                            ioErr.initCause(err);
-                                            LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "userDirectoryUf="+userDirectoryUf.getPath()+", userFilename="+userFilename, ioErr);
+                                        } else {
+                                            LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "userDirectoryUf="+userDirectoryUf.getPath()+", userFilename="+userFilename, new IOException("Unable to find second underscore (_) in filename, deleting"));
                                             deleteFileList.add(userFile);
                                         }
                                     } else {
-                                        LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "userDirectoryUf="+userDirectoryUf.getPath()+", userFilename="+userFilename, new IOException("Unable to find second underscore (_) in filename, deleting"));
+                                        LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "userDirectoryUf="+userDirectoryUf.getPath()+", userFilename="+userFilename, new IOException("Not a regular file, deleting"));
                                         deleteFileList.add(userFile);
                                     }
                                 } else {
-                                    LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "userDirectoryUf="+userDirectoryUf.getPath()+", userFilename="+userFilename, new IOException("Not a regular file, deleting"));
+                                    LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "userDirectoryUf="+userDirectoryUf.getPath()+", userFilename="+userFilename, new IOException("Unexpected filename, should start with \"spam_\" or \"ham_\", deleting"));
                                     deleteFileList.add(userFile);
                                 }
-                            } else {
-                                LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "userDirectoryUf="+userDirectoryUf.getPath()+", userFilename="+userFilename, new IOException("Unexpected filename, should start with \"spam_\" or \"ham_\", deleting"));
-                                deleteFileList.add(userFile);
                             }
                         }
                     }
@@ -359,9 +373,10 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
             // Sort the list by oldest time first
             final Map<UnixFile,Long> readyMap = oldestReadyMap;
             List<UnixFile> readyList = new ArrayList<UnixFile>(oldestReadyMap.keySet());
-            AutoSort.sortStatic(
+            Collections.sort(
                 readyList,
                 new Comparator<UnixFile>() {
+                    @Override
                     public int compare(UnixFile uf1, UnixFile uf2) {
                         return readyMap.get(uf1).compareTo(readyMap.get(uf2));
                     }
@@ -388,10 +403,10 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
             }
 
             // Only train SpamAssassin when integration mode not set to none
-            EmailSpamAssassinIntegrationMode integrationMode = oldestLsa.getEmailSpamAssassinIntegrationMode();
+            EmailSpamAssassinIntegrationMode integrationMode = oldestInbox.getSpamAssassinIntegrationMode();
             if(!integrationMode.getName().equals(EmailSpamAssassinIntegrationMode.NONE)) {
                 // Call sa-learn for this pass
-                String username = oldestLsa.getLinuxAccount().getUsername().getUsername();
+                UserId username = oldestLsa.getUserId();
                 tempSB.setLength(0);
                 tempSB.append("/usr/bin/sa-learn");
                 boolean isNoSync = thisPass.size() >= SALEARN_NOSYNC_THRESHOLD;
@@ -425,6 +440,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
     }
 
     private static final Object rebuildLock=new Object();
+    @Override
     protected boolean doRebuild() {
         try {
             AOServer aoServer=AOServDaemon.getThisAOServer();
@@ -432,11 +448,10 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 
             int osv=server.getOperatingSystemVersion().getPkey();
             if(
-                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-                && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+                osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
-            final String primaryIP = aoServer.getPrimaryIPAddress().getIPAddress();
+            final InetAddress primaryIP = aoServer.getPrimaryIPAddress().getInetAddress();
 
             /**
              * Build the /etc/sysconfig/..... file.
@@ -453,15 +468,15 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                                + "# Options to spamd\n"
                                + "SPAMDOPTIONS=\"-d -c -m25 -H -i ").print(primaryIP).print(" -A ");
                     // Allow all IP addresses for this machine
-                    Set<String> usedIps = new HashSet<String>();
-                    List<IPAddress> ips = server.getIpAddresses();
+                    Set<InetAddress> usedIps = new HashSet<InetAddress>();
+                    IndexedSet<IPAddress> ips = server.getIpAddresses();
                     for(IPAddress ip : ips) {
-                        if(!ip.isWildcard() && !ip.getNetDevice().getNetDeviceID().isLoopback()) {
-                            String addr = ip.getIPAddress();
-                            if(!usedIps.contains(addr)) {
+                        InetAddress inetAddress = ip.getInetAddress();
+                        if(!inetAddress.isUnspecified() && !ip.getNetDevice().getDeviceId().isLoopback()) {
+                            if(!usedIps.contains(inetAddress)) {
                                 if(!usedIps.isEmpty()) newOut.print(',');
-                                newOut.print(addr);
-                                usedIps.add(addr);
+                                newOut.print(inetAddress);
+                                usedIps.add(inetAddress);
                             }
                         }
                     }
@@ -507,9 +522,10 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
             synchronized(rebuildLock) {
                 for(LinuxAccount la : las) {
                     // Only build spamassassin for accounts under /home/
-                    String homePath = la.getHome().getPath();
-                    if(lsa.getLinuxAccount().getType().isEmail() && homePath.startsWith("/home/")) {
-                        EmailSpamAssassinIntegrationMode integrationMode=lsa.getEmailSpamAssassinIntegrationMode();
+                    String homePath = la.getHome().toString();
+                    EmailInbox inbox = la.getEmailInbox();
+                    if(inbox!=null && homePath.startsWith("/home/")) {
+                        EmailSpamAssassinIntegrationMode integrationMode = inbox.getSpamAssassinIntegrationMode();
                         // Only write files when SpamAssassin is turned on
                         if(!integrationMode.getName().equals(EmailSpamAssassinIntegrationMode.NONE)) {
                             UnixFile homeDir = new UnixFile(homePath);
@@ -531,7 +547,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                                 newOut.print("#\n"
                                            + "# Generated by ").print(SpamAssassinManager.class.getName()).print("\n"
                                            + "#\n"
-                                           + "required_score ").print(lsa.getSpamAssassinRequiredScore()).print('\n');
+                                           + "required_score ").print(inbox.getSpamAssassinRequiredScore()).print('\n');
                                 if(integrationMode.getName().equals(EmailSpamAssassinIntegrationMode.POP3)) {
                                     newOut.print("rewrite_header Subject *****SPAM*****\n");
                                 }
@@ -544,7 +560,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                             if(!userPrefs.getStat().exists() || !userPrefs.contentEquals(newBytes)) {
                                 // Replace when changed
                                 UnixFile userPrefsNew=new UnixFile(spamAssassinDir, "user_prefs.new", false);
-                                FileOutputStream out=userPrefsNew.getSecureOutputStream(lsa.getUID().getID(), lsa.getPrimaryLinuxServerGroup().getGID().getID(), 0600, true);
+                                FileOutputStream out=userPrefsNew.getSecureOutputStream(la.getUid().getId(), la.getPrimaryLinuxGroup().getGid().getId(), 0600, true);
                                 try {
                                     out.write(newBytes);
                                 } finally {
@@ -565,6 +581,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
         }
     }
 
+    @Override
     public String getProcessTimerDescription() {
         return "Rebuild SpamAssassin User Preferences";
     }
@@ -578,14 +595,18 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
         
         private static final int NUM_LINES_RETAINED = 1000;
 
-        public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
-            return minute==5 && hour==1;
+        private static final Schedule schedule = MatcherSchedule.parseSchedule("5 1 * * *");
+        @Override
+        public Schedule getCronJobSchedule() {
+            return schedule;
         }
 
-        public int getCronJobScheduleMode() {
-            return CRON_JOB_SCHEDULE_SKIP;
+        @Override
+        public CronJobScheduleMode getCronJobScheduleMode() {
+            return CronJobScheduleMode.SKIP;
         }
 
+        @Override
         public String getCronJobName() {
             return "RazorLogTrimmer";
         }
@@ -593,13 +614,15 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
         /**
          * Once a day, all of the razor-agent.log files are cleaned to only include the last 1000 lines.
          */
+        @Override
         public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
             try {
                 Queue<String> queuedLines = new LinkedList<String>();
                 for(LinuxAccount la : AOServDaemon.getThisAOServer().getLinuxAccounts()) {
                     // Only clean razor for accounts under /home/
-                    String homePath = la.getHome().getPath();
-                    if(la.getType().isEmail() && homePath.startsWith("/home/")) {
+                    String homePath = la.getHome().toString();
+                    EmailInbox inbox = la.getEmailInbox();
+                    if(inbox!=null && homePath.startsWith("/home/")) {
                         UnixFile home = new UnixFile(homePath);
                         UnixFile dotRazor = new UnixFile(home, ".razor", false);
                         UnixFile razorAgentLog = new UnixFile(dotRazor, "razor-agent.log", false);
@@ -647,6 +670,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
             }
         }
 
+        @Override
         public int getCronJobThreadPriority() {
             return Thread.MIN_PRIORITY;
         }

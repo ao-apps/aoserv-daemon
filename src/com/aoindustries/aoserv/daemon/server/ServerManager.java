@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.server;
 
 /*
- * Copyright 2002-2010 by AO Industries, Inc.,
+ * Copyright 2002-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -11,6 +11,7 @@ import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
+import com.aoindustries.io.IoUtils;
 import com.aoindustries.util.StringUtility;
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -628,15 +629,11 @@ final public class ServerManager {
                                 // socketIn -> vncOut in another thread
                                 Thread inThread = new Thread(
                                     new Runnable() {
+                                        @Override
                                         public void run() {
                                             try {
                                                 try {
-                                                    byte[] buff = new byte[4096];
-                                                    int ret;
-                                                    while((ret=socketIn.read(buff, 0, 4096))!=-1) {
-                                                        vncOut.write(buff, 0, ret);
-                                                        vncOut.flush();
-                                                    }
+                                                    IoUtils.copy(socketIn, vncOut, true);
                                                 } finally {
                                                     vncSocket.close();
                                                 }
@@ -653,12 +650,7 @@ final public class ServerManager {
                                     // Tell it DONE OK
                                     socketOut.write(AOServDaemonProtocol.NEXT);
                                     // vncIn -> socketOut in this thread
-                                    byte[] buff = new byte[4096];
-                                    int ret;
-                                    while((ret=vncIn.read(buff, 0, 4096))!=-1) {
-                                        socketOut.write(buff, 0, ret);
-                                        socketOut.flush();
-                                    }
+                                    IoUtils.copy(vncIn, socketOut, true);
                                 //} finally {
                                     //try {
                                         // Let the in thread complete its work before closing streams

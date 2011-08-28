@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon;
 
 /*
- * Copyright 2009-2010 by AO Industries, Inc.,
+ * Copyright 2009-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -55,11 +55,11 @@ public class LogFactory {
         if(logger==null) {
             Handler handler;
             try {
-                AOServConnector<?,?> connector = AOServDaemon.getConnector();
+                AOServConnector connector = AOServDaemon.getConnector();
                 TicketCategory category = connector.getTicketCategories().filterUnique(TicketCategory.COLUMN_DOT_PATH, "aoserv.aoserv_daemon");
                 if(category==null) throw new NoSuchElementException("Unable to find TicketCategory: aoserv.aoserv_daemon");
                 handler = TicketLoggingHandler.getHandler(
-                    AOServDaemonConfiguration.getServerHostname().getDomain(),
+                    AOServDaemonConfiguration.getServerHostname().toString(),
                     connector,
                     category
                 );

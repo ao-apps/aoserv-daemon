@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.mysql;
 
 /*
- * Copyright 2002-2010 by AO Industries, Inc.,
+ * Copyright 2002-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -40,7 +40,7 @@ final public class MySQLHostManager extends BuilderThread {
     private static final Object rebuildLock=new Object();
     protected boolean doRebuild() {
         try {
-            AOServConnector<?,?> connector = AOServDaemon.getConnector();
+            AOServConnector connector = AOServDaemon.getConnector();
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
             int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
@@ -80,7 +80,7 @@ final public class MySQLHostManager extends BuilderThread {
                         hosts.add(Hostname.valueOf("localhost.localdomain"));
                         // Include all of the local IP addresses
                         for(NetDevice nd : thisAOServer.getServer().getNetDevices()) {
-                            for(IPAddress ia : nd.getIpAddresses()) hosts.add(Hostname.valueOf(ia.getIpAddress()));
+                            for(IPAddress ia : nd.getIpAddresses()) hosts.add(Hostname.valueOf(ia.getInetAddress()));
                         }
 
                         // Add the hosts that do not exist and should
@@ -151,7 +151,7 @@ final public class MySQLHostManager extends BuilderThread {
                 && mysqlHostManager==null
             ) {
                 System.out.print("Starting MySQLHostManager: ");
-                AOServConnector<?,?> conn=AOServDaemon.getConnector();
+                AOServConnector conn=AOServDaemon.getConnector();
                 mysqlHostManager=new MySQLHostManager();
                 conn.getIpAddresses().getTable().addTableListener(mysqlHostManager, 0);
                 conn.getMysqlServers().getTable().addTableListener(mysqlHostManager, 0);

@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.httpd;
 
 /*
- * Copyright 2000-2010 by AO Industries, Inc.,
+ * Copyright 2000-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -85,7 +85,7 @@ final public class HttpdManager extends BuilderThread {
                 && httpdManager==null
             ) {
                 System.out.print("Starting HttpdManager: ");
-                AOServConnector<?,?> connector=AOServDaemon.getConnector();
+                AOServConnector connector=AOServDaemon.getConnector();
                 httpdManager=new HttpdManager();
                 connector.getHttpdBinds().getTable().addTableListener(httpdManager, 0);
                 connector.getHttpdServers().getTable().addTableListener(httpdManager, 0);

@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.failover;
 
 /*
- * Copyright 2006-2010 by AO Industries, Inc.,
+ * Copyright 2006-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -155,7 +155,7 @@ final public class HardLinkVarBackup {
             // During each unique path, the links created are tracked to improve performance when source and destination devices and inodes match
             final Map<LinkKey,String> links = new HashMap<LinkKey,String>(numIterators * 4/3 + 1);
 
-            // When two files are compared but don't match, they are added here to avoid repetative comparisions for the same device/inode pairs
+            // When two files are compared but don't match, they are added here to avoid repetitive comparisions for the same device/inode pairs
             final Set<LinkKey> contentNotEquals = new HashSet<LinkKey>(numIterators * 4/3 + 1);
 
             long lastDisplayTime = System.currentTimeMillis();

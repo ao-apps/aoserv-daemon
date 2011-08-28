@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.email.jilter;
 
 /*
- * Copyright 2007-2010 by AO Industries, Inc.,
+ * Copyright 2007-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -55,7 +55,7 @@ public class JilterConfigurationWriter extends BuilderThread {
                 && configurationWriter==null
             ) {
                 System.out.print("Starting JilterConfigurationWriter: ");
-                AOServConnector<?,?> connector=AOServDaemon.getConnector();
+                AOServConnector connector=AOServDaemon.getConnector();
                 configurationWriter=new JilterConfigurationWriter();
                 connector.getAoServers().getTable().addTableListener(configurationWriter, 0);
                 connector.getNetDevices().getTable().addTableListener(configurationWriter, 0);
@@ -102,7 +102,7 @@ public class JilterConfigurationWriter extends BuilderThread {
             // ips
             IndexedSet<IPAddress> ias = server.getIpAddresses();
             Set<String> ips = new HashSet<String>(ias.size()*4/3+1);
-            for(IPAddress ia : ias) ips.add(ia.getIpAddress().getAddress());
+            for(IPAddress ia : ias) ips.add(ia.getInetAddress().toString());
 
             // email_smtp_relays
             Set<String> denies = new HashSet<String>();
@@ -137,7 +137,7 @@ public class JilterConfigurationWriter extends BuilderThread {
             }
             synchronized(rebuildLock) {
                 JilterConfiguration jilterConfiguration = new JilterConfiguration(
-                    primaryIP.getAddress(),
+                    primaryIP.toString(),
                     restrict_outbound_email,
                     AOServDaemonConfiguration.getMonitorSmtpServer().toString(),
                     AOServDaemonConfiguration.getMonitorEmailSummaryFrom().toString(),

@@ -1,25 +1,24 @@
-package com.aoindustries.aoserv.daemon.mysql;
-
 /*
- * Copyright 2002-2010 by AO Industries, Inc.,
+ * Copyright 2002-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.mysql;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.IndexedSet;
 import com.aoindustries.aoserv.client.MySQLServer;
 import com.aoindustries.aoserv.client.MySQLUser;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.command.SetMySQLUserPredisablePasswordCommand;
 import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.client.validator.MySQLUserId;
-import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.sql.AOConnectionPool;
-import com.aoindustries.util.StringUtility;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -41,6 +40,7 @@ final public class MySQLUserManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
+    @Override
     protected boolean doRebuild() {
         try {
             //AOServConnector connector = AOServDaemon.getConnector();
@@ -334,44 +334,44 @@ final public class MySQLUserManager extends BuilderThread {
                         try {
                             for(MySQLUser mu : users) {
                                 InetAddress host=mu.getHost();
-                                UserId username=mu.getUsername().getUsername();
-                                String key=(host==null ? "" : host.getAddress())+'|'+username.getId();
+                                MySQLUserId username=mu.getUserId();
+                                String key=(host==null ? "" : host.toString())+'|'+username.toString();
                                 if(existing.contains(key)) {
                                     int pos=1;
                                     // set
-                                    pstmt.setString(pos++, mu.canSelect()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canInsert()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canUpdate()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canDelete()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canCreate()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canDrop()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canReload()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canShutdown()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canProcess()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canFile()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canGrant()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canReference()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canIndex()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canAlter()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canShowDB()?"Y":"N");
-                                    pstmt.setString(pos++, mu.isSuper()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canCreateTempTable()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canLockTables()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canExecute()?"Y":"N");
-                                    pstmt.setString(pos++, mu.isReplicationSlave()?"Y":"N");
-                                    pstmt.setString(pos++, mu.isReplicationClient()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getSelectPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getInsertPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getUpdatePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getDeletePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getCreatePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getDropPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getReloadPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getShutdownPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getProcessPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getFilePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getGrantPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getReferencePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getIndexPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getAlterPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getShowDbPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getSuperPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getCreateTmpTablePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getLockTablesPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getExecutePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getReplSlavePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getReplClientPriv()?"Y":"N");
                                     if(
                                         version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
                                         || version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
                                     ) {
-                                        pstmt.setString(pos++, mu.canCreateView()?"Y":"N");
-                                        pstmt.setString(pos++, mu.canShowView()?"Y":"N");
-                                        pstmt.setString(pos++, mu.canCreateRoutine()?"Y":"N");
-                                        pstmt.setString(pos++, mu.canAlterRoutine()?"Y":"N");
-                                        pstmt.setString(pos++, mu.canCreateUser()?"Y":"N");
+                                        pstmt.setString(pos++, mu.getCreateViewPriv()?"Y":"N");
+                                        pstmt.setString(pos++, mu.getShowViewPriv()?"Y":"N");
+                                        pstmt.setString(pos++, mu.getCreateRoutinePriv()?"Y":"N");
+                                        pstmt.setString(pos++, mu.getAlterRoutinePriv()?"Y":"N");
+                                        pstmt.setString(pos++, mu.getCreateUserPriv()?"Y":"N");
                                         if(version.startsWith(MySQLServer.VERSION_5_1_PREFIX)) {
-                                            pstmt.setString(pos++, mu.canEvent()?"Y":"N");
-                                            pstmt.setString(pos++, mu.canTrigger()?"Y":"N");
+                                            pstmt.setString(pos++, mu.getEventPriv()?"Y":"N");
+                                            pstmt.setString(pos++, mu.getTriggerPriv()?"Y":"N");
                                         }
                                     }
                                     pstmt.setInt(pos++, mu.getMaxQuestions());
@@ -382,41 +382,41 @@ final public class MySQLUserManager extends BuilderThread {
                                         || version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
                                     ) pstmt.setInt(pos++, mu.getMaxUserConnections());
                                     // where
-                                    pstmt.setString(pos++, host==null ? "" : host.getAddress());
-                                    pstmt.setString(pos++, username.getId());
-                                    pstmt.setString(pos++, mu.canSelect()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canInsert()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canUpdate()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canDelete()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canCreate()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canDrop()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canReload()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canShutdown()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canProcess()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canFile()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canGrant()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canReference()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canIndex()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canAlter()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canShowDB()?"Y":"N");
-                                    pstmt.setString(pos++, mu.isSuper()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canCreateTempTable()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canLockTables()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canExecute()?"Y":"N");
-                                    pstmt.setString(pos++, mu.isReplicationSlave()?"Y":"N");
-                                    pstmt.setString(pos++, mu.isReplicationClient()?"Y":"N");
+                                    pstmt.setString(pos++, host==null ? "" : host.toString());
+                                    pstmt.setString(pos++, username.toString());
+                                    pstmt.setString(pos++, mu.getSelectPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getInsertPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getUpdatePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getDeletePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getCreatePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getDropPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getReloadPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getShutdownPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getProcessPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getFilePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getGrantPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getReferencePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getIndexPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getAlterPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getShowDbPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getSuperPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getCreateTmpTablePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getLockTablesPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getExecutePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getReplSlavePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getReplClientPriv()?"Y":"N");
                                     if(
                                         version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
                                         || version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
                                     ) {
-                                        pstmt.setString(pos++, mu.canCreateView()?"Y":"N");
-                                        pstmt.setString(pos++, mu.canShowView()?"Y":"N");
-                                        pstmt.setString(pos++, mu.canCreateRoutine()?"Y":"N");
-                                        pstmt.setString(pos++, mu.canAlterRoutine()?"Y":"N");
-                                        pstmt.setString(pos++, mu.canCreateUser()?"Y":"N");
+                                        pstmt.setString(pos++, mu.getCreateViewPriv()?"Y":"N");
+                                        pstmt.setString(pos++, mu.getShowViewPriv()?"Y":"N");
+                                        pstmt.setString(pos++, mu.getCreateRoutinePriv()?"Y":"N");
+                                        pstmt.setString(pos++, mu.getAlterRoutinePriv()?"Y":"N");
+                                        pstmt.setString(pos++, mu.getCreateUserPriv()?"Y":"N");
                                         if(version.startsWith(MySQLServer.VERSION_5_1_PREFIX)) {
-                                            pstmt.setString(pos++, mu.canEvent()?"Y":"N");
-                                            pstmt.setString(pos++, mu.canTrigger()?"Y":"N");
+                                            pstmt.setString(pos++, mu.getEventPriv()?"Y":"N");
+                                            pstmt.setString(pos++, mu.getTriggerPriv()?"Y":"N");
                                         }
                                     }
                                     pstmt.setInt(pos++, mu.getMaxQuestions());
@@ -446,46 +446,46 @@ final public class MySQLUserManager extends BuilderThread {
                         try {
                             for(MySQLUser mu : users) {
                                 InetAddress host=mu.getHost();
-                                UserId username=mu.getUsername().getUsername();
-                                String key=(host==null ? "" : host.getAddress())+'|'+username.getId();
+                                MySQLUserId username=mu.getUserId();
+                                String key=(host==null ? "" : host.toString())+'|'+username.toString();
                                 if (!existing.remove(key)) {
                                     // Add the user
                                     int pos=1;
-                                    pstmt.setString(pos++, host==null ? "" : host.getAddress());
-                                    pstmt.setString(pos++, username.getId());
-                                    pstmt.setString(pos++, mu.canSelect()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canInsert()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canUpdate()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canDelete()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canCreate()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canDrop()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canReload()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canShutdown()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canProcess()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canFile()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canGrant()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canReference()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canIndex()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canAlter()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canShowDB()?"Y":"N");
-                                    pstmt.setString(pos++, mu.isSuper()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canCreateTempTable()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canLockTables()?"Y":"N");
-                                    pstmt.setString(pos++, mu.canExecute()?"Y":"N");
-                                    pstmt.setString(pos++, mu.isReplicationSlave()?"Y":"N");
-                                    pstmt.setString(pos++, mu.isReplicationClient()?"Y":"N");
+                                    pstmt.setString(pos++, host==null ? "" : host.toString());
+                                    pstmt.setString(pos++, username.toString());
+                                    pstmt.setString(pos++, mu.getSelectPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getInsertPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getUpdatePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getDeletePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getCreatePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getDropPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getReloadPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getShutdownPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getProcessPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getFilePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getGrantPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getReferencePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getIndexPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getAlterPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getShowDbPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getSuperPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getCreateTmpTablePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getLockTablesPriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getExecutePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getReplSlavePriv()?"Y":"N");
+                                    pstmt.setString(pos++, mu.getReplClientPriv()?"Y":"N");
                                     if(
                                         version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
                                         || version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
                                     ) {
-                                        pstmt.setString(pos++, mu.canCreateView()?"Y":"N");
-                                        pstmt.setString(pos++, mu.canShowView()?"Y":"N");
-                                        pstmt.setString(pos++, mu.canCreateRoutine()?"Y":"N");
-                                        pstmt.setString(pos++, mu.canAlterRoutine()?"Y":"N");
-                                        pstmt.setString(pos++, mu.canCreateUser()?"Y":"N");
+                                        pstmt.setString(pos++, mu.getCreateViewPriv()?"Y":"N");
+                                        pstmt.setString(pos++, mu.getShowViewPriv()?"Y":"N");
+                                        pstmt.setString(pos++, mu.getCreateRoutinePriv()?"Y":"N");
+                                        pstmt.setString(pos++, mu.getAlterRoutinePriv()?"Y":"N");
+                                        pstmt.setString(pos++, mu.getCreateUserPriv()?"Y":"N");
                                         if(version.startsWith(MySQLServer.VERSION_5_1_PREFIX)) {
-                                            pstmt.setString(pos++, mu.canEvent()?"Y":"N");
-                                            pstmt.setString(pos++, mu.canTrigger()?"Y":"N");
+                                            pstmt.setString(pos++, mu.getEventPriv()?"Y":"N");
+                                            pstmt.setString(pos++, mu.getTriggerPriv()?"Y":"N");
                                         }
                                     }
                                     pstmt.setInt(pos++, mu.getMaxQuestions());
@@ -517,7 +517,7 @@ final public class MySQLUserManager extends BuilderThread {
                                         LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, new SQLException("Refusing to remove the "+MySQLUser.ROOT+" user for host "+host+", please remove manually."));
                                     } else {
                                         pstmt.setString(1, host);
-                                        pstmt.setString(2, user.getId());
+                                        pstmt.setString(2, user.toString());
                                         pstmt.executeUpdate();
 
                                         modified = true;
@@ -534,16 +534,16 @@ final public class MySQLUserManager extends BuilderThread {
                     // Disable and enable accounts
                     for(MySQLUser mu : users) {
                         String prePassword=mu.getPredisablePassword();
-                        if(mu.getAoServerResource().getResource().getDisableLog()==null) {
+                        if(!mu.isDisabled()) {
                             if(prePassword!=null) {
                                 setEncryptedPassword(mu, prePassword);
                                 modified=true;
-                                mu.setPredisablePassword(null);
+                                new SetMySQLUserPredisablePasswordCommand(mu, null).execute(AOServDaemon.getConnector());
                             }
                         } else {
                             if(prePassword==null) {
-                                mu.setPredisablePassword(getEncryptedPassword(mu));
-                                setPassword(mu, MySQLUser.NO_PASSWORD);
+                                new SetMySQLUserPredisablePasswordCommand(mu, getEncryptedPassword(mu)).execute(AOServDaemon.getConnector());
+                                setPassword(mu, null);
                                 modified=true;
                             }
                         }
@@ -567,7 +567,7 @@ final public class MySQLUserManager extends BuilderThread {
         try {
             PreparedStatement pstmt=conn.prepareStatement("select password from user where user=?");
             try {
-                pstmt.setString(1, mu.getUsername().getUsername().getId());
+                pstmt.setString(1, mu.getUserId().toString());
                 ResultSet result=pstmt.executeQuery();
                 try {
                     if(result.next()) {
@@ -593,11 +593,11 @@ final public class MySQLUserManager extends BuilderThread {
         AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
         Connection conn = pool.getConnection();
         try {
-            if(StringUtility.equals(password, MySQLUser.NO_PASSWORD)) {
+            if(password==null) {
                 // Disable the account
                 PreparedStatement pstmt = conn.prepareStatement("update user set password='"+MySQLUser.NO_PASSWORD_DB_VALUE+"' where user=?");
                 try {
-                    pstmt.setString(1, mu.getUsername().getUsername().getId());
+                    pstmt.setString(1, mu.getUserId().toString());
                     pstmt.executeUpdate();
                 } finally {
                     pstmt.close();
@@ -607,7 +607,7 @@ final public class MySQLUserManager extends BuilderThread {
                 PreparedStatement pstmt = conn.prepareStatement("update user set password=password(?) where user=?");
                 try {
                     pstmt.setString(1, password);
-                    pstmt.setString(2, mu.getUsername().getUsername().getId());
+                    pstmt.setString(2, mu.getUserId().toString());
                     pstmt.executeUpdate();
                 } finally {
                     pstmt.close();
@@ -625,11 +625,11 @@ final public class MySQLUserManager extends BuilderThread {
         AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
         Connection conn = pool.getConnection();
         try {
-            if(StringUtility.equals(password, MySQLUser.NO_PASSWORD)) {
+            if(password==null) {
                 // Disable the account
                 PreparedStatement pstmt = conn.prepareStatement("update user set password='"+MySQLUser.NO_PASSWORD_DB_VALUE+"' where user=?");
                 try {
-                    pstmt.setString(1, mu.getUsername().getUsername().getId());
+                    pstmt.setString(1, mu.getUserId().toString());
                     pstmt.executeUpdate();
                 } finally {
                     pstmt.close();
@@ -639,7 +639,7 @@ final public class MySQLUserManager extends BuilderThread {
                 PreparedStatement pstmt = conn.prepareStatement("update user set password=? where user=?");
                 try {
                     pstmt.setString(1, password);
-                    pstmt.setString(2, mu.getUsername().getUsername().getId());
+                    pstmt.setString(2, mu.getUserId().toString());
                     pstmt.executeUpdate();
                 } finally {
                     pstmt.close();
@@ -666,7 +666,7 @@ final public class MySQLUserManager extends BuilderThread {
                 && mysqlUserManager==null
             ) {
                 System.out.print("Starting MySQLUserManager: ");
-                AOServConnector<?,?> conn=AOServDaemon.getConnector();
+                AOServConnector conn=AOServDaemon.getConnector();
                 mysqlUserManager=new MySQLUserManager();
                 conn.getMysqlUsers().getTable().addTableListener(mysqlUserManager, 0);
                 System.out.println("Done");
@@ -678,6 +678,7 @@ final public class MySQLUserManager extends BuilderThread {
         if(mysqlUserManager!=null) mysqlUserManager.waitForBuild();
     }
 
+    @Override
     public String getProcessTimerDescription() {
         return "Rebuild MySQL Users";
     }

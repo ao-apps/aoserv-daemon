@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.email;
 
 /*
- * Copyright 2008-2010 by AO Industries, Inc.,
+ * Copyright 2008-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -204,7 +204,7 @@ final public class ImapManager extends BuilderThread {
      */
     private static InetAddress getImapServerIPAddress() throws IOException, SQLException {
         AOServer aoServer = AOServDaemon.getThisAOServer();
-        AOServConnector<?,?> conn = AOServDaemon.getConnector();
+        AOServConnector conn = AOServDaemon.getConnector();
         Protocol imapProtocol = conn.getProtocols().get(Protocol.IMAP2);
         if(imapProtocol==null) throw new SQLException("Protocol not found: "+Protocol.IMAP2);
         NetPort imapPort = imapProtocol.getPort();
@@ -301,7 +301,7 @@ final public class ImapManager extends BuilderThread {
             host,
             143,
             username,
-            username.getId().indexOf('@')==-1 ? (username+"@default") : username.getId(),
+            username.toString().indexOf('@')==-1 ? (username+"@default") : username.toString(),
             tempPassword,
             passwordBackup,
             tempStat
@@ -354,7 +354,7 @@ final public class ImapManager extends BuilderThread {
         // Create new store
         IMAPStore store = (IMAPStore)session.getStore();
         store.connect(
-            host.getAddress(),
+            host.toString(),
             imapUsername,
             password
         );
@@ -372,7 +372,7 @@ final public class ImapManager extends BuilderThread {
                 // Used inside synchronized block
                 Stat tempStat = new Stat();
                 ByteArrayOutputStream bout = new ByteArrayOutputStream();
-                AOServConnector<?,?> conn = AOServDaemon.getConnector();
+                AOServConnector conn = AOServDaemon.getConnector();
                 Server server = thisAOServer.getServer();
 
                 Protocol imapProtocol = conn.getProtocols().get(Protocol.IMAP2);
@@ -493,7 +493,7 @@ final public class ImapManager extends BuilderThread {
                                 for(NetBind pop3Bind : pop3Binds) {
                                     if(!pop3Bind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("pop3 requires TCP protocol");
                                     String serviceName = "pop3"+(counter++);
-                                    out.print("  ").print(serviceName).print(" cmd=\"pop3d\" listen=\"[").print(pop3Bind.getIpAddress().getIpAddress()).print("]:").print(pop3Bind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=3\n");
+                                    out.print("  ").print(serviceName).print(" cmd=\"pop3d\" listen=\"[").print(pop3Bind.getIpAddress().getInetAddress()).print("]:").print(pop3Bind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=3\n");
                                     tlsServices.put(serviceName, pop3Bind);
                                 }
                                 // pop3s
@@ -501,14 +501,14 @@ final public class ImapManager extends BuilderThread {
                                 for(NetBind pop3sBind : pop3sBinds) {
                                     if(!pop3sBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("pop3s requires TCP protocol");
                                     String serviceName = "pop3s"+(counter++);
-                                    out.print("  ").print(serviceName).print(" cmd=\"pop3d -s\" listen=\"[").print(pop3sBind.getIpAddress().getIpAddress()).print("]:").print(pop3sBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=1\n");
+                                    out.print("  ").print(serviceName).print(" cmd=\"pop3d -s\" listen=\"[").print(pop3sBind.getIpAddress().getInetAddress()).print("]:").print(pop3sBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=1\n");
                                     tlsServices.put(serviceName, pop3sBind);
                                 }
                                 // sieve
                                 counter = 1;
                                 for(NetBind sieveBind : sieveBinds) {
                                     if(!sieveBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("sieve requires TCP protocol");
-                                    out.print("  sieve").print(counter++).print(" cmd=\"timsieved\" listen=\"[").print(sieveBind.getIpAddress().getIpAddress()).print("]:").print(sieveBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=0\n");
+                                    out.print("  sieve").print(counter++).print(" cmd=\"timsieved\" listen=\"[").print(sieveBind.getIpAddress().getInetAddress()).print("]:").print(sieveBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=0\n");
                                 }
                                         //+ "  # these are only necessary if receiving/exporting usenet via NNTP\n"
                                         //+ "#  nntp         cmd=\"nntpd\" listen=\"nntp\" prefork=3\n"
@@ -1286,12 +1286,12 @@ final public class ImapManager extends BuilderThread {
             ExecutorService executorService = WUIMAP_CONVERSION_ENABLED ? Executors.newFixedThreadPool(WUIMAP_CONVERSION_CONCURRENCY) : null;
             try {
                 for(final LinuxAccount la : las) {
-                    final String homePath = la.getHome().getPath();
+                    final String homePath = la.getHome().toString();
                     if(la.getType().isEmail() && homePath.startsWith("/home/")) {
                         // Split into user and domain
-                        final UserId laUsername = la.getUsername().getUsername();
-                        String user = getUser(laUsername.getId());
-                        String domain = getDomain(laUsername.getId());
+                        final UserId laUsername = la.getUserId();
+                        String user = getUser(laUsername.toString());
+                        String domain = getDomain(laUsername.toString());
                         validEmailUsernames.add(laUsername);
 
                         // INBOX
@@ -1380,7 +1380,7 @@ final public class ImapManager extends BuilderThread {
                                                 if(isDebug) logger.fine("Creating directory: "+wuBackupDirectory.getPath());
                                                 wuBackupDirectory.mkdir(true, 0700);
                                             }
-                                            UnixFile userBackupDirectory = new UnixFile(wuBackupDirectory, laUsername.getId(), false);
+                                            UnixFile userBackupDirectory = new UnixFile(wuBackupDirectory, laUsername.toString(), false);
                                             if(!userBackupDirectory.getStat(tempStat).exists()) {
                                                 if(isDebug) logger.fine(laUsername+": Creating backup directory: "+userBackupDirectory.getPath());
                                                 userBackupDirectory.mkdir(false, 0700);
@@ -1416,7 +1416,7 @@ final public class ImapManager extends BuilderThread {
                                                 int junkRetention = la.getJunkEmailRetention();
                                                 int trashRetention = la.getTrashEmailRetention();
                                                 // Convert old INBOX
-                                                UnixFile inboxFile = new UnixFile(mailSpool, laUsername.getId());
+                                                UnixFile inboxFile = new UnixFile(mailSpool, laUsername.toString());
                                                 if(inboxFile.getStat(tempStat).exists()) {
                                                     if(!tempStat.isRegularFile()) throw new IOException("Not a regular file: "+inboxFile.getPath());
                                                     convertImapFile(logOut, laUsername, junkRetention, trashRetention, inboxFile, new UnixFile(userBackupDirectory, "INBOX", false), "INBOX", tempPassword, passwordBackup, tempStat);
@@ -1603,7 +1603,7 @@ final public class ImapManager extends BuilderThread {
                 && imapManager==null
             ) {
                 System.out.print("Starting ImapManager: ");
-                AOServConnector<?,?> connector=AOServDaemon.getConnector();
+                AOServConnector connector=AOServDaemon.getConnector();
                 imapManager=new ImapManager();
                 connector.getAoServers().getTable().addTableListener(imapManager, 0);
                 connector.getIpAddresses().addTableListener(imapManager, 0);
@@ -1626,8 +1626,8 @@ final public class ImapManager extends BuilderThread {
         LinuxAccount lsa=thisAOServer.getLinuxAccount(username);
         long[] sizes=new long[folderNames.length];
         if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-            String user = getUser(username.getId());
-            String domain = getDomain(username.getId());
+            String user = getUser(username.toString());
+            String domain = getDomain(username.toString());
             for(int c=0;c<folderNames.length;c++) {
                 String folderName = folderNames[c];
                 if(folderName.indexOf("..") !=-1) sizes[c]=-1;

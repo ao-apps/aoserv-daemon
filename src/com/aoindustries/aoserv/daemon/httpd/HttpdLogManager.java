@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.httpd;
-
 /*
- * Copyright 2008-2010 by AO Industries, Inc.,
+ * Copyright 2008-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd;
+
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.HttpdSite;
 import com.aoindustries.aoserv.client.LinuxAccount;
@@ -166,7 +166,7 @@ class HttpdLogManager {
 
             // Create the /logs/<site_name> directory
             DomainName siteName = httpdSite.getSiteName();
-            UnixFile logDirectory = new UnixFile(LOG_DIR, siteName.getDomain());
+            UnixFile logDirectory = new UnixFile(LOG_DIR, siteName.toString());
             logDirectory.getStat(tempStat);
             if(!tempStat.exists()) {
                 logDirectory.mkdir();
@@ -223,7 +223,7 @@ class HttpdLogManager {
             }
         }
 
-        for(DomainName filename : logDirectories) deleteFileList.add(new File(LOG_DIR, filename.getDomain()));
+        for(DomainName filename : logDirectories) deleteFileList.add(new File(LOG_DIR, filename.toString()));
     }
 
     /**
@@ -303,7 +303,7 @@ class HttpdLogManager {
             FileUtils.writeIfNeeded(
                 newFileContent,
                 null,
-                new UnixFile(siteLogRotationDir, site.getSiteName().getDomain()),
+                new UnixFile(siteLogRotationDir, site.getSiteName().toString()),
                 UnixFile.ROOT_UID,
                 site.getLinuxServerGroup().getGID().getID(),
                 0640
@@ -314,7 +314,7 @@ class HttpdLogManager {
         }
 
         // Remove extra filenames
-        for(DomainName extraFilename : logRotationFiles) deleteFileList.add(new File(siteLogRotationDir, extraFilename.getDomain()));
+        for(DomainName extraFilename : logRotationFiles) deleteFileList.add(new File(siteLogRotationDir, extraFilename.toString()));
         
         if(serverLogRotationDir!=null) {
             // Create directory if missing

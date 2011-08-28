@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.httpd;
 
 /*
- * Copyright 2005-2010 by AO Industries, Inc.,
+ * Copyright 2005-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -345,7 +345,7 @@ final public class AWStatsManager extends BuilderThread {
                     }
 
                     // Make sure /var/lib/awstats/hosts/<site_name> directory exists and has the proper permissions
-                    UnixFile hostDirectory=new UnixFile(hostsDirectory, siteName.getDomain());
+                    UnixFile hostDirectory=new UnixFile(hostsDirectory, siteName.toString());
                     hostDirectory.getStat(tempStat);
                     if(!tempStat.exists()) hostDirectory.mkdir(false, 0750, UnixFile.ROOT_UID, awstatsGID);
                     else {
@@ -519,7 +519,7 @@ final public class AWStatsManager extends BuilderThread {
                 for(String filename : existingConfigFiles.keySet()) deleteFileList.add(new File(configDirectory, filename));
 
                 // Remove any files or directories that should not exist
-                for(DomainName filename : existingHostDirectories) deleteFileList.add(new File(hostsDirectory, filename.getDomain()));
+                for(DomainName filename : existingHostDirectories) deleteFileList.add(new File(hostsDirectory, filename.toString()));
 
                 /*
                  * Back up the files scheduled for removal.
@@ -562,7 +562,7 @@ final public class AWStatsManager extends BuilderThread {
                 && awstatsManager==null
             ) {
                 System.out.print("Starting AWStatsManager: ");
-                AOServConnector<?,?> connector=AOServDaemon.getConnector();
+                AOServConnector connector=AOServDaemon.getConnector();
                 awstatsManager=new AWStatsManager();
                 connector.getHttpdSites().getTable().addTableListener(awstatsManager, 0);
                 connector.getHttpdSiteBinds().getTable().addTableListener(awstatsManager, 0);
@@ -593,7 +593,7 @@ final public class AWStatsManager extends BuilderThread {
 
         if("awstats.pl".equals(path)) {
             // Check the queryStrings
-            String escapedSiteName=StringUtility.replace(siteName.getDomain(), '.', "\\.");
+            String escapedSiteName=StringUtility.replace(siteName.toString(), '.', "\\.");
             if(
                 queryString.equals("")
                 || queryString.equals("framename=mainright")
@@ -618,10 +618,10 @@ final public class AWStatsManager extends BuilderThread {
                 String[] cmd={
                     "/bin/su",
                     "-s",
-                    Shell.BASH.getPath(),
+                    Shell.BASH.toString(),
                     "-c",
                     runascgi+" '"+queryString+"'",
-                    LinuxAccount.AWSTATS.getId()
+                    LinuxAccount.AWSTATS.toString()
                 };
                 Process P = Runtime.getRuntime().exec(cmd);
                 try {
@@ -641,7 +641,7 @@ final public class AWStatsManager extends BuilderThread {
                             try {
                                 int ret;
                                 while((ret=in.read(chars, 0, BufferManager.BUFFER_SIZE))!=-1) {
-                                    // Convert to bytes by simple cast
+                                    // Convert to bytes by simple cast - do we need a character set conversion here?
                                     for(int c=0;c<ret;c++) buff[c]=(byte)chars[c];
 
                                     out.write(AOServDaemonProtocol.NEXT);
@@ -680,6 +680,7 @@ final public class AWStatsManager extends BuilderThread {
                         int ret;
                         while((ret=in.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
                             out.write(AOServDaemonProtocol.NEXT);
+                            assert ret <= Short.MAX_VALUE;
                             out.writeShort(ret);
                             out.write(buff, 0, ret);
                         }

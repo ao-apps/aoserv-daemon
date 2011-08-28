@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.net.ssh;
-
 /*
- * Copyright 2001-2010 by AO Industries, Inc.,
+ * Copyright 2001-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.net.ssh;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.IPAddress;
@@ -42,9 +42,10 @@ final public class SshdManager extends BuilderThread {
      * Called by NetDeviceManager.doRebuild to ensure consistent state with the IP addresses.
      */
     private static final Object rebuildLock=new Object();
+    @Override
     protected boolean doRebuild() {
         try {
-            AOServConnector<?,?> connector=AOServDaemon.getConnector();
+            AOServConnector connector=AOServDaemon.getConnector();
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
             int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
@@ -74,8 +75,8 @@ final public class SshdManager extends BuilderThread {
                         if(ip==null) throw new IOException("Can't use wildcard for SSH for chroot failover support: ip==null");
                         NetDevice nd=ip.getNetDevice();
                         if(nd==null) throw new NullPointerException("NetDevice is null.  IPAddress="+ip);
-                        InetAddress address=ip.getIpAddress();
-                        if(nd.getNetDeviceID().isLoopback() || address.isLooback()) throw new IOException("Can't use localhost for SSH for chroot failover support: "+ip);
+                        InetAddress address=ip.getInetAddress();
+                        if(nd.getDeviceId().isLoopback() || address.isLooback()) throw new IOException("Can't use localhost for SSH for chroot failover support: "+ip);
                         nbs.add(nb);
                     }
                 }
@@ -99,7 +100,7 @@ final public class SshdManager extends BuilderThread {
                         for(NetBind nb : nbs) {
                             NetPort port = nb.getPort();
                             if(port.getPort()!=22) {
-                                String address = nb.getIpAddress().getIpAddress().getAddress();
+                                String address = nb.getIpAddress().getInetAddress().toString();
                                 if(address.indexOf(':')==-1) {
                                     // IPv4
                                     out.print("ListenAddress ").print(address).print(':').print(port).print("\n");
@@ -108,7 +109,7 @@ final public class SshdManager extends BuilderThread {
                                     out.print("ListenAddress [").print(address).print("]:").print(port).print("\n");
                                 }
                             } else {
-                                out.print("ListenAddress ").print(nb.getIpAddress().getIpAddress()).print("\n");
+                                out.print("ListenAddress ").print(nb.getIpAddress().getInetAddress()).print("\n");
                             }
                         }
                         out.print("SyslogFacility AUTHPRIV\n"
@@ -210,7 +211,7 @@ final public class SshdManager extends BuilderThread {
                 && sshdManager==null
             ) {
                 System.out.print("Starting SshdManager: ");
-                AOServConnector<?,?> conn=AOServDaemon.getConnector();
+                AOServConnector conn=AOServDaemon.getConnector();
                 sshdManager=new SshdManager();
                 conn.getIpAddresses().getTable().addTableListener(sshdManager, 0);
                 conn.getNetBinds().getTable().addTableListener(sshdManager, 0);
@@ -220,6 +221,7 @@ final public class SshdManager extends BuilderThread {
         }
     }
 
+    @Override
     public String getProcessTimerDescription() {
         return "Rebuild SSH Configuration";
     }

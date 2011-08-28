@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.postgres;
-
 /*
- * Copyright 2001-2010 by AO Industries, Inc.,
+ * Copyright 2001-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.postgres;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.IndexedSet;
@@ -12,8 +12,8 @@ import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.PostgresServer;
 import com.aoindustries.aoserv.client.PostgresUser;
 import com.aoindustries.aoserv.client.PostgresVersion;
+import com.aoindustries.aoserv.client.command.SetPostgresUserPredisablePasswordCommand;
 import com.aoindustries.aoserv.client.validator.PostgresUserId;
-import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -43,6 +43,7 @@ final public class PostgresUserManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
+    @Override
     protected boolean doRebuild() {
         try {
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
@@ -55,7 +56,7 @@ final public class PostgresUserManager extends BuilderThread {
 
             synchronized(rebuildLock) {
                 for(PostgresServer ps : thisAOServer.getPostgresServers()) {
-                    String version=ps.getPostgresVersion().getTechnologyVersion().getVersion();
+                    String version=ps.getVersion().getVersion().getVersion();
 
                     // Get the connection to work through
                     AOConnectionPool pool=PostgresServerManager.getPool(ps);
@@ -93,7 +94,7 @@ final public class PostgresUserManager extends BuilderThread {
                             // Find the users that do not exist and should be added
                             List<PostgresUser> needAdded=new ArrayList<PostgresUser>();
                             for(PostgresUser pu : users) {
-                                if(!existing.remove(PostgresUserId.valueOf(pu.getUsername().getUsername().getId()))) needAdded.add(pu);
+                                if(!existing.remove(pu.getUserId())) needAdded.add(pu);
                             }
 
                             // Remove the extra users before adding to avoid usesysid or usename conflicts
@@ -127,7 +128,7 @@ final public class PostgresUserManager extends BuilderThread {
                                         ? "CREATE ROLE "
                                         : "CREATE USER "
                                     )
-                                    .append(pu.getUsername().getUsername())
+                                    .append(pu.getUserId())
                                     //.append(
                                     //    (
                                     //        version.startsWith(PostgresVersion.VERSION_7_1+'.')
@@ -136,8 +137,8 @@ final public class PostgresUserManager extends BuilderThread {
                                     //    : " UNENCRYPTED PASSWORD '"
                                     //)
                                     //.append(PostgresUser.NO_PASSWORD_DB_VALUE)
-                                    //.append("' ")
-                                    .append(pu.canCreateDB()?"CREATEDB":"NOCREATEDB")
+                                    .append(' ')
+                                    .append(pu.getCreatedb()?"CREATEDB":"NOCREATEDB")
                                     .append(' ')
                                     .append(
                                         (
@@ -145,8 +146,8 @@ final public class PostgresUserManager extends BuilderThread {
                                             || version.startsWith(PostgresVersion.VERSION_8_3+'.')
                                             || version.startsWith(PostgresVersion.VERSION_8_3+'R')
                                         )
-                                        ? (pu.canCatUPD()?"CREATEROLE":"NOCREATEROLE")
-                                        : (pu.canCatUPD()?"CREATEUSER":"NOCREATEUSER")
+                                        ? (pu.getCatupd()?"CREATEROLE":"NOCREATEROLE")
+                                        : (pu.getCatupd()?"CREATEUSER":"NOCREATEUSER")
                                     ).append(
                                         (
                                             version.startsWith(PostgresVersion.VERSION_8_1+'.')
@@ -175,7 +176,7 @@ final public class PostgresUserManager extends BuilderThread {
                                 // Enable/disable using rolcanlogin
                                 for(PostgresUser pu : users) {
                                     // Get the current login state
-                                    UserId username = pu.getUsername().getUsername();
+                                    PostgresUserId username = pu.getUserId();
                                     boolean rolcanlogin;
                                     sqlString = "select rolcanlogin from pg_authid where rolname='"+username+"'";
                                     try {
@@ -192,7 +193,7 @@ final public class PostgresUserManager extends BuilderThread {
                                     } catch(SQLException err) {
                                         throw new WrappedSQLException(err, sqlString);
                                     }
-                                    if(pu.getAoServerResource().getResource().getDisableLog()==null) {
+                                    if(!pu.isDisabled()) {
                                         // Enable if needed
                                         if(!rolcanlogin) {
                                             sqlString = "alter role "+username+" login";
@@ -227,14 +228,14 @@ final public class PostgresUserManager extends BuilderThread {
                         // Disable/enable using password value
                         for(PostgresUser pu : users) {
                             String prePassword=pu.getPredisablePassword();
-                            if(pu.getAoServerResource().getResource().getDisableLog()==null) {
+                            if(!pu.isDisabled()) {
                                 if(prePassword!=null) {
                                     setPassword(pu, prePassword, true);
-                                    pu.setPredisablePassword(null);
+                                    new SetPostgresUserPredisablePasswordCommand(pu, null).execute(AOServDaemon.getConnector());
                                 }
                             } else {
                                 if(prePassword==null) {
-                                    pu.setPredisablePassword(getPassword(pu));
+                                    new SetPostgresUserPredisablePasswordCommand(pu, getPassword(pu)).execute(AOServDaemon.getConnector());
                                     setPassword(pu, null, true);
                                 }
                             }
@@ -253,7 +254,7 @@ final public class PostgresUserManager extends BuilderThread {
 
     public static String getPassword(PostgresUser pu) throws IOException, SQLException {
         PostgresServer ps=pu.getPostgresServer();
-        String version=ps.getPostgresVersion().getTechnologyVersion().getVersion();
+        String version=ps.getVersion().getVersion().getVersion();
         AOConnectionPool pool=PostgresServerManager.getPool(ps);
         Connection conn=pool.getConnection(true);
         try {
@@ -266,7 +267,7 @@ final public class PostgresUserManager extends BuilderThread {
                 : "select rolpassword from pg_authid where rolname=?"
             );
             try {
-                pstmt.setString(1, pu.getUsername().getUsername().getId());
+                pstmt.setString(1, pu.getUserId().toString());
                 ResultSet result=pstmt.executeQuery();
                 try {
                     if(result.next()) {
@@ -288,11 +289,11 @@ final public class PostgresUserManager extends BuilderThread {
     public static void setPassword(PostgresUser pu, String password, boolean forceUnencrypted) throws IOException, SQLException {
         // Get the connection to work through
         PostgresServer ps=pu.getPostgresServer();
-        String username=pu.getUsername().getUsername().getId();
+        PostgresUserId username=pu.getUserId();
         AOConnectionPool pool=PostgresServerManager.getPool(ps);
         Connection conn = pool.getConnection(false);
         try {
-            String version=ps.getPostgresVersion().getTechnologyVersion().getVersion();
+            String version=ps.getVersion().getVersion().getVersion();
             if(version.startsWith(PostgresVersion.VERSION_7_1+'.')) {
                 if(password==null) {
                     // Remove the password
@@ -454,7 +455,7 @@ final public class PostgresUserManager extends BuilderThread {
                 && postgresUserManager==null
             ) {
                 System.out.print("Starting PostgresUserManager: ");
-                AOServConnector<?,?> conn=AOServDaemon.getConnector();
+                AOServConnector conn=AOServDaemon.getConnector();
                 postgresUserManager=new PostgresUserManager();
                 conn.getPostgresUsers().getTable().addTableListener(postgresUserManager, 0);
                 System.out.println("Done");
@@ -466,6 +467,7 @@ final public class PostgresUserManager extends BuilderThread {
         if(postgresUserManager!=null) postgresUserManager.waitForBuild();
     }
 
+    @Override
     public String getProcessTimerDescription() {
         return "Rebuild PostgresSQL Users";
     }

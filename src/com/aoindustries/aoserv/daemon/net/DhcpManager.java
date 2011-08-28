@@ -2,6 +2,7 @@ package com.aoindustries.aoserv.daemon.net;
 
 import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.NetDevice;
+import com.aoindustries.aoserv.client.command.SetIpAddressDhcpAddressCommand;
 import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.client.validator.ValidationException;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -49,9 +50,7 @@ final public class DhcpManager implements Runnable {
             if(ip==null || (ip=ip.trim()).length()==0) throw new IOException("Unable to find IP address for device: "+device);
             return InetAddress.valueOf(ip);
         } catch(ValidationException err) {
-            IOException ioErr = new IOException(err.getMessage());
-            ioErr.initCause(err);
-            throw ioErr;
+            throw new IOException(err);
         }
     }
 
@@ -80,6 +79,7 @@ final public class DhcpManager implements Runnable {
         }
     }
     
+    @Override
     public void run() {
         while(true) {
             try {
@@ -92,9 +92,9 @@ final public class DhcpManager implements Runnable {
                     for(NetDevice nd : AOServDaemon.getThisAOServer().getServer().getNetDevices()) {
                         IPAddress primaryIP=nd.getPrimaryIPAddress();
                         if(primaryIP.isDhcp()) {
-                            InetAddress dhcpAddress=getDhcpAddress(nd.getNetDeviceID().getName());
-                            if(!primaryIP.getIpAddress().equals(dhcpAddress)) {
-                                primaryIP.setDhcpAddress(dhcpAddress);
+                            InetAddress dhcpAddress=getDhcpAddress(nd.getDeviceId().getName());
+                            if(!primaryIP.getInetAddress().equals(dhcpAddress)) {
+                                new SetIpAddressDhcpAddressCommand(primaryIP, dhcpAddress).execute(AOServDaemon.getConnector());
                             }
                         }
                     }

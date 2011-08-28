@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.timezone;
 
 /*
- * Copyright 2006-2010 by AO Industries, Inc.,
+ * Copyright 2006-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -48,7 +48,7 @@ public class TimeZoneManager extends BuilderThread {
                 && timeZoneManager==null
             ) {
                 System.out.print("Starting TimeZoneManager: ");
-                AOServConnector<?,?> connector=AOServDaemon.getConnector();
+                AOServConnector connector=AOServDaemon.getConnector();
                 timeZoneManager=new TimeZoneManager();
                 connector.getAoServers().getTable().addTableListener(timeZoneManager, 0);
                 System.out.println("Done");

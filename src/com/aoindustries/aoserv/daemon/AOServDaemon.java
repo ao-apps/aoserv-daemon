@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon;
-
 /*
- * Copyright 2001-2010 by AO Industries, Inc.,
+ * Copyright 2001-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon;
+
 import com.aoindustries.aoserv.client.AOServClientConfiguration;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
@@ -46,10 +46,11 @@ import com.aoindustries.aoserv.daemon.postgres.PostgresServerManager;
 import com.aoindustries.aoserv.daemon.postgres.PostgresUserManager;
 import com.aoindustries.aoserv.daemon.timezone.TimeZoneManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
+import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.ProcessResult;
 import com.aoindustries.security.LoginException;
-import com.aoindustries.util.BufferManager;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -87,7 +88,7 @@ final public class AOServDaemon {
     /**
      * The default connection is used to the database, because it should be configured in the properties files.
      */
-    private static AOServConnector<?,?> conn;
+    private static AOServConnector conn;
 
     /**
      * An unbounded executor for daemon-wide tasks.
@@ -129,7 +130,7 @@ final public class AOServDaemon {
         }
     }
 
-    public static AOServConnector<?,?> getConnector() throws RemoteException {
+    public static AOServConnector getConnector() throws RemoteException {
         synchronized(AOServDaemon.class) {
             if(conn==null) {
                 try {
@@ -171,7 +172,7 @@ final public class AOServDaemon {
                 String trustStorePassword=AOServClientConfiguration.getTrustStorePassword();
                 if(trustStorePassword!=null) System.setProperty("javax.net.ssl.trustStorePassword", trustStorePassword);
                 UnixPath keyStorePath=AOServDaemonConfiguration.getSSLKeystorePath();
-                if(keyStorePath!=null) System.setProperty("javax.net.ssl.keyStore", keyStorePath.getPath());
+                if(keyStorePath!=null) System.setProperty("javax.net.ssl.keyStore", keyStorePath.toString());
                 String keyStorePassword=AOServDaemonConfiguration.getSSLKeystorePassword();
                 if(keyStorePassword!=null) System.setProperty("javax.net.ssl.keyStorePassword", keyStorePassword);
 
@@ -212,7 +213,7 @@ final public class AOServDaemon {
 
                 // Start up the AOServDaemonServers
                 NetBind bind=getThisAOServer().getDaemonBind();
-                if(bind!=null) new AOServDaemonServer(bind.getIpAddress().getIpAddress(), bind.getPort(), bind.getAppProtocol().getProtocol());
+                if(bind!=null) new AOServDaemonServer(bind.getIpAddress().getInetAddress(), bind.getPort(), bind.getAppProtocol().getProtocol());
 
                 done=true;
             } catch (ThreadDeath TD) {
@@ -282,6 +283,10 @@ final public class AOServDaemon {
 
     /**
      * Executes a command and captures the output.
+     *
+     * TODO: Use ProcessResult
+     *
+     * @see  ProcessResult
      */
     public static String execAndCapture(String[] command) throws IOException {
         Process P = Runtime.getRuntime().exec(command);
@@ -291,16 +296,8 @@ final public class AOServDaemon {
             Reader in = new InputStreamReader(P.getInputStream());
             try {
                 StringBuilder sb = new StringBuilder();
-                char[] buff = BufferManager.getChars();
-                try {
-                    int count;
-                    while((count=in.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
-                        sb.append(buff, 0, count);
-                    }
-                    return sb.toString();
-                } finally {
-                    BufferManager.release(buff);
-                }
+                IoUtils.copy(in, sb);
+                return sb.toString();
             } finally {
                 in.close();
             }
@@ -309,13 +306,7 @@ final public class AOServDaemon {
             StringBuilder errorSB = new StringBuilder();
             Reader errIn = new InputStreamReader(P.getErrorStream());
             try {
-                char[] buff = BufferManager.getChars();
-                try {
-                    int ret;
-                    while((ret=errIn.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) errorSB.append(buff, 0, ret);
-                } finally {
-                    BufferManager.release(buff);
-                }
+                IoUtils.copy(errIn, errorSB);
             } finally {
                 errIn.close();
             }
@@ -344,16 +335,8 @@ final public class AOServDaemon {
             InputStream in = P.getInputStream();
             try {
                 ByteArrayOutputStream bout = new ByteArrayOutputStream();
-                byte[] buff = BufferManager.getBytes();
-                try {
-                    int count;
-                    while((count=in.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
-                        bout.write(buff, 0, count);
-                    }
-                    return bout.toByteArray();
-                } finally {
-                    BufferManager.release(buff);
-                }
+                IoUtils.copy(in, bout);
+                return bout.toByteArray();
             } finally {
                 in.close();
             }
@@ -362,13 +345,7 @@ final public class AOServDaemon {
             StringBuilder errorSB = new StringBuilder();
             Reader errIn = new InputStreamReader(P.getErrorStream());
             try {
-                char[] buff = BufferManager.getChars();
-                try {
-                    int ret;
-                    while((ret=errIn.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) errorSB.append(buff, 0, ret);
-                } finally {
-                    BufferManager.release(buff);
-                }
+                IoUtils.copy(errIn, errorSB);
             } finally {
                 errIn.close();
             }
@@ -419,19 +396,19 @@ final public class AOServDaemon {
                 Integer.toString(nice),
                 "/bin/su",
                 "-s",
-                Shell.BASH.getPath(),
+                Shell.BASH.toString(),
                 "-c",
                 command,
-                username.getId()
+                username.toString()
             };
         } else {
             cmd = new String[] {
                 "/bin/su",
                 "-s",
-                Shell.BASH.getPath(),
+                Shell.BASH.toString(),
                 "-c",
                 command,
-                username.getId()
+                username.toString()
             };
         }
         exec(cmd);

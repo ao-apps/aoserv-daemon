@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.util;
 
 /*
- * Copyright 2002-2010 by AO Industries, Inc.,
+ * Copyright 2002-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -76,7 +76,7 @@ abstract public class SocketServerManager {
                 NetBind nb=nbs[c];
                 IPAddress ip = nb.getIpAddress();
                 if(ip!=null) {
-                    InetAddress nbIP=ip.getIpAddress();
+                    InetAddress nbIP=ip.getInetAddress();
                     if(!nbIP.isLooback()) {
                         NetPort nbPort=nb.getPort();
 

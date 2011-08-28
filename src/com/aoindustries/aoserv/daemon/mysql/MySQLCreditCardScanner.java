@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.mysql;
-
 /*
- * Copyright 2007-2010 by AO Industries, Inc.,
+ * Copyright 2007-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.mysql;
+
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.Business;
 import com.aoindustries.aoserv.client.MySQLDatabase;
@@ -17,6 +17,8 @@ import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
+import com.aoindustries.cron.CronJobScheduleMode;
+import com.aoindustries.cron.Schedule;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -56,18 +58,28 @@ final public class MySQLCreditCardScanner implements CronJob {
         }
     }
 
-    public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
-        return
-            minute==30
-            && hour==2
-            && dayOfWeek==Calendar.SUNDAY
-        ;
+    private static final Schedule schedule = new Schedule() {
+        @Override
+        public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
+            return
+                minute==30
+                && hour==2
+                && dayOfWeek==Calendar.SUNDAY
+            ;
+        }
+    };
+
+    @Override
+    public Schedule getCronJobSchedule() {
+        return schedule;
     }
-    
-     public int getCronJobScheduleMode() {
-         return CRON_JOB_SCHEDULE_SKIP;
+
+    @Override
+     public CronJobScheduleMode getCronJobScheduleMode() {
+         return CronJobScheduleMode.SKIP;
      }
 
+    @Override
     public String getCronJobName() {
         return "MySQLCreditCardScanner";
     }
@@ -75,10 +87,12 @@ final public class MySQLCreditCardScanner implements CronJob {
     /**
      * Performs the scheduled task.
      */
+    @Override
     public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
         scanMySQLForCards();
     }
     
+    @Override
     public int getCronJobThreadPriority() {
         return Thread.NORM_PRIORITY-2;
     }
@@ -100,12 +114,12 @@ final public class MySQLCreditCardScanner implements CronJob {
                     // Get connection to the database
                     Class.forName(AOServDaemonConfiguration.getMysqlDriver()).newInstance();
                     Connection conn = DriverManager.getConnection(
-                        "jdbc:mysql://"+thisAOServer.getPrimaryIPAddress().getIpAddress()+":"+database.getMysqlServer().getNetBind().getPort().getPort()+"/"+name,
-                        AOServDaemonConfiguration.getMysqlUser().getId(),
+                        "jdbc:mysql://"+thisAOServer.getPrimaryIPAddress().getInetAddress()+":"+database.getMysqlServer().getNetBind().getPort().getPort()+"/"+name,
+                        AOServDaemonConfiguration.getMysqlUser().toString(),
                         AOServDaemonConfiguration.getMysqlPassword()
                     );
                     try {
-                        Business business = database.getAoServerResource().getResource().getBusiness();
+                        Business business = database.getBusiness();
                         StringBuilder report = reports.get(business);
                         if(report==null) reports.put(business, report=new StringBuilder());
                         scanForCards(thisAOServer, mysqlServer, database, conn, name, report);
@@ -140,15 +154,15 @@ final public class MySQLCreditCardScanner implements CronJob {
     public static void scanForCards(AOServer aoServer, MySQLServer mysqlServer, MySQLDatabase database, Connection conn, MySQLDatabaseName catalog, StringBuilder report) throws SQLException {
         DatabaseMetaData metaData = conn.getMetaData();
         String[] tableTypes = new String[] {"TABLE"};
-        ResultSet tables = metaData.getTables(catalog.getName(), null, null, tableTypes);
+        ResultSet tables = metaData.getTables(catalog.toString(), null, null, tableTypes);
         try {
             while(tables.next()) {
                 String table = tables.getString(3);
                 try {
                     MySQLTableName tableName = MySQLTableName.valueOf(table);
                     StringBuilder buffer = new StringBuilder();
-                    buffer.append("select count(*) from `" + tableName + "` where ");
-                    ResultSet columns = metaData.getColumns(catalog.getName(), null, tableName.getName(), null);
+                    buffer.append("select count(*) from `").append(tableName).append("` where ");
+                    ResultSet columns = metaData.getColumns(catalog.toString(), null, tableName.toString(), null);
                     try {
                         boolean isFirst = true;
                         while(columns.next()) {

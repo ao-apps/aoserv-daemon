@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.unix.linux;
-
 /*
- * Copyright 2001-2010 by AO Industries, Inc.,
+ * Copyright 2001-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.unix.linux;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.LinuxAccount;
@@ -12,6 +12,7 @@ import com.aoindustries.aoserv.client.LinuxAccountGroup;
 import com.aoindustries.aoserv.client.LinuxGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.ResourceType;
+import com.aoindustries.aoserv.client.command.SetLinuxAccountPredisablePasswordCommand;
 import com.aoindustries.aoserv.client.validator.Gecos;
 import com.aoindustries.aoserv.client.validator.GroupId;
 import com.aoindustries.aoserv.client.validator.LinuxID;
@@ -100,6 +101,7 @@ public class LinuxAccountManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
+    @Override
     protected boolean doRebuild() {
         try {
             rebuildLinuxAccountSettings();
@@ -138,11 +140,11 @@ public class LinuxAccountManager extends BuilderThread {
             final Set<LinuxID> enabledUids = new HashSet<LinuxID>(accountsLen*4/3+1);
             final Set<UnixPath> homeDirs=new HashSet<UnixPath>(accountsLen*4/3+1);
             for(LinuxAccount la : accounts) {
-                usernames.add(la.getUsername().getUsername());
+                usernames.add(la.getUserId());
                 // UIDs are not always unique, only need to store once in the list
                 LinuxID uid = la.getUid();
                 allUids.add(uid);
-                if(la.getAoServerResource().getResource().getDisableLog()==null) enabledUids.add(uid);
+                if(!la.isDisabled()) enabledUids.add(uid);
                 homeDirs.add(la.getHome());
             }
 
@@ -158,7 +160,7 @@ public class LinuxAccountManager extends BuilderThread {
                 // Write root first
                 boolean rootFound=false;
                 for(LinuxAccount account : accounts) {
-                    if(account.getUsername().getUsername().equals(LinuxAccount.ROOT)) {
+                    if(account.getUserId().equals(LinuxAccount.ROOT)) {
                         printPasswdLine(account, out, true);
                         rootFound=true;
                         break;
@@ -166,7 +168,7 @@ public class LinuxAccountManager extends BuilderThread {
                 }
                 if(!rootFound) throw new AssertionError("root user not found while creating "+newPasswd.getPath());
                 for(LinuxAccount account : accounts) {
-                    if(!account.getUsername().getUsername().equals(LinuxAccount.ROOT)) {
+                    if(!account.getUserId().equals(LinuxAccount.ROOT)) {
                         printPasswdLine(account, out, true);
                     }
                 }
@@ -188,7 +190,7 @@ public class LinuxAccountManager extends BuilderThread {
                 boolean rootFound=false;
                 // Write root first
                 for(LinuxGroup lg : groups) {
-                    if(lg.getGroupName().getGroupName().equals(LinuxGroup.ROOT)) {
+                    if(lg.getGroupId().equals(LinuxGroup.ROOT)) {
                         printGroupLine(lg, out, true);
                         rootFound=true;
                         break;
@@ -196,7 +198,7 @@ public class LinuxAccountManager extends BuilderThread {
                 }
                 if(!rootFound) throw new AssertionError("root group not found while creating "+newGroup.getPath());
                 for(LinuxGroup lg : groups) {
-                    if(!lg.getGroupName().getGroupName().equals(LinuxGroup.ROOT)) {
+                    if(!lg.getGroupId().equals(LinuxGroup.ROOT)) {
                         printGroupLine(lg, out, true);
                     }
                 }
@@ -218,7 +220,7 @@ public class LinuxAccountManager extends BuilderThread {
                 // Write root first
                 boolean rootFound=false;
                 for(LinuxGroup lg : groups) {
-                    GroupId groupId = lg.getGroupName().getGroupName();
+                    GroupId groupId = lg.getGroupId();
                     if(groupId.equals(LinuxGroup.ROOT)) {
                         printGShadowLine(groupId, out);
                         rootFound=true;
@@ -227,7 +229,7 @@ public class LinuxAccountManager extends BuilderThread {
                 }
                 if(!rootFound) throw new AssertionError("root group not found while creating "+newGShadow.getPath());
                 for(LinuxGroup lg : groups) {
-                    GroupId groupId = lg.getGroupName().getGroupName();
+                    GroupId groupId = lg.getGroupId();
                     if(!groupId.equals(LinuxGroup.ROOT)) {
                         printGShadowLine(groupId, out);
                     }
@@ -273,7 +275,7 @@ public class LinuxAccountManager extends BuilderThread {
                 int uid=linuxAccount.getUid().getId();
                 int gid=primaryGroup.getGid().getId();
 
-                File homeDir=new File(linuxAccount.getHome().getPath());
+                File homeDir=new File(linuxAccount.getHome().toString());
                 if(!homeDir.exists()) {
                     // Make the parent of the home directory if it does not exist
                     File parent=homeDir.getParentFile();
@@ -372,15 +374,15 @@ public class LinuxAccountManager extends BuilderThread {
             // Disable and enable accounts
             for(LinuxAccount la : accounts) {
                 String prePassword=la.getPredisablePassword();
-                if(la.getAoServerResource().getResource().getDisableLog()==null) {
+                if(!la.isDisabled()) {
                     if(prePassword!=null) {
-                        setEncryptedPassword(la.getUsername().getUsername(), prePassword);
-                        la.setPredisablePassword(null);
+                        setEncryptedPassword(la.getUserId(), prePassword);
+                        new SetLinuxAccountPredisablePasswordCommand(la, null).execute(AOServDaemon.getConnector());
                     }
                 } else {
                     if(prePassword==null) {
-                        UserId username=la.getUsername().getUsername();
-                        la.setPredisablePassword(getEncryptedPassword(username));
+                        UserId username=la.getUserId();
+                        new SetLinuxAccountPredisablePasswordCommand(la, getEncryptedPassword(username)).execute(AOServDaemon.getConnector());
                         setPassword(username, null);
                     }
                 }
@@ -391,7 +393,7 @@ public class LinuxAccountManager extends BuilderThread {
                 // Build the set of UIDs that are allowed for any nested servers
                 for(AOServer nested : aoServer.getNestedAoServers()) {
                     for(LinuxAccount la : nested.getLinuxAccounts()) {
-                        if(la.getAoServerResource().getResource().getDisableLog()==null) enabledUids.add(la.getUid());
+                        if(!la.isDisabled()) enabledUids.add(la.getUid());
                     }
                 }
 
@@ -464,7 +466,7 @@ public class LinuxAccountManager extends BuilderThread {
     }
 
     public static String getAutoresponderContent(UnixPath path) throws IOException {
-        UnixFile file=new UnixFile(path.getPath());
+        UnixFile file=new UnixFile(path.toString());
         String content;
         if(file.getStat().exists()) {
             StringBuilder SB=new StringBuilder();
@@ -481,7 +483,7 @@ public class LinuxAccountManager extends BuilderThread {
     }
 
     public static String getCronTable(UserId username) throws IOException {
-        File cronFile=new File(cronDirectory, username.getId());
+        File cronFile=new File(cronDirectory, username.toString());
         String cronTable;
         if(cronFile.exists()) {
             StringBuilder SB=new StringBuilder();
@@ -510,9 +512,8 @@ public class LinuxAccountManager extends BuilderThread {
      *                   only the groupname and gid are included
      */
     public static void printGroupLine(LinuxGroup group, ChainWriter out, boolean complete) throws IOException {
-        String groupName=group.getGroupName().getGroupName().getId();
         out
-            .print(groupName)
+            .print(group.getGroupId())
             .print(complete?":*:":"::")
             .print(group.getGid())
             .print(':')
@@ -524,7 +525,7 @@ public class LinuxAccountManager extends BuilderThread {
             for(LinuxAccount la : altAccounts) {
                 if(didOne) out.print(',');
                 else didOne=true;
-                out.print(la.getUsername().getUsername());
+                out.print(la.getUserId());
             }
         }
         out.print('\n');
@@ -543,7 +544,7 @@ public class LinuxAccountManager extends BuilderThread {
      *                   only the username, uid, gid, and full name are included
      */
     public static void printPasswdLine(LinuxAccount linuxAccount, ChainWriter out, boolean complete) throws IOException {
-        UserId username=linuxAccount.getUsername().getUsername();
+        UserId username=linuxAccount.getUserId();
         LinuxGroup primaryGroup = linuxAccount.getPrimaryLinuxGroup();
         out
             .print(username)
@@ -577,7 +578,7 @@ public class LinuxAccountManager extends BuilderThread {
     public static void setBashProfile(LinuxAccount la, UnixPath profile) throws IOException {
         String profileLine=". "+profile;
 
-        UnixFile profileFile=new UnixFile(la.getHome().getPath(), BASHRC);
+        UnixFile profileFile=new UnixFile(la.getHome().toString(), BASHRC);
 
         // Make sure the file exists
         if(profileFile.getStat().exists()) {
@@ -605,7 +606,7 @@ public class LinuxAccountManager extends BuilderThread {
     }
 
     public static void setAutoresponderContent(UnixPath path, String content, int uid, int gid) throws IOException {
-        File file=new File(path.getPath());
+        File file=new File(path.toString());
         synchronized(rebuildLock) {
             if(content==null) {
                 if(file.exists() && !file.delete()) throw new IOException("Unable to delete file: "+file.getPath());
@@ -624,7 +625,7 @@ public class LinuxAccountManager extends BuilderThread {
 
     public static void setCronTable(UserId username, String cronTable) throws IOException {
         int len=cronTable.length();
-        File cronFile=new File(cronDirectory, username.getId());
+        File cronFile=new File(cronDirectory, username.toString());
         synchronized(rebuildLock) {
             if(cronTable.length()==0) {
                 if(cronFile.exists()) cronFile.delete();
@@ -674,7 +675,7 @@ public class LinuxAccountManager extends BuilderThread {
                 && linuxAccountManager==null
             ) {
                 System.out.print("Starting LinuxAccountManager: ");
-                AOServConnector<?,?> conn=AOServDaemon.getConnector();
+                AOServConnector conn=AOServDaemon.getConnector();
                 linuxAccountManager=new LinuxAccountManager();
                 conn.getFtpGuestUsers().getTable().addTableListener(linuxAccountManager, 0);
                 conn.getLinuxAccounts().getTable().addTableListener(linuxAccountManager, 0);
@@ -694,25 +695,29 @@ public class LinuxAccountManager extends BuilderThread {
                 "/bin/tar",
                 "-c",
                 "-C",
-                home.getPath(),
+                home.toString(),
                 "-f",
                 tempUF.getPath(),
                 "."
             };
             AOServDaemon.exec(cmd);
             InputStream in=new FileInputStream(tempUF.getFile());
-            byte[] buff=BufferManager.getBytes();
             try {
-                int ret;
-                while((ret=in.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
-                    out.writeByte(AOServDaemonProtocol.NEXT);
-                    out.writeShort(ret);
-                    out.write(buff, 0, ret);
+                byte[] buff=BufferManager.getBytes();
+                try {
+                    int ret;
+                    while((ret=in.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
+                        out.writeByte(AOServDaemonProtocol.NEXT);
+                        assert ret <= Short.MAX_VALUE;
+                        out.writeShort(ret);
+                        out.write(buff, 0, ret);
+                    }
+                } finally {
+                    BufferManager.release(buff);
                 }
             } finally {
-                BufferManager.release(buff);
+                in.close();
             }
-            in.close();
         } finally {
             tempUF.delete();
         }
@@ -745,7 +750,7 @@ public class LinuxAccountManager extends BuilderThread {
                     "/bin/tar",
                     "-x",
                     "-C",
-                    home.getPath(),
+                    home.toString(),
                     "-f",
                     tempUF.getPath()
                 };
@@ -760,6 +765,7 @@ public class LinuxAccountManager extends BuilderThread {
         if(linuxAccountManager!=null) linuxAccountManager.waitForBuild();
     }
 
+    @Override
     public String getProcessTimerDescription() {
         return "Rebuild Linux Accounts";
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2010 by AO Industries, Inc.,
+ * Copyright 2000-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -112,12 +112,12 @@ final public class EmailAddressManager extends BuilderThread {
                             ex_nouser="/opt/aoserv-client/sbin/ex_nouser";
                         } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                         for(LinuxAccount la : aoServer.getSortedLinuxAccounts()) {
-                            UserId username=la.getUsername().getUsername();
-                            if(!usernamesUsed.contains(username.getId())) {
-                                if(username.getId().indexOf('@')==-1) {
+                            UserId username=la.getUserId();
+                            if(!usernamesUsed.contains(username.toString())) {
+                                if(username.toString().indexOf('@')==-1) {
                                     aliasesOut.print(username).print(": |").println(ex_nouser);
                                 }
-                                usernamesUsed.add(username.getId());
+                                usernamesUsed.add(username.toString());
                             }
                         }
 
@@ -476,7 +476,7 @@ final public class EmailAddressManager extends BuilderThread {
                 && emailAddressManager==null
             ) {
                 System.out.print("Starting EmailAddressManager: ");
-                AOServConnector<?,?> connector=AOServDaemon.getConnector();
+                AOServConnector connector=AOServDaemon.getConnector();
                 emailAddressManager=new EmailAddressManager();
                 connector.getEmailDomains().addTableListener(emailAddressManager, 0);
                 connector.getBlackholeEmailAddresses().addTableListener(emailAddressManager, 0);
@@ -504,6 +504,7 @@ final public class EmailAddressManager extends BuilderThread {
         }
     }
 
+    @Override
     public String getProcessTimerDescription() {
         return "Rebuild Email Addresses";
     }

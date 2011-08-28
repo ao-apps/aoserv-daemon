@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.postgres;
-
 /*
- * Copyright 2001-2010 by AO Industries, Inc.,
+ * Copyright 2001-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.postgres;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.LinuxAccount;
@@ -14,7 +14,6 @@ import com.aoindustries.aoserv.client.PostgresServer;
 import com.aoindustries.aoserv.client.PostgresUser;
 import com.aoindustries.aoserv.client.PostgresVersion;
 import com.aoindustries.aoserv.client.validator.PostgresDatabaseName;
-import com.aoindustries.aoserv.client.validator.ValidationException;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -22,6 +21,8 @@ import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
+import com.aoindustries.cron.CronJobScheduleMode;
+import com.aoindustries.cron.Schedule;
 import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.sql.AOConnectionPool;
@@ -54,12 +55,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
     }
 
     public boolean isValidIdentifier(String identifier) {
-        try {
-            PostgresDatabaseName.validate(identifier.toLowerCase(Locale.ENGLISH));
-            return true;
-        } catch(ValidationException err) {
-            return false;
-        }
+        return PostgresDatabaseName.validate(identifier.toLowerCase(Locale.ENGLISH)).isValid();
     }
 
     /*
@@ -205,6 +201,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
     }
 */
     private static final Object rebuildLock=new Object();
+    @Override
     protected boolean doRebuild() {
         try {
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
@@ -218,8 +215,8 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
             synchronized(rebuildLock) {
                 for(PostgresServer ps : thisAOServer.getPostgresServers()) {
                     int port=ps.getNetBind().getPort().getPort();
-                    PostgresVersion pv=ps.getPostgresVersion();
-                    String version=pv.getTechnologyVersion().getVersion();
+                    PostgresVersion pv=ps.getVersion();
+                    String version=pv.getVersion().getVersion();
                     String minorVersion=pv.getMinorVersion();
 
                     // Get the connection to work through
@@ -241,7 +238,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                             for(PostgresDatabase database : ps.getPostgresDatabases()) {
                                 PostgresDatabaseName name=database.getName();
                                 if(!existing.remove(name)) {
-                                    PostgresUser datdba=database.getDatDBA();
+                                    PostgresUser datdba=database.getDatDba();
                                     if(
                                         version.startsWith(PostgresVersion.VERSION_7_3+'.')
                                         || version.startsWith(PostgresVersion.VERSION_8_0+'.')
@@ -249,15 +246,15 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                         || version.startsWith(PostgresVersion.VERSION_8_3+'.')
                                         || version.startsWith(PostgresVersion.VERSION_8_3+'R')
                                     ) {
-                                        stmt.executeUpdate("create database "+name+" with owner="+datdba.getUsername().getUsername()+" encoding='"+database.getPostgresEncoding().getEncoding()+'\'');
+                                        stmt.executeUpdate("create database "+name+" with owner="+datdba.getUserId()+" encoding='"+database.getEncoding().getEncoding()+'\'');
                                         conn.commit();
                                     } else if(
                                         version.startsWith(PostgresVersion.VERSION_7_1+'.')
                                         || version.startsWith(PostgresVersion.VERSION_7_2+'.')
                                     ) {
                                         // Create the database
-                                        stmt.executeUpdate("create database "+name+" with encoding='"+database.getPostgresEncoding().getEncoding()+"'");
-                                        stmt.executeUpdate("update pg_database set datdba=(select usesysid from pg_user where usename='"+datdba.getUsername().getUsername()+"') where datname='"+name+"'");
+                                        stmt.executeUpdate("create database "+name+" with encoding='"+database.getEncoding().getEncoding()+"'");
+                                        stmt.executeUpdate("update pg_database set datdba=(select usesysid from pg_user where usename='"+datdba.getUserId()+"') where datname='"+name+"'");
                                         conn.commit();
                                     } else throw new SQLException("Unsupported version of PostgreSQL: "+version);
 
@@ -364,9 +361,9 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
             }
             String[] command={
                 commandPath,
-                ps.getPostgresVersion().getMinorVersion(),
+                ps.getVersion().getMinorVersion(),
                 ps.getNetBind().getPort().toString(),
-                pd.getName().getName(),
+                pd.getName().toString(),
                 tempFile.getPath()
             };
             AOServDaemon.exec(command);
@@ -378,6 +375,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                     int ret;
                     while((ret=dumpin.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
                         masterOut.writeByte(AOServDaemonProtocol.NEXT);
+                        assert ret <= Short.MAX_VALUE;
                         masterOut.writeShort(ret);
                         masterOut.write(buff, 0, ret);
                     }
@@ -409,7 +407,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
             ) {
                 System.out.print("Starting PostgresDatabaseManager: ");
                 if(postgresDatabaseManager==null) {
-                    AOServConnector<?,?> conn=AOServDaemon.getConnector();
+                    AOServConnector conn=AOServDaemon.getConnector();
                     postgresDatabaseManager=new PostgresDatabaseManager();
                     conn.getPostgresDatabases().getTable().addTableListener(postgresDatabaseManager, 0);
                 }
@@ -426,6 +424,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
         if(postgresDatabaseManager!=null) postgresDatabaseManager.waitForBuild();
     }
 
+    @Override
     public String getProcessTimerDescription() {
         return "Rebuild PostgreSQL Databases";
     }
@@ -434,18 +433,28 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
      * Runs once a month for automatic vacuuming and reindexing of all user tables, at 1:05 every Sunday.
      * REINDEX is only called on the first Sunday of the month.
      */
-    public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
-        return
-            minute==5
-            && hour==1
-            && dayOfWeek==Calendar.SUNDAY
-        ;
+    private static final Schedule schedule = new Schedule() {
+        @Override
+        public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
+            return
+                minute==5
+                && hour==1
+                && dayOfWeek==Calendar.SUNDAY
+            ;
+        }
+    };
+
+    @Override
+    public Schedule getCronJobSchedule() {
+        return schedule;
     }
 
-    public int getCronJobScheduleMode() {
-        return CRON_JOB_SCHEDULE_SKIP;
+    @Override
+    public CronJobScheduleMode getCronJobScheduleMode() {
+        return CronJobScheduleMode.SKIP;
     }
 
+    @Override
     public String getCronJobName() {
         return "PostgresDatabaseManager";
     }
@@ -453,10 +462,12 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
     /**
      * Since the VACUUM FULL and REINDEX commands use exclusive locks on each table, we want it to finish as soon as possible.
      */
+    @Override
     public int getCronJobThreadPriority() {
         return Thread.NORM_PRIORITY+2;
     }
 
+    @Override
     public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
         try {
             // Only REINDEX on the first Sunday of the month
@@ -464,7 +475,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
             List<String> tableNames=new ArrayList<String>();
             List<String> schemas=new ArrayList<String>();
             for(PostgresServer postgresServer : AOServDaemon.getThisAOServer().getPostgresServers()) {
-                String postgresServerVersion=postgresServer.getPostgresVersion().getTechnologyVersion().getVersion();
+                String postgresServerVersion=postgresServer.getVersion().getVersion().getVersion();
                 boolean postgresServerHasSchemas=
                     !postgresServerVersion.startsWith(PostgresVersion.VERSION_7_1+'.')
                     || !postgresServerVersion.startsWith(PostgresVersion.VERSION_7_2+'.')
@@ -475,7 +486,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                 for(PostgresDatabase postgresDatabase : postgresServer.getPostgresDatabases()) {
                     if(
                         !postgresDatabase.isTemplate()
-                        && postgresDatabase.getAllowsConnections()
+                        && postgresDatabase.getAllowConn()
                     ) {
                         AOConnectionPool pool;
                         Connection conn;
@@ -489,7 +500,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                             Class.forName(postgresDatabase.getJdbcDriver()).newInstance();
                             conn=DriverManager.getConnection(
                                 postgresDatabase.getJdbcUrl(true),
-                                PostgresUser.POSTGRES.getId(),
+                                PostgresUser.POSTGRES.toString(),
                                 AOServDaemonConfiguration.getPostgresPassword()
                             );
                         }

@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.util;
 
 /*
- * Copyright 2002-2010 by AO Industries, Inc.,
+ * Copyright 2002-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -41,6 +41,7 @@ abstract public class BuilderThread implements TableListener<MethodColumn,Row> {
         delayAndRebuild();
     }
 
+    @Override
     public void tableUpdated(Table<? extends MethodColumn,? extends Row> table) {
         delayAndRebuild();
     }

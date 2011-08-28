@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon;
 
 /*
- * Copyright 2000-2010 by AO Industries, Inc.,
+ * Copyright 2000-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -108,7 +108,7 @@ final public class AOServDaemonServerThread extends Thread {
     @Override
     public void run() {
         try {
-            AOServConnector<?,?> connector=AOServDaemon.getConnector();
+            AOServConnector connector=AOServDaemon.getConnector();
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
             // Read the key first so that any failed connection looks the same from the outside,
@@ -139,7 +139,7 @@ final public class AOServDaemonServerThread extends Thread {
                         }
                     } else {
                         // Match result of DNS query
-                        for(InetAddress dnsResult : InetAddress.getAllByName(allowedHostname.getDomainName().getDomain()+".")) {
+                        for(InetAddress dnsResult : InetAddress.getAllByName(allowedHostname.getDomainName().toString()+".")) {
                             if(com.aoindustries.aoserv.client.validator.InetAddress.valueOf(dnsResult.getHostAddress()).equals(hostAddress)) {
                                 isOK=true;
                                 break HOSTS;
@@ -727,13 +727,13 @@ final public class AOServDaemonServerThread extends Thread {
                                 out.write(AOServDaemonProtocol.DONE);
                             }
                             break;
-                        case AOServDaemonProtocol.SET_LINUX_SERVER_ACCOUNT_PASSWORD :
+                        case AOServDaemonProtocol.SET_LINUX_ACCOUNT_PASSWORD :
                             {
-                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing SET_LINUX_SERVER_ACCOUNT_PASSWORD, Thread="+toString());
-                                String username=in.readUTF();
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing SET_LINUX_ACCOUNT_PASSWORD, Thread="+toString());
+                                UserId username=UserId.valueOf(in.readUTF());
                                 String plainPassword=in.readUTF();
-                                if(daemonKey==null) throw new IOException("Only the master server may SET_LINUX_SERVER_ACCOUNT_PASSWORD");
-                                LinuxAccountManager.setPassword(UserId.valueOf(username), plainPassword);
+                                if(daemonKey==null) throw new IOException("Only the master server may SET_LINUX_ACCOUNT_PASSWORD");
+                                LinuxAccountManager.setPassword(username, plainPassword);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
                             break;

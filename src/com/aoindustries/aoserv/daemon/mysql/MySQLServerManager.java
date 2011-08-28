@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.mysql;
-
 /*
- * Copyright 2006-2010 by AO Industries, Inc.,
+ * Copyright 2006-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.mysql;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.MySQLDatabase;
@@ -35,6 +35,7 @@ final public class MySQLServerManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
+    @Override
     protected boolean doRebuild() {
         //AOServConnector connector=AOServDaemon.getConnector();
 
@@ -55,7 +56,7 @@ final public class MySQLServerManager extends BuilderThread {
                 pool=new AOConnectionPool(
                     AOServDaemonConfiguration.getMysqlDriver(),
                     "jdbc:mysql://127.0.0.1:"+md.getMysqlServer().getNetBind().getPort().getPort()+"/"+md.getName(),
-                    AOServDaemonConfiguration.getMysqlUser().getId(),
+                    AOServDaemonConfiguration.getMysqlUser().toString(),
                     AOServDaemonConfiguration.getMysqlPassword(),
                     AOServDaemonConfiguration.getMySqlConnections(),
                     AOServDaemonConfiguration.getMySqlMaxConnectionAge(),
@@ -82,7 +83,7 @@ final public class MySQLServerManager extends BuilderThread {
                 && mysqlServerManager==null
             ) {
                 System.out.print("Starting MySQLServerManager: ");
-                AOServConnector<?,?> conn=AOServDaemon.getConnector();
+                AOServConnector conn=AOServDaemon.getConnector();
                 mysqlServerManager=new MySQLServerManager();
                 conn.getMysqlServers().getTable().addTableListener(mysqlServerManager, 0);
                 System.out.println("Done");
@@ -94,6 +95,7 @@ final public class MySQLServerManager extends BuilderThread {
         if(mysqlServerManager!=null) mysqlServerManager.waitForBuild();
     }
 
+    @Override
     public String getProcessTimerDescription() {
         return "Rebuild MySQL Servers";
     }

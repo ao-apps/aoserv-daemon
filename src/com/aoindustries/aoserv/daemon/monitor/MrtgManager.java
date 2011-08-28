@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.monitor;
-
 /*
- * Copyright 2006-2010 by AO Industries, Inc.,
+ * Copyright 2006-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.monitor;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.NetDevice;
@@ -56,6 +56,7 @@ final public class MrtgManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
+    @Override
     protected boolean doRebuild() {
         try {
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
@@ -113,8 +114,8 @@ final public class MrtgManager extends BuilderThread {
                                 + "  <div style='text-align:center'>\n"
                                 + "  <h1>\n"
                                 + "  <img src=\"https://www.aoindustries.com/images/clientarea/accounting/SendInvoices.jpg\" width=\"452\" height=\"127\" alt=\"\" /><br />\n"
-                                + "  <span style=\"color:#000000\">").encodeHtml(thisAOServer.getHostname().getDomain());
-                        if(failoverServer!=null) out.print(" on ").encodeHtml(failoverServer.getHostname().getDomain());
+                                + "  <span style=\"color:#000000\">").encodeHtml(thisAOServer.getHostname().toString());
+                        if(failoverServer!=null) out.print(" on ").encodeHtml(failoverServer.getHostname().toString());
                         out.print("</span>\n"
                                 + "  </h1>\n"
                                 + "  <hr /><span style=\"font-size:large\">\n"
@@ -129,7 +130,7 @@ final public class MrtgManager extends BuilderThread {
                         out.print("  <a href=\"mem.html\"> Memory</a> |\n");
                         // Add the network devices
                         for(NetDevice netDevice : netDevices) {
-                            out.print("  <a href=\"").encodeXmlAttribute(netDevice.getNetDeviceID().getName()).print(".html\"> ").encodeHtml(netDevice.getDescription()).print("</a> |\n");
+                            out.print("  <a href=\"").encodeXmlAttribute(netDevice.getDeviceId().getName()).print(".html\"> ").encodeHtml(netDevice.getDescription()).print("</a> |\n");
                         }
                         out.print("  <a href=\"swap.html\">Swap</a> |\n"
                                 + "  </span>\n"
@@ -138,7 +139,7 @@ final public class MrtgManager extends BuilderThread {
                                 + "\n"
                                 + "Interval: 5\n");
                         for(NetDevice netDevice : netDevices) {
-                            String deviceId=netDevice.getNetDeviceID().getName();
+                            String deviceId=netDevice.getDeviceId().getName();
                             out.print("\n"
                                     + "Target[").print(deviceId).print("]: `").print(daemonBin).print("/mrtg_net_device ").print(deviceId).print("`\n"
                                     + "Options[").print(deviceId).print("]: noinfo, growright, transparent\n"
@@ -336,8 +337,8 @@ final public class MrtgManager extends BuilderThread {
                                 + "      <div style=\"text-align:center\">\n"
                                 + "        <h1>\n"
                                 + "          <img src=\"https://www.aoindustries.com/images/clientarea/accounting/SendInvoices.jpg\" width=\"452\" height=\"127\" alt=\"\" /><br />\n"
-                                + "	  <span style=\"color:#000000\">").encodeHtml(thisAOServer.getHostname().getDomain());
-                        if(failoverServer!=null) out.print(" on ").encodeHtml(failoverServer.getHostname().getDomain());
+                                + "	  <span style=\"color:#000000\">").encodeHtml(thisAOServer.getHostname().toString());
+                        if(failoverServer!=null) out.print(" on ").encodeHtml(failoverServer.getHostname().toString());
                         out.print("</span>\n"
                                 + "        </h1>\n"
                                 + "        <hr />\n"
@@ -354,7 +355,7 @@ final public class MrtgManager extends BuilderThread {
                         out.print("          <a href=\"mem.html\"> Memory</a> |\n");
                         // Add the network devices
                         for(NetDevice netDevice : netDevices) {
-                            out.print("          <a href=\"").encodeXmlAttribute(netDevice.getNetDeviceID().getName()).print(".html\"> ").encodeHtml(netDevice.getDescription()).print("</a> |\n");
+                            out.print("          <a href=\"").encodeXmlAttribute(netDevice.getDeviceId().getName()).print(".html\"> ").encodeHtml(netDevice.getDescription()).print("</a> |\n");
                         }
                         out.print("          <a href=\"swap.html\">Swap</a> |\n"
                                 + "        </span>\n"
@@ -388,7 +389,7 @@ final public class MrtgManager extends BuilderThread {
                                 + "        <a href=\"mem.html\"><img style=\"border:0px; display:block;\" width=\"700\" height=\"185\" src=\"mem-day.png\" alt=\"mem\" /></a>\n"
                                 + "      </p>\n");
                         for(NetDevice netDevice : netDevices) {
-                            String deviceId=netDevice.getNetDeviceID().getName();
+                            String deviceId=netDevice.getDeviceId().getName();
                             out.print("      <hr />\n"
                                     + "      <h2>").encodeHtml(netDevice.getDescription()).print(" traffic</h2>\n"
                                     + "      <p>\n"
@@ -472,7 +473,7 @@ final public class MrtgManager extends BuilderThread {
                 && mrtgManager==null
             ) {
                 System.out.print("Starting MrtgManager: ");
-                AOServConnector<?,?> conn=AOServDaemon.getConnector();
+                AOServConnector conn=AOServDaemon.getConnector();
                 mrtgManager=new MrtgManager();
                 conn.getAoServers().getTable().addTableListener(mrtgManager, 0);
                 conn.getNetDevices().getTable().addTableListener(mrtgManager, 0);
@@ -484,6 +485,7 @@ final public class MrtgManager extends BuilderThread {
         }
     }
 
+    @Override
     public String getProcessTimerDescription() {
         return "Rebuild mrtg.cfg";
     }
@@ -610,6 +612,7 @@ final public class MrtgManager extends BuilderThread {
                 int ret;
                 while((ret=in.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
                     out.write(AOServDaemonProtocol.NEXT);
+                    assert ret <= Short.MAX_VALUE;
                     out.writeShort(ret);
                     out.write(buff, 0, ret);
                 }

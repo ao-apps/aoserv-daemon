@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.dns;
 
 /*
- * Copyright 2000-2010 by AO Industries, Inc.,
+ * Copyright 2000-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -118,7 +118,7 @@ final public class DNSManager extends BuilderThread {
     private static final Object rebuildLock=new Object();
     protected boolean doRebuild() {
         try {
-            AOServConnector<?,?> connector=AOServDaemon.getConnector();
+            AOServConnector connector=AOServDaemon.getConnector();
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
             int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
@@ -215,7 +215,7 @@ final public class DNSManager extends BuilderThread {
                     Map<NetPort,Set<InetAddress>> alreadyAddedIPs = new HashMap<NetPort,Set<InetAddress>>();
                     for(NetBind nb : AOServDaemon.getThisAOServer().getServer().getNetBinds(connector.getProtocols().get(Protocol.DNS))) {
                         NetPort port = nb.getPort();
-                        InetAddress ip = nb.getIpAddress().getIpAddress();
+                        InetAddress ip = nb.getIpAddress().getInetAddress();
                         Set<InetAddress> ips = alreadyAddedIPs.get(port);
                         if(ips==null) alreadyAddedIPs.put(port, ips = new HashSet<InetAddress>());
                         if(!ips.contains(ip)) {
@@ -320,7 +320,7 @@ final public class DNSManager extends BuilderThread {
                 && !netBinds.isEmpty()
             ) {
                 System.out.print("Starting DNSManager: ");
-                AOServConnector<?,?> conn=AOServDaemon.getConnector();
+                AOServConnector conn=AOServDaemon.getConnector();
                 dnsManager=new DNSManager();
                 conn.getDnsZones().getTable().addTableListener(dnsManager, 0);
                 conn.getDnsRecords().getTable().addTableListener(dnsManager, 0);

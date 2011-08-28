@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.util;
 
 /*
- * Copyright 2001-2010 by AO Industries, Inc.,
+ * Copyright 2001-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -25,7 +25,7 @@ abstract public class SocketServerThread extends Thread {
     final NetPort port;
 
     public SocketServerThread(String name, com.aoindustries.aoserv.client.validator.InetAddress ipAddress, NetPort port) {
-        super(name+" on "+(ipAddress.getAddress().indexOf(':')==-1 ? ipAddress.getAddress() : ("["+ipAddress.getAddress()+"]"))+":"+port);
+        super(name+" on "+(ipAddress.toString().indexOf(':')==-1 ? ipAddress.toString() : ("["+ipAddress.toString()+"]"))+":"+port);
         this.ipAddress=ipAddress;
         this.port=port;
     }
@@ -46,7 +46,7 @@ abstract public class SocketServerThread extends Thread {
     public void run() {
         while(runMore) {
             try {
-                SS=new ServerSocket(port.getPort(), 50, InetAddress.getByName(ipAddress.getAddress()));
+                SS=new ServerSocket(port.getPort(), 50, InetAddress.getByName(ipAddress.toString()));
                 try {
                     while(runMore) {
                         Socket socket=SS.accept();

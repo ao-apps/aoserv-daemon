@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.ftp;
-
 /*
- * Copyright 2001-2010 by AO Industries, Inc.,
+ * Copyright 2001-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.ftp;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.FtpGuestUser;
@@ -16,7 +16,7 @@ import com.aoindustries.aoserv.client.NetTcpRedirect;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.PrivateFtpServer;
 import com.aoindustries.aoserv.client.Protocol;
-import com.aoindustries.aoserv.client.validator.DomainName;
+import com.aoindustries.aoserv.client.validator.DomainLabels;
 import com.aoindustries.aoserv.client.validator.ValidationException;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -68,6 +68,7 @@ final public class FTPManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
+    @Override
     protected boolean doRebuild() {
         try {
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
@@ -92,7 +93,7 @@ final public class FTPManager extends BuilderThread {
      * Rebuilds a vsftpd installation.
      */
     private static void doRebuildVsFtpd() throws IOException {
-        AOServConnector<?,?> conn=AOServDaemon.getConnector();
+        AOServConnector conn=AOServDaemon.getConnector();
         AOServer thisAOServer=AOServDaemon.getThisAOServer();
         int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
         if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
@@ -106,7 +107,7 @@ final public class FTPManager extends BuilderThread {
                 ChainWriter out = new ChainWriter(bout);
                 try {
                     for(FtpGuestUser ftpGuestUser : new TreeSet<FtpGuestUser>(thisAOServer.getFtpGuestUsers())) {
-                        out.print(ftpGuestUser.getLinuxAccount().getUsername().getUsername()).print('\n');
+                        out.print(ftpGuestUser.getLinuxAccount().getUserId()).print('\n');
                     }
                 } finally {
                     out.close();
@@ -205,15 +206,15 @@ final public class FTPManager extends BuilderThread {
                         ChainWriter out = new ChainWriter(bout);
                         try {
                             out.print("# BOOLEAN OPTIONS\n"
-                                    + "anonymous_enable=").print(privateServer==null || privateServer.allowAnonymous() ? "YES" : "NO").print("\n"
+                                    + "anonymous_enable=").print(privateServer==null || privateServer.getAllowAnonymous() ? "YES" : "NO").print("\n"
                                     + "async_abor_enable=YES\n"
                                     + "chroot_list_enable=YES\n"
                                     + "connect_from_port_20=YES\n"
                                     + "dirmessage_enable=YES\n"
-                                    + "hide_ids=").print(privateServer==null || privateServer.allowAnonymous() ? "YES" : "NO").print("\n"
+                                    + "hide_ids=").print(privateServer==null || privateServer.getAllowAnonymous() ? "YES" : "NO").print("\n"
                                     + "local_enable=YES\n"
                                     + "ls_recurse_enable=NO\n"
-                                    + "text_userdb_names=").print(privateServer==null || privateServer.allowAnonymous() ? "NO" : "YES").print("\n"
+                                    + "text_userdb_names=").print(privateServer==null || privateServer.getAllowAnonymous() ? "NO" : "YES").print("\n"
                                     + "userlist_enable=YES\n"
                                     + "write_enable=YES\n"
                                     + "xferlog_enable=YES\n"
@@ -232,14 +233,14 @@ final public class FTPManager extends BuilderThread {
                                     + "# STRING OPTIONS\n"
                                     + "chroot_list_file=/etc/vsftpd/chroot_list\n");
                             if(privateServer!=null) {
-                                out.print("ftp_username=").print(privateServer.getLinuxAccountGroup().getLinuxAccount().getUsername().getUsername()).print('\n');
+                                out.print("ftp_username=").print(privateServer.getLinuxAccountGroup().getLinuxAccount().getUserId()).print('\n');
                             }
                             out
                                 .print("ftpd_banner=FTP Server [")
                                 .print(
                                     privateServer!=null?privateServer.getHostname()
-                                    :ia==null?thisAOServer.getHostname().getDomain()
-                                    :ia.getHostname().getDomain()
+                                    :ia==null?thisAOServer.getHostname().toString()
+                                    :ia.getHostname().toString()
                                 ).print("]\n"
                                     + "pam_service_name=vsftpd\n");
                             if(privateServer!=null) {
@@ -251,7 +252,7 @@ final public class FTPManager extends BuilderThread {
                         byte[] newBytes = bout.toByteArray();
 
                         // Only write to filesystem if missing or changed
-                        String filename = "vsftpd_"+bind.getIpAddress().getIpAddress().getAddress()+"_"+bind.getPort().getPort()+".conf";
+                        String filename = "vsftpd_"+bind.getIpAddress().getInetAddress().toString()+"_"+bind.getPort().getPort()+".conf";
                         if(!existing.add(filename)) throw new AssertionError("Filename already used: "+filename);
                         UnixFile confFile = new UnixFile(vsFtpdVhostsirectory, filename, false);
                         if(!confFile.getStat(tempStat).exists() || !confFile.contentEquals(newBytes)) {
@@ -278,15 +279,15 @@ final public class FTPManager extends BuilderThread {
     }
 
     /**
-     * Rebuilds the contents of /var/cvs  Each site optinally gets its own
+     * Rebuilds the contents of /var/cvs  Each site optionally gets its own
      * shared FTP space.
      */
     private static void doRebuildSharedFtpDirectory() throws IOException, ValidationException {
         List<File> deleteFileList=new ArrayList<File>();
 
         String[] list = sharedFtpDirectory.list();
-        Set<DomainName> ftpDirectories = new HashSet<DomainName>(list.length*4/3+1);
-        for(int c=0;c<list.length;c++) ftpDirectories.add(DomainName.valueOf(list[c]));
+        Set<DomainLabels> ftpDirectories = new HashSet<DomainLabels>(list.length*4/3+1);
+        for(int c=0;c<list.length;c++) ftpDirectories.add(DomainLabels.valueOf(list[c]));
         
         for(HttpdSite httpdSite : AOServDaemon.getThisAOServer().getHttpdSites()) {
             HttpdSiteManager manager = HttpdSiteManager.getInstance(httpdSite);
@@ -295,14 +296,14 @@ final public class FTPManager extends BuilderThread {
              * Make the private FTP space, if needed.
              */
             if(manager.enableAnonymousFtp()) {
-                DomainName siteName = httpdSite.getSiteName();
-                manager.configureFtpDirectory(new UnixFile(sharedFtpDirectory, siteName.getDomain(), false));
+                DomainLabels siteName = httpdSite.getSiteName();
+                manager.configureFtpDirectory(new UnixFile(sharedFtpDirectory, siteName.toString(), false));
                 ftpDirectories.remove(siteName);
             }
         }
 
         File sharedFtpDirectoryFile = sharedFtpDirectory.getFile();
-        for(DomainName filename : ftpDirectories) deleteFileList.add(new File(sharedFtpDirectoryFile, filename.getDomain()));
+        for(DomainLabels filename : ftpDirectories) deleteFileList.add(new File(sharedFtpDirectoryFile, filename.toString()));
 
         // Back-up and delete the files scheduled for removal
         BackupManager.backupAndDeleteFiles(deleteFileList);
@@ -322,7 +323,7 @@ final public class FTPManager extends BuilderThread {
                 && ftpManager==null
             ) {
                 System.out.print("Starting FTPManager: ");
-                AOServConnector<?,?> conn=AOServDaemon.getConnector();
+                AOServConnector conn=AOServDaemon.getConnector();
                 ftpManager=new FTPManager();
                 conn.getFtpGuestUsers().getTable().addTableListener(ftpManager, 0);
                 conn.getHttpdSites().getTable().addTableListener(ftpManager, 0);
@@ -372,6 +373,7 @@ final public class FTPManager extends BuilderThread {
         trimFiles(dir, SA);
     }
 
+    @Override
     public String getProcessTimerDescription() {
         return "Rebuild FTP";
     }

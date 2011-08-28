@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.unix;
 
 /*
- * Copyright 2001-2010 by AO Industries, Inc.,
+ * Copyright 2001-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -113,10 +113,7 @@ final public class ShadowFile {
             try {
                 boolean rootFound=false;
                 for(LinuxAccount account : accounts) {
-                    UserId username = account
-                        .getUsername()
-                        .getUsername()
-                    ;
+                    UserId username = account.getUserId();
                     if(username.equals(LinuxAccount.ROOT)) {
                         ShadowFileEntry entry = shadowEntries.get(username);
                         if(entry == null) throw new AssertionError("root user not found in /etc/shadow");
@@ -128,10 +125,7 @@ final public class ShadowFile {
                 }
                 if(!rootFound) throw new AssertionError("root user not found while creating "+newShadowFile.getPath());
                 for(LinuxAccount account : accounts) {
-                    UserId username = account
-                        .getUsername()
-                        .getUsername()
-                    ;
+                    UserId username = account.getUserId();
                     if(!username.equals(LinuxAccount.ROOT)) {
                         ShadowFileEntry entry = shadowEntries.get(username);
                         if (entry == null) entry = new ShadowFileEntry(username);

@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.backup;
-
 /*
- * Copyright 2001-2010 by AO Industries, Inc.,
+ * Copyright 2001-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.backup;
+
 import com.aoindustries.aoserv.backup.UnixFileEnvironment;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
@@ -81,14 +81,14 @@ public class AOServerEnvironment extends UnixFileEnvironment {
         // Determine which MySQL Servers are replicated (not mirrored with failover code)
         short retention = ffr.getRetention().getDays();
         if(retention==1) {
-            AOServer toServer = ffr.getBackupPartition().getAOServer();
+            AOServer toServer = ffr.getBackupPartition().getAoServer();
             Set<FailoverMySQLReplication> fmrs = ffr.getFailoverMySQLReplications();
             List<MySQLServerName> replicatedMySQLServers = new ArrayList<MySQLServerName>(fmrs.size());
             List<String> replicatedMySQLMinorVersions = new ArrayList<String>(fmrs.size());
             Logger logger = getLogger();
             boolean isDebug = logger.isLoggable(Level.FINE);
             for(FailoverMySQLReplication fmr : fmrs) {
-                MySQLServer mysqlServer = fmr.getMySQLServer();
+                MySQLServer mysqlServer = fmr.getMysqlServer();
                 MySQLServerName name = mysqlServer.getName();
                 String minorVersion = mysqlServer.getMinorVersion();
                 replicatedMySQLServers.add(name);
@@ -358,9 +358,9 @@ public class AOServerEnvironment extends UnixFileEnvironment {
     public InetAddress getDefaultSourceIPAddress() throws RemoteException {
         AOServer thisServer = AOServDaemon.getThisAOServer();
         // Next, it will use the daemon bind address
-        InetAddress sourceIPAddress = thisServer.getDaemonBind().getIpAddress().getIpAddress();
+        InetAddress sourceIPAddress = thisServer.getDaemonBind().getIpAddress().getInetAddress();
         // If daemon is binding to wildcard, then use source IP address of primary IP
-        if(sourceIPAddress.isUnspecified()) sourceIPAddress = thisServer.getPrimaryIPAddress().getIpAddress();
+        if(sourceIPAddress.isUnspecified()) sourceIPAddress = thisServer.getPrimaryIPAddress().getInetAddress();
         return sourceIPAddress;
     }
 

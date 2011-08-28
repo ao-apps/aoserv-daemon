@@ -18,6 +18,7 @@ import com.aoindustries.io.AOPool;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.NotImplementedException;
 import com.aoindustries.util.ErrorPrinter;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -94,10 +95,10 @@ final public class NetDeviceManager extends BuilderThread {
         "255.255.255.255"
     };
     public static String getNetMask(IPAddress ip) {
-        if(ip.getIpAddress().isIPv4()) {
-            return ipv4netmask[ip.getNetMask()];
+        if(ip.getInetAddress().isIPv4()) {
+            return ipv4netmask[ip.getNetmask()];
         } else {
-            throw new RuntimeException("TODO: Netmask configuration for IPv6 not yet determined.");
+            throw new NotImplementedException("Netmask configuration for IPv6 not yet determined.");
         }
     }
 
@@ -105,6 +106,7 @@ final public class NetDeviceManager extends BuilderThread {
     }
     
     private static final Object rebuildLock=new Object();
+    @Override
     protected boolean doRebuild() {
         try {
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
@@ -123,7 +125,7 @@ final public class NetDeviceManager extends BuilderThread {
 
                 IndexedSet<NetDevice> devices=thisAOServer.getServer().getNetDevices();
                 for(NetDevice device : devices) {
-                    NetDeviceID deviceId=device.getNetDeviceID();
+                    NetDeviceID deviceId=device.getDeviceId();
                     if(
                         // Don't build loopback
                         !deviceId.isLoopback()
@@ -150,7 +152,7 @@ final public class NetDeviceManager extends BuilderThread {
                                     InetAddress broadcast=device.getBroadcast();
                                     if(broadcast==null) throw new AssertionError("(net_devices.pkey="+device.getPkey()+").broadcast may not be null");
                                     out.print("BOOTPROTO=static\n"
-                                            + "IPADDR=").print(primaryIP.getIpAddress()).print("\n"
+                                            + "IPADDR=").print(primaryIP.getInetAddress()).print("\n"
                                             + "NETMASK=").print(getNetMask(primaryIP)).print("\n"
                                             + "NETWORK=").print(network).print("\n"
                                             + "BROADCAST=").print(broadcast).print("\n"
@@ -205,7 +207,7 @@ final public class NetDeviceManager extends BuilderThread {
                         Collections.sort(children);
                         for(int d=-1;d<children.size();d++) {
                             AOServer aoServer=d==-1?thisAOServer:children.get(d).getServer().getAoServer();
-                            NetDevice curDevice=d==-1?device:aoServer.getServer().getNetDevice(device.getNetDeviceID());
+                            NetDevice curDevice=d==-1?device:aoServer.getServer().getNetDevice(device.getDeviceId());
                             if(curDevice!=null) {
                                 for(IPAddress ip : curDevice.getIpAddresses()) {
                                     if(d!=-1 || ip.isAlias()) {
@@ -223,7 +225,7 @@ final public class NetDeviceManager extends BuilderThread {
                                             if(
                                                 osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                                             ) {
-                                                out.print("IPADDR=").print(ip.getIpAddress()).print("\n"
+                                                out.print("IPADDR=").print(ip.getInetAddress()).print("\n"
                                                         + "NETMASK=").print(getNetMask(ip)).print("\n");
                                             } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                                         } finally {
@@ -302,7 +304,7 @@ final public class NetDeviceManager extends BuilderThread {
                     // There should no more than one network device with a gateway specified
                     List<NetDevice> gatewayDevices=new ArrayList<NetDevice>();
                     for(NetDevice device : devices) {
-                        NetDeviceID deviceId=device.getNetDeviceID();
+                        NetDeviceID deviceId=device.getDeviceId();
                         if(!deviceId.isLoopback()) {
                             if(device.getGateway()!=null) gatewayDevices.add(device);
                         }
@@ -340,7 +342,7 @@ final public class NetDeviceManager extends BuilderThread {
                     }
                     // Restart all devices in this scenario
                     for(NetDevice device : devices) {
-                        NetDeviceID deviceId=device.getNetDeviceID();
+                        NetDeviceID deviceId=device.getDeviceId();
                         if(
                             // Don't build loopback
                             !deviceId.isLoopback()
@@ -447,7 +449,7 @@ final public class NetDeviceManager extends BuilderThread {
                 && netDeviceManager==null
             ) {
                 System.out.print("Starting NetDeviceManager: ");
-                AOServConnector<?,?> conn=AOServDaemon.getConnector();
+                AOServConnector conn=AOServDaemon.getConnector();
                 netDeviceManager=new NetDeviceManager();
                 conn.getIpAddresses().getTable().addTableListener(netDeviceManager, 0);
                 conn.getNetDevices().getTable().addTableListener(netDeviceManager, 0);
@@ -456,6 +458,7 @@ final public class NetDeviceManager extends BuilderThread {
         }
     }
     
+    @Override
     public String getProcessTimerDescription() {
         return "Rebuild Net Devices";
     }
@@ -468,9 +471,9 @@ final public class NetDeviceManager extends BuilderThread {
             || osv==OperatingSystemVersion.CENTOS_5DOM0_X86_64
         ) {
             // Xen adds a "p" to the name
-            procFile = new File("/proc/net/bonding/p"+netDevice.getNetDeviceID().getName());
+            procFile = new File("/proc/net/bonding/p"+netDevice.getDeviceId().getName());
         } else {
-            procFile = new File("/proc/net/bonding/"+netDevice.getNetDeviceID().getName());
+            procFile = new File("/proc/net/bonding/"+netDevice.getDeviceId().getName());
         }
         String report;
         if(procFile.exists()) {
@@ -542,14 +545,14 @@ final public class NetDeviceManager extends BuilderThread {
             (
                 osv==OperatingSystemVersion.CENTOS_5DOM0_I686
                 || osv==OperatingSystemVersion.CENTOS_5DOM0_X86_64
-            ) && !netDevice.getNetDeviceID().getName().equals(NetDeviceID.LO)
+            ) && !netDevice.getDeviceId().getName().equals(NetDeviceID.LO)
         ) {
             // Xen adds a "p" to the name or any device (except lo or non-xen devices)
-            statsDirectory = new File("/sys/class/net/p"+netDevice.getNetDeviceID().getName()+"/statistics");
+            statsDirectory = new File("/sys/class/net/p"+netDevice.getDeviceId().getName()+"/statistics");
             // If doesn't exist, it is not a Xen-managed device, use its unaltered name
-            if(!statsDirectory.exists()) statsDirectory = new File("/sys/class/net/"+netDevice.getNetDeviceID().getName()+"/statistics");
+            if(!statsDirectory.exists()) statsDirectory = new File("/sys/class/net/"+netDevice.getDeviceId().getName()+"/statistics");
         } else {
-            statsDirectory = new File("/sys/class/net/"+netDevice.getNetDeviceID().getName()+"/statistics");
+            statsDirectory = new File("/sys/class/net/"+netDevice.getDeviceId().getName()+"/statistics");
         }
         
         // Determine if on 64-bit system

@@ -1,12 +1,13 @@
-package com.aoindustries.aoserv.daemon.email;
-
 /*
- * Copyright 2000-2010 by AO Industries, Inc.,
+ * Copyright 2000-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.email;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.EmailInbox;
 import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.client.LinuxGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
@@ -69,12 +70,13 @@ public final class ProcmailManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
+    @Override
     protected boolean doRebuild() {
         try {
             AOServer aoServer=AOServDaemon.getThisAOServer();
-            InetAddress primaryIP = aoServer.getPrimaryIPAddress().getIPAddress();
+            InetAddress primaryIP = aoServer.getPrimaryIPAddress().getInetAddress();
             LinuxGroup mailLg = aoServer.getLinuxGroup(LinuxGroup.MAIL);
-            int mailGid = mailLsg.getGid().getId();
+            int mailGid = mailLg.getGid().getId();
 
             int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
             if(
@@ -106,9 +108,10 @@ public final class ProcmailManager extends BuilderThread {
                 }
 
                 for(LinuxAccount la : aoServer.getLinuxAccounts()) {
-                    if(la.getType().isEmail()) {
+                    EmailInbox inbox = la.getEmailInbox();
+                    if(inbox!=null) {
                         UnixPath home = la.getHome();
-                        UnixFile procmailrc = new UnixFile(home.getPath(), PROCMAILRC);
+                        UnixFile procmailrc = new UnixFile(home.toString(), PROCMAILRC);
 
                         if(!isManual(lsa)) {
                             // Stat for use below
@@ -133,7 +136,7 @@ public final class ProcmailManager extends BuilderThread {
 
                                           // Default locking time is fine since not locking for spamassassin now: + "LOCKSLEEP=15\n");
 
-                                UserId username = la.getUsername().getUsername();
+                                UserId username = la.getUserId();
                                 LinuxAccAddress laa = lsa.getAutoresponderFrom();
                                 List<LinuxAccAddress> addresses = lsa.getLinuxAccAddresses();
 
@@ -143,13 +146,13 @@ public final class ProcmailManager extends BuilderThread {
                                 // Split the username in to user and domain (used by Cyrus)
                                 String user, domain;
                                 {
-                                    int atPos = username.getId().indexOf('@');
+                                    int atPos = username.toString().indexOf('@');
                                     if(atPos==-1) {
-                                        user = username.getId();
+                                        user = username.toString();
                                         domain = "default";
                                     } else {
-                                        user = username.getId().substring(0, atPos);
-                                        domain = username.getId().substring(atPos+1);
+                                        user = username.toString().substring(0, atPos);
+                                        domain = username.toString().substring(atPos+1);
                                     }
                                 }
 
@@ -433,9 +436,9 @@ public final class ProcmailManager extends BuilderThread {
 
         UnixPath home=la.getHome();
         // If the home directory is outside /home/, it is manually maintained (not maintained by this code)
-        if(!home.getPath().startsWith("/home/")) return true;
+        if(!home.toString().startsWith("/home/")) return true;
 
-        UnixFile procmailrc=new UnixFile(home.getPath(), PROCMAILRC);
+        UnixFile procmailrc=new UnixFile(home.toString(), PROCMAILRC);
         Stat procmailrcStat = procmailrc.getStat();
 
         boolean isManual;
@@ -481,7 +484,7 @@ public final class ProcmailManager extends BuilderThread {
                 && procmailManager==null
             ) {
                 System.out.print("Starting ProcmailManager: ");
-                AOServConnector<?,?> connector=AOServDaemon.getConnector();
+                AOServConnector connector=AOServDaemon.getConnector();
                 procmailManager=new ProcmailManager();
                 if(EMAIL_ATTACHMENT_TYPES_ENABLED) connector.getEmailAttachmentBlocks().addTableListener(procmailManager, 0);
                 connector.getIpAddresses().addTableListener(procmailManager, 0);

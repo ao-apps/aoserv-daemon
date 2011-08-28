@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.email;
-
 /*
- * Copyright 2003-2010 by AO Industries, Inc.,
+ * Copyright 2003-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.email;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.LinuxGroup;
@@ -986,7 +986,7 @@ final public class MajordomoManager extends BuilderThread {
                 && majordomoManager==null
             ) {
                 System.out.print("Starting MajordomoManager: ");
-                AOServConnector<?,?> connector=AOServDaemon.getConnector();
+                AOServConnector connector=AOServDaemon.getConnector();
                 majordomoManager=new MajordomoManager();
                 connector.getMajordomoLists().addTableListener(majordomoManager, 0);
                 connector.getMajordomoServers().addTableListener(majordomoManager, 0);

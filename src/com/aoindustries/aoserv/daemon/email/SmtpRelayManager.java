@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.email;
-
 /*
- * Copyright 2001-2010 by AO Industries, Inc.,
+ * Copyright 2001-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.email;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
@@ -43,6 +43,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
     private static SmtpRelayManager smtpRelayManager;
 
     private static final Object rebuildLock=new Object();
+    @Override
     protected boolean doRebuild() {
         try {
             AOServConnector connector=AOServDaemon.getConnector();
@@ -173,6 +174,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
     private SmtpRelayManager() {
     }
 
+    @Override
     public void run() {
         long lastTime=Long.MIN_VALUE;
         while(true) {
@@ -226,7 +228,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
                 && smtpRelayManager==null
             ) {
                 System.out.print("Starting SmtpRelayManager: ");
-                AOServConnector<?,?> connector=AOServDaemon.getConnector();
+                AOServConnector connector=AOServDaemon.getConnector();
                 smtpRelayManager=new SmtpRelayManager();
                 connector.getEmailSmtpRelays().getTable().addTableListener(smtpRelayManager, 0);
                 connector.getIpAddresses().getTable().addTableListener(smtpRelayManager, 0);
@@ -237,6 +239,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
         }
     }
 
+    @Override
     public String getProcessTimerDescription() {
         return "Rebuild SMTP Relays";
     }

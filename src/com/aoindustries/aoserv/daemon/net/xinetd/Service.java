@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.net.xinetd;
 
 /*
- * Copyright 2003-2010 by AO Industries, Inc.,
+ * Copyright 2003-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -127,7 +127,7 @@ public final class Service {
         else throw new AssertionError("Unknown value for socket_type: "+protocol);
         out.print('\n');
 
-        if(bind!=null) out.print("\tbind = ").print(bind.getIpAddress()).print('\n');
+        if(bind!=null) out.print("\tbind = ").print(bind.getInetAddress()).print('\n');
 
         if(port!=null) out.print("\tport = ").print(port.getPort()).print('\n');
 

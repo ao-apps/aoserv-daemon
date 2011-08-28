@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.net.xinetd;
 
 /*
- * Copyright 2003-2010 by AO Industries, Inc.,
+ * Copyright 2003-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -60,7 +60,7 @@ public final class XinetdManager extends BuilderThread {
     private static final Object rebuildLock=new Object();
     protected boolean doRebuild() {
         try {
-            AOServConnector<?,?> connector=AOServDaemon.getConnector();
+            AOServConnector connector=AOServDaemon.getConnector();
             AOServer aoServer=AOServDaemon.getThisAOServer();
 
             int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
@@ -207,7 +207,7 @@ public final class XinetdManager extends BuilderThread {
                                         null,
                                         UnixPath.valueOf("/usr/sbin/vsftpd").intern(),
                                         null,
-                                        "/etc/vsftpd/vhosts/vsftpd_"+bind.getIpAddress().getIpAddress()+"_"+port.getPort()+".conf",
+                                        "/etc/vsftpd/vhosts/vsftpd_"+bind.getIpAddress().getInetAddress()+"_"+port.getPort()+".conf",
                                         "PID HOST DURATION",
                                         "HOST",
                                         10,
@@ -455,7 +455,7 @@ public final class XinetdManager extends BuilderThread {
                 && xinetdManager==null
             ) {
                 System.out.print("Starting XinetdManager: ");
-                AOServConnector<?,?> conn=AOServDaemon.getConnector();
+                AOServConnector conn=AOServDaemon.getConnector();
                 xinetdManager=new XinetdManager();
                 conn.getCvsRepositories().getTable().addTableListener(xinetdManager, 0);
                 conn.getNetBinds().getTable().addTableListener(xinetdManager, 0);

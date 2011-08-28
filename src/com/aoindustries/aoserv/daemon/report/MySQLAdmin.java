@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.report;
 
 /*
- * Copyright 2001-2010 by AO Industries, Inc.,
+ * Copyright 2001-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -38,7 +38,7 @@ final public class MySQLAdmin extends DBReportData {
                 "-h",
                 "127.0.0.1",
                 "-u",
-                user.getId(),
+                user.toString(),
                 "--password="+password,
                 "status"
             };

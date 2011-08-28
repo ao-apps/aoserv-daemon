@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.cvsd;
 
 /*
- * Copyright 2002-2010 by AO Industries, Inc.,
+ * Copyright 2002-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -41,7 +41,7 @@ final public class CvsManager extends BuilderThread {
 
     public static boolean isSafePath(UnixPath path) {
         if(path==null) return false;
-        String pathString = path.getPath();
+        String pathString = path.toString();
         int len=pathString.length();
         for(int c=1;c<len;c++) {
             char ch=pathString.charAt(c);
@@ -62,6 +62,7 @@ final public class CvsManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
+    @Override
     protected boolean doRebuild() {
         try {
             //AOServConnector conn=AOServDaemon.getConnector();
@@ -85,7 +86,7 @@ final public class CvsManager extends BuilderThread {
                 // while removing existing directories from existing
                 for(CvsRepository cvs : thisAOServer.getCvsRepositories()) {
                     UnixPath path=cvs.getPath();
-                    UnixFile cvsUF=new UnixFile(path.getPath());
+                    UnixFile cvsUF=new UnixFile(path.toString());
                     Stat cvsStat = cvsUF.getStat();
                     long cvsMode=cvs.getMode();
                     // Make the directory
@@ -112,7 +113,7 @@ final public class CvsManager extends BuilderThread {
                     if(!cvsRootUF.getStat().exists()) {
                         if(!isSafePath(path)) throw new AssertionError("Refusing to call shell.  Not safe path: "+path);
                         AOServDaemon.suexec(
-                            la.getUsername().getUsername(),
+                            la.getUserId(),
                             "/usr/bin/cvs -d "+path+" init",
                             0
                         );
@@ -127,7 +128,7 @@ final public class CvsManager extends BuilderThread {
                 int svLen=existing.size();
                 if(svLen!=0) {
                     List<File> deleteFileList=new ArrayList<File>(svLen);
-                    for(UnixPath deleteFilename : existing) deleteFileList.add(new File(deleteFilename.getPath()));
+                    for(UnixPath deleteFilename : existing) deleteFileList.add(new File(deleteFilename.toString()));
 
                     // Get the next backup filename
                     File backupFile=BackupManager.getNextBackupFile();
@@ -165,7 +166,7 @@ final public class CvsManager extends BuilderThread {
                 && cvsManager==null
             ) {
                 System.out.print("Starting CvsManager: ");
-                AOServConnector<?,?> conn=AOServDaemon.getConnector();
+                AOServConnector conn=AOServDaemon.getConnector();
                 cvsManager=new CvsManager();
                 conn.getCvsRepositories().getTable().addTableListener(cvsManager, 0);
                 System.out.println("Done");
@@ -173,6 +174,7 @@ final public class CvsManager extends BuilderThread {
         }
     }
 
+    @Override
     public String getProcessTimerDescription() {
         return "Rebuild CVS";
     }

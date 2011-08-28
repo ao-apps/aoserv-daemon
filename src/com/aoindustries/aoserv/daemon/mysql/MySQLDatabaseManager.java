@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.mysql;
 
 /*
- * Copyright 2002-2010 by AO Industries, Inc.,
+ * Copyright 2002-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -232,7 +232,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
             } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
             String[] command={
                 path,
-                dbName.getName(),
+                dbName.toString(),
                 ms.getMinorVersion(),
                 ms.getNetBind().getPort().toString(),
                 tempFile.getPath()
@@ -246,6 +246,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
                     int ret;
                     while((ret=dumpin.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
                         masterOut.writeByte(AOServDaemonProtocol.NEXT);
+                        assert ret <= Short.MAX_VALUE;
                         masterOut.writeShort(ret);
                         masterOut.write(buff, 0, ret);
                     }
@@ -274,7 +275,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
                 && mysqlDatabaseManager==null
             ) {
                 System.out.print("Starting MySQLDatabaseManager: ");
-                AOServConnector<?,?> conn=AOServDaemon.getConnector();
+                AOServConnector conn=AOServDaemon.getConnector();
                 mysqlDatabaseManager=new MySQLDatabaseManager();
                 conn.getMysqlDatabases().getTable().addTableListener(mysqlDatabaseManager, 0);
                 System.out.println("Done");
@@ -567,7 +568,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
         out.writeCompressedInt(size);
         for(int c=0;c<size;c++) {
             MySQLDatabase.CheckTableResult checkTableResult = checkTableResults.get(c);
-            out.writeUTF(checkTableResult.getTable().getName());
+            out.writeUTF(checkTableResult.getTable().toString());
             out.writeLong(checkTableResult.getDuration());
             out.writeNullEnum(checkTableResult.getMsgType());
             out.writeNullUTF(checkTableResult.getMsgText());

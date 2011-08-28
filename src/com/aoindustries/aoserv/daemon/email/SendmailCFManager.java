@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.email;
 
 /*
- * Copyright 2003-2010 by AO Industries, Inc.,
+ * Copyright 2003-2011 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -205,7 +205,7 @@ final public class SendmailCFManager extends BuilderThread {
                         if(AOServDaemonConfiguration.isManagerEnabled(JilterConfigurationWriter.class)) {
                             out.print("dnl Enable Jilter\n"
                                     + "dnl\n"
-                                    + "INPUT_MAIL_FILTER(`jilter',`S=inet:"+JilterConfiguration.MILTER_PORT+"@").print(primaryIpAddress.getAddress()).print(", F=R, T=S:60s;R:60s')\n"
+                                    + "INPUT_MAIL_FILTER(`jilter',`S=inet:"+JilterConfiguration.MILTER_PORT+"@").print(primaryIpAddress.toString()).print(", F=R, T=S:60s;R:60s')\n"
                                     + "dnl\n");
                         }
                         out.print("dnl Only listen to the IP addresses of this logical server\n"
@@ -334,7 +334,7 @@ final public class SendmailCFManager extends BuilderThread {
                                     + "define(`confPID_FILE', `/var/run/sm-client.pid')dnl\n"
                                     + "dnl define(`confDIRECT_SUBMISSION_MODIFIERS',`C')\n"
                                     + "dnl FEATURE(`use_ct_file')dnl\n"
-                                    + "FEATURE(`msp', `[").print(primaryIpAddress.getAddress()).print("]')dnl\n"
+                                    + "FEATURE(`msp', `[").print(primaryIpAddress.toString()).print("]')dnl\n"
                                     + "define(`confPROCESS_TITLE_PREFIX',`").print(aoServer.getHostname()).print("')dnl\n");
                         } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                             out.print("divert(-1)\n"
@@ -352,7 +352,7 @@ final public class SendmailCFManager extends BuilderThread {
                                     + "define(`confPID_FILE', `/var/run/sm-client.pid')dnl\n"
                                     + "dnl define(`confDIRECT_SUBMISSION_MODIFIERS',`C')dnl\n"
                                     + "FEATURE(`use_ct_file')dnl\n"
-                                    + "FEATURE(`msp', `[").print(primaryIpAddress.getAddress()).print("]')dnl\n"
+                                    + "FEATURE(`msp', `[").print(primaryIpAddress.toString()).print("]')dnl\n"
                                     + "define(`confPROCESS_TITLE_PREFIX',`").print(aoServer.getHostname()).print("')dnl\n");
                         } else {
                             throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
@@ -421,7 +421,7 @@ final public class SendmailCFManager extends BuilderThread {
                 && sendmailCFManager==null
             ) {
                 System.out.print("Starting SendmailCFManager: ");
-                AOServConnector<?,?> connector=AOServDaemon.getConnector();
+                AOServConnector connector=AOServDaemon.getConnector();
                 sendmailCFManager=new SendmailCFManager();
                 connector.getIpAddresses().getTable().addTableListener(sendmailCFManager, 0);
                 connector.getNetBinds().getTable().addTableListener(sendmailCFManager, 0);
