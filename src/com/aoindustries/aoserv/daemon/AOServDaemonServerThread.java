@@ -101,8 +101,6 @@ final public class AOServDaemonServerThread extends Thread {
         this.in = new CompressedDataInputStream(new BufferedInputStream(socket.getInputStream()));
         this.out = new CompressedDataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
         this.out.flush();
-
-        start();
     }
 
     @Override
@@ -157,7 +155,7 @@ final public class AOServDaemonServerThread extends Thread {
                         return;
                     }
                 } else {
-                    LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.WARNING, "Connection attempted from " + hostAddress + " but not listed in ao_server_daemon_hosts");
+                    LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.WARNING, "Connection attempted from {0} but not listed in ao_server_daemon_hosts", hostAddress);
                     out.writeBoolean(false);
                     out.flush();
                     return;

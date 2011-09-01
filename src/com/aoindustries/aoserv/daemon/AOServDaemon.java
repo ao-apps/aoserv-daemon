@@ -213,7 +213,7 @@ final public class AOServDaemon {
 
                 // Start up the AOServDaemonServers
                 NetBind bind=getThisAOServer().getDaemonBind();
-                if(bind!=null) new AOServDaemonServer(bind.getIpAddress().getInetAddress(), bind.getPort(), bind.getAppProtocol().getProtocol());
+                if(bind!=null) new AOServDaemonServer(bind.getIpAddress().getInetAddress(), bind.getPort(), bind.getAppProtocol().getProtocol()).start();
 
                 done=true;
             } catch (ThreadDeath TD) {

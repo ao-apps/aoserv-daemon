@@ -14,7 +14,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -55,8 +54,6 @@ final public class AOServDaemonServer extends Thread {
         this.serverBind = serverBind;
         this.serverPort = serverPort;
         this.protocol = protocol;
-
-        start();
     }
 
     private static final Map<Long,DaemonAccessEntry> accessKeys=new HashMap<Long,DaemonAccessEntry>();
@@ -67,17 +64,14 @@ final public class AOServDaemonServer extends Thread {
             // Cleanup old data in the keys table
             if(lastAccessKeyCleaning==-1) lastAccessKeyCleaning=System.currentTimeMillis();
             else {
-                long timeSince=System.currentTimeMillis()-lastAccessKeyCleaning;
-                if(timeSince<0 || timeSince>=(5L*60*1000)) {
+                long cleaningTimeSince=System.currentTimeMillis()-lastAccessKeyCleaning;
+                if(cleaningTimeSince<0 || cleaningTimeSince>=(5L*60*1000)) {
                     // Build a list of keys that should be removed
                     List<Long> removeKeys=new ArrayList<Long>();
-                    Iterator I=accessKeys.keySet().iterator();
-                    while(I.hasNext()) {
-                        Long keyLong=(Long)I.next();
-                        DaemonAccessEntry entry=accessKeys.get(keyLong);
-                        timeSince=System.currentTimeMillis()-entry.created;
-                        if(timeSince<0 || timeSince>=(60L*60*1000)) {
-                            removeKeys.add(keyLong);
+                    for(Map.Entry<Long,DaemonAccessEntry> entry : accessKeys.entrySet()) {
+                        long entryTimeSince = System.currentTimeMillis() - entry.getValue().created;
+                        if(entryTimeSince<0 || entryTimeSince>=(60L*60*1000)) {
+                            removeKeys.add(entry.getKey());
                         }
                     }
 
@@ -124,7 +118,7 @@ final public class AOServDaemonServer extends Thread {
                             socket.setKeepAlive(true);
                             socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
                             socket.setTcpNoDelay(true);
-                            new AOServDaemonServerThread(this, socket);
+                            new AOServDaemonServerThread(this, socket).start();
                         }
                     } finally {
                         SS.close();
@@ -140,7 +134,7 @@ final public class AOServDaemonServer extends Thread {
                                 socket.setKeepAlive(true);
                                 socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
                                 socket.setTcpNoDelay(true);
-                                new AOServDaemonServerThread(this, socket);
+                                new AOServDaemonServerThread(this, socket).start();
                             } catch(ThreadDeath TD) {
                                 throw TD;
                             } catch(Throwable T) {

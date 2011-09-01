@@ -515,7 +515,7 @@ final public class ServerManager {
     }
 
     /**
-     * Finds a PID given its exact command line as found in /proc/.../cmdline
+     * Finds a PID given the prefix of its exact command line as found in /proc/.../cmdline
      * Returns PID or <code>-1</code> if not found.
      */
     public static int findPid(String cmdlinePrefix) throws IOException {
@@ -531,7 +531,7 @@ final public class ServerManager {
                             File cmdlineFile = new File(dir, "cmdline");
                             if(cmdlineFile.exists()) {
                                 StringBuilder SB = new StringBuilder();
-                                FileInputStream in = new FileInputStream(cmdlineFile);
+                                InputStream in = new BufferedInputStream(new FileInputStream(cmdlineFile));
                                 try {
                                     int b;
                                     while((b=in.read())!=-1) SB.append((char)b);
@@ -572,7 +572,8 @@ final public class ServerManager {
 
                     // Find the PID of its qemu handler from its ID
                     int pid = findPid("/usr/lib64/xen/bin/qemu-dm\u0000-d\u0000"+domid+"\u0000"); // Hardware virtualized
-                    if(pid==-1) pid = findPid("/usr/lib64/xen/bin/xen-vncfb\u0000--unused\u0000--listen\u0000127.0.0.1\u0000--domid\u0000"+domid+"\u0000"); // Paravirtualized
+                    if(pid==-1) pid = findPid("/usr/lib64/xen/bin/qemu-dm\u0000-M\u0000xenpv\u0000-d\u0000"+domid+"\u0000"); // Paravirtualized
+                    if(pid==-1) pid = findPid("/usr/lib64/xen/bin/xen-vncfb\u0000--unused\u0000--listen\u0000127.0.0.1\u0000--domid\u0000"+domid+"\u0000"); // Older Paravirtualized
                     if(pid==-1) throw new IOException("Unable to find PID");
 
                     // Find its port from lsof given its PID
@@ -677,9 +678,7 @@ final public class ServerManager {
                 socketOut.close();
             }
         } catch(ParseException err) {
-            IOException ioErr = new IOException();
-            ioErr.initCause(err);
-            throw ioErr;
+            throw new IOException(err);
         } finally {
             socket.close();
         }
