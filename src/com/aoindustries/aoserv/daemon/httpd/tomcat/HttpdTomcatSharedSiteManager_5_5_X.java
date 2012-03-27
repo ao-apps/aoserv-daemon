@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 /*
- * Copyright 2007-2011 by AO Industries, Inc.,
+ * Copyright 2007-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -33,8 +33,8 @@ class HttpdTomcatSharedSiteManager_5_5_X extends HttpdTomcatSharedSiteManager<To
          * Resolve and allocate stuff used throughout the method
          */
         final String siteDir = siteDirectory.getPath();
-        final int uid = httpdSite.getLinuxServerAccount().getUID().getID();
-        final int gid = httpdSite.getLinuxServerGroup().getGID().getID();
+        final int uid = httpdSite.getLinuxServerAccount().getUid().getID();
+        final int gid = httpdSite.getLinuxServerGroup().getGid().getID();
 
         /*
          * Create the skeleton of the site, the directories and links.

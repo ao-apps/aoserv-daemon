@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.httpd;
 
 /*
- * Copyright 2007-2011 by AO Industries, Inc.,
+ * Copyright 2007-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -44,8 +44,8 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
         final Stat tempStat = new Stat();
         final boolean isAuto = !httpdSite.isManual();
         final int apacheUid = getApacheUid();
-        final int uid = httpdSite.getLinuxServerAccount().getUID().getID();
-        final int gid = httpdSite.getLinuxServerGroup().getGID().getID();
+        final int uid = httpdSite.getLinuxServerAccount().getUid().getID();
+        final int gid = httpdSite.getLinuxServerGroup().getGid().getID();
 
         // Create wwwDirectory if needed
         if(!siteDirectory.getStat(tempStat).exists()) {

@@ -1,10 +1,10 @@
+package com.aoindustries.aoserv.daemon.httpd.tomcat;
+
 /*
- * Copyright 2007-2011 by AO Industries, Inc.,
+ * Copyright 2007-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-package com.aoindustries.aoserv.daemon.httpd.tomcat;
-
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.HttpdJKProtocol;
 import com.aoindustries.aoserv.client.HttpdTomcatContext;
@@ -56,8 +56,8 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
         // Resolve and allocate stuff used throughout the method
         final TomcatCommon_3_X tomcatCommon = getTomcatCommon();
         final String siteDir = siteDirectory.getPath();
-        final int uid = httpdSite.getLinuxServerAccount().getUID().getID();
-        final int gid = httpdSite.getLinuxServerGroup().getGID().getID();
+        final int uid = httpdSite.getLinuxServerAccount().getUid().getID();
+        final int gid = httpdSite.getLinuxServerGroup().getGid().getID();
 
         /*
          * Create the skeleton of the site, the directories and links.
@@ -292,8 +292,8 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
                     buildServerXml(siteDirectory, autoWarning),
                     null,
                     confServerXMLFile,
-                    httpdSite.getLinuxServerAccount().getUID().getID(),
-                    httpdSite.getLinuxServerGroup().getGID().getID(),
+                    httpdSite.getLinuxServerAccount().getUid().getID(),
+                    httpdSite.getLinuxServerGroup().getGid().getID(),
                     0660
                 )
             ) {

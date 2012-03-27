@@ -1,15 +1,15 @@
+package com.aoindustries.aoserv.daemon.httpd;
+
 /*
- * Copyright 2008-2011 by AO Industries, Inc.,
+ * Copyright 2008-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-package com.aoindustries.aoserv.daemon.httpd;
-
 import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.HttpdServer;
 import com.aoindustries.aoserv.client.HttpdSite;
+import com.aoindustries.aoserv.client.HttpdSiteBind;
 import com.aoindustries.aoserv.client.LinuxAccount;
-import com.aoindustries.aoserv.client.validator.DomainName;
-import com.aoindustries.aoserv.client.validator.ValidationException;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.util.FileUtils;
 import com.aoindustries.io.ChainWriter;
@@ -30,9 +30,6 @@ import java.util.Set;
  * @author  AO Industries, Inc.
  */
 class HttpdLogManager {
-
-    private HttpdLogManager() {
-    }
 
     /**
      * The directory that logs are stored in.
@@ -152,21 +149,21 @@ class HttpdLogManager {
         Set<HttpdServer> serversNeedingReloaded
     ) throws IOException, SQLException {
         // Values used below
-        final int awstatsUID = aoServer.getLinuxAccount(LinuxAccount.AWSTATS).getUid().getId();
+        final int awstatsUID = aoServer.getLinuxServerAccount(LinuxAccount.AWSTATS).getUid().getID();
 
         // The log directories that exist but are not used will be removed
         String[] list = new File(LOG_DIR).list();
-        Set<DomainName> logDirectories = new HashSet<DomainName>(list.length*4/3+1);
+        Set<String> logDirectories = new HashSet<String>(list.length*4/3+1);
         for(String dirname : list) {
-            if(!dirname.equals("lost+found")) logDirectories.add(DomainName.valueOf(dirname));
+            if(!dirname.equals("lost+found")) logDirectories.add(dirname);
         }
 
         for(HttpdSite httpdSite : aoServer.getHttpdSites()) {
-            int lsgGID = httpdSite.getLinuxAccountGroup().getLinuxGroup().getGid().getId();
+            int lsgGID = httpdSite.getLinuxServerGroup().getGid().getID();
 
             // Create the /logs/<site_name> directory
-            DomainName siteName = httpdSite.getSiteName();
-            UnixFile logDirectory = new UnixFile(LOG_DIR, siteName.toString());
+            String siteName = httpdSite.getSiteName();
+            UnixFile logDirectory = new UnixFile(LOG_DIR, siteName);
             logDirectory.getStat(tempStat);
             if(!tempStat.exists()) {
                 logDirectory.mkdir();
@@ -223,7 +220,7 @@ class HttpdLogManager {
             }
         }
 
-        for(DomainName filename : logDirectories) deleteFileList.add(new File(LOG_DIR, filename.toString()));
+        for(String filename : logDirectories) deleteFileList.add(new File(LOG_DIR, filename));
     }
 
     /**
@@ -233,7 +230,7 @@ class HttpdLogManager {
         AOServer aoServer,
         List<File> deleteFileList,
         ByteArrayOutputStream byteOut
-    ) throws IOException, SQLException, ValidationException {
+    ) throws IOException, SQLException {
         final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
         final String siteLogRotationDir;
         final String serverLogRotationDir;
@@ -256,8 +253,8 @@ class HttpdLogManager {
 
         // The log rotations that exist but are not used will be removed
         String[] list = new File(siteLogRotationDir).list();
-        Set<DomainName> logRotationFiles = new HashSet<DomainName>(list.length*4/3+1);
-        for(String filename : list) logRotationFiles.add(DomainName.valueOf(filename));
+        Set<String> logRotationFiles = new HashSet<String>(list.length*4/3+1);
+        for(String filename : list) logRotationFiles.add(filename);
 
         // Each log file will be only rotated at most once
         Set<String> completedPaths = new HashSet<String>(list.length*4/3+1);
@@ -303,9 +300,9 @@ class HttpdLogManager {
             FileUtils.writeIfNeeded(
                 newFileContent,
                 null,
-                new UnixFile(siteLogRotationDir, site.getSiteName().toString()),
+                new UnixFile(siteLogRotationDir, site.getSiteName()),
                 UnixFile.ROOT_UID,
-                site.getLinuxServerGroup().getGID().getID(),
+                site.getLinuxServerGroup().getGid().getID(),
                 0640
             );
 
@@ -314,22 +311,21 @@ class HttpdLogManager {
         }
 
         // Remove extra filenames
-        for(DomainName extraFilename : logRotationFiles) deleteFileList.add(new File(siteLogRotationDir, extraFilename.toString()));
+        for(String extraFilename : logRotationFiles) deleteFileList.add(new File(siteLogRotationDir, extraFilename));
         
         if(serverLogRotationDir!=null) {
             // Create directory if missing
             FileUtils.mkdir(serverLogRotationDir, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
             
             // The log rotations that exist but are not used will be removed
-            String[] httpdList = new File(serverLogRotationDir).list();
-            Set<String> httpdLogRotationFiles = new HashSet<String>(httpdList.length*4/3+1);
-            for(String filename : httpdList) httpdLogRotationFiles.add(filename);
+            logRotationFiles.clear();
+            for(String filename : new File(serverLogRotationDir).list()) logRotationFiles.add(filename);
             
             boolean isFirst = true;
             for(HttpdServer hs : aoServer.getHttpdServers()) {
                 int num = hs.getNumber();
                 String filename = "httpd"+num;
-                httpdLogRotationFiles.remove(filename);
+                logRotationFiles.remove(filename);
                 
                 // Build to RAM first
                 byteOut.reset();
@@ -387,7 +383,7 @@ class HttpdLogManager {
             }
 
             // Remove extra filenames
-            for(String extraFilename : httpdLogRotationFiles) deleteFileList.add(new File(serverLogRotationDir, extraFilename));
+            for(String extraFilename : logRotationFiles) deleteFileList.add(new File(serverLogRotationDir, extraFilename));
         }
     }
 }

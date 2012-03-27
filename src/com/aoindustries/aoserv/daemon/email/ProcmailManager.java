@@ -1,19 +1,21 @@
+package com.aoindustries.aoserv.daemon.email;
+
 /*
- * Copyright 2000-2011 by AO Industries, Inc.,
+ * Copyright 2000-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-package com.aoindustries.aoserv.daemon.email;
-
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.EmailInbox;
+import com.aoindustries.aoserv.client.EmailAttachmentBlock;
+import com.aoindustries.aoserv.client.EmailAttachmentType;
+import com.aoindustries.aoserv.client.EmailSpamAssassinIntegrationMode;
+import com.aoindustries.aoserv.client.LinuxAccAddress;
 import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.client.LinuxGroup;
+import com.aoindustries.aoserv.client.LinuxServerAccount;
+import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.validator.InetAddress;
-import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -26,6 +28,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
@@ -70,19 +73,20 @@ public final class ProcmailManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
-    @Override
     protected boolean doRebuild() {
         try {
             AOServer aoServer=AOServDaemon.getThisAOServer();
-            InetAddress primaryIP = aoServer.getPrimaryIPAddress().getInetAddress();
-            LinuxGroup mailLg = aoServer.getLinuxGroup(LinuxGroup.MAIL);
-            int mailGid = mailLg.getGid().getId();
+            String primaryIP = aoServer.getPrimaryIPAddress().getIPAddress();
+            LinuxServerGroup mailLsg = aoServer.getLinuxServerGroup(LinuxGroup.MAIL);
+            if(mailLsg==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+aoServer.getHostname());
+            int mailGid = mailLsg.getGid().getID();
 
             int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
             if(
-                osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-            ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(rebuildLock) {
                 // Control the permissions of the deliver program, needs to be SUID to
@@ -107,11 +111,11 @@ public final class ProcmailManager extends BuilderThread {
                     }
                 }
 
-                for(LinuxAccount la : aoServer.getLinuxAccounts()) {
-                    EmailInbox inbox = la.getEmailInbox();
-                    if(inbox!=null) {
-                        UnixPath home = la.getHome();
-                        UnixFile procmailrc = new UnixFile(home.toString(), PROCMAILRC);
+                List<LinuxServerAccount> lsas=aoServer.getLinuxServerAccounts();
+                for(LinuxServerAccount lsa : lsas) {
+                    if(lsa.getLinuxAccount().getType().isEmail()) {
+                        String home = lsa.getHome();
+                        UnixFile procmailrc = new UnixFile(home, PROCMAILRC);
 
                         if(!isManual(lsa)) {
                             // Stat for use below
@@ -136,23 +140,24 @@ public final class ProcmailManager extends BuilderThread {
 
                                           // Default locking time is fine since not locking for spamassassin now: + "LOCKSLEEP=15\n");
 
-                                UserId username = la.getUserId();
+                                LinuxAccount la = lsa.getLinuxAccount();
+                                String username = la.getUsername().getUsername();
                                 LinuxAccAddress laa = lsa.getAutoresponderFrom();
                                 List<LinuxAccAddress> addresses = lsa.getLinuxAccAddresses();
 
                                 // The same X-Loop is used for attachment filters and autoresponders
-                                String xloopAddress=username+"@"+la.getAoServerResource().getAoServer().getHostname();
+                                String xloopAddress=username+'@'+lsa.getAOServer().getHostname();
 
                                 // Split the username in to user and domain (used by Cyrus)
                                 String user, domain;
                                 {
-                                    int atPos = username.toString().indexOf('@');
+                                    int atPos = username.indexOf('@');
                                     if(atPos==-1) {
-                                        user = username.toString();
+                                        user = username;
                                         domain = "default";
                                     } else {
-                                        user = username.toString().substring(0, atPos);
-                                        domain = username.toString().substring(atPos+1);
+                                        user = username.substring(0, atPos);
+                                        domain = username.substring(atPos+1);
                                     }
                                 }
 
@@ -333,13 +338,17 @@ public final class ProcmailManager extends BuilderThread {
                                                 + ":0 h\n"
                                                 //+ "RETURN_PATH=| /usr/bin/formail -c -x Return-Path: | /bin/sed -e 's/^ *<//' -e 's/>$//'\n");
                                                 + "RETURN_PATH=| /opt/aoserv-client/bin/returnpath\n");
-                                    } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+                                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
                                     // Only move to Junk folder when the inbox is enabled and in IMAP mode
                                     if(spamAssassinMode.equals(EmailSpamAssassinIntegrationMode.IMAP)) {
                                         out.print("\n"
                                                 + "# Place any flagged spam in the Junk folder\n");
-                                        if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                                        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                            out.print(":0:\n"
+                                                    + "* ^X-Spam-Status: Yes\n"
+                                                    + "Mail/Junk\n");
+                                        } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                                             out.print(":0\n"
                                                     + "* ^X-Spam-Status: Yes\n"
                                                     + "{\n"
@@ -361,11 +370,13 @@ public final class ProcmailManager extends BuilderThread {
                                                     + "  EXITCODE=75\n"
                                                     + "  HOST\n"
                                                     + "}\n");
-                                        } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+                                        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                                     }
 
                                     // Deliver to INBOX
-                                    if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+                                    if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                        // Nothing special needed
+                                    } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                                         out.print("\n"
                                                 + ":0 w\n"
                                                 //+ "| /usr/bin/formail -I\"From \" | /usr/lib/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
@@ -383,7 +394,7 @@ public final class ProcmailManager extends BuilderThread {
                                                 + "# Delivery failed, return EX_TEMPFAIL to have sendmail retry delivery\n"
                                                 + "EXITCODE=75\n"
                                                 + "HOST\n");
-                                    } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+                                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                                 } else {
                                     // Discard the email if configured to not use the inbox or Junk folders
                                     out.print("\n"
@@ -402,8 +413,8 @@ public final class ProcmailManager extends BuilderThread {
                                 // Create the new autoresponder config
                                 UnixFile tempUF=UnixFile.mktemp(home+"/.procmailrc.", false);
                                 FileOutputStream fout=tempUF.getSecureOutputStream(
-                                    la.getUid().getId(),
-                                    la.getPrimaryLinuxGroup().getGid().getId(),
+                                    lsa.getUid().getID(),
+                                    lsa.getPrimaryLinuxServerGroup().getGid().getID(),
                                     0600,
                                     true
                                 );
@@ -429,16 +440,18 @@ public final class ProcmailManager extends BuilderThread {
     
     /**
      * Determines if an existing procmail file is manually maintained.
+     *
+     * @exception  SQLException if the account is not an email type
      */
-    public static boolean isManual(LinuxAccount la) throws IOException {
+    public static boolean isManual(LinuxServerAccount lsa) throws IOException, SQLException {
         // Must be an email type
-        if(!la.getType().isEmail()) throw new AssertionError("Not an email inbox: "+la);
+        if(!lsa.getLinuxAccount().getType().isEmail()) throw new SQLException("Not an email inbox: "+lsa.toString());
 
-        UnixPath home=la.getHome();
+        String home=lsa.getHome();
         // If the home directory is outside /home/, it is manually maintained (not maintained by this code)
-        if(!home.toString().startsWith("/home/")) return true;
+        if(!home.startsWith("/home/")) return true;
 
-        UnixFile procmailrc=new UnixFile(home.toString(), PROCMAILRC);
+        UnixFile procmailrc=new UnixFile(home, PROCMAILRC);
         Stat procmailrcStat = procmailrc.getStat();
 
         boolean isManual;
@@ -470,7 +483,7 @@ public final class ProcmailManager extends BuilderThread {
         return isManual;
     }
 
-    public static void start() throws IOException {
+    public static void start() throws IOException, SQLException {
         AOServer thisAOServer=AOServDaemon.getThisAOServer();
         int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
 
@@ -488,7 +501,7 @@ public final class ProcmailManager extends BuilderThread {
                 procmailManager=new ProcmailManager();
                 if(EMAIL_ATTACHMENT_TYPES_ENABLED) connector.getEmailAttachmentBlocks().addTableListener(procmailManager, 0);
                 connector.getIpAddresses().addTableListener(procmailManager, 0);
-                connector.getLinuxAccounts().getTable().addTableListener(procmailManager, 0);
+                connector.getLinuxServerAccounts().addTableListener(procmailManager, 0);
                 System.out.println("Done");
             }
         }

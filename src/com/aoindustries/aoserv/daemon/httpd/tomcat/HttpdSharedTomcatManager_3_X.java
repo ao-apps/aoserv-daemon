@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 /*
- * Copyright 2008-2011 by AO Industries, Inc.,
+ * Copyright 2008-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -55,9 +55,9 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
         final String tomcatDirectory=htv.getInstallDirectory();
         final TC tomcatCommon = getTomcatCommon();
         final LinuxServerAccount lsa = sharedTomcat.getLinuxServerAccount();
-        final int lsaUID = lsa.getUID().getID();
+        final int lsaUID = lsa.getUid().getID();
         final LinuxServerGroup lsg = sharedTomcat.getLinuxServerGroup();
-        final int lsgGID = lsg.getGID().getID();
+        final int lsgGID = lsg.getGid().getID();
         final String wwwGroupDir = sharedTomcatDirectory.getPath();
         final String wwwDirectory = httpdConfig.getHttpdSitesDirectory();
         final UnixFile daemonUF = new UnixFile(sharedTomcatDirectory, "daemon", false);
@@ -314,7 +314,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
                                 .getHttpdTomcatSite()
                                 .getHttpdSite()
                                 .getLinuxServerGroup()
-                                .getGID()
+                                .getGid()
                                 .getID()
                         )
                         .setMode(0750)

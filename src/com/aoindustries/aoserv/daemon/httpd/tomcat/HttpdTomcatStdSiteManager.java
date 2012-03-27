@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 /*
- * Copyright 2007-2011 by AO Industries, Inc.,
+ * Copyright 2007-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -105,8 +105,8 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
             // Enabled
             if(!daemonSymlink.getStat().exists()) {
                 daemonSymlink.symLink("../bin/tomcat").chown(
-                    httpdSite.getLinuxServerAccount().getUID().getID(),
-                    httpdSite.getLinuxServerGroup().getGID().getID()
+                    httpdSite.getLinuxServerAccount().getUid().getID(),
+                    httpdSite.getLinuxServerGroup().getGid().getID()
                 );
             }
         } else {
@@ -136,8 +136,8 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
                     buildServerXml(siteDirectory, autoWarning),
                     null,
                     confServerXMLFile,
-                    httpdSite.getLinuxServerAccount().getUID().getID(),
-                    httpdSite.getLinuxServerGroup().getGID().getID(),
+                    httpdSite.getLinuxServerAccount().getUid().getID(),
+                    httpdSite.getLinuxServerGroup().getGid().getID(),
                     0660
                 )
             ) {

@@ -1,19 +1,20 @@
+package com.aoindustries.aoserv.daemon.postgres;
+
 /*
- * Copyright 2001-2011 by AO Industries, Inc.,
+ * Copyright 2001-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-package com.aoindustries.aoserv.daemon.postgres;
-
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.PostgresDatabase;
+import com.aoindustries.aoserv.client.PostgresDatabaseTable;
 import com.aoindustries.aoserv.client.PostgresServer;
+import com.aoindustries.aoserv.client.PostgresServerUser;
 import com.aoindustries.aoserv.client.PostgresUser;
 import com.aoindustries.aoserv.client.PostgresVersion;
-import com.aoindustries.aoserv.client.validator.PostgresDatabaseName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -27,6 +28,7 @@ import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.util.BufferManager;
+import com.aoindustries.util.SortedArrayList;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,10 +40,7 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.Set;
 import java.util.logging.Level;
 
 /**
@@ -52,10 +51,6 @@ import java.util.logging.Level;
 final public class PostgresDatabaseManager extends BuilderThread implements CronJob {
 
     private PostgresDatabaseManager() {
-    }
-
-    public boolean isValidIdentifier(String identifier) {
-        return PostgresDatabaseName.validate(identifier.toLowerCase(Locale.ENGLISH)).isValid();
     }
 
     /*
@@ -201,22 +196,23 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
     }
 */
     private static final Object rebuildLock=new Object();
-    @Override
     protected boolean doRebuild() {
         try {
+            AOServConnector connector=AOServDaemon.getConnector();
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
             int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
             if(
-                osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(rebuildLock) {
                 for(PostgresServer ps : thisAOServer.getPostgresServers()) {
                     int port=ps.getNetBind().getPort().getPort();
-                    PostgresVersion pv=ps.getVersion();
-                    String version=pv.getVersion().getVersion();
+                    PostgresVersion pv=ps.getPostgresVersion();
+                    String version=pv.getTechnologyVersion(connector).getVersion();
                     String minorVersion=pv.getMinorVersion();
 
                     // Get the connection to work through
@@ -224,21 +220,22 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                     Connection conn=pool.getConnection(false);
                     try {
                         // Get the list of all existing databases
-                        Set<PostgresDatabaseName> existing=new HashSet<PostgresDatabaseName>();
+                        List<String> existing=new SortedArrayList<String>();
                         Statement stmt=conn.createStatement();
                         try {
                             ResultSet results=stmt.executeQuery("select datname from pg_database");
                             try {
-                                while(results.next()) existing.add(PostgresDatabaseName.valueOf(results.getString(1)));
+                                while(results.next()) existing.add(results.getString(1));
                             } finally {
                                 results.close();
                             }
 
                             // Create the databases that do not exist and should
                             for(PostgresDatabase database : ps.getPostgresDatabases()) {
-                                PostgresDatabaseName name=database.getName();
-                                if(!existing.remove(name)) {
-                                    PostgresUser datdba=database.getDatDba();
+                                String name=database.getName();
+                                if(existing.contains(name)) existing.remove(name);
+                                else {
+                                    PostgresServerUser datdba=database.getDatDBA();
                                     if(
                                         version.startsWith(PostgresVersion.VERSION_7_3+'.')
                                         || version.startsWith(PostgresVersion.VERSION_8_0+'.')
@@ -246,15 +243,15 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                         || version.startsWith(PostgresVersion.VERSION_8_3+'.')
                                         || version.startsWith(PostgresVersion.VERSION_8_3+'R')
                                     ) {
-                                        stmt.executeUpdate("create database "+name+" with owner="+datdba.getUserId()+" encoding='"+database.getEncoding().getEncoding()+'\'');
+                                        stmt.executeUpdate("create database "+name+" with owner="+datdba.getPostgresUser().getUsername().getUsername()+" encoding='"+database.getPostgresEncoding().getEncoding()+'\'');
                                         conn.commit();
                                     } else if(
                                         version.startsWith(PostgresVersion.VERSION_7_1+'.')
                                         || version.startsWith(PostgresVersion.VERSION_7_2+'.')
                                     ) {
                                         // Create the database
-                                        stmt.executeUpdate("create database "+name+" with encoding='"+database.getEncoding().getEncoding()+"'");
-                                        stmt.executeUpdate("update pg_database set datdba=(select usesysid from pg_user where usename='"+datdba.getUserId()+"') where datname='"+name+"'");
+                                        stmt.executeUpdate("create database "+name+" with encoding='"+database.getPostgresEncoding().getEncoding()+"'");
+                                        stmt.executeUpdate("update pg_database set datdba=(select usesysid from pg_user where usename='"+datdba.getPostgresUser().getUsername().getUsername()+"') where datname='"+name+"'");
                                         conn.commit();
                                     } else throw new SQLException("Unsupported version of PostgreSQL: "+version);
 
@@ -274,6 +271,11 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                             psql = "/opt/postgresql-"+minorVersion+"/bin/psql";
                                             lib = "/opt/postgresql-"+minorVersion+"/lib";
                                             share = "/opt/postgresql-"+minorVersion+"/share";
+                                        } else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                                            createlang = "/usr/postgresql/"+minorVersion+"/bin/createlang";
+                                            psql = "/usr/postgresql/"+minorVersion+"/bin/psql";
+                                            lib = "/usr/postgresql/"+minorVersion+"/lib";
+                                            share = "/usr/postgresql/"+minorVersion+"/share";
                                         } else {
                                             throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                                         }
@@ -317,8 +319,9 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                             }
 
                             // Remove the extra databases
-                            for(PostgresDatabaseName dbName : existing) {
+                            for(int d=0;d<existing.size();d++) {
                                 // Remove the extra database
+                                String dbName=existing.get(d);
                                 if(
                                     dbName.equals(PostgresDatabase.TEMPLATE0)
                                     || dbName.equals(PostgresDatabase.TEMPLATE1)
@@ -351,19 +354,24 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
         try {
             //AOServConnector conn=AOServDaemon.getConnector();
             PostgresServer ps=pd.getPostgresServer();
+            String minorVersion=ps.getPostgresVersion().getMinorVersion();
+            int port=ps.getNetBind().getPort().getPort();
+            String dbName=pd.getName();
 
             int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
             String commandPath;
             if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64 || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                 commandPath = "/opt/aoserv-daemon/bin/dump_postgres_database";
+            } else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                commandPath = "/usr/aoserv/daemon/bin/dump_postgres_database";
             } else {
                 throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
             }
             String[] command={
                 commandPath,
-                ps.getVersion().getMinorVersion(),
-                ps.getNetBind().getPort().toString(),
-                pd.getName().toString(),
+                minorVersion,
+                Integer.toString(port),
+                dbName,
                 tempFile.getPath()
             };
             AOServDaemon.exec(command);
@@ -375,7 +383,6 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                     int ret;
                     while((ret=dumpin.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
                         masterOut.writeByte(AOServDaemonProtocol.NEXT);
-                        assert ret <= Short.MAX_VALUE;
                         masterOut.writeShort(ret);
                         masterOut.write(buff, 0, ret);
                     }
@@ -409,7 +416,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                 if(postgresDatabaseManager==null) {
                     AOServConnector conn=AOServDaemon.getConnector();
                     postgresDatabaseManager=new PostgresDatabaseManager();
-                    conn.getPostgresDatabases().getTable().addTableListener(postgresDatabaseManager, 0);
+                    conn.getPostgresDatabases().addTableListener(postgresDatabaseManager, 0);
                 }
                 if(!cronStarted) {
                     CronDaemon.addCronJob(postgresDatabaseManager, LogFactory.getLogger(PostgresDatabaseManager.class));
@@ -424,17 +431,15 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
         if(postgresDatabaseManager!=null) postgresDatabaseManager.waitForBuild();
     }
 
-    @Override
     public String getProcessTimerDescription() {
         return "Rebuild PostgreSQL Databases";
     }
 
-    /**
-     * Runs once a month for automatic vacuuming and reindexing of all user tables, at 1:05 every Sunday.
-     * REINDEX is only called on the first Sunday of the month.
-     */
     private static final Schedule schedule = new Schedule() {
-        @Override
+        /**
+         * Runs once a month for automatic vacuuming and reindexing of all user tables, at 1:05 every Sunday.
+         * REINDEX is only called on the first Sunday of the month.
+         */
         public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
             return
                 minute==5
@@ -444,17 +449,14 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
         }
     };
 
-    @Override
     public Schedule getCronJobSchedule() {
         return schedule;
     }
-
-    @Override
+    
     public CronJobScheduleMode getCronJobScheduleMode() {
         return CronJobScheduleMode.SKIP;
     }
 
-    @Override
     public String getCronJobName() {
         return "PostgresDatabaseManager";
     }
@@ -462,20 +464,20 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
     /**
      * Since the VACUUM FULL and REINDEX commands use exclusive locks on each table, we want it to finish as soon as possible.
      */
-    @Override
     public int getCronJobThreadPriority() {
         return Thread.NORM_PRIORITY+2;
     }
 
-    @Override
     public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
         try {
+            AOServConnector aoservConn = AOServDaemon.getConnector();
+            PostgresDatabaseTable postgresDatabaseTable = aoservConn.getPostgresDatabases();
             // Only REINDEX on the first Sunday of the month
             boolean isReindexTime=dayOfMonth<=7;
             List<String> tableNames=new ArrayList<String>();
             List<String> schemas=new ArrayList<String>();
             for(PostgresServer postgresServer : AOServDaemon.getThisAOServer().getPostgresServers()) {
-                String postgresServerVersion=postgresServer.getVersion().getVersion().getVersion();
+                String postgresServerVersion=postgresServer.getPostgresVersion().getTechnologyVersion(aoservConn).getVersion();
                 boolean postgresServerHasSchemas=
                     !postgresServerVersion.startsWith(PostgresVersion.VERSION_7_1+'.')
                     || !postgresServerVersion.startsWith(PostgresVersion.VERSION_7_2+'.')
@@ -486,7 +488,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                 for(PostgresDatabase postgresDatabase : postgresServer.getPostgresDatabases()) {
                     if(
                         !postgresDatabase.isTemplate()
-                        && postgresDatabase.getAllowConn()
+                        && postgresDatabase.allowsConnections()
                     ) {
                         AOConnectionPool pool;
                         Connection conn;
@@ -500,7 +502,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                             Class.forName(postgresDatabase.getJdbcDriver()).newInstance();
                             conn=DriverManager.getConnection(
                                 postgresDatabase.getJdbcUrl(true),
-                                PostgresUser.POSTGRES.toString(),
+                                PostgresUser.POSTGRES,
                                 AOServDaemonConfiguration.getPostgresPassword()
                             );
                         }
@@ -522,8 +524,10 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                             for(int c=0;c<tableNames.size();c++) {
                                 String tableName=tableNames.get(c);
                                 String schema=postgresServerHasSchemas ? schemas.get(c) : null;
-                                if(isValidIdentifier(tableName)) {
-                                    if(!postgresServerHasSchemas || "public".equals(schema) || isValidIdentifier(schema)) {
+                                if(
+                                    postgresDatabaseTable.isValidDatabaseName(tableName.toLowerCase())
+                                ) {
+                                    if(!postgresServerHasSchemas || "public".equals(schema) || postgresDatabaseTable.isValidDatabaseName(schema.toLowerCase())) {
                                         // VACUUM the table
                                         stmt.executeUpdate(
                                             postgresServerHasVacuumFull

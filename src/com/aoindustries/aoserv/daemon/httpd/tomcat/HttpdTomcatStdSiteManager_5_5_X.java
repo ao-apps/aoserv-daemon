@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 /*
- * Copyright 2007-2011 by AO Industries, Inc.,
+ * Copyright 2007-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -52,8 +52,8 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
         final TomcatCommon tomcatCommon = getTomcatCommon();
         final String siteDir = siteDirectory.getPath();
         final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
-        final int uid = lsa.getUID().getID();
-        final int gid = httpdSite.getLinuxServerGroup().getGID().getID();
+        final int uid = lsa.getUid().getID();
+        final int gid = httpdSite.getLinuxServerGroup().getGid().getID();
         final String tomcatDirectory=tomcatSite.getHttpdTomcatVersion().getInstallDirectory();
         final AOServer thisAOServer = AOServDaemon.getThisAOServer();
         final Server server = thisAOServer.getServer();
@@ -321,7 +321,9 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
             }
             if(!httpdSite.isManual()) out.print(autoWarning);
             NetBind shutdownPort=tomcatStdSite.getTomcat4ShutdownPort();
+            if(shutdownPort==null) throw new SQLException("Unable to find shutdown port for HttpdTomcatStdSite="+tomcatStdSite);
             String shutdownKey=tomcatStdSite.getTomcat4ShutdownKey();
+            if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for HttpdTomcatStdSite="+tomcatStdSite);
             out.print("<Server port=\"").print(shutdownPort.getPort().getPort()).print("\" shutdown=\"").print(shutdownKey).print("\" debug=\"0\">\n");
             out.print("  <GlobalNamingResources>\n"
                     + "    <Resource name=\"UserDatabase\" auth=\"Container\"\n"
@@ -410,8 +412,8 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
         // The only thing that needs to be modified is the included Tomcat
         return getTomcatCommon().upgradeTomcatDirectory(
             siteDirectory,
-            httpdSite.getLinuxServerAccount().getUID().getID(),
-            httpdSite.getLinuxServerGroup().getGID().getID()
+            httpdSite.getLinuxServerAccount().getUid().getID(),
+            httpdSite.getLinuxServerGroup().getGid().getID()
         );
     }
 }

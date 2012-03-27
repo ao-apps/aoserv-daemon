@@ -1,33 +1,21 @@
+package com.aoindustries.aoserv.daemon.mysql;
+
 /*
- * Copyright 2007-2011 by AO Industries, Inc.,
+ * Copyright 2007-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-package com.aoindustries.aoserv.daemon.mysql;
-
-import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.Business;
-import com.aoindustries.aoserv.client.MySQLDatabase;
-import com.aoindustries.aoserv.client.MySQLServer;
-import com.aoindustries.aoserv.client.validator.MySQLDatabaseName;
-import com.aoindustries.aoserv.client.validator.MySQLTableName;
-import com.aoindustries.aoserv.client.validator.ValidationException;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
+import com.aoindustries.aoserv.client.*;
+import com.aoindustries.aoserv.daemon.*;
 import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
 import com.aoindustries.cron.CronJobScheduleMode;
 import com.aoindustries.cron.Schedule;
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.io.*;
+import java.sql.*;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -45,7 +33,7 @@ final public class MySQLCreditCardScanner implements CronJob {
 
     private static MySQLCreditCardScanner mySQLCreditCardScanner;
 
-    public static void start() throws IOException {
+    public static void start() throws IOException, SQLException {
         if(AOServDaemonConfiguration.isManagerEnabled(MySQLCreditCardScanner.class) && mySQLCreditCardScanner==null) {
             synchronized(System.out) {
                 if(mySQLCreditCardScanner==null) {
@@ -59,7 +47,6 @@ final public class MySQLCreditCardScanner implements CronJob {
     }
 
     private static final Schedule schedule = new Schedule() {
-        @Override
         public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
             return
                 minute==30
@@ -69,17 +56,14 @@ final public class MySQLCreditCardScanner implements CronJob {
         }
     };
 
-    @Override
     public Schedule getCronJobSchedule() {
         return schedule;
     }
-
-    @Override
-     public CronJobScheduleMode getCronJobScheduleMode() {
+    
+    public CronJobScheduleMode getCronJobScheduleMode() {
          return CronJobScheduleMode.SKIP;
-     }
+    }
 
-    @Override
     public String getCronJobName() {
         return "MySQLCreditCardScanner";
     }
@@ -87,12 +71,10 @@ final public class MySQLCreditCardScanner implements CronJob {
     /**
      * Performs the scheduled task.
      */
-    @Override
     public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
         scanMySQLForCards();
     }
     
-    @Override
     public int getCronJobThreadPriority() {
         return Thread.NORM_PRIORITY-2;
     }
@@ -107,19 +89,21 @@ final public class MySQLCreditCardScanner implements CronJob {
 
             Map<Business,StringBuilder> reports = new HashMap<Business,StringBuilder>();
 
-            for(MySQLServer mysqlServer : thisAOServer.getMysqlServers()) {
-                for(MySQLDatabase database : mysqlServer.getMysqlDatabases()) {
-                    MySQLDatabaseName name=database.getName();
+            List<MySQLServer> mysqlServers = thisAOServer.getMySQLServers();
+            for(MySQLServer mysqlServer : mysqlServers) {
+                List<MySQLDatabase> mysqlDatabases = mysqlServer.getMySQLDatabases();
+                for(MySQLDatabase database : mysqlDatabases) {
+                    String name=database.getName();
                     
                     // Get connection to the database
-                    Class.forName(AOServDaemonConfiguration.getMysqlDriver()).newInstance();
+                    Class.forName(AOServDaemonConfiguration.getMySqlDriver()).newInstance();
                     Connection conn = DriverManager.getConnection(
-                        "jdbc:mysql://"+thisAOServer.getPrimaryIPAddress().getInetAddress()+":"+database.getMysqlServer().getNetBind().getPort().getPort()+"/"+name,
-                        AOServDaemonConfiguration.getMysqlUser().toString(),
-                        AOServDaemonConfiguration.getMysqlPassword()
+                        "jdbc:mysql://"+thisAOServer.getPrimaryIPAddress().getIPAddress()+":"+database.getMySQLServer().getNetBind().getPort().getPort()+"/"+database.getName(),
+                        AOServDaemonConfiguration.getMySqlUser(),
+                        AOServDaemonConfiguration.getMySqlPassword()
                     );
                     try {
-                        Business business = database.getBusiness();
+                        Business business = database.getPackage().getBusiness();
                         StringBuilder report = reports.get(business);
                         if(report==null) reports.put(business, report=new StringBuilder());
                         scanForCards(thisAOServer, mysqlServer, database, conn, name, report);
@@ -151,28 +135,26 @@ final public class MySQLCreditCardScanner implements CronJob {
         }
     }
     
-    public static void scanForCards(AOServer aoServer, MySQLServer mysqlServer, MySQLDatabase database, Connection conn, MySQLDatabaseName catalog, StringBuilder report) throws SQLException {
+    public static void scanForCards(AOServer aoServer, MySQLServer mysqlServer, MySQLDatabase database, Connection conn, String catalog, StringBuilder report) throws SQLException {
         DatabaseMetaData metaData = conn.getMetaData();
         String[] tableTypes = new String[] {"TABLE"};
-        ResultSet tables = metaData.getTables(catalog.toString(), null, null, tableTypes);
+        ResultSet tables = metaData.getTables(catalog, null, null, tableTypes);
         try {
             while(tables.next()) {
                 String table = tables.getString(3);
-                try {
-                    MySQLTableName tableName = MySQLTableName.valueOf(table);
+                if(MySQLDatabase.isSafeName(table)) {
                     StringBuilder buffer = new StringBuilder();
-                    buffer.append("select count(*) from `").append(tableName).append("` where ");
-                    ResultSet columns = metaData.getColumns(catalog.toString(), null, tableName.toString(), null);
+                    buffer.append("select count(*) from `" + table + "` where ");
+                    ResultSet columns = metaData.getColumns(catalog, null, table, null);
                     try {
                         boolean isFirst = true;
                         while(columns.next()) {
                             String column = columns.getString(4);
-                            try {
-                                MySQLTableName columnName = MySQLTableName.valueOf(column);
+                            if(MySQLDatabase.isSafeName(column)) {
                                 if(isFirst) isFirst = false;
                                 else buffer.append(" OR ");
 
-                                buffer.append("(length(`").append(columnName).append("`)<25 && `").append(columnName).append("` regexp '^\\w*(");
+                                buffer.append("(length(`").append(column).append("`)<25 && `").append(column).append("` regexp '^\\w*(");
 
                                 // AmEx
                                 buffer.append("3[47][0-9]{2}[\\w-]?[0-9]{2}[\\w-]?[0-9]{4}[\\w-]?[0-9]{5}");
@@ -184,7 +166,7 @@ final public class MySQLCreditCardScanner implements CronJob {
                                 buffer.append("|").append("6011[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}[\\w-]?[0-9]{4}");
 
                                 buffer.append(")\\w*$')");
-                            } catch(ValidationException err) {
+                            } else {
                                 report.append('\n')
                                     .append("Unable to scan column, unsafe name\n")
                                     .append('\n')
@@ -192,8 +174,7 @@ final public class MySQLCreditCardScanner implements CronJob {
                                     .append("MySQL Server..: ").append(mysqlServer.toString()).append('\n')
                                     .append("Database......: ").append(database.getName()).append('\n')
                                     .append("Table.........: ").append(table).append('\n')
-                                    .append("Column........: ").append(column).append('\n')
-                                    .append("Message.......: ").append(err.getMessage()).append('\n');
+                                    .append("Column........: ").append(column).append('\n');
                             }
                         }
                     } finally {
@@ -232,15 +213,14 @@ final public class MySQLCreditCardScanner implements CronJob {
                             .append("Row Count.....: ").append(rowCount).append('\n')
                             .append("Credit Cards..: ").append(ccCount).append('\n');
                     }
-                } catch(ValidationException err) {
+                } else {
                     report.append('\n')
-                        .append("Unable to scan table, validation failed\n")
+                        .append("Unable to scan table, unsafe name\n")
                         .append('\n')
                         .append("Server........: ").append(aoServer.getHostname()).append('\n')
                         .append("MySQL Server..: ").append(mysqlServer.toString()).append('\n')
                         .append("Database......: ").append(database.getName()).append('\n')
-                        .append("Table.........: ").append(table).append('\n')
-                        .append("Message.......: ").append(err.getMessage()).append('\n');
+                        .append("Table.........: ").append(table).append('\n');
                 }
             }
         } finally {

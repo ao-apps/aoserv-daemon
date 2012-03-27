@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 /*
- * Copyright 2007-2011 by AO Industries, Inc.,
+ * Copyright 2007-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -62,8 +62,8 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
         final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
         final String siteDir = siteDirectory.getPath();
         final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
-        final int uid = lsa.getUID().getID();
-        final int gid = httpdSite.getLinuxServerGroup().getGID().getID();
+        final int uid = lsa.getUid().getID();
+        final int gid = httpdSite.getLinuxServerGroup().getGid().getID();
         final AOServer thisAOServer = AOServDaemon.getThisAOServer();
         final String hostname = thisAOServer.getHostname();
         final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();

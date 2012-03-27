@@ -1,14 +1,21 @@
 package com.aoindustries.aoserv.daemon.httpd;
 
 /*
- * Copyright 2007-2011 by AO Industries, Inc.,
+ * Copyright 2007-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+import com.aoindustries.aoserv.client.AOSHCommand;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
+import com.aoindustries.aoserv.client.HttpdSiteBind;
+import com.aoindustries.aoserv.client.HttpdSiteURL;
+import com.aoindustries.aoserv.client.HttpdStaticSite;
+import com.aoindustries.aoserv.client.HttpdTomcatSite;
 import com.aoindustries.aoserv.client.LinuxAccount;
+import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
@@ -20,6 +27,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -45,14 +53,14 @@ public abstract class HttpdSiteManager {
     /**
      * Gets the specific manager for one type of web site.
      */
-    public static HttpdSiteManager getInstance(HttpdSite site) throws IOException {
+    public static HttpdSiteManager getInstance(HttpdSite site) throws IOException, SQLException {
         HttpdStaticSite staticSite=site.getHttpdStaticSite();
         if(staticSite!=null) return HttpdStaticSiteManager.getInstance(staticSite);
 
         HttpdTomcatSite tomcatSite=site.getHttpdTomcatSite();
         if(tomcatSite!=null) return HttpdTomcatSiteManager.getInstance(tomcatSite);
 
-        throw new AssertionError("HttpdSite must be either HttpdStaticSite and HttpdTomcatSite: "+site);
+        throw new SQLException("HttpdSite must be either HttpdStaticSite and HttpdTomcatSite: "+site);
     }
 
     /**
@@ -64,7 +72,7 @@ public abstract class HttpdSiteManager {
         List<File> deleteFileList,
         Set<HttpdSite> sitesNeedingRestarted,
         Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted
-    ) throws IOException {
+    ) throws IOException, SQLException {
         // Get values used in the rest of the method.
         HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
         AOServer aoServer = AOServDaemon.getThisAOServer();
@@ -115,7 +123,7 @@ public abstract class HttpdSiteManager {
      *
      * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
      */
-    static void stopStartAndRestart(Set<HttpdSite> sitesNeedingRestarted) throws IOException {
+    static void stopStartAndRestart(Set<HttpdSite> sitesNeedingRestarted) throws IOException, SQLException {
         for(HttpdSite httpdSite : AOServDaemon.getThisAOServer().getHttpdSites()) {
             HttpdSiteManager manager = getInstance(httpdSite);
             if(manager instanceof StopStartable) {
@@ -125,7 +133,7 @@ public abstract class HttpdSiteManager {
                     // Enabled, start or restart
                     if(sitesNeedingRestarted.contains(httpdSite)) {
                         commandCallable = new Callable<Object>() {
-                            public Object call() throws IOException {
+                            public Object call() throws IOException, SQLException {
                                 if(stopStartRestartable.stop()) {
                                     try {
                                         Thread.sleep(5000);
@@ -139,7 +147,7 @@ public abstract class HttpdSiteManager {
                         };
                     } else {
                         commandCallable = new Callable<Object>() {
-                            public Object call() throws IOException {
+                            public Object call() throws IOException, SQLException {
                                 stopStartRestartable.start();
                                 return null;
                             }
@@ -148,7 +156,7 @@ public abstract class HttpdSiteManager {
                 } else {
                     // Disabled, can only stop if needed
                     commandCallable = new Callable<Object>() {
-                        public Object call() throws IOException {
+                        public Object call() throws IOException, SQLException {
                             stopStartRestartable.stop();
                             return null;
                         }
@@ -177,7 +185,7 @@ public abstract class HttpdSiteManager {
      * 
      * @see  #doRebuild
      */
-    public static void stopAndDisableDaemons(UnixFile siteDirectory, Stat tempStat) throws IOException {
+    public static void stopAndDisableDaemons(UnixFile siteDirectory, Stat tempStat) throws IOException, SQLException {
         UnixFile daemonDirectory = new UnixFile(siteDirectory, "daemon", false);
         daemonDirectory.getStat(tempStat);
         if(tempStat.exists()) {
@@ -227,7 +235,7 @@ public abstract class HttpdSiteManager {
      * 
      * @return  <code>null</code> if successful or a user-readable reason if not successful
      */
-    public static String startHttpdSite(int sitePKey) throws IOException {
+    public static String startHttpdSite(int sitePKey) throws IOException, SQLException {
         AOServConnector conn = AOServDaemon.getConnector();
 
         HttpdSite httpdSite=conn.getHttpdSites().get(sitePKey);
@@ -262,7 +270,7 @@ public abstract class HttpdSiteManager {
      * 
      * @return  <code>null</code> if successful or a user-readable reason if not success.
      */
-    public static String stopHttpdSite(int sitePKey) throws IOException {
+    public static String stopHttpdSite(int sitePKey) throws IOException, SQLException {
         AOServConnector conn = AOServDaemon.getConnector();
 
         HttpdSite httpdSite=conn.getHttpdSites().get(sitePKey);
@@ -294,7 +302,7 @@ public abstract class HttpdSiteManager {
      * may be used on any config files that a user would be tempted to change
      * directly.
      */
-    public String getAutoWarningXmlOld() throws IOException {
+    public String getAutoWarningXmlOld() throws IOException, SQLException {
         return
             "<!--\n"
             + "  Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
@@ -316,7 +324,7 @@ public abstract class HttpdSiteManager {
      * may be used on any config files that a user would be tempted to change
      * directly.
      */
-    public String getAutoWarningXml() throws IOException {
+    public String getAutoWarningXml() throws IOException, SQLException {
         return
             "<!--\n"
             + "  Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
@@ -338,7 +346,7 @@ public abstract class HttpdSiteManager {
      * may be used on any config files that a user would be tempted to change
      * directly.
      */
-    /* Change to 2054542556 if re-enabled: public String getAutoWarningUnix() throws IOException {
+    /* Change to 2054542556 if re-enabled: public String getAutoWarningUnix() throws IOException, SQLException {
         return
             "#\n"
             + "# Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
@@ -371,7 +379,7 @@ public abstract class HttpdSiteManager {
      *   <li>Otherwise, make necessary config changes or upgrades while adhering to the manual flag</li>
      * </ol>
      */
-    protected abstract void buildSiteDirectory(UnixFile siteDirectory, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException;
+    protected abstract void buildSiteDirectory(UnixFile siteDirectory, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException;
 
     /**
      * Determines if should have anonymous FTP area.
@@ -388,7 +396,7 @@ public abstract class HttpdSiteManager {
      * @see  #enableAnonymousFtp()
      * @see  FTPManager#doRebuildSharedFtpDirectory
      */
-    public void configureFtpDirectory(UnixFile ftpDirectory) throws IOException {
+    public void configureFtpDirectory(UnixFile ftpDirectory) throws IOException, SQLException {
         if(httpdSite.isDisabled()) {
             // Disabled
             FileUtils.mkdir(
@@ -402,8 +410,8 @@ public abstract class HttpdSiteManager {
             FileUtils.mkdir(
                 ftpDirectory,
                 0775,
-                httpdSite.getLinuxServerAccount().getUID().getID(),
-                httpdSite.getLinuxServerGroup().getGID().getID()
+                httpdSite.getLinuxServerAccount().getUid().getID(),
+                httpdSite.getLinuxServerGroup().getGid().getID()
             );
         }
     }
@@ -426,7 +434,7 @@ public abstract class HttpdSiteManager {
      * If CGI is disabled or PHP is disabled, removed any php script.
      * Any existing file will be overwritten, even when in manual mode.
      */
-    protected void createCgiPhpScript(UnixFile cgibinDirectory) throws IOException {
+    protected void createCgiPhpScript(UnixFile cgibinDirectory) throws IOException, SQLException {
         UnixFile phpFile = new UnixFile(cgibinDirectory, "php", false);
         // TODO: If every server this site runs as uses mod_php, then don't make the script
         if(enableCgi() && enablePhp()) {
@@ -477,15 +485,15 @@ public abstract class HttpdSiteManager {
                 if(phpVersion.equals("4")) {
                     out.print("export LD_LIBRARY_PATH=\"/opt/mysql-5.0-i686/lib:/opt/postgresql-7.3-i686/lib:${LD_LIBRARY_PATH}\"\n");
                 } else if(phpVersion.equals("5")) {
-                    out.print("export LD_LIBRARY_PATH=\"/opt/mysql-5.0-i686/lib:/opt/postgresql-8.1-i686/lib:${LD_LIBRARY_PATH}\"\n");
-                } else throw new AssertionError("Unexpected version for php: "+phpVersion);
+                    out.print("export LD_LIBRARY_PATH=\"/opt/mysql-5.1-i686/lib:/opt/postgresql-8.3-i686/lib:${LD_LIBRARY_PATH}\"\n");
+                } else throw new SQLException("Unexpected version for php: "+phpVersion);
                 out.print("exec ").print(phpCgiPath).print(" \"$@\"\n");
             } finally {
                 out.close();
             }
             // Only rewrite when needed
-            int uid = httpdSite.getLinuxServerAccount().getUID().getID();
-            int gid = httpdSite.getLinuxServerGroup().getGID().getID();
+            int uid = httpdSite.getLinuxServerAccount().getUid().getID();
+            int gid = httpdSite.getLinuxServerGroup().getGid().getID();
             int mode = 0755;
             // Create parent if missing
             UnixFile parent = cgibinDirectory.getParent();
@@ -514,7 +522,7 @@ public abstract class HttpdSiteManager {
      * If CGI is disabled, does nothing.
      * Any existing file will not be overwritten, even when in auto mode.
      */
-    protected void createTestCGI(UnixFile cgibinDirectory) throws IOException {
+    protected void createTestCGI(UnixFile cgibinDirectory) throws IOException, SQLException {
         if(enableCgi()) {
             Stat tempStat = new Stat();
             UnixFile testFile = new UnixFile(cgibinDirectory, "test", false);
@@ -545,7 +553,7 @@ public abstract class HttpdSiteManager {
                     }
                     // Set permissions and ownership
                     tempFile.setMode(0755);
-                    tempFile.chown(httpdSite.getLinuxServerAccount().getUID().getID(), httpdSite.getLinuxServerGroup().getGID().getID());
+                    tempFile.chown(httpdSite.getLinuxServerAccount().getUid().getID(), httpdSite.getLinuxServerGroup().getGid().getID());
                     // Move into place
                     tempFile.renameTo(testFile);
                 } finally {
@@ -562,7 +570,7 @@ public abstract class HttpdSiteManager {
      * TODO: Generate proper disabled page automatically.
      *       Or, better, put into logic of static site rebuild.
      */
-    protected void createTestIndex(UnixFile indexFile) throws IOException {
+    protected void createTestIndex(UnixFile indexFile) throws IOException, SQLException {
         Stat tempStat = new Stat();
         if(!indexFile.getStat(tempStat).exists()) {
             HttpdSiteURL primaryHsu = httpdSite.getPrimaryHttpdSiteURL();
@@ -583,7 +591,7 @@ public abstract class HttpdSiteManager {
                 }
                 // Set permissions and ownership
                 tempFile.setMode(0664);
-                tempFile.chown(httpdSite.getLinuxServerAccount().getUID().getID(), httpdSite.getLinuxServerGroup().getGID().getID());
+                tempFile.chown(httpdSite.getLinuxServerAccount().getUid().getID(), httpdSite.getLinuxServerGroup().getGid().getID());
                 // Move into place
                 tempFile.renameTo(indexFile);
             } finally {
@@ -598,7 +606,7 @@ public abstract class HttpdSiteManager {
      * If PHP is disabled, does nothing.
      * Any existing file will not be overwritten, even when in auto mode.
      */
-    protected void createTestPHP(UnixFile rootDirectory) throws IOException {
+    protected void createTestPHP(UnixFile rootDirectory) throws IOException, SQLException {
         // TODO: Overwrite the phpinfo pages with this new version, for security
         if(enablePhp()) {
             Stat tempStat = new Stat();
@@ -624,7 +632,7 @@ public abstract class HttpdSiteManager {
                     }
                     // Set permissions and ownership
                     tempFile.setMode(0664);
-                    tempFile.chown(httpdSite.getLinuxServerAccount().getUID().getID(), httpdSite.getLinuxServerGroup().getGID().getID());
+                    tempFile.chown(httpdSite.getLinuxServerAccount().getUid().getID(), httpdSite.getLinuxServerGroup().getGid().getID());
                     // Move into place
                     tempFile.renameTo(testFile);
                 } finally {
@@ -642,11 +650,11 @@ public abstract class HttpdSiteManager {
      * If the site has no binds, returns UID for "apache".
      * If the site is named <code>HttpdSite.DISABLED</code>, always returns UID for "apache".
      */
-    public int getApacheUid() throws IOException {
+    public int getApacheUid() throws IOException, SQLException {
         int uid = -1;
         if(!HttpdSite.DISABLED.equals(httpdSite.getSiteName())) {
             for(HttpdSiteBind hsb : httpdSite.getHttpdSiteBinds()) {
-                int hsUid = hsb.getHttpdBind().getHttpdServer().getLinuxServerAccount().getUID().getID();
+                int hsUid = hsb.getHttpdBind().getHttpdServer().getLinuxServerAccount().getUid().getID();
                 if(uid==-1) {
                     uid = hsUid;
                 } else if(uid!=hsUid) {
@@ -659,7 +667,8 @@ public abstract class HttpdSiteManager {
         if(uid==-1) {
             AOServer aoServer = AOServDaemon.getThisAOServer();
             LinuxServerAccount apacheLsa = aoServer.getLinuxServerAccount(LinuxAccount.APACHE);
-            uid = apacheLsa.getUID().getID();
+            if(apacheLsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+LinuxAccount.APACHE+" on "+aoServer.getHostname());
+            uid = apacheLsa.getUid().getID();
         }
         return uid;
     }
@@ -731,7 +740,7 @@ public abstract class HttpdSiteManager {
     /**
      * Gets an unmodifable set of URL patterns that should be rejected.
      */
-    public SortedSet<Location> getRejectedLocations() throws IOException {
+    public SortedSet<Location> getRejectedLocations() throws IOException, SQLException {
         return unmodifiableStandardRejectedLocations;
     }
     
@@ -845,7 +854,7 @@ public abstract class HttpdSiteManager {
      * 
      * @return  An empty set if no Jk enabled.
      */
-    public SortedSet<JkSetting> getJkSettings() throws IOException {
+    public SortedSet<JkSetting> getJkSettings() throws IOException, SQLException {
         return emptyJkSettings;
     }
 
@@ -885,5 +894,5 @@ public abstract class HttpdSiteManager {
      * and the value is the settings for that path.  If any webapp enables
      * CGI, then this site overall must allow CGI.
      */
-    public abstract SortedMap<String,WebAppSettings> getWebapps() throws IOException;
+    public abstract SortedMap<String,WebAppSettings> getWebapps() throws IOException, SQLException;
 }

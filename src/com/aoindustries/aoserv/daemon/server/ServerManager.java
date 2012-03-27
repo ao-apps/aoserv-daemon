@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.server;
 
 /*
- * Copyright 2002-2011 by AO Industries, Inc.,
+ * Copyright 2002-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -11,7 +11,6 @@ import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
-import com.aoindustries.io.IoUtils;
 import com.aoindustries.util.StringUtility;
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -46,7 +45,8 @@ final public class ServerManager {
     public static void controlProcess(String process, String command) throws IOException, SQLException {
         int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
         if(
-            osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
         ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
 
@@ -196,6 +196,14 @@ final public class ServerManager {
                 return AOServDaemon.execAndCapture(
                     new String[] {
                         "/opt/aoserv-daemon/bin/filesystemscsv"
+                    }
+                );
+            } else if(
+                osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+            ) {
+                return AOServDaemon.execAndCapture(
+                    new String[] {
+                        "/usr/aoserv/daemon/bin/filesystemscsv"
                     }
                 );
             } else {
@@ -515,7 +523,7 @@ final public class ServerManager {
     }
 
     /**
-     * Finds a PID given the prefix of its exact command line as found in /proc/.../cmdline
+     * Finds a PID given its exact command line as found in /proc/.../cmdline
      * Returns PID or <code>-1</code> if not found.
      */
     public static int findPid(String cmdlinePrefix) throws IOException {
@@ -531,7 +539,7 @@ final public class ServerManager {
                             File cmdlineFile = new File(dir, "cmdline");
                             if(cmdlineFile.exists()) {
                                 StringBuilder SB = new StringBuilder();
-                                InputStream in = new BufferedInputStream(new FileInputStream(cmdlineFile));
+                                FileInputStream in = new FileInputStream(cmdlineFile);
                                 try {
                                     int b;
                                     while((b=in.read())!=-1) SB.append((char)b);
@@ -571,17 +579,17 @@ final public class ServerManager {
                     int domid = xmList.getDomid();
 
                     // Find the PID of its qemu handler from its ID
-                    int pid = findPid("/usr/lib64/xen/bin/qemu-dm\u0000-d\u0000"+domid+"\u0000"); // Hardware virtualized
-                    if(pid==-1) pid = findPid("/usr/lib64/xen/bin/qemu-dm\u0000-M\u0000xenpv\u0000-d\u0000"+domid+"\u0000"); // Paravirtualized
-                    if(pid==-1) pid = findPid("/usr/lib64/xen/bin/xen-vncfb\u0000--unused\u0000--listen\u0000127.0.0.1\u0000--domid\u0000"+domid+"\u0000"); // Older Paravirtualized
+                    int         pid = findPid("/usr/lib64/xen/bin/qemu-dm\u0000-d\u0000"+domid+"\u0000"); // Hardware virtualized
+                    if(pid==-1) pid = findPid("/usr/lib64/xen/bin/qemu-dm\u0000-M\u0000xenpv\u0000-d\u0000"+domid+"\u0000"); // New Paravirtualized
+                    if(pid==-1) pid = findPid("/usr/lib64/xen/bin/xen-vncfb\u0000--unused\u0000--listen\u0000127.0.0.1\u0000--domid\u0000"+domid+"\u0000"); // Old Paravirtualized
                     if(pid==-1) throw new IOException("Unable to find PID");
 
                     // Find its port from lsof given its PID
                     String lsof = AOServDaemon.execAndCapture(
                         new String[] {
                             "/usr/sbin/lsof",
-                            "-n",
-                            "-P",
+                            "-n", // Numeric IP addresses
+                            "-P", // Numeric port numbers
                             "-a",
                             "-p",
                             Integer.toString(pid),
@@ -630,11 +638,15 @@ final public class ServerManager {
                                 // socketIn -> vncOut in another thread
                                 Thread inThread = new Thread(
                                     new Runnable() {
-                                        @Override
                                         public void run() {
                                             try {
                                                 try {
-                                                    IoUtils.copy(socketIn, vncOut, true);
+                                                    byte[] buff = new byte[4096];
+                                                    int ret;
+                                                    while((ret=socketIn.read(buff, 0, 4096))!=-1) {
+                                                        vncOut.write(buff, 0, ret);
+                                                        vncOut.flush();
+                                                    }
                                                 } finally {
                                                     vncSocket.close();
                                                 }
@@ -651,7 +663,12 @@ final public class ServerManager {
                                     // Tell it DONE OK
                                     socketOut.write(AOServDaemonProtocol.NEXT);
                                     // vncIn -> socketOut in this thread
-                                    IoUtils.copy(vncIn, socketOut, true);
+                                    byte[] buff = new byte[4096];
+                                    int ret;
+                                    while((ret=vncIn.read(buff, 0, 4096))!=-1) {
+                                        socketOut.write(buff, 0, ret);
+                                        socketOut.flush();
+                                    }
                                 //} finally {
                                     //try {
                                         // Let the in thread complete its work before closing streams
@@ -678,7 +695,9 @@ final public class ServerManager {
                 socketOut.close();
             }
         } catch(ParseException err) {
-            throw new IOException(err);
+            IOException ioErr = new IOException();
+            ioErr.initCause(err);
+            throw ioErr;
         } finally {
             socket.close();
         }

@@ -1,18 +1,18 @@
 package com.aoindustries.aoserv.daemon.email;
 
 /*
- * Copyright 2003-2011 by AO Industries, Inc.,
+ * Copyright 2003-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Protocol;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.client.ServerFarm;
-import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -62,7 +62,7 @@ final public class SendmailCFManager extends BuilderThread {
             Server server = aoServer.getServer();
             int osv=server.getOperatingSystemVersion().getPkey();
             ServerFarm serverFarm = server.getServerFarm();
-            InetAddress primaryIpAddress = aoServer.getPrimaryIPAddress().getInetAddress();
+            IPAddress primaryIpAddress = aoServer.getPrimaryIPAddress();
             ByteArrayOutputStream bout = new ByteArrayOutputStream();
             Stat tempStat = new Stat();
 
@@ -76,7 +76,18 @@ final public class SendmailCFManager extends BuilderThread {
                 {
                     ChainWriter out=new ChainWriter(bout);
                     try {
-                        if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                            out.print("divert(-1)\n"
+                                    + "dnl This is the macro config file used to generate the /etc/sendmail.cf\n"
+                                    + "dnl file. If you modify the file you will have to regenerate the\n"
+                                    + "dnl /etc/mail/sendmail.cf by running this macro config through the m4\n"
+                                    + "dnl preprocessor:\n"
+                                    + "dnl\n"
+                                    + "dnl        m4 /etc/mail/sendmail.mc > /etc/mail/sendmail.cf\n"
+                                    + "dnl\n"
+                                    + "dnl You will need to have the sendmail-cf package installed for this to\n"
+                                    + "dnl work.\n");
+                        } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                             out.print("divert(-1)dnl\n"
                                     + "dnl #\n"
                                     + "dnl # This is the sendmail macro config file for m4. If you make changes to\n"
@@ -106,7 +117,8 @@ final public class SendmailCFManager extends BuilderThread {
                             out.print("define(`confTRY_NULL_MX_LIST', `True')dnl\n"
                                     + "define(`confDONT_PROBE_INTERFACES', `True')dnl\n");
                         } else if(
-                            osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+                            osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+                            || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                         ) {
                             out.print("define(`confTRY_NULL_MX_LIST',true)dnl\n"
                                     + "define(`confDONT_PROBE_INTERFACES',true)dnl\n");
@@ -131,7 +143,9 @@ final public class SendmailCFManager extends BuilderThread {
                                 + "FEATURE(`virtusertable',`hash -o /etc/mail/virtusertable.db')dnl\n"
                                 + "FEATURE(redirect)dnl\n"
                                 + "FEATURE(use_cw_file)dnl\n");
-                        if(
+                        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                            out.print("FEATURE(local_procmail)dnl\n");
+                        } else if(
                             osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                             || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                         ) {
@@ -140,7 +154,8 @@ final public class SendmailCFManager extends BuilderThread {
                             throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
                         }
                         if(
-                            osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+                            osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+                            || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                         ) {
                             out.print("FEATURE(`access_db',`hash -T<TMPF> /etc/mail/access.db')dnl\n");
                         } else if(
@@ -155,7 +170,10 @@ final public class SendmailCFManager extends BuilderThread {
                                 + "dnl\n"
                                 + "dnl Next lines are for SMTP Authentication\n"
                                 + "define(`confAUTH_OPTIONS', `A y')dnl\n");
-                        if(
+                        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                            out.print("TRUST_AUTH_MECH(`GSSAPI DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n"
+                                    + "define(`confAUTH_MECHANISMS', `GSSAPI DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n");
+                        } else if(
                             osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                             || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                         ) {
@@ -205,7 +223,7 @@ final public class SendmailCFManager extends BuilderThread {
                         if(AOServDaemonConfiguration.isManagerEnabled(JilterConfigurationWriter.class)) {
                             out.print("dnl Enable Jilter\n"
                                     + "dnl\n"
-                                    + "INPUT_MAIL_FILTER(`jilter',`S=inet:"+JilterConfiguration.MILTER_PORT+"@").print(primaryIpAddress.toString()).print(", F=R, T=S:60s;R:60s')\n"
+                                    + "INPUT_MAIL_FILTER(`jilter',`S=inet:"+JilterConfiguration.MILTER_PORT+"@").print(primaryIpAddress.getIPAddress()).print(", F=R, T=S:60s;R:60s')\n"
                                     + "dnl\n");
                         }
                         out.print("dnl Only listen to the IP addresses of this logical server\n"
@@ -268,6 +286,9 @@ final public class SendmailCFManager extends BuilderThread {
                         }
                         out.print("MAILER(smtp)dnl\n"
                                 + "MAILER(procmail)dnl\n"
+                                // Add envelop header recipient
+                                + "LOCAL_CONFIG\n"
+                                + "H?m?X-RCPT-To: $u\n"
                                 + "Dj").print(aoServer.getHostname()).print("\n" // AO added
                                 + "\n"
                         );
@@ -318,7 +339,18 @@ final public class SendmailCFManager extends BuilderThread {
                     ChainWriter out=new ChainWriter(bout);
                     try {
                         // Submit will always be on the primary IP address
-                        if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+                        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                            out.print("divert(-1)\n"
+                                    + "#\n"
+                                    + "# Generated by ").print(SendmailCFManager.class.getName()).print("\n"
+                                    + "#\n"
+                                    + "include(`/usr/share/sendmail-cf/m4/cf.m4')dnl\n"
+                                    + "OSTYPE(`linux')dnl\n"
+                                    + "define(`confCF_VERSION', `Submit')dnl\n"
+                                    + "FEATURE(`msp', `[").print(primaryIpAddress.getIPAddress()).print("]')dnl\n"
+                                    + "define(`confRUN_AS_USER',`mail:mail')dnl\n"
+                                    + "define(`confTRUSTED_USER',`mail')dnl\n");
+                        } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                             out.print("divert(-1)\n"
                                     + "#\n"
                                     + "# Generated by ").print(SendmailCFManager.class.getName()).print("\n"
@@ -334,7 +366,7 @@ final public class SendmailCFManager extends BuilderThread {
                                     + "define(`confPID_FILE', `/var/run/sm-client.pid')dnl\n"
                                     + "dnl define(`confDIRECT_SUBMISSION_MODIFIERS',`C')\n"
                                     + "dnl FEATURE(`use_ct_file')dnl\n"
-                                    + "FEATURE(`msp', `[").print(primaryIpAddress.toString()).print("]')dnl\n"
+                                    + "FEATURE(`msp', `[").print(primaryIpAddress.getIPAddress()).print("]')dnl\n"
                                     + "define(`confPROCESS_TITLE_PREFIX',`").print(aoServer.getHostname()).print("')dnl\n");
                         } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                             out.print("divert(-1)\n"
@@ -352,7 +384,7 @@ final public class SendmailCFManager extends BuilderThread {
                                     + "define(`confPID_FILE', `/var/run/sm-client.pid')dnl\n"
                                     + "dnl define(`confDIRECT_SUBMISSION_MODIFIERS',`C')dnl\n"
                                     + "FEATURE(`use_ct_file')dnl\n"
-                                    + "FEATURE(`msp', `[").print(primaryIpAddress.toString()).print("]')dnl\n"
+                                    + "FEATURE(`msp', `[").print(primaryIpAddress.getIPAddress()).print("]')dnl\n"
                                     + "define(`confPROCESS_TITLE_PREFIX',`").print(aoServer.getHostname()).print("')dnl\n");
                         } else {
                             throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
@@ -423,10 +455,10 @@ final public class SendmailCFManager extends BuilderThread {
                 System.out.print("Starting SendmailCFManager: ");
                 AOServConnector connector=AOServDaemon.getConnector();
                 sendmailCFManager=new SendmailCFManager();
-                connector.getIpAddresses().getTable().addTableListener(sendmailCFManager, 0);
-                connector.getNetBinds().getTable().addTableListener(sendmailCFManager, 0);
-                connector.getAoServers().getTable().addTableListener(sendmailCFManager, 0);
-                connector.getServerFarms().getTable().addTableListener(sendmailCFManager, 0);
+                connector.getIpAddresses().addTableListener(sendmailCFManager, 0);
+                connector.getNetBinds().addTableListener(sendmailCFManager, 0);
+                connector.getAoServers().addTableListener(sendmailCFManager, 0);
+                connector.getServerFarms().addTableListener(sendmailCFManager, 0);
                 System.out.println("Done");
             }
         }

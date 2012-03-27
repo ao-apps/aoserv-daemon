@@ -1,10 +1,10 @@
+package com.aoindustries.aoserv.daemon.postgres;
+
 /*
- * Copyright 2002-2011 by AO Industries, Inc.,
+ * Copyright 2002-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-package com.aoindustries.aoserv.daemon.postgres;
-
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
@@ -40,24 +40,10 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 
     public static final File pgsqlDirectory=new File(PostgresServer.DATA_BASE_DIR);
 
-    private static final Schedule cronSchedule = new Schedule() {
-        /**
-         * This task will be ran once per day at 1:30am.
-         */
-        @Override
-        public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
-            return
-                minute==30
-                && hour==1
-            ;
-        }
-    };
-
     private PostgresServerManager() {
     }
 
     private static final Object rebuildLock=new Object();
-    @Override
     protected boolean doRebuild() {
         synchronized(rebuildLock) {
             // TODO: Add and initialize any missing /var/lib/pgsql/name
@@ -67,22 +53,24 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
         return true;
     }
 
-    private static final Map<PostgresServer,AOConnectionPool> pools=new HashMap<PostgresServer,AOConnectionPool>();
+    private static final Map<Integer,AOConnectionPool> pools=new HashMap<Integer,AOConnectionPool>();
     static AOConnectionPool getPool(PostgresServer ps) throws IOException, SQLException {
         synchronized(pools) {
-            AOConnectionPool pool=pools.get(ps);
+            Integer I=Integer.valueOf(ps.getPkey());
+            AOConnectionPool pool=pools.get(I);
             if(pool==null) {
                 PostgresDatabase pd=ps.getPostgresDatabase(PostgresDatabase.AOSERV);
+                if(pd==null) throw new SQLException("Unable to find PostgresDatabase: "+PostgresDatabase.AOSERV+" on "+ps.toString());
                 pool=new AOConnectionPool(
                     pd.getJdbcDriver(),
                     pd.getJdbcUrl(true),
-                    PostgresUser.POSTGRES.toString(),
+                    PostgresUser.POSTGRES,
                     AOServDaemonConfiguration.getPostgresPassword(),
                     AOServDaemonConfiguration.getPostgresConnections(),
                     AOServDaemonConfiguration.getPostgresMaxConnectionAge(),
                     LogFactory.getLogger(PostgresServerManager.class)
                 );
-                pools.put(ps, pool);
+                pools.put(I, pool);
             }
             return pool;
         }
@@ -105,7 +93,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
                 System.out.print("Starting PostgresServerManager: ");
                 AOServConnector conn=AOServDaemon.getConnector();
                 postgresServerManager=new PostgresServerManager();
-                conn.getPostgresServers().getTable().addTableListener(postgresServerManager, 0);
+                conn.getPostgresServers().addTableListener(postgresServerManager, 0);
                 // Register in CronDaemon
                 CronDaemon.addCronJob(postgresServerManager, LogFactory.getLogger(PostgresServerManager.class));
                 System.out.println("Done");
@@ -117,7 +105,6 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
         if(postgresServerManager!=null) postgresServerManager.waitForBuild();
     }
 
-    @Override
     public String getProcessTimerDescription() {
         return "Rebuild PostgreSQL Servers";
     }
@@ -134,22 +121,30 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
         ServerManager.controlProcess("postgresql-"+ps.getName(), "stop");
     }
 
-    @Override
     public String getCronJobName() {
         return PostgresServerManager.class.getName();
     }
     
-    @Override
     public CronJobScheduleMode getCronJobScheduleMode() {
         return CronJobScheduleMode.SKIP;
     }
 
-    @Override
+    private static final Schedule schedule = new Schedule() {
+        /**
+         * This task will be ran once per day at 1:30am.
+         */
+        public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
+            return
+                minute==30
+                && hour==1
+            ;
+        }
+    };
+
     public Schedule getCronJobSchedule() {
-        return cronSchedule;
+        return schedule;
     }
 
-    @Override
     public int getCronJobThreadPriority() {
         return Thread.NORM_PRIORITY-2;
     }
@@ -157,11 +152,11 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
     /**
      * Rotates PostgreSQL log files.  Those older than one month are removed.
      */
-    @Override
     public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
         try {
+            AOServConnector conn = AOServDaemon.getConnector();
             for(PostgresServer postgresServer : AOServDaemon.getThisAOServer().getPostgresServers()) {
-                String version=postgresServer.getVersion().getVersion().getVersion();
+                String version=postgresServer.getPostgresVersion().getTechnologyVersion(conn).getVersion();
                 if(
                     !version.startsWith(PostgresVersion.VERSION_7_1+'.')
                     && !version.startsWith(PostgresVersion.VERSION_7_2+'.')
@@ -169,7 +164,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
                     && !version.startsWith(PostgresVersion.VERSION_8_0+'.')
                 ) {
                     // Is 8.1 or newer, need to compress and rotate logs
-                    File logDirectory=new File("/var/log/postgresql", postgresServer.getName().toString());
+                    File logDirectory=new File("/var/log/postgresql", postgresServer.getName());
                     String[] list=logDirectory.list();
                     if(list!=null) {
                         for(String filename : list) {

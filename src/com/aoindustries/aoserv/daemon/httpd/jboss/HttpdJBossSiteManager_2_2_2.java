@@ -1,10 +1,10 @@
+package com.aoindustries.aoserv.daemon.httpd.jboss;
+
 /*
- * Copyright 2007-2011 by AO Industries, Inc.,
+ * Copyright 2007-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-package com.aoindustries.aoserv.daemon.httpd.jboss;
-
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.HttpdJBossSite;
 import com.aoindustries.aoserv.client.HttpdJKProtocol;
@@ -57,8 +57,8 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
         final String siteDir = siteDirectory.getPath();
         final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
         final LinuxServerGroup lsg = httpdSite.getLinuxServerGroup();
-        final int uid = lsa.getUID().getID();
-        final int gid = lsg.getGID().getID();
+        final int uid = lsa.getUid().getID();
+        final int gid = lsg.getGid().getID();
         final String laUsername=lsa.getLinuxAccount().getUsername().getUsername();
         final String laGroupname = lsg.getLinuxGroup().getName();
         final String siteName=httpdSite.getSiteName();
@@ -382,8 +382,8 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
             // Enabled
             if(!daemonSymlink.getStat().exists()) {
                 daemonSymlink.symLink("../bin/jboss").chown(
-                    httpdSite.getLinuxServerAccount().getUID().getID(),
-                    httpdSite.getLinuxServerGroup().getGID().getID()
+                    httpdSite.getLinuxServerAccount().getUid().getID(),
+                    httpdSite.getLinuxServerGroup().getGid().getID()
                 );
             }
         } else {
@@ -472,8 +472,8 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
                     buildServerXml(siteDirectory, autoWarning),
                     null,
                     confServerXMLFile,
-                    httpdSite.getLinuxServerAccount().getUID().getID(),
-                    httpdSite.getLinuxServerGroup().getGID().getID(),
+                    httpdSite.getLinuxServerAccount().getUid().getID(),
+                    httpdSite.getLinuxServerGroup().getGid().getID(),
                     0660
                 )
             ) {

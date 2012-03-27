@@ -2,7 +2,7 @@
 package com.aoindustries.aoserv.daemon.httpd;
 
 /*
- * Copyright 2008-2011 by AO Industries, Inc.,
+ * Copyright 2008-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -145,7 +145,7 @@ public class HttpdServerManager {
             final HttpdSiteManager manager = HttpdSiteManager.getInstance(httpdSite);
             final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
             final LinuxServerGroup lsg = httpdSite.getLinuxServerGroup();
-            final int lsgGID = lsg.getGID().getID();
+            final int lsgGID = lsg.getGid().getID();
             final List<HttpdSiteBind> binds = httpdSite.getHttpdSiteBinds();
 
             // Remove from delete list
@@ -1186,6 +1186,10 @@ public class HttpdServerManager {
                     } else if(version.startsWith("5.2.")) {
                         out.print("export LD_LIBRARY_PATH=\"/opt/mysql-5.0-i686/lib:${LD_LIBRARY_PATH}\"\n"
                                 + "export LD_LIBRARY_PATH=\"/opt/postgresql-8.1-i686/lib:${LD_LIBRARY_PATH}\"\n"
+                                + "\n");
+                    } else if(version.startsWith("5.3.")) {
+                        out.print("export LD_LIBRARY_PATH=\"/opt/mysql-5.1-i686/lib:${LD_LIBRARY_PATH}\"\n"
+                                + "export LD_LIBRARY_PATH=\"/opt/postgresql-8.3-i686/lib:${LD_LIBRARY_PATH}\"\n"
                                 + "\n");
                     } else throw new SQLException("Unexpected version for mod_php: "+version);
                 }

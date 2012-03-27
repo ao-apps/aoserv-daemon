@@ -1,10 +1,10 @@
+package com.aoindustries.aoserv.daemon.httpd.tomcat;
+
 /*
- * Copyright 2008-2011 by AO Industries, Inc.,
+ * Copyright 2008-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-package com.aoindustries.aoserv.daemon.httpd.tomcat;
-
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
@@ -65,9 +65,9 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
         final String tomcatDirectory=htv.getInstallDirectory();
         final TomcatCommon tomcatCommon = getTomcatCommon();
         final LinuxServerAccount lsa = sharedTomcat.getLinuxServerAccount();
-        final int lsaUID = lsa.getUID().getID();
+        final int lsaUID = lsa.getUid().getID();
         final LinuxServerGroup lsg = sharedTomcat.getLinuxServerGroup();
-        final int lsgGID = lsg.getGID().getID();
+        final int lsgGID = lsg.getGid().getID();
         final String wwwGroupDir = sharedTomcatDirectory.getPath();
         final String wwwDirectory = httpdConfig.getHttpdSitesDirectory();
         final UnixFile daemonUF = new UnixFile(sharedTomcatDirectory, "daemon", false);
@@ -358,7 +358,7 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
                                 .getHttpdTomcatSite()
                                 .getHttpdSite()
                                 .getLinuxServerGroup()
-                                .getGID()
+                                .getGid()
                                 .getID()
                         )
                         .setMode(0750)
@@ -387,7 +387,9 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
                 HttpdWorker hw=sharedTomcat.getTomcat4Worker();
                 if(!sharedTomcat.isManual()) out.print(autoWarning);
                 NetBind shutdownPort = sharedTomcat.getTomcat4ShutdownPort();
+                if(shutdownPort==null) throw new SQLException("Unable to find shutdown key for HttpdSharedTomcat: "+sharedTomcat);
                 String shutdownKey=sharedTomcat.getTomcat4ShutdownKey();
+                if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for HttpdSharedTomcat: "+sharedTomcat);
                 out.print("<Server port=\"").print(shutdownPort.getPort().getPort()).print("\" shutdown=\"").print(shutdownKey).print("\" debug=\"0\">\n");
                 out.print("  <GlobalNamingResources>\n"
                         + "    <Resource name=\"UserDatabase\" auth=\"Container\"\n"
@@ -546,8 +548,8 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
         // Upgrade Tomcat
         boolean needsRestart = getTomcatCommon().upgradeTomcatDirectory(
             siteDirectory,
-            sharedTomcat.getLinuxServerAccount().getUID().getID(),
-            sharedTomcat.getLinuxServerGroup().getGID().getID()
+            sharedTomcat.getLinuxServerAccount().getUid().getID(),
+            sharedTomcat.getLinuxServerGroup().getGid().getID()
         );
 
         // Update bin/tomcat script
