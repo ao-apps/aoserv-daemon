@@ -62,16 +62,17 @@ final public class DNSManager extends BuilderThread {
         + " 64.71.143.176/29;" // Firewalls
         + " 66.160.183.0/24;"  // Hosts
         + " 64.62.174.0/24;"   // More Hosts
+        + " 64.71.144.0/25;"   // More Hosts
+        + " 66.220.7.80/29;"   // gtapolicemods.com
         // Amsterdam
-        + " 64.62.145.40/29;"  // Firewalls
-        + " 64.71.144.0/25;"   // Hosts
+        //+ " 64.62.145.40/29;"  // Firewalls
         // Mobile
-        + " 70.91.161.42;"     // 7262 Bull Pen Cir
+        //+ " 70.91.161.42;"     // 7262 Bull Pen Cir
         // Spain
-        + " 81.19.103.96/28;"  // Firewalls
-        + " 81.19.103.64/27;"  // Hosts
+        //+ " 81.19.103.96/28;"  // Firewalls
+        //+ " 81.19.103.64/27;"  // Hosts
         // Secure Medical
-        + " 66.17.86.0/24;"
+        //+ " 66.17.86.0/24;"
     ;
 
     private static final UnixFile
