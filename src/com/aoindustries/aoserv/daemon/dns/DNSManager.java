@@ -60,10 +60,13 @@ final public class DNSManager extends BuilderThread {
         + " 207.126.57.0/24;"  // Hosts
         // Fremont
         + " 64.71.143.176/29;" // Firewalls
-        + " 66.160.183.0/24;"  // Hosts
-        + " 64.62.174.0/24;"   // More Hosts
-        + " 64.71.144.0/25;"   // More Hosts
-        + " 66.220.7.80/29;"   // gtapolicemods.com
+        + " 66.160.183.0/24;"  // Virtual Servers
+        + " 64.62.174.0/24;"   // Virtual Servers
+        + " 64.71.144.0/25;"   // Virtual Servers
+        //+ " 66.220.7.80/29;"   // gtapolicemods.com
+        // Fremont Management 
+        + " 65.19.176.24/29;" // Firewalls
+        + " 66.220.7.0/27;"  // Hosts
         // Amsterdam
         //+ " 64.62.145.40/29;"  // Firewalls
         // Mobile
@@ -214,7 +217,8 @@ final public class DNSManager extends BuilderThread {
                         osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
                     ) {
                         out.print("\tpid-file \"/var/run/named/named.pid\";\n"
-                                + "\tquery-source address * port 53;\n");
+                                // safe-mail.net didn't resolve with this source port: + "\tquery-source address * port 53;\n"
+                        );
                     }
                     out.print("\tdirectory \"").print(namedZoneDir.getPath()).print("\";\n");
                     if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
@@ -222,8 +226,8 @@ final public class DNSManager extends BuilderThread {
                                 + "\tdump-file \"/var/named/data/cache_dump.db\";\n"
                                 + "\tstatistics-file \"/var/named/data/named_stats.txt\";\n"
                                 + "\tmemstatistics-file \"/var/named/data/named_mem_stats.txt\";\n"
-                                + "\tquery-source port 53;\n"
-                                + "\tquery-source-v6 port 53;\n"
+                                // safe-mail.net didn't resolve with this source port: + "\tquery-source port 53;\n"
+                                // safe-mail.net didn't resolve with this source port: + "\tquery-source-v6 port 53;\n"
                         );
                     }
                     out.print("\tallow-transfer { 216.218.130.2; 216.218.131.2; 216.218.132.2; };\n"
