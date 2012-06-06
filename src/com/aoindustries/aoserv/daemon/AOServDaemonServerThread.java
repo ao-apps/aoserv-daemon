@@ -1,33 +1,28 @@
 package com.aoindustries.aoserv.daemon;
 
 /*
- * Copyright 2000-2011 by AO Industries, Inc.,
+ * Copyright 2000-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AOServProtocol;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.AOServerDaemonHost;
-import com.aoindustries.aoserv.client.LinuxAccount;
+import com.aoindustries.aoserv.client.BusinessAdministrator;
+import com.aoindustries.aoserv.client.DaemonProfile;
+import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.MySQLDatabase;
 import com.aoindustries.aoserv.client.MySQLServer;
-import com.aoindustries.aoserv.client.MySQLUser;
 import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.NetDevice;
 import com.aoindustries.aoserv.client.PostgresDatabase;
 import com.aoindustries.aoserv.client.PostgresServer;
-import com.aoindustries.aoserv.client.PostgresUser;
-import com.aoindustries.aoserv.client.ServiceName;
-import com.aoindustries.aoserv.client.validator.DomainName;
-import com.aoindustries.aoserv.client.validator.HashedPassword;
-import com.aoindustries.aoserv.client.validator.Hostname;
-import com.aoindustries.aoserv.client.validator.MySQLDatabaseName;
-import com.aoindustries.aoserv.client.validator.MySQLTableName;
-import com.aoindustries.aoserv.client.validator.NetPort;
-import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.validator.UserId;
+import com.aoindustries.aoserv.client.PostgresServerUser;
+import com.aoindustries.aoserv.client.SchemaTable;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
+import com.aoindustries.aoserv.daemon.distro.DistroManager;
 import com.aoindustries.aoserv.daemon.email.EmailListManager;
 import com.aoindustries.aoserv.daemon.email.ImapManager;
 import com.aoindustries.aoserv.daemon.email.ProcmailManager;
@@ -49,8 +44,10 @@ import com.aoindustries.aoserv.daemon.server.ServerManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
-import com.aoindustries.math.LongLong;
 import com.aoindustries.noc.monitor.portmon.PortMonitor;
+import com.aoindustries.profiler.MethodProfile;
+import com.aoindustries.profiler.Profiler;
+import com.aoindustries.util.UnixCrypt;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.EOFException;
@@ -58,6 +55,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -91,16 +89,31 @@ final public class AOServDaemonServerThread extends Thread {
      */
     private final CompressedDataOutputStream out;
 
+    /** Keeps a copy to avoid multiple copies on each access. */
+    private static final SchemaTable.TableID[] tableIDs = SchemaTable.TableID.values();
+
     /**
      * Creates a new, running <code>AOServServerThread</code>.
      */
     public AOServDaemonServerThread(AOServDaemonServer server, Socket socket) throws IOException {
-        super("AOServ Daemon Server Thread - " + socket.getInetAddress().getHostAddress());
+	super("AOServ Daemon Server Thread - " + socket.getInetAddress().getHostAddress());
         this.server = server;
         this.socket = socket;
         this.in = new CompressedDataInputStream(new BufferedInputStream(socket.getInputStream()));
         this.out = new CompressedDataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
         this.out.flush();
+
+        start();
+    }
+
+    private static boolean passwordMatches(String password, String crypted) throws IOException {
+        // Try hash first
+        String hashed = BusinessAdministrator.hash(password);
+        if(hashed.equals(crypted)) return true;
+        // Try old crypt next
+        if(crypted.length()<=2) return false;
+        String salt=crypted.substring(0,2);
+        return UnixCrypt.crypt(password, salt).equals(crypted);
     }
 
     @Override
@@ -123,39 +136,26 @@ final public class AOServDaemonServerThread extends Thread {
             }
             if(daemonKey!=null) {
                 // Must come from one of the hosts listed in the database
-                com.aoindustries.aoserv.client.validator.InetAddress hostAddress = com.aoindustries.aoserv.client.validator.InetAddress.valueOf(socket.getInetAddress().getHostAddress());
+                String hostAddress = socket.getInetAddress().getHostAddress();
                 boolean isOK=false;
-            HOSTS:
-                for(AOServerDaemonHost allowedHost : thisAOServer.getAoServerDaemonHosts()) {
-                    Hostname allowedHostname = allowedHost.getHost();
-                    com.aoindustries.aoserv.client.validator.InetAddress allowedIp = allowedHostname.getInetAddress();
-                    if(allowedIp!=null) {
-                        // Match IP addresses
-                        if(allowedIp.equals(hostAddress)) {
-                            isOK = true;
-                            break HOSTS;
-                        }
-                    } else {
-                        // Match result of DNS query
-                        for(InetAddress dnsResult : InetAddress.getAllByName(allowedHostname.getDomainName().toString()+".")) {
-                            if(com.aoindustries.aoserv.client.validator.InetAddress.valueOf(dnsResult.getHostAddress()).equals(hostAddress)) {
-                                isOK=true;
-                                break HOSTS;
-                            }
-                        }
+                for(AOServerDaemonHost allowedHost : thisAOServer.getAOServerDaemonHosts()) {
+                    String tempAddress = InetAddress.getByName(allowedHost.getHost()).getHostAddress();
+                    if (tempAddress.equals(hostAddress)) {
+                        isOK=true;
+                        break;
                     }
                 }
                 if(isOK) {
                     // Authenticate the client first
-                    HashedPassword correctKey=thisAOServer.getDaemonKey();
-                    if(!correctKey.passwordMatches(daemonKey)) {
-                        System.err.println("Connection attempted from " + hostAddress + " with invalid key");
+                    String correctKey=thisAOServer.getDaemonKey();
+                    if(!passwordMatches(daemonKey, correctKey)) {
+                        System.err.println("Connection attempted from " + hostAddress + " with invalid key: " + daemonKey);
                         out.writeBoolean(false);
                         out.flush();
                         return;
                     }
                 } else {
-                    LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.WARNING, "Connection attempted from {0} but not listed in ao_server_daemon_hosts", hostAddress);
+                    LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.WARNING, "Connection attempted from " + hostAddress + " but not listed in server_daemon_hosts");
                     out.writeBoolean(false);
                     out.flush();
                     return;
@@ -175,7 +175,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 String username=in.readUTF();
                                 String password=in.readUTF();
                                 if(daemonKey==null) throw new IOException("Only the master server may COMPARE_LINUX_ACCOUNT_PASSWORD");
-                                boolean matches=LinuxAccountManager.comparePassword(UserId.valueOf(username), password);
+                                boolean matches=LinuxAccountManager.comparePassword(username, password);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeBoolean(matches);
                             }
@@ -186,6 +186,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 int pkey=in.readCompressedInt();
                                 if(daemonKey==null) throw new IOException("Only the master server may DUMP_MYSQL_DATABASE");
                                 MySQLDatabase md=connector.getMysqlDatabases().get(pkey);
+                                if(md==null) throw new SQLException("Unable to find MySQLDatabase: "+pkey);
                                 MySQLDatabaseManager.dumpDatabase(md, out);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
@@ -196,6 +197,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 int pkey=in.readCompressedInt();
                                 if(daemonKey==null) throw new IOException("Only the master server may DUMP_POSTGRES_DATABASE");
                                 PostgresDatabase pd=connector.getPostgresDatabases().get(pkey);
+                                if(pd==null) throw new SQLException("Unable to find PostgresDatabase: "+pkey);
                                 PostgresDatabaseManager.dumpDatabase(pd, out);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
@@ -261,7 +263,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_AUTORESPONDER_CONTENT, Thread="+toString());
                                 String path=in.readUTF();
                                 if(daemonKey==null) throw new IOException("Only the master server may GET_AUTORESPONDER_CONTENT");
-                                String content=LinuxAccountManager.getAutoresponderContent(UnixPath.valueOf(path));
+                                String content=LinuxAccountManager.getAutoresponderContent(path);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(content);
                             }
@@ -273,7 +275,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 String path=in.readUTF();
                                 String queryString=in.readUTF();
                                 if(daemonKey==null) throw new IOException("Only the master server may GET_AWSTATS_FILE");
-                                AWStatsManager.getAWStatsFile(DomainName.valueOf(siteName), path, queryString, out);
+                                AWStatsManager.getAWStatsFile(siteName, path, queryString, out);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
                             break;
@@ -282,7 +284,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_CRON_TABLE, Thread="+toString());
                                 String username=in.readUTF();
                                 if(daemonKey==null) throw new IOException("Only the master server may GET_CRON_TABLE");
-                                String cronTable=LinuxAccountManager.getCronTable(UserId.valueOf(username));
+                                String cronTable=LinuxAccountManager.getCronTable(username);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(cronTable);
                             }
@@ -293,6 +295,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 int pkey = in.readCompressedInt();
                                 if(daemonKey==null) throw new IOException("Only the master server may GET_NET_DEVICE_BONDING_REPORT");
                                 NetDevice netDevice = connector.getNetDevices().get(pkey);
+                                if(netDevice==null) throw new SQLException("Unable to find NetDevice: "+pkey);
                                 String report = NetDeviceManager.getNetDeviceBondingReport(netDevice);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(report);
@@ -304,6 +307,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 int pkey = in.readCompressedInt();
                                 if(daemonKey==null) throw new IOException("Only the master server may GET_NET_DEVICE_STATISTICS_REPORT");
                                 NetDevice netDevice = connector.getNetDevices().get(pkey);
+                                if(netDevice==null) throw new SQLException("Unable to find NetDevice: "+pkey);
                                 String report = NetDeviceManager.getNetDeviceStatisticsReport(netDevice);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(report);
@@ -396,17 +400,12 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing CHECK_PORT, Thread="+toString());
                                 if(daemonKey==null) throw new IOException("Only the master server may CHECK_PORT");
-                                com.aoindustries.aoserv.client.validator.InetAddress ipAddress = com.aoindustries.aoserv.client.validator.InetAddress.valueOf(
-                                    LongLong.valueOf(
-                                        in.readLong(),
-                                        in.readLong()
-                                    )
-                                );
+                                String ipAddress = in.readUTF();
                                 int port = in.readCompressedInt();
                                 String netProtocol = in.readUTF();
                                 String appProtocol = in.readUTF();
                                 String monitoringParameters = in.readUTF();
-                                String result = PortMonitor.getPortMonitor(ipAddress, NetPort.valueOf(port), netProtocol, appProtocol, NetBind.decodeParameters(monitoringParameters)).checkPort();
+                                String result = PortMonitor.getPortMonitor(ipAddress, port, netProtocol, appProtocol, NetBind.decodeParameters(monitoringParameters)).checkPort();
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(result);
                             }
@@ -434,12 +433,33 @@ final public class AOServDaemonServerThread extends Thread {
                         case AOServDaemonProtocol.IS_PROCMAIL_MANUAL :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing IS_PROCMAIL_MANUAL, Thread="+toString());
-                                int laPKey=in.readCompressedInt();
+                                int lsaPKey=in.readCompressedInt();
                                 if(daemonKey==null) throw new IOException("Only the master server may IS_PROCMAIL_MANUAL");
-                                LinuxAccount la=connector.getLinuxAccounts().get(laPKey);
-                                boolean isManual=ProcmailManager.isManual(la);
+                                LinuxServerAccount lsa=connector.getLinuxServerAccounts().get(lsaPKey);
+                                if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+lsaPKey);
+                                boolean isManual=ProcmailManager.isManual(lsa);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeBoolean(isManual);
+                            }
+                            break;
+                        case AOServDaemonProtocol.GET_DAEMON_PROFILE :
+                            {
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_DAEMON_PROFILE, Thread="+toString());
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_DAEMON_PROFILE");
+                                if(Profiler.getProfilerLevel()>Profiler.NONE) {
+                                    String hostname=AOServDaemon.getThisAOServer().getHostname();
+                                    List<MethodProfile> profs=Profiler.getMethodProfiles();
+                                    int len=profs.size();
+                                    for(int c=0;c<len;c++) {
+                                        DaemonProfile dp=DaemonProfile.getDaemonProfile(
+                                            hostname,
+                                            profs.get(c)
+                                        );
+                                        out.write(AOServDaemonProtocol.NEXT);
+                                        dp.write(out, AOServProtocol.Version.CURRENT_VERSION);
+                                    }
+                                }
+                                out.write(AOServDaemonProtocol.DONE);
                             }
                             break;
                         case AOServDaemonProtocol.GET_DISK_DEVICE_TOTAL_SIZE :
@@ -477,7 +497,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_ENCRYPTED_LINUX_ACCOUNT_PASSWORD, Thread="+toString());
                                 String username=in.readUTF();
                                 if(daemonKey==null) throw new IOException("Only the master server may GET_ENCRYPTED_LINUX_ACCOUNT_PASSWORD");
-                                String encryptedPassword=LinuxAccountManager.getEncryptedPassword(UserId.valueOf(username));
+                                String encryptedPassword=LinuxAccountManager.getEncryptedPassword(username);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(encryptedPassword);
                             }
@@ -486,9 +506,11 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_ENCRYPTED_MYSQL_USER_PASSWORD, Thread="+toString());
                                 int pkey=in.readCompressedInt();
+                                String username=in.readUTF();
                                 if(daemonKey==null) throw new IOException("Only the master server may GET_ENCRYPTED_MYSQL_USER_PASSWORD");
-                                MySQLUser mysqlUser=connector.getMysqlUsers().get(pkey);
-                                String encryptedPassword=MySQLUserManager.getEncryptedPassword(mysqlUser);
+                                MySQLServer mysqlServer=connector.getMysqlServers().get(pkey);
+                                if(mysqlServer==null) throw new SQLException("Unable to find MySQLServer: "+pkey);
+                                String encryptedPassword=MySQLUserManager.getEncryptedPassword(mysqlServer, username);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(encryptedPassword);
                             }
@@ -501,7 +523,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 String[] folderNames=new String[numFolders];
                                 for(int c=0;c<numFolders;c++) folderNames[c]=in.readUTF();
                                 if(daemonKey==null) throw new IOException("Only the master server may GET_IMAP_FOLDER_SIZES");
-                                long[] sizes=ImapManager.getImapFolderSizes(UserId.valueOf(username), folderNames);
+                                long[] sizes=ImapManager.getImapFolderSizes(username, folderNames);
                                 out.write(AOServDaemonProtocol.DONE);
                                 for(int c=0;c<numFolders;c++) out.writeLong(sizes[c]);
                             }
@@ -527,6 +549,15 @@ final public class AOServDaemonServerThread extends Thread {
                                 out.write(AOServDaemonProtocol.DONE);
                             }
                             break;
+                        case AOServDaemonProtocol.GET_UPS_STATUS :
+                            {
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_UPS_STATUS, Thread="+toString());
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_UPS_STATUS");
+                                String report = ServerManager.getUpsStatus();
+                                out.write(AOServDaemonProtocol.DONE);
+                                out.writeUTF(report);
+                            }
+                            break;
                         case AOServDaemonProtocol.GET_MYSQL_MASTER_STATUS :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_MYSQL_MASTER_STATUS, Thread="+toString());
@@ -542,7 +573,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 int nestedOperatingSystemVersion = in.readCompressedInt();
                                 int port = in.readCompressedInt();
                                 if(daemonKey==null) throw new IOException("Only the master server may GET_MYSQL_SLAVE_STATUS");
-                                MySQLDatabaseManager.getSlaveStatus(UnixPath.valueOf(failoverRoot), nestedOperatingSystemVersion, NetPort.valueOf(port), out);
+                                MySQLDatabaseManager.getSlaveStatus(failoverRoot, nestedOperatingSystemVersion, port, out);
                             }
                             break;
                         case AOServDaemonProtocol.GET_MYSQL_TABLE_STATUS :
@@ -553,7 +584,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 int port = in.readCompressedInt();
                                 String databaseName = in.readUTF();
                                 if(daemonKey==null) throw new IOException("Only the master server may GET_MYSQL_TABLE_STATUS");
-                                MySQLDatabaseManager.getTableStatus(UnixPath.valueOf(failoverRoot), nestedOperatingSystemVersion, NetPort.valueOf(port), MySQLDatabaseName.valueOf(databaseName), out);
+                                MySQLDatabaseManager.getTableStatus(failoverRoot, nestedOperatingSystemVersion, port, databaseName, out);
                             }
                             break;
                         case AOServDaemonProtocol.CHECK_MYSQL_TABLES :
@@ -569,9 +600,7 @@ final public class AOServDaemonServerThread extends Thread {
                                     tableNames.add(in.readUTF());
                                 }
                                 if(daemonKey==null) throw new IOException("Only the master server may CHECK_MYSQL_TABLES");
-                                List<MySQLTableName> mysqlTableNames = new ArrayList<MySQLTableName>(tableNames.size());
-                                for(String tableName : tableNames) mysqlTableNames.add(MySQLTableName.valueOf(tableName));
-                                MySQLDatabaseManager.checkTables(UnixPath.valueOf(failoverRoot), nestedOperatingSystemVersion, NetPort.valueOf(port), MySQLDatabaseName.valueOf(databaseName), mysqlTableNames, out);
+                                MySQLDatabaseManager.checkTables(failoverRoot, nestedOperatingSystemVersion, port, databaseName, tableNames, out);
                             }
                             break;
                         case AOServDaemonProtocol.GET_POSTGRES_PASSWORD :
@@ -579,8 +608,9 @@ final public class AOServDaemonServerThread extends Thread {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_POSTGRES_PASSWORD, Thread="+toString());
                                 int pkey=in.readCompressedInt();
                                 if(daemonKey==null) throw new IOException("Only the master server may GET_POSTGRES_PASSWORD");
-                                PostgresUser pu=connector.getPostgresUsers().get(pkey);
-                                String password=PostgresUserManager.getPassword(pu);
+                                PostgresServerUser psu=connector.getPostgresServerUsers().get(pkey);
+                                if(psu==null) throw new SQLException("Unable to find PostgresServerUser: "+pkey);
+                                String password=PostgresUserManager.getPassword(psu);
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(password);
                             }
@@ -643,6 +673,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 int pkey=in.readCompressedInt();
                                 if(daemonKey==null) throw new IOException("Only the master server may RESTART_MYSQL");
                                 MySQLServer mysqlServer=connector.getMysqlServers().get(pkey);
+                                if(mysqlServer==null) throw new SQLException("Unable to find MySQLServer: "+pkey);
                                 MySQLServerManager.restartMySQL(mysqlServer);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
@@ -653,6 +684,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 int pkey=in.readCompressedInt();
                                 if(daemonKey==null) throw new IOException("Only the master server may RESTART_POSTGRES");
                                 PostgresServer ps=connector.getPostgresServers().get(pkey);
+                                if(ps==null) throw new SQLException("Unable to find PostgresServer: "+pkey);
                                 PostgresServerManager.restartPostgreSQL(ps);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
@@ -678,7 +710,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 int gid=in.readCompressedInt();
                                 if(daemonKey==null) throw new IOException("Only the master server may SET_AUTORESPONDER_CONTENT");
                                 LinuxAccountManager.setAutoresponderContent(
-                                    UnixPath.valueOf(path),
+                                    path,
                                     content,
                                     uid,
                                     gid
@@ -692,7 +724,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 String username=in.readUTF();
                                 String cronTable=in.readUTF();
                                 if(daemonKey==null) throw new IOException("Only the master server may SET_CRON_TABLE");
-                                LinuxAccountManager.setCronTable(UserId.valueOf(username), cronTable);
+                                LinuxAccountManager.setCronTable(username, cronTable);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
                             break;
@@ -702,7 +734,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 String username=in.readUTF();
                                 String encryptedPassword=in.readUTF();
                                 if(daemonKey==null) throw new IOException("Only the master server may SET_ENCRYPTED_LINUX_ACCOUNT_PASSWORD");
-                                LinuxAccountManager.setEncryptedPassword(UserId.valueOf(username), encryptedPassword);
+                                LinuxAccountManager.setEncryptedPassword(username, encryptedPassword);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
                             break;
@@ -725,12 +757,23 @@ final public class AOServDaemonServerThread extends Thread {
                                 out.write(AOServDaemonProtocol.DONE);
                             }
                             break;
-                        case AOServDaemonProtocol.SET_LINUX_ACCOUNT_PASSWORD :
+                        case AOServDaemonProtocol.SET_IMAP_FOLDER_SUBSCRIBED :
                             {
-                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing SET_LINUX_ACCOUNT_PASSWORD, Thread="+toString());
-                                UserId username=UserId.valueOf(in.readUTF());
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing SET_IMAP_FOLDER_SUBSCRIBED, Thread="+toString());
+                                String username=in.readUTF();
+                                String folderName=in.readUTF();
+                                boolean subscribed=in.readBoolean();
+                                if(daemonKey==null) throw new IOException("Only the master server may SET_IMAP_FOLDER_SUBSCRIBED");
+                                ImapManager.setImapFolderSubscribed(username, folderName, subscribed);
+                                out.write(AOServDaemonProtocol.DONE);
+                            }
+                            break;
+                        case AOServDaemonProtocol.SET_LINUX_SERVER_ACCOUNT_PASSWORD :
+                            {
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing SET_LINUX_SERVER_ACCOUNT_PASSWORD, Thread="+toString());
+                                String username=in.readUTF();
                                 String plainPassword=in.readUTF();
-                                if(daemonKey==null) throw new IOException("Only the master server may SET_LINUX_ACCOUNT_PASSWORD");
+                                if(daemonKey==null) throw new IOException("Only the master server may SET_LINUX_SERVER_ACCOUNT_PASSWORD");
                                 LinuxAccountManager.setPassword(username, plainPassword);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
@@ -738,12 +781,13 @@ final public class AOServDaemonServerThread extends Thread {
                         case AOServDaemonProtocol.SET_MYSQL_USER_PASSWORD :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing SET_MYSQL_USER_PASSWORD, Thread="+toString());
-                                int mysqlUserPKey=in.readCompressedInt();
+                                int mysqlServerPKey=in.readCompressedInt();
                                 String username=in.readUTF();
                                 String password=in.readBoolean()?in.readUTF():null;
                                 if(daemonKey==null) throw new IOException("Only the master server may SET_MYSQL_USER_PASSWORD");
-                                MySQLUser mysqlUser=connector.getMysqlUsers().get(mysqlUserPKey);
-                                MySQLUserManager.setPassword(mysqlUser, password);
+                                MySQLServer mysqlServer=connector.getMysqlServers().get(mysqlServerPKey);
+                                if(mysqlServer==null) throw new SQLException("Unable to find MySQLServer: "+mysqlServerPKey);
+                                MySQLUserManager.setPassword(mysqlServer, username, password);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
                             break;
@@ -752,8 +796,9 @@ final public class AOServDaemonServerThread extends Thread {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing SET_POSTGRES_USER_PASSWORD, Thread="+toString());
                                 int pkey=in.readCompressedInt();
                                 String password=in.readBoolean()?in.readUTF():null;
-                                PostgresUser pu=connector.getPostgresUsers().get(pkey);
-                                PostgresUserManager.setPassword(pu, password, false);
+                                PostgresServerUser psu=connector.getPostgresServerUsers().get(pkey);
+                                if(psu==null) throw new SQLException("Unable to find PostgresServerUser: "+pkey);
+                                PostgresUserManager.setPassword(psu, password, false);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
                             break;
@@ -769,7 +814,6 @@ final public class AOServDaemonServerThread extends Thread {
                             ServerManager.startCron();
                             out.write(AOServDaemonProtocol.DONE);
                             break;
-                        /* TODO
                         case AOServDaemonProtocol.START_DISTRO :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing START_DISTRO, Thread="+toString());
@@ -779,7 +823,6 @@ final public class AOServDaemonServerThread extends Thread {
                                 out.write(AOServDaemonProtocol.DONE);
                             }
                             break;
-                         */
                         case AOServDaemonProtocol.START_JVM :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing START_JVM, Thread="+toString());
@@ -797,6 +840,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 int pkey=in.readCompressedInt();
                                 if(daemonKey==null) throw new IOException("Only the master server may START_MYSQL");
                                 MySQLServer mysqlServer=connector.getMysqlServers().get(pkey);
+                                if(mysqlServer==null) throw new SQLException("Unable to find MySQLServer: "+pkey);
                                 MySQLServerManager.startMySQL(mysqlServer);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
@@ -807,6 +851,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 int pkey=in.readCompressedInt();
                                 if(daemonKey==null) throw new IOException("Only the master server may START_POSTGRESQL");
                                 PostgresServer ps=connector.getPostgresServers().get(pkey);
+                                if(ps==null) throw new SQLException("Unable to find PostgresServer: "+pkey);
                                 PostgresServerManager.startPostgreSQL(ps);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
@@ -852,6 +897,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 int pkey=in.readCompressedInt();
                                 if(daemonKey==null) throw new IOException("Only the master server may STOP_MYSQL");
                                 MySQLServer mysqlServer=connector.getMysqlServers().get(pkey);
+                                if(mysqlServer==null) throw new SQLException("Unable to find MySQLServer: "+pkey);
                                 MySQLServerManager.stopMySQL(mysqlServer);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
@@ -862,6 +908,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 int pkey=in.readCompressedInt();
                                 if(daemonKey==null) throw new IOException("Only the master server may STOP_POSTGRESQL");
                                 PostgresServer ps=connector.getPostgresServers().get(pkey);
+                                if(ps==null) throw new SQLException("Unable to find PostgresServer: "+pkey);
                                 PostgresServerManager.stopPostgreSQL(ps);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
@@ -883,7 +930,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing TAR_HOME_DIRECTORY, Thread="+toString());
                                 String username=in.readUTF();
                                 if(daemonKey==null) throw new IOException("Only the master server may TAR_HOME_DIRECTORY");
-                                LinuxAccountManager.tarHomeDirectory(out, UserId.valueOf(username));
+                                LinuxAccountManager.tarHomeDirectory(out, username);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
                             break;
@@ -892,42 +939,42 @@ final public class AOServDaemonServerThread extends Thread {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing UNTAR_HOME_DIRECTORY, Thread="+toString());
                                 String username=in.readUTF();
                                 if(daemonKey==null) throw new IOException("Only the master server may UNTAR_HOME_DIRECTORY");
-                                LinuxAccountManager.untarHomeDirectory(in, UserId.valueOf(username));
+                                LinuxAccountManager.untarHomeDirectory(in, username);
                                 out.write(AOServDaemonProtocol.DONE);
                             }
                             break;
                         case AOServDaemonProtocol.WAIT_FOR_REBUILD :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing WAIT_FOR_REBUILD, Thread="+toString());
-                                ServiceName serviceName=ServiceName.valueOf(in.readUTF());
+                                SchemaTable.TableID tableID=tableIDs[in.readCompressedInt()];
                                 if(daemonKey==null) throw new IOException("Only the master server may WAIT_FOR_REBUILD");
-                                switch(serviceName) {
-                                    case httpd_sites :
+                                switch(tableID) {
+                                    case HTTPD_SITES :
                                         HttpdManager.waitForRebuild();
                                         break;
-                                    case linux_accounts :
+                                    case LINUX_ACCOUNTS :
                                         LinuxAccountManager.waitForRebuild();
                                         break;
-                                    case mysql_databases :
+                                    case MYSQL_DATABASES :
                                         MySQLDatabaseManager.waitForRebuild();
                                         break;
-                                    case mysql_db_users :
+                                    case MYSQL_DB_USERS :
                                         MySQLDBUserManager.waitForRebuild();
                                         break;
-                                    case mysql_users :
+                                    case MYSQL_USERS :
                                         MySQLUserManager.waitForRebuild();
                                         break;
-                                    case postgres_databases :
+                                    case POSTGRES_DATABASES :
                                         PostgresDatabaseManager.waitForRebuild();
                                         break;
-                                    case postgres_servers :
+                                    case POSTGRES_SERVERS :
                                         MySQLServerManager.waitForRebuild();
                                         break;
-                                    case postgres_users :
+                                    case POSTGRES_USERS :
                                         PostgresUserManager.waitForRebuild();
                                         break;
                                     default :
-                                        throw new IOException("Unable to wait for rebuild on service "+serviceName);
+                                        throw new IOException("Unable to wait for rebuild on table "+tableID);
                                 }
                                 out.write(AOServDaemonProtocol.DONE);
                             }
@@ -942,11 +989,11 @@ final public class AOServDaemonServerThread extends Thread {
                     ) {
                         LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.SEVERE, null, err);
                     }
-                    out.write(AOServDaemonProtocol.REMOTE_EXCEPTION);
+                    out.write(AOServDaemonProtocol.IO_EXCEPTION);
                     out.writeUTF(message == null ? "null" : message);
-                } catch (RuntimeException err) {
+                } catch (SQLException err) {
                     LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.SEVERE, null, err);
-                    out.write(AOServDaemonProtocol.REMOTE_EXCEPTION);
+                    out.write(AOServDaemonProtocol.SQL_EXCEPTION);
                     String message = err.getMessage();
                     out.writeUTF(message == null ? "null" : message);
                 }

@@ -11,6 +11,7 @@ import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
+import com.aoindustries.lang.ProcessResult;
 import com.aoindustries.util.StringUtility;
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -746,6 +747,26 @@ final public class ServerManager {
                 LogFactory.getLogger(ServerManager.class).log(Level.INFO, null, err);
             }
             if(openVncSockets.get(vncPort)==vncSocket) openVncSockets.remove(vncPort);
+        }
+    }
+
+    private static final String[] apcaccessStatusCommand = {
+        "/sbin/apcaccess",
+        "status"
+    };
+
+    /**
+     * Gets the current UPS status.
+     */
+    public static String getUpsStatus() throws IOException, SQLException {
+        ProcessResult result = ProcessResult.exec(apcaccessStatusCommand);
+        String stderr = result.getStderr();
+        if(result.getExitVal()==0) {
+            // Log any errors
+            if(stderr.length()>0) System.err.println(stderr);
+            return result.getStdout();
+        } else {
+            throw new IOException(stderr);
         }
     }
 }
