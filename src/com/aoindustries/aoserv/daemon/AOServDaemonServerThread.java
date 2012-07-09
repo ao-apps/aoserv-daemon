@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon;
-
 /*
- * Copyright 2000-2009 by AO Industries, Inc.,
+ * Copyright 2000-2012 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServProtocol;
 import com.aoindustries.aoserv.client.AOServer;
@@ -40,7 +40,9 @@ import com.aoindustries.aoserv.daemon.net.NetDeviceManager;
 import com.aoindustries.aoserv.daemon.postgres.PostgresDatabaseManager;
 import com.aoindustries.aoserv.daemon.postgres.PostgresServerManager;
 import com.aoindustries.aoserv.daemon.postgres.PostgresUserManager;
+import com.aoindustries.aoserv.daemon.server.PhysicalServerManager;
 import com.aoindustries.aoserv.daemon.server.ServerManager;
+import com.aoindustries.aoserv.daemon.server.VirtualServerManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
@@ -241,20 +243,6 @@ final public class AOServDaemonServerThread extends Thread {
                                     replicatedMySQLServers,
                                     replicatedMySQLMinorVersions,
                                     dae.param3==null ? -1 : Integer.parseInt(dae.param3) // quota_gid
-                                );
-                            }
-                            break;
-                        case AOServDaemonProtocol.VNC_CONSOLE :
-                            {
-                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing VNC_CONSOLE, Thread="+toString());
-                                long daemonAccessKey=in.readLong();
-                                DaemonAccessEntry dae=AOServDaemonServer.getDaemonAccessEntry(daemonAccessKey);
-                                if(dae.command!=AOServDaemonProtocol.VNC_CONSOLE) throw new IOException("Mismatched DaemonAccessEntry command, dae.command!="+AOServDaemonProtocol.VNC_CONSOLE);
-                                ServerManager.vncConsole(
-                                    socket,
-                                    in,
-                                    out,
-                                    dae.param1 // server_name
                                 );
                             }
                             break;
@@ -553,7 +541,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_UPS_STATUS, Thread="+toString());
                                 if(daemonKey==null) throw new IOException("Only the master server may GET_UPS_STATUS");
-                                String report = ServerManager.getUpsStatus();
+                                String report = PhysicalServerManager.getUpsStatus();
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(report);
                             }
@@ -979,6 +967,92 @@ final public class AOServDaemonServerThread extends Thread {
                                 out.write(AOServDaemonProtocol.DONE);
                             }
                             break;
+                        // <editor-fold desc="Virtual Servers">
+                        case AOServDaemonProtocol.VNC_CONSOLE :
+                            {
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing VNC_CONSOLE, Thread="+toString());
+                                long daemonAccessKey=in.readLong();
+                                DaemonAccessEntry dae=AOServDaemonServer.getDaemonAccessEntry(daemonAccessKey);
+                                if(dae.command!=AOServDaemonProtocol.VNC_CONSOLE) throw new IOException("Mismatched DaemonAccessEntry command, dae.command!="+AOServDaemonProtocol.VNC_CONSOLE);
+                                VirtualServerManager.vncConsole(
+                                    socket,
+                                    in,
+                                    out,
+                                    dae.param1 // server_name
+                                );
+                            }
+                            break;
+                        case AOServDaemonProtocol.CREATE_VIRTUAL_SERVER :
+                            {
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing CREATE_VIRTUAL_SERVER, Thread="+toString());
+                                String virtualServer = in.readUTF();
+                                if(daemonKey==null) throw new IOException("Only the master server may CREATE_VIRTUAL_SERVER");
+                                String output = VirtualServerManager.createVirtualServer(virtualServer);
+                                out.write(AOServDaemonProtocol.DONE);
+                                out.writeUTF(output);
+                            }
+                            break;
+                        case AOServDaemonProtocol.REBOOT_VIRTUAL_SERVER :
+                            {
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing REBOOT_VIRTUAL_SERVER, Thread="+toString());
+                                String virtualServer = in.readUTF();
+                                if(daemonKey==null) throw new IOException("Only the master server may REBOOT_VIRTUAL_SERVER");
+                                String output = VirtualServerManager.rebootVirtualServer(virtualServer);
+                                out.write(AOServDaemonProtocol.DONE);
+                                out.writeUTF(output);
+                            }
+                            break;
+                        case AOServDaemonProtocol.SHUTDOWN_VIRTUAL_SERVER :
+                            {
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing SHUTDOWN_VIRTUAL_SERVER, Thread="+toString());
+                                String virtualServer = in.readUTF();
+                                if(daemonKey==null) throw new IOException("Only the master server may SHUTDOWN_VIRTUAL_SERVER");
+                                String output = VirtualServerManager.shutdownVirtualServer(virtualServer);
+                                out.write(AOServDaemonProtocol.DONE);
+                                out.writeUTF(output);
+                            }
+                            break;
+                        case AOServDaemonProtocol.DESTROY_VIRTUAL_SERVER :
+                            {
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing DESTROY_VIRTUAL_SERVER, Thread="+toString());
+                                String virtualServer = in.readUTF();
+                                if(daemonKey==null) throw new IOException("Only the master server may DESTROY_VIRTUAL_SERVER");
+                                String output = VirtualServerManager.destroyVirtualServer(virtualServer);
+                                out.write(AOServDaemonProtocol.DONE);
+                                out.writeUTF(output);
+                            }
+                            break;
+                        case AOServDaemonProtocol.PAUSE_VIRTUAL_SERVER :
+                            {
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing PAUSE_VIRTUAL_SERVER, Thread="+toString());
+                                String virtualServer = in.readUTF();
+                                if(daemonKey==null) throw new IOException("Only the master server may PAUSE_VIRTUAL_SERVER");
+                                String output = VirtualServerManager.pauseVirtualServer(virtualServer);
+                                out.write(AOServDaemonProtocol.DONE);
+                                out.writeUTF(output);
+                            }
+                            break;
+                        case AOServDaemonProtocol.UNPAUSE_VIRTUAL_SERVER :
+                            {
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing UNPAUSE_VIRTUAL_SERVER, Thread="+toString());
+                                String virtualServer = in.readUTF();
+                                if(daemonKey==null) throw new IOException("Only the master server may UNPAUSE_VIRTUAL_SERVER");
+                                String output = VirtualServerManager.unpauseVirtualServer(virtualServer);
+                                out.write(AOServDaemonProtocol.DONE);
+                                out.writeUTF(output);
+                            }
+                            break;
+                        case AOServDaemonProtocol.GET_VIRTUAL_SERVER_STATUS :
+                            {
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_VIRTUAL_SERVER_STATUS, Thread="+toString());
+                                String virtualServer = in.readUTF();
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_VIRTUAL_SERVER_STATUS");
+                                int status = VirtualServerManager.getVirtualServerStatus(virtualServer);
+                                out.write(AOServDaemonProtocol.DONE);
+                                out.writeCompressedInt(status);
+                            }
+                            break;
+                        // </editor-fold>
                         default :
                             break Loop;
                     }
