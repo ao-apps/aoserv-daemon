@@ -148,17 +148,17 @@ final public class VirtualServerManager {
             char c = state.charAt(4);
             char d = state.charAt(5);
             if(r=='r') flags |= VirtualServer.RUNNING;
-            if(r!='-') throw new ParseException("Unexpected character for 'r': "+r, 0);
+            else if(r != '-') throw new ParseException("Unexpected character for 'r': " + r, 0);
             if(b=='b') flags |= VirtualServer.BLOCKED;
-            if(b!='-') throw new ParseException("Unexpected character for 'b': "+b, 0);
+            else if(b!='-') throw new ParseException("Unexpected character for 'b': "+b, 0);
             if(p=='p') flags |= VirtualServer.PAUSED;
-            if(p!='-') throw new ParseException("Unexpected character for 'p': "+p, 0);
+            else if(p!='-') throw new ParseException("Unexpected character for 'p': "+p, 0);
             if(s=='s') flags |= VirtualServer.SHUTDOWN;
-            if(s!='-') throw new ParseException("Unexpected character for 's': "+s, 0);
+            else if(s!='-') throw new ParseException("Unexpected character for 's': "+s, 0);
             if(c=='c') flags |= VirtualServer.CRASHED;
-            if(c!='-') throw new ParseException("Unexpected character for 'c': "+c, 0);
+            else if(c!='-') throw new ParseException("Unexpected character for 'c': "+c, 0);
             if(d=='d') flags |= VirtualServer.DYING;
-            if(d!='-') throw new ParseException("Unexpected character for 'd': "+d, 0);
+            else if(d!='-') throw new ParseException("Unexpected character for 'd': "+d, 0);
             return flags;
         }
 
