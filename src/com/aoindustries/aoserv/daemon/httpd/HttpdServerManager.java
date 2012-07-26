@@ -1009,10 +1009,17 @@ public class HttpdServerManager {
                     + "\n");
             String sslCert=bind.getSSLCertFile();
             if(sslCert!=null) {
+                // If a .ca file exists with the same name as the certificate, use it instead of the OS default
+                String sslCa = osConfig.getOpensslDefaultCaFile();
+                if(sslCert.endsWith(".cert")) {
+                    String possibleCa = sslCert.substring(0, sslCert.length()-5);
+                    if(new File(possibleCa).exists()) sslCa = possibleCa;
+                }
+
                 out.print("    <IfModule mod_ssl.c>\n"
                         + "        SSLCertificateFile ").print(sslCert).print("\n"
                         + "        SSLCertificateKeyFile ").print(bind.getSSLCertKeyFile()).print("\n"
-                        + "        SSLCACertificateFile ").print(osConfig.getOpensslDefaultCaFile()).print("\n"
+                        + "        SSLCACertificateFile ").print(sslCa).print("\n"
                         + "        <Files ~ \"\\.(cgi|shtml|phtml|php3?)$\">\n"
                         + "            SSLOptions +StdEnvVars\n"
                         + "        </Files>\n"
