@@ -1012,7 +1012,7 @@ public class HttpdServerManager {
                 // If a .ca file exists with the same name as the certificate, use it instead of the OS default
                 String sslCa = osConfig.getOpensslDefaultCaFile();
                 if(sslCert.endsWith(".cert")) {
-                    String possibleCa = sslCert.substring(0, sslCert.length()-5);
+                    String possibleCa = sslCert.substring(0, sslCert.length()-5) + ".ca";
                     if(new File(possibleCa).exists()) sslCa = possibleCa;
                 }
 
