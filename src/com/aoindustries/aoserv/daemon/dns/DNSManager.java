@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.dns;
-
 /*
- * Copyright 2000-2009 by AO Industries, Inc.,
+ * Copyright 2000-2012 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.dns;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.DNSZone;
@@ -138,7 +138,7 @@ final public class DNSManager extends BuilderThread {
             if(
                 osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(rebuildLock) {
                 // Only restart when needed
@@ -166,7 +166,7 @@ final public class DNSManager extends BuilderThread {
                         // Skip the named.local file for CentOS 5
                         skip = "named.local".equals(file);
                     } else {
-                        throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                     }
                     if(!skip) {
                         UnixFile realFile=new UnixFile(namedZoneDir, file, false);
@@ -260,7 +260,7 @@ final public class DNSManager extends BuilderThread {
                                 + "\t};\n"
                                 + "};\n"
                                 + "include \"/etc/named.rfc1912.zones\";\n");
-                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                    } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                     for(DNSZone zone : zones) {
                         String file = zone.getFile();
                         boolean skip;
@@ -270,7 +270,7 @@ final public class DNSManager extends BuilderThread {
                             // Skip the named.local file for CentOS 5
                             skip = "named.local".equals(file);
                         } else {
-                            throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                            throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                         }
                         if(!skip) {
                             out.print("\n"
@@ -303,7 +303,7 @@ final public class DNSManager extends BuilderThread {
                         LinuxServerGroup lsg = thisAOServer.getLinuxServerGroup(LinuxGroup.NAMED);
                         if(lsg==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.NAMED+" on "+thisAOServer.getHostname());
                         newOut = newConfFile.getSecureOutputStream(UnixFile.ROOT_UID, lsg.getGid().getID(), 0640, true);
-                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                    } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                     try {
                         newOut.write(newContents);
                     } finally {
@@ -433,7 +433,7 @@ final public class DNSManager extends BuilderThread {
         } catch(ThreadDeath TD) {
             throw TD;
         } catch(Throwable T) {
-            LogFactory.getLogger(FTPManager.class).log(Level.SEVERE, null, T);
+            LogFactory.getLogger(DNSManager.class).log(Level.SEVERE, null, T);
             return false;
         }
     }

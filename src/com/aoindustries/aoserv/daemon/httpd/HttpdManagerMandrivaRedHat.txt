@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.httpd;
-
 /*
- * Copyright 2000-2011 by AO Industries, Inc.,
+ * Copyright 2000-2012 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd;
+
 import com.aoindustries.aoserv.client.AOSHCommand;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
@@ -1098,13 +1098,13 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
                 ln("../../../../usr/postgresql/"+postgresServerMinorVersion+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
             } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                 ln("../../../../opt/postgresql-"+postgresServerMinorVersion+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
-            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
         }
         if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
             ln("../../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", siteDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", uid, gid);
         } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
             ln("../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar", siteDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", uid, gid);
-        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
         /*
          * Write the conf/catalina.policy file
@@ -1381,13 +1381,13 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
                 ln("../../../../usr/postgresql/"+postgresServerMinorVersion+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
             } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                 ln("../../../../opt/postgresql-"+postgresServerMinorVersion+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
-            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
         }
         if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
             ln("../../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", siteDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", uid, gid);
         } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
             ln("../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar", siteDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", uid, gid);
-        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
         /*
          * Write the conf/catalina.policy file
@@ -2581,7 +2581,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
                     out.print("#!/bin/sh\n"
                               + ". /usr/aoserv/etc/postgresql-"+MANDRIVA_2006_0_PHP_POSTGRES_MINOR_VERSION+".sh\n"
                               + "exec /usr/php/").print(defaultPhpVersion).print("/bin/php \"$@\"\n");
-                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
             } finally {
                 out.flush();
                 out.close();
@@ -2662,7 +2662,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
         if(
             osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
             && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-        ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
         final Stat tempStat = new Stat();
 
@@ -2953,7 +2953,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
                             + "</IfModule>\n"
                             + "\n"
                     );
-                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
                 // List of binds
                 for(HttpdBind hb : hs.getHttpdBinds()) {
@@ -3066,14 +3066,14 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
         final String username = (osv==OperatingSystemVersion.REDHAT_ES_4_X86_64 || osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) ? LinuxAccount.APACHE : LinuxAccount.HTTPD;
 
         Username httpdUsername=conn.usernames.get(username);
-        if(httpdUsername==null) throw new AssertionError("Unable to find Username: "+username);
+        if(httpdUsername==null) throw new SQLException("Unable to find Username: "+username);
         LinuxAccount httpdLA=httpdUsername.getLinuxAccount();
-        if(httpdLA==null) throw new AssertionError("Unable to find LinuxAccount: "+httpdUsername);
+        if(httpdLA==null) throw new SQLException("Unable to find LinuxAccount: "+httpdUsername);
         LinuxServerAccount httpdLSA=httpdLA.getLinuxServerAccount(aoServer);
-        if(httpdLSA==null) throw new AssertionError("Unable to find LinuxServerAccount: "+httpdLA+" on "+aoServer.getHostname());
+        if(httpdLSA==null) throw new SQLException("Unable to find LinuxServerAccount: "+httpdLA+" on "+aoServer.getHostname());
         int httpdUID=httpdLSA.getUID().getID();
         LinuxServerAccount awstatsLSA=aoServer.getLinuxServerAccount(LinuxAccount.AWSTATS);
-        if(awstatsLSA==null) throw new AssertionError("Unable to find LinuxServerAccount: "+LinuxAccount.AWSTATS+" on "+aoServer.getHostname());
+        if(awstatsLSA==null) throw new SQLException("Unable to find LinuxServerAccount: "+LinuxAccount.AWSTATS+" on "+aoServer.getHostname());
         int awstatsUID=awstatsLSA.getUID().getID();
 
         // Iterate through each site
@@ -3348,9 +3348,9 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
                                     }
                                     if(!site.isManual()) out.print(autoWarning);
                                     NetBind shutdownPort=stdSite.getTomcat4ShutdownPort();
-                                    if(shutdownPort==null) throw new AssertionError("Unable to find shutdown port for HttpdTomcatStdSite="+stdSite);
+                                    if(shutdownPort==null) throw new SQLException("Unable to find shutdown port for HttpdTomcatStdSite="+stdSite);
                                     String shutdownKey=stdSite.getTomcat4ShutdownKey();
-                                    if(shutdownKey==null) throw new AssertionError("Unable to find shutdown key for HttpdTomcatStdSite="+stdSite);
+                                    if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for HttpdTomcatStdSite="+stdSite);
                                     out.print("<Server port=\"").print(shutdownPort.getPort().getPort()).print("\" shutdown=\"").print(shutdownKey).print("\" debug=\"0\">\n");
                                     if(isTomcat55) {
                                         out.print("  <GlobalNamingResources>\n"
@@ -4297,13 +4297,13 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
                             ln("../../../../usr/postgresql/"+postgresServerMinorVersion+"/share/java/postgresql.jar", wwwGroupDir+"/common/lib/postgresql.jar", lsaUID, lsgGID);
                         } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                             ln("../../../../opt/postgresql-"+postgresServerMinorVersion+"/share/java/postgresql.jar", wwwGroupDir+"/common/lib/postgresql.jar", lsaUID, lsgGID);
-                        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                     }
                     if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                         ln("../../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", wwwGroupDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", lsaUID, lsgGID);
                     } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                         ln("../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar", wwwGroupDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", lsaUID, lsgGID);
-                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                    } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
                     /*
                      * Write the conf/catalina.policy file
@@ -4357,14 +4357,14 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
                                 ln("../../../usr/postgresql/"+postgresServerMinorVersion+"/share/java/postgresql.jar", wwwGroupDir+"/lib/postgresql.jar", lsaUID, lsgGID);
                             } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                                 ln("../../../opt/postgresql-"+postgresServerMinorVersion+"/share/java/postgresql.jar", wwwGroupDir+"/lib/postgresql.jar", lsaUID, lsgGID);
-                            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                            } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                         }
                         if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                             ln("../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", wwwGroupDir+"/lib/mysql-connector-java-3.1.12-bin.jar", lsaUID, lsgGID);
                         } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
                             ln("../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar", wwwGroupDir+"/common/lib/mysql-connector-java-3.1.12-bin.jar", lsaUID, lsgGID);
                         }
-                        else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                     }
                     mkdir(wwwGroupDir+"/server", tomcat.isSecure()?0750:0770, lsa, lsg);
                     mkdir(wwwGroupDir+"/server/classes", tomcat.isSecure()?0750:0770, lsa, lsg);
@@ -4568,9 +4568,9 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
                         HttpdWorker hw=tomcat.getTomcat4Worker();
                         if(!tomcat.isManual()) out.print(autoWarning);
                         NetBind shutdownPort = tomcat.getTomcat4ShutdownPort();
-                        if(shutdownPort==null) throw new AssertionError("Unable to find shutdown key for HttpdSharedTomcat: "+tomcat);
+                        if(shutdownPort==null) throw new SQLException("Unable to find shutdown key for HttpdSharedTomcat: "+tomcat);
                         String shutdownKey=tomcat.getTomcat4ShutdownKey();
-                        if(shutdownKey==null) throw new AssertionError("Unable to find shutdown key for HttpdSharedTomcat: "+tomcat);
+                        if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for HttpdSharedTomcat: "+tomcat);
                         out.print("<Server port=\"").print(shutdownPort.getPort().getPort()).print("\" shutdown=\"").print(shutdownKey).print("\" debug=\"0\">\n");
                         if(isTomcat55) {
                             out.print("  <GlobalNamingResources>\n"
@@ -4898,7 +4898,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
             if(!httpdSite.getAOServer().equals(thisAOServer)) throw new SQLException("HttpdSite #"+sitePKey+" has server of "+httpdSite.getAOServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')');
 
             HttpdTomcatSite tomcatSite=httpdSite.getHttpdTomcatSite();
-            if(tomcatSite==null) throw new AssertionError("Unable to find HttpdTomcatSite for HttpdSite #"+sitePKey);
+            if(tomcatSite==null) throw new SQLException("Unable to find HttpdTomcatSite for HttpdSite #"+sitePKey);
 
             HttpdTomcatStdSite stdSite=tomcatSite.getHttpdTomcatStdSite();
             if(stdSite!=null) {
@@ -4977,7 +4977,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
 
                         // Make sure we don't start too quickly
                         startJVMTimes.put(key, Long.valueOf(System.currentTimeMillis()));
-                    } else throw new AssertionError("Unable to find HttpdTomcatStdSite, HttpdTomcatSharedSite or HttpdJBossSite for HttpdSite #"+sitePKey);
+                    } else throw new SQLException("Unable to find HttpdTomcatStdSite, HttpdTomcatSharedSite or HttpdJBossSite for HttpdSite #"+sitePKey);
                 }
             }
 
@@ -4996,7 +4996,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
             if(!httpdSite.getAOServer().equals(thisAOServer)) throw new SQLException("HttpdSite #"+sitePKey+" has server of "+httpdSite.getAOServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')');
 
             HttpdTomcatSite tomcatSite=httpdSite.getHttpdTomcatSite();
-            if(tomcatSite==null) throw new AssertionError("Unable to find HttpdTomcatSite for HttpdSite #"+sitePKey);
+            if(tomcatSite==null) throw new SQLException("Unable to find HttpdTomcatSite for HttpdSite #"+sitePKey);
 
             HttpdTomcatStdSite stdSite=tomcatSite.getHttpdTomcatStdSite();
             if(stdSite!=null) {
@@ -5075,7 +5075,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
 
                         // Make sure we don't start too quickly
                         startJVMTimes.put(key, Long.valueOf(System.currentTimeMillis()));
-                    } else throw new AssertionError("Unable to find HttpdTomcatStdSite, HttpdTomcatSharedSite or HttpdJBossSite for HttpdSite #"+sitePKey);
+                    } else throw new SQLException("Unable to find HttpdTomcatStdSite, HttpdTomcatSharedSite or HttpdJBossSite for HttpdSite #"+sitePKey);
                 }
             }
 
@@ -5541,7 +5541,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
                         if(wroteOne) chainOut.print(' ');
                         else wroteOne = true;
                         chainOut.print(access_log);
-                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                    } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                     makeLogFiles(site, bind, access_log, deleteFileList, completedPaths, tempStat);
                 }
                 String error_log = bind.getErrorLog();
@@ -5552,7 +5552,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
                         if(wroteOne) chainOut.print(' ');
                         else wroteOne = true;
                         chainOut.print(error_log);
-                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                    } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                     makeLogFiles(site, bind, error_log, deleteFileList, completedPaths, tempStat);
                 }
             }
@@ -5578,7 +5578,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
                     chainOut.print("    endscript\n"*/
                     chainOut.print("}\n");
                 }
-            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
             chainOut.flush();
             byte[] newFileContent=byteOut.toByteArray();
 
@@ -5615,7 +5615,7 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
     ) throws IOException, SQLException {
         AOServer aoServer=AOServDaemon.getThisAOServer();
         LinuxServerAccount awstatsLSA=aoServer.getLinuxServerAccount(LinuxAccount.AWSTATS);
-        if(awstatsLSA==null) throw new AssertionError("Unable to find LinuxServerAccount: "+LinuxAccount.AWSTATS+" on "+aoServer.getHostname());
+        if(awstatsLSA==null) throw new SQLException("Unable to find LinuxServerAccount: "+LinuxAccount.AWSTATS+" on "+aoServer.getHostname());
         int awstatsUID=awstatsLSA.getUID().getID();
         int lsgGID=site.getLinuxServerGroup().getGID().getID();
 

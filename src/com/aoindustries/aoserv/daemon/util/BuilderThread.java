@@ -1,14 +1,12 @@
-package com.aoindustries.aoserv.daemon.util;
-
 /*
- * Copyright 2002-2011 by AO Industries, Inc.,
+ * Copyright 2002-2012 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.MethodColumn;
+package com.aoindustries.aoserv.daemon.util;
+
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
-import com.aoindustries.table.Row;
 import com.aoindustries.util.logging.ProcessTimer;
 import com.aoindustries.table.Table;
 import com.aoindustries.table.TableListener;
@@ -20,7 +18,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-abstract public class BuilderThread implements TableListener<MethodColumn,Row> {
+abstract public class BuilderThread implements TableListener {
 
     public static final long
         DEFAULT_PROCESS_TIMER_MAXIMUM_TIME=5*60*1000,
@@ -42,14 +40,14 @@ abstract public class BuilderThread implements TableListener<MethodColumn,Row> {
     }
 
     @Override
-    public void tableUpdated(Table<? extends MethodColumn,? extends Row> table) {
+    public void tableUpdated(Table<?> table) {
         delayAndRebuild();
     }
 
     /**
      * Will wait a random amount of time and then call doRebuild()
      */
-    public void delayAndRebuild() {
+    private void delayAndRebuild() {
         synchronized(this) {
             lastUpdated = System.currentTimeMillis();
             if (rebuildThread == null) {

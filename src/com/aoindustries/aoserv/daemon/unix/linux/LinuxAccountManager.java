@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.unix.linux;
-
 /*
- * Copyright 2001-2009 by AO Industries, Inc.,
+ * Copyright 2001-2012 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.unix.linux;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.FTPGuestUser;
@@ -121,7 +121,7 @@ public class LinuxAccountManager extends BuilderThread {
             osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
             && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
         synchronized(rebuildLock) {
             // A list of all files to delete is created so that all the data can
@@ -266,7 +266,7 @@ public class LinuxAccountManager extends BuilderThread {
                     // Do nothing
                 } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                     newGShadowUF.setMode(0400);
-                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                 gshadow.renameTo(backupGShadow);
                 newGShadow.renameTo(gshadow);
             } else throw new IOException(newGShadow.getPath()+" is zero or unknown length");
@@ -322,7 +322,7 @@ public class LinuxAccountManager extends BuilderThread {
             ) {
                 // Nothing done, user management put in ImapManager
             } else {
-                throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
             }
 
             /*
@@ -626,7 +626,7 @@ public class LinuxAccountManager extends BuilderThread {
                     addJailed = true;
                 } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                     addJailed = false;
-                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                 if(addJailed) {
                     for(FTPGuestUser guestUser : aoServer.getFTPGuestUsers()) {
                         String username=guestUser.getLinuxAccount().getUsername().getUsername();

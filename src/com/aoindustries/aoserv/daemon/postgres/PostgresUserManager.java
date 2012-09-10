@@ -16,10 +16,10 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
+import com.aoindustries.lang.ObjectUtils;
 import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.sql.WrappedSQLException;
 import com.aoindustries.util.SortedArrayList;
-import com.aoindustries.util.StringUtility;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -59,7 +59,7 @@ final public class PostgresUserManager extends BuilderThread {
                 osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
                 && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized (rebuildLock) {
                 List<PostgresServer> pss=thisAOServer.getPostgresServers();
@@ -321,7 +321,7 @@ final public class PostgresUserManager extends BuilderThread {
         try {
             String version=ps.getPostgresVersion().getTechnologyVersion(aoservConn).getVersion();
             if(version.startsWith(PostgresVersion.VERSION_7_1+'.')) {
-                if(StringUtility.equals(password, PostgresUser.NO_PASSWORD)) {
+                if(ObjectUtils.equals(password, PostgresUser.NO_PASSWORD)) {
                     // Remove the password
                     Statement stmt = conn.createStatement();
                     String sqlString = "alter user " + username + " with password '"+PostgresUser.NO_PASSWORD_DB_VALUE+'\'';
@@ -345,7 +345,7 @@ final public class PostgresUserManager extends BuilderThread {
                     }
                 }
             } else if(version.startsWith(PostgresVersion.VERSION_7_2+'.') || version.startsWith(PostgresVersion.VERSION_7_3+'.')) {
-                if(StringUtility.equals(password, PostgresUser.NO_PASSWORD)) {
+                if(ObjectUtils.equals(password, PostgresUser.NO_PASSWORD)) {
                     // Remove the password
                     Statement stmt = conn.createStatement();
                     String sqlString = "alter user " + username + " with unencrypted password '"+PostgresUser.NO_PASSWORD_DB_VALUE+'\'';
@@ -373,7 +373,7 @@ final public class PostgresUserManager extends BuilderThread {
                 || version.startsWith(PostgresVersion.VERSION_8_3+'.')
                 || version.startsWith(PostgresVersion.VERSION_8_3+'R')
             ) {
-                if(StringUtility.equals(password, PostgresUser.NO_PASSWORD)) {
+                if(ObjectUtils.equals(password, PostgresUser.NO_PASSWORD)) {
                     // Remove the password
                     Statement stmt = conn.createStatement();
                     String sqlString = "alter role " + username + " with unencrypted password '"+PostgresUser.NO_PASSWORD_DB_VALUE+'\'';

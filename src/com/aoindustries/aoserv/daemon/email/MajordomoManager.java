@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.email;
-
 /*
- * Copyright 2003-2009 by AO Industries, Inc.,
+ * Copyright 2003-2012 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.email;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.LinuxGroup;
@@ -51,7 +51,7 @@ final public class MajordomoManager extends BuilderThread {
             if(
                 osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
             // Reused during processing below
             Stat tempStat = new Stat();
@@ -106,7 +106,7 @@ final public class MajordomoManager extends BuilderThread {
                             sharedPath="../../../../usr/majordomo/"+version;
                         } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                             sharedPath="../../../../opt/majordomo-"+version;
-                        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
                         if(!msUFStat.exists()) msUF.mkdir();
                         msUF.setMode(0750);
@@ -469,7 +469,7 @@ final public class MajordomoManager extends BuilderThread {
                             source = "/usr/aoserv/bin/majordomo-wrapper-"+version+".c";
                         } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                             source = "/opt/aoserv-daemon/src/majordomo-wrapper-"+version+".c";
-                        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                         String[] cc={
                             "/usr/bin/cc",
                             "-DBIN=\""+msPath+"\"",

@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.timezone;
-
 /*
- * Copyright 2006-2011 by AO Industries, Inc.,
+ * Copyright 2006-2012 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.timezone;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
@@ -50,7 +50,7 @@ public class TimeZoneManager extends BuilderThread {
                 System.out.print("Starting TimeZoneManager: ");
                 AOServConnector connector=AOServDaemon.getConnector();
                 timeZoneManager=new TimeZoneManager();
-                connector.getAoServers().getTable().addTableListener(timeZoneManager, 0);
+                connector.getAoServers().addTableListener(timeZoneManager, 0);
                 System.out.println("Done");
             }
         }
@@ -63,9 +63,10 @@ public class TimeZoneManager extends BuilderThread {
 
             int osv=server.getServer().getOperatingSystemVersion().getPkey();
             if(
-                osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
             String timeZone = server.getTimeZone().getName();
 
@@ -102,13 +103,14 @@ public class TimeZoneManager extends BuilderThread {
                                    + "UTC=true\n"
                                    + "ARC=false\n");
                     } else if(
-                        osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+                        osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+                        || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                     ) {
                         newOut.print("ARC=false\n"
                                    + "ZONE=").print(timeZone).print("\n"
                                    + "UTC=false\n");
                     } else {
-                        throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                     }
                 } finally {
                     newOut.close();

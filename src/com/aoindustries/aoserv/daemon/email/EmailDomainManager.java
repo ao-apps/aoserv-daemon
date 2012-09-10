@@ -1,12 +1,13 @@
-package com.aoindustries.aoserv.daemon.email;
-
 /*
- * Copyright 2000-2011 by AO Industries, Inc.,
+ * Copyright 2000-2012 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.email;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.EmailDomain;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -46,9 +47,10 @@ public final class EmailDomainManager extends BuilderThread {
 
             int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
             if(
-                osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(rebuildLock) {
                 // Grab the list of domains from the database
@@ -93,16 +95,25 @@ public final class EmailDomainManager extends BuilderThread {
         "-HUP",
         "sendmail"
     };
+    private static final String[] reloadSendmailCommandMandriva={
+        "/usr/bin/killall",
+        "-HUP",
+        "sendmail.sendmail"
+    };
     public static void reloadMTA() throws IOException, SQLException {
         synchronized(reloadLock) {
             int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
             String[] cmd;
             if(
+                osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+            ) {
+                cmd=reloadSendmailCommandMandriva;
+            } else if(
                 osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                 || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) {
                 cmd=reloadSendmailCommandCentOs;
-            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
             AOServDaemon.exec(cmd);
         }
     }
@@ -123,7 +134,7 @@ public final class EmailDomainManager extends BuilderThread {
                 System.out.print("Starting EmailDomainManager: ");
                 AOServConnector connector=AOServDaemon.getConnector();
                 emailDomainManager=new EmailDomainManager();
-                connector.getEmailDomains().getTable().addTableListener(emailDomainManager, 0);
+                connector.getEmailDomains().addTableListener(emailDomainManager, 0);
                 System.out.println("Done");
             }
         }

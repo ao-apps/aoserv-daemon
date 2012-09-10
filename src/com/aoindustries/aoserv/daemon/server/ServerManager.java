@@ -7,7 +7,6 @@ package com.aoindustries.aoserv.daemon.server;
 
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.lang.ProcessResult;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -38,7 +37,7 @@ final public class ServerManager {
             osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
             && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
         Object lock;
         synchronized(processLocks) {

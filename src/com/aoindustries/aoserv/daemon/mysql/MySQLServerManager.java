@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2011 by AO Industries, Inc.,
+ * Copyright 2006-2012 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -35,7 +35,6 @@ final public class MySQLServerManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
-    @Override
     protected boolean doRebuild() {
         //AOServConnector connector=AOServDaemon.getConnector();
 
@@ -47,22 +46,24 @@ final public class MySQLServerManager extends BuilderThread {
         return true;
     }
 
-    private static final Map<MySQLServer,AOConnectionPool> pools=new HashMap<MySQLServer,AOConnectionPool>();
+    private static final Map<Integer,AOConnectionPool> pools=new HashMap<Integer,AOConnectionPool>();
     static AOConnectionPool getPool(MySQLServer ms) throws IOException, SQLException {
         synchronized(pools) {
-            AOConnectionPool pool=pools.get(ms);
+            Integer I=Integer.valueOf(ms.getPkey());
+            AOConnectionPool pool=pools.get(I);
             if(pool==null) {
-                MySQLDatabase md=ms.getMysqlDatabase(MySQLDatabase.MYSQL);
+                MySQLDatabase md=ms.getMySQLDatabase(MySQLDatabase.MYSQL);
+                if(md==null) throw new SQLException("Unable to find MySQLDatabase: "+MySQLDatabase.MYSQL+" on "+ms.toString());
                 pool=new AOConnectionPool(
-                    AOServDaemonConfiguration.getMysqlDriver(),
-                    "jdbc:mysql://127.0.0.1:"+md.getMysqlServer().getNetBind().getPort().getPort()+"/"+md.getName(),
-                    AOServDaemonConfiguration.getMysqlUser().toString(),
-                    AOServDaemonConfiguration.getMysqlPassword(),
+                    AOServDaemonConfiguration.getMySqlDriver(),
+                    "jdbc:mysql://127.0.0.1:"+md.getMySQLServer().getNetBind().getPort().getPort()+"/"+md.getName(),
+                    AOServDaemonConfiguration.getMySqlUser(),
+                    AOServDaemonConfiguration.getMySqlPassword(),
                     AOServDaemonConfiguration.getMySqlConnections(),
                     AOServDaemonConfiguration.getMySqlMaxConnectionAge(),
                     LogFactory.getLogger(MySQLServerManager.class)
                 );
-                pools.put(ms, pool);
+                pools.put(I, pool);
             }
             return pool;
         }
@@ -85,7 +86,7 @@ final public class MySQLServerManager extends BuilderThread {
                 System.out.print("Starting MySQLServerManager: ");
                 AOServConnector conn=AOServDaemon.getConnector();
                 mysqlServerManager=new MySQLServerManager();
-                conn.getMysqlServers().getTable().addTableListener(mysqlServerManager, 0);
+                conn.getMysqlServers().addTableListener(mysqlServerManager, 0);
                 System.out.println("Done");
             }
         }
@@ -95,7 +96,6 @@ final public class MySQLServerManager extends BuilderThread {
         if(mysqlServerManager!=null) mysqlServerManager.waitForBuild();
     }
 
-    @Override
     public String getProcessTimerDescription() {
         return "Rebuild MySQL Servers";
     }
@@ -136,6 +136,10 @@ final public class MySQLServerManager extends BuilderThread {
             */
             String path;
             if(
+                osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+            ) {
+                path="/usr/mysql/"+mysqlServer.getMinorVersion()+"/bin/mysqladmin";
+            } else if(
                 osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) {
                 path="/opt/mysql-"+mysqlServer.getMinorVersion()+"-i686/bin/mysqladmin";
@@ -143,7 +147,7 @@ final public class MySQLServerManager extends BuilderThread {
                 osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
             ) {
                 path="/opt/mysql-"+mysqlServer.getMinorVersion()+"/bin/mysqladmin";
-            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
             String[] cmd={
                 path,
@@ -153,7 +157,7 @@ final public class MySQLServerManager extends BuilderThread {
                 Integer.toString(mysqlServer.getNetBind().getPort().getPort()),
                 "-u",
                 "root",
-                "--password="+AOServDaemonConfiguration.getMysqlPassword(),
+                "--password="+AOServDaemonConfiguration.getMySqlPassword(),
                 "reload"
             };
             AOServDaemon.exec(cmd);

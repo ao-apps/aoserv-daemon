@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.postgres;
-
 /*
- * Copyright 2001-2009 by AO Industries, Inc.,
+ * Copyright 2001-2012 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.postgres;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.LinuxAccount;
@@ -67,7 +67,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
         } else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
             commandPath = "/usr/aoserv/daemon/bin/backup_postgres_database";
         } else {
-            throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
         }
         String[] command={
             commandPath,
@@ -206,7 +206,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                 osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
                 && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(rebuildLock) {
                 for(PostgresServer ps : thisAOServer.getPostgresServers()) {
@@ -277,7 +277,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                             lib = "/usr/postgresql/"+minorVersion+"/lib";
                                             share = "/usr/postgresql/"+minorVersion+"/share";
                                         } else {
-                                            throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                                            throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                                         }
                                         AOServDaemon.suexec(LinuxAccount.POSTGRES, createlang+" -p "+port+" plpgsql "+name, 0);
                                         if(
@@ -295,16 +295,6 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                             AOServDaemon.suexec(LinuxAccount.POSTGRES, psql+" -p "+port+" "+name+" -f "+share+"/spatial_ref_sys.sql", 0);
                                         }
                                     } catch(IOException err) {
-                                        try {
-                                            // Drop the new database if not fully configured
-                                            stmt.executeUpdate("drop database "+name);
-                                            conn.commit();
-                                        } catch(SQLException err2) {
-                                            LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.SEVERE, null, err2);
-                                            throw err2;
-                                        }
-                                        throw err;
-                                    } catch(SQLException err) {
                                         try {
                                             // Drop the new database if not fully configured
                                             stmt.executeUpdate("drop database "+name);
@@ -365,7 +355,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
             } else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                 commandPath = "/usr/aoserv/daemon/bin/dump_postgres_database";
             } else {
-                throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
             }
             String[] command={
                 commandPath,

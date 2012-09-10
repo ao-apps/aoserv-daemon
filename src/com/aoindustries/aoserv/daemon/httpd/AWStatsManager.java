@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.httpd;
-
 /*
- * Copyright 2005-2009 by AO Industries, Inc.,
+ * Copyright 2005-2012 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.HttpdSite;
@@ -616,7 +616,7 @@ final public class AWStatsManager extends BuilderThread {
                     || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 ) {
                     runascgi = "/var/opt/awstats-6/hosts/"+siteName+"/runascgi.sh";
-                } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                 String[] cmd={
                     "/bin/su",
                     "-s",

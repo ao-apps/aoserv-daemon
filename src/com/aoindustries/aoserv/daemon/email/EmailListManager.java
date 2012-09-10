@@ -1,10 +1,11 @@
 /*
- * Copyright 2000-2011 by AO Industries, Inc.,
+ * Copyright 2000-2012 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.email;
 
+import com.aoindustries.aoserv.client.MajordomoServer;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.io.unix.Stat;
@@ -31,9 +32,10 @@ final public class EmailListManager {
     public static String getEmailListFile(String path) throws IOException, SQLException {
         int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
         if(
-            osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
         UnixFile file = new UnixFile(path);
         Stat fileStat = file.getStat();
@@ -51,9 +53,10 @@ final public class EmailListManager {
     public static void removeEmailListAddresses(String path) throws IOException, SQLException {
         int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
         if(
-            osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
         File file = new File(path);
         if(file.exists() && !file.delete()) throw new IOException("Unable to delete file: " + path);
@@ -71,9 +74,10 @@ final public class EmailListManager {
     ) throws IOException, SQLException {
         int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
         if(
-            osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
             && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
         // Remove any '/r'
         StringBuilder SB=new StringBuilder();

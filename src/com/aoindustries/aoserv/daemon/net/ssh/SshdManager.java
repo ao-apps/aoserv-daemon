@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2011 by AO Industries, Inc.,
+ * Copyright 2001-2012 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -12,8 +12,6 @@ import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.NetDevice;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Protocol;
-import com.aoindustries.aoserv.client.validator.InetAddress;
-import com.aoindustries.aoserv.client.validator.NetPort;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -24,6 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -42,7 +41,6 @@ final public class SshdManager extends BuilderThread {
      * Called by NetDeviceManager.doRebuild to ensure consistent state with the IP addresses.
      */
     private static final Object rebuildLock=new Object();
-    @Override
     protected boolean doRebuild() {
         try {
             AOServConnector connector=AOServDaemon.getConnector();
@@ -62,25 +60,33 @@ final public class SshdManager extends BuilderThread {
             if(
                 osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) {
-                throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
             }
 
             synchronized(rebuildLock) {
                 // Find all the IPs that should be bound to
-                SortedSet<NetBind> nbs = new TreeSet<NetBind>();
-                for(NetBind nb : thisAOServer.getServer().getNetBinds(connector.getProtocols().get(Protocol.SSH))) {
-                    if(nb.getNetTcpRedirect()==null) {
-                        if(nb.getPort().getPort()!=22) throw new IOException("SSH only supported on port 22");
-                        IPAddress ip = nb.getIpAddress();
-                        if(ip==null) throw new IOException("Can't use wildcard for SSH for chroot failover support: ip==null");
-                        NetDevice nd=ip.getNetDevice();
-                        if(nd==null) throw new NullPointerException("NetDevice is null.  IPAddress="+ip);
-                        InetAddress address=ip.getInetAddress();
-                        if(nd.getDeviceId().isLoopback() || address.isLooback()) throw new IOException("Can't use localhost for SSH for chroot failover support: "+ip);
-                        nbs.add(nb);
+                SortedSet<String> ips;
+                {
+                    Protocol sshProtocol=connector.getProtocols().get(Protocol.SSH);
+                    List<NetBind> nbs=thisAOServer.getServer().getNetBinds(sshProtocol);
+                    ips=new TreeSet<String>();
+                    for(int c=0;c<nbs.size();c++) {
+                        NetBind nb = nbs.get(c);
+                        if(nb.getNetTcpRedirect()==null) {
+                            int port = nb.getPort().getPort();
+                            if(port!=22) throw new IOException("SSH only supported on port 22 at this time");
+                            IPAddress ip = nb.getIPAddress();
+                            if(ip==null) throw new NullPointerException("nbs["+c+"].getIPAddress() is null");
+                            NetDevice nd=ip.getNetDevice();
+                            if(nd==null) throw new NullPointerException("nbs["+c+"].getIPAddress().getNetDevice() is null");
+                            if(nd.getNetDeviceID().isLoopback()) throw new IOException("Can't use localhost for SSH for chroot failover support: nbs["+c+"].getIPAddress().getNetDevice().getNetDeviceId().isLoopback()==true");
+                            if(ip.isWildcard()) throw new IOException("Can't use wildcard for SSH for chroot failover support: ip.isWildcard()==true");
+                            String address=ip.getIPAddress();
+                            if(!ips.contains(address)) ips.add(address);
+                        }
                     }
                 }
-                if(nbs.isEmpty()) throw new IOException("No IP addresses found for SSH, refusing to update sshd_config");
+                if(ips.isEmpty()) throw new IOException("No IP addresses found for SSH, refusing to update sshd_config");
 
                 // Build the new config file to RAM
                 ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -97,20 +103,8 @@ final public class SshdManager extends BuilderThread {
                                 + "Protocol 2\n");
                                 // Changed to not allow Protocol 1 on 2005-02-01 by Dan Armstrong
                                 //+ "Protocol 2,1\n");
-                        for(NetBind nb : nbs) {
-                            NetPort port = nb.getPort();
-                            if(port.getPort()!=22) {
-                                String address = nb.getIpAddress().getInetAddress().toString();
-                                if(address.indexOf(':')==-1) {
-                                    // IPv4
-                                    out.print("ListenAddress ").print(address).print(':').print(port).print("\n");
-                                } else {
-                                    // IPv6
-                                    out.print("ListenAddress [").print(address).print("]:").print(port).print("\n");
-                                }
-                            } else {
-                                out.print("ListenAddress ").print(nb.getIpAddress().getInetAddress()).print("\n");
-                            }
+                        for(String ip : ips) {
+                            out.print("ListenAddress ").print(ip).print("\n");
                         }
                         out.print("SyslogFacility AUTHPRIV\n"
                                 + "PermitRootLogin yes\n"
@@ -127,7 +121,7 @@ final public class SshdManager extends BuilderThread {
                                 + "Subsystem sftp /usr/libexec/openssh/sftp-server\n"
                         );
                     } else {
-                        throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                     }
                 } finally {
                     out.close();
@@ -213,15 +207,12 @@ final public class SshdManager extends BuilderThread {
                 System.out.print("Starting SshdManager: ");
                 AOServConnector conn=AOServDaemon.getConnector();
                 sshdManager=new SshdManager();
-                conn.getIpAddresses().getTable().addTableListener(sshdManager, 0);
-                conn.getNetBinds().getTable().addTableListener(sshdManager, 0);
-                conn.getNetTcpRedirects().getTable().addTableListener(sshdManager, 0);
+                conn.getNetBinds().addTableListener(sshdManager, 0);
                 System.out.println("Done");
             }
         }
     }
 
-    @Override
     public String getProcessTimerDescription() {
         return "Rebuild SSH Configuration";
     }

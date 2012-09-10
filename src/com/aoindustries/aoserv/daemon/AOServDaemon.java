@@ -27,6 +27,7 @@ import com.aoindustries.aoserv.daemon.failover.FailoverFileReplicationManager;
 import com.aoindustries.aoserv.daemon.ftp.FTPManager;
 import com.aoindustries.aoserv.daemon.httpd.AWStatsManager;
 import com.aoindustries.aoserv.daemon.httpd.HttpdManager;
+import com.aoindustries.aoserv.daemon.iptables.IpReputationManager;
 import com.aoindustries.aoserv.daemon.monitor.MrtgManager;
 import com.aoindustries.aoserv.daemon.mysql.MySQLDBUserManager;
 import com.aoindustries.aoserv.daemon.mysql.MySQLDatabaseManager;
@@ -188,6 +189,7 @@ final public class AOServDaemon {
                 HttpdManager.start();
                 // TODO: Enable once data is created InterBaseManager.start();
                 ImapManager.start();
+                IpReputationManager.start();
                 JilterConfigurationWriter.start();
                 LinuxAccountManager.start();
                 MajordomoManager.start();

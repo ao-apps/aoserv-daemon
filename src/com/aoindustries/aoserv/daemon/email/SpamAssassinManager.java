@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.email;
-
 /*
- * Copyright 2005-2009 by AO Industries, Inc.,
+ * Copyright 2005-2012 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.email;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.EmailSpamAssassinIntegrationMode;
@@ -142,7 +142,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                     } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                         processIncomingMessagesCentOs();
                     } else {
-                        throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                     }
                 }
             } catch(ThreadDeath TD) {
@@ -567,7 +567,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
             if(
                 osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
             final String primaryIP = aoServer.getPrimaryIPAddress().getIPAddress();
 

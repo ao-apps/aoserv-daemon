@@ -1,20 +1,19 @@
-package com.aoindustries.aoserv.daemon.net.xinetd;
-
 /*
- * Copyright 2003-2011 by AO Industries, Inc.,
+ * Copyright 2003-2012 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.net.xinetd;
+
 import com.aoindustries.aoserv.client.IPAddress;
+import com.aoindustries.aoserv.client.LinuxServerAccount;
+import com.aoindustries.aoserv.client.LinuxServerGroup;
+import com.aoindustries.aoserv.client.NetPort;
 import com.aoindustries.aoserv.client.NetProtocol;
-import com.aoindustries.aoserv.client.validator.GroupId;
-import com.aoindustries.aoserv.client.validator.InetAddress;
-import com.aoindustries.aoserv.client.validator.NetPort;
-import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.io.ChainWriter;
-import com.aoindustries.util.StringUtility;
+import com.aoindustries.lang.ObjectUtils;
 import java.io.IOException;
+import java.sql.SQLException;
 
 /**
  * Represents one service in the xinetd.d directory.
@@ -32,9 +31,9 @@ public final class Service {
     final private IPAddress bind;
     final private NetPort port;
     final private boolean wait;
-    final private UserId user;
-    final private GroupId group;
-    final private UnixPath server;
+    final private LinuxServerAccount user;
+    final private LinuxServerGroup group;
+    final private String server;
     final private String env;
     final private String server_args;
     final private String log_on_success;
@@ -55,9 +54,9 @@ public final class Service {
         IPAddress bind,
         NetPort port,
         boolean wait,
-        UserId user,
-        GroupId group,
-        UnixPath server,
+        LinuxServerAccount user,
+        LinuxServerGroup group,
+        String server,
         String env,
         String server_args,
         String log_on_success,
@@ -65,7 +64,7 @@ public final class Service {
         int nice,
         String rlimit_as,
         String redirect
-    ) {
+    ) throws SQLException {
         this.type=type;
         this.instances=instances;
         this.per_source = per_source;
@@ -88,7 +87,7 @@ public final class Service {
         this.rlimit_as=rlimit_as;
         this.redirect=redirect;
 
-        if(redirect!=null && (server!=null || env!=null || server_args!=null)) throw new AssertionError("Unable to provide server, env, or server_args when a redirect is requested");
+        if(redirect!=null && (server!=null || env!=null || server_args!=null)) throw new SQLException("Unable to provide server, env, or server_args when a redirect is requested");
     }
     
     public String getService() {
@@ -99,7 +98,7 @@ public final class Service {
         return redirect;
     }
 
-    public void printXinetdConfig(ChainWriter out) throws IOException {
+    public void printXinetdConfig(ChainWriter out) throws IOException, SQLException {
         out.print("service ").print(service).print("\n"
                 + "{\n");
         if(type!=null) out.print("\ttype = ").print(type).print('\n');
@@ -124,18 +123,22 @@ public final class Service {
         String protocol=socket_type.getProtocol();
         if(protocol.equals(NetProtocol.TCP)) out.print("stream");
         else if(protocol.equals(NetProtocol.UDP)) out.print("dgram");
-        else throw new AssertionError("Unknown value for socket_type: "+protocol);
+        else throw new SQLException("Unknown value for socket_type: "+protocol);
         out.print('\n');
 
-        if(bind!=null) out.print("\tbind = ").print(bind.getInetAddress()).print('\n');
-
+        if(bind!=null) {
+            String ip=bind.getIPAddress();
+            if(!ip.equals(IPAddress.WILDCARD_IP)) {
+                out.print("\tbind = ").print(ip).print('\n');
+            }
+        }
         if(port!=null) out.print("\tport = ").print(port.getPort()).print('\n');
 
         out.print("\twait = ").print(wait?"yes":"no").print('\n');
 
-        out.print("\tuser = ").print(user).print('\n');
+        out.print("\tuser = ").print(user.getLinuxAccount().getUsername().getUsername()).print('\n');
 
-        if(group!=null) out.print("\tgroup = ").print(group).print('\n');
+        if(group!=null) out.print("\tgroup = ").print(group.getLinuxGroup().getName()).print('\n');
 
         if(server!=null) out.print("\tserver = ").print(server).print('\n');
 
@@ -159,10 +162,10 @@ public final class Service {
     
     public boolean bindMatches(Service other) {
         return
-            StringUtility.equals(bind, other.bind)
+            bind.equals(other.bind)
             && socket_type.equals(other.socket_type)
             && service.equals(other.service)
-            && StringUtility.equals(port, other.port)
+            && ObjectUtils.equals(port, other.port)
         ;
     }
 }

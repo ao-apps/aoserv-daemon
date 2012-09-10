@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.email;
-
 /*
- * Copyright 2008-2009 by AO Industries, Inc.,
+ * Copyright 2008-2012 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.email;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.EmailSpamAssassinIntegrationMode;
@@ -24,6 +24,7 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.ObjectUtils;
 import com.aoindustries.sql.SQLUtility;
 import com.aoindustries.util.StringUtility;
 import com.sun.mail.iap.Argument;
@@ -1332,7 +1333,7 @@ final public class ImapManager extends BuilderThread {
                             String existingValue = getAnnotation(trashFolder, "/vendor/cmu/cyrus-imapd/expire", "value.shared");
                             int trashRetention = lsa.getTrashEmailRetention();
                             String expectedValue = trashRetention==-1 ? null : Integer.toString(trashRetention);
-                            if(!StringUtility.equals(existingValue, expectedValue)) {
+                            if(!ObjectUtils.equals(existingValue, expectedValue)) {
                                 if(isDebug) logger.fine("Setting mailbox expiration: "+trashFolderName+": "+expectedValue);
                                 setAnnotation(trashFolder, "/vendor/cmu/cyrus-imapd/expire", expectedValue, "text/plain");
                             }
@@ -1362,7 +1363,7 @@ final public class ImapManager extends BuilderThread {
                                 String existingValue = getAnnotation(junkFolder, "/vendor/cmu/cyrus-imapd/expire", "value.shared");
                                 int junkRetention = lsa.getJunkEmailRetention();
                                 String expectedValue = junkRetention==-1 ? null : Integer.toString(junkRetention);
-                                if(!StringUtility.equals(existingValue, expectedValue)) {
+                                if(!ObjectUtils.equals(existingValue, expectedValue)) {
                                     if(isDebug) logger.fine("Setting mailbox expiration: "+junkFolderName+": "+expectedValue);
                                     setAnnotation(junkFolder, "/vendor/cmu/cyrus-imapd/expire", expectedValue, "text/plain");
                                 }
@@ -1653,7 +1654,7 @@ final public class ImapManager extends BuilderThread {
                     sizes[c] = getCyrusFolderSize(user, isInbox ? "" : folderName, domain, !isInbox);
                 }
             }
-        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
         return sizes;
     }
 
@@ -1704,7 +1705,7 @@ final public class ImapManager extends BuilderThread {
             }
         } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
             throw new SQLException("Cyrus folders should be subscribed/unsubscribed from IMAP directly because subscribe list is stored per user basis.");
-        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
     }
 
     static class Annotation {
@@ -1945,7 +1946,7 @@ ad OK Completed
 */
         } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
             return 0;
-        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
     }
 
     public static long getInboxModified(String username) throws IOException, SQLException, MessagingException, ParseException {
@@ -2045,6 +2046,6 @@ ad OK Completed
         } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
             // Not an IMAP server, consistent with File.lastModified() above
             return 0L;
-        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+        } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
     }
 }

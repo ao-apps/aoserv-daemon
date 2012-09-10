@@ -1,22 +1,15 @@
 package com.aoindustries.aoserv.daemon.backup;
 
 /*
- * Copyright 2001-2011 by AO Industries, Inc.,
+ * Copyright 2001-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.LogFactory;
-import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.util.StringUtility;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.InterruptedIOException;
-import java.util.Calendar;
-import java.util.List;
+import com.aoindustries.aoserv.daemon.*;
+import com.aoindustries.io.unix.*;
+import com.aoindustries.util.*;
+import java.io.*;
+import java.util.*;
 import java.util.logging.Level;
 
 /**
@@ -32,7 +25,16 @@ final public class BackupManager {
      * The directory that old files are backed-up to.  This thread cleans up
      * the old backups.
      */
-    private static final File oldaccountsDir=new File("/var/oldaccounts");
+    private static final String OLDACCOUNTS_DIR = "/var/oldaccounts";
+
+    /**
+     * Gets the oldaccounts directory, creating if necessary.
+     */
+    private static UnixFile getOldaccountsDir() throws IOException {
+        UnixFile oldaccountsDir = new UnixFile(OLDACCOUNTS_DIR);
+        if(!oldaccountsDir.getStat().exists()) oldaccountsDir.mkdir(false, 0700);
+        return oldaccountsDir;
+    }
 
     /**
      * The maximum age of files in the /var/oldaccounts directory.
@@ -72,6 +74,46 @@ final public class BackupManager {
         AOServDaemon.exec(cmd);
     }
 
+    /*
+    static void backupInterBaseDatabases() throws IOException, SQLException {
+        if(AOServDaemon.getThisAOServer().isInterBase()) {
+            ProcessTimer timer=new ProcessTimer(
+                AOServDaemon.getRandom(),
+                AOServDaemonConfiguration.getWarningSmtpServer(),
+                AOServDaemonConfiguration.getWarningEmailFrom(),
+                AOServDaemonConfiguration.getWarningEmailTo(),
+                "InterBase backup taking too long",
+                "InterBase Backup",
+                3*60*60*1000,
+                60*60*1000
+            );
+            try {
+                AOServDaemon.executorService.submit(timer);
+                try {
+                    for(InterBaseDatabase id : AOServDaemon.getThisAOServer().getInterBaseDatabases()) {
+                        if(id.getBackupLevel().getLevel()>0) {
+                            long startTime=System.currentTimeMillis();
+                            try {
+                                id.backup();
+                            } catch(RuntimeException err) {
+                                LogFactory.getLogger(this.getClass()).log(Level.SEVERE, 
+                                    err,
+                                    new Object[] {"id="+id}
+                                );
+                            }
+                        }
+                    }
+                } catch(ThreadDeath TD) {
+                    throw TD;
+                } catch(Throwable T) {
+                    LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, T);
+                }
+            } finally {
+                timer.stop();
+            }
+        }
+    }
+*/
     /*
     static void backupMySQLDatabases() throws IOException, SQLException {
         ProcessTimer timer=new ProcessTimer(
@@ -156,6 +198,7 @@ final public class BackupManager {
     
     static void cleanVarOldaccounts() {
         try {
+            UnixFile oldaccountsDir = getOldaccountsDir();
             String[] files=oldaccountsDir.list();
             if(files!=null) {
                 int len=files.length;
@@ -171,8 +214,7 @@ final public class BackupManager {
                     fileCal.set(Calendar.SECOND, Integer.parseInt(filename.substring(13,15)));
 
                     if((System.currentTimeMillis()-fileCal.getTime().getTime())>=MAX_OLDACCOUNTS_AGE) {
-                        File file=new File(oldaccountsDir, filename);
-                        if(!file.delete()) throw new IOException("Unable to delete file: "+file.getPath());
+                        new UnixFile(oldaccountsDir, filename, true).delete();
                     }
                 }
             }
@@ -233,7 +275,7 @@ final public class BackupManager {
     }
 
     /**
-     * Gets the next backup filename in the <code>/var/oldaccounts</code> directory.
+     * Gets the next backup filename in the oldaccounts directory.
      * The filename format is <code>YYYYMMDD_HHMMSS_C.tgz</code> where <code>C</code> a counter
      * starting at one.
      */
@@ -264,10 +306,12 @@ final public class BackupManager {
             if(second<10) SB.append('0');
             SB.append(second).append('_');
 
+            UnixFile oldaccountsDir = getOldaccountsDir();
             String prefix=SB.toString();
             for(int c=1;c<Integer.MAX_VALUE;c++) {
-                File file=new File(oldaccountsDir, prefix+c+".tgz");
-                if(!file.exists()) {
+                UnixFile unixFile=new UnixFile(oldaccountsDir, prefix+c+".tgz", true);
+                if(!unixFile.getStat().exists()) {
+                    File file = unixFile.getFile();
                     new FileOutputStream(file).close();
                     return file;
                 }
@@ -275,4 +319,30 @@ final public class BackupManager {
             throw new IOException("Unable to allocate backup file for "+oldaccountsDir.getPath()+'/'+prefix);
         }
     }
+
+    /*
+    private static final int CACHED_DIRECTORY_SIZE=64;
+    private static final Object cachedDirectoryLock=new Object();
+    private static String[] cachedPaths;
+    private static String[][] cachedLists;
+    public static String[] getCachedDirectory(String path) throws IOException {
+        synchronized(cachedDirectoryLock) {
+            if(cachedPaths==null) {
+                cachedPaths=new String[CACHED_DIRECTORY_SIZE];
+                cachedLists=new String[CACHED_DIRECTORY_SIZE][];
+            }
+            for(int c=0;c<CACHED_DIRECTORY_SIZE;c++) {
+                String cpath=cachedPaths[c];
+                if(cpath==null) break;
+                if(cpath.equals(path)) return cachedLists[c];
+            }
+            // Insert at the top of the cache
+            String[] list=new File(path).list();
+            System.arraycopy(cachedPaths, 0, cachedPaths, 1, CACHED_DIRECTORY_SIZE-1);
+            cachedPaths[0]=path;
+            System.arraycopy(cachedLists, 0, cachedLists, 1, CACHED_DIRECTORY_SIZE-1);
+            cachedLists[0]=list;
+            return list;
+        }
+    }*/
 }

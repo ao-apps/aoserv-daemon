@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.cvsd;
-
 /*
- * Copyright 2002-2009 by AO Industries, Inc.,
+ * Copyright 2002-2012 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.cvsd;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.CvsRepository;
@@ -50,7 +50,7 @@ final public class CvsManager extends BuilderThread {
             if(
                 osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(rebuildLock) {
                 // Get a list of all the directories in /var/cvs

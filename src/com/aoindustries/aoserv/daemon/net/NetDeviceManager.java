@@ -1,3 +1,8 @@
+/*
+ * Copyright 2006-2012 by AO Industries, Inc.,
+ * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
+ * All rights reserved.
+ */
 package com.aoindustries.aoserv.daemon.net;
 
 import com.aoindustries.aoserv.client.AOServConnector;
@@ -67,7 +72,7 @@ final public class NetDeviceManager extends BuilderThread {
             if(
                 osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
             // Used on inner loop
             final Stat tempStat = new Stat();
@@ -139,7 +144,7 @@ final public class NetDeviceManager extends BuilderThread {
                                 out.print("HWADDR=").print(macAddr).print("\n"
                                         + "IPV6ADDR=\n"
                                         + "IPV6PREFIX=\n");
-                            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                            } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                         } finally {
                             out.close();
                         }
@@ -203,7 +208,7 @@ final public class NetDeviceManager extends BuilderThread {
                                             ) {
                                                 out.print("IPADDR=").print(ip.getIPAddress()).print("\n"
                                                         + "NETMASK=").print(ip.getNetMask()).print("\n");
-                                            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                                            } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                                         } finally {
                                             out.close();
                                         }
@@ -384,7 +389,7 @@ final public class NetDeviceManager extends BuilderThread {
                             String command;
                             if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) command = "/etc/aoserv/daemon/route";
                             else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) command = "/etc/opt/aoserv-daemon/route";
-                            else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                            else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                             if(WARN_ONLY) {
                                 synchronized(System.err) {
                                     System.err.println();

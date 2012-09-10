@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.monitor;
-
 /*
- * Copyright 2006-2009 by AO Industries, Inc.,
+ * Copyright 2006-2012 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.monitor;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.NetDevice;
@@ -69,7 +69,7 @@ final public class MrtgManager extends BuilderThread {
                 osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
                 && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
             final Stat tempStat = new Stat();
 
@@ -94,7 +94,7 @@ final public class MrtgManager extends BuilderThread {
                 cfgFileNew = centosCfgFileNew;
                 statsFile = centosStatsFile;
                 statsFileNew = centosStatsFileNew;
-            } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(rebuildLock) {
                 List<String> dfDevices = getDFDevices();
@@ -119,7 +119,7 @@ final public class MrtgManager extends BuilderThread {
                                     + "ImageDir: /var/www/mrtg\n"
                                     + "LogDir: /var/lib/mrtg\n"
                                     + "ThreshDir: /var/lib/mrtg\n");
-                        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                         out.print("PageTop[^]: \n"
                                 + "  <div style='text-align:center'>\n"
                                 + "  <h1>\n"
@@ -473,7 +473,7 @@ final public class MrtgManager extends BuilderThread {
                                     + "  </td>\n"
                                     + "</tr>\n"
                                     + "</table>\n");
-                        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                        } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                         out.print("<!-- End MRTG Block -->\n"
                                 + "  </body>\n"
                                 + "</html>\n");

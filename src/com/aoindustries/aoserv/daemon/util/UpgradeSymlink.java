@@ -1,14 +1,13 @@
+/*
+ * Copyright 2008-2012 by AO Industries, Inc.,
+ * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
+ * All rights reserved.
+ */
 package com.aoindustries.aoserv.daemon.util;
 
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-
-/*
- * Copyright 2008-2009 by AO Industries, Inc.,
- * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
- * All rights reserved.
- */
-import com.aoindustries.util.StringUtility;
+import com.aoindustries.lang.ObjectUtils;
 import java.io.IOException;
 
 /**
@@ -28,7 +27,7 @@ public class UpgradeSymlink {
      * @param newLinkTarget
      */
     public UpgradeSymlink(String linkPath, String oldLinkTarget, String newLinkTarget) {
-        if(StringUtility.equals(oldLinkTarget, newLinkTarget)) throw new IllegalArgumentException("oldLinkTarget=newLinkTarget: "+oldLinkTarget);
+        if(ObjectUtils.equals(oldLinkTarget, newLinkTarget)) throw new IllegalArgumentException("oldLinkTarget=newLinkTarget: "+oldLinkTarget);
         this.linkPath = linkPath;
         this.oldLinkTarget = oldLinkTarget;
         this.newLinkTarget = newLinkTarget;

@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.email;
-
 /*
- * Copyright 2000-2009 by AO Industries, Inc.,
+ * Copyright 2000-2012 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.email;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.EmailAttachmentBlock;
@@ -86,7 +86,7 @@ public final class ProcmailManager extends BuilderThread {
                 osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
                 && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(rebuildLock) {
                 // Control the permissions of the deliver program, needs to be SUID to
@@ -338,7 +338,7 @@ public final class ProcmailManager extends BuilderThread {
                                                 + ":0 h\n"
                                                 //+ "RETURN_PATH=| /usr/bin/formail -c -x Return-Path: | /bin/sed -e 's/^ *<//' -e 's/>$//'\n");
                                                 + "RETURN_PATH=| /opt/aoserv-client/bin/returnpath\n");
-                                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                                    } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
                                     // Only move to Junk folder when the inbox is enabled and in IMAP mode
                                     if(spamAssassinMode.equals(EmailSpamAssassinIntegrationMode.IMAP)) {
@@ -370,7 +370,7 @@ public final class ProcmailManager extends BuilderThread {
                                                     + "  EXITCODE=75\n"
                                                     + "  HOST\n"
                                                     + "}\n");
-                                        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                                        } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                                     }
 
                                     // Deliver to INBOX
@@ -394,7 +394,7 @@ public final class ProcmailManager extends BuilderThread {
                                                 + "# Delivery failed, return EX_TEMPFAIL to have sendmail retry delivery\n"
                                                 + "EXITCODE=75\n"
                                                 + "HOST\n");
-                                    } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+                                    } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                                 } else {
                                     // Discard the email if configured to not use the inbox or Junk folders
                                     out.print("\n"

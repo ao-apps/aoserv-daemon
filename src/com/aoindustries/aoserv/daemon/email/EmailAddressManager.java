@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2011 by AO Industries, Inc.,
+ * Copyright 2000-2012 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -7,10 +7,17 @@ package com.aoindustries.aoserv.daemon.email;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.LinuxAccount;
+import com.aoindustries.aoserv.client.BlackholeEmailAddress;
+import com.aoindustries.aoserv.client.EmailAddress;
+import com.aoindustries.aoserv.client.EmailDomain;
+import com.aoindustries.aoserv.client.EmailForwarding;
+import com.aoindustries.aoserv.client.EmailListAddress;
+import com.aoindustries.aoserv.client.EmailPipeAddress;
+import com.aoindustries.aoserv.client.LinuxAccAddress;
+import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.SystemEmailAlias;
 import com.aoindustries.aoserv.client.Username;
-import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -63,9 +70,10 @@ final public class EmailAddressManager extends BuilderThread {
 
             int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
             if(
-                osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-            ) throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(rebuildLock) {
                 List<EmailAddress> eas=aoServer.getEmailAddresses();
@@ -105,19 +113,21 @@ final public class EmailAddressManager extends BuilderThread {
 
                         // Hide the Linux account usernames, so support@tantrix.com does not go to support@aoindustries.com
                         String ex_nouser;
-                        if(
+                        if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+                            ex_nouser="/usr/aoserv/bin/ex_nouser";
+                        } else if(
                             osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                             || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                         ) {
                             ex_nouser="/opt/aoserv-client/sbin/ex_nouser";
-                        } else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
-                        for(LinuxAccount la : aoServer.getSortedLinuxAccounts()) {
-                            UserId username=la.getUserId();
-                            if(!usernamesUsed.contains(username.toString())) {
-                                if(username.toString().indexOf('@')==-1) {
+                        } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+                        for(LinuxServerAccount lsa : aoServer.getLinuxServerAccounts()) {
+                            String username=lsa.getLinuxAccount().getUsername().getUsername();
+                            if(!usernamesUsed.contains(username)) {
+                                if(username.indexOf('@')==-1) {
                                     aliasesOut.print(username).print(": |").println(ex_nouser);
                                 }
-                                usernamesUsed.add(username.toString());
+                                usernamesUsed.add(username);
                             }
                         }
 
@@ -425,10 +435,11 @@ final public class EmailAddressManager extends BuilderThread {
             String makemap;
             int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
             if(
-                osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+                osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+                || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
                 || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) makemap="/usr/sbin/makemap";
-            else throw new SQLException("Unsupported OperatingSystemVersion: "+osv);
+            else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
             String[] cmd = { makemap, "hash", userTable.getPath() };
             Process P = Runtime.getRuntime().exec(cmd);
@@ -486,9 +497,9 @@ final public class EmailAddressManager extends BuilderThread {
                 connector.getEmailListAddresses().addTableListener(emailAddressManager, 0);
                 connector.getEmailPipes().addTableListener(emailAddressManager, 0);
                 connector.getEmailPipeAddresses().addTableListener(emailAddressManager, 0);
-                connector.getLinuxAccounts().getTable().addTableListener(emailAddressManager, 0);
+                connector.getLinuxServerAccounts().addTableListener(emailAddressManager, 0);
                 connector.getLinuxAccAddresses().addTableListener(emailAddressManager, 0);
-                connector.getBusinesses().getTable().addTableListener(emailAddressManager, 0);
+                connector.getPackages().addTableListener(emailAddressManager, 0);
                 connector.getSystemEmailAliases().addTableListener(emailAddressManager, 0);
                 System.out.println("Done");
             }
@@ -504,7 +515,6 @@ final public class EmailAddressManager extends BuilderThread {
         }
     }
 
-    @Override
     public String getProcessTimerDescription() {
         return "Rebuild Email Addresses";
     }
