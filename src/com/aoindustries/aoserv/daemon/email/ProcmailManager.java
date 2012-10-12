@@ -291,7 +291,7 @@ public final class ProcmailManager extends BuilderThread {
                                         if(d<(eabs.size()-1)) out.print("; ");
                                         out.print("\\\n");
                                     }
-                                    out.print("  ) | $SENDMAIL -oi -t\n"
+                                    out.print("  ) | $SENDMAIL -oi -t -f\"$FROM\"\n"
                                             + "}\n");
                                 }
 
@@ -322,7 +322,7 @@ public final class ProcmailManager extends BuilderThread {
                                         out.print("; \\\n"
                                                 + "    /bin/cat ").print(path).print(" \\\n");
                                     }
-                                    out.print(") | /usr/sbin/sendmail -oi -t\n");
+                                    out.print(") | /usr/sbin/sendmail -oi -t -f\"").print(defaultFromAddress).print("\"\n");
                                 }
 
                                 if(lsa.useInbox()) {
