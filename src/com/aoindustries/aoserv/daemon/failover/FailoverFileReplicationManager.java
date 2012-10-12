@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.failover;
-
 /*
- * Copyright 2003-2009 by AO Industries, Inc.,
+ * Copyright 2003-2012 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.failover;
+
 import com.aoindustries.aoserv.backup.BackupDaemon;
 import com.aoindustries.aoserv.client.BackupRetention;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -1806,9 +1806,21 @@ final public class FailoverFileReplicationManager {
         if(retention==1) {
             for(String name : replicatedMySQLServers) {
                 if(
-                    relativePath.equals("/var/lib/mysql/"+name)
-                    || relativePath.startsWith("/var/lib/mysql/"+name+"/")
-                    || relativePath.equals("/var/lock/subsys/mysql-"+name)
+                    (
+                        relativePath.startsWith("/var/lib/mysql/")
+                        && (
+                                   relativePath.equals("/var/lib/mysql/"+name)
+                            || relativePath.startsWith("/var/lib/mysql/"+name+"/")
+                            ||     relativePath.equals("/var/lib/mysql/"+name+"-old")
+                            || relativePath.startsWith("/var/lib/mysql/"+name+"-old/")
+                            ||     relativePath.equals("/var/lib/mysql/"+name+"-new")
+                            || relativePath.startsWith("/var/lib/mysql/"+name+"-new/")
+                            ||     relativePath.equals("/var/lib/mysql/"+name+"-fast")
+                            || relativePath.startsWith("/var/lib/mysql/"+name+"-fast/")
+                            ||     relativePath.equals("/var/lib/mysql/"+name+"-slow")
+                            || relativePath.startsWith("/var/lib/mysql/"+name+"-slow/")
+                        )
+                    ) || relativePath.equals("/var/lock/subsys/mysql-"+name)
                 ) {
                     if(isDebug) logger.fine("Skipping delete on cleanup: \""+fromServer+"\":"+relativePath);
                     return false;
