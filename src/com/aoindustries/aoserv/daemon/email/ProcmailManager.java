@@ -178,9 +178,9 @@ public final class ProcmailManager extends BuilderThread {
 
                                 if(!spamAssassinMode.equals(EmailSpamAssassinIntegrationMode.NONE)) {
                                     out.print("\n"
-                                            + "# Only use spamassassin if size less than 256000 bytes\n"
+                                            + "# Only use spamassassin if size less than 1000000 bytes\n"
                                             + ":0\n"
-                                            + "* < 256000\n"
+                                            + "* < 1000000\n"
                                             + "{\n"
                                             + "  # Filter through spamassassin\n"
                                             // procmail locking sucks and is not necessary: + "  :0 fw: spamassassin.lock\n"
