@@ -47,6 +47,11 @@ final public class Ipset {
      */
     public enum NamespacePrefix {
         /**
+         * Used by each IpSet.
+         */
+        I,
+
+        /**
          * Used by each IpReputationSet.
          *
          * @see  IpReputationSet
