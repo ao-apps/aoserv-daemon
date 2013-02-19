@@ -59,7 +59,7 @@ final public class DNSManager extends BuilderThread {
         // Kansas City
         + " 207.126.57.0/24;"  // Hosts
         // Fremont
-        + " 64.71.143.176/29;" // Firewalls
+        //+ " 64.71.143.176/29;" // Firewalls
         + " 66.160.183.0/24;"  // Virtual Servers
         + " 64.62.174.0/24;"   // Virtual Servers
         + " 64.71.144.0/25;"   // Virtual Servers
