@@ -98,7 +98,7 @@ final public class AOServDaemonServerThread extends Thread {
      * Creates a new, running <code>AOServServerThread</code>.
      */
     public AOServDaemonServerThread(AOServDaemonServer server, Socket socket) throws IOException {
-	super("AOServ Daemon Server Thread - " + socket.getInetAddress().getHostAddress());
+        setName("AOServ Daemon Server Thread #" + getId() + " - " + socket.getInetAddress().getHostAddress());
         this.server = server;
         this.socket = socket;
         this.in = new CompressedDataInputStream(new BufferedInputStream(socket.getInputStream()));

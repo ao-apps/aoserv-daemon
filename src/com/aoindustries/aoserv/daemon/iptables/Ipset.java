@@ -112,7 +112,9 @@ final public class Ipset {
     }
 
     public static enum SetType {
-        iphash
+        iphash,
+        iptree,
+        iptreemap
     }
 
     /**

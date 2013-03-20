@@ -1,11 +1,10 @@
-
-package com.aoindustries.aoserv.daemon.httpd;
-
 /*
- * Copyright 2008-2009 by AO Industries, Inc.,
+ * Copyright 2008-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.HttpdBind;
@@ -478,6 +477,12 @@ public class HttpdServerManager {
                     + "\n"
                     + "Include conf/modules_conf/prefork\n"
                     + "Include conf/modules_conf/worker\n"
+                    + "\n"
+                    + "<IfModule prefork.c>\n"
+                    + "    ListenBacklog 511\n"
+                    + "    ServerLimit ").print(hs.getMaxConcurrency()).print("\n"
+                    + "    MaxClients ").print(hs.getMaxConcurrency()).print("\n"
+                    + "</IfModule>\n"
                     + "\n"
                     + "LoadModule auth_basic_module modules/mod_auth_basic.so\n"
                     + "#LoadModule auth_digest_module modules/mod_auth_digest.so\n"

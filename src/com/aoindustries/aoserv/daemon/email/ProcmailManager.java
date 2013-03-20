@@ -185,7 +185,7 @@ public final class ProcmailManager extends BuilderThread {
                                             + "  # Filter through spamassassin\n"
                                             // procmail locking sucks and is not necessary: + "  :0 fw: spamassassin.lock\n"
                                             + "  :0 fw\n"
-                                            + "  | /usr/bin/spamc -d ").print(primaryIP).print(" --connect-retries=6 --retry-sleep=10 --headers\n"
+                                            + "  | /usr/bin/spamc -d ").print(primaryIP).print(" --connect-retries=6 --retry-sleep=10 --headers -s 2000000\n"
                                             + "  \n"
                                             + "  # If spamassassin failed, return a temporary failure code to sendmail\n"
                                             + "  :0\n"

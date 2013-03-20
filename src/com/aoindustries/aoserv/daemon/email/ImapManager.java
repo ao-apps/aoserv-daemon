@@ -9,11 +9,11 @@ import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.EmailSpamAssassinIntegrationMode;
 import com.aoindustries.aoserv.client.LinuxAccount;
-import com.aoindustries.aoserv.client.LinuxAccountTable;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.NetProtocol;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.PasswordGenerator;
 import com.aoindustries.aoserv.client.Protocol;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -337,7 +337,7 @@ final public class ImapManager extends BuilderThread {
                 tempFile.renameTo(passwordBackup);
             }
             // Change the password to a random value
-            password = LinuxAccountTable.generatePassword();
+            password = PasswordGenerator.generatePassword();
             log(logOut, Level.FINE, username, "Setting password to "+password);
             LinuxAccountManager.setPassword(username, password);
             tempPassword[0] = password;

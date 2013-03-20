@@ -197,6 +197,20 @@ final public class FailoverFileReplicationManager {
         boolean isDebug = logger.isLoggable(Level.FINE);
         boolean isTrace = logger.isLoggable(Level.FINER);
         try {
+            if(isInfo) {
+                logger.info(
+                    "Receiving transfer:\n"
+                    + "    fromServer=\"" + fromServer + "\"\n"
+                    + "    useCompression=" + useCompression + "\n"
+                    + "    retention=" + retention + "\n"
+                    + "    toPath=\"" + toPath + "\"\n"
+                    + "    fromServerYear=" + fromServerYear + "\n"
+                    + "    fromServerMonth=" + fromServerMonth + "\n"
+                    + "    fromServerDay=" + fromServerDay + "\n"
+                    + "    quota_gid=" + quota_gid + "\n"
+                    + "    thread.id=" + Thread.currentThread().getId()
+                );
+            }
             if(fromServerYear<1000 || fromServerYear>9999) throw new IOException("Invalid fromServerYear (1000-9999): "+fromServerYear);
             if(fromServerMonth<1 || fromServerMonth>12) throw new IOException("Invalid fromServerMonth (1-12): "+fromServerMonth);
             if(fromServerDay<1 || fromServerDay>31) throw new IOException("Invalid fromServerDay (1-31): "+fromServerDay);
