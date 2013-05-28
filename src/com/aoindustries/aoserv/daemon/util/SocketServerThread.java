@@ -1,15 +1,14 @@
-package com.aoindustries.aoserv.daemon.util;
-
 /*
- * Copyright 2001-2011 by AO Industries, Inc.,
+ * Copyright 2001-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.validator.NetPort;
+package com.aoindustries.aoserv.daemon.util;
+
+import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.io.AOPool;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.logging.Level;
@@ -21,20 +20,20 @@ import java.util.logging.Level;
  */
 abstract public class SocketServerThread extends Thread {
 
-    final com.aoindustries.aoserv.client.validator.InetAddress ipAddress;
-    final NetPort port;
+    final InetAddress ipAddress;
+    final int port;
 
-    public SocketServerThread(String name, com.aoindustries.aoserv.client.validator.InetAddress ipAddress, NetPort port) {
-        super(name+" on "+(ipAddress.toString().indexOf(':')==-1 ? ipAddress.toString() : ("["+ipAddress.toString()+"]"))+":"+port);
+    public SocketServerThread(String name, InetAddress ipAddress, int port) {
+        super(name+" on "+ipAddress.toBracketedString()+":"+port);
         this.ipAddress=ipAddress;
         this.port=port;
     }
 
-    public com.aoindustries.aoserv.client.validator.InetAddress getIPAddress() {
+    public InetAddress getIPAddress() {
         return ipAddress;
     }
     
-    public NetPort getPort() {
+    public int getPort() {
         return port;
     }
 
@@ -46,13 +45,13 @@ abstract public class SocketServerThread extends Thread {
     public void run() {
         while(runMore) {
             try {
-                SS=new ServerSocket(port.getPort(), 50, InetAddress.getByName(ipAddress.toString()));
+                SS=new ServerSocket(port, 50, java.net.InetAddress.getByName(ipAddress.toString()));
                 try {
                     while(runMore) {
                         Socket socket=SS.accept();
                         socket.setKeepAlive(true);
                         socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
-                        socket.setTcpNoDelay(true);
+                        //socket.setTcpNoDelay(true);
                         socketConnected(socket);
                     }
                 } finally {

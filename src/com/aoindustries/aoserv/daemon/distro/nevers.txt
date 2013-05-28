@@ -30,3 +30,17 @@ centos/5/i686,x86_64/.bash_history
 centos/5/i686,x86_64/.lesshst
 centos/5/i686,x86_64/etc/localtime.rpmnew
 centos/5/i686,x86_64/etc/logrotate.conf.rpmnew
+centos/5.dom0/x86_64/etc/rc.d/rc0.d/K03libvirtd
+centos/5.dom0/x86_64/etc/rc.d/rc1.d/K03libvirtd
+centos/5.dom0/x86_64/etc/rc.d/rc2.d/S97libvirtd
+centos/5.dom0/x86_64/etc/rc.d/rc3.d/S97libvirtd
+centos/5.dom0/x86_64/etc/rc.d/rc4.d/S97libvirtd
+centos/5.dom0/x86_64/etc/rc.d/rc5.d/S97libvirtd
+centos/5.dom0/x86_64/etc/rc.d/rc6.d/K03libvirtd
+centos/5.dom0/x86_64/etc/rc.d/rc0.d/K01libvirt-guests
+centos/5.dom0/x86_64/etc/rc.d/rc1.d/K01libvirt-guests
+centos/5.dom0/x86_64/etc/rc.d/rc2.d/K01libvirt-guests
+centos/5.dom0/x86_64/etc/rc.d/rc3.d/S99libvirt-guests
+centos/5.dom0/x86_64/etc/rc.d/rc4.d/S99libvirt-guests
+centos/5.dom0/x86_64/etc/rc.d/rc5.d/S99libvirt-guests
+centos/5.dom0/x86_64/etc/rc.d/rc6.d/K01libvirt-guests

@@ -1,12 +1,11 @@
-package com.aoindustries.aoserv.daemon;
-
 /*
- * Copyright 2000-2011 by AO Industries, Inc.,
+ * Copyright 2012-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon;
+
 import com.aoindustries.aoserv.client.Protocol;
-import com.aoindustries.aoserv.client.validator.NetPort;
 import com.aoindustries.io.AOPool;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -14,6 +13,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -34,12 +34,12 @@ final public class AOServDaemonServer extends Thread {
     /**
      * The address that this server will bind to.
      */
-    public final com.aoindustries.aoserv.client.validator.InetAddress serverBind;
+    private final com.aoindustries.aoserv.client.validator.InetAddress serverBind;
 
     /**
      * The port that this server will listen on.
      */
-    public final NetPort serverPort;
+    public final int serverPort;
 
     /**
      * The protocol to support.
@@ -49,7 +49,7 @@ final public class AOServDaemonServer extends Thread {
     /**
      * Creates a new, running <code>AOServServer</code>.
      */
-    public AOServDaemonServer(com.aoindustries.aoserv.client.validator.InetAddress serverBind, NetPort serverPort, String protocol) {
+    public AOServDaemonServer(com.aoindustries.aoserv.client.validator.InetAddress serverBind, int serverPort, String protocol) {
 	super(AOServDaemonServer.class.getName()+"?address="+serverBind+"&port="+serverPort+"&protocol="+protocol);
         this.serverBind = serverBind;
         this.serverPort = serverPort;
@@ -64,14 +64,17 @@ final public class AOServDaemonServer extends Thread {
             // Cleanup old data in the keys table
             if(lastAccessKeyCleaning==-1) lastAccessKeyCleaning=System.currentTimeMillis();
             else {
-                long cleaningTimeSince=System.currentTimeMillis()-lastAccessKeyCleaning;
-                if(cleaningTimeSince<0 || cleaningTimeSince>=(5L*60*1000)) {
+                long timeSince=System.currentTimeMillis()-lastAccessKeyCleaning;
+                if(timeSince<0 || timeSince>=(5L*60*1000)) {
                     // Build a list of keys that should be removed
                     List<Long> removeKeys=new ArrayList<Long>();
-                    for(Map.Entry<Long,DaemonAccessEntry> entry : accessKeys.entrySet()) {
-                        long entryTimeSince = System.currentTimeMillis() - entry.getValue().created;
-                        if(entryTimeSince<0 || entryTimeSince>=(60L*60*1000)) {
-                            removeKeys.add(entry.getKey());
+                    Iterator<Long> I=accessKeys.keySet().iterator();
+                    while(I.hasNext()) {
+                        Long keyLong=I.next();
+                        DaemonAccessEntry entry=accessKeys.get(keyLong);
+                        timeSince=System.currentTimeMillis()-entry.created;
+                        if(timeSince<0 || timeSince>=(60L*60*1000)) {
+                            removeKeys.add(keyLong);
                         }
                     }
 
@@ -103,7 +106,7 @@ final public class AOServDaemonServer extends Thread {
                 InetAddress address=InetAddress.getByName(serverBind.toString());
                 synchronized(System.out) {
                     System.out.print("Accepting connections on ");
-                    System.out.print(address.getHostAddress());
+                    System.out.print(serverBind.toBracketedString());
                     System.out.print(':');
                     System.out.print(serverPort);
                     System.out.print(" (");
@@ -111,21 +114,22 @@ final public class AOServDaemonServer extends Thread {
                     System.out.println(')');
                 }
                 if(protocol.equals(Protocol.AOSERV_DAEMON)) {
-                    ServerSocket SS = new ServerSocket(serverPort.getPort(), 50, address.getHostAddress().equals("0.0.0.0") ? null : address);
+                    ServerSocket SS = new ServerSocket(serverPort, 50, serverBind.isUnspecified() ? null : address);
                     try {
                         while(true) {
                             Socket socket=SS.accept();
                             socket.setKeepAlive(true);
                             socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
-                            socket.setTcpNoDelay(true);
-                            new AOServDaemonServerThread(this, socket).start();
+                            //socket.setTcpNoDelay(true);
+                            AOServDaemonServerThread thread = new AOServDaemonServerThread(this, socket);
+							thread.start();
                         }
                     } finally {
                         SS.close();
                     }
                 } else if(protocol.equals(Protocol.AOSERV_DAEMON_SSL)) {
                     SSLServerSocketFactory factory = (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
-                    SSLServerSocket SS=(SSLServerSocket)factory.createServerSocket(serverPort.getPort(), 50, address);
+                    SSLServerSocket SS=(SSLServerSocket)factory.createServerSocket(serverPort, 50, address);
 
                     try {
                         while (true) {
@@ -133,8 +137,9 @@ final public class AOServDaemonServer extends Thread {
                             try {
                                 socket.setKeepAlive(true);
                                 socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
-                                socket.setTcpNoDelay(true);
-                                new AOServDaemonServerThread(this, socket).start();
+                                //socket.setTcpNoDelay(true);
+                                AOServDaemonServerThread thread = new AOServDaemonServerThread(this, socket);
+								thread.start();
                             } catch(ThreadDeath TD) {
                                 throw TD;
                             } catch(Throwable T) {

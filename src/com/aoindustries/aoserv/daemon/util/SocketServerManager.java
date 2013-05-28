@@ -1,14 +1,12 @@
-package com.aoindustries.aoserv.daemon.util;
-
 /*
- * Copyright 2002-2011 by AO Industries, Inc.,
+ * Copyright 2002-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.IPAddress;
+package com.aoindustries.aoserv.daemon.util;
+
 import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.validator.InetAddress;
-import com.aoindustries.aoserv.client.validator.NetPort;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -74,37 +72,37 @@ abstract public class SocketServerManager {
 
             for(int c=0;c<nbs.length;c++) {
                 NetBind nb=nbs[c];
-                IPAddress ip = nb.getIpAddress();
-                if(ip!=null) {
-                    InetAddress nbIP=ip.getInetAddress();
-                    if(!nbIP.isLooback()) {
-                        NetPort nbPort=nb.getPort();
+                InetAddress nbIP=nb.getIPAddress().getInetAddress();
+                if(
+                    !nbIP.isLooback()
+                    && !nbIP.isUnspecified()
+                ) {
+                    int nbPort=nb.getPort().getPort();
 
-                        // Find in the existing list
-                        boolean found=false;
-                        for(int d=0;d<existing.size();d++) {
-                            SocketServerThread socketServer=existing.get(d);
-                            if(socketServer.runMore && socketServer.ipAddress.equals(nbIP) && socketServer.port.equals(nbPort)) {
-                                existing.remove(d);
-                                found=true;
-                                break;
-                            }
+                    // Find in the existing list
+                    boolean found=false;
+                    for(int d=0;d<existing.size();d++) {
+                        SocketServerThread socketServer=existing.get(d);
+                        if(socketServer.runMore && socketServer.ipAddress.equals(nbIP) && socketServer.port==nbPort) {
+                            existing.remove(d);
+                            found=true;
+                            break;
                         }
-                        if(!found) {
-                            // Add a new one
-                            synchronized(System.out) {
-                                System.out.print("Starting ");
-                                System.out.print(getServiceName());
-                                System.out.print(" on ");
-                                System.out.print(nbIP);
-                                System.out.print(':');
-                                System.out.print(nbPort);
-                                System.out.print(": ");
-                                SocketServerThread newServer=createSocketServerThread(nbIP, nbPort);
-                                socketServers.add(newServer);
-                                newServer.start();
-                                System.out.println("Done");
-                            }
+                    }
+                    if(!found) {
+                        // Add a new one
+                        synchronized(System.out) {
+                            System.out.print("Starting ");
+                            System.out.print(getServiceName());
+                            System.out.print(" on ");
+                            System.out.print(nbIP.toBracketedString());
+                            System.out.print(':');
+                            System.out.print(nbPort);
+                            System.out.print(": ");
+                            SocketServerThread newServer=createSocketServerThread(nbIP, nbPort);
+                            socketServers.add(newServer);
+                            newServer.start();
+                            System.out.println("Done");
                         }
                     }
                 }
@@ -116,7 +114,7 @@ abstract public class SocketServerManager {
                     System.out.print("Stopping ");
                     System.out.print(getServiceName());
                     System.out.print(" on ");
-                    System.out.print(socketServer.ipAddress);
+                    System.out.print(socketServer.ipAddress.toBracketedString());
                     System.out.print(':');
                     System.out.print(socketServer.port);
                     System.out.print(": ");
@@ -139,5 +137,5 @@ abstract public class SocketServerManager {
 
     public abstract String getServiceName();
     
-    public abstract SocketServerThread createSocketServerThread(com.aoindustries.aoserv.client.validator.InetAddress ipAddress, NetPort port);
+    public abstract SocketServerThread createSocketServerThread(InetAddress ipAddress, int port);
 }

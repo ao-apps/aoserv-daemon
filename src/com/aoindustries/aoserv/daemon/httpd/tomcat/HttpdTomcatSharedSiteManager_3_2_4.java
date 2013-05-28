@@ -1,18 +1,18 @@
-package com.aoindustries.aoserv.daemon.httpd.tomcat;
-
 /*
- * Copyright 2007-2011 by AO Industries, Inc.,
+ * Copyright 2007-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd.tomcat;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.HttpdJKProtocol;
 import com.aoindustries.aoserv.client.HttpdTomcatContext;
 import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
 import com.aoindustries.aoserv.client.HttpdTomcatVersion;
 import com.aoindustries.aoserv.client.HttpdWorker;
-import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.NetBind;
+import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.io.ChainWriter;
@@ -88,8 +88,8 @@ class HttpdTomcatSharedSiteManager_3_2_4 extends HttpdTomcatSharedSiteManager_3_
                 else throw new IllegalArgumentException("Unknown AJP version: "+htv);
                 out.print("\"/>\n"
                         + "      <Parameter name=\"port\" value=\"").print(netBind.getPort()).print("\"/>\n");
-                IPAddress ip=netBind.getIPAddress();
-                if(!ip.isWildcard()) out.print("      <Parameter name=\"inet\" value=\"").print(ip.getInetAddress()).print("\"/>\n");
+                InetAddress ip=netBind.getIPAddress().getInetAddress();
+                if(!ip.isUnspecified()) out.print("      <Parameter name=\"inet\" value=\"").encodeXmlAttribute(ip.toString()).print("\"/>\n");
                 out.print("      <Parameter name=\"max_threads\" value=\"30\"/>\n"
                         + "      <Parameter name=\"max_spare_threads\" value=\"10\"/>\n"
                         + "      <Parameter name=\"min_spare_threads\" value=\"1\"/>\n"
