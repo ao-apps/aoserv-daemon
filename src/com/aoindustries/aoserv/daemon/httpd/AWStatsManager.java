@@ -1,5 +1,5 @@
 /*
- * Copyright 2005-2012 by AO Industries, Inc.,
+ * Copyright 2005-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -16,6 +16,7 @@ import com.aoindustries.aoserv.client.LinuxGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.client.Shell;
+import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -104,7 +105,7 @@ final public class AWStatsManager extends BuilderThread {
 
                     // Resolve the primary URL
                     HttpdSiteURL primaryHttpdSiteURL = site.getPrimaryHttpdSiteURL();
-                    String primaryURL=primaryHttpdSiteURL==null ? siteName : primaryHttpdSiteURL.getHostname();
+                    String primaryURL=primaryHttpdSiteURL==null ? siteName : primaryHttpdSiteURL.getHostname().toString();
                     usedHostnames.clear();
                     usedHostnames.put(primaryURL, null);
 
@@ -125,7 +126,7 @@ final public class AWStatsManager extends BuilderThread {
                     for(HttpdSiteBind bind : binds) {
                         // Add the hostnames
                         for(HttpdSiteURL url : bind.getHttpdSiteURLs()) {
-                            String hostname=url.getHostname();
+                            String hostname=url.getHostname().toString();
                             if(!usedHostnames.containsKey(hostname)) {
                                 usedHostnames.put(hostname, null);
                                 if(count>0) out.print(' ');
@@ -135,11 +136,12 @@ final public class AWStatsManager extends BuilderThread {
                         }
                         // Add the IP address, skipping wildcard or loopback IP addresses
                         IPAddress ip=bind.getHttpdBind().getNetBind().getIPAddress();
+                        InetAddress ia = ip.getInetAddress();
                         if(
-                            !ip.isWildcard()
+                            !ia.isUnspecified()
                             && !ip.getNetDevice().getNetDeviceID().isLoopback()
                         ) {
-                            String addr=ip.getIPAddress();
+                            String addr=ia.toString();
                             if(!usedHostnames.containsKey(addr)) {
                                 usedHostnames.put(addr, null);
                                 if(count>0) out.print(' ');
@@ -173,13 +175,14 @@ final public class AWStatsManager extends BuilderThread {
                             + "DefaultFile=\"index.html\"\n"
                             + "SkipHosts=\"");
                     Set<String> finishedIPs = new HashSet<String>();
-                    for(IPAddress ia : server.getIPAddresses()) {
-                        if(!ia.isWildcard()) {
-                            String ip = ia.getIPAddress();
-                            if(!finishedIPs.contains(ip)) {
+                    for(IPAddress ip : server.getIPAddresses()) {
+                        InetAddress ia = ip.getInetAddress();
+                        if(!ia.isUnspecified()) {
+                            String addr = ia.toString();
+                            if(!finishedIPs.contains(addr)) {
                                 if(!finishedIPs.isEmpty()) out.print(' ');
-                                out.print(ip);
-                                finishedIPs.add(ip);
+                                out.print(addr);
+                                finishedIPs.add(addr);
                             }
                         }
                     }

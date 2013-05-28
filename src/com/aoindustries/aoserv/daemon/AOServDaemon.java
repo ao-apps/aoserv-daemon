@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon;
-
 /*
- * Copyright 2001-2009 by AO Industries, Inc.,
+ * Copyright 2001-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon;
+
 import com.aoindustries.aoserv.client.AOServClientConfiguration;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
@@ -216,8 +216,10 @@ final public class AOServDaemon {
 
                 // Start up the AOServDaemonServers
                 NetBind bind=getThisAOServer().getDaemonBind();
-                if(bind!=null) new AOServDaemonServer(bind.getIPAddress().getIPAddress(), bind.getPort().getPort(), bind.getAppProtocol().getProtocol());
-
+                if(bind!=null) {
+					AOServDaemonServer server = new AOServDaemonServer(bind.getIPAddress().getInetAddress(), bind.getPort().getPort(), bind.getAppProtocol().getProtocol());
+					server.start();
+				}
                 done=true;
             } catch (ThreadDeath TD) {
                 throw TD;

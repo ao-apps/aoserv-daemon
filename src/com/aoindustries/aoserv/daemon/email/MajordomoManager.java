@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2012 by AO Industries, Inc.,
+ * Copyright 2003-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -13,6 +13,7 @@ import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.MajordomoList;
 import com.aoindustries.aoserv.client.MajordomoServer;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.validator.DomainName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -78,13 +79,13 @@ final public class MajordomoManager extends BuilderThread {
 
                 // Get the list of all things in /etc/mail/majordomo
                 String[] list=serversUF.list();
-                Set<String> existingServers=new HashSet<String>(list.length*4/3+1);
-                for(String filename : list) existingServers.add(filename);
+                Set<DomainName> existingServers=new HashSet<DomainName>(list.length*4/3+1);
+                for(String filename : list) existingServers.add(DomainName.valueOf(filename));
 
                 // Take care of all servers
                 for(MajordomoServer ms : mss) {
                     String version=ms.getVersion().getVersion();
-                    String domain=ms.getDomain().getDomain();
+                    DomainName domain=ms.getDomain().getDomain();
                     // Make sure it won't be deleted
                     existingServers.remove(domain);
                     String msPath=MajordomoServer.MAJORDOMO_SERVER_DIRECTORY+'/'+domain;
@@ -952,8 +953,8 @@ final public class MajordomoManager extends BuilderThread {
                 }
 
                 // Delete the extra directories
-                for(String filename : existingServers) {
-                    deleteFileList.add(new File(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY, filename));
+                for(DomainName filename : existingServers) {
+                    deleteFileList.add(new File(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY, filename.toString()));
                 }
 
                 /*

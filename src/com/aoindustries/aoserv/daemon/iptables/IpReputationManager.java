@@ -1,5 +1,5 @@
 /*
- * 2012 by AO Industries, Inc.,
+ * Copyright 2012-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -242,6 +242,8 @@ final public class IpReputationManager extends BuilderThread {
                     UnixFile setDir = new UnixFile(ipreputationDir, identifier, true);
                     if(!setDir.getStat().exists()) setDir.mkdir(false, 0700);
 
+					// TODO: Use concurrency equal to minimum of four or half the cores on the server
+
                     // Split the IP addresses into four classes based on the set's settings.
                     SortedSet<IpReputationSetHost>    definiteBadHosts   = new TreeSet<IpReputationSetHost>(badHostComparator);
                     SortedSet<IpReputationSetHost>    uncertainBadHosts  = new TreeSet<IpReputationSetHost>(badHostComparator);
@@ -255,7 +257,7 @@ final public class IpReputationManager extends BuilderThread {
                             uncertainBadHosts.add(host);
                         } else if(rep > maxUncertainGood) {
                             definiteGoodHosts.add(host);
-                        } else if(rep > 0) {
+                        } else if(rep >= 0) {
                             uncertainGoodHosts.add(host);
                         } else {
                             throw new AssertionError("rep="+rep);

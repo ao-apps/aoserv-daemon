@@ -1,5 +1,5 @@
 /*
- * Copyright 2005-2012 by AO Industries, Inc.,
+ * Copyright 2005-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -15,6 +15,7 @@ import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Server;
+import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -569,7 +570,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
-            final String primaryIP = aoServer.getPrimaryIPAddress().getIPAddress();
+            final InetAddress primaryIP = aoServer.getPrimaryIPAddress().getInetAddress();
 
             /**
              * Build the /etc/sysconfig/..... file.
@@ -584,16 +585,16 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                                + "#\n"
                                + "\n"
                                + "# Options to spamd\n"
-                               + "SPAMDOPTIONS=\"-d -c -m25 -H -i ").print(primaryIP).print(" -A ");
+                               + "SPAMDOPTIONS=\"-d -c -m25 -H -i ").print(primaryIP.toString()).print(" -A ");
                     // Allow all IP addresses for this machine
-                    Set<String> usedIps = new HashSet<String>();
+                    Set<InetAddress> usedIps = new HashSet<InetAddress>();
                     List<IPAddress> ips = server.getIPAddresses();
                     for(IPAddress ip : ips) {
-                        if(!ip.isWildcard() && !ip.getNetDevice().getNetDeviceID().isLoopback()) {
-                            String addr = ip.getIPAddress();
+                        InetAddress addr = ip.getInetAddress();
+                        if(!addr.isUnspecified() && !ip.getNetDevice().getNetDeviceID().isLoopback()) {
                             if(!usedIps.contains(addr)) {
                                 if(!usedIps.isEmpty()) newOut.print(',');
-                                newOut.print(addr);
+                                newOut.print(addr.toString());
                                 usedIps.add(addr);
                             }
                         }
@@ -604,7 +605,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                     if(failoverServer!=null) {
                         IPAddress foPrimaryIP = failoverServer.getPrimaryIPAddress();
                         if(foPrimaryIP==null) throw new SQLException("Unable to find Primary IP Address for failover server: "+failoverServer);
-                        String addr = foPrimaryIP.getIPAddress();
+                        String addr = foPrimaryIP.getInetAddress();
                         if(!usedIps.contains(addr)) {
                             if(!usedIps.isEmpty()) newOut.print(',');
                             newOut.print(addr);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2012 by AO Industries, Inc.,
+ * Copyright 2002-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -8,6 +8,7 @@ package com.aoindustries.aoserv.daemon.mysql;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.MySQLDatabase;
+import com.aoindustries.aoserv.client.MySQLDatabase.CheckTableResult;
 import com.aoindustries.aoserv.client.MySQLServer;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -19,10 +20,12 @@ import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.util.BufferManager;
+import com.aoindustries.util.concurrent.ConcurrencyLimiter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -33,6 +36,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
 /**
@@ -520,70 +528,177 @@ final public class MySQLDatabaseManager extends BuilderThread {
         }
     }
 
-    public static void checkTables(String failoverRoot, int nestedOperatingSystemVersion, int port, String databaseName, List<String> tableNames, CompressedDataOutputStream out) throws IOException, SQLException {
-        String dbNamePrefix = databaseName+".";
-        List<MySQLDatabase.CheckTableResult> checkTableResults = new ArrayList<MySQLDatabase.CheckTableResult>();
-        Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, port);
-        try {
-            Statement stmt = conn.createStatement();
-            try {
-                for(String tableName : tableNames) {
-                    long startTime = System.currentTimeMillis();
-                    if(!MySQLDatabase.isSafeName(tableName)) {
-                        long duration = System.currentTimeMillis() - startTime;
-                        if(duration<0) duration = 0;
-                        checkTableResults.add(
-                            new MySQLDatabase.CheckTableResult(
-                                tableName,
-                                duration,
-                                MySQLDatabase.CheckTableResult.MsgType.error,
-                                "Unsafe table name, refusing to check table"
-                            )
-                        );
-                    } else {
-                        ResultSet results = stmt.executeQuery("CHECK TABLE `"+databaseName+"`.`"+tableName+"` FAST QUICK");
-                        try {
-                            long duration = System.currentTimeMillis() - startTime;
-                            if(duration<0) duration = 0;
-                            while(results.next()) {
-                                try {
-                                    String table = results.getString("Table");
-                                    if(table.startsWith(dbNamePrefix)) table = table.substring(dbNamePrefix.length());
-                                    String msgType = results.getString("Msg_type");
-                                    checkTableResults.add(
-                                        new MySQLDatabase.CheckTableResult(
-                                            table,
-                                            duration,
-                                            msgType==null ? null : MySQLDatabase.CheckTableResult.MsgType.valueOf(msgType),
-                                            results.getString("Msg_text")
-                                        )
-                                    );
-                                } catch(IllegalArgumentException err) {
-                                    IOException ioErr = new IOException(err.toString());
-                                    ioErr.initCause(err);
-                                    throw ioErr;
-                                }
-                            }
-                        } finally {
-                            results.close();
-                        }
-                    }
-                }
-            } finally {
-                stmt.close();
-            }
-        } finally {
-            conn.close();
-        }
-        out.write(AOServDaemonProtocol.NEXT);
-        int size = checkTableResults.size();
-        out.writeCompressedInt(size);
-        for(int c=0;c<size;c++) {
-            MySQLDatabase.CheckTableResult checkTableResult = checkTableResults.get(c);
-            out.writeUTF(checkTableResult.getTable());
-            out.writeLong(checkTableResult.getDuration());
-            out.writeNullEnum(checkTableResult.getMsgType());
-            out.writeNullUTF(checkTableResult.getMsgText());
-        }
+	private static class CheckTableConcurrencyKey {
+
+		private final String failoverRoot;
+		private final int port;
+		private final String databaseName;
+		private final String tableName;
+		private final int hash;
+
+		private CheckTableConcurrencyKey(
+			String failoverRoot,
+			int port,
+			String databaseName,
+			String tableName
+		) {
+			this.failoverRoot = failoverRoot;
+			this.port = port;
+			this.databaseName = databaseName;
+			this.tableName = tableName;
+			int newHash = failoverRoot.hashCode();
+			newHash = newHash * 31 + port;
+			newHash = newHash * 31 + databaseName.hashCode();
+			newHash = newHash * 31 + tableName.hashCode();
+			this.hash = newHash;
+		}
+
+		@Override
+		public int hashCode() {
+			return hash;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if(!(obj instanceof CheckTableConcurrencyKey)) return false;
+			CheckTableConcurrencyKey other = (CheckTableConcurrencyKey)obj;
+			return
+				// hash check shortcut
+				hash == other.hash
+				// == fields
+				&& port==other.port
+				// .equals fields
+				&& failoverRoot.equals(other.failoverRoot)
+				&& databaseName.equals(other.databaseName)
+				&& tableName.equals(other.tableName)
+			;
+		}
+	}
+
+	private static final ConcurrencyLimiter<CheckTableConcurrencyKey,List<MySQLDatabase.CheckTableResult>> checkTableLimiter = new ConcurrencyLimiter<CheckTableConcurrencyKey,List<MySQLDatabase.CheckTableResult>>();
+
+	/**
+	 * Checks all tables, times-out in one minute.
+	 */
+	public static void checkTables(
+		final String failoverRoot,
+		final int nestedOperatingSystemVersion,
+		final int port,
+		final String databaseName,
+		final List<String> tableNames,
+		CompressedDataOutputStream out
+	) throws IOException, SQLException {
+		Future<List<MySQLDatabase.CheckTableResult>> future = AOServDaemon.executorService.submit(
+			new Callable<List<MySQLDatabase.CheckTableResult>>() {
+				public List<CheckTableResult> call() throws Exception {
+					List<MySQLDatabase.CheckTableResult> allTableResults = new ArrayList<MySQLDatabase.CheckTableResult>();
+					for(final String tableName : tableNames) {
+						if(!MySQLDatabase.isSafeName(tableName)) {
+							allTableResults.add(
+								new MySQLDatabase.CheckTableResult(
+									tableName,
+									0,
+									MySQLDatabase.CheckTableResult.MsgType.error,
+									"Unsafe table name, refusing to check table"
+								)
+							);
+						} else {
+							try {
+								allTableResults.addAll(
+									checkTableLimiter.executeSerialized(
+										new CheckTableConcurrencyKey(
+											failoverRoot,
+											port,
+											databaseName,
+											tableName
+										),
+										new Callable<List<MySQLDatabase.CheckTableResult>>() {
+											public List<MySQLDatabase.CheckTableResult> call() throws Exception {
+												final String dbNamePrefix = databaseName+'.';
+												final long startTime = System.currentTimeMillis();
+												final Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, port);
+												try {
+													final Statement stmt = conn.createStatement();
+													try {
+														final ResultSet results = stmt.executeQuery("CHECK TABLE `"+databaseName+"`.`"+tableName+"` FAST QUICK");
+														try {
+															long duration = System.currentTimeMillis() - startTime;
+															if(duration<0) duration = 0; // System time possibly reset
+															final List<MySQLDatabase.CheckTableResult> tableResults = new ArrayList<MySQLDatabase.CheckTableResult>();
+															while(results.next()) {
+																try {
+																	String table = results.getString("Table");
+																	if(table.startsWith(dbNamePrefix)) table = table.substring(dbNamePrefix.length());
+																	final String msgType = results.getString("Msg_type");
+																	tableResults.add(
+																		new MySQLDatabase.CheckTableResult(
+																			table,
+																			duration,
+																			msgType==null ? null : MySQLDatabase.CheckTableResult.MsgType.valueOf(msgType),
+																			results.getString("Msg_text")
+																		)
+																	);
+																} catch(IllegalArgumentException err) {
+																	IOException ioErr = new IOException(err.toString());
+																	ioErr.initCause(err);
+																	throw ioErr;
+																}
+															}
+															return tableResults;
+														} finally {
+															results.close();
+														}
+													} finally {
+														stmt.close();
+													}
+												} finally {
+													conn.close();
+												}
+											}
+										}
+									)
+								);
+							} catch(InterruptedException e) {
+								SQLException sqlExc = new SQLException();
+								sqlExc.initCause(e);
+								throw sqlExc;
+							} catch(ExecutionException e) {
+								SQLException sqlExc = new SQLException();
+								sqlExc.initCause(e);
+								throw sqlExc;
+							}
+						}
+					}
+					return allTableResults;
+				}
+			}
+		);
+		try {
+			List<MySQLDatabase.CheckTableResult> allTableResults = future.get(60, TimeUnit.SECONDS);
+			out.write(AOServDaemonProtocol.NEXT);
+			int size = allTableResults.size();
+			out.writeCompressedInt(size);
+			for(int c=0;c<size;c++) {
+				MySQLDatabase.CheckTableResult checkTableResult = allTableResults.get(c);
+				out.writeUTF(checkTableResult.getTable());
+				out.writeLong(checkTableResult.getDuration());
+				out.writeNullEnum(checkTableResult.getMsgType());
+				out.writeNullUTF(checkTableResult.getMsgText());
+			}
+		} catch(InterruptedException exc) {
+			IOException newExc = new InterruptedIOException();
+			newExc.initCause(exc);
+			throw newExc;
+		} catch(ExecutionException exc) {
+			SQLException newExc = new SQLException();
+			newExc.initCause(exc);
+			throw newExc;
+		} catch(TimeoutException exc) {
+			SQLException newExc = new SQLException();
+			newExc.initCause(exc);
+			throw newExc;
+		} finally {
+			future.cancel(false);
+		}
     }
 }

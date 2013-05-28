@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.mysql;
-
 /*
- * Copyright 2007-2009 by AO Industries, Inc.,
+ * Copyright 2007-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.mysql;
+
 import com.aoindustries.aoserv.client.*;
 import com.aoindustries.aoserv.daemon.*;
 import com.aoindustries.cron.CronDaemon;
@@ -98,7 +98,7 @@ final public class MySQLCreditCardScanner implements CronJob {
                     // Get connection to the database
                     Class.forName(AOServDaemonConfiguration.getMySqlDriver()).newInstance();
                     Connection conn = DriverManager.getConnection(
-                        "jdbc:mysql://"+thisAOServer.getPrimaryIPAddress().getIPAddress()+":"+database.getMySQLServer().getNetBind().getPort().getPort()+"/"+database.getName(),
+                        "jdbc:mysql://"+thisAOServer.getPrimaryIPAddress().getInetAddress().toBracketedString()+":"+database.getMySQLServer().getNetBind().getPort().getPort()+"/"+database.getName(),
                         AOServDaemonConfiguration.getMySqlUser(),
                         AOServDaemonConfiguration.getMySqlPassword()
                     );

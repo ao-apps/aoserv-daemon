@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2012 by AO Industries, Inc.,
+ * Copyright 2000-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -18,6 +18,7 @@ import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.SystemEmailAlias;
 import com.aoindustries.aoserv.client.Username;
+import com.aoindustries.aoserv.client.validator.DomainName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -158,7 +159,7 @@ final public class EmailAddressManager extends BuilderThread {
 
                         // Send all other special email addresses if they have not been overridden.
                         for(EmailDomain ed : aoServer.getEmailDomains()) {
-                            String domain=ed.getDomain();
+                            DomainName domain=ed.getDomain();
                             if(ed.getEmailAddress("abuse")==null) usersOut.print("abuse@").print(domain).print("\tabuse\n");
                             if(ed.getEmailAddress("devnull")==null) usersOut.print("devnull@").print(domain).print("\tdevnull\n");
                             if(ed.getEmailAddress("mailer-daemon")==null) usersOut.print("mailer-daemon@").print(domain).print("\tmailer-daemon\n");
@@ -270,7 +271,7 @@ final public class EmailAddressManager extends BuilderThread {
         ChainWriter usersOut
     ) throws IOException, SQLException {
         String address=ea.getAddress();
-        String domain=ea.getDomain().getDomain();
+        DomainName domain=ea.getDomain().getDomain();
 
         /*
          * The possible email deliveries:

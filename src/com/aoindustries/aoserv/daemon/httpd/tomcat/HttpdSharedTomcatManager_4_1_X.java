@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.httpd.tomcat;
-
 /*
- * Copyright 2008-2009 by AO Industries, Inc.,
+ * Copyright 2008-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd.tomcat;
+
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
@@ -331,7 +331,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
         for (int j = 0; j< sites.size(); j++) {
             HttpdSite hs=sites.get(j).getHttpdTomcatSite().getHttpdSite();
             if(!hs.isDisabled()) {
-                String subwork = hs.getPrimaryHttpdSiteURL().getHostname();
+                String subwork = hs.getPrimaryHttpdSiteURL().getHostname().toString();
                 workFiles.remove(subwork);
                 UnixFile workDir = new UnixFile(innerWorkUF, subwork, false);
                 if (!workDir.getStat(tempStat).exists()) {
@@ -425,7 +425,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
                 for(int c=0;c<sites.size();c++) {
                     HttpdSite hs=sites.get(c).getHttpdTomcatSite().getHttpdSite();
                     if(!hs.isDisabled()) {
-                        String primaryHostname=hs.getPrimaryHttpdSiteURL().getHostname();
+                        String primaryHostname=hs.getPrimaryHttpdSiteURL().getHostname().toString();
                         out.print("      <Host\n"
                                 + "        name=\"").print(primaryHostname).print("\"\n"
                                 + "        debug=\"0\"\n"
@@ -440,7 +440,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
                             HttpdSiteBind bind=binds.get(d);
                             List<HttpdSiteURL> urls=bind.getHttpdSiteURLs();
                             for(int e=0;e<urls.size();e++) {
-                                String hostname=urls.get(e).getHostname();
+                                String hostname=urls.get(e).getHostname().toString();
                                 if(!usedHostnames.contains(hostname)) {
                                     out.print("        <Alias>").print(hostname).print("</Alias>\n");
                                     usedHostnames.add(hostname);
@@ -448,9 +448,9 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
                             }
                             // When listed first, also include the IP addresses as aliases
                             if(hs.listFirst()) {
-                                String ip=bind.getHttpdBind().getNetBind().getIPAddress().getIPAddress();
+                                String ip=bind.getHttpdBind().getNetBind().getIPAddress().getInetAddress().toString();
                                 if(!usedHostnames.contains(ip)) {
-                                    out.print("        <Alias>").print(ip).print("</Alias>\n");
+                                    out.print("        <Alias>").encodeXhtml(ip).print("</Alias>\n");
                                     usedHostnames.add(ip);
                                 }
                             }

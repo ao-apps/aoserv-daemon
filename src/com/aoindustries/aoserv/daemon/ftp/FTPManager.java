@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2012 by AO Industries, Inc.,
+ * Copyright 2001-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -34,6 +34,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -144,10 +145,18 @@ final public class FTPManager extends BuilderThread {
 
                         IPAddress ia=bind.getIPAddress();
                         bindCount++;
-                        out.print("<VirtualHost ").print(ia.getIPAddress()).print(">\n"
+                        out.print("<VirtualHost ").print(ia.getInetAddress().toString()).print(">\n"
                                 + "  Port ").print(bind.getPort().getPort()).print('\n');
                         if(privateServer!=null) out.print("  TransferLog \"").print(privateServer.getLogfile()).print("\"\n");
-                        out.print("  ServerIdent on \"ProFTPD Server [").print(privateServer!=null?privateServer.getHostname():ia.isWildcard()?thisAOServer.getHostname():ia.getHostname()).print("]\"\n"
+                        out.print("  ServerIdent on \"ProFTPD Server [").print(
+                            privateServer!=null
+                            ? privateServer.getHostname()
+                            : (
+                                ia.getInetAddress().isUnspecified()
+                                ? thisAOServer.getHostname()
+                                : ia.getHostname()
+                            )
+                        ).print("]\"\n"
                                 + "  AllowOverwrite on\n");
                         if(privateServer!=null) out.print("  ServerAdmin \"").print(privateServer.getEmail()).print("\"\n");
                         if(privateServer==null || privateServer.allowAnonymous()) {
@@ -350,7 +359,15 @@ final public class FTPManager extends BuilderThread {
                             if(privateServer!=null) {
                                 out.print("ftp_username=").print(privateServer.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername()).print('\n');
                             }
-                            out.print("ftpd_banner=FTP Server [").print(privateServer!=null?privateServer.getHostname():ia.isWildcard()?thisAOServer.getHostname():ia.getHostname()).print("]\n"
+                            out.print("ftpd_banner=FTP Server [").print(
+                                privateServer!=null
+                                ? privateServer.getHostname()
+                                : (
+                                    ia.getInetAddress().isUnspecified()
+                                    ? thisAOServer.getHostname()
+                                    : ia.getHostname()
+                                )
+                            ).print("]\n"
                                     + "pam_service_name=vsftpd\n");
                             if(privateServer!=null) {
                                 out.print("xferlog_file=").print(privateServer.getLogfile()).print('\n');
@@ -361,7 +378,7 @@ final public class FTPManager extends BuilderThread {
                         byte[] newBytes = bout.toByteArray();
 
                         // Only write to filesystem if missing or changed
-                        String filename = "vsftpd_"+bind.getIPAddress().getIPAddress()+"_"+bind.getPort().getPort()+".conf";
+                        String filename = "vsftpd_"+bind.getIPAddress().getInetAddress().toString()+"_"+bind.getPort().getPort()+".conf";
                         if(!existing.add(filename)) throw new SQLException("Filename already used: "+filename);
                         UnixFile confFile = new UnixFile(vsFtpdVhostsirectory, filename, false);
                         if(!confFile.getStat(tempStat).exists() || !confFile.contentEquals(newBytes)) {
@@ -396,9 +413,9 @@ final public class FTPManager extends BuilderThread {
 
         String[] list = sharedFtpDirectory.list();
         Set<String> ftpDirectories = new HashSet<String>(list.length*4/3+1);
-        for(int c=0;c<list.length;c++) ftpDirectories.add(list[c]);
-        
-        for(HttpdSite httpdSite : AOServDaemon.getThisAOServer().getHttpdSites()) {
+		ftpDirectories.addAll(Arrays.asList(list));
+
+		for(HttpdSite httpdSite : AOServDaemon.getThisAOServer().getHttpdSites()) {
             HttpdSiteManager manager = HttpdSiteManager.getInstance(httpdSite);
 
             /*

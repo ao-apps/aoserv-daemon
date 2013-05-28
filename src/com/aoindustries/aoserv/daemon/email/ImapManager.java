@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2012 by AO Industries, Inc.,
+ * Copyright 2008-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -16,6 +16,7 @@ import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.PasswordGenerator;
 import com.aoindustries.aoserv.client.Protocol;
 import com.aoindustries.aoserv.client.Server;
+import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -201,7 +202,7 @@ final public class ImapManager extends BuilderThread {
      * 
      * @return  The IP address or <code>null</code> if not an IMAP server.
      */
-    private static String getImapServerIPAddress() throws IOException, SQLException {
+    private static InetAddress getImapServerIPAddress() throws IOException, SQLException {
         AOServer aoServer = AOServDaemon.getThisAOServer();
         AOServConnector conn = AOServDaemon.getConnector();
         Protocol imapProtocol = conn.getProtocols().get(Protocol.IMAP2);
@@ -209,15 +210,15 @@ final public class ImapManager extends BuilderThread {
         int imapPort = imapProtocol.getPort(conn).getPort();
         List<NetBind> netBinds = aoServer.getServer().getNetBinds(imapProtocol);
         // Look for primary IP match
-        String primaryIp = aoServer.getPrimaryIPAddress().getIPAddress();
+        InetAddress primaryIp = aoServer.getPrimaryIPAddress().getInetAddress();
         NetBind firstImap = null;
         for(NetBind nb : netBinds) {
             if(nb.getPort().getPort()==imapPort) {
-                if(nb.getIPAddress().getIPAddress().equals(primaryIp)) return primaryIp;
+                if(nb.getIPAddress().getInetAddress().equals(primaryIp)) return primaryIp;
                 if(firstImap==null) firstImap = nb;
             }
         }
-        return firstImap==null ? null : firstImap.getIPAddress().getIPAddress();
+        return firstImap==null ? null : firstImap.getIPAddress().getInetAddress();
     }
 
     /**
@@ -227,7 +228,7 @@ final public class ImapManager extends BuilderThread {
         synchronized(_storeLock) {
             if(_store==null) {
                 // Get things that may failed externally before allocating session and store
-                String host = getImapServerIPAddress();
+                InetAddress host = getImapServerIPAddress();
                 if(host==null) return null;
                 String user = LinuxAccount.CYRUS+"@default";
                 String password = AOServDaemonConfiguration.getCyrusPassword();
@@ -235,7 +236,7 @@ final public class ImapManager extends BuilderThread {
                 // Create and cache new store here
                 IMAPStore newStore = (IMAPStore)getSession().getStore();
                 newStore.connect(
-                    host,
+                    host.toString(),
                     user,
                     password
                 );
@@ -273,7 +274,7 @@ final public class ImapManager extends BuilderThread {
     ) throws IOException, SQLException, MessagingException {
         return getUserStore(
             logOut,
-            AOServDaemon.getThisAOServer().getPrimaryIPAddress().getIPAddress(),
+            AOServDaemon.getThisAOServer().getPrimaryIPAddress().getInetAddress().toString(),
             8143,
             username,
             username,
@@ -293,11 +294,11 @@ final public class ImapManager extends BuilderThread {
         UnixFile passwordBackup,
         Stat tempStat
     ) throws IOException, SQLException, MessagingException {
-        String host = getImapServerIPAddress();
+        InetAddress host = getImapServerIPAddress();
         if(host==null) throw new IOException("Not an IMAP server");
         return getUserStore(
             logOut,
-            host,
+            host.toString(),
             143,
             username,
             username.indexOf('@')==-1 ? (username+"@default") : username,
@@ -363,7 +364,7 @@ final public class ImapManager extends BuilderThread {
     private static final Object rebuildLock=new Object();
     protected boolean doRebuild() {
         Logger logger = LogFactory.getLogger(ImapManager.class);
-        boolean isDebug = logger.isLoggable(Level.FINE);
+        boolean isFine = logger.isLoggable(Level.FINE);
         try {
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
             int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
@@ -402,33 +403,33 @@ final public class ImapManager extends BuilderThread {
 
                         // Stop service if running
                         if(subsysLockFile.exists()) {
-                            if(isDebug) logger.fine("Stopping cyrus-imapd service");
+                            if(isFine) logger.fine("Stopping cyrus-imapd service");
                             AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/cyrus-imapd", "stop"});
                             if(subsysLockFile.exists()) throw new IOException(subsysLockFile.getPath()+" still exists after service stop");
                         }
 
                         // chkconfig off if needed
                         if(cyrusRcFile.getStat(tempStat).exists()) {
-                            if(isDebug) logger.fine("Disabling cyrus-imapd service");
+                            if(isFine) logger.fine("Disabling cyrus-imapd service");
                             AOServDaemon.exec(new String[] {"/sbin/chkconfig", "cyrus-imapd", "off"});
                             if(cyrusRcFile.getStat(tempStat).exists()) throw new IOException(cyrusRcFile.getPath()+" still exists after chkconfig off");
                         }
 
                         // Delete config files if exist
                         if(imapdConfNewFile.getStat(tempStat).exists()) {
-                            if(isDebug) logger.fine("Deleting unnecessary config file: "+imapdConfNewFile.getPath());
+                            if(isFine) logger.fine("Deleting unnecessary config file: "+imapdConfNewFile.getPath());
                             imapdConfNewFile.delete();
                         }
                         if(imapdConfFile.getStat(tempStat).exists()) {
-                            if(isDebug) logger.fine("Deleting unnecessary config file: "+imapdConfFile.getPath());
+                            if(isFine) logger.fine("Deleting unnecessary config file: "+imapdConfFile.getPath());
                             imapdConfFile.delete();
                         }
                         if(cyrusConfNewFile.getStat(tempStat).exists()) {
-                            if(isDebug) logger.fine("Deleting unnecessary config file: "+cyrusConfNewFile.getPath());
+                            if(isFine) logger.fine("Deleting unnecessary config file: "+cyrusConfNewFile.getPath());
                             cyrusConfNewFile.delete();
                         }
                         if(cyrusConfFile.getStat(tempStat).exists()) {
-                            if(isDebug) logger.fine("Deleting unnecessary config file: "+cyrusConfFile.getPath());
+                            if(isFine) logger.fine("Deleting unnecessary config file: "+cyrusConfFile.getPath());
                             cyrusConfFile.delete();
                         }
                     } else {
@@ -481,7 +482,7 @@ final public class ImapManager extends BuilderThread {
                                 for(NetBind imapBind : imapBinds) {
                                     if(!imapBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("imap requires TCP protocol");
                                     String serviceName = "imap"+(counter++);
-                                    out.print("  ").print(serviceName).print(" cmd=\"imapd\" listen=\"[").print(imapBind.getIPAddress().getIPAddress()).print("]:").print(imapBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=5\n");
+                                    out.print("  ").print(serviceName).print(" cmd=\"imapd\" listen=\"[").print(imapBind.getIPAddress().getInetAddress().toString()).print("]:").print(imapBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=5\n");
                                     tlsServices.put(serviceName, imapBind);
                                 }
                                 // imaps
@@ -489,7 +490,7 @@ final public class ImapManager extends BuilderThread {
                                 for(NetBind imapsBind : imapsBinds) {
                                     if(!imapsBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("imaps requires TCP protocol");
                                     String serviceName = "imaps"+(counter++);
-                                    out.print("  ").print(serviceName).print(" cmd=\"imapd -s\" listen=\"[").print(imapsBind.getIPAddress().getIPAddress()).print("]:").print(imapsBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=1\n");
+                                    out.print("  ").print(serviceName).print(" cmd=\"imapd -s\" listen=\"[").print(imapsBind.getIPAddress().getInetAddress().toString()).print("]:").print(imapsBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=1\n");
                                     tlsServices.put(serviceName, imapsBind);
                                 }
                                 // pop3
@@ -497,7 +498,7 @@ final public class ImapManager extends BuilderThread {
                                 for(NetBind pop3Bind : pop3Binds) {
                                     if(!pop3Bind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("pop3 requires TCP protocol");
                                     String serviceName = "pop3"+(counter++);
-                                    out.print("  ").print(serviceName).print(" cmd=\"pop3d\" listen=\"[").print(pop3Bind.getIPAddress().getIPAddress()).print("]:").print(pop3Bind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=3\n");
+                                    out.print("  ").print(serviceName).print(" cmd=\"pop3d\" listen=\"[").print(pop3Bind.getIPAddress().getInetAddress().toString()).print("]:").print(pop3Bind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=3\n");
                                     tlsServices.put(serviceName, pop3Bind);
                                 }
                                 // pop3s
@@ -505,14 +506,14 @@ final public class ImapManager extends BuilderThread {
                                 for(NetBind pop3sBind : pop3sBinds) {
                                     if(!pop3sBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("pop3s requires TCP protocol");
                                     String serviceName = "pop3s"+(counter++);
-                                    out.print("  ").print(serviceName).print(" cmd=\"pop3d -s\" listen=\"[").print(pop3sBind.getIPAddress().getIPAddress()).print("]:").print(pop3sBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=1\n");
+                                    out.print("  ").print(serviceName).print(" cmd=\"pop3d -s\" listen=\"[").print(pop3sBind.getIPAddress().getInetAddress().toString()).print("]:").print(pop3sBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=1\n");
                                     tlsServices.put(serviceName, pop3sBind);
                                 }
                                 // sieve
                                 counter = 1;
                                 for(NetBind sieveBind : sieveBinds) {
                                     if(!sieveBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("sieve requires TCP protocol");
-                                    out.print("  sieve").print(counter++).print(" cmd=\"timsieved\" listen=\"[").print(sieveBind.getIPAddress().getIPAddress()).print("]:").print(sieveBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=0\n");
+                                    out.print("  sieve").print(counter++).print(" cmd=\"timsieved\" listen=\"[").print(sieveBind.getIPAddress().getInetAddress().toString()).print("]:").print(sieveBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=0\n");
                                 }
                                         //+ "  # these are only necessary if receiving/exporting usenet via NNTP\n"
                                         //+ "#  nntp         cmd=\"nntpd\" listen=\"nntp\" prefork=3\n"
@@ -540,7 +541,7 @@ final public class ImapManager extends BuilderThread {
 
                             // Only write when changed
                             if(!cyrusConfFile.getStat(tempStat).exists() || !cyrusConfFile.contentEquals(newBytes)) {
-                                if(isDebug) logger.fine("Writing new config file: "+cyrusConfFile.getPath());
+                                if(isFine) logger.fine("Writing new config file: "+cyrusConfFile.getPath());
                                 FileOutputStream newOut = new FileOutputStream(cyrusConfNewFile.getFile());
                                 try {
                                     newOut.write(newBytes);
@@ -586,12 +587,12 @@ final public class ImapManager extends BuilderThread {
                                 {
                                     Stat pkiVostsDirectoryStat = pkiVostsDirectory.getStat();
                                     if(!pkiVostsDirectoryStat.exists()) {
-                                        if(isDebug) logger.fine("Creating vhosts directory: "+pkiVostsDirectory.getPath());
+                                        if(isFine) logger.fine("Creating vhosts directory: "+pkiVostsDirectory.getPath());
                                         pkiVostsDirectory.mkdir();
                                         pkiVostsDirectory.getStat(pkiVostsDirectoryStat);
                                     }
                                     if(pkiVostsDirectoryStat.getMode()!=0755) {
-                                        if(isDebug) logger.fine("Setting vhosts directory permissions: "+pkiVostsDirectory.getPath());
+                                        if(isFine) logger.fine("Setting vhosts directory permissions: "+pkiVostsDirectory.getPath());
                                         pkiVostsDirectory.setMode(0755);
                                         // Not needed because last use: pkiVostsDirectory.getStat(pkiVostsDirectoryStat);
                                     }
@@ -603,7 +604,7 @@ final public class ImapManager extends BuilderThread {
                                 for(Map.Entry<String,NetBind> entry : tlsServices.entrySet()) {
                                     String serviceName = entry.getKey();
                                     NetBind netBind = entry.getValue();
-                                    String ipAddress = netBind.getIPAddress().getIPAddress();
+                                    InetAddress ipAddress = netBind.getIPAddress().getInetAddress();
                                     int port = netBind.getPort().getPort();
                                     String protocol;
                                     String appProtocol = netBind.getAppProtocol().getProtocol();
@@ -614,30 +615,30 @@ final public class ImapManager extends BuilderThread {
                                     else throw new SQLException("Unexpected Protocol: "+appProtocol);
 
                                     // cert file
-                                    String certFilename = protocol+"_"+ipAddress+"_"+port+".cert";
+                                    String certFilename = protocol+"_"+ipAddress.toString()+"_"+port+".cert";
                                     UnixFile certFile = new UnixFile(pkiVostsDirectory, certFilename, false);
                                     if(!certFile.getStat(tempStat).exists()) {
-                                        if(isDebug) logger.fine("Creating default cert symlink: "+certFile.getPath()+"->"+DEFAULT_CERT_SYMLINK);
+                                        if(isFine) logger.fine("Creating default cert symlink: "+certFile.getPath()+"->"+DEFAULT_CERT_SYMLINK);
                                         certFile.symLink(DEFAULT_CERT_SYMLINK);
                                     }
                                     vhostsFiles.add(certFilename);
                                     out.print(serviceName).print("_tls_cert_file: ").print(certFile.getPath()).print('\n');
 
                                     // key file
-                                    String keyFilename = protocol+"_"+ipAddress+"_"+port+".key";
+                                    String keyFilename = protocol+"_"+ipAddress.toString()+"_"+port+".key";
                                     UnixFile keyFile = new UnixFile(pkiVostsDirectory, keyFilename, false);
                                     if(!keyFile.getStat(tempStat).exists()) {
-                                        if(isDebug) logger.fine("Creating default key symlink: "+keyFile.getPath()+"->"+DEFAULT_KEY_SYMLINK);
+                                        if(isFine) logger.fine("Creating default key symlink: "+keyFile.getPath()+"->"+DEFAULT_KEY_SYMLINK);
                                         keyFile.symLink(DEFAULT_KEY_SYMLINK);
                                     }
                                     vhostsFiles.add(keyFilename);
                                     out.print(serviceName).print("_tls_key_file: ").print(keyFile.getPath()).print('\n');
 
                                     // ca file
-                                    String caFilename = protocol+"_"+ipAddress+"_"+port+".ca";
+                                    String caFilename = protocol+"_"+ipAddress.toString()+"_"+port+".ca";
                                     UnixFile caFile = new UnixFile(pkiVostsDirectory, caFilename, false);
                                     if(!caFile.getStat(tempStat).exists()) {
-                                        if(isDebug) logger.fine("Creating default ca symlink: "+caFile.getPath()+"->"+DEFAULT_CA_SYMLINK);
+                                        if(isFine) logger.fine("Creating default ca symlink: "+caFile.getPath()+"->"+DEFAULT_CA_SYMLINK);
                                         caFile.symLink(DEFAULT_CA_SYMLINK);
                                     }
                                     vhostsFiles.add(caFilename);
@@ -678,7 +679,7 @@ final public class ImapManager extends BuilderThread {
 
                             // Only write when changed
                             if(!imapdConfFile.getStat(tempStat).exists() || !imapdConfFile.contentEquals(newBytes)) {
-                                if(isDebug) logger.fine("Writing new config file: "+imapdConfFile.getPath());
+                                if(isFine) logger.fine("Writing new config file: "+imapdConfFile.getPath());
                                 FileOutputStream newOut = new FileOutputStream(imapdConfNewFile.getFile());
                                 try {
                                     newOut.write(newBytes);
@@ -704,7 +705,7 @@ final public class ImapManager extends BuilderThread {
                                             || target.equals(DEFAULT_KEY_SYMLINK)
                                             || target.equals(DEFAULT_CA_SYMLINK)
                                         ) {
-                                            if(isDebug) logger.fine("Deleting default symlink: "+vhostsFile.getPath()+"->"+target);
+                                            if(isFine) logger.fine("Deleting default symlink: "+vhostsFile.getPath()+"->"+target);
                                             vhostsFile.delete();
                                         } else {
                                             // Warn here to help admin keep clean?
@@ -718,19 +719,19 @@ final public class ImapManager extends BuilderThread {
 
                         // chkconfig on if needed
                         if(!cyrusRcFile.getStat(tempStat).exists()) {
-                            if(isDebug) logger.fine("Enabling cyrus-imapd service");
+                            if(isFine) logger.fine("Enabling cyrus-imapd service");
                             AOServDaemon.exec(new String[] {"/sbin/chkconfig", "cyrus-imapd", "on"});
                             if(!cyrusRcFile.getStat(tempStat).exists()) throw new IOException(cyrusRcFile.getPath()+" still does not exists after chkconfig on");
                         }
 
                         // Start service if not running
                         if(!subsysLockFile.exists()) {
-                            if(isDebug) logger.fine("Starting cyrus-imapd service");
+                            if(isFine) logger.fine("Starting cyrus-imapd service");
                             AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/cyrus-imapd", "start"});
                             if(!subsysLockFile.exists()) throw new IOException(subsysLockFile.getPath()+" still does not exists after service start");
                         } else {
                             if(needsReload) {
-                                if(isDebug) logger.fine("Reloading cyrus-imapd service");
+                                if(isFine) logger.fine("Reloading cyrus-imapd service");
                                 AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/cyrus-imapd", "reload"});
                             }
                         }

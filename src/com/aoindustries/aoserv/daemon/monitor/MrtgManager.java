@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2012 by AO Industries, Inc.,
+ * Copyright 2006-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -124,8 +124,8 @@ final public class MrtgManager extends BuilderThread {
                                 + "  <div style='text-align:center'>\n"
                                 + "  <h1>\n"
                                 + "  <img src=\"https://www.aoindustries.com/images/clientarea/accounting/SendInvoices.jpg\" width=\"452\" height=\"127\" alt=\"\" /><br />\n"
-                                + "  <span style=\"color:#000000\">").encodeHtml(thisAOServer.getHostname());
-                        if(failoverServer!=null) out.print(" on ").encodeHtml(failoverServer.getHostname());
+                                + "  <span style=\"color:#000000\">").encodeHtml(thisAOServer.getHostname().toString());
+                        if(failoverServer!=null) out.print(" on ").encodeHtml(failoverServer.getHostname().toString());
                         out.print("</span>\n"
                                 + "  </h1>\n"
                                 + "  <hr /><span style=\"font-size:large\">\n"
@@ -355,8 +355,8 @@ final public class MrtgManager extends BuilderThread {
                                 + "      <div style=\"text-align:center\">\n"
                                 + "        <h1>\n"
                                 + "          <img src=\"https://www.aoindustries.com/images/clientarea/accounting/SendInvoices.jpg\" width=\"452\" height=\"127\" alt=\"\" /><br />\n"
-                                + "	  <span style=\"color:#000000\">").encodeHtml(thisAOServer.getHostname());
-                        if(failoverServer!=null) out.print(" on ").encodeHtml(failoverServer.getHostname());
+                                + "	  <span style=\"color:#000000\">").encodeHtml(thisAOServer.getHostname().toString());
+                        if(failoverServer!=null) out.print(" on ").encodeHtml(failoverServer.getHostname().toString());
                         out.print("</span>\n"
                                 + "        </h1>\n"
                                 + "        <hr />\n"

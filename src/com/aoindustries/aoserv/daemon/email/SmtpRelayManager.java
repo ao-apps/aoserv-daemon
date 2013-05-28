@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2012 by AO Industries, Inc.,
+ * Copyright 2001-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -13,6 +13,7 @@ import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.NetDevice;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Server;
+import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -24,6 +25,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -72,7 +74,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
             //boolean isQmail=server.isQmail();
 
             // The IP addresses that have been used
-            Set<String> usedIPs=new HashSet<String>();
+            Set<String> usedHosts=new HashSet<String>();
 
             synchronized(rebuildLock) {
                 UnixFile access, newFile;
@@ -93,10 +95,10 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
                     // Allow all of the local IP addresses
                     for(NetDevice nd : server.getNetDevices()) {
                         for(IPAddress ia : nd.getIPAddresses()) {
-                            String ip=ia.getIPAddress();
-                            if(!usedIPs.contains(ip)) {
+                            String ip=ia.getInetAddress().toString();
+                            if(!usedHosts.contains(ip)) {
                                 writeAccessLine(out, ip, allowRelay/*, isQmail*/);
-                                usedIPs.add(ip);
+                                usedHosts.add(ip);
                             }
                         }
                     }
@@ -111,12 +113,12 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
                                 type.equals(EmailSmtpRelayType.DENY)
                                 || type.equals(EmailSmtpRelayType.DENY_SPAM)
                             ) {
-                                long expiration=ssr.getExpiration();
-                                if(expiration==EmailSmtpRelay.NO_EXPIRATION || expiration>System.currentTimeMillis()) {
-                                    String ip=ssr.getHost();
-                                    if(!usedIPs.contains(ip)) {
-                                        writeAccessLine(out, ip, esrt/*, isQmail*/);
-                                        usedIPs.add(ip);
+                                Timestamp expiration=ssr.getExpiration();
+                                if(expiration==null || expiration.getTime()>System.currentTimeMillis()) {
+                                    String host=ssr.getHost().toString();
+                                    if(!usedHosts.contains(host)) {
+                                        writeAccessLine(out, host, esrt/*, isQmail*/);
+                                        usedHosts.add(host);
                                     }
                                 }
                             }
@@ -132,12 +134,12 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
                                 type.equals(EmailSmtpRelayType.ALLOW)
                                 || type.equals(EmailSmtpRelayType.ALLOW_RELAY)
                             ) {
-                                long expiration=ssr.getExpiration();
-                                if(expiration==EmailSmtpRelay.NO_EXPIRATION || expiration>System.currentTimeMillis()) {
-                                    String ip=ssr.getHost();
-                                    if(!usedIPs.contains(ip)) {
-                                        writeAccessLine(out, ip, esrt/*, isQmail*/);
-                                        usedIPs.add(ip);
+                                Timestamp expiration=ssr.getExpiration();
+                                if(expiration==null || expiration.getTime()>System.currentTimeMillis()) {
+                                    String host=ssr.getHost().toString();
+                                    if(!usedHosts.contains(host)) {
+                                        writeAccessLine(out, host, esrt/*, isQmail*/);
+                                        usedHosts.add(host);
                                     }
                                 }
                             }
@@ -234,11 +236,11 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
                     long time=System.currentTimeMillis();
                     boolean needRebuild=false;
                     for(EmailSmtpRelay relay : AOServDaemon.getThisAOServer().getEmailSmtpRelays()) {
-                        long expires=relay.getExpiration();
+                        Timestamp expiration=relay.getExpiration();
                         if(
-                            expires!=EmailSmtpRelay.NO_EXPIRATION
-                            && expires>=lastTime
-                            && expires<time
+                            expiration!=null
+                            && expiration.getTime()>=lastTime
+                            && expiration.getTime()<time
                         ) {
                             needRebuild=true;
                             break;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2012 by AO Industries, Inc.,
+ * Copyright 2003-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -169,7 +169,15 @@ final public class FailoverFileReplicationManager {
         }
     }
 
-    /**
+	private static void renameToNoExists(UnixFile from, UnixFile to) throws IOException {
+        Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
+        boolean isFine = logger.isLoggable(Level.FINE);
+		if(isFine) logger.fine("Renaming \""+from+"\" to \""+to+'"');
+		if(to.getStat().exists()) throw new IOException("to exists: "+to);
+		from.renameTo(to);
+	}
+
+	/**
      * Receives incoming data for a failover replication.  The critical information, such as the directory to store to,
      * has been provided by the master server because we can't trust the sending server.
      * 
@@ -194,7 +202,7 @@ final public class FailoverFileReplicationManager {
         final PostPassChecklist postPassChecklist = new PostPassChecklist();
         Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
         boolean isInfo = logger.isLoggable(Level.INFO);
-        boolean isDebug = logger.isLoggable(Level.FINE);
+        boolean isFine = logger.isLoggable(Level.FINE);
         boolean isTrace = logger.isLoggable(Level.FINER);
         try {
             if(isInfo) {
@@ -217,11 +225,11 @@ final public class FailoverFileReplicationManager {
 
             // Make sure no / or .. in these names, so calls as root to the chroot /etc/rc.d/init.d/mysql-... restart aren't exploitable
             for(String replicatedMySQLServer : replicatedMySQLServers) {
-                if(isDebug) logger.fine("failoverServer from \""+fromServer+"\", replicatedMySQLServer: "+replicatedMySQLServer);
+                if(isFine) logger.fine("failoverServer from \""+fromServer+"\", replicatedMySQLServer: "+replicatedMySQLServer);
                 if(replicatedMySQLServer.indexOf('/')!=-1 || replicatedMySQLServer.indexOf("..")!=-1) throw new IOException("Invalid replicatedMySQLServer: "+replicatedMySQLServer);
             }
             for(String replicatedMySQLMinorVersion : replicatedMySQLMinorVersions) {
-                if(isDebug) logger.fine("failoverServer from \""+fromServer+"\", replicatedMySQLMinorVersion: "+replicatedMySQLMinorVersion);
+                if(isFine) logger.fine("failoverServer from \""+fromServer+"\", replicatedMySQLMinorVersion: "+replicatedMySQLMinorVersion);
                 if(replicatedMySQLMinorVersion.indexOf('/')!=-1 || replicatedMySQLMinorVersion.indexOf("..")!=-1) throw new IOException("Invalid replicatedMySQLMinorVersion: "+replicatedMySQLMinorVersion);
             }
 
@@ -293,125 +301,151 @@ final public class FailoverFileReplicationManager {
                 SB.append(RECYCLED_PARTIAL_EXTENSION);
                 recycledPartialMirrorRoot = SB.toString();
 
+				/*
+				 * Determine the current state of today's backup.  And it should always be in one of these four
+				 * possible states:
+				 *   1) Existing and complete
+				 *   2) Existing and .recycled.partial
+				 *   3) Existing and .partial
+				 *   4) Nonexisting
+				 *
+				 * For (1) exiting and complete, rename existing to .partial, set isRecycling to false, no linkTo.
+				 *
+				 * For (2) existing and .recycled.partial, we will not rename and set isRecycling to true.
+				 *
+				 * For (3) existing and .partial, we will not rename and set isRecycling to false.
+				 *
+				 * For (4) nonexisting:
+				 *   a) Look for the most recent .partial. If found, rename to current date with .recycled.partial or .partial (matching previous extension), set isRecycling as appropriate.
+				 *   b) Look for the most recent .recycled. If found, we will renamed to .recycled.partial and set isRecycling to true.
+				 *   c) If neither found, make a new directory called .partial and set isRecycling to false.
+				 */
                 // When the finalMirrorRoot exists, it is assumed to be complete and no linking to other directories will be performed.  This mode
                 // is used when multiple passes are performed in a single day, it is basically the same behavior as a failover replication.
                 UnixFile finalUF = new UnixFile(finalMirrorRoot);
                 if(finalUF.getStat(tempStat).exists()) {
-                    if(isDebug) logger.fine("Renaming existing \""+finalMirrorRoot+"\" to \""+partialMirrorRoot+'"');
+					// See (1) above
                     UnixFile partialUF = new UnixFile(partialMirrorRoot);
-                    finalUF.renameTo(partialUF);
+                    renameToNoExists(finalUF, partialUF);
                     linkToRoot = null;
                     isRecycling = false;
                 } else {
+					{
+						UnixFile recycledPartialUF = new UnixFile(recycledPartialMirrorRoot);
+						if(recycledPartialUF.getStat(tempStat).exists()) {
+							// See (2) above
+							isRecycling = true;
+						} else {
+							UnixFile partialUF = new UnixFile(partialMirrorRoot);
+							if(partialUF.getStat(tempStat).exists()) {
+								// See (3) above
+								isRecycling = false;
+							} else {
+								// See (4) above
+								boolean foundPartial = false;
+								isRecycling = false;
+
+								String[] list = serverRootUF.list();
+								if(list!=null && list.length>0) {
+									// This is not y10k compliant - this is assuming lexical order is the same as chronological order.
+									Arrays.sort(list);
+									// Find most recent partial
+									for(int c=list.length-1;c>=0;c--) {
+										String filename = list[c];
+										if(filename.endsWith(PARTIAL_EXTENSION)) {
+											isRecycling = filename.endsWith(RECYCLED_PARTIAL_EXTENSION);
+											renameToNoExists(
+												new UnixFile(serverRootUF, filename, false),
+												isRecycling ? recycledPartialUF : partialUF
+											);
+											foundPartial = true;
+											break;
+										}
+									}
+
+									if(!foundPartial) {
+										// Find most recent recycled pass
+										for(int c=list.length-1;c>=0;c--) {
+											String filename = list[c];
+											if(filename.endsWith(RECYCLED_EXTENSION)) {
+												renameToNoExists(
+													new UnixFile(serverRootUF, filename, false),
+													recycledPartialUF
+												);
+												isRecycling = true;
+												break;
+											}
+										}
+									}
+								}
+								if(!foundPartial && !isRecycling) {
+									// Neither found, create new directory
+									partialUF.mkdir();
+								}
+							}
+						}
+					}
                     // Finds the path that will be linked-to.
-                    // Find the most recent complete pass.  If none exists, select the most recent recycled partial.
-                    // If none exists, look for the most recent partial.
-                    // Skip the new partial directory
-                    String[] list = serverRootUF.list();
+                    // Find the most recent complete pass that is not today's directory (which should not exist anyways because renamed above)
                     linkToRoot = null;
-                    if(list!=null && list.length>0) {
-                        // This is not y10k compliant - this is assuming lexical order is the same as chronological order.
-                        Arrays.sort(list);
-                        // Find most recent complete pass
-                        for(int c=list.length-1;c>=0;c--) {
-                            String filename = list[c];
-                            String fullFilename = serverRoot+"/"+filename;
-                            if(
-                                filename.length()==10
-                                && !fullFilename.equals(finalMirrorRoot)
-                                //&& !fullFilename.equals(partialMirrorRoot)
-                                //&& !fullFilename.equals(recycledPartialMirrorRoot);
-                                && !filename.endsWith(PARTIAL_EXTENSION)
-                                && !filename.endsWith(SAFE_DELETE_EXTENSION)
-                                && !filename.endsWith(RECYCLED_EXTENSION)
-                                //&& !filename.endsWith(RECYCLED_PARTIAL_EXTENSION)
-                            ) {
-                                linkToRoot = fullFilename;
-                                break;
-                            }
-                        }
-                        if(linkToRoot == null) {
-                            // When no complete pass is available, find the most recent recycling partial pass
-                            for(int c=list.length-1;c>=0;c--) {
-                                String filename = list[c];
-                                String fullFilename = serverRoot+"/"+filename;
-                                if(
-                                    !fullFilename.equals(recycledPartialMirrorRoot)
-                                    && filename.endsWith(RECYCLED_PARTIAL_EXTENSION)
-                                ) {
-                                    linkToRoot = fullFilename;
-                                    break;
-                                }
-                            }
-                        }
-                        if(linkToRoot == null) {
-                            // When no complete pass or recycling partial is available, find the most recent non-recycling partial pass
-                            for(int c=list.length-1;c>=0;c--) {
-                                String filename = list[c];
-                                String fullFilename = serverRoot+"/"+filename;
-                                if(
-                                    !fullFilename.equals(recycledPartialMirrorRoot)
-                                    && !fullFilename.equals(partialMirrorRoot)
-                                    && filename.endsWith(PARTIAL_EXTENSION)
-                                    //&& !filename.endsWith(RECYCLED_PARTIAL_EXTENSION)
-                                ) {
-                                    linkToRoot = fullFilename;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    /*
-                     * At this point, we know what we are linking to.  We now need to know the current state of today's backup.  And it should always be in one of these four
-                     * possible states:
-                     *   1) Existing and complete
-                     *   2) Existing and .recycled.partial
-                     *   3) Existing and .partial
-                     *   4) Nonexisting
-                     *
-                     * (1) is already handled above
-                     *
-                     * For (2) existing and .recycled.partial, we will not rename and set isRecycling to true.
-                     *
-                     * For (3) existing and .partial, we will not rename and set isRecycling to false.
-                     *
-                     * For (4) nonexisting, we will first look for the most recent .recycled.
-                     *   If found, we will renamed to .recycled.partial and set isRecycling to true.
-                     *   If not found, we will make a new directory called .partial and set isRecycling to false.
-                     */
-                    UnixFile recycledPartialUF = new UnixFile(recycledPartialMirrorRoot);
-                    if(recycledPartialUF.getStat(tempStat).exists()) {
-                        // See (2) above
-                        isRecycling = true;
-                    } else {
-                        UnixFile partialUF = new UnixFile(partialMirrorRoot);
-                        if(partialUF.getStat(tempStat).exists()) {
-                            // See (3) above
-                            isRecycling = false;
-                        } else {
-                            // See (4) above
-                            isRecycling = false;
-
-                            if(list!=null && list.length>0) {
-                                // Find most recent recycled pass
-                                for(int c=list.length-1;c>=0;c--) {
-                                    String filename = list[c];
-                                    if(filename.endsWith(RECYCLED_EXTENSION)) {
-                                        new UnixFile(serverRootUF, filename, false).renameTo(recycledPartialUF);
-                                        isRecycling = true;
-                                        break;
-                                    }
-                                }
-                            }
-                            if(!isRecycling) {
-                                partialUF.mkdir();
-                            }
-                        }
-                    }
+					{
+						String[] list = serverRootUF.list();
+						if(list!=null && list.length>0) {
+							// This is not y10k compliant - this is assuming lexical order is the same as chronological order.
+							Arrays.sort(list);
+							// Find most recent complete pass
+							for(int c=list.length-1;c>=0;c--) {
+								String filename = list[c];
+								String fullFilename = serverRoot+"/"+filename;
+								if(fullFilename.equals(finalMirrorRoot)) throw new AssertionError("finalMirrorRoot exists, but should have already been renamed to .partial");
+								if(
+									filename.length()==10
+									//&& !fullFilename.equals(partialMirrorRoot)
+									//&& !fullFilename.equals(recycledPartialMirrorRoot);
+									&& !filename.endsWith(PARTIAL_EXTENSION)
+									&& !filename.endsWith(SAFE_DELETE_EXTENSION)
+									&& !filename.endsWith(RECYCLED_EXTENSION)
+									//&& !filename.endsWith(RECYCLED_PARTIAL_EXTENSION)
+								) {
+									linkToRoot = fullFilename;
+									break;
+								}
+							}
+							/*if(linkToRoot == null) {
+								// When no complete pass is available, find the most recent recycling partial pass
+								for(int c=list.length-1;c>=0;c--) {
+									String filename = list[c];
+									String fullFilename = serverRoot+"/"+filename;
+									if(
+										!fullFilename.equals(recycledPartialMirrorRoot)
+										&& filename.endsWith(RECYCLED_PARTIAL_EXTENSION)
+									) {
+										linkToRoot = fullFilename;
+										break;
+									}
+								}
+							}*/
+							/*if(linkToRoot == null) {
+								// When no complete pass or recycling partial is available, find the most recent non-recycling partial pass
+								for(int c=list.length-1;c>=0;c--) {
+									String filename = list[c];
+									String fullFilename = serverRoot+"/"+filename;
+									if(
+										!fullFilename.equals(recycledPartialMirrorRoot)
+										&& !fullFilename.equals(partialMirrorRoot)
+										&& filename.endsWith(PARTIAL_EXTENSION)
+										//&& !filename.endsWith(RECYCLED_PARTIAL_EXTENSION)
+									) {
+										linkToRoot = fullFilename;
+										break;
+									}
+								}
+							}*/
+						}
+					}
                 }
             }
-            if(isDebug) {
+            if(isFine) {
                 logger.fine("partialMirrorRoot="+partialMirrorRoot);
                 logger.fine("recycledPartialMirrorRoot="+recycledPartialMirrorRoot);
                 logger.fine("finalMirrorRoot="+finalMirrorRoot);
@@ -1385,15 +1419,15 @@ final public class FailoverFileReplicationManager {
                                         uf.getStat(ufStat);
                                         if(!ufStat.exists()) {
                                             // If it doesn't exist, can't compare file sizes, just rename
-                                            if(isDebug) logger.fine("Renaming partial temp file to final filename because final filename doesn't exist: "+uf.getPath());
-                                            tempUF.renameTo(uf);
+                                            if(isFine) logger.fine("Renaming partial temp file to final filename because final filename doesn't exist: "+uf.getPath());
+                                            renameToNoExists(tempUF, uf);
                                             // This should only happen during exceptions, so no need to keep directory caches synchronized
                                         } else {
                                             long ufSize = ufStat.getSize();
                                             tempUF.getStat(tempStat);
                                             long tempUFSize = tempStat.getSize();
                                             if(tempUFSize>ufSize) {
-                                                if(isDebug) logger.fine("Renaming partial temp file to final filename because temp file is longer than the final file: "+uf.getPath());
+                                                if(isFine) logger.fine("Renaming partial temp file to final filename because temp file is longer than the final file: "+uf.getPath());
                                                 tempUF.renameTo(uf);
                                                 // This should only happen during exceptions, so no need to keep directory caches synchronized
                                             }
@@ -1545,8 +1579,7 @@ final public class FailoverFileReplicationManager {
                 if(retention!=1) {
                     // The pass was successful, now rename partial to final
                     String from = isRecycling ? recycledPartialMirrorRoot : partialMirrorRoot;
-                    if(isDebug) logger.fine("Renaming "+from+" to "+finalMirrorRoot);
-                    new UnixFile(from).renameTo(new UnixFile(finalMirrorRoot));
+                    renameToNoExists(new UnixFile(from), new UnixFile(finalMirrorRoot));
 
                     // The pass was successful, now cleanup old directories based on retention settings
                     cleanAndRecycleBackups(retention, serverRootUF, tempStat, fromServerYear, fromServerMonth, fromServerDay);
@@ -1567,7 +1600,7 @@ final public class FailoverFileReplicationManager {
         } finally {
             if(postPassChecklist.restartMySQLs && retention==1) {
                 for(String mysqlServer : replicatedMySQLServers) {
-                    if(isDebug) logger.fine("Restarting MySQL "+mysqlServer+" in \""+toPath+'"');
+                    if(isFine) logger.fine("Restarting MySQL "+mysqlServer+" in \""+toPath+'"');
                     String[] command = {
                         "/usr/sbin/chroot",
                         toPath,
@@ -1846,7 +1879,7 @@ final public class FailoverFileReplicationManager {
 
     private static void cleanAndRecycleBackups(short retention, UnixFile serverRootUF, Stat tempStat, short fromServerYear, short fromServerMonth, short fromServerDay) throws IOException, SQLException {
         final Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
-        final boolean isDebug = logger.isLoggable(Level.FINE);
+        final boolean isFine = logger.isLoggable(Level.FINE);
         try {
             // Build the lists of directories based on age, skipping safe deleted and recycled directories
             Calendar cal = Calendar.getInstance();
@@ -1906,7 +1939,7 @@ final public class FailoverFileReplicationManager {
                 }
             }
 
-            if(isDebug) {
+            if(isFine) {
                 List<Integer> ages = new ArrayList<Integer>(directoriesByAge.keySet());
                 Collections.sort(ages);
                 for(Integer age : ages) {
@@ -2015,17 +2048,13 @@ final public class FailoverFileReplicationManager {
                     // 1) Flag all those that were completed as recycled
                     final UnixFile currentUF = new UnixFile(serverRootUF, directory, false);
                     final UnixFile newUF = new UnixFile(serverRootUF, directory+RECYCLED_EXTENSION, false);
-                    if(isDebug) logger.fine("Renaming "+currentUF.getPath()+" to "+newUF.getPath());
-                    if(newUF.getStat(tempStat).exists()) throw new IOException("newUF exists: "+newUF.getPath());
-                    currentUF.renameTo(newUF);
+                    renameToNoExists(currentUF, newUF);
                 } else {
                     // 2) Flag all those that where not completed directly as .deleted, schedule for delete
                     if(!directory.endsWith(SAFE_DELETE_EXTENSION)) {
                         final UnixFile currentUF = new UnixFile(serverRootUF, directory, false);
                         final UnixFile newUF = new UnixFile(serverRootUF, directory+SAFE_DELETE_EXTENSION, false);
-                        if(isDebug) logger.fine("Renaming "+currentUF.getPath()+" to "+newUF.getPath());
-                        if(newUF.getStat(tempStat).exists()) throw new IOException("newUF exists: "+newUF.getPath());
-                        currentUF.renameTo(newUF);
+                        renameToNoExists(currentUF, newUF);
                     }
                 }
             }
@@ -2048,9 +2077,7 @@ final public class FailoverFileReplicationManager {
                                 String newFilename = directory.substring(0, directory.length()-RECYCLED_EXTENSION.length())+SAFE_DELETE_EXTENSION;
                                 final UnixFile currentUF = new UnixFile(serverRootUF, directory, false);
                                 final UnixFile newUF = new UnixFile(serverRootUF, newFilename, false);
-                                if(isDebug) logger.fine("Renaming "+currentUF.getPath()+" to "+newUF.getPath());
-                                if(newUF.getStat(tempStat).exists()) throw new IOException("newUF exists: "+newUF.getPath());
-                                currentUF.renameTo(newUF);
+                                renameToNoExists(currentUF, newUF);
                             }
                         }
                     }
@@ -2068,7 +2095,7 @@ final public class FailoverFileReplicationManager {
                         if(directory.endsWith(SAFE_DELETE_EXTENSION)) {
                             //found=true;
                             UnixFile deleteUf = new UnixFile(serverRootUF, directory, false);
-                            if(isDebug) logger.fine("Deleting: "+deleteUf.getPath());
+                            if(isFine) logger.fine("Deleting: "+deleteUf.getPath());
                             directories.add(deleteUf.getFile());
                         }
                     }

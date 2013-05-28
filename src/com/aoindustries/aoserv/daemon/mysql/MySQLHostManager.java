@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2012 by AO Industries, Inc.,
+ * Copyright 2002-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -11,6 +11,7 @@ import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.MySQLServer;
 import com.aoindustries.aoserv.client.NetDevice;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -81,9 +82,10 @@ final public class MySQLHostManager extends BuilderThread {
                         // Include all of the local IP addresses
                         for(NetDevice nd : thisAOServer.getServer().getNetDevices()) {
                             for(IPAddress ia : nd.getIPAddresses()) {
-                                if(!ia.isWildcard()) {
-                                    String ip=ia.getIPAddress();
-                                    if(!hosts.contains(ip)) hosts.add(ip);
+                                InetAddress ip = ia.getInetAddress();
+                                if(!ip.isUnspecified()) {
+                                    String ipString = ip.toString();
+                                    if(!hosts.contains(ipString)) hosts.add(ipString);
                                 }
                             }
                         }

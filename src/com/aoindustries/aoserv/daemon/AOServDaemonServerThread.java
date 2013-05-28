@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2012 by AO Industries, Inc.,
+ * Copyright 2000-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -9,7 +9,6 @@ import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServProtocol;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.AOServerDaemonHost;
-import com.aoindustries.aoserv.client.BusinessAdministrator;
 import com.aoindustries.aoserv.client.DaemonProfile;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.MySQLDatabase;
@@ -20,6 +19,8 @@ import com.aoindustries.aoserv.client.PostgresDatabase;
 import com.aoindustries.aoserv.client.PostgresServer;
 import com.aoindustries.aoserv.client.PostgresServerUser;
 import com.aoindustries.aoserv.client.SchemaTable;
+import com.aoindustries.aoserv.client.validator.DomainName;
+import com.aoindustries.aoserv.client.validator.HashedPassword;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.distro.DistroManager;
@@ -104,18 +105,6 @@ final public class AOServDaemonServerThread extends Thread {
         this.in = new CompressedDataInputStream(new BufferedInputStream(socket.getInputStream()));
         this.out = new CompressedDataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
         this.out.flush();
-
-        start();
-    }
-
-    private static boolean passwordMatches(String password, String crypted) throws IOException {
-        // Try hash first
-        String hashed = BusinessAdministrator.hash(password);
-        if(hashed.equals(crypted)) return true;
-        // Try old crypt next
-        if(crypted.length()<=2) return false;
-        String salt=crypted.substring(0,2);
-        return UnixCrypt.crypt(password, salt).equals(crypted);
     }
 
     @Override
@@ -141,7 +130,7 @@ final public class AOServDaemonServerThread extends Thread {
                 String hostAddress = socket.getInetAddress().getHostAddress();
                 boolean isOK=false;
                 for(AOServerDaemonHost allowedHost : thisAOServer.getAOServerDaemonHosts()) {
-                    String tempAddress = InetAddress.getByName(allowedHost.getHost()).getHostAddress();
+                    String tempAddress = InetAddress.getByName(allowedHost.getHost().toString()).getHostAddress();
                     if (tempAddress.equals(hostAddress)) {
                         isOK=true;
                         break;
@@ -149,8 +138,8 @@ final public class AOServDaemonServerThread extends Thread {
                 }
                 if(isOK) {
                     // Authenticate the client first
-                    String correctKey=thisAOServer.getDaemonKey();
-                    if(!passwordMatches(daemonKey, correctKey)) {
+                    HashedPassword correctKey=thisAOServer.getDaemonKey();
+                    if(!correctKey.passwordMatches(daemonKey)) {
                         System.err.println("Connection attempted from " + hostAddress + " with invalid key: " + daemonKey);
                         out.writeBoolean(false);
                         out.flush();
@@ -388,7 +377,7 @@ final public class AOServDaemonServerThread extends Thread {
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing CHECK_PORT, Thread="+toString());
                                 if(daemonKey==null) throw new IOException("Only the master server may CHECK_PORT");
-                                String ipAddress = in.readUTF();
+                                com.aoindustries.aoserv.client.validator.InetAddress ipAddress = com.aoindustries.aoserv.client.validator.InetAddress.valueOf(in.readUTF());
                                 int port = in.readCompressedInt();
                                 String netProtocol = in.readUTF();
                                 String appProtocol = in.readUTF();
@@ -435,7 +424,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_DAEMON_PROFILE, Thread="+toString());
                                 if(daemonKey==null) throw new IOException("Only the master server may GET_DAEMON_PROFILE");
                                 if(Profiler.getProfilerLevel()>Profiler.NONE) {
-                                    String hostname=AOServDaemon.getThisAOServer().getHostname();
+                                    DomainName hostname=AOServDaemon.getThisAOServer().getHostname();
                                     List<MethodProfile> profs=Profiler.getMethodProfiles();
                                     int len=profs.size();
                                     for(int c=0;c<len;c++) {

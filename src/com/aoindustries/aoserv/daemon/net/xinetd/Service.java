@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2012 by AO Industries, Inc.,
+ * Copyright 2003-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -10,6 +10,7 @@ import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.NetPort;
 import com.aoindustries.aoserv.client.NetProtocol;
+import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.lang.ObjectUtils;
 import java.io.IOException;
@@ -127,9 +128,9 @@ public final class Service {
         out.print('\n');
 
         if(bind!=null) {
-            String ip=bind.getIPAddress();
-            if(!ip.equals(IPAddress.WILDCARD_IP)) {
-                out.print("\tbind = ").print(ip).print('\n');
+            InetAddress ip=bind.getInetAddress();
+            if(!ip.isUnspecified()) {
+                out.print("\tbind = ").print(ip.toString()).print('\n');
             }
         }
         if(port!=null) out.print("\tport = ").print(port.getPort()).print('\n');

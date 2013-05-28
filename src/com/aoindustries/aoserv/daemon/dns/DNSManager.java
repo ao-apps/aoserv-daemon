@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2012 by AO Industries, Inc.,
+ * Copyright 2000-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -13,6 +13,7 @@ import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Protocol;
+import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -226,6 +227,7 @@ final public class DNSManager extends BuilderThread {
                                 + "\tdump-file \"/var/named/data/cache_dump.db\";\n"
                                 + "\tstatistics-file \"/var/named/data/named_stats.txt\";\n"
                                 + "\tmemstatistics-file \"/var/named/data/named_mem_stats.txt\";\n"
+                                // query-source equal to 53 also made it harder to distinguish incoming/outgoing queries on firewall
                                 // safe-mail.net didn't resolve with this source port: + "\tquery-source port 53;\n"
                                 // safe-mail.net didn't resolve with this source port: + "\tquery-source-v6 port 53;\n"
                         );
@@ -235,14 +237,20 @@ final public class DNSManager extends BuilderThread {
                             + "\talso-notify { 216.218.130.2; 216.218.131.2; 216.218.132.2; };\n"
                             + "\tallow-query { " + ACL + " };\n"
                             + "\tallow-recursion { " + ACL + " };\n");
-                    Map<Integer,Set<String>> alreadyAddedIPs = new HashMap<Integer,Set<String>>();
+                    Map<Integer,Set<InetAddress>> alreadyAddedIPs = new HashMap<Integer,Set<InetAddress>>();
                     for(NetBind nb : AOServDaemon.getThisAOServer().getServer().getNetBinds(connector.getProtocols().get(Protocol.DNS))) {
                         int port = nb.getPort().getPort();
-                        String ip = nb.getIPAddress().getIPAddress();
-                        Set<String> ips = alreadyAddedIPs.get(port);
-                        if(ips==null) alreadyAddedIPs.put(port, ips = new HashSet<String>());
+                        InetAddress ip = nb.getIPAddress().getInetAddress();
+                        Set<InetAddress> ips = alreadyAddedIPs.get(port);
+                        if(ips==null) alreadyAddedIPs.put(port, ips = new HashSet<InetAddress>());
                         if(!ips.contains(ip)) {
-                            out.print("\tlisten-on port ").print(port).print(" { ").print(ip).print("; };\n");
+                            if(ip.isIPv6()) {
+                                // IPv6
+                                out.print("\tlisten-on-v6 port ").print(port).print(" { ").print(ip.toString()).print("; };\n");
+                            } else {
+                                // IPv4
+                                out.print("\tlisten-on port ").print(port).print(" { ").print(ip.toString()).print("; };\n");
+                            }
                             ips.add(ip);
                         }
                     }

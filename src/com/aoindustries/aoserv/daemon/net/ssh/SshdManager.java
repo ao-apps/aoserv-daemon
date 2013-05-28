@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2012 by AO Industries, Inc.,
+ * Copyright 2001-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -65,11 +65,11 @@ final public class SshdManager extends BuilderThread {
 
             synchronized(rebuildLock) {
                 // Find all the IPs that should be bound to
-                SortedSet<String> ips;
+                SortedSet<com.aoindustries.aoserv.client.validator.InetAddress> ips;
                 {
                     Protocol sshProtocol=connector.getProtocols().get(Protocol.SSH);
                     List<NetBind> nbs=thisAOServer.getServer().getNetBinds(sshProtocol);
-                    ips=new TreeSet<String>();
+                    ips=new TreeSet<com.aoindustries.aoserv.client.validator.InetAddress>();
                     for(int c=0;c<nbs.size();c++) {
                         NetBind nb = nbs.get(c);
                         if(nb.getNetTcpRedirect()==null) {
@@ -80,8 +80,8 @@ final public class SshdManager extends BuilderThread {
                             NetDevice nd=ip.getNetDevice();
                             if(nd==null) throw new NullPointerException("nbs["+c+"].getIPAddress().getNetDevice() is null");
                             if(nd.getNetDeviceID().isLoopback()) throw new IOException("Can't use localhost for SSH for chroot failover support: nbs["+c+"].getIPAddress().getNetDevice().getNetDeviceId().isLoopback()==true");
-                            if(ip.isWildcard()) throw new IOException("Can't use wildcard for SSH for chroot failover support: ip.isWildcard()==true");
-                            String address=ip.getIPAddress();
+                            com.aoindustries.aoserv.client.validator.InetAddress address=ip.getInetAddress();
+                            if(address.isUnspecified()) throw new IOException("Can't use wildcard for SSH for chroot failover support: address.isUnspecified()==true");
                             if(!ips.contains(address)) ips.add(address);
                         }
                     }
@@ -103,8 +103,8 @@ final public class SshdManager extends BuilderThread {
                                 + "Protocol 2\n");
                                 // Changed to not allow Protocol 1 on 2005-02-01 by Dan Armstrong
                                 //+ "Protocol 2,1\n");
-                        for(String ip : ips) {
-                            out.print("ListenAddress ").print(ip).print("\n");
+                        for(com.aoindustries.aoserv.client.validator.InetAddress ip : ips) {
+                            out.print("ListenAddress ").print(ip.toString()).print("\n");
                         }
                         out.print("SyslogFacility AUTHPRIV\n"
                                 + "PermitRootLogin yes\n"

@@ -20,6 +20,7 @@ import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.TechnologyVersion;
+import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
@@ -31,6 +32,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -135,7 +137,7 @@ public class HttpdServerManager {
         // The config directory should only contain files referenced in the database
         String[] list=new File(CONF_HOSTS).list();
         Set<String> extraFiles = new HashSet<String>(list.length*4/3+1);
-        for(String filename : list) extraFiles.add(filename);
+		extraFiles.addAll(Arrays.asList(list));
 
         // Iterate through each site
         for(HttpdSite httpdSite : aoServer.getHttpdSites()) {
@@ -178,7 +180,7 @@ public class HttpdServerManager {
                 final NetBind nb = httpdBind.getNetBind();
 
                 // Generate the filename
-                final String bindFilename = siteName+'_'+nb.getIPAddress().getIPAddress()+'_'+nb.getPort().getPort();
+                final String bindFilename = siteName+"_"+nb.getIPAddress().getInetAddress()+"_"+nb.getPort().getPort();
                 final UnixFile bindFile = new UnixFile(CONF_HOSTS, bindFilename);
                 final boolean exists = bindFile.getStat(tempStat).exists();
 
@@ -599,10 +601,10 @@ public class HttpdServerManager {
             // List of binds
             for(HttpdBind hb : hs.getHttpdBinds()) {
                 NetBind nb=hb.getNetBind();
-                String ip=nb.getIPAddress().getIPAddress();
+                InetAddress ip=nb.getIPAddress().getInetAddress();
                 int port=nb.getPort().getPort();
-                out.print("Listen ").print(ip).print(':').print(port).print("\n"
-                        + "NameVirtualHost ").print(ip).print(':').print(port).print('\n');
+                out.print("Listen ").print(ip.toBracketedString()).print(':').print(port).print("\n"
+                        + "NameVirtualHost ").print(ip.toBracketedString()).print(':').print(port).print('\n');
             }
 
             // The list of sites to include
@@ -614,7 +616,7 @@ public class HttpdServerManager {
                     if(site.listFirst()==listFirst) {
                         for(HttpdSiteBind bind : site.getHttpdSiteBinds(hs)) {
                             NetBind nb=bind.getHttpdBind().getNetBind();
-                            String ipAddress=nb.getIPAddress().getIPAddress();
+                            InetAddress ipAddress=nb.getIPAddress().getInetAddress();
                             int port=nb.getPort().getPort();
                             out.print("Include conf/hosts/").print(site.getSiteName()).print('_').print(ipAddress).print('_').print(port).print('\n');
                         }
@@ -749,10 +751,10 @@ public class HttpdServerManager {
             // List of binds
             for(HttpdBind hb : hs.getHttpdBinds()) {
                 NetBind nb=hb.getNetBind();
-                String ip=nb.getIPAddress().getIPAddress();
+                InetAddress ip=nb.getIPAddress().getInetAddress();
                 int port=nb.getPort().getPort();
-                out.print("Listen ").print(ip).print(':').print(port).print("\n"
-                        + "NameVirtualHost ").print(ip).print(':').print(port).print('\n');
+                out.print("Listen ").print(ip.toBracketedString()).print(':').print(port).print("\n"
+                        + "NameVirtualHost ").print(ip.toBracketedString()).print(':').print(port).print('\n');
             }
 
             // The list of sites to include
@@ -764,7 +766,7 @@ public class HttpdServerManager {
                     if(site.listFirst()==listFirst) {
                         for(HttpdSiteBind bind : site.getHttpdSiteBinds(hs)) {
                             NetBind nb=bind.getHttpdBind().getNetBind();
-                            String ipAddress=nb.getIPAddress().getIPAddress();
+                            InetAddress ipAddress=nb.getIPAddress().getInetAddress();
                             int port=nb.getPort().getPort();
                             out.print("Include conf/hosts/").print(site.getSiteName()).print('_').print(ipAddress).print('_').print(port).print('\n');
                         }
@@ -911,10 +913,10 @@ public class HttpdServerManager {
             // List of binds
             for(HttpdBind hb : hs.getHttpdBinds()) {
                 NetBind nb=hb.getNetBind();
-                String ip=nb.getIPAddress().getIPAddress();
+                InetAddress ip=nb.getIPAddress().getInetAddress();
                 int port=nb.getPort().getPort();
-                out.print("Listen ").print(ip).print(':').print(port).print("\n"
-                        + "NameVirtualHost ").print(ip).print(':').print(port).print('\n');
+                out.print("Listen ").print(ip.toBracketedString()).print(':').print(port).print("\n"
+                        + "NameVirtualHost ").print(ip.toBracketedString()).print(':').print(port).print('\n');
             }
 
             // The list of sites to include
@@ -926,7 +928,7 @@ public class HttpdServerManager {
                     if(site.listFirst()==listFirst) {
                         for(HttpdSiteBind bind : site.getHttpdSiteBinds(hs)) {
                             NetBind nb=bind.getHttpdBind().getNetBind();
-                            String ipAddress=nb.getIPAddress().getIPAddress();
+                            InetAddress ipAddress=nb.getIPAddress().getInetAddress();
                             int port=nb.getPort().getPort();
                             out.print("Include conf/hosts/").print(site.getSiteName()).print('_').print(ipAddress).print('_').print(port).print('\n');
                         }
@@ -990,21 +992,21 @@ public class HttpdServerManager {
         HttpdBind httpdBind = bind.getHttpdBind();
         NetBind netBind = httpdBind.getNetBind();
         int port = netBind.getPort().getPort();
-        String ipAddress = netBind.getIPAddress().getIPAddress();
+        InetAddress ipAddress = netBind.getIPAddress().getInetAddress();
         HttpdSiteURL primaryHSU = bind.getPrimaryHttpdSiteURL();
-        String primaryHostname = primaryHSU.getHostname();
+        String primaryHostname = primaryHSU.getHostname().toString();
 
         bout.reset();
         ChainWriter out = new ChainWriter(bout);
         try {
-            out.print("<VirtualHost ").print(ipAddress).print(':').print(port).print(">\n"
+            out.print("<VirtualHost ").print(ipAddress.toBracketedString()).print(':').print(port).print(">\n"
                     + "    ServerName ").print(primaryHostname).print('\n'
             );
             List<HttpdSiteURL> altURLs=bind.getAltHttpdSiteURLs();
             if(!altURLs.isEmpty()) {
                 out.print("    ServerAlias");
                 for(HttpdSiteURL altURL : altURLs) {
-                    out.print(' ').print(altURL.getHostname());
+                    out.print(' ').print(altURL.getHostname().toString());
                 }
                 out.print('\n');
             }
@@ -1107,7 +1109,7 @@ public class HttpdServerManager {
     /**
      * Gets the shared library name for the given version of PHP.
      */
-    private static final String getPhpLib(TechnologyVersion phpVersion) {
+    private static String getPhpLib(TechnologyVersion phpVersion) {
         String version=phpVersion.getVersion();
         if(version.equals("4") || version.startsWith("4.")) return "libphp4.so";
         if(version.equals("5") || version.startsWith("5.")) return "libphp5.so";

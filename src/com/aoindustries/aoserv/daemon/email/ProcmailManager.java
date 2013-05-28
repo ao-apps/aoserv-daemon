@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2012 by AO Industries, Inc.,
+ * Copyright 2000-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -16,6 +16,7 @@ import com.aoindustries.aoserv.client.LinuxGroup;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -76,7 +77,7 @@ public final class ProcmailManager extends BuilderThread {
     protected boolean doRebuild() {
         try {
             AOServer aoServer=AOServDaemon.getThisAOServer();
-            String primaryIP = aoServer.getPrimaryIPAddress().getIPAddress();
+            InetAddress primaryIP = aoServer.getPrimaryIPAddress().getInetAddress();
             LinuxServerGroup mailLsg = aoServer.getLinuxServerGroup(LinuxGroup.MAIL);
             if(mailLsg==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+aoServer.getHostname());
             int mailGid = mailLsg.getGid().getID();
@@ -146,7 +147,7 @@ public final class ProcmailManager extends BuilderThread {
                                 List<LinuxAccAddress> addresses = lsa.getLinuxAccAddresses();
 
                                 // The same X-Loop is used for attachment filters and autoresponders
-                                String xloopAddress=username+'@'+lsa.getAOServer().getHostname();
+                                String xloopAddress=username+"@"+lsa.getAOServer().getHostname();
 
                                 // Split the username in to user and domain (used by Cyrus)
                                 String user, domain;
@@ -185,7 +186,7 @@ public final class ProcmailManager extends BuilderThread {
                                             + "  # Filter through spamassassin\n"
                                             // procmail locking sucks and is not necessary: + "  :0 fw: spamassassin.lock\n"
                                             + "  :0 fw\n"
-                                            + "  | /usr/bin/spamc -d ").print(primaryIP).print(" --connect-retries=6 --retry-sleep=10 --headers -s 2000000\n"
+                                            + "  | /usr/bin/spamc -d ").print(primaryIP.toString()).print(" --connect-retries=6 --retry-sleep=10 --headers -s 2000000\n"
                                             + "  \n"
                                             + "  # If spamassassin failed, return a temporary failure code to sendmail\n"
                                             + "  :0\n"

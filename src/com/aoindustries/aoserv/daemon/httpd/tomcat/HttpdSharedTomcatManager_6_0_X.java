@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.httpd.tomcat;
-
 /*
- * Copyright 2008-2009 by AO Industries, Inc.,
+ * Copyright 2008-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd.tomcat;
+
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
@@ -22,6 +22,7 @@ import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.PostgresServer;
+import com.aoindustries.aoserv.client.validator.DomainName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
@@ -35,6 +36,7 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -314,14 +316,12 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
         List<String> workFiles = new SortedArrayList<String>();
         String[] wlist = innerWorkUF.getFile().list();
         if(wlist!=null) {
-            for (int j = 0; j<wlist.length; j++) {
-                workFiles.add(wlist[j]);
-            }
+			workFiles.addAll(Arrays.asList(wlist));
         }
         for (int j = 0; j< sites.size(); j++) {
             HttpdSite hs=sites.get(j).getHttpdTomcatSite().getHttpdSite();
             if(!hs.isDisabled()) {
-                String subwork = hs.getPrimaryHttpdSiteURL().getHostname();
+                String subwork = hs.getPrimaryHttpdSiteURL().getHostname().toString();
                 workFiles.remove(subwork);
                 UnixFile workDir = new UnixFile(innerWorkUF, subwork, false);
                 if (!workDir.getStat(tempStat).exists()) {
@@ -390,9 +390,9 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
                 for(int c=0;c<sites.size();c++) {
                     HttpdSite hs=sites.get(c).getHttpdTomcatSite().getHttpdSite();
                     if(!hs.isDisabled()) {
-                        String primaryHostname=hs.getPrimaryHttpdSiteURL().getHostname();
+                        DomainName primaryHostname=hs.getPrimaryHttpdSiteURL().getHostname();
                         out.print("      <Host\n"
-                                + "        name=\"").print(primaryHostname).print("\"\n"
+                                + "        name=\"").print(primaryHostname.toString()).print("\"\n"
                                 + "        appBase=\"").print(wwwDirectory).print('/').print(hs.getSiteName()).print("/webapps\"\n"
                                 + "        unpackWARs=\"true\"\n"
                                 + "        autoDeploy=\"true\"\n"
@@ -400,23 +400,23 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
                                 + "        xmlNamespaceAware=\"false\"\n"
                                 + "      >\n");
                         List<String> usedHostnames=new SortedArrayList<String>();
-                        usedHostnames.add(primaryHostname);
+                        usedHostnames.add(primaryHostname.toString());
                         List<HttpdSiteBind> binds=hs.getHttpdSiteBinds();
                         for(int d=0;d<binds.size();d++) {
                             HttpdSiteBind bind=binds.get(d);
                             List<HttpdSiteURL> urls=bind.getHttpdSiteURLs();
                             for(int e=0;e<urls.size();e++) {
-                                String hostname=urls.get(e).getHostname();
-                                if(!usedHostnames.contains(hostname)) {
-                                    out.print("        <Alias>").print(hostname).print("</Alias>\n");
-                                    usedHostnames.add(hostname);
+                                DomainName hostname=urls.get(e).getHostname();
+                                if(!usedHostnames.contains(hostname.toString())) {
+                                    out.print("        <Alias>").print(hostname.toString()).print("</Alias>\n");
+                                    usedHostnames.add(hostname.toString());
                                 }
                             }
                             // When listed first, also include the IP addresses as aliases
                             if(hs.listFirst()) {
-                                String ip=bind.getHttpdBind().getNetBind().getIPAddress().getIPAddress();
+                                String ip=bind.getHttpdBind().getNetBind().getIPAddress().getInetAddress().toString();
                                 if(!usedHostnames.contains(ip)) {
-                                    out.print("        <Alias>").print(ip).print("</Alias>\n");
+                                    out.print("        <Alias>").encodeHtml(ip).print("</Alias>\n");
                                     usedHostnames.add(ip);
                                 }
                             }

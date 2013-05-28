@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2012 by AO Industries, Inc.,
+ * Copyright 2003-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -13,6 +13,7 @@ import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Protocol;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.client.ServerFarm;
+import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -222,23 +223,40 @@ final public class SendmailCFManager extends BuilderThread {
                                 + "dnl\n");
                         if(AOServDaemonConfiguration.isManagerEnabled(JilterConfigurationWriter.class)) {
                             out.print("dnl Enable Jilter\n"
-                                    + "dnl\n"
-                                    + "INPUT_MAIL_FILTER(`jilter',`S=inet:"+JilterConfiguration.MILTER_PORT+"@").print(primaryIpAddress.getIPAddress()).print(", F=R, T=S:60s;R:60s')\n"
                                     + "dnl\n");
+                            InetAddress ip = primaryIpAddress.getInetAddress();
+                            if(ip.isIPv6()) {
+                                // IPv6
+                                out.print("INPUT_MAIL_FILTER(`jilter',`S=inet6:"+JilterConfiguration.MILTER_PORT+"@").print(ip.toString()).print(", F=R, T=S:60s;R:60s')\n");
+                            } else {
+                                // IPv4
+                                out.print("INPUT_MAIL_FILTER(`jilter',`S=inet:"+JilterConfiguration.MILTER_PORT+"@").print(ip.toString()).print(", F=R, T=S:60s;R:60s')\n");
+                            }
+                            out.print("dnl\n");
                         }
                         out.print("dnl Only listen to the IP addresses of this logical server\n"
                                 + "dnl\n"
                                 + "FEATURE(`no_default_msa')dnl\n");
-                        List<String> finishedIPs=new SortedArrayList<String>();
+                        List<InetAddress> finishedIPs=new SortedArrayList<InetAddress>();
                         for(NetBind nb : smtpNetBinds) {
                             IPAddress ia=nb.getIPAddress();
-                            String ip=ia.getIPAddress();
+                            InetAddress ip=ia.getInetAddress();
                             if(
-                                !ip.equals(IPAddress.LOOPBACK_IP)
+                                !ip.isLooback()
                                 && !finishedIPs.contains(ip)
                             ) {
-                                out.print("DAEMON_OPTIONS(`Addr=").print(ip).print(", Family=inet, Port=").print(nb.getPort().getPort()).print(", Name=").print(ia.isWildcard()?aoServer.getHostname():ia.getHostname()).print("-MTA, Modifiers=");
-                                if(ia.isWildcard()) out.print("h");
+                                out
+                                    .print("DAEMON_OPTIONS(`Addr=")
+                                    .print(ip.toString())
+                                    .print(", Family=")
+                                    .print(ip.isIPv6() ? "inet6" : "inet")
+                                    .print(", Port=")
+                                    .print(nb.getPort().getPort())
+                                    .print(", Name=")
+                                    .print(ip.isUnspecified()?aoServer.getHostname():ia.getHostname())
+                                    .print("-MTA, Modifiers=")
+                                ;
+                                if(ip.isUnspecified()) out.print("h");
                                 else out.print("bh");
                                 out.print("')dnl\n"); // AO added
                                 finishedIPs.add(ip);
@@ -247,13 +265,23 @@ final public class SendmailCFManager extends BuilderThread {
                         finishedIPs.clear();
                         for(NetBind nb : smtpsNetBinds) {
                             IPAddress ia=nb.getIPAddress();
-                            String ip=ia.getIPAddress();
+                            InetAddress ip=ia.getInetAddress();
                             if(
-                                !ip.equals(IPAddress.LOOPBACK_IP)
+                                !ip.isLooback()
                                 && !finishedIPs.contains(ip)
                             ) {
-                                out.print("DAEMON_OPTIONS(`Addr=").print(ip).print(", Family=inet, Port=").print(nb.getPort().getPort()).print(", Name=").print(ia.isWildcard()?aoServer.getHostname():ia.getHostname()).print("-TLSMSA, Modifiers=");
-                                if(ia.isWildcard()) out.print("hs");
+                                out
+                                    .print("DAEMON_OPTIONS(`Addr=")
+                                    .print(ip.toString())
+                                    .print(", Family=")
+                                    .print(ip.isIPv6() ? "inet6" : "inet")
+                                    .print(", Port=")
+                                    .print(nb.getPort().getPort())
+                                    .print(", Name=")
+                                    .print(ip.isUnspecified()?aoServer.getHostname():ia.getHostname())
+                                    .print("-TLSMSA, Modifiers=")
+                                ;
+                                if(ip.isUnspecified()) out.print("hs");
                                 else out.print("bhs");
                                 out.print("')dnl\n"); // AO added
                                 finishedIPs.add(ip);
@@ -262,13 +290,23 @@ final public class SendmailCFManager extends BuilderThread {
                         finishedIPs.clear();
                         for(NetBind nb : submissionNetBinds) {
                             IPAddress ia=nb.getIPAddress();
-                            String ip=ia.getIPAddress();
+                            InetAddress ip=ia.getInetAddress();
                             if(
-                                !ip.equals(IPAddress.LOOPBACK_IP)
+                                !ip.isLooback()
                                 && !finishedIPs.contains(ip)
                             ) {
-                                out.print("DAEMON_OPTIONS(`Addr=").print(ip).print(", Family=inet, Port=").print(nb.getPort().getPort()).print(", Name=").print(ia.isWildcard()?aoServer.getHostname():ia.getHostname()).print("-MSA, Modifiers=");
-                                if(ia.isWildcard()) out.print("Eh");
+                                out
+                                    .print("DAEMON_OPTIONS(`Addr=")
+                                    .print(ip.toString())
+                                    .print(", Family=")
+                                    .print(ip.isIPv6() ? "inet6" : "inet")
+                                    .print(", Port=")
+                                    .print(nb.getPort().getPort())
+                                    .print(", Name=")
+                                    .print(ip.isUnspecified()?aoServer.getHostname():ia.getHostname())
+                                    .print("-MSA, Modifiers=")
+                                ;
+                                if(ip.isUnspecified()) out.print("Eh");
                                 else out.print("Ebh");
                                 out.print("')dnl\n"); // AO added
                                 finishedIPs.add(ip);
@@ -347,7 +385,7 @@ final public class SendmailCFManager extends BuilderThread {
                                     + "include(`/usr/share/sendmail-cf/m4/cf.m4')dnl\n"
                                     + "OSTYPE(`linux')dnl\n"
                                     + "define(`confCF_VERSION', `Submit')dnl\n"
-                                    + "FEATURE(`msp', `[").print(primaryIpAddress.getIPAddress()).print("]')dnl\n"
+                                    + "FEATURE(`msp', `[").print(primaryIpAddress.getInetAddress().toString()).print("]')dnl\n"
                                     + "define(`confRUN_AS_USER',`mail:mail')dnl\n"
                                     + "define(`confTRUSTED_USER',`mail')dnl\n");
                         } else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
@@ -366,7 +404,7 @@ final public class SendmailCFManager extends BuilderThread {
                                     + "define(`confPID_FILE', `/var/run/sm-client.pid')dnl\n"
                                     + "dnl define(`confDIRECT_SUBMISSION_MODIFIERS',`C')\n"
                                     + "dnl FEATURE(`use_ct_file')dnl\n"
-                                    + "FEATURE(`msp', `[").print(primaryIpAddress.getIPAddress()).print("]')dnl\n"
+                                    + "FEATURE(`msp', `[").print(primaryIpAddress.getInetAddress().toString()).print("]')dnl\n"
                                     + "define(`confPROCESS_TITLE_PREFIX',`").print(aoServer.getHostname()).print("')dnl\n");
                         } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                             out.print("divert(-1)\n"
@@ -384,7 +422,7 @@ final public class SendmailCFManager extends BuilderThread {
                                     + "define(`confPID_FILE', `/var/run/sm-client.pid')dnl\n"
                                     + "dnl define(`confDIRECT_SUBMISSION_MODIFIERS',`C')dnl\n"
                                     + "FEATURE(`use_ct_file')dnl\n"
-                                    + "FEATURE(`msp', `[").print(primaryIpAddress.getIPAddress()).print("]')dnl\n"
+                                    + "FEATURE(`msp', `[").print(primaryIpAddress.getInetAddress().toString()).print("]')dnl\n"
                                     + "define(`confPROCESS_TITLE_PREFIX',`").print(aoServer.getHostname()).print("')dnl\n");
                         } else {
                             throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);

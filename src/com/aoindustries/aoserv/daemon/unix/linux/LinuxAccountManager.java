@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2012 by AO Industries, Inc.,
+ * Copyright 2001-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -14,6 +14,7 @@ import com.aoindustries.aoserv.client.LinuxGroup;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.validator.Gecos;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -668,18 +669,18 @@ public class LinuxAccountManager extends BuilderThread {
             .print(':')
             .print(primaryGroup.getGid().getID())
             .print(':')
-            .print(linuxAccount.getName())
+            .print(linuxAccount.getName().toString())
             .print(',')
         ;
         if(complete) {
-            String S=linuxAccount.getOfficeLocation();
-            if(S!=null) out.print(S);
+            Gecos field=linuxAccount.getOfficeLocation();
+            if(field!=null) out.print(field.toString());
             out.print(',');
-            S=linuxAccount.getOfficePhone();
-            if(S!=null) out.print(S);
+            field=linuxAccount.getOfficePhone();
+            if(field!=null) out.print(field.toString());
             out.print(',');
-            S=linuxAccount.getHomePhone();
-            if(S!=null) out.print(S);
+            field=linuxAccount.getHomePhone();
+            if(field!=null) out.print(field.toString());
             out
                 .print(':')
                 .print(account.getHome())

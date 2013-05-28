@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2012 by AO Industries, Inc.,
+ * Copyright 2006-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -12,6 +12,7 @@ import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.NetDevice;
 import com.aoindustries.aoserv.client.NetDeviceID;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -105,15 +106,15 @@ final public class NetDeviceManager extends BuilderThread {
                                             + "ONBOOT=yes\n"
                                             + "NEEDHOSTNAME=no\n");
                                 } else {
-                                    String network=device.getNetwork();
+                                    InetAddress network=device.getNetwork();
                                     if(network==null) throw new SQLException("(net_devices.pkey="+device.getPkey()+").network may not be null");
-                                    String broadcast=device.getBroadcast();
+                                    InetAddress broadcast=device.getBroadcast();
                                     if(broadcast==null) throw new SQLException("(net_devices.pkey="+device.getPkey()+").broadcast may not be null");
                                     out.print("BOOTPROTO=static\n"
-                                            + "IPADDR=").print(primaryIP.getIPAddress()).print("\n"
+                                            + "IPADDR=").print(primaryIP.getInetAddress()).print("\n"
                                             + "NETMASK=").print(primaryIP.getNetMask()).print("\n"
-                                            + "NETWORK=").print(network).print("\n"
-                                            + "BROADCAST=").print(broadcast).print("\n"
+                                            + "NETWORK=").print(network.toString()).print("\n"
+                                            + "BROADCAST=").print(broadcast.toString()).print("\n"
                                             + "ONBOOT=yes\n");
                                 }
                                 out.print("MII_NOT_SUPPORTED=yes\n");
@@ -128,22 +129,28 @@ final public class NetDeviceManager extends BuilderThread {
                                             + "ONBOOT=yes\n"
                                             + "NEEDHOSTNAME=no\n");
                                 } else {
-                                    String network=device.getNetwork();
+                                    InetAddress network=device.getNetwork();
                                     if(network==null) throw new SQLException("(net_devices.pkey="+device.getPkey()+").network may not be null");
-                                    String broadcast=device.getBroadcast();
+                                    InetAddress broadcast=device.getBroadcast();
                                     if(broadcast==null) throw new SQLException("(net_devices.pkey="+device.getPkey()+").broadcast may not be null");
-                                    out.print("BOOTPROTO=static\n"
-                                            + "IPADDR=").print(primaryIP.getIPAddress()).print("\n"
-                                            + "NETMASK=").print(primaryIP.getNetMask()).print("\n"
-                                            + "NETWORK=").print(network).print("\n"
-                                            + "BROADCAST=").print(broadcast).print("\n"
-                                            + "ONBOOT=yes\n");
+                                    out.print("BOOTPROTO=static\n");
+                                    InetAddress ip = primaryIP.getInetAddress();
+                                    if(ip.isIPv6()) {
+                                        out.print("IPV6INIT=yes\n"
+                                                + "IPV6ADDR=").print(ip.toString()).print("\n"
+                                                + "IPV6PREFIX=\n");
+
+                                    } else {
+                                        out.print("IPADDR=").print(ip.toString()).print("\n"
+                                                + "NETMASK=").print(primaryIP.getNetMask()).print("\n"
+                                                + "NETWORK=").print(network.toString()).print("\n"
+                                                + "BROADCAST=").print(broadcast.toString()).print("\n");
+                                    }
+                                    out.print("ONBOOT=yes\n");
                                 }
                                 String macAddr=device.getMacAddress();
                                 if(macAddr==null) throw new SQLException("(net_devices.pkey="+device.getPkey()+").macaddr may not be null for CentOS 5");
-                                out.print("HWADDR=").print(macAddr).print("\n"
-                                        + "IPV6ADDR=\n"
-                                        + "IPV6PREFIX=\n");
+                                out.print("HWADDR=").print(macAddr).print('\n');
                             } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                         } finally {
                             out.close();
@@ -206,8 +213,13 @@ final public class NetDeviceManager extends BuilderThread {
                                                 osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
                                                 || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                                             ) {
-                                                out.print("IPADDR=").print(ip.getIPAddress()).print("\n"
-                                                        + "NETMASK=").print(ip.getNetMask()).print("\n");
+                                                if(ip.getInetAddress().isIPv6()) {
+                                                    out.print("IPV6ADDR=").print(ip.getInetAddress().toString()).print("\n"
+                                                            + "IPV6PREFIX=\n");
+                                                } else {
+                                                    out.print("IPADDR=").print(ip.getInetAddress().toString()).print("\n"
+                                                            + "NETMASK=").print(ip.getNetMask()).print("\n");
+                                                }
                                             } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                                         } finally {
                                             out.close();
@@ -294,7 +306,7 @@ final public class NetDeviceManager extends BuilderThread {
                     if(gatewayDevices.size()>0) {
                         if(gatewayDevices.size()>1) throw new SQLException("More than one gateway device found: "+gatewayDevices.size());
                         NetDevice gateway=gatewayDevices.get(0);
-                        out.print("GATEWAY=").print(gateway.getGateway()).print('\n');
+                        out.print("GATEWAY=").print(gateway.getGateway().toString()).print('\n');
                         if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                             out.print("GATEWAYDEV=").print(gateway.getNetDeviceID().getName()).print('\n');
                         }

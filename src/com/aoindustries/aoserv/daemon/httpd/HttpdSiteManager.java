@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.httpd;
-
 /*
- * Copyright 2007-2009 by AO Industries, Inc.,
+ * Copyright 2007-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd;
+
 import com.aoindustries.aoserv.client.AOSHCommand;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
@@ -311,7 +311,7 @@ public abstract class HttpdSiteManager {
             + "\n"
             + "  Control Panel: https://www.aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey="+httpdSite.getPkey()+"\n"
             + "\n"
-            + "  AOSH: "+AOSHCommand.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getSiteName()+' '+httpdSite.getAOServer().getHostname()+" true\n"
+            + "  AOSH: "+AOSHCommand.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getSiteName()+" "+httpdSite.getAOServer().getHostname()+" true\n"
             + "\n"
             + "  support@aoindustries.com\n"
             + "  (866) 270-6195\n"
@@ -333,7 +333,7 @@ public abstract class HttpdSiteManager {
             + "\n"
             + "  Control Panel: https://www.aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey="+httpdSite.getPkey()+"\n"
             + "\n"
-            + "  AOSH: "+AOSHCommand.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getSiteName()+' '+httpdSite.getAOServer().getHostname()+" true\n"
+            + "  AOSH: "+AOSHCommand.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getSiteName()+" "+httpdSite.getAOServer().getHostname()+" true\n"
             + "\n"
             + "  support@aoindustries.com\n"
             + "  (205) 454-2556\n"
@@ -528,7 +528,7 @@ public abstract class HttpdSiteManager {
             UnixFile testFile = new UnixFile(cgibinDirectory, "test", false);
             if(!testFile.getStat(tempStat).exists()) {
                 HttpdSiteURL primaryHsu = httpdSite.getPrimaryHttpdSiteURL();
-                String primaryUrl = primaryHsu==null ? httpdSite.getSiteName() : primaryHsu.getHostname();
+                String primaryUrl = primaryHsu==null ? httpdSite.getSiteName() : primaryHsu.getHostname().toString();
                 // Write to temp file first
                 UnixFile tempFile = UnixFile.mktemp(testFile.getPath()+".", false);
                 try {
@@ -574,7 +574,7 @@ public abstract class HttpdSiteManager {
         Stat tempStat = new Stat();
         if(!indexFile.getStat(tempStat).exists()) {
             HttpdSiteURL primaryHsu = httpdSite.getPrimaryHttpdSiteURL();
-            String primaryUrl = primaryHsu==null ? httpdSite.getSiteName() : primaryHsu.getHostname();
+            String primaryUrl = primaryHsu==null ? httpdSite.getSiteName() : primaryHsu.getHostname().toString();
             // Write to temp file first
             UnixFile tempFile = UnixFile.mktemp(indexFile.getPath()+".", false);
             try {
@@ -613,7 +613,7 @@ public abstract class HttpdSiteManager {
             UnixFile testFile = new UnixFile(rootDirectory, "test.php", false);
             if(!testFile.getStat(tempStat).exists()) {
                 HttpdSiteURL primaryHsu = httpdSite.getPrimaryHttpdSiteURL();
-                String primaryUrl = primaryHsu==null ? httpdSite.getSiteName() : primaryHsu.getHostname();
+                String primaryUrl = primaryHsu==null ? httpdSite.getSiteName() : primaryHsu.getHostname().toString();
                 // Write to temp file first
                 UnixFile tempFile = UnixFile.mktemp(testFile.getPath()+".", false);
                 try {
@@ -748,26 +748,28 @@ public abstract class HttpdSiteManager {
     private static final SortedMap<String,String> unmodifiableStandardPermanentRewriteRules = Collections.unmodifiableSortedMap(standardPermanentRewriteRules);
     static {
         // TODO: Benchmark faster with single or multiple rules
-        standardPermanentRewriteRules.put("^(.*)\\.do~$", "$1.do");
-        standardPermanentRewriteRules.put("^(.*)\\.do~/(.*)$", "$1.do/$2");
-        standardPermanentRewriteRules.put("^(.*)\\.jsp~$", "$1.jsp");
-        standardPermanentRewriteRules.put("^(.*)\\.jsp~/(.*)$", "$1.jsp/$2");
-        standardPermanentRewriteRules.put("^(.*)\\.jspa~$", "$1.jspa");
-        standardPermanentRewriteRules.put("^(.*)\\.jspa~/(.*)$", "$1.jspa/$2");
-        standardPermanentRewriteRules.put("^(.*)\\.php~$", "$1.php");
-        standardPermanentRewriteRules.put("^(.*)\\.php~/(.*)$", "$1.php/$2");
-        standardPermanentRewriteRules.put("^(.*)\\.php3~$", "$1.php3");
-        standardPermanentRewriteRules.put("^(.*)\\.php3~/(.*)$", "$1.php3/$2");
-        standardPermanentRewriteRules.put("^(.*)\\.php4~$", "$1.php4");
-        standardPermanentRewriteRules.put("^(.*)\\.php4~/(.*)$", "$1.php4/$2");
-        standardPermanentRewriteRules.put("^(.*)\\.phtml~$", "$1.phtml");
-        standardPermanentRewriteRules.put("^(.*)\\.phtml~/(.*)$", "$1.phtml/$2");
-        standardPermanentRewriteRules.put("^(.*)\\.shtml~$", "$1.shtml");
-        standardPermanentRewriteRules.put("^(.*)\\.shtml~/(.*)$", "$1.shtml/$2");
-        standardPermanentRewriteRules.put("^(.*)\\.vm~$", "$1.vm");
-        standardPermanentRewriteRules.put("^(.*)\\.vm~/(.*)$", "$1.vm/$2");
-        standardPermanentRewriteRules.put("^(.*)\\.xml~$", "$1.xml");
-        standardPermanentRewriteRules.put("^(.*)\\.xml~/(.*)$", "$1.xml/$2");
+        standardPermanentRewriteRules.put("^(.*)~$", "$1");
+        standardPermanentRewriteRules.put("^(.*)~/(.*)$", "$1/$2");
+        //standardPermanentRewriteRules.put("^(.*)\\.do~$", "$1.do");
+        //standardPermanentRewriteRules.put("^(.*)\\.do~/(.*)$", "$1.do/$2");
+        //standardPermanentRewriteRules.put("^(.*)\\.jsp~$", "$1.jsp");
+        //standardPermanentRewriteRules.put("^(.*)\\.jsp~/(.*)$", "$1.jsp/$2");
+        //standardPermanentRewriteRules.put("^(.*)\\.jspa~$", "$1.jspa");
+        //standardPermanentRewriteRules.put("^(.*)\\.jspa~/(.*)$", "$1.jspa/$2");
+        //standardPermanentRewriteRules.put("^(.*)\\.php~$", "$1.php");
+        //standardPermanentRewriteRules.put("^(.*)\\.php~/(.*)$", "$1.php/$2");
+        //standardPermanentRewriteRules.put("^(.*)\\.php3~$", "$1.php3");
+        //standardPermanentRewriteRules.put("^(.*)\\.php3~/(.*)$", "$1.php3/$2");
+        //standardPermanentRewriteRules.put("^(.*)\\.php4~$", "$1.php4");
+        //standardPermanentRewriteRules.put("^(.*)\\.php4~/(.*)$", "$1.php4/$2");
+        //standardPermanentRewriteRules.put("^(.*)\\.phtml~$", "$1.phtml");
+        //standardPermanentRewriteRules.put("^(.*)\\.phtml~/(.*)$", "$1.phtml/$2");
+        //standardPermanentRewriteRules.put("^(.*)\\.shtml~$", "$1.shtml");
+        //standardPermanentRewriteRules.put("^(.*)\\.shtml~/(.*)$", "$1.shtml/$2");
+        //standardPermanentRewriteRules.put("^(.*)\\.vm~$", "$1.vm");
+        //standardPermanentRewriteRules.put("^(.*)\\.vm~/(.*)$", "$1.vm/$2");
+        //standardPermanentRewriteRules.put("^(.*)\\.xml~$", "$1.xml");
+        //standardPermanentRewriteRules.put("^(.*)\\.xml~/(.*)$", "$1.xml/$2");
     }
 
     /**

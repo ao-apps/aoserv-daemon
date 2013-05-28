@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2012 by AO Industries, Inc.,
+ * Copyright 2003-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -166,7 +166,7 @@ public final class XinetdManager extends BuilderThread {
                                 null,
                                 -1,
                                 null,
-                                redirect.getDestinationHost()+" "+redirect.getDestinationPort()
+                                redirect.getDestinationHost().toString()+" "+redirect.getDestinationPort()
                             );
                         } else {
                             boolean portMatches=protocolObj.getPort(connector).equals(port);
@@ -178,7 +178,7 @@ public final class XinetdManager extends BuilderThread {
                                     null,
                                     portMatches?"auth":"auth-unlisted",
                                     bind.getNetProtocol(),
-                                    bind.getIPAddress(),
+                                    bind.getInetAddress(),
                                     portMatches?null:port,
                                     true,
                                     rootUser,
@@ -274,7 +274,7 @@ public final class XinetdManager extends BuilderThread {
                                         null,
                                         "/usr/sbin/vsftpd",
                                         null,
-                                        "/etc/vsftpd/vhosts/vsftpd_"+bind.getIPAddress().getIPAddress()+"_"+port.getPort()+".conf",
+                                        "/etc/vsftpd/vhosts/vsftpd_"+bind.getIPAddress().getInetAddress().toString()+"_"+port.getPort()+".conf",
                                         "PID HOST DURATION",
                                         "HOST",
                                         10,
@@ -419,7 +419,7 @@ public final class XinetdManager extends BuilderThread {
                                         null,
                                         portMatches?"pop2":"pop2-unlisted",
                                         bind.getNetProtocol(),
-                                        bind.getIPAddress(),
+                                        bind.getInetAddress(),
                                         portMatches?null:port,
                                         false,
                                         rootUser,
