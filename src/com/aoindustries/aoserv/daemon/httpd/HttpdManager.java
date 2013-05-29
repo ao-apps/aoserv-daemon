@@ -1,12 +1,14 @@
 package com.aoindustries.aoserv.daemon.httpd;
 
 /*
- * Copyright 2000-2011 by AO Industries, Inc.,
+ * Copyright 2000-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.HttpdServer;
+import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -87,25 +89,25 @@ final public class HttpdManager extends BuilderThread {
                 System.out.print("Starting HttpdManager: ");
                 AOServConnector connector=AOServDaemon.getConnector();
                 httpdManager=new HttpdManager();
-                connector.getHttpdBinds().getTable().addTableListener(httpdManager, 0);
-                connector.getHttpdServers().getTable().addTableListener(httpdManager, 0);
-                connector.getHttpdJBossSites().getTable().addTableListener(httpdManager, 0);
-                connector.getHttpdSharedTomcats().getTable().addTableListener(httpdManager, 0);
-                connector.getHttpdSites().getTable().addTableListener(httpdManager, 0);
-                connector.getHttpdSiteAuthenticatedLocationTable().getTable().addTableListener(httpdManager, 0);
-                connector.getHttpdSiteBinds().getTable().addTableListener(httpdManager, 0);
-                connector.getHttpdSiteURLs().getTable().addTableListener(httpdManager, 0);
-                connector.getHttpdStaticSites().getTable().addTableListener(httpdManager, 0);
-                connector.getHttpdTomcatContexts().getTable().addTableListener(httpdManager, 0);
-                connector.getHttpdTomcatDataSources().getTable().addTableListener(httpdManager, 0);
-                connector.getHttpdTomcatParameters().getTable().addTableListener(httpdManager, 0);
-                connector.getHttpdTomcatSites().getTable().addTableListener(httpdManager, 0);
-                connector.getHttpdTomcatSharedSites().getTable().addTableListener(httpdManager, 0);
-                connector.getHttpdTomcatStdSites().getTable().addTableListener(httpdManager, 0);
-                connector.getHttpdWorkers().getTable().addTableListener(httpdManager, 0);
-                connector.getIpAddresses().getTable().addTableListener(httpdManager, 0);
-                connector.getLinuxAccounts().getTable().addTableListener(httpdManager, 0);
-                connector.getNetBinds().getTable().addTableListener(httpdManager, 0);
+                connector.getHttpdBinds().addTableListener(httpdManager, 0);
+                connector.getHttpdServers().addTableListener(httpdManager, 0);
+                connector.getHttpdJBossSites().addTableListener(httpdManager, 0);
+                connector.getHttpdSharedTomcats().addTableListener(httpdManager, 0);
+                connector.getHttpdSites().addTableListener(httpdManager, 0);
+                connector.getHttpdSiteAuthenticatedLocationTable().addTableListener(httpdManager, 0);
+                connector.getHttpdSiteBinds().addTableListener(httpdManager, 0);
+                connector.getHttpdSiteURLs().addTableListener(httpdManager, 0);
+                connector.getHttpdStaticSites().addTableListener(httpdManager, 0);
+                connector.getHttpdTomcatContexts().addTableListener(httpdManager, 0);
+                connector.getHttpdTomcatDataSources().addTableListener(httpdManager, 0);
+                connector.getHttpdTomcatParameters().addTableListener(httpdManager, 0);
+                connector.getHttpdTomcatSites().addTableListener(httpdManager, 0);
+                connector.getHttpdTomcatSharedSites().addTableListener(httpdManager, 0);
+                connector.getHttpdTomcatStdSites().addTableListener(httpdManager, 0);
+                connector.getHttpdWorkers().addTableListener(httpdManager, 0);
+                connector.getIpAddresses().addTableListener(httpdManager, 0);
+                connector.getLinuxServerAccounts().addTableListener(httpdManager, 0);
+                connector.getNetBinds().addTableListener(httpdManager, 0);
                 System.out.println("Done");
             }
         }

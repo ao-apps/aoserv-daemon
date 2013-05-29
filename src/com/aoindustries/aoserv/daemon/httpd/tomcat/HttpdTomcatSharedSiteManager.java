@@ -1,7 +1,7 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 /*
- * Copyright 2007-2011 by AO Industries, Inc.,
+ * Copyright 2007-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -51,7 +51,9 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
      * Worker is associated with the shared JVM.
      */
     protected HttpdWorker getHttpdWorker() throws IOException, SQLException {
-        return tomcatSharedSite.getHttpdSharedTomcat().getTomcat4Worker();
+        HttpdWorker hw = tomcatSharedSite.getHttpdSharedTomcat().getTomcat4Worker();
+        if(hw==null) throw new SQLException("Unable to find shared HttpdWorker");
+        return hw;
     }
 
     public UnixFile getPidFile() throws IOException, SQLException {

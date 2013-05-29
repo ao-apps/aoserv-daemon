@@ -1,17 +1,12 @@
 package com.aoindustries.aoserv.daemon;
 
 /*
- * Copyright 2001-2011 by AO Industries, Inc.,
+ * Copyright 2001-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.validator.DomainName;
-import com.aoindustries.aoserv.client.validator.Email;
-import com.aoindustries.aoserv.client.validator.Hostname;
-import com.aoindustries.aoserv.client.validator.MySQLUserId;
-import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.validator.ValidationException;
 import com.aoindustries.io.AOPool;
+import com.aoindustries.profiler.Profiler;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,70 +40,44 @@ final public class AOServDaemonConfiguration {
         }
     }
     
+    public static int getProfilerLevel() throws IOException {
+        return Profiler.parseProfilerLevel(getProperty("profiler.level"));
+    }
+
     public static boolean isNested() throws IOException {
         return "true".equalsIgnoreCase(getProperty("nested"));
     }
 
-    public static Email getMonitorEmailFullTo() throws IOException {
-        try {
-            return Email.valueOf(getProperty("monitor.email.full.to")).intern();
-        } catch(ValidationException err) {
-            throw new IOException(err.getMessage());
-        }
+    public static String getMonitorEmailFullTo() throws IOException {
+        return getProperty("monitor.email.full.to");
     }
 
-    public static Email getMonitorEmailFullFrom() throws IOException {
-        try {
-            return Email.valueOf(getProperty("monitor.email.full.from")).intern();
-        } catch(ValidationException err) {
-            throw new IOException(err.getMessage());
-        }
+    public static String getMonitorEmailFullFrom() throws IOException {
+        return getProperty("monitor.email.full.from");
     }
 
-    public static Email getMonitorEmailSummaryTo() throws IOException {
-        try {
-            return Email.valueOf(getProperty("monitor.email.summary.to")).intern();
-        } catch(ValidationException err) {
-            throw new IOException(err.getMessage());
-        }
+    public static String getMonitorEmailSummaryTo() throws IOException {
+        return getProperty("monitor.email.summary.to");
     }
 
-    public static Email getMonitorEmailSummaryFrom() throws IOException {
-        try {
-            return Email.valueOf(getProperty("monitor.email.summary.from")).intern();
-        } catch(ValidationException err) {
-            throw new IOException(err.getMessage());
-        }
+    public static String getMonitorEmailSummaryFrom() throws IOException {
+        return getProperty("monitor.email.summary.from");
     }
 
-    public static Hostname getMonitorSmtpServer() throws IOException {
-        try {
-            return Hostname.valueOf(getProperty("monitor.smtp.server")).intern();
-        } catch(ValidationException err) {
-            throw new IOException(err.getMessage());
-        }
+    public static String getMonitorSmtpServer() throws IOException {
+        return getProperty("monitor.smtp.server");
     }
 
-    public static DomainName getServerHostname() throws IOException {
-        try {
-            return DomainName.valueOf(getProperty("server.hostname")).intern();
-        } catch(ValidationException err) {
-            throw new IOException(err.getMessage());
-        }
+    public static String getServerHostname() throws IOException {
+        return getProperty("server.hostname");
     }
 
     public static String getSSLKeystorePassword() throws IOException {
-        String s = getProperty("ssl.keystore.password");
-        return s==null || s.length()==0 ? null : s;
+        return getProperty("ssl.keystore.password");
     }
 
-    public static UnixPath getSSLKeystorePath() throws IOException {
-        try {
-            String s = getProperty("ssl.keystore.path");
-            return s==null || s.length()==0 ? null : UnixPath.valueOf(s);
-        } catch(ValidationException err) {
-            throw new IOException(err.getMessage());
-        }
+    public static String getSSLKeystorePath() throws IOException {
+        return getProperty("ssl.keystore.path");
     }
 
     public static String getPostgresPassword() throws IOException {
@@ -124,20 +93,15 @@ final public class AOServDaemonConfiguration {
         return S==null || S.length()==0 ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(S);
     }
 
-    public static String getMysqlDriver() throws IOException {
+    public static String getMySqlDriver() throws IOException {
         return getProperty("mysql.driver");
     }
 
-    public static MySQLUserId getMysqlUser() throws IOException {
-        try {
-            String s = getProperty("mysql.user");
-            return s==null || s.length()==0 ? null : MySQLUserId.valueOf(s);
-        } catch(ValidationException err) {
-            throw new IOException(err.getMessage());
-        }
+    public static String getMySqlUser() throws IOException {
+        return getProperty("mysql.user");
     }
 
-    public static String getMysqlPassword() throws IOException {
+    public static String getMySqlPassword() throws IOException {
         return getProperty("mysql.password");
     }
 

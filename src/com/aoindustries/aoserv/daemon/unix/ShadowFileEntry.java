@@ -1,13 +1,11 @@
 package com.aoindustries.aoserv.daemon.unix;
 
 /*
- * Copyright 2000-2011 by AO Industries, Inc.,
+ * Copyright 2000-2009 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 import com.aoindustries.aoserv.client.LinuxAccount;
-import com.aoindustries.aoserv.client.validator.UserId;
-import com.aoindustries.aoserv.client.validator.ValidationException;
 import com.aoindustries.util.StringUtility;
 
 /**
@@ -19,66 +17,50 @@ import com.aoindustries.util.StringUtility;
 final public class ShadowFileEntry {
 
     /** The username the entry is for */
-    final public UserId username;
+    public String username;
 
     /** The encrypted password */
     public String password;
 
     /** The days since Jan 1, 1970 password was last changed */
-    final public int changedDate;
+    public int changedDate;
 
     /** The number of days until a password change is allowed */
-    final public int minPasswordAge;
+    public int minPasswordAge;
 
     /** The number of days until a password change is forced */
-    final public int maxPasswordAge;
+    public int maxPasswordAge;
 
     /** The days before password is to expire that user is warned of pending password expiration */
-    final public int warningDays;
+    public int warningDays;
 
     /** The days after password expires that account is considered inactive and disabled */
-    final public int inactivateDays;
+    public int inactivateDays;
 
     /** The days since Jan 1, 1970 when account will be disabled */
-    final public int expirationDate;
+    public int expirationDate;
 
     /** Reserved for future use */
-    final public String flag;
-
-    public ShadowFileEntry(UserId username) {
-        this.username = username;
-        this.password = LinuxAccount.NO_PASSWORD_CONFIG_VALUE;
-        this.changedDate = getCurrentDate();
-        this.minPasswordAge = -1;
-        this.maxPasswordAge = 99999;
-        this.warningDays = 0;
-        this.inactivateDays = 0;
-        this.expirationDate = 0;
-        this.flag = null;
-    }
+    public String flag;
 
     /**
      * Constructs a shadow file entry given one line of the <code>/etc/shadow</code> file, not including
      * the trailing newline (<code>'\n'</code>).  This may also be called providing only the username,
      * in which case the default values are used and the password is set to <code>"!!"</code> (disabled).
      */
-    public ShadowFileEntry(String line) throws ValidationException {
+    public ShadowFileEntry(String line) {
         String[] values=StringUtility.splitString(line, ':');
         int len=values.length;
         if(len<1) throw new IllegalArgumentException("At least the first field of shadow file required: "+line);
-        if(len>9) throw new IllegalArgumentException("More than nine fields in the shadow file: "+line);
 
-        username = UserId.valueOf(values[0]);
+        username = values[0];
 
         String S;
 
         if(len>=2 && (S=values[1]).length()>0) {
-            password =
-                // Convert * to !!
-                "*".equals(S)
-                ? LinuxAccount.NO_PASSWORD_CONFIG_VALUE
-                : S
-            ;
+            password=S;
+            // Convert * to !!
+            if("*".equals(password)) password=LinuxAccount.NO_PASSWORD_CONFIG_VALUE;
         } else password=LinuxAccount.NO_PASSWORD_CONFIG_VALUE;
 
         if(len>=3 && (S=values[2]).length()>0) changedDate=Integer.parseInt(S);
@@ -107,18 +89,19 @@ final public class ShadowFileEntry {
      * Constructs a shadow file entry given all the values.
      */
     public ShadowFileEntry(
-        UserId username,
-        String password,
-        int changedDate,
-        int minPasswordAge,
-        int maxPasswordAge,
-        int warningDays,
-        int inactivateDays,
-        int expirationDate,
-        String flag
+	String username,
+	String password,
+	int changedDate,
+	int minPasswordAge,
+	int maxPasswordAge,
+	int warningDays,
+	int inactivateDays,
+	int expirationDate,
+	String flag
     ) {
         this.username = username;
-        this.password = "*".equals(password) ? LinuxAccount.NO_PASSWORD_CONFIG_VALUE : password;
+        this.password = password;
+        if("*".equals(password)) this.password=LinuxAccount.NO_PASSWORD_CONFIG_VALUE;
         this.changedDate = changedDate;
         this.minPasswordAge = minPasswordAge;
         this.maxPasswordAge = maxPasswordAge;
@@ -145,7 +128,6 @@ final public class ShadowFileEntry {
     /**
      * Gets this <code>ShadowFileEntry</code> as it would be written in <code>/etc/shadow</code>.
      */
-    @Override
     public String toString() {
         StringBuilder SB=new StringBuilder();
         SB
