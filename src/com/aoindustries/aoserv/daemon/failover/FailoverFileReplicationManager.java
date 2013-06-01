@@ -1589,7 +1589,7 @@ final public class FailoverFileReplicationManager {
                 out.write(AOServDaemonProtocol.DONE);
                 out.flush();
             } finally {
-                BufferManager.release(buff);
+                BufferManager.release(buff, false);
             }
         } catch(RuntimeException err) {
             socket.close();

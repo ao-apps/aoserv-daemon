@@ -377,7 +377,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                         masterOut.write(buff, 0, ret);
                     }
                 } finally {
-                    BufferManager.release(buff);
+                    BufferManager.release(buff, false);
                 }
             } finally {
                 dumpin.close();

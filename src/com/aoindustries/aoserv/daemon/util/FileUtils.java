@@ -5,13 +5,12 @@ package com.aoindustries.aoserv.daemon.util;
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.util.BufferManager;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -25,20 +24,20 @@ import java.io.OutputStream;
  */
 public class FileUtils {
 
+	/**
+	 * Make no instances.
+	 */
+	private FileUtils() {
+	}
+
     /**
      * Copies a resource to the provided output stream.
      */
-    public static final void copyResource(Class clazz, String resource, OutputStream out) throws IOException {
+    public static void copyResource(Class<?> clazz, String resource, OutputStream out) throws IOException {
         InputStream in=clazz.getResourceAsStream(resource);
         try {
             if(in==null) throw new IOException("Unable to find resource: "+resource);
-            byte[] buff=BufferManager.getBytes();
-            try {
-                int ret;
-                while((ret=in.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) out.write(buff, 0, ret);
-            } finally {
-                BufferManager.release(buff);
-            }
+			IoUtils.copy(in, out);
         } finally {
             in.close();
         }
@@ -49,7 +48,7 @@ public class FileUtils {
      * 
      * TODO: Copy to a temp file and rename into place.
      */
-    public static final void copyResource(Class clazz, String resource, String filename, int uid, int gid, int mode) throws IOException {
+    public static void copyResource(Class<?> clazz, String resource, String filename, int uid, int gid, int mode) throws IOException {
         OutputStream out=new UnixFile(filename).getSecureOutputStream(uid, gid, mode, false);
         try {
             copyResource(clazz, resource, out);
@@ -133,13 +132,7 @@ public class FileUtils {
                         )
                     );
                     try {
-                        byte[] buff=BufferManager.getBytes();
-                        try {
-                            int ret;
-                            while((ret=in.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) out.write(buff, 0, ret);
-                        } finally {
-                            BufferManager.release(buff);
-                        }
+						IoUtils.copy(in, out);
                     } finally {
                         out.close();
                     }

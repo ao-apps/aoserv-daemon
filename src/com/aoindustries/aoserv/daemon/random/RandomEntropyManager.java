@@ -88,7 +88,7 @@ public final class RandomEntropyManager implements Runnable {
                                 }
                             }
                         } finally {
-                            BufferManager.release(buff);
+                            BufferManager.release(buff, true);
                         }
                         // Sleep proportional to the amount of pool needed
                         sleepyTime=
@@ -115,7 +115,7 @@ public final class RandomEntropyManager implements Runnable {
                                     DevRandom.nextBytesStatic(buff, 0, provideBytes);
                                     conn.addMasterEntropy(buff, provideBytes);
                                 } finally {
-                                    BufferManager.release(buff);
+                                    BufferManager.release(buff, true);
                                 }
                             }
                         }

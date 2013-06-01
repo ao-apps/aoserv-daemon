@@ -665,7 +665,7 @@ final public class MrtgManager extends BuilderThread {
                     out.write(buff, 0, ret);
                 }
             } finally {
-                BufferManager.release(buff);
+                BufferManager.release(buff, false);
             }
         } finally {
             in.close();

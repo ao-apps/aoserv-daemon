@@ -7,9 +7,8 @@ package com.aoindustries.aoserv.daemon;
  */
 import com.aoindustries.io.AOPool;
 import com.aoindustries.profiler.Profiler;
-import java.io.BufferedInputStream;
+import com.aoindustries.util.PropertiesUtils;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Properties;
 
 /**
@@ -27,15 +26,7 @@ final public class AOServDaemonConfiguration {
     private static String getProperty(String name) throws IOException {
         synchronized(AOServDaemonConfiguration.class) {
             Properties newProps = new Properties();
-            if (props == null) {
-                InputStream in = new BufferedInputStream(AOServDaemonConfiguration.class.getResourceAsStream("aoserv-daemon.properties"));
-                try {
-                    newProps.load(in);
-                } finally {
-                    in.close();
-                }
-                props = newProps;
-            }
+            if (props == null) props = PropertiesUtils.loadFromResource(AOServDaemonConfiguration.class, "aoserv-daemon.properties");
             return props.getProperty("aoserv.daemon."+name);
         }
     }

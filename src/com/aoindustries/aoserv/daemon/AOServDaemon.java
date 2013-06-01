@@ -45,12 +45,11 @@ import com.aoindustries.aoserv.daemon.postgres.PostgresUserManager;
 import com.aoindustries.aoserv.daemon.random.RandomEntropyManager;
 import com.aoindustries.aoserv.daemon.timezone.TimeZoneManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
+import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.profiler.Profiler;
-import com.aoindustries.util.BufferManager;
 import com.aoindustries.util.IntList;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -296,37 +295,20 @@ final public class AOServDaemon {
             // Read the results
             Reader in = new InputStreamReader(P.getInputStream());
             try {
-                StringBuilder sb = new StringBuilder();
-                char[] buff = BufferManager.getChars();
-                try {
-                    int count;
-                    while((count=in.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
-                        sb.append(buff, 0, count);
-                    }
-                    return sb.toString();
-                } finally {
-                    BufferManager.release(buff);
-                }
+				return IoUtils.readFully(in);
             } finally {
                 in.close();
             }
         } finally {
             // Read the standard error
-            StringBuilder errorSB = new StringBuilder();
+            String errorString;
             Reader errIn = new InputStreamReader(P.getErrorStream());
             try {
-                char[] buff = BufferManager.getChars();
-                try {
-                    int ret;
-                    while((ret=errIn.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) errorSB.append(buff, 0, ret);
-                } finally {
-                    BufferManager.release(buff);
-                }
+				errorString = IoUtils.readFully(errIn);
             } finally {
                 errIn.close();
             }
             // Write any standard error to standard error
-            String errorString = errorSB.toString();
             if(errorString.length()>0) System.err.println("'"+getCommandString(command)+"': "+errorString);
             try {
                 int retCode = P.waitFor();
@@ -349,37 +331,20 @@ final public class AOServDaemon {
             // Read the results
             InputStream in = P.getInputStream();
             try {
-                ByteArrayOutputStream bout = new ByteArrayOutputStream();
-                byte[] buff = BufferManager.getBytes();
-                try {
-                    int count;
-                    while((count=in.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
-                        bout.write(buff, 0, count);
-                    }
-                    return bout.toByteArray();
-                } finally {
-                    BufferManager.release(buff);
-                }
+				return IoUtils.readFully(in);
             } finally {
                 in.close();
             }
         } finally {
             // Read the standard error
-            StringBuilder errorSB = new StringBuilder();
+            String errorString;
             Reader errIn = new InputStreamReader(P.getErrorStream());
             try {
-                char[] buff = BufferManager.getChars();
-                try {
-                    int ret;
-                    while((ret=errIn.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) errorSB.append(buff, 0, ret);
-                } finally {
-                    BufferManager.release(buff);
-                }
+				errorString = IoUtils.readFully(errIn);
             } finally {
                 errIn.close();
             }
             // Write any standard error to standard error
-            String errorString = errorSB.toString();
             if(errorString.length()>0) System.err.println("'"+getCommandString(command)+"': "+errorString);
             try {
                 int retCode = P.waitFor();

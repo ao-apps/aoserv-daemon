@@ -646,7 +646,7 @@ final public class AWStatsManager extends BuilderThread {
                             try {
                                 int ret;
                                 while((ret=in.read(chars, 0, BufferManager.BUFFER_SIZE))!=-1) {
-                                    // Convert to bytes by simple cast
+                                    // Convert to bytes by simple cast - assumes ISO8859-1 encoding
                                     for(int c=0;c<ret;c++) buff[c]=(byte)chars[c];
 
                                     out.write(AOServDaemonProtocol.NEXT);
@@ -654,10 +654,10 @@ final public class AWStatsManager extends BuilderThread {
                                     out.write(buff, 0, ret);
                                 }
                             } finally {
-                                BufferManager.release(chars);
+                                BufferManager.release(chars, false);
                             }
                         } finally {
-                            BufferManager.release(buff);
+                            BufferManager.release(buff, false);
                         }
                     } finally {
                         in.close();
@@ -689,7 +689,7 @@ final public class AWStatsManager extends BuilderThread {
                             out.write(buff, 0, ret);
                         }
                     } finally {
-                        BufferManager.release(buff);
+                        BufferManager.release(buff, false);
                     }
                 } finally {
                     in.close();

@@ -828,7 +828,7 @@ public class LinuxAccountManager extends BuilderThread {
                     out.write(buff, 0, ret);
                 }
             } finally {
-                BufferManager.release(buff);
+                BufferManager.release(buff, false);
             }
             in.close();
         } finally {
@@ -852,7 +852,7 @@ public class LinuxAccountManager extends BuilderThread {
                         out.write(buff, 0, len);
                     }
                 } finally {
-                    BufferManager.release(buff);
+                    BufferManager.release(buff, false);
                 }
                 out.close();
                 if(code!=AOServDaemonProtocol.DONE) {
