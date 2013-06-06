@@ -1,12 +1,35 @@
-mandriva/2006.0/i586/proc
-mandriva/2006.0/i586/sys
-mandriva/2006.0/i586/var/backup
-mandriva/2006.0/i586/var/failover
+################################################################################
+# OS.....: RedHat
+# Version: 4
+# Arch...: x86_64
+# Role...: Bare metal/domU
+################################################################################
+
 redhat/ES 4/x86_64/proc
 redhat/ES 4/x86_64/sys
 redhat/ES 4/x86_64/var/backup
 redhat/ES 4/x86_64/var/failover
+
+################################################################################
+# OS.....: CentOS
+# Version: 5
+# Arch...: i686 and x86_64
+# Role...: Bare metal/domU
+################################################################################
+
 centos/5/i686,x86_64/dev/disk/by-uuid
 centos/5/i686,x86_64/proc
 centos/5/i686,x86_64/selinux
 centos/5/i686,x86_64/sys
+
+################################################################################
+# OS.....: CentOS
+# Version: 5
+# Arch...: x86_64
+# Role...: Xen hypervisor (dom0)
+################################################################################
+
+centos/5.dom0/x86_64/dev
+centos/5.dom0/x86_64/proc
+centos/5.dom0/x86_64/selinux
+centos/5.dom0/x86_64/sys

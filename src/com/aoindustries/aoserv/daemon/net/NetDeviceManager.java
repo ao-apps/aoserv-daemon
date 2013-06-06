@@ -440,8 +440,8 @@ final public class NetDeviceManager extends BuilderThread {
         synchronized(System.out) {
             if(
                 // Nothing is done for these operating systems
-                osv!=OperatingSystemVersion.CENTOS_5DOM0_I686
-                && osv!=OperatingSystemVersion.CENTOS_5DOM0_X86_64
+                osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
+                && osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
                 // Check config after OS check so config entry not needed
                 && AOServDaemonConfiguration.isManagerEnabled(NetDeviceManager.class)
                 && netDeviceManager==null
@@ -464,8 +464,8 @@ final public class NetDeviceManager extends BuilderThread {
         File procFile;
         int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
         if(
-            osv==OperatingSystemVersion.CENTOS_5DOM0_I686
-            || osv==OperatingSystemVersion.CENTOS_5DOM0_X86_64
+            osv==OperatingSystemVersion.CENTOS_5_DOM0_I686
+            || osv==OperatingSystemVersion.CENTOS_5_DOM0_X86_64
         ) {
             // Xen adds a "p" to the name, try that first
             procFile = new File("/proc/net/bonding/p"+netDevice.getNetDeviceID().getName());
@@ -541,8 +541,8 @@ final public class NetDeviceManager extends BuilderThread {
         int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
         if(
             (
-                osv==OperatingSystemVersion.CENTOS_5DOM0_I686
-                || osv==OperatingSystemVersion.CENTOS_5DOM0_X86_64
+                osv==OperatingSystemVersion.CENTOS_5_DOM0_I686
+                || osv==OperatingSystemVersion.CENTOS_5_DOM0_X86_64
             ) && !netDevice.getNetDeviceID().getName().equals(NetDeviceID.LO)
         ) {
             // Xen adds a "p" to the name or any device (except lo or non-xen devices)

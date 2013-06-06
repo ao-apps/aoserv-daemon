@@ -1,3 +1,10 @@
+################################################################################
+# OS.....: RedHat
+# Version: 4
+# Arch...: x86_64
+# Role...: Bare metal/domU
+################################################################################
+
 redhat/ES 4/x86_64/etc/cups/certs/0
 redhat/ES 4/x86_64/etc/group
 redhat/ES 4/x86_64/etc/group.old
@@ -93,6 +100,14 @@ redhat/ES 4/x86_64/var/run/sendmail.pid
 redhat/ES 4/x86_64/var/run/sm-client.pid
 redhat/ES 4/x86_64/var/run/syslogd.pid
 redhat/ES 4/x86_64/var/run/sshd.pid
+
+################################################################################
+# OS.....: CentOS
+# Version: 5
+# Arch...: i686 and x86_64
+# Role...: Bare metal/domU
+################################################################################
+
 centos/5/i686,x86_64/aquota.user
 centos/5/i686,x86_64/dev/.udev/db/block@xvda@xvda1
 centos/5/i686,x86_64/dev/.udev/db/block@xvda@xvda2
@@ -627,3 +642,12 @@ centos/5/i686,x86_64/var/www/mrtg/xvda3-year.png
 centos/5/i686,x86_64/var/www/mrtg/xvda3.html
 centos/5/i686,x86_64/var/www/mrtg/xvda3.log
 centos/5/i686,x86_64/var/www/mrtg/xvda3.old
+
+################################################################################
+# OS.....: CentOS
+# Version: 5
+# Arch...: x86_64
+# Role...: Xen hypervisor (dom0)
+################################################################################
+
+centos/5.dom0/x86_64/aquota.user

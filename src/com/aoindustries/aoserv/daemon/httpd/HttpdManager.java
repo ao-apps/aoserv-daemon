@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.httpd;
-
 /*
- * Copyright 2000-2009 by AO Industries, Inc.,
+ * Copyright 2000-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.HttpdServer;
@@ -33,96 +33,96 @@ import java.util.logging.Level;
  */
 final public class HttpdManager extends BuilderThread {
 
-    private static HttpdManager httpdManager;
+	private static HttpdManager httpdManager;
 
-    private HttpdManager() {
-    }
+	private HttpdManager() {
+	}
 
-    private static final Object rebuildLock=new Object();
-    protected boolean doRebuild() {
-        try {
-            synchronized(rebuildLock) {
-                // Get some variables that will be used throughout the method
-                List<File> deleteFileList=new ArrayList<File>();
-                Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted = new HashSet<HttpdSharedTomcat>();
-                Set<HttpdSite> sitesNeedingRestarted = new HashSet<HttpdSite>();
-                Set<HttpdServer> serversNeedingReloaded = new HashSet<HttpdServer>();
+	private static final Object rebuildLock=new Object();
+	protected boolean doRebuild() {
+		try {
+			synchronized(rebuildLock) {
+				// Get some variables that will be used throughout the method
+				List<File> deleteFileList=new ArrayList<File>();
+				Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted = new HashSet<HttpdSharedTomcat>();
+				Set<HttpdSite> sitesNeedingRestarted = new HashSet<HttpdSite>();
+				Set<HttpdServer> serversNeedingReloaded = new HashSet<HttpdServer>();
 
-                // Rebuild file system objects
-                HttpdLogManager.doRebuild(deleteFileList, serversNeedingReloaded);
-                HttpdSharedTomcatManager.doRebuild(deleteFileList, sharedTomcatsNeedingRestarted);
-                HttpdSiteManager.doRebuild(deleteFileList, sitesNeedingRestarted, sharedTomcatsNeedingRestarted);
-                HttpdServerManager.doRebuild(deleteFileList, serversNeedingReloaded);
+				// Rebuild file system objects
+				HttpdLogManager.doRebuild(deleteFileList, serversNeedingReloaded);
+				HttpdSharedTomcatManager.doRebuild(deleteFileList, sharedTomcatsNeedingRestarted);
+				HttpdSiteManager.doRebuild(deleteFileList, sitesNeedingRestarted, sharedTomcatsNeedingRestarted);
+				HttpdServerManager.doRebuild(deleteFileList, serversNeedingReloaded);
 
-                // stop, disable, enable, start, and restart necessary processes
-                HttpdSharedTomcatManager.stopStartAndRestart(sharedTomcatsNeedingRestarted);
-                HttpdSiteManager.stopStartAndRestart(sitesNeedingRestarted);
+				// stop, disable, enable, start, and restart necessary processes
+				HttpdSharedTomcatManager.stopStartAndRestart(sharedTomcatsNeedingRestarted);
+				HttpdSiteManager.stopStartAndRestart(sitesNeedingRestarted);
 
-                // Reload the Apache server configs
-                HttpdServerManager.reloadConfigs(serversNeedingReloaded);
+				// Reload the Apache server configs
+				HttpdServerManager.reloadConfigs(serversNeedingReloaded);
 
-                // Back-up and delete the files scheduled for removal
-                BackupManager.backupAndDeleteFiles(deleteFileList);
-            }
-            return true;
-        } catch(ThreadDeath TD) {
-            throw TD;
-        } catch(Throwable T) {
-            LogFactory.getLogger(HttpdManager.class).log(Level.SEVERE, null, T);
-            return false;
-        }
-    }
+				// Back-up and delete the files scheduled for removal
+				BackupManager.backupAndDeleteFiles(deleteFileList);
+			}
+			return true;
+		} catch(ThreadDeath TD) {
+			throw TD;
+		} catch(Throwable T) {
+			LogFactory.getLogger(HttpdManager.class).log(Level.SEVERE, null, T);
+			return false;
+		}
+	}
 
-    public static void start() throws IOException, SQLException {
-        AOServer thisAOServer=AOServDaemon.getThisAOServer();
-        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+	public static void start() throws IOException, SQLException {
+		AOServer thisAOServer=AOServDaemon.getThisAOServer();
+		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
 
-        synchronized(System.out) {
-            if(
-                // Nothing is done for these operating systems
-                osv!=OperatingSystemVersion.CENTOS_5DOM0_I686
-                && osv!=OperatingSystemVersion.CENTOS_5DOM0_X86_64
-                // Check config after OS check so config entry not needed
-                && AOServDaemonConfiguration.isManagerEnabled(HttpdManager.class)
-                && httpdManager==null
-            ) {
-                System.out.print("Starting HttpdManager: ");
-                AOServConnector connector=AOServDaemon.getConnector();
-                httpdManager=new HttpdManager();
-                connector.getHttpdBinds().addTableListener(httpdManager, 0);
-                connector.getHttpdServers().addTableListener(httpdManager, 0);
-                connector.getHttpdJBossSites().addTableListener(httpdManager, 0);
-                connector.getHttpdSharedTomcats().addTableListener(httpdManager, 0);
-                connector.getHttpdSites().addTableListener(httpdManager, 0);
-                connector.getHttpdSiteAuthenticatedLocationTable().addTableListener(httpdManager, 0);
-                connector.getHttpdSiteBinds().addTableListener(httpdManager, 0);
-                connector.getHttpdSiteURLs().addTableListener(httpdManager, 0);
-                connector.getHttpdStaticSites().addTableListener(httpdManager, 0);
-                connector.getHttpdTomcatContexts().addTableListener(httpdManager, 0);
-                connector.getHttpdTomcatDataSources().addTableListener(httpdManager, 0);
-                connector.getHttpdTomcatParameters().addTableListener(httpdManager, 0);
-                connector.getHttpdTomcatSites().addTableListener(httpdManager, 0);
-                connector.getHttpdTomcatSharedSites().addTableListener(httpdManager, 0);
-                connector.getHttpdTomcatStdSites().addTableListener(httpdManager, 0);
-                connector.getHttpdWorkers().addTableListener(httpdManager, 0);
-                connector.getIpAddresses().addTableListener(httpdManager, 0);
-                connector.getLinuxServerAccounts().addTableListener(httpdManager, 0);
-                connector.getNetBinds().addTableListener(httpdManager, 0);
-                System.out.println("Done");
-            }
-        }
-    }
+		synchronized(System.out) {
+			if(
+				// Nothing is done for these operating systems
+				osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				// Check config after OS check so config entry not needed
+				&& AOServDaemonConfiguration.isManagerEnabled(HttpdManager.class)
+				&& httpdManager==null
+			) {
+				System.out.print("Starting HttpdManager: ");
+				AOServConnector connector=AOServDaemon.getConnector();
+				httpdManager=new HttpdManager();
+				connector.getHttpdBinds().addTableListener(httpdManager, 0);
+				connector.getHttpdServers().addTableListener(httpdManager, 0);
+				connector.getHttpdJBossSites().addTableListener(httpdManager, 0);
+				connector.getHttpdSharedTomcats().addTableListener(httpdManager, 0);
+				connector.getHttpdSites().addTableListener(httpdManager, 0);
+				connector.getHttpdSiteAuthenticatedLocationTable().addTableListener(httpdManager, 0);
+				connector.getHttpdSiteBinds().addTableListener(httpdManager, 0);
+				connector.getHttpdSiteURLs().addTableListener(httpdManager, 0);
+				connector.getHttpdStaticSites().addTableListener(httpdManager, 0);
+				connector.getHttpdTomcatContexts().addTableListener(httpdManager, 0);
+				connector.getHttpdTomcatDataSources().addTableListener(httpdManager, 0);
+				connector.getHttpdTomcatParameters().addTableListener(httpdManager, 0);
+				connector.getHttpdTomcatSites().addTableListener(httpdManager, 0);
+				connector.getHttpdTomcatSharedSites().addTableListener(httpdManager, 0);
+				connector.getHttpdTomcatStdSites().addTableListener(httpdManager, 0);
+				connector.getHttpdWorkers().addTableListener(httpdManager, 0);
+				connector.getIpAddresses().addTableListener(httpdManager, 0);
+				connector.getLinuxServerAccounts().addTableListener(httpdManager, 0);
+				connector.getNetBinds().addTableListener(httpdManager, 0);
+				System.out.println("Done");
+			}
+		}
+	}
 
-    public static void waitForRebuild() {
-        if(httpdManager!=null) httpdManager.waitForBuild();
-    }
+	public static void waitForRebuild() {
+		if(httpdManager!=null) httpdManager.waitForBuild();
+	}
 
-    public String getProcessTimerDescription() {
-        return "Rebuild HTTPD";
-    }
+	public String getProcessTimerDescription() {
+		return "Rebuild HTTPD";
+	}
 
-    @Override
-    public long getProcessTimerMaximumTime() {
-        return 15L*60*1000;
-    }
+	@Override
+	public long getProcessTimerMaximumTime() {
+		return 15L*60*1000;
+	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2012 by AO Industries, Inc.,
+ * Copyright 2001-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -474,8 +474,8 @@ final public class PostgresUserManager extends BuilderThread {
         synchronized(System.out) {
             if(
                 // Nothing is done for these operating systems
-                osv!=OperatingSystemVersion.CENTOS_5DOM0_I686
-                && osv!=OperatingSystemVersion.CENTOS_5DOM0_X86_64
+                osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
+                && osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
                 // Check config after OS check so config entry not needed
                 && AOServDaemonConfiguration.isManagerEnabled(PostgresUserManager.class)
                 && postgresUserManager==null

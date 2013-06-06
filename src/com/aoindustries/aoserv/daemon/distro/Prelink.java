@@ -23,6 +23,9 @@ final public class Prelink {
     private Prelink() {
     }
 
+	/**
+	 * @see #verify(java.lang.String, java.lang.String)
+	 */
     public static byte[] verify(String path) {
         return verify(path, null);
     }
@@ -31,8 +34,8 @@ final public class Prelink {
      * Gets the original content of a file before prelinking, also verifying the
      * file has not been tampered with since prelinking.
      *
-     * @param path the path of the binary or library to verify
-     * @param chroot the optional chroot path (null for no chroot)
+     * @param  path    the path of the binary or library to verify
+     * @param  chroot  the optional chroot path (null for no chroot)
      */
     public static byte[] verify(String path, String chroot) {
 		throw new NotImplementedException("TODO: Implement method");

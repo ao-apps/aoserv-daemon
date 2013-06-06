@@ -1,3 +1,10 @@
+################################################################################
+# OS.....: RedHat
+# Version: 4
+# Arch...: x86_64
+# Role...: Bare metal/domU
+################################################################################
+
 redhat/ES 4/x86_64/dev/pts
 redhat/ES 4/x86_64/home/a
 redhat/ES 4/x86_64/home/b
@@ -31,6 +38,14 @@ redhat/ES 4/x86_64/var/lib/pgsql/8.1/pg_xlog
 redhat/ES 4/x86_64/var/opt/postgresql-8.1/log
 redhat/ES 4/x86_64/var/spool/mail
 redhat/ES 4/x86_64/var/spool/mqueue
+
+################################################################################
+# OS.....: CentOS
+# Version: 5
+# Arch...: i686 and x86_64
+# Role...: Bare metal/domU
+################################################################################
+
 centos/5/i686,x86_64/dev/pts
 centos/5/i686,x86_64/etc/httpd/conf/hosts
 centos/5/i686,x86_64/etc/httpd/conf/logrotate.d
@@ -111,3 +126,12 @@ centos/5/i686,x86_64/var/opt/awstats-6/hosts
 centos/5/i686,x86_64/var/run/screen/S-root
 centos/5/i686,x86_64/var/spool/clientmqueue
 centos/5/i686,x86_64/var/spool/mqueue
+
+################################################################################
+# OS.....: CentOS
+# Version: 5
+# Arch...: x86_64
+# Role...: Xen hypervisor (dom0)
+################################################################################
+
+centos/5.dom0/x86_64/tmp

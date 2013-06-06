@@ -1459,13 +1459,13 @@ final public class FailoverFileReplicationManager {
                                                     tempUF.renameTo(uf);
                                                     uf.getStat(ufStat);
                                                 }
-                                                // Update cache (cache update counted as remove and then add because cache renaming method expects renameTo to not exist
+                                                // Update cache (cache update counted as removeByValue and then add because cache renaming method expects renameTo to not exist
                                                 long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
                                                 renamed(modifyTimeAndSizeCaches, uf, tempUFLog, ufParent);
                                                 if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
                                             } else {
                                                 // Not a log directory, just replace old regular file
-                                                // Update cache (cache update counted as remove and then add because cache renaming method expects renameTo to not exist
+                                                // Update cache (cache update counted as removeByValue and then add because cache renaming method expects renameTo to not exist
                                                 long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
                                                 removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
                                                 if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
@@ -1488,7 +1488,7 @@ final public class FailoverFileReplicationManager {
                                         uf.getStat(ufStat);
                                     }
                                 }
-                                // Update cache (cache update counted as remove and then add because cache renaming method expects renameTo to not exist
+                                // Update cache (cache update counted as removeByValue and then add because cache renaming method expects renameTo to not exist
                                 long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
                                 added(modifyTimeAndSizeCaches, uf, ufParent, new ModifyTimeAndSize(ufStat.getModifyTime(), ufStat.getSize()));
                                 if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
@@ -1496,7 +1496,7 @@ final public class FailoverFileReplicationManager {
                         }
                     }
 
-                    // For any directories that were completed during this batch, remove caches, clean extra files and set its modify time
+                    // For any directories that were completed during this batch, removeByValue caches, clean extra files and set its modify time
                     for(int c=0;c<directoryFinalizeUFs.size();c++) {
                         UnixFile dirUF = directoryFinalizeUFs.get(c);
                         UnixFile dirLinkToUF = directoryFinalizeLinkToUFs==null ? null : directoryFinalizeLinkToUFs.get(c);
@@ -1625,13 +1625,13 @@ final public class FailoverFileReplicationManager {
     private static void removing(Map<UnixFile,ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, UnixFile uf, Stat ufStat, UnixFile ufParent) throws FileNotFoundException {
         if(!modifyTimeAndSizeCaches.isEmpty()) {
             if(ufStat.isRegularFile()) {
-                // For a regular file, just remove it from its parent, this is the fastest case
+                // For a regular file, just removeByValue it from its parent, this is the fastest case
                 // because no scan for children directories is required.
 
                 ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.get(ufParent);
                 if(modifyTimeAndSizeCache!=null) modifyTimeAndSizeCache.removing(uf.getFile().getName());
             } else if(ufStat.isDirectory()) {
-                // For a directory, remove it and any of the directories under it.
+                // For a directory, removeByValue it and any of the directories under it.
                 // This is more expensive because we need to search all caches for prefix matches (iteration).
 
                 // Remove any items that are this or are children of this

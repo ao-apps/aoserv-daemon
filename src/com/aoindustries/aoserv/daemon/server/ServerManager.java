@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2012 by AO Industries, Inc.,
+ * Copyright 2002-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -177,8 +177,8 @@ final public class ServerManager {
         else {
             int osv = osvObj.getPkey();
             if(
-                osv==OperatingSystemVersion.CENTOS_5DOM0_I686
-                || osv==OperatingSystemVersion.CENTOS_5DOM0_X86_64
+                osv==OperatingSystemVersion.CENTOS_5_DOM0_I686
+                || osv==OperatingSystemVersion.CENTOS_5_DOM0_X86_64
                 || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
                 || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
             ) {

@@ -79,8 +79,8 @@ final public class IpReputationManager extends BuilderThread {
             synchronized(System.out) {
                 if(
                     // Only runs on Xen dom0 (firewalling done outside virtual servers)
-                    osv==OperatingSystemVersion.CENTOS_5DOM0_I686
-                    || osv==OperatingSystemVersion.CENTOS_5DOM0_X86_64
+                    osv==OperatingSystemVersion.CENTOS_5_DOM0_I686
+                    || osv==OperatingSystemVersion.CENTOS_5_DOM0_X86_64
                     // Check config after OS check so config entry not needed
                     && AOServDaemonConfiguration.isManagerEnabled(IpReputationManager.class)
                     && ipReputationManager==null
@@ -218,8 +218,8 @@ final public class IpReputationManager extends BuilderThread {
             int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
             if(
                 // Only runs on Xen dom0 (firewalling done outside virtual servers)
-                osv!=OperatingSystemVersion.CENTOS_5DOM0_I686
-                && osv!=OperatingSystemVersion.CENTOS_5DOM0_X86_64
+                osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
+                && osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
             ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
             synchronized(rebuildLock) {

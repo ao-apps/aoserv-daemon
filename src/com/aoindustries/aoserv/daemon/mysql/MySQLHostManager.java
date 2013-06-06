@@ -152,8 +152,8 @@ final public class MySQLHostManager extends BuilderThread {
         synchronized(System.out) {
             if(
                 // Nothing is done for these operating systems
-                osv!=OperatingSystemVersion.CENTOS_5DOM0_I686
-                && osv!=OperatingSystemVersion.CENTOS_5DOM0_X86_64
+                osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
+                && osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
                 // Check config after OS check so config entry not needed
                 && AOServDaemonConfiguration.isManagerEnabled(MySQLHostManager.class)
                 && mysqlHostManager==null
