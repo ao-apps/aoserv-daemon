@@ -1,11 +1,13 @@
-package com.aoindustries.aoserv.daemon.distro;
-
 /*
- * Copyright 2003-2009 by AO Industries, Inc.,
+ * Copyright 2003-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.*;
+package com.aoindustries.aoserv.daemon.distro;
+
+import com.aoindustries.aoserv.client.Architecture;
+import com.aoindustries.aoserv.client.OperatingSystem;
+import com.aoindustries.aoserv.client.OperatingSystemVersion;
 
 /**
  * Used by DistroGenerator.
