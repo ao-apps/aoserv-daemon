@@ -440,7 +440,6 @@ final public class NetworkMonitor {
 														}
 													}
 													if(highestPacketCount == Long.MIN_VALUE) throw new AssertionError("Unable to find IP to null route");
-													NullRouteManager.addNullRoute(nullingIp);
 													PrintStream out = System.out;
 													synchronized(out) {
 														out.print(threadName);
@@ -454,6 +453,7 @@ final public class NetworkMonitor {
 														out.print(getPacketRate(highestPacketCount, timeSpanMicros));
 														out.println(" pps");
 													}
+													NullRouteManager.addNullRoute(nullingIp);
 												}
 											}
 											// Add null routes due to bits/sec
@@ -480,7 +480,6 @@ final public class NetworkMonitor {
 														}
 													}
 													if(highestByteCount == Long.MIN_VALUE) throw new AssertionError("Unable to find IP to null route");
-													NullRouteManager.addNullRoute(nullingIp);
 													PrintStream out = System.out;
 													synchronized(out) {
 														out.print(threadName);
@@ -494,6 +493,7 @@ final public class NetworkMonitor {
 														out.print(getBitRate(highestByteCount, timeSpanMicros));
 														out.println(" bps");
 													}
+													NullRouteManager.addNullRoute(nullingIp);
 												}
 											}
 											// TODO: Add null route on fifo errors and/or iface drops?

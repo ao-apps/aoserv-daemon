@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 by AO Industries, Inc.,
+ * Copyright 2012-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -13,6 +13,7 @@ import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.lang.ProcessResult;
 import com.aoindustries.util.StringUtility;
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -261,7 +262,7 @@ final public class VirtualServerManager {
                             File cmdlineFile = new File(dir, "cmdline");
                             if(cmdlineFile.exists()) {
                                 StringBuilder SB = new StringBuilder();
-                                FileInputStream in = new FileInputStream(cmdlineFile);
+                                InputStream in = new BufferedInputStream(new FileInputStream(cmdlineFile), cmdlinePrefix.length());
                                 try {
                                     int b;
                                     while((b=in.read())!=-1) SB.append((char)b);
@@ -276,7 +277,7 @@ final public class VirtualServerManager {
                     }
                 } catch(IOException err) {
                     // Log as warning
-                    LogFactory.getLogger(ServerManager.class).log(Level.WARNING, null, err);
+                    LogFactory.getLogger(VirtualServerManager.class).log(Level.WARNING, null, err);
                 }
             }
         }

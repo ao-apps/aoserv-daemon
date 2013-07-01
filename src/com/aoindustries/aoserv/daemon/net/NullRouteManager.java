@@ -33,6 +33,12 @@ final public class NullRouteManager {
 	private static final boolean DEBUG = true;
 
 	/**
+	 * The maximum number of milliseconds to wait between status checks.
+	 * This is mostly here to avoid possible long waits during system time resets.
+	 */
+	private static final long MAX_WAIT_TIME = 60L * 1000L; // One minute
+
+	/**
 	 * When an IP address is repeatedly null routed, its duration is increased.
 	 */
 	private static final long[] durations = {
@@ -99,6 +105,7 @@ final public class NullRouteManager {
 					final PrintStream out = System.out;
 					synchronized(out) {
 						out.print(NullRouteManager.class.getName());
+						out.print(": ");
 						out.print(IPAddress.getIPAddressForInt(ip));
 						out.print(": system time reset: level=");
 						out.println(level);
@@ -114,6 +121,7 @@ final public class NullRouteManager {
 						final PrintStream out = System.out;
 						synchronized(out) {
 							out.print(NullRouteManager.class.getName());
+							out.print(": ");
 							out.print(IPAddress.getIPAddressForInt(ip));
 							out.print(": decremented: level=");
 							out.println(level);
@@ -134,6 +142,7 @@ final public class NullRouteManager {
 				final PrintStream out = System.out;
 				synchronized(out) {
 					out.print(NullRouteManager.class.getName());
+					out.print(": ");
 					out.print(IPAddress.getIPAddressForInt(ip));
 					out.print(": incremented: level=");
 					out.println(level);
@@ -144,95 +153,100 @@ final public class NullRouteManager {
 
 	private static final Map<Integer,NullRoute> nullRoutes = new LinkedHashMap<Integer,NullRoute>();
 
+	private static final Object threadLock = new Object();
 	private Thread thread;
 
 	private NullRouteManager() {
     }
 
-	synchronized private void startThread() {
-		if(thread==null) {
-			thread = new Thread(NullRouteManager.class.getName()) {
-				@Override
-				public void run() {
-					while(true) {
-						try {
-							StringBuilder newContents = new StringBuilder();
-							synchronized(nullRoutes) {
-								while(true) {
-									// Verify config file while cleaning-up entries
-									newContents.setLength(0);
-									final long currentTime = System.currentTimeMillis();
-									long nearestEnding = Long.MAX_VALUE;
-									Iterator<Map.Entry<Integer,NullRoute>> iter = nullRoutes.entrySet().iterator();
-									while(iter.hasNext()) {
-										Map.Entry<Integer,NullRoute> entry = iter.next();
-										NullRoute nullRoute = entry.getValue();
-										// If null route currently in progress, add to the output file
-										if(currentTime >= nullRoute.startTime && currentTime < nullRoute.endTime) {
-											String ipString = IPAddress.getIPAddressForInt(nullRoute.ip);
-											InetAddress inetAddress = InetAddress.valueOf(ipString);
-											assert inetAddress.isIPv4();
-											// Never null-route private IP addresses, such as those used for communication between routers for BGP sessions
-											if(!inetAddress.isUniqueLocal()) {
-												newContents
-													.append("route ")
-													.append(ipString)
-													.append("/32 drop;\n")
-												;
+	private void startThread() {
+		synchronized(threadLock) {
+			if(thread==null) {
+				thread = new Thread(NullRouteManager.class.getName()) {
+					@Override
+					public void run() {
+						while(true) {
+							try {
+								final StringBuilder newContents = new StringBuilder();
+								synchronized(nullRoutes) {
+									while(true) {
+										// Verify config file while cleaning-up entries
+										newContents.setLength(0);
+										final long currentTime = System.currentTimeMillis();
+										long nearestEnding = Long.MAX_VALUE;
+										Iterator<Map.Entry<Integer,NullRoute>> iter = nullRoutes.entrySet().iterator();
+										while(iter.hasNext()) {
+											Map.Entry<Integer,NullRoute> entry = iter.next();
+											NullRoute nullRoute = entry.getValue();
+											// If null route currently in progress, add to the output file
+											if(currentTime >= nullRoute.startTime && currentTime < nullRoute.endTime) {
+												String ipString = IPAddress.getIPAddressForInt(nullRoute.ip);
+												InetAddress inetAddress = InetAddress.valueOf(ipString);
+												assert inetAddress.isIPv4();
+												// Never null-route private IP addresses, such as those used for communication between routers for BGP sessions
+												if(!inetAddress.isUniqueLocal()) {
+													newContents
+														.append("route ")
+														.append(ipString)
+														.append("/32 drop;\n")
+													;
+												}
+												// Find the null route that expires next
+												if(nullRoute.endTime < nearestEnding) nearestEnding = nullRoute.endTime;
+											} else {
+												nullRoute.reduceLevel(currentTime);
+												if(nullRoute.level < 0) {
+													// Quiet long enough to remove entirely
+													iter.remove();
+												}
 											}
-											// Find the null route that expires next
-											if(nullRoute.endTime < nearestEnding) nearestEnding = nullRoute.endTime;
-										} else {
-											nullRoute.reduceLevel(currentTime);
-											if(nullRoute.level < 0) {
-												// Quiet long enough to remove entirely
-												iter.remove();
+										}
+										byte[] newBytes = newContents.toString().getBytes(Charset.UTF_8.name()); // .name() only for JDK < 1.6 compatibility
+										// See if file has changed
+										if(!FileUtils.contentEquals(BIRD_NULL_CONFIG, newBytes)) {
+											// Write new file
+											OutputStream out = new FileOutputStream(BIRD_NULL_CONFIG_NEW);
+											try {
+												out.write(newBytes);
+											} finally {
+												out.close();
+											}
+											FileUtils.rename(BIRD_NULL_CONFIG_NEW, BIRD_NULL_CONFIG);
+											// kill -HUP bird if updated
+											int pid = VirtualServerManager.findPid("/opt/bird/sbin/bird\u0000-u\u0000bird\u0000-g\u0000bird");
+											if(pid == -1) {
+												LogFactory.getLogger(NullRouteManager.class).log(Level.SEVERE, "bird not running");
+											} else {
+												new LinuxProcess(pid).signal("HUP");
 											}
 										}
-									}
-									byte[] newBytes = newContents.toString().getBytes(Charset.UTF_8.name()); // .name() only for JDK < 1.6 compatibility
-									// See if file has changed
-									if(!FileUtils.contentEquals(BIRD_NULL_CONFIG, newBytes)) {
-										// Write new file
-										OutputStream out = new FileOutputStream(BIRD_NULL_CONFIG_NEW);
-										try {
-											out.write(newBytes);
-										} finally {
-											out.close();
-										}
-										FileUtils.rename(BIRD_NULL_CONFIG_NEW, BIRD_NULL_CONFIG);
-										// kill -HUP bird if updated
-										int pid = VirtualServerManager.findPid("/opt/bird/sbin/bird\u0000-u\u0000bird\u0000-g\u0000bird");
-				                        if(pid == -1) {
-											LogFactory.getLogger(NullRouteManager.class).log(Level.SEVERE, "bird not running");
+										// Wait until more action to take
+										if(nearestEnding == Long.MAX_VALUE) {
+											// No null routes active, wait indefinitely until notified
+											nullRoutes.wait(MAX_WAIT_TIME);
 										} else {
-											new LinuxProcess(pid).signal("HUP");
+											long waitTime = nearestEnding - System.currentTimeMillis();
+											if(waitTime > MAX_WAIT_TIME) waitTime = MAX_WAIT_TIME;
+											if(waitTime > 0) nullRoutes.wait(waitTime);
 										}
-									}
-									// Wait for this amount of time, or indefinitely if none
-									if(nearestEnding == Long.MAX_VALUE) {
-										nullRoutes.wait();
-									} else {
-										long waitTime = nearestEnding - System.currentTimeMillis();
-										if(waitTime>0) nullRoutes.wait(waitTime);
 									}
 								}
+							} catch (ThreadDeath TD) {
+								throw TD;
+							} catch (Throwable T) {
+								LogFactory.getLogger(NullRouteManager.class).log(Level.SEVERE, null, T);
 							}
-						} catch (ThreadDeath TD) {
-							throw TD;
-						} catch (Throwable T) {
-							LogFactory.getLogger(NullRouteManager.class).log(Level.SEVERE, null, T);
-						}
-						try {
-							sleep(1000);
-						} catch (InterruptedException err) {
-							LogFactory.getLogger(NullRouteManager.class).log(Level.WARNING, null, err);
+							try {
+								sleep(1000);
+							} catch (InterruptedException err) {
+								LogFactory.getLogger(NullRouteManager.class).log(Level.WARNING, null, err);
+							}
 						}
 					}
-				}
-			};
-			thread.setPriority(Thread.MAX_PRIORITY);
-			thread.start();
+				};
+				thread.setPriority(Thread.MAX_PRIORITY);
+				thread.start();
+			}
 		}
 	}
 
@@ -242,8 +256,8 @@ final public class NullRouteManager {
 	public static void addNullRoute(int nullingIp) {
 		final Integer ipObj = nullingIp;
 		final long currentTime = System.currentTimeMillis();
-		// Look for an existing null route
 		synchronized(nullRoutes) {
+			// Look for an existing null route
 			NullRoute nullRoute = nullRoutes.get(ipObj);
 			if(nullRoute!=null) {
 				// If null route currently in progress, ignore request

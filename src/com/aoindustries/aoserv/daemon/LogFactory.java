@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon;
-
 /*
- * Copyright 2009 by AO Industries, Inc.,
+ * Copyright 2009-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.TicketCategory;
 import com.aoindustries.aoserv.client.TicketLoggingHandler;
@@ -30,13 +30,13 @@ public class LogFactory {
     /**
      * Gets the logger for the provided class.
      */
-    public static Logger getLogger(Class clazz) {
+    public static Logger getLogger(Class<?> clazz) {
         return getLogger(clazz.getName());
     }
 
     /**
      * <p>
-     * Gets the logger for the provided and name.  The logger is cached..
+     * Gets the logger for the provided and name.  The logger is cached.
      * Subsequent calls to this method will return the previously created logger.
      * If an error occurs while creating the logger it will return the default
      * logger.  In this case, it will not add the logger to the cache,
@@ -44,7 +44,7 @@ public class LogFactory {
      * available.
      * </p>
      * <p>
-     * Callers of this class should reqest a logger each time they need one
+     * Callers of this class should request a logger each time they need one
      * and not cache/reuse the logger provided by this method.  This allows
      * for the automatic retry on logger creation.
      * </p>

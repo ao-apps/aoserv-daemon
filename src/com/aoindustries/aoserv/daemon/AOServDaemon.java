@@ -29,6 +29,7 @@ import com.aoindustries.aoserv.daemon.httpd.AWStatsManager;
 import com.aoindustries.aoserv.daemon.httpd.HttpdManager;
 import com.aoindustries.aoserv.daemon.iptables.IpReputationManager;
 import com.aoindustries.aoserv.daemon.monitor.MrtgManager;
+import com.aoindustries.aoserv.daemon.monitor.NetworkMonitor;
 import com.aoindustries.aoserv.daemon.mysql.MySQLDBUserManager;
 import com.aoindustries.aoserv.daemon.mysql.MySQLDatabaseManager;
 import com.aoindustries.aoserv.daemon.mysql.MySQLHostManager;
@@ -36,6 +37,7 @@ import com.aoindustries.aoserv.daemon.mysql.MySQLServerManager;
 import com.aoindustries.aoserv.daemon.mysql.MySQLUserManager;
 import com.aoindustries.aoserv.daemon.net.DhcpManager;
 import com.aoindustries.aoserv.daemon.net.NetDeviceManager;
+import com.aoindustries.aoserv.daemon.net.NullRouteManager;
 import com.aoindustries.aoserv.daemon.net.ssh.SshdManager;
 import com.aoindustries.aoserv.daemon.net.xinetd.XinetdManager;
 import com.aoindustries.aoserv.daemon.postgres.PgHbaManager;
@@ -176,42 +178,61 @@ final public class AOServDaemon {
                 }
 
                 // Start up the managers
-                AWStatsManager.start();
+				// cvsd
                 CvsManager.start();
-                DhcpManager.start();
+				// distro
                 DistroManager.start();
-                DNSManager.start();
+				// dns
+				DNSManager.start();
+				// email
                 EmailAddressManager.start();
                 EmailDomainManager.start();
-                FailoverFileReplicationManager.start();
-                FTPManager.start();
-                HttpdManager.start();
-                // TODO: Enable once data is created InterBaseManager.start();
                 ImapManager.start();
+				MajordomoManager.start();
+                ProcmailManager.start();
+				SendmailCFManager.start();
+                SpamAssassinManager.start();
+                SmtpRelayManager.start();
+				// email.jilter
+				JilterConfigurationWriter.start();
+				// failover
+				FailoverFileReplicationManager.start();
+				// ftp
+				FTPManager.start();
+				// httpd
+                AWStatsManager.start();
+				HttpdManager.start();
+				// iptables
                 IpReputationManager.start();
-                JilterConfigurationWriter.start();
-                LinuxAccountManager.start();
-                MajordomoManager.start();
+				// monitor
                 MrtgManager.start();
+				NetworkMonitor.start();
+				// mysql
                 // TODO: Move to aoserv-daemon: MySQLCreditCardScanner.start();
                 MySQLDatabaseManager.start();
                 MySQLDBUserManager.start();
                 MySQLHostManager.start();
                 MySQLServerManager.start();
                 MySQLUserManager.start();
+				// net
+                DhcpManager.start();
                 NetDeviceManager.start();
+                NullRouteManager.start();
+				// net.ssh
+                SshdManager.start();
+				// net.xinetd
+                XinetdManager.start();
+				// postgres
                 PgHbaManager.start();
                 PostgresDatabaseManager.start();
                 PostgresServerManager.start();
                 PostgresUserManager.start();
-                ProcmailManager.start();
+				// random
                 RandomEntropyManager.start();
-                SendmailCFManager.start();
-                SpamAssassinManager.start();
-                SshdManager.start();
-                SmtpRelayManager.start();
-                XinetdManager.start();
+				// timezone
                 TimeZoneManager.start();
+				// unix.linux
+                LinuxAccountManager.start();
 
                 // Start up the AOServDaemonServers
                 NetBind bind=getThisAOServer().getDaemonBind();
