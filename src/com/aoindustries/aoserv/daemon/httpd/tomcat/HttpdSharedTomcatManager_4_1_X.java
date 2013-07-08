@@ -123,9 +123,10 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
                           + "\n");
 
                 out.print(". /etc/profile\n"
-                        + ". ").print(osConfig.getScriptInclude("jdk"+tomcatCommon.getDefaultJdkVersion()+".sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("php-"+httpdConfig.getDefaultPhpVersion()+".sh")).print('\n');
-                if(postgresServerMinorVersion!=null) out.print(". ").print(osConfig.getScriptInclude("postgresql-"+postgresServerMinorVersion+".sh")).print('\n');
+	                    + ". /opt/jdk").print(tomcatCommon.getDefaultJdkVersion()).print("-i686/setenv.sh\n");
+                if(postgresServerMinorVersion!=null) {
+					out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
+				}
                 out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
                         + "\n"
                         + "umask 002\n"
@@ -557,6 +558,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
         );
 
         // Update bin/tomcat script
+		/*
         OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
         if(osConfig==OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
             // Replace /usr/aoserv/sbin/filtersites in bin/tomcat
@@ -576,6 +578,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
             );
             if(results.length()>0) needsRestart = true;
         }
+		 */
         return needsRestart;
     }
 }

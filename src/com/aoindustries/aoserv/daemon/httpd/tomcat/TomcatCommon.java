@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.httpd.tomcat;
-
 /*
- * Copyright 2008-2009 by AO Industries, Inc.,
+ * Copyright 2008-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd.tomcat;
+
 import com.aoindustries.aoserv.client.HttpdTomcatDataSource;
 import com.aoindustries.aoserv.client.HttpdTomcatParameter;
 import com.aoindustries.aoserv.daemon.util.UpgradeSymlink;
@@ -53,41 +53,74 @@ public abstract class TomcatCommon {
         new UpgradeSymlink("common/lib/mysql-connector-java-3.1.12-bin.jar", "/usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", "../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar")
     };
 
+	// TODO: Should change this to somehow determine proper PostgreSQL driver given
+	//       The installed PostgreSQL versions and the selected JDK.
+	//       Or - just hard-code the most recent???
     protected static final UpgradeSymlink[] upgradeSymlinks_PostgreSQL = {
-        new UpgradeSymlink(
-            "common/lib/postgresql.jar",
-            "../../../../usr/postgresql-7.1.3/share/java/postgresql.jar",
-            "../../../../opt/postgresql-7.1-i686/share/java/postgresql.jar"
-        ),
         new UpgradeSymlink(
             "common/lib/postgresql.jar",
             "../../../../opt/postgresql-7.1/share/java/postgresql.jar",
             "../../../../opt/postgresql-7.1-i686/share/java/postgresql.jar"
         ),
         new UpgradeSymlink(
-            "common/lib/postgresql.jar",
-            "../../../../usr/postgresql-7.3/share/java/postgresql.jar",
-            "../../../../opt/postgresql-7.3/share/java/postgresql.jar"
+            "server/lib/postgresql.jar",
+            "../../../../opt/postgresql-7.1/share/java/postgresql.jar",
+            "../../../../opt/postgresql-7.1-i686/share/java/postgresql.jar"
         ),
         new UpgradeSymlink(
             "common/lib/postgresql.jar",
-            "../../../../usr/postgresql/7.3/share/java/postgresql.jar",
-            "../../../../opt/postgresql-7.3/share/java/postgresql.jar"
+            "../../../../opt/postgresql-7.2/share/java/postgresql.jar",
+            "../../../../opt/postgresql-7.2-i686/share/java/postgresql.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/postgresql.jar",
+            "../../../../opt/postgresql-7.2/share/java/postgresql.jar",
+            "../../../../opt/postgresql-7.2-i686/share/java/postgresql.jar"
         ),
         new UpgradeSymlink(
             "common/lib/postgresql.jar",
-            "../../../../usr/postgresql-7.3.3/share/java/postgresql.jar",
-            "../../../../opt/postgresql-7.3/share/java/postgresql.jar"
+            "../../../../opt/postgresql-7.3/share/java/postgresql.jar",
+            "../../../../opt/postgresql-7.3-i686/share/java/postgresql.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/postgresql.jar",
+            "../../../../opt/postgresql-7.3/share/java/postgresql.jar",
+            "../../../../opt/postgresql-7.3-i686/share/java/postgresql.jar"
         ),
         new UpgradeSymlink(
             "common/lib/postgresql.jar",
-            "../../../../usr/postgresql/7.3.3/share/java/postgresql.jar",
-            "../../../../opt/postgresql-7.3/share/java/postgresql.jar"
+            "../../../../opt/postgresql-8.1/share/java/postgresql.jar",
+            "../../../../opt/postgresql-8.1-i686/share/java/postgresql.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/postgresql.jar",
+            "../../../../opt/postgresql-8.1/share/java/postgresql.jar",
+            "../../../../opt/postgresql-8.1-i686/share/java/postgresql.jar"
         ),
         new UpgradeSymlink(
             "common/lib/postgresql.jar",
-            "../../../../usr/postgresql/8.1/share/java/postgresql.jar",
-            "../../../../opt/postgresql-8.1/share/java/postgresql.jar"
+            "../../../../opt/postgresql-8.3/share/java/postgresql.jar",
+            "../../../../opt/postgresql-8.3-i686/share/java/postgresql.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/postgresql.jar",
+            "../../../../opt/postgresql-8.3/share/java/postgresql.jar",
+            "../../../../opt/postgresql-8.3-i686/share/java/postgresql.jar"
+        ),
+        new UpgradeSymlink(
+            "lib/postgresql-8.3-605.jdbc3.jar",
+            "../../../opt/postgresql-8.3/share/java/postgresql-8.3-605.jdbc3.jar",
+            "../../../opt/postgresql-8.3-i686/share/java/postgresql-8.3-605.jdbc3.jar"
+        ),
+        new UpgradeSymlink(
+            "common/lib/postgresql.jar",
+            "../../../../opt/postgresql-9.2/share/java/postgresql.jar",
+            "../../../../opt/postgresql-9.2-i686/share/java/postgresql.jar"
+        ),
+        new UpgradeSymlink(
+            "server/lib/postgresql.jar",
+            "../../../../opt/postgresql-9.2/share/java/postgresql.jar",
+            "../../../../opt/postgresql-9.2-i686/share/java/postgresql.jar"
         )
     };
 }

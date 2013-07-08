@@ -16,6 +16,7 @@ import com.aoindustries.aoserv.client.HttpdStaticSite;
 import com.aoindustries.aoserv.client.HttpdTomcatSite;
 import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
+import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
@@ -431,62 +432,88 @@ public abstract class HttpdSiteManager {
 
     /**
      * Creates or updates the CGI php script, CGI must be enabled and PHP enabled.
-     * If CGI is disabled or PHP is disabled, removed any php script.
+     * If CGI is disabled or PHP is disabled, removes any php script.
      * Any existing file will be overwritten, even when in manual mode.
      */
     protected void createCgiPhpScript(UnixFile cgibinDirectory) throws IOException, SQLException {
         UnixFile phpFile = new UnixFile(cgibinDirectory, "php", false);
         // TODO: If every server this site runs as uses mod_php, then don't make the script
+		// TODO: Make based on per-httpd_site setting
         if(enableCgi() && enablePhp()) {
+	        final int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
             HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
-            String phpVersion;
+            final String phpMinorVersion;
             if(phpFile.getStat().exists()) {
+				// TODO: Get from DB-based per-httpd_site config
                 String contents = FileUtils.readFileAsString(phpFile);
                 if(
-                    // CentOS 5 + RedHat ES 4
                     contents.contains("/opt/php-5/bin/php")
                     || contents.contains("/opt/php-5-i686/bin/php")
-                    // Mandriva 2006.0
-                    || contents.contains("/usr/php-5.0.1/bin/php")
-                    || contents.contains("/usr/php/5.0/bin/php")
-                    || contents.contains("/usr/php/5/bin/php")
-                    //|| contents.contains("/usr/php/5/bin/php-cgi")  // Already matched by just ".../php"
                 ) {
-                    phpVersion = "5";
+					switch(osv) {
+						case OperatingSystemVersion.REDHAT_ES_4_X86_64 :
+		                    phpMinorVersion = "5.2";
+							break;
+						case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
+		                    phpMinorVersion = "5.3";
+							break;
+						default :
+							throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+					}
+				} else if(
+                    contents.contains("/opt/php-5.2/bin/php")
+                    || contents.contains("/opt/php-5.2-i686/bin/php")
+                ) {
+                    phpMinorVersion = "5.2";
+				} else if(
+                    contents.contains("/opt/php-5.3/bin/php")
+                    || contents.contains("/opt/php-5.3-i686/bin/php")
+                ) {
+                    phpMinorVersion = "5.3";
+				} else if(
+                    contents.contains("/opt/php-5.4/bin/php")
+                    || contents.contains("/opt/php-5.4-i686/bin/php")
+                ) {
+                    phpMinorVersion = "5.4";
+				} else if(
+                    contents.contains("/opt/php-5.5/bin/php")
+                    || contents.contains("/opt/php-5.5-i686/bin/php")
+                ) {
+                    phpMinorVersion = "5.5";
                 } else if(
-                    // CentOS 5
                     contents.contains("/opt/php-4/bin/php")
                     || contents.contains("/opt/php-4-i686/bin/php")
-                    //|| contents.contains("/opt/php-4/bin/php-cgi")  // Already matched by just ".../php"
-                    //|| contents.contains("/opt/php-4-i686/bin/php-cgi")  // Already matched by just ".../php"
-                    // Mandriva 2006.0
-                    || contents.contains("/usr/php-4.0.6/bin/php")
-                    || contents.contains("/usr/php-4.2.3/bin/php")
-                    || contents.contains("/usr/php-4.3.0/bin/php")
-                    || contents.contains("/usr/php-4.3.3/bin/php")
-                    || contents.contains("/usr/php-4.3.8/bin/php")
-                    || contents.contains("/usr/php/4.3/bin/php")
-                    || contents.contains("/usr/php/4/bin/php")
                 ) {
-                    phpVersion = "4";
+                    phpMinorVersion = "4.4";
                 } else {
-                    phpVersion = osConfig.getDefaultPhpVersion();
+                    phpMinorVersion = osConfig.getDefaultPhpMinorVersion();
                 }
             } else {
-                phpVersion = osConfig.getDefaultPhpVersion();
+                phpMinorVersion = osConfig.getDefaultPhpMinorVersion();
             }
-            String phpCgiPath = osConfig.getPhpCgiPath(phpVersion);
+            String phpCgiPath = osConfig.getPhpCgiPath(phpMinorVersion);
 
             // Build to RAM first
             ByteArrayOutputStream bout = new ByteArrayOutputStream();
             ChainWriter out = new ChainWriter(bout);
             try {
                 out.print("#!/bin/sh\n");
-                if(phpVersion.equals("4")) {
-                    out.print("export LD_LIBRARY_PATH=\"/opt/mysql-5.0-i686/lib:/opt/postgresql-7.3-i686/lib:${LD_LIBRARY_PATH}\"\n");
-                } else if(phpVersion.equals("5")) {
-                    out.print("export LD_LIBRARY_PATH=\"/opt/mysql-5.1-i686/lib:/opt/postgresql-8.3-i686/lib:${LD_LIBRARY_PATH}\"\n");
-                } else throw new SQLException("Unexpected version for php: "+phpVersion);
+                if(phpMinorVersion.equals("4.4")) {
+					out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
+					out.print(". /opt/postgresql-7.3-i686/setenv.sh\n");
+                } else if(phpMinorVersion.equals("5.2")) {
+					out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
+					out.print(". /opt/postgresql-8.1-i686/setenv.sh\n");
+                } else if(phpMinorVersion.equals("5.3")) {
+					out.print(". /opt/mysql-5.1-i686/setenv.sh\n");
+					out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
+                } else if(
+					phpMinorVersion.equals("5.4")
+					|| phpMinorVersion.equals("5.5")
+				) {
+					out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
+					out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
+                } else throw new SQLException("Unexpected version for php: "+phpMinorVersion);
                 out.print("exec ").print(phpCgiPath).print(" \"$@\"\n");
             } finally {
                 out.close();

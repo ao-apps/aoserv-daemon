@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.httpd;
-
 /*
- * Copyright 2008-2009 by AO Industries, Inc.,
+ * Copyright 2008-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd;
+
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.HttpdServer;
 import com.aoindustries.aoserv.client.HttpdSite;
@@ -39,7 +39,7 @@ class HttpdLogManager {
     /**
      * The directory that contains the log rotation scripts.
      */
-    static final String LOG_ROTATION_DIR_MANDRIVA_REDHAT = HttpdServerManager.CONF_DIRECTORY + "/logrotate.d";
+    static final String LOG_ROTATION_DIR_REDHAT = HttpdServerManager.CONF_DIRECTORY + "/logrotate.d";
     static final String LOG_ROTATION_DIR_CENTOS = HttpdServerManager.CONF_DIRECTORY + "/logrotate.sites";
     static final String SERVER_LOG_ROTATION_DIR_CENTOS = HttpdServerManager.CONF_DIRECTORY + "/logrotate.servers";
 
@@ -235,9 +235,8 @@ class HttpdLogManager {
         final String siteLogRotationDir;
         final String serverLogRotationDir;
         switch(osConfig) {
-            case MANDRIVA_2006_0_I586 :
             case REDHAT_ES_4_X86_64 :
-                siteLogRotationDir = LOG_ROTATION_DIR_MANDRIVA_REDHAT;
+                siteLogRotationDir = LOG_ROTATION_DIR_REDHAT;
                 serverLogRotationDir = null;
                 break;
             case CENTOS_5_I686_AND_X86_64 :

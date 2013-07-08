@@ -8,6 +8,7 @@ package com.aoindustries.aoserv.daemon.util;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.ObjectUtils;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 /**
@@ -67,9 +68,14 @@ public class UpgradeSymlink {
         Stat linkStat = link.getStat();
         if(oldLinkTarget==null) {
             if(!linkStat.exists()) {
-                link.symLink(newLinkTarget);
-                link.getStat(linkStat);
-                needsRestart = true;
+				try {
+					link.symLink(newLinkTarget);
+					link.getStat(linkStat);
+					needsRestart = true;
+				} catch(FileNotFoundException e) {
+					System.err.println("FileNotFound: link="+link);
+					throw e;
+				}
             }
         } else if(linkStat.exists()) {
             if(linkStat.isSymLink()) {

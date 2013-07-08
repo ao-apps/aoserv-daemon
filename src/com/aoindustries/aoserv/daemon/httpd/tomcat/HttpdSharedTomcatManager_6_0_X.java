@@ -122,9 +122,10 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
                           + "\n");
 
                 out.print(". /etc/profile\n"
-                        + ". ").print(osConfig.getScriptInclude("jdk"+tomcatCommon.getDefaultJdkVersion()+".sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("php-"+httpdConfig.getDefaultPhpVersion()+".sh")).print('\n');
-                if(postgresServerMinorVersion!=null) out.print(". ").print(osConfig.getScriptInclude("postgresql-"+postgresServerMinorVersion+".sh")).print('\n');
+	                    + ". /opt/jdk").print(tomcatCommon.getDefaultJdkVersion()).print("-i686/setenv.sh\n");
+                if(postgresServerMinorVersion!=null) {
+					out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
+				}
                 out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
                         + "\n"
                         + "umask 002\n"
@@ -508,7 +509,35 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
     }
 
     protected boolean upgradeSharedTomcatDirectory(UnixFile siteDirectory) throws IOException, SQLException {
-        // TODO
-        return false;
+        // Upgrade Tomcat
+        boolean needsRestart = getTomcatCommon().upgradeTomcatDirectory(
+            siteDirectory,
+            sharedTomcat.getLinuxServerAccount().getUid().getID(),
+            sharedTomcat.getLinuxServerGroup().getGid().getID()
+        );
+
+        // Update bin/tomcat script
+		/*
+        OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
+        if(osConfig==OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
+            // Replace /usr/aoserv/sbin/filtersites in bin/tomcat
+            String results = AOServDaemon.execAndCapture(
+                new String[] {
+                    osConfig.getReplaceCommand(),
+                    "    SITES=`/usr/aoserv/sbin/filtersites", // Leading spaces prevent repetitive updates
+                    "    # SITES=`/usr/aoserv/sbin/filtersites",
+
+                    // Fix upgrade mistake
+                    "# # SITES=`/usr/aoserv/sbin/filtersites",
+                    "# SITES=`/usr/aoserv/sbin/filtersites",
+
+                    "--",
+                    siteDirectory.getPath()+"/bin/tomcat"
+                }
+            );
+            if(results.length()>0) needsRestart = true;
+        }
+		 */
+        return needsRestart;
     }
 }

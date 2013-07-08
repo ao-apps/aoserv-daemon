@@ -255,7 +255,7 @@ public class HttpdServerManager {
                         + "    <IfModule !sapi_apache2.c>\n"
                         + "        <IfModule !mod_php5.c>\n"
                         + "            Action php-script /cgi-bin/php\n"
-                        + "            AddHandler php-script .php .php3 .php4\n"
+                        + "            AddHandler php-script .php\n"
                         + "        </IfModule>\n"
                         + "    </IfModule>\n");
             }
@@ -545,11 +545,12 @@ public class HttpdServerManager {
                     + "LoadModule ssl_module modules/mod_ssl.so\n");
             if(isEnabled && phpVersion!=null) {
                 String version = phpVersion.getVersion();
+                String phpMinorVersion = getMinorPhpVersion(version);
                 String phpMajorVersion = getMajorPhpVersion(version);
                 out.print("\n"
                         + "# Enable mod_php\n"
-                        + "LoadModule php").print(phpMajorVersion).print("_module /opt/php-").print(phpMajorVersion).print("-i686/lib/apache/").print(getPhpLib(phpVersion)).print("\n"
-                        + "AddType application/x-httpd-php .php4 .php3 .phtml .php\n"
+                        + "LoadModule php").print(phpMajorVersion).print("_module /opt/php-").print(phpMinorVersion).print("-i686/lib/apache/").print(getPhpLib(phpVersion)).print("\n"
+                        + "AddType application/x-httpd-php .php\n"
                         + "AddType application/x-httpd-php-source .phps\n");
             }
             out.print("\n"
@@ -698,7 +699,7 @@ public class HttpdServerManager {
                 out.print("\n"
                         + "# Enable mod_php\n"
                         + "LoadModule php").print(phpMajorVersion).print("_module /opt/php-").print(phpMajorVersion).print("/lib/apache/").print(getPhpLib(phpVersion)).print("\n"
-                        + "AddType application/x-httpd-php .php4 .php3 .phtml .php\n"
+                        + "AddType application/x-httpd-php .php\n"
                         + "AddType application/x-httpd-php-source .phps\n");
             }
             out.print("# LoadModule disk_cache_module modules/mod_disk_cache.so\n"
@@ -780,174 +781,11 @@ public class HttpdServerManager {
     }
 
     /**
-     * Builds the httpd#.conf file for Mandriva 2006.0
-     */
-    private static byte[] buildHttpdConfMandriva2006(HttpdServer hs, ByteArrayOutputStream bout) throws IOException, SQLException {
-        final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
-        if(osConfig!=HttpdOperatingSystemConfiguration.MANDRIVA_2006_0_I586) throw new AssertionError("This method is for Mandriva 2006.0 only");
-        final int serverNum = hs.getNumber();
-        bout.reset();
-        ChainWriter out = new ChainWriter(bout);
-        try {
-            LinuxServerAccount lsa=hs.getLinuxServerAccount();
-            boolean isEnabled=!lsa.isDisabled();
-            // The version of PHP module to run
-            TechnologyVersion phpVersion=hs.getModPhpVersion();
-            out.print("ServerRoot \""+CONFIG_DIRECTORY+"\"\n"
-                    + "Include conf/modules_conf/core\n"
-                    + "PidFile /var/run/httpd").print(serverNum).print(".pid\n"
-                    + "Timeout ").print(hs.getTimeOut()).print("\n"
-                    + "CoreDumpDirectory /var/log/httpd").print(serverNum).print("\n"
-                    + "LockFile /var/log/httpd").print(serverNum).print("/accept.lock\n"
-                    + "\n"
-                    + "Include conf/modules_conf/prefork\n"
-                    + "Include conf/modules_conf/worker\n"
-                    + "\n"
-                    + "LoadModule access_module modules/mod_access.so\n"
-                    + "LoadModule auth_module modules/mod_auth.so\n"
-                    + "# LoadModule auth_anon_module modules/mod_auth_anon.so\n"
-                    + "# LoadModule auth_dbm_module modules/mod_auth_dbm.so\n"
-                    + "# LoadModule auth_digest_module modules/mod_auth_digest.so\n"
-                    + "# LoadModule file_cache_module modules/mod_file_cache.so\n"
-                    + "# LoadModule charset_lite_module modules/mod_charset_lite.so\n"
-                    + "# LoadModule cache_module modules/mod_cache.so\n"
-                    + "# LoadModule disk_cache_module modules/mod_disk_cache.so\n"
-                    + "# LoadModule mem_cache_module modules/mod_mem_cache.so\n"
-                    + "# LoadModule case_filter_module modules/mod_case_filter.so\n"
-                    + "# LoadModule case_filter_in_module modules/mod_case_filter_in.so\n"
-                    + "# LoadModule dumpio_module modules/mod_dumpio.so\n"
-                    + "# LoadModule ldap_module modules/mod_ldap.so\n"
-                    + "# LoadModule auth_ldap_module modules/mod_auth_ldap.so\n"
-                    + "# LoadModule ext_filter_module modules/mod_ext_filter.so\n"
-                    + "LoadModule include_module modules/mod_include.so\n"
-                    + "LoadModule deflate_module modules/mod_deflate.so\n"
-                    + "LoadModule log_config_module modules/mod_log_config.so\n"
-                    + "# LoadModule log_forensic_module modules/mod_log_forensic.so\n"
-                    + "# LoadModule logio_module modules/mod_logio.so\n"
-                    + "LoadModule env_module modules/mod_env.so\n"
-                    + "LoadModule mime_magic_module modules/mod_mime_magic.so\n"
-                    + "# LoadModule cern_meta_module modules/mod_cern_meta.so\n"
-                    + "LoadModule expires_module modules/mod_expires.so\n"
-                    + "LoadModule headers_module modules/mod_headers.so\n"
-                    + "# LoadModule usertrack_module modules/mod_usertrack.so\n"
-                    + "# LoadModule unique_id_module modules/mod_unique_id.so\n"
-                    + "LoadModule setenvif_module modules/mod_setenvif.so\n"
-                    + "LoadModule proxy_module modules/mod_proxy.so\n"
-                    + "# LoadModule proxy_connect_module modules/mod_proxy_connect.so\n"
-                    + "# LoadModule proxy_ftp_module modules/mod_proxy_ftp.so\n"
-                    + "LoadModule proxy_http_module modules/mod_proxy_http.so\n"
-                    + "LoadModule mime_module modules/mod_mime.so\n"
-                    + "# LoadModule dav_module modules/mod_dav.so\n"
-                    + "LoadModule status_module modules/mod_status.so\n"
-                    + "LoadModule autoindex_module modules/mod_autoindex.so\n"
-                    + "LoadModule asis_module modules/mod_asis.so\n"
-                    + "# LoadModule info_module modules/mod_info.so\n"
-                    + "LoadModule cgi_module modules/mod_cgi.so\n"
-                    + "# LoadModule cgid_module modules/mod_cgid.so\n"
-                    + "# LoadModule dav_fs_module modules/mod_dav_fs.so\n"
-                    + "# LoadModule vhost_alias_module modules/mod_vhost_alias.so\n"
-                    + "LoadModule negotiation_module modules/mod_negotiation.so\n"
-                    + "LoadModule dir_module modules/mod_dir.so\n"
-                    + "LoadModule imap_module modules/mod_imap.so\n"
-                    + "LoadModule actions_module modules/mod_actions.so\n"
-                    + "# LoadModule speling_module modules/mod_speling.so\n"
-                    + "# LoadModule userdir_module modules/mod_userdir.so\n"
-                    + "LoadModule alias_module modules/mod_alias.so\n"
-                    + "LoadModule rewrite_module modules/mod_rewrite.so\n"
-                    + "LoadModule jk_module modules/mod_jk-apache-2.0.49-linux-i686.so\n"
-                    + "LoadModule ssl_module extramodules/mod_ssl.so\n");
-            if(hs.useSuexec()) out.print("LoadModule suexec_module extramodules/mod_suexec.so\n");
-            if(isEnabled && phpVersion!=null) {
-                String version = phpVersion.getVersion();
-                String phpMajorVersion = getMajorPhpVersion(version);
-                out.print("\n"
-                        + "# Enable mod_php\n"
-                        + "LoadModule php").print(phpMajorVersion).print("_module /usr/php/").print(phpMajorVersion).print("/lib/apache/").print(getPhpLib(phpVersion)).print("\n"
-                        + "AddType application/x-httpd-php .php4 .php3 .phtml .php\n"
-                        + "AddType application/x-httpd-php-source .phps\n");
-            }
-            out.print("\n"
-                    + "Include conf/modules_conf/mod_log_config\n"
-                    + "Include conf/modules_conf/mod_mime_magic\n"
-                    + "Include conf/modules_conf/mod_setenvif\n"
-                    + "Include conf/modules_conf/mod_proxy\n"
-                    + "Include conf/modules_conf/mod_mime\n"
-                    + "Include conf/modules_conf/mod_dav\n"
-                    + "Include conf/modules_conf/mod_status\n"
-                    + "Include conf/modules_conf/mod_autoindex\n"
-                    + "Include conf/modules_conf/mod_negotiation\n"
-                    + "Include conf/modules_conf/mod_dir\n"
-                    + "Include conf/modules_conf/mod_userdir\n"
-                    + "Include conf/modules_conf/mod_ssl\n"
-                    + "Include conf/modules_conf/mod_jk\n"
-                    + "\n"
-                    + "SSLSessionCache shmcb:/var/cache/httpd/mod_ssl/ssl_scache").print(serverNum).print("(512000)\n"
-                    + "\n");
-            // Use apache if the account is disabled
-            if(isEnabled) {
-                out.print("User ").print(lsa.getLinuxAccount().getUsername().getUsername()).print("\n"
-                        + "Group ").print(hs.getLinuxServerGroup().getLinuxGroup().getName()).print("\n");
-            } else {
-                out.print("User "+LinuxAccount.APACHE+"\n"
-                        + "Group "+LinuxGroup.APACHE+"\n");
-            }
-            out.print("\n"
-                    + "ServerName ").print(hs.getAOServer().getHostname()).print("\n"
-                    + "\n"
-                    + "ErrorLog /var/log/httpd").print(serverNum).print("/error_log\n"
-                    + "CustomLog /var/log/httpd").print(serverNum).print("/access_log combined\n"
-                    + "\n"
-                    + "<IfModule mod_dav_fs.c>\n"
-                    + "    DAVLockDB /var/lib/dav").print(serverNum).print("/lockdb\n"
-                    + "</IfModule>\n"
-                    + "\n"
-                    + "<IfModule mod_jk.c>\n"
-                    + "    JkWorkersFile /etc/httpd/conf/workers").print(serverNum).print(".properties\n"
-                    + "    JkLogFile /var/log/httpd").print(serverNum).print("/mod_jk.log\n"
-                    + "</IfModule>\n"
-                    + "\n"
-                    + "Include conf/fileprotector.conf\n"
-                    + "\n"
-            );
-
-            // List of binds
-            for(HttpdBind hb : hs.getHttpdBinds()) {
-                NetBind nb=hb.getNetBind();
-                InetAddress ip=nb.getIPAddress().getInetAddress();
-                int port=nb.getPort().getPort();
-                out.print("Listen ").print(ip.toBracketedString()).print(':').print(port).print("\n"
-                        + "NameVirtualHost ").print(ip.toBracketedString()).print(':').print(port).print('\n');
-            }
-
-            // The list of sites to include
-            List<HttpdSite> sites=hs.getHttpdSites();
-            for(int d=0;d<2;d++) {
-                boolean listFirst=d==0;
-                out.print("\n");
-                for(HttpdSite site : sites) {
-                    if(site.listFirst()==listFirst) {
-                        for(HttpdSiteBind bind : site.getHttpdSiteBinds(hs)) {
-                            NetBind nb=bind.getHttpdBind().getNetBind();
-                            InetAddress ipAddress=nb.getIPAddress().getInetAddress();
-                            int port=nb.getPort().getPort();
-                            out.print("Include conf/hosts/").print(site.getSiteName()).print('_').print(ipAddress).print('_').print(port).print('\n');
-                        }
-                    }
-                }
-            }
-        } finally {
-            out.close();
-        }
-        return bout.toByteArray();
-    }
-
-    /**
      * Builds the httpd#.conf file contents for the provided HttpdServer.
      */
     private static byte[] buildHttpdConf(HttpdServer hs, ByteArrayOutputStream bout) throws IOException, SQLException {
         HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
         switch(osConfig) {
-            case MANDRIVA_2006_0_I586     : return buildHttpdConfMandriva2006(hs, bout);
             case REDHAT_ES_4_X86_64       : return buildHttpdConfRedHatEs4(hs, bout);
             case CENTOS_5_I686_AND_X86_64 : return buildHttpdConfCentOs5(hs, bout);
             default                       : throw new AssertionError("Unexpected value for osConfig: "+osConfig);
@@ -1027,7 +865,7 @@ public class HttpdServerManager {
                         + "        SSLCertificateFile ").print(sslCert).print("\n"
                         + "        SSLCertificateKeyFile ").print(bind.getSSLCertKeyFile()).print("\n"
                         + "        SSLCACertificateFile ").print(sslCa).print("\n"
-                        + "        <Files ~ \"\\.(cgi|shtml|phtml|php3?)$\">\n"
+                        + "        <Files ~ \"\\.(cgi|shtml)$\">\n"
                         + "            SSLOptions +StdEnvVars\n"
                         + "        </Files>\n"
                         + "        SSLEngine On\n"
@@ -1124,6 +962,16 @@ public class HttpdServerManager {
         return pos == -1 ? version : version.substring(0, pos);
     }
 
+	/**
+     * Gets the minor (first two numbers only) form of a PHP version.
+     */
+    private static String getMinorPhpVersion(String version) {
+        int pos = version.indexOf('.');
+		if(pos == -1) return version;
+		pos = version.indexOf('.', pos+1);
+        return pos == -1 ? version : version.substring(0, pos);
+    }
+
     private static final UnixFile[] centOsAlwaysDelete = {
         new UnixFile("/etc/httpd/conf/httpd1.conf.old"),
         new UnixFile("/etc/httpd/conf/httpd2.conf.old"),
@@ -1193,18 +1041,26 @@ public class HttpdServerManager {
                 TechnologyVersion modPhpVersion = hs.getModPhpVersion();
                 if(modPhpVersion!=null) {
                     String version = modPhpVersion.getVersion();
-                    if(version.startsWith("4.4.")) {
-                        out.print("export LD_LIBRARY_PATH=\"/opt/mysql-5.0-i686/lib:${LD_LIBRARY_PATH}\"\n"
-                                + "export LD_LIBRARY_PATH=\"/opt/postgresql-7.3-i686/lib:${LD_LIBRARY_PATH}\"\n"
-                                + "\n");
-                    } else if(version.startsWith("5.2.")) {
-                        out.print("export LD_LIBRARY_PATH=\"/opt/mysql-5.0-i686/lib:${LD_LIBRARY_PATH}\"\n"
-                                + "export LD_LIBRARY_PATH=\"/opt/postgresql-8.1-i686/lib:${LD_LIBRARY_PATH}\"\n"
-                                + "\n");
-                    } else if(version.startsWith("5.3.")) {
-                        out.print("export LD_LIBRARY_PATH=\"/opt/mysql-5.1-i686/lib:${LD_LIBRARY_PATH}\"\n"
-                                + "export LD_LIBRARY_PATH=\"/opt/postgresql-8.3-i686/lib:${LD_LIBRARY_PATH}\"\n"
-                                + "\n");
+					String minorVersion = getMinorPhpVersion(version);
+                    if(minorVersion.equals("4.4")) {
+						out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
+						out.print(". /opt/postgresql-7.3-i686/setenv.sh\n");
+						out.print('\n');
+                    } else if(minorVersion.equals("5.2")) {
+						out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
+						out.print(". /opt/postgresql-8.1-i686/setenv.sh\n");
+						out.print('\n');
+                    } else if(minorVersion.equals("5.3")) {
+						out.print(". /opt/mysql-5.1-i686/setenv.sh\n");
+						out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
+						out.print('\n');
+                    } else if(
+						minorVersion.equals("5.4")
+						|| minorVersion.equals("5.5")
+					) {
+						out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
+						out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
+						out.print('\n');
                     } else throw new SQLException("Unexpected version for mod_php: "+version);
                 }
                 out.print("NUM=").print(num).print("\n"

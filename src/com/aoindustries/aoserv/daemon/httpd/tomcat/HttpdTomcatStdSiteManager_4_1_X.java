@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.httpd.tomcat;
-
 /*
- * Copyright 2007-2009 by AO Industries, Inc.,
+ * Copyright 2007-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd.tomcat;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.HttpdJKProtocol;
@@ -93,12 +93,17 @@ class HttpdTomcatStdSiteManager_4_1_X extends HttpdTomcatStdSiteManager<TomcatCo
             )
         );
         try {
+			final TomcatCommon_4_1_X tomcatCommon = getTomcatCommon();
             out.print("#!/bin/sh\n"
                     + "\n"
                     + ". /etc/profile\n"
-                    + ". ").print(osConfig.getScriptInclude("jdk"+osConfig.getDefaultJdkVersion()+".sh")).print("\n");
-            out.print(". ").print(osConfig.getScriptInclude("php-"+httpdConfig.getDefaultPhpVersion()+".sh")).print("\n");
-            if(postgresServerMinorVersion!=null) out.print(". ").print(osConfig.getScriptInclude("postgresql-"+postgresServerMinorVersion+".sh")).print("\n");
+                    + ". /opt/jdk").print(tomcatCommon.getDefaultJdkVersion()).print("-i686/setenv.sh\n");
+			if(enablePhp()) {
+				out.print(". /opt/php-").print(httpdConfig.getDefaultPhpMinorVersion()).print("-i686/setenv.sh\n");
+			}
+            if(postgresServerMinorVersion!=null) {
+				out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
+			}
             out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n");
             out.print("\n"
                     + "umask 002\n"

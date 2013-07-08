@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.httpd.tomcat;
-
 /*
- * Copyright 2007-2009 by AO Industries, Inc.,
+ * Copyright 2007-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd.tomcat;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.HttpdJKProtocol;
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
@@ -40,6 +40,7 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
         if(htv.isTomcat4_1_X(connector)) return new HttpdTomcatStdSiteManager_4_1_X(stdSite);
         if(htv.isTomcat5_5_X(connector)) return new HttpdTomcatStdSiteManager_5_5_X(stdSite);
         if(htv.isTomcat6_0_X(connector)) return new HttpdTomcatStdSiteManager_6_0_X(stdSite);
+        if(htv.isTomcat7_0_X(connector)) return new HttpdTomcatStdSiteManager_7_0_X(stdSite);
         throw new SQLException("Unsupported version of standard Tomcat: "+htv.getTechnologyVersion(connector).getVersion()+" on "+stdSite);
     }
 

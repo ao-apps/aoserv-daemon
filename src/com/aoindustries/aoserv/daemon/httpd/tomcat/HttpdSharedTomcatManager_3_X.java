@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.httpd.tomcat;
-
 /*
- * Copyright 2008-2009 by AO Industries, Inc.,
+ * Copyright 2008-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd.tomcat;
+
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
@@ -97,7 +97,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
                 out.print("#!/bin/sh\n"
                           + "\n");
                 out.print(". /etc/profile\n"
-                        + ". ").print(osConfig.getScriptInclude("jdk"+tomcatCommon.getDefaultJdkVersion()+".sh")).print("\n"
+	                    + ". /opt/jdk").print(tomcatCommon.getDefaultJdkVersion()).print("-i686/setenv.sh\n"
                         + ". ").print(osConfig.getScriptInclude("jakarta-oro-2.0.1.sh")).print("\n"
                         + ". ").print(osConfig.getScriptInclude("jakarta-regexp-1.2.sh")).print("\n"
                         + ". ").print(osConfig.getScriptInclude("jakarta-servletapi-3.2.sh")).print("\n"
@@ -106,9 +106,10 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
                         + ". ").print(osConfig.getScriptInclude("cocoon-1.8.2.sh")).print("\n"
                         + ". ").print(osConfig.getScriptInclude("xerces-1.2.0.sh")).print("\n"
                         + ". ").print(osConfig.getScriptInclude("ant-1.6.2.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("xalan-1.2.d02.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("php-"+httpdConfig.getDefaultPhpVersion()+".sh")).print('\n');
-                if(postgresServerMinorVersion!=null) out.print(". ").print(osConfig.getScriptInclude("postgresql-"+postgresServerMinorVersion+".sh")).print('\n');
+                        + ". ").print(osConfig.getScriptInclude("xalan-1.2.d02.sh")).print("\n");
+                if(postgresServerMinorVersion!=null) {
+					out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
+				}
                 out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
                         + ". ").print(osConfig.getScriptInclude("castor-0.8.sh")).print("\n"
                         + ". ").print(osConfig.getScriptInclude("cos-27May2002.sh")).print("\n"
@@ -134,7 +135,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
                         + ". ").print(osConfig.getScriptInclude("xmlrpc-1.0.sh")).print("\n"
                         + ". ").print(osConfig.getScriptInclude("interclient-2.0.sh")).print("\n"
                         + ". ").print(osConfig.getScriptInclude("poolman-1.4.sh")).print("\n"
-                        + "export \"CLASSPATH=/usr/aoserv/lib-1.3/aocode-public.jar:$CLASSPATH\"\n"
+                        + "export \"CLASSPATH=/opt/aoserv-client/lib-1.3/aocode-public.jar:$CLASSPATH\"\n"
                         //+ ". ").print(osConfig.getScriptInclude("fop-0.15.sh")).print('\n'
                         + "\n"
                         + "export PATH=\"${PATH}:").print(wwwGroupDir).print("/bin\"\n"

@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.httpd;
-
 /*
- * Copyright 2007-2009 by AO Industries, Inc.,
+ * Copyright 2007-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd;
+
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
 import com.aoindustries.aoserv.client.HttpdStaticSite;
@@ -26,82 +26,82 @@ import java.util.TreeMap;
  */
 public class HttpdStaticSiteManager extends HttpdSiteManager {
 
-    /**
-     * Gets the specific manager for one type of web site.
-     */
-    static HttpdStaticSiteManager getInstance(HttpdStaticSite staticSite) throws SQLException, IOException {
-        return new HttpdStaticSiteManager(staticSite);
-    }
+	/**
+	 * Gets the specific manager for one type of web site.
+	 */
+	static HttpdStaticSiteManager getInstance(HttpdStaticSite staticSite) throws SQLException, IOException {
+		return new HttpdStaticSiteManager(staticSite);
+	}
 
-    final protected HttpdStaticSite staticSite;
-    
-    private HttpdStaticSiteManager(HttpdStaticSite staticSite) throws SQLException, IOException {
-        super(staticSite.getHttpdSite());
-        this.staticSite = staticSite;
-    }
+	final protected HttpdStaticSite staticSite;
 
-    protected void buildSiteDirectory(UnixFile siteDirectory, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
-        final Stat tempStat = new Stat();
-        final boolean isAuto = !httpdSite.isManual();
-        final int apacheUid = getApacheUid();
-        final int uid = httpdSite.getLinuxServerAccount().getUid().getID();
-        final int gid = httpdSite.getLinuxServerGroup().getGid().getID();
+	private HttpdStaticSiteManager(HttpdStaticSite staticSite) throws SQLException, IOException {
+		super(staticSite.getHttpdSite());
+		this.staticSite = staticSite;
+	}
 
-        // Create wwwDirectory if needed
-        if(!siteDirectory.getStat(tempStat).exists()) {
-            siteDirectory.mkdir(false, 0700);
-            siteDirectory.getStat(tempStat);
-        } else if(!tempStat.isDirectory()) throw new IOException("Not a directory: "+siteDirectory);
+	protected void buildSiteDirectory(UnixFile siteDirectory, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
+		final Stat tempStat = new Stat();
+		final boolean isAuto = !httpdSite.isManual();
+		final int apacheUid = getApacheUid();
+		final int uid = httpdSite.getLinuxServerAccount().getUid().getID();
+		final int gid = httpdSite.getLinuxServerGroup().getGid().getID();
 
-        // New if still owned by root
-        final boolean isNew = tempStat.getUid() == UnixFile.ROOT_UID;
+		// Create wwwDirectory if needed
+		if(!siteDirectory.getStat(tempStat).exists()) {
+			siteDirectory.mkdir(false, 0700);
+			siteDirectory.getStat(tempStat);
+		} else if(!tempStat.isDirectory()) throw new IOException("Not a directory: "+siteDirectory);
 
-        // conf/
-        if(isNew || isAuto) FileUtils.mkdir(new UnixFile(siteDirectory, "conf", false), 0775, uid, gid);
-        // htdocs/
-        UnixFile htdocsDirectory = new UnixFile(siteDirectory, "htdocs", false);
-        if(isNew || isAuto) FileUtils.mkdir(htdocsDirectory, 0775, uid, gid);
-        // htdocs/index.html
-        if(isNew) createTestIndex(new UnixFile(htdocsDirectory, "index.html", false));
+		// New if still owned by root
+		final boolean isNew = tempStat.getUid() == UnixFile.ROOT_UID;
 
-        // Complete, set permission and ownership
-        siteDirectory.getStat(tempStat);
-        if(tempStat.getMode()!=0770) siteDirectory.setMode(0770);
-        if(tempStat.getUid()!=apacheUid || tempStat.getGid()!=gid) siteDirectory.chown(apacheUid, gid);
-    }
+		// conf/
+		if(isNew || isAuto) FileUtils.mkdir(new UnixFile(siteDirectory, "conf", false), 0775, uid, gid);
+		// htdocs/
+		UnixFile htdocsDirectory = new UnixFile(siteDirectory, "htdocs", false);
+		if(isNew || isAuto) FileUtils.mkdir(htdocsDirectory, 0775, uid, gid);
+		// htdocs/index.html
+		if(isNew) createTestIndex(new UnixFile(htdocsDirectory, "index.html", false));
 
-    /**
-     * No CGI.
-     */
-    protected boolean enableCgi() {
-        return false;
-    }
+		// Complete, set permission and ownership
+		siteDirectory.getStat(tempStat);
+		if(tempStat.getMode()!=0770) siteDirectory.setMode(0770);
+		if(tempStat.getUid()!=apacheUid || tempStat.getGid()!=gid) siteDirectory.chown(apacheUid, gid);
+	}
 
-    /**
-     * No PHP.
-     */
-    protected boolean enablePhp() {
-        return false;
-    }
-    
-    /**
-     * No anonymous FTP directory.
-     */
-    public boolean enableAnonymousFtp() {
-        return false;
-    }
+	/**
+	 * No CGI.
+	 */
+	protected boolean enableCgi() {
+		return false;
+	}
 
-    public SortedMap<String,WebAppSettings> getWebapps() throws IOException, SQLException {
-        SortedMap<String,WebAppSettings> webapps = new TreeMap<String,WebAppSettings>();
-        webapps.put(
-            "",
-            new WebAppSettings(
-                HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()+'/'+httpdSite.getSiteName()+"/htdocs",
-                "AuthConfig Indexes Limit",
-                "Indexes IncludesNOEXEC",
-                enableCgi()
-            )
-        );
-        return webapps;
-    }
+	/**
+	 * No PHP.
+	 */
+	protected boolean enablePhp() {
+		return false;
+	}
+
+	/**
+	 * No anonymous FTP directory.
+	 */
+	public boolean enableAnonymousFtp() {
+		return false;
+	}
+
+	public SortedMap<String,WebAppSettings> getWebapps() throws IOException, SQLException {
+		SortedMap<String,WebAppSettings> webapps = new TreeMap<String,WebAppSettings>();
+		webapps.put(
+			"",
+			new WebAppSettings(
+				HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()+'/'+httpdSite.getSiteName()+"/htdocs",
+				"AuthConfig Indexes Limit",
+				"Indexes IncludesNOEXEC",
+				enableCgi()
+			)
+		);
+		return webapps;
+	}
 }

@@ -104,7 +104,7 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
             out.print("#!/bin/sh\n"
                     + "\n"
                     + ". /etc/profile\n"
-                    + ". ").print(osConfig.getScriptInclude("jdk"+osConfig.getDefaultJdkVersion()+".sh")).print("\n"
+                    + ". /opt/jdk").print(tomcatCommon.getDefaultJdkVersion()).print("-i686/setenv.sh\n"
                     + ". ").print(osConfig.getScriptInclude("jakarta-oro-2.0.sh")).print("\n"
                     + ". ").print(osConfig.getScriptInclude("jakarta-regexp-1.1.sh")).print("\n"
                     + ". ").print(osConfig.getScriptInclude("jakarta-servletapi-"+tomcatCommon.getServletApiVersion()+".sh")).print("\n"
@@ -114,8 +114,12 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
                     + ". ").print(osConfig.getScriptInclude("xerces-1.2.0.sh")).print("\n"
                     + ". ").print(osConfig.getScriptInclude("ant-1.6.2.sh")).print("\n"
                     + ". ").print(osConfig.getScriptInclude("xalan-1.2.d02.sh")).print("\n");
-            if(enablePhp()) out.print(". ").print(osConfig.getScriptInclude("php-"+httpdConfig.getDefaultPhpVersion()+".sh")).print("\n");
-            if(postgresServerMinorVersion!=null) out.print(". ").print(osConfig.getScriptInclude("postgresql-"+postgresServerMinorVersion+".sh")).print("\n");
+            if(enablePhp()) {
+				out.print(". /opt/php-").print(httpdConfig.getDefaultPhpMinorVersion()).print("-i686/setenv.sh\n");
+			}
+            if(postgresServerMinorVersion!=null) {
+				out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
+			}
             out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
                     + ". ").print(osConfig.getScriptInclude("castor-0.8.sh")).print("\n"
                     + ". ").print(osConfig.getScriptInclude("cos-27May2002.sh")).print("\n"
@@ -141,7 +145,7 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
                     + ". ").print(osConfig.getScriptInclude("xmlrpc-1.0.sh")).print("\n"
                     + ". ").print(osConfig.getScriptInclude("interclient-2.0.sh")).print("\n"
                     + ". ").print(osConfig.getScriptInclude("poolman-1.4.sh")).print("\n"
-                    + "export \"CLASSPATH=/usr/aoserv/lib-1.3/aocode-public.jar:$CLASSPATH\"\n"
+                    + "export \"CLASSPATH=/opt/aoserv-client/lib-1.3/aocode-public.jar:$CLASSPATH\"\n"
                     //+ ". ").print(osConfig.getScriptInclude("fop-0.15.sh")).print('\n'
                     + "\n"
                     + "export PATH=\"${PATH}:").print(siteDir).print("/bin\"\n"

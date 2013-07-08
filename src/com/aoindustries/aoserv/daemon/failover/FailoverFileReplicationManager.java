@@ -157,10 +157,7 @@ final public class FailoverFileReplicationManager {
             && !postPassChecklist.restartMySQLs
             && (
                 relativePath.startsWith("/etc/rc.d/init.d/mysql-")
-                || relativePath.startsWith("/usr/mysql/")
-                || relativePath.startsWith("/usr/aoserv/etc/mysql-")
                 || relativePath.startsWith("/opt/mysql-")
-                || relativePath.startsWith("/opt/aoserv-client/scripts/mysql-")
             )
         ) {
             Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
