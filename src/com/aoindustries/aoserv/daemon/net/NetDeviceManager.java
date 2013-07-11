@@ -65,6 +65,7 @@ final public class NetDeviceManager extends BuilderThread {
     }
     
     private static final Object rebuildLock=new Object();
+	@Override
     protected boolean doRebuild() {
         try {
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
@@ -80,7 +81,7 @@ final public class NetDeviceManager extends BuilderThread {
             final ByteArrayOutputStream bout = new ByteArrayOutputStream();
 
             synchronized(rebuildLock) {
-                Set<NetDeviceID> restartDeviceIDs=new HashSet<NetDeviceID>();
+                Set<NetDeviceID> restartDeviceIDs=new HashSet<>();
 
                 List<NetDevice> devices=thisAOServer.getServer().getNetDevices();
                 for(NetDevice device : devices) {
@@ -188,7 +189,7 @@ final public class NetDeviceManager extends BuilderThread {
                         }
 
                         // Rebuild the alias configs for this server, including all child failed-over servers IPs
-                        Set<String> cfgFilenames = new HashSet<String>();
+                        Set<String> cfgFilenames = new HashSet<>();
                         String aliasBeginning="ifcfg-"+deviceId+":";
                         int num=0;
                         List<AOServer> children=thisAOServer.getNestedAOServers();
@@ -295,7 +296,7 @@ final public class NetDeviceManager extends BuilderThread {
                             + "HOSTNAME=").print(thisAOServer.getHostname()).print("\n"
                             + "NETWORKING=yes\n");
                     // There should no more than one network device with a gateway specified
-                    List<NetDevice> gatewayDevices=new ArrayList<NetDevice>();
+                    List<NetDevice> gatewayDevices=new ArrayList<>();
                     for(int c=0;c<devices.size();c++) {
                         NetDevice device=devices.get(c);
                         NetDeviceID deviceId=device.getNetDeviceID();
@@ -456,6 +457,7 @@ final public class NetDeviceManager extends BuilderThread {
         }
     }
     
+	@Override
     public String getProcessTimerDescription() {
         return "Rebuild Net Devices";
     }
@@ -515,15 +517,15 @@ final public class NetDeviceManager extends BuilderThread {
      */
     private static final Object _netDeviceStatisticsLock = new Object();
     private static Thread _netDeviceStatisticsThread;
-    private static Map<NetDevice,Long> _lastTime = new HashMap<NetDevice,Long>();
-    private static Map<NetDevice,Long> _lastTxBytes = new HashMap<NetDevice,Long>();
-    private static Map<NetDevice,Long> _lastRxBytes = new HashMap<NetDevice,Long>();
-    private static Map<NetDevice,Long> _lastTxPackets = new HashMap<NetDevice,Long>();
-    private static Map<NetDevice,Long> _lastRxPackets = new HashMap<NetDevice,Long>();
-    private static Map<NetDevice,Long> _totalTxBytes = new HashMap<NetDevice,Long>();
-    private static Map<NetDevice,Long> _totalRxBytes = new HashMap<NetDevice,Long>();
-    private static Map<NetDevice,Long> _totalTxPackets = new HashMap<NetDevice,Long>();
-    private static Map<NetDevice,Long> _totalRxPackets = new HashMap<NetDevice,Long>();
+    private static Map<NetDevice,Long> _lastTime = new HashMap<>();
+    private static Map<NetDevice,Long> _lastTxBytes = new HashMap<>();
+    private static Map<NetDevice,Long> _lastRxBytes = new HashMap<>();
+    private static Map<NetDevice,Long> _lastTxPackets = new HashMap<>();
+    private static Map<NetDevice,Long> _lastRxPackets = new HashMap<>();
+    private static Map<NetDevice,Long> _totalTxBytes = new HashMap<>();
+    private static Map<NetDevice,Long> _totalRxBytes = new HashMap<>();
+    private static Map<NetDevice,Long> _totalTxPackets = new HashMap<>();
+    private static Map<NetDevice,Long> _totalRxPackets = new HashMap<>();
 
     private static final long MAX_GIGABIT_BIT_RATE = 2000000000L; // Allow twice gigabit speed before assuming counter reset
     private static final long MAX_GIGABIT_PACKET_RATE = MAX_GIGABIT_BIT_RATE / (64 * 8); // Smallest packet is 64 octets
@@ -698,7 +700,7 @@ final public class NetDeviceManager extends BuilderThread {
                 @Override
                 public void run() {
                     // Reuse these two objects to reduce heap allocation
-                    final List<NetDevice> netDevices = new ArrayList<NetDevice>();
+                    final List<NetDevice> netDevices = new ArrayList<>();
                     final StringBuilder tempSB = new StringBuilder();
                     while(true) {
                         try {
@@ -752,7 +754,7 @@ final public class NetDeviceManager extends BuilderThread {
         return tempSB.toString();
     }
 
-    private final static List<Integer> privilegedPorts = new ArrayList<Integer>();
+    private final static List<Integer> privilegedPorts = new ArrayList<>();
 
     /**
      * Gets the next privileged source port in the range 1<=port<=1023.  Will never return
@@ -765,7 +767,7 @@ final public class NetDeviceManager extends BuilderThread {
         synchronized(privilegedPorts) {
             if(privilegedPorts.isEmpty()) {
                 List<NetBind> netBinds = AOServDaemon.getThisAOServer().getServer().getNetBinds();
-                Set<Integer> netBindPorts = new HashSet<Integer>(netBinds.size()*4/3+1);
+                Set<Integer> netBindPorts = new HashSet<>(netBinds.size()*4/3+1);
                 for(NetBind netBind : netBinds) netBindPorts.add(netBind.getPort().getPort());
                 for(Integer port=1; port<=1023; port++) {
                     if(!netBindPorts.contains(port)) privilegedPorts.add(port);

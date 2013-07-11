@@ -28,6 +28,7 @@ class HttpdTomcatSharedSiteManager_7_0_X extends HttpdTomcatSharedSiteManager<To
     /**
      * Builds a shared site for Tomcat 7.0.X
      */
+	@Override
     protected void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
         /*
          * Resolve and allocate stuff used throughout the method
@@ -77,15 +78,18 @@ class HttpdTomcatSharedSiteManager_7_0_X extends HttpdTomcatSharedSiteManager<To
         }
     }
 
+	@Override
     public TomcatCommon_7_0_X getTomcatCommon() {
         return TomcatCommon_7_0_X.getInstance();
     }
 
+	@Override
     protected boolean rebuildConfigFiles(UnixFile siteDirectory) {
         // No configs to rebuild
         return false;
     }
 
+	@Override
     protected boolean upgradeSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
         // Nothing to do
         return false;

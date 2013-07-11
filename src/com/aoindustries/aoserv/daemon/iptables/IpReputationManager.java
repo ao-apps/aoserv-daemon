@@ -96,6 +96,7 @@ final public class IpReputationManager extends BuilderThread {
         }
     }
 
+	@Override
     public String getProcessTimerDescription() {
         return "Rebuild IP Reputation Sets";
     }
@@ -172,7 +173,7 @@ final public class IpReputationManager extends BuilderThread {
         String identifier,
         UnixFile setDir
     ) throws IOException {
-        Set<Integer> entries = new LinkedHashSet<Integer>(Math.min(Ipset.MAX_IPSET_SIZE+1, hosts.size())*4/3+1);
+        Set<Integer> entries = new LinkedHashSet<>(Math.min(Ipset.MAX_IPSET_SIZE+1, hosts.size())*4/3+1);
         for(IpReputationSetHost host : hosts) {
             entries.add(host.getHost());
             if(entries.size()>Ipset.MAX_IPSET_SIZE) break;
@@ -196,7 +197,7 @@ final public class IpReputationManager extends BuilderThread {
         String identifier,
         UnixFile setDir
     ) throws IOException {
-        Set<Integer> entries = new LinkedHashSet<Integer>(Math.min(Ipset.MAX_IPSET_SIZE+1, networks.size())*4/3+1);
+        Set<Integer> entries = new LinkedHashSet<>(Math.min(Ipset.MAX_IPSET_SIZE+1, networks.size())*4/3+1);
         for(IpReputationSetNetwork network : networks) {
             entries.add(network.getNetwork());
             if(entries.size()>Ipset.MAX_IPSET_SIZE) break;
@@ -210,6 +211,7 @@ final public class IpReputationManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
+	@Override
     protected boolean doRebuild() {
         try {
             AOServConnector conn=AOServDaemon.getConnector();
@@ -227,7 +229,7 @@ final public class IpReputationManager extends BuilderThread {
                 final Collection<IpReputationSet> sets = conn.getIpReputationSets().getRows();
 
                 // Track the names of each set, used to remove extra directories
-                final Set<String> setIdentifiers = new HashSet<String>(sets.size()*4/3+1);
+                final Set<String> setIdentifiers = new HashSet<>(sets.size()*4/3+1);
 
                 for(IpReputationSet set : sets) {
                     // Set settings
@@ -245,10 +247,10 @@ final public class IpReputationManager extends BuilderThread {
 					// TODO: Use concurrency equal to minimum of four or half the cores on the server
 
                     // Split the IP addresses into four classes based on the set's settings.
-                    SortedSet<IpReputationSetHost>    definiteBadHosts   = new TreeSet<IpReputationSetHost>(badHostComparator);
-                    SortedSet<IpReputationSetHost>    uncertainBadHosts  = new TreeSet<IpReputationSetHost>(badHostComparator);
-                    SortedSet<IpReputationSetHost>    uncertainGoodHosts = new TreeSet<IpReputationSetHost>(goodHostComparator);
-                    SortedSet<IpReputationSetHost>    definiteGoodHosts  = new TreeSet<IpReputationSetHost>(goodHostComparator);
+                    SortedSet<IpReputationSetHost>    definiteBadHosts   = new TreeSet<>(badHostComparator);
+                    SortedSet<IpReputationSetHost>    uncertainBadHosts  = new TreeSet<>(badHostComparator);
+                    SortedSet<IpReputationSetHost>    uncertainGoodHosts = new TreeSet<>(goodHostComparator);
+                    SortedSet<IpReputationSetHost>    definiteGoodHosts  = new TreeSet<>(goodHostComparator);
                     for(IpReputationSetHost host : set.getHosts()) {
                         short rep = host.getReputation();
                         if(rep < minUncertainBad) {
@@ -265,7 +267,7 @@ final public class IpReputationManager extends BuilderThread {
                     }
 
                     // Sort the networks by reputation
-                    SortedSet<IpReputationSetNetwork> goodNetworks = new TreeSet<IpReputationSetNetwork>(goodNetworkComparator);
+                    SortedSet<IpReputationSetNetwork> goodNetworks = new TreeSet<>(goodNetworkComparator);
                     goodNetworks.addAll(set.getNetworks());
 
                     // Synchronize both the in-kernel set as well as the on-disk representations
@@ -312,7 +314,7 @@ final public class IpReputationManager extends BuilderThread {
                 // Delete any extra directories, after backing-up
                 String[] list = ipreputationDir.list();
                 if(list!=null) {
-                    List<File> deleteFileList=new ArrayList<File>();
+                    List<File> deleteFileList=new ArrayList<>();
                     for(String filename : list) {
                         if(!setIdentifiers.contains(filename)) {
                             UnixFile extraUf = new UnixFile(ipreputationDir, filename, true);

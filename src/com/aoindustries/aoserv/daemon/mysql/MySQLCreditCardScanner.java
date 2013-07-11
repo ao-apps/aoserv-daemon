@@ -47,6 +47,7 @@ final public class MySQLCreditCardScanner implements CronJob {
     }
 
     private static final Schedule schedule = new Schedule() {
+		@Override
         public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
             return
                 minute==30
@@ -56,14 +57,17 @@ final public class MySQLCreditCardScanner implements CronJob {
         }
     };
 
+	@Override
     public Schedule getCronJobSchedule() {
         return schedule;
     }
     
+	@Override
     public CronJobScheduleMode getCronJobScheduleMode() {
          return CronJobScheduleMode.SKIP;
     }
 
+	@Override
     public String getCronJobName() {
         return "MySQLCreditCardScanner";
     }
@@ -71,10 +75,12 @@ final public class MySQLCreditCardScanner implements CronJob {
     /**
      * Performs the scheduled task.
      */
+	@Override
     public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
         scanMySQLForCards();
     }
     
+	@Override
     public int getCronJobThreadPriority() {
         return Thread.NORM_PRIORITY-2;
     }
@@ -87,7 +93,7 @@ final public class MySQLCreditCardScanner implements CronJob {
         try {
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
-            Map<Business,StringBuilder> reports = new HashMap<Business,StringBuilder>();
+            Map<Business,StringBuilder> reports = new HashMap<>();
 
             List<MySQLServer> mysqlServers = thisAOServer.getMySQLServers();
             for(MySQLServer mysqlServer : mysqlServers) {

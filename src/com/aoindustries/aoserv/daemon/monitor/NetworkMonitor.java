@@ -34,8 +34,8 @@ final public class NetworkMonitor {
 
 	private static final int MICROS_PER_SECOND = 1000000;
 
-	private static final Map<String,NetworkMonitor> inMonitors = new LinkedHashMap<String,NetworkMonitor>();
-	private static final Map<String,NetworkMonitor> outMonitors = new LinkedHashMap<String,NetworkMonitor>();
+	private static final Map<String,NetworkMonitor> inMonitors = new LinkedHashMap<>();
+	private static final Map<String,NetworkMonitor> outMonitors = new LinkedHashMap<>();
 
 	public static void start() throws IOException {
         if(AOServDaemonConfiguration.isManagerEnabled(NetworkMonitor.class)) {

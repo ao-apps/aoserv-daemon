@@ -12,7 +12,6 @@ import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
 import com.aoindustries.aoserv.client.HttpdTomcatVersion;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
-import com.aoindustries.aoserv.client.PostgresServer;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
@@ -26,6 +25,7 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -43,6 +43,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
         super(sharedTomcat);
     }
 
+	@Override
     void buildSharedTomcatDirectory(UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
         /*
          * Get values used in the rest of the loop.
@@ -81,8 +82,8 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 
             workUF.mkdir().chown(lsaUID, lsgGID).setMode(0750);
 
-            PostgresServer postgresServer=aoServer.getPreferredPostgresServer();
-            String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
+            //PostgresServer postgresServer=aoServer.getPreferredPostgresServer();
+            //String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
 
             String profileFile = wwwGroupDir + "/bin/profile";
             LinuxAccountManager.setBashProfile(lsa, profileFile);
@@ -97,46 +98,42 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
                 out.print("#!/bin/sh\n"
                           + "\n");
                 out.print(". /etc/profile\n"
-	                    + ". /opt/jdk").print(tomcatCommon.getDefaultJdkVersion()).print("-i686/setenv.sh\n"
-                        + ". ").print(osConfig.getScriptInclude("jakarta-oro-2.0.1.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("jakarta-regexp-1.2.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("jakarta-servletapi-3.2.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("jakarta-tomcat-3.2.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("jetspeed-1.1.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("cocoon-1.8.2.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("xerces-1.2.0.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("ant-1.6.2.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("xalan-1.2.d02.sh")).print("\n");
-                if(postgresServerMinorVersion!=null) {
-					out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
-				}
-                out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("castor-0.8.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("cos-27May2002.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("ecs-1.3.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("freemarker-1.5.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("gnu.regexp-1.0.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("jaf-1.0.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("slide-1.0.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("kavachart-3.1.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("javamail-1.1.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("jdbc-2.0.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("jsse-1.0.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("jyve-20000907.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("mm.mysql-2.0.7.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("openxml-1.2.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("pop3-1.1.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("soap-2.0.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("spfc-0.2.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("turbine-20000907.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("village-1.3.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("webmacro-27-08-2000.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("xang-0.0.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("xmlrpc-1.0.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("interclient-2.0.sh")).print("\n"
-                        + ". ").print(osConfig.getScriptInclude("poolman-1.4.sh")).print("\n"
-                        + "export \"CLASSPATH=/opt/aoserv-client/lib-1.3/aocode-public.jar:$CLASSPATH\"\n"
-                        //+ ". ").print(osConfig.getScriptInclude("fop-0.15.sh")).print('\n'
+	                    + ". /opt/jdk1-i686/setenv.sh\n"
+                        + ". /opt/jakarta-oro-2.0/setenv.sh\n"
+                        + ". /opt/jakarta-regexp-1/setenv.sh\n"
+	                    //+ ". /opt/jakarta-servletapi-").print(tomcatCommon.getServletApiVersion()).print("/setenv.sh\n"
+	                    + ". /opt/apache-tomcat-").print(tomcatCommon.getTomcatApiVersion()).print("/setenv.sh\n"
+                        + ". /opt/jetspeed-1.1/setenv.sh\n"
+                        + ". /opt/cocoon-1.8/setenv.sh\n"
+                        + ". /opt/xerces-1.2/setenv.sh\n"
+                        + ". /opt/ant-1/setenv.sh\n"
+                        + ". /opt/xalan-1.2/setenv.sh\n");
+                //if(postgresServerMinorVersion!=null) {
+				//	out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
+				//}
+                out.print(". /opt/castor-0.8/setenv.sh\n"
+                        + ". /opt/cos-27May2002/setenv.sh\n"
+                        + ". /opt/ecs-1.3/setenv.sh\n"
+                        + ". /opt/freemarker-1.5/setenv.sh\n"
+                        + ". /opt/gnu.regexp-1.0/setenv.sh\n"
+                        + ". /opt/jaf-1.0/setenv.sh\n"
+                        + ". /opt/slide-1.0/setenv.sh\n"
+                        + ". /opt/kavachart-3.1/setenv.sh\n"
+                        + ". /opt/javamail-1.1/setenv.sh\n"
+                        + ". /opt/jdbc-2.0/setenv.sh\n"
+                        + ". /opt/jsse-1.0/setenv.sh\n"
+                        + ". /opt/jyve-20000907/setenv.sh\n"
+                        + ". /opt/mm.mysql-2.0/setenv.sh\n"
+                        + ". /opt/openxml-1.2/setenv.sh\n"
+                        + ". /opt/pop3-1.1/setenv.sh\n"
+                        + ". /opt/soap-2.0/setenv.sh\n"
+                        + ". /opt/spfc-0.2/setenv.sh\n"
+                        + ". /opt/turbine-20000907/setenv.sh\n"
+                        + ". /opt/village-1.3/setenv.sh\n"
+                        + ". /opt/webmacro-27-08-2000/setenv.sh\n"
+                        + ". /opt/xang-0.0/setenv.sh\n"
+                        + ". /opt/xmlrpc-1.0/setenv.sh\n"
+                        + ". /opt/poolman-1.4/setenv.sh\n"
                         + "\n"
                         + "export PATH=\"${PATH}:").print(wwwGroupDir).print("/bin\"\n"
                         + "\n"
@@ -193,7 +190,6 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
                     + "    if [ -f \"${TOMCAT_HOME}/var/run/java.pid\" ]; then\n"
                     + "        . \"$TOMCAT_HOME/bin/profile\"\n"
                     + "        umask 002\n"
-                    + "        export DISPLAY=:0.0\n"
                     //+ "        ulimit -S -m 196608 -v 400000\n"
                     //+ "        ulimit -H -m 196608 -v 400000\n"
                     + "        if [ \"$SITES\" != \"\" ]; then\n"
@@ -213,7 +209,6 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
                     //+ "            ulimit -S -m 196608 -v 400000\n"
                     //+ "            ulimit -H -m 196608 -v 400000\n"
                     + "            umask 002\n"
-                    + "            export DISPLAY=:0.0\n"
             );
             out.print("            java com.aoindustries.apache.tomcat.VirtualTomcat start $SITES &>var/log/servlet_err &\n");
             out.print("            echo \"$!\" >\"${TOMCAT_HOME}/var/run/java.pid\"\n"
@@ -242,15 +237,15 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
             new UnixFile(sharedTomcatDirectory, "lib", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
             FileUtils.lnAll("../../.."+tomcatDirectory+"/lib/", wwwGroupDir+"/lib/", lsaUID, lsgGID);
             FileUtils.ln("../../.."+tomcatDirectory+"/lib/jasper-runtime.jar", wwwGroupDir+"/lib/jasper-runtime.jar", lsaUID, lsgGID);
-            if(postgresServerMinorVersion!=null) {
-                String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
-                if(postgresPath!=null) FileUtils.ln("../../.."+postgresPath+"/share/java/postgresql.jar", wwwGroupDir+"/lib/postgresql.jar", lsaUID, lsgGID);
-            }
-            String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
-            if(mysqlConnectorPath!=null) {
-                String filename = new UnixFile(mysqlConnectorPath).getFile().getName();
-                FileUtils.ln("../../.."+mysqlConnectorPath, wwwGroupDir+"/lib/"+filename, lsaUID, lsgGID);
-            }
+            //if(postgresServerMinorVersion!=null) {
+            //    String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
+            //    if(postgresPath!=null) FileUtils.ln("../../.."+postgresPath+"/share/java/postgresql.jar", wwwGroupDir+"/lib/postgresql.jar", lsaUID, lsgGID);
+            //}
+            //String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
+            //if(mysqlConnectorPath!=null) {
+            //    String filename = new UnixFile(mysqlConnectorPath).getFile().getName();
+            //    FileUtils.ln("../../.."+mysqlConnectorPath, wwwGroupDir+"/lib/"+filename, lsaUID, lsgGID);
+            //}
             UnixFile servErrUF = new UnixFile(varUF, "log/servlet_err", false);
             servErrUF.getSecureOutputStream(lsaUID, lsgGID, 0640, false).close();
 
@@ -293,13 +288,9 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
         } else newSitesFileUF.delete();
 
         // make work directories and remove extra work dirs
-        List<String> workFiles = new SortedArrayList<String>();
+        List<String> workFiles = new SortedArrayList<>();
         String[] wlist = workUF.getFile().list();
-        if(wlist!=null) {
-            for (int j = 0; j<wlist.length; j++) {
-                workFiles.add(wlist[j]);
-            }
-        }
+        if(wlist!=null) workFiles.addAll(Arrays.asList(wlist));
         for (int j = 0; j< sites.size(); j++) {
             HttpdSite hs=sites.get(j).getHttpdTomcatSite().getHttpdSite();
             if(!hs.isDisabled()) {
@@ -346,6 +337,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
         if(needRestart && !sharedTomcat.isDisabled()) sharedTomcatsNeedingRestarted.add(sharedTomcat);
     }
 
+	@Override
     protected boolean upgradeSharedTomcatDirectory(UnixFile siteDirectory) throws IOException, SQLException {
         // TODO
         return false;

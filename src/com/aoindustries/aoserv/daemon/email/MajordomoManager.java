@@ -43,6 +43,7 @@ final public class MajordomoManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
+	@Override
     protected boolean doRebuild() {
         try {
             AOServer aoServer=AOServDaemon.getThisAOServer();
@@ -75,11 +76,11 @@ final public class MajordomoManager extends BuilderThread {
                 }
 
                 // A list of things to be deleted is maintained
-                List<File> deleteFileList=new ArrayList<File>();
+                List<File> deleteFileList=new ArrayList<>();
 
                 // Get the list of all things in /etc/mail/majordomo
                 String[] list=serversUF.list();
-                Set<DomainName> existingServers=new HashSet<DomainName>(list.length*4/3+1);
+                Set<DomainName> existingServers=new HashSet<>(list.length*4/3+1);
                 for(String filename : list) existingServers.add(DomainName.valueOf(filename));
 
                 // Take care of all servers
@@ -515,7 +516,7 @@ final public class MajordomoManager extends BuilderThread {
 
                     // Verify the correct lists are installed
                     String[] listFiles=listsUF.list();
-                    Set<String> existingListFiles=new HashSet<String>(listFiles.length*4/3+1);
+                    Set<String> existingListFiles=new HashSet<>(listFiles.length*4/3+1);
                     for(String filename : listFiles) {
                         existingListFiles.add(filename);
                     }
@@ -1007,6 +1008,7 @@ final public class MajordomoManager extends BuilderThread {
         }
     }
 
+	@Override
     public String getProcessTimerDescription() {
         return "Rebuild Majordomo";
     }

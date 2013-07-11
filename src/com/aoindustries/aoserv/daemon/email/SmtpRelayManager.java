@@ -13,7 +13,6 @@ import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.NetDevice;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Server;
-import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -57,6 +56,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
     private static SmtpRelayManager smtpRelayManager;
 
     private static final Object rebuildLock=new Object();
+	@Override
     protected boolean doRebuild() {
         try {
             AOServConnector connector=AOServDaemon.getConnector();
@@ -74,13 +74,12 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
             //boolean isQmail=server.isQmail();
 
             // The IP addresses that have been used
-            Set<String> usedHosts=new HashSet<String>();
+            Set<String> usedHosts=new HashSet<>();
 
             synchronized(rebuildLock) {
                 UnixFile access, newFile;
                 ByteArrayOutputStream bout = new ByteArrayOutputStream();
-                ChainWriter out=new ChainWriter(bout);
-                try {
+                try (ChainWriter out = new ChainWriter(bout)) {
                     /*if(isQmail) {
                         access=new UnixFile(qmailFile);
                         newFile=new UnixFile(newQmailFile);
@@ -145,19 +144,12 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
                             }
                         }
                     }
-                } finally {
-                    if(out!=null) {
-                        out.close();
-                    }
                 }
                 byte[] newBytes = bout.toByteArray();
 
                 if(!access.getStat().exists() || !access.contentEquals(newBytes)) {
-                    FileOutputStream newOut = newFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true);
-                    try {
+                    try (FileOutputStream newOut = newFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)) {
                         newOut.write(newBytes);
-                    } finally {
-                        newOut.close();
                     }
                     newFile.renameTo(access);
                     makeAccessMap();
@@ -223,6 +215,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
     private SmtpRelayManager() {
     }
 
+	@Override
     public void run() {
         long lastTime=Long.MIN_VALUE;
         while(true) {
@@ -287,6 +280,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
         }
     }
 
+	@Override
     public String getProcessTimerDescription() {
         return "Rebuild SMTP Relays";
     }

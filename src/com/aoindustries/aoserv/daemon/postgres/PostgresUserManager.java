@@ -49,6 +49,7 @@ final public class PostgresUserManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
+	@Override
     protected boolean doRebuild() {
         try {
             AOServConnector connector = AOServDaemon.getConnector();
@@ -75,7 +76,7 @@ final public class PostgresUserManager extends BuilderThread {
                     boolean disableEnableDone = false;
                     try {
                         // Get the list of all existing users
-                        List<String> existing=new SortedArrayList<String>();
+                        List<String> existing=new SortedArrayList<>();
                         Statement stmt=conn.createStatement();
                         try {
                             String sqlString =
@@ -102,7 +103,7 @@ final public class PostgresUserManager extends BuilderThread {
                             }
 
                             // Find the users that do not exist and should be added
-                            List<PostgresServerUser> needAdded=new ArrayList<PostgresServerUser>();
+                            List<PostgresServerUser> needAdded=new ArrayList<>();
                             for (int d=0; d<users.size(); d++) {
                                 PostgresServerUser psu=users.get(d);
                                 PostgresUser pu=psu.getPostgresUser();
@@ -493,6 +494,7 @@ final public class PostgresUserManager extends BuilderThread {
         if(postgresUserManager!=null) postgresUserManager.waitForBuild();
     }
 
+	@Override
     public String getProcessTimerDescription() {
         return "Rebuild PostgresSQL Users";
     }

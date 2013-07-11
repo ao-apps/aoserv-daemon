@@ -44,6 +44,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
     }
 
     private static final Object rebuildLock=new Object();
+	@Override
     protected boolean doRebuild() {
         synchronized(rebuildLock) {
             // TODO: Add and initialize any missing /var/lib/pgsql/name
@@ -53,7 +54,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
         return true;
     }
 
-    private static final Map<Integer,AOConnectionPool> pools=new HashMap<Integer,AOConnectionPool>();
+    private static final Map<Integer,AOConnectionPool> pools=new HashMap<>();
     static AOConnectionPool getPool(PostgresServer ps) throws IOException, SQLException {
         synchronized(pools) {
             Integer I=Integer.valueOf(ps.getPkey());
@@ -105,6 +106,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
         if(postgresServerManager!=null) postgresServerManager.waitForBuild();
     }
 
+	@Override
     public String getProcessTimerDescription() {
         return "Rebuild PostgreSQL Servers";
     }
@@ -121,10 +123,12 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
         ServerManager.controlProcess("postgresql-"+ps.getName(), "stop");
     }
 
+	@Override
     public String getCronJobName() {
         return PostgresServerManager.class.getName();
     }
     
+	@Override
     public CronJobScheduleMode getCronJobScheduleMode() {
         return CronJobScheduleMode.SKIP;
     }
@@ -133,6 +137,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
         /**
          * This task will be ran once per day at 1:30am.
          */
+		@Override
         public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
             return
                 minute==30
@@ -141,10 +146,12 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
         }
     };
 
+	@Override
     public Schedule getCronJobSchedule() {
         return schedule;
     }
 
+	@Override
     public int getCronJobThreadPriority() {
         return Thread.NORM_PRIORITY-2;
     }
@@ -152,6 +159,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
     /**
      * Rotates PostgreSQL log files.  Those older than one month are removed.
      */
+	@Override
     public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
         try {
             AOServConnector conn = AOServDaemon.getConnector();

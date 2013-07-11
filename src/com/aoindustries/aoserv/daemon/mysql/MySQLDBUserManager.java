@@ -39,6 +39,7 @@ final public class MySQLDBUserManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
+	@Override
     protected boolean doRebuild() {
         try {
             AOServConnector connector=AOServDaemon.getConnector();
@@ -61,7 +62,7 @@ final public class MySQLDBUserManager extends BuilderThread {
                     Connection conn = pool.getConnection();
                     try {
                         // Get the list of all existing db entries
-                        Set<String> existing = new HashSet<String>();
+                        Set<String> existing = new HashSet<>();
                         Statement stmt = conn.createStatement();
                         try {
                             ResultSet results = stmt.executeQuery("select db, user from db");
@@ -212,6 +213,7 @@ final public class MySQLDBUserManager extends BuilderThread {
         if(mysqlDBUserManager!=null) mysqlDBUserManager.waitForBuild();
     }
 
+	@Override
     public String getProcessTimerDescription() {
         return "Rebuild MySQL DB Users";
     }

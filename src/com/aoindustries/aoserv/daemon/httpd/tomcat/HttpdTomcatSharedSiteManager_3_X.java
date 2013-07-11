@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.httpd.tomcat;
-
 /*
- * Copyright 2007-2009 by AO Industries, Inc.,
+ * Copyright 2007-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd.tomcat;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.HttpdJKProtocol;
 import com.aoindustries.aoserv.client.HttpdTomcatContext;
@@ -52,6 +52,7 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
     /**
      * Builds a shared site for Tomcat 3.X
      */
+	@Override
     protected void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
         // Resolve and allocate stuff used throughout the method
         final TomcatCommon_3_X tomcatCommon = getTomcatCommon();
@@ -276,6 +277,7 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
      */
     protected abstract byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException;
 
+	@Override
     protected boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException {
         final String siteDir = siteDirectory.getPath();
         final Stat tempStat = new Stat();
@@ -319,6 +321,7 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
         return needsRestart;
     }
 
+	@Override
     protected boolean upgradeSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
         // TODO
         return false;

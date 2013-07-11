@@ -16,7 +16,6 @@ import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.NetBind;
-import com.aoindustries.aoserv.client.PostgresServer;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
@@ -45,6 +44,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
     /**
      * Builds a standard install for Tomcat 5.5.X
      */
+	@Override
     protected void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
         // Resolve and allocate stuff used throughout the method
         final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
@@ -58,8 +58,8 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
         final AOServer thisAOServer = AOServDaemon.getThisAOServer();
         final Server server = thisAOServer.getServer();
         final int osv = server.getOperatingSystemVersion().getPkey();
-        final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
-        final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
+        //final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
+        //final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
 
         /*
          * Create the skeleton of the site, the directories and links.
@@ -104,17 +104,16 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
             out.print("#!/bin/sh\n"
                     + "\n"
                     + ". /etc/profile\n"
-                    + ". /opt/jdk").print(tomcatCommon.getDefaultJdkVersion()).print("-i686/setenv.sh\n");
-			if(enablePhp()) {
-				out.print(". /opt/php-").print(httpdConfig.getDefaultPhpMinorVersion()).print("-i686/setenv.sh\n");
-			}
-            if(postgresServerMinorVersion!=null) {
-				out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
-			}
-            out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
-                    + "\n"
+                    + ". /opt/jdk1-i686/setenv.sh\n");
+			//if(enablePhp()) {
+			//	out.print(". /opt/php-").print(httpdConfig.getDefaultPhpMinorVersion()).print("-i686/setenv.sh\n");
+			//}
+            //if(postgresServerMinorVersion!=null) {
+			//	out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
+			//}
+            //out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
+			out.print("\n"
                     + "umask 002\n"
-                    + "export DISPLAY=:0.0\n"
                     + "\n"
                     + "export CATALINA_HOME=\"").print(siteDir).print("\"\n"
                     + "export CATALINA_BASE=\"").print(siteDir).print("\"\n"
@@ -159,7 +158,6 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
                     + "        cd \"$TOMCAT_HOME\"\n"
                     + "        . \"$TOMCAT_HOME/bin/profile\"\n"
                     + "        umask 002\n"
-                    + "        export DISPLAY=:0.0\n"
                     + "        \"${TOMCAT_HOME}/bin/catalina.sh\" stop 2>&1 >>\"${TOMCAT_HOME}/var/log/tomcat_err\"\n"
                     + "        kill `cat \"${TOMCAT_HOME}/var/run/java.pid\"` &>/dev/null\n"
                     + "        rm -f \"${TOMCAT_HOME}/var/run/java.pid\"\n"
@@ -170,7 +168,6 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
                     + "\n"
                     + "    while [ 1 ]; do\n"
                     + "        umask 002\n"
-                    + "        export DISPLAY=:0.0\n"
                     + "        mv -f \"${TOMCAT_HOME}/var/log/tomcat_err\" \"${TOMCAT_HOME}/var/log/tomcat_err.old\"\n"
                     + "        \"${TOMCAT_HOME}/bin/catalina.sh\" run >&\"${TOMCAT_HOME}/var/log/tomcat_err\" &\n"
                     + "        echo \"$!\" >\"${TOMCAT_HOME}/var/run/java.pid\"\n"
@@ -219,15 +216,15 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
         FileUtils.mkdir(siteDir+"/common/lib", 0775, uid, gid);
         FileUtils.lnAll("../../../.."+tomcatDirectory+"/common/lib/", siteDir+"/common/lib/", uid, gid);
 
-        if(postgresServerMinorVersion!=null) {
-            String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
-            if(postgresPath!=null) FileUtils.ln("../../../.."+postgresPath+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
-        }
-        String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
-        if(mysqlConnectorPath!=null) {
-            String filename = new UnixFile(mysqlConnectorPath).getFile().getName();
-            FileUtils.ln("../../../.."+mysqlConnectorPath, siteDir+"/common/lib/"+filename, uid, gid);
-        }
+        //if(postgresServerMinorVersion!=null) {
+        //    String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
+        //    if(postgresPath!=null) FileUtils.ln("../../../.."+postgresPath+"/share/java/postgresql.jar", siteDir+"/common/lib/postgresql.jar", uid, gid);
+        //}
+        //String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
+        //if(mysqlConnectorPath!=null) {
+        //    String filename = new UnixFile(mysqlConnectorPath).getFile().getName();
+        //    FileUtils.ln("../../../.."+mysqlConnectorPath, siteDir+"/common/lib/"+filename, uid, gid);
+        //}
 
         /*
          * Write the conf/catalina.policy file
@@ -304,10 +301,12 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
         }
     }
 
+	@Override
     public TomcatCommon_5_5_X getTomcatCommon() {
         return TomcatCommon_5_5_X.getInstance();
     }
 
+	@Override
     protected byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException {
         final TomcatCommon tomcatCommon = getTomcatCommon();
         AOServConnector conn = AOServDaemon.getConnector();
@@ -412,6 +411,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
         return bout.toByteArray();
     }
 
+	@Override
     protected boolean upgradeSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
         // The only thing that needs to be modified is the included Tomcat
         return getTomcatCommon().upgradeTomcatDirectory(

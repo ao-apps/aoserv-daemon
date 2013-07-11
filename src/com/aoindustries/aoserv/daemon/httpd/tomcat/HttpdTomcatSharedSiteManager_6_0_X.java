@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.httpd.tomcat;
-
 /*
- * Copyright 2007-2009 by AO Industries, Inc.,
+ * Copyright 2007-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd.tomcat;
+
 import com.aoindustries.aoserv.client.HttpdTomcatContext;
 import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
 import com.aoindustries.aoserv.daemon.util.FileUtils;
@@ -28,6 +28,7 @@ class HttpdTomcatSharedSiteManager_6_0_X extends HttpdTomcatSharedSiteManager<To
     /**
      * Builds a shared site for Tomcat 6.0.X
      */
+	@Override
     protected void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
         /*
          * Resolve and allocate stuff used throughout the method
@@ -73,15 +74,18 @@ class HttpdTomcatSharedSiteManager_6_0_X extends HttpdTomcatSharedSiteManager<To
         }
     }
 
+	@Override
     public TomcatCommon_6_0_X getTomcatCommon() {
         return TomcatCommon_6_0_X.getInstance();
     }
 
+	@Override
     protected boolean rebuildConfigFiles(UnixFile siteDirectory) {
         // No configs to rebuild
         return false;
     }
 
+	@Override
     protected boolean upgradeSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
         // Nothing to do
         return false;

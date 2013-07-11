@@ -196,6 +196,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
     }
 */
     private static final Object rebuildLock=new Object();
+	@Override
     protected boolean doRebuild() {
         try {
             AOServConnector connector=AOServDaemon.getConnector();
@@ -220,7 +221,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                     Connection conn=pool.getConnection(false);
                     try {
                         // Get the list of all existing databases
-                        List<String> existing=new SortedArrayList<String>();
+                        List<String> existing=new SortedArrayList<>();
                         Statement stmt=conn.createStatement();
                         try {
                             ResultSet results=stmt.executeQuery("select datname from pg_database");
@@ -421,6 +422,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
         if(postgresDatabaseManager!=null) postgresDatabaseManager.waitForBuild();
     }
 
+	@Override
     public String getProcessTimerDescription() {
         return "Rebuild PostgreSQL Databases";
     }
@@ -430,6 +432,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
          * Runs once a month for automatic vacuuming and reindexing of all user tables, at 1:05 every Sunday.
          * REINDEX is only called on the first Sunday of the month.
          */
+		@Override
         public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
             return
                 minute==5
@@ -439,14 +442,17 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
         }
     };
 
+	@Override
     public Schedule getCronJobSchedule() {
         return schedule;
     }
     
+	@Override
     public CronJobScheduleMode getCronJobScheduleMode() {
         return CronJobScheduleMode.SKIP;
     }
 
+	@Override
     public String getCronJobName() {
         return "PostgresDatabaseManager";
     }
@@ -454,18 +460,20 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
     /**
      * Since the VACUUM FULL and REINDEX commands use exclusive locks on each table, we want it to finish as soon as possible.
      */
+	@Override
     public int getCronJobThreadPriority() {
         return Thread.NORM_PRIORITY+2;
     }
 
+	@Override
     public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
         try {
             AOServConnector aoservConn = AOServDaemon.getConnector();
             PostgresDatabaseTable postgresDatabaseTable = aoservConn.getPostgresDatabases();
             // Only REINDEX on the first Sunday of the month
             boolean isReindexTime=dayOfMonth<=7;
-            List<String> tableNames=new ArrayList<String>();
-            List<String> schemas=new ArrayList<String>();
+            List<String> tableNames=new ArrayList<>();
+            List<String> schemas=new ArrayList<>();
             for(PostgresServer postgresServer : AOServDaemon.getThisAOServer().getPostgresServers()) {
                 String postgresServerVersion=postgresServer.getPostgresVersion().getTechnologyVersion(aoservConn).getVersion();
                 boolean postgresServerHasSchemas=

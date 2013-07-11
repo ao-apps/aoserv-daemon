@@ -71,7 +71,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
         // The www group directories that exist but are not used will be removed
         UnixFile wwwgroupDirectory = new UnixFile(osConfig.getHttpdSharedTomcatsDirectory());
         String[] list = wwwgroupDirectory.list();
-        Set<String> wwwgroupRemoveList = new HashSet<String>(list.length*4/3+1);
+        Set<String> wwwgroupRemoveList = new HashSet<>(list.length*4/3+1);
         for (String dirname : list) {
             if(
                 !dirname.equals("lost+found")
@@ -122,6 +122,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
                 // Enabled and has sites, start or restart
                 if(sharedTomcatsNeedingRestarted.contains(sharedTomcat)) {
                     commandCallable = new Callable<Object>() {
+						@Override
                         public Object call() throws IOException, SQLException {
                             if(manager.stop()) {
                                 try {
@@ -136,6 +137,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
                     };
                 } else {
                     commandCallable = new Callable<Object>() {
+						@Override
                         public Object call() throws IOException, SQLException {
                             manager.start();
                             return null;
@@ -145,6 +147,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
             } else {
                 // Disabled or has no sites, can only stop if needed
                 commandCallable = new Callable<Object>() {
+					@Override
                     public Object call() throws IOException, SQLException {
                         manager.stop();
                         return null;
@@ -301,6 +304,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
         );
     }
 
+	@Override
     public boolean isStartable() {
         return !sharedTomcat.isDisabled();
     }
@@ -314,6 +318,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
         ;
     }
 
+	@Override
     public boolean stop() throws IOException, SQLException {
         UnixFile pidFile = getPidFile();
         if(pidFile.getStat().exists()) {
@@ -329,6 +334,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
         }
     }
 
+	@Override
     public boolean start() throws IOException, SQLException {
         UnixFile pidFile = getPidFile();
         if(!pidFile.getStat().exists()) {

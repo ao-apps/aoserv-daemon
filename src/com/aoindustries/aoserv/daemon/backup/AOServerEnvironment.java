@@ -70,8 +70,8 @@ public class AOServerEnvironment extends UnixFileEnvironment {
         // TODO: BackupManager.backupPostgresDatabases();
     }
 
-    private final Map<FailoverFileReplication,List<String>> replicatedMySQLServerses = new HashMap<FailoverFileReplication,List<String>>();
-    private final Map<FailoverFileReplication,List<String>> replicatedMySQLMinorVersionses = new HashMap<FailoverFileReplication,List<String>>();
+    private final Map<FailoverFileReplication,List<String>> replicatedMySQLServerses = new HashMap<>();
+    private final Map<FailoverFileReplication,List<String>> replicatedMySQLMinorVersionses = new HashMap<>();
 
     @Override
     public void init(FailoverFileReplication ffr) throws IOException, SQLException {
@@ -81,8 +81,8 @@ public class AOServerEnvironment extends UnixFileEnvironment {
         if(retention==1) {
             AOServer toServer = ffr.getBackupPartition().getAOServer();
             List<FailoverMySQLReplication> fmrs = ffr.getFailoverMySQLReplications();
-            List<String> replicatedMySQLServers = new ArrayList<String>(fmrs.size());
-            List<String> replicatedMySQLMinorVersions = new ArrayList<String>(fmrs.size());
+            List<String> replicatedMySQLServers = new ArrayList<>(fmrs.size());
+            List<String> replicatedMySQLMinorVersions = new ArrayList<>(fmrs.size());
             Logger logger = getLogger();
             boolean isDebug = logger.isLoggable(Level.FINE);
             for(FailoverMySQLReplication fmr : fmrs) {
@@ -131,7 +131,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
     protected Map<String,FilesystemIteratorRule> getFilesystemIteratorRules(FailoverFileReplication ffr) throws IOException, SQLException {
         AOServer thisServer = AOServDaemon.getThisAOServer();
         short retention = ffr.getRetention().getDays();
-        Map<String,FilesystemIteratorRule> filesystemRules=new HashMap<String,FilesystemIteratorRule>();
+        Map<String,FilesystemIteratorRule> filesystemRules=new HashMap<>();
         filesystemRules.put("", FilesystemIteratorRule.OK); // Default to being included unless explicitely excluded
         filesystemRules.put("/.journal", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/aquota.user", FilesystemIteratorRule.SKIP);
@@ -344,7 +344,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 
     @Override
     protected Map<String,FilesystemIteratorRule> getFilesystemIteratorPrefixRules(FailoverFileReplication ffr) throws IOException, SQLException {
-        Map<String,FilesystemIteratorRule> filesystemPrefixRules=new HashMap<String,FilesystemIteratorRule>();
+        Map<String,FilesystemIteratorRule> filesystemPrefixRules=new HashMap<>();
         filesystemPrefixRules.put("/var/lib/mysql/5.0/mysql-bin.", FilesystemIteratorRule.SKIP);
         filesystemPrefixRules.put("/var/lib/mysql/5.0/relay-log.", FilesystemIteratorRule.SKIP);
         filesystemPrefixRules.put("/var/lib/mysql/5.1/mysql-bin.", FilesystemIteratorRule.SKIP);

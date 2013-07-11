@@ -1,14 +1,18 @@
-package com.aoindustries.aoserv.daemon.report;
-
 /*
- * Copyright 2001-2009 by AO Industries, Inc.,
+ * Copyright 2001-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.*;
-import com.aoindustries.aoserv.daemon.*;
-import com.aoindustries.util.*;
-import java.io.*;
+package com.aoindustries.aoserv.daemon.report;
+
+import com.aoindustries.aoserv.client.IPAddress;
+import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.util.ErrorPrinter;
+import com.aoindustries.util.StringUtility;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.InterruptedIOException;
 
 /**
  * Encapsulates the output of the /usr/bin/mysqladmin command.
@@ -25,7 +29,7 @@ final public class MySQLAdmin extends DBReportData {
     final public float queries_per_second;
 
     public MySQLAdmin() throws IOException {
-        String user=AOServDaemonConfiguration.getMySqlUser();
+        String user= AOServDaemonConfiguration.getMySqlUser();
         String password=AOServDaemonConfiguration.getMySqlPassword();
         if(user!=null && user.length()>0 && password!=null && password.length()>0) {
             String[] cmd={
@@ -59,7 +63,7 @@ final public class MySQLAdmin extends DBReportData {
             }
 
             // Parse out the number of users
-            String[] words=StringUtility.splitString(line);
+            String[] words = StringUtility.splitString(line);
             numUsers=Integer.parseInt(words[3]);
             questions=Integer.parseInt(words[5]);
             slow_queries=Integer.parseInt(words[8]);
@@ -83,6 +87,7 @@ final public class MySQLAdmin extends DBReportData {
         }
     }
 
+	@Override
     public String toString() {
         return
             super.toString()

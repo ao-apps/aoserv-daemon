@@ -114,7 +114,7 @@ final public class DistroGenerator extends Thread {
 	}
 
 	private static Map<Integer,Map<String,Boolean>> loadFileList(String name) throws IOException {
-		Map<Integer,Map<String,Boolean>> osVersions=new HashMap<Integer,Map<String,Boolean>>();
+		Map<Integer,Map<String,Boolean>> osVersions=new HashMap<>();
 		BufferedReader in=new BufferedReader(new InputStreamReader(DistroGenerator.class.getResourceAsStream(name+".txt")));
 		try {
 			String line;
@@ -134,7 +134,7 @@ final public class DistroGenerator extends Thread {
 					String filename=line.substring(pos3);
 					Integer I=Integer.valueOf(osVersion);
 					Map<String,Boolean> filenames=osVersions.get(I);
-					if(filenames==null) osVersions.put(I, filenames=new HashMap<String,Boolean>());
+					if(filenames==null) osVersions.put(I, filenames=new HashMap<>());
 					filenames.put(filename, Boolean.FALSE);
 				}
 			}
@@ -157,11 +157,11 @@ final public class DistroGenerator extends Thread {
 	private static Map<Integer,Map<Integer,String>> usernames;
 	private static String getUsername(OSFilename osFilename, int fileUID) throws IOException {
 		synchronized(DistroGenerator.class) {
-			if (usernames==null) usernames=new HashMap<Integer,Map<Integer,String>>();
+			if (usernames==null) usernames=new HashMap<>();
 			Integer I=Integer.valueOf(osFilename.operating_system_version);
 			Map<Integer,String> realNames=usernames.get(I);
 			if(realNames==null) {
-				usernames.put(I, realNames=new HashMap<Integer,String>());
+				usernames.put(I, realNames=new HashMap<>());
 				BufferedReader in = new BufferedReader(
 					new InputStreamReader(
 						new BufferedInputStream(
@@ -194,11 +194,11 @@ final public class DistroGenerator extends Thread {
 	private static Map<Integer,Map<Integer,String>> groupnames;
 	private static String getGroupname(OSFilename osFilename, int fileGID) throws IOException {
 		synchronized(DistroGenerator.class) {
-			if (groupnames==null) groupnames=new HashMap<Integer,Map<Integer,String>>();
+			if (groupnames==null) groupnames=new HashMap<>();
 			Integer I=Integer.valueOf(osFilename.operating_system_version);
 			Map<Integer,String> realGroups=groupnames.get(I);
 			if(realGroups==null) {
-				groupnames.put(I, realGroups=new HashMap<Integer,String>());
+				groupnames.put(I, realGroups=new HashMap<>());
 				BufferedReader in = new BufferedReader(
 					new InputStreamReader(
 						new BufferedInputStream(
@@ -304,9 +304,9 @@ final public class DistroGenerator extends Thread {
 			else {
 				// Initialize the stacks, if needed
 				if(currentDirectories==null) {
-					(currentDirectories=new Stack<String>()).push("");
-					(currentLists=new Stack<String[]>()).push(new String[] {""});
-					(currentIndexes=new Stack<Integer>()).push(Integer.valueOf(0));
+					(currentDirectories=new Stack<>()).push("");
+					(currentLists=new Stack<>()).push(new String[] {""});
+					(currentIndexes=new Stack<>()).push(Integer.valueOf(0));
 				}
 			}
 			String currentDirectory=null;
@@ -635,7 +635,7 @@ final public class DistroGenerator extends Thread {
 	}
 
 	private static <T extends Comparable<? super T>> List<T> sort(Iterator<T> I) {
-		List<T> list=new ArrayList<T>();
+		List<T> list=new ArrayList<>();
 		while(I.hasNext()) list.add(I.next());
 		Collections.sort(list);
 		return list;

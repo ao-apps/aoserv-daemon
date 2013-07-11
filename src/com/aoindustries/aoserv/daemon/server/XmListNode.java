@@ -79,7 +79,7 @@ final public class XmListNode {
     private final List<Object> list;
     private XmListNode(String id) {
         this.id = id;
-        this.list = new ArrayList<Object>();
+        this.list = new ArrayList<>();
     }
 
     public String getId() {

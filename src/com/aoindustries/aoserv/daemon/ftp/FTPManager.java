@@ -69,6 +69,7 @@ final public class FTPManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
+	@Override
     protected boolean doRebuild() {
         try {
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
@@ -312,7 +313,7 @@ final public class FTPManager extends BuilderThread {
                 List<NetBind> binds = thisAOServer.getServer().getNetBinds(conn.getProtocols().get(Protocol.FTP));
 
                 // Keep a list of the files that were verified
-                Set<String> existing = new HashSet<String>(binds.size()*4/3+1);
+                Set<String> existing = new HashSet<>(binds.size()*4/3+1);
 
                 // Write each config file
                 for(NetBind bind : binds) {
@@ -409,10 +410,10 @@ final public class FTPManager extends BuilderThread {
      * shared FTP space.
      */
     private static void doRebuildSharedFtpDirectory() throws IOException, SQLException {
-        List<File> deleteFileList=new ArrayList<File>();
+        List<File> deleteFileList=new ArrayList<>();
 
         String[] list = sharedFtpDirectory.list();
-        Set<String> ftpDirectories = new HashSet<String>(list.length*4/3+1);
+        Set<String> ftpDirectories = new HashSet<>(list.length*4/3+1);
 		ftpDirectories.addAll(Arrays.asList(list));
 
 		for(HttpdSite httpdSite : AOServDaemon.getThisAOServer().getHttpdSites()) {
@@ -499,6 +500,7 @@ final public class FTPManager extends BuilderThread {
         trimFiles(dir, SA);
     }
 
+	@Override
     public String getProcessTimerDescription() {
         return "Rebuild FTP";
     }

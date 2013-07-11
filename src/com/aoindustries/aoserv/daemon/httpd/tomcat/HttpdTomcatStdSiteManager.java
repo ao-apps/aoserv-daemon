@@ -54,6 +54,7 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
     /**
      * Standard sites always have worker directly attached.
      */
+	@Override
     protected HttpdWorker getHttpdWorker() throws IOException, SQLException {
         AOServConnector conn = AOServDaemon.getConnector();
         List<HttpdWorker> workers = tomcatSite.getHttpdWorkers();
@@ -69,6 +70,7 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
         throw new SQLException("Couldn't find either ajp13 or ajp12");
     }
 
+	@Override
     public UnixFile getPidFile() throws IOException, SQLException {
         return new UnixFile(
             HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
@@ -78,10 +80,12 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
         );
     }
 
+	@Override
     public boolean isStartable() {
         return !httpdSite.isDisabled();
     }
 
+	@Override
     public String getStartStopScriptPath() throws IOException, SQLException {
         return
             HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
@@ -91,14 +95,17 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
         ;
     }
 
+	@Override
     public String getStartStopScriptUsername() throws IOException, SQLException {
         return httpdSite.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername();
     }
 
+	@Override
     protected void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) {
         sitesNeedingRestarted.add(httpdSite);
     }
 
+	@Override
     protected void enableDisable(UnixFile siteDirectory) throws IOException, SQLException {
         UnixFile daemonUF = new UnixFile(siteDirectory, "daemon", false);
         UnixFile daemonSymlink = new UnixFile(daemonUF, "tomcat", false);
@@ -121,6 +128,7 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
      */
     protected abstract byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException;
 
+	@Override
     protected boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException {
         final String siteDir = siteDirectory.getPath();
         final Stat tempStat = new Stat();

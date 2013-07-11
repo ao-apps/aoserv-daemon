@@ -91,7 +91,7 @@ class HttpdLogManager {
 
             // Create all /var/log/httpd/* directories
             List<HttpdServer> hss = aoServer.getHttpdServers();
-            Set<String> dontDeleteFilenames = new HashSet<String>(hss.size()*4/3+1);
+            Set<String> dontDeleteFilenames = new HashSet<>(hss.size()*4/3+1);
             for(HttpdServer hs : hss) {
                 String filename = "httpd"+hs.getNumber();
                 dontDeleteFilenames.add(filename);
@@ -153,7 +153,7 @@ class HttpdLogManager {
 
         // The log directories that exist but are not used will be removed
         String[] list = new File(LOG_DIR).list();
-        Set<String> logDirectories = new HashSet<String>(list.length*4/3+1);
+        Set<String> logDirectories = new HashSet<>(list.length*4/3+1);
         for(String dirname : list) {
             if(!dirname.equals("lost+found")) logDirectories.add(dirname);
         }
@@ -252,11 +252,11 @@ class HttpdLogManager {
 
         // The log rotations that exist but are not used will be removed
         String[] list = new File(siteLogRotationDir).list();
-        Set<String> logRotationFiles = new HashSet<String>(list.length*4/3+1);
+        Set<String> logRotationFiles = new HashSet<>(list.length*4/3+1);
         for(String filename : list) logRotationFiles.add(filename);
 
         // Each log file will be only rotated at most once
-        Set<String> completedPaths = new HashSet<String>(list.length*4/3+1);
+        Set<String> completedPaths = new HashSet<>(list.length*4/3+1);
 
         // For each site, build/rebuild the logrotate.d file as necessary and create any necessary log files
         ChainWriter chainOut=new ChainWriter(byteOut);

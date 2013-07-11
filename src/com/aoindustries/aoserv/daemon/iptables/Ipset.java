@@ -1,5 +1,5 @@
 /*
- * 2012 by AO Industries, Inc.,
+ * Copyright 2012-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -210,7 +210,7 @@ final public class Ipset {
                     setName
                 }
             );
-            unusedEntries = new HashSet<Integer>((entries.size() - MAX_IPSET_SIZE) *4/3+1);
+            unusedEntries = new HashSet<>((entries.size() - MAX_IPSET_SIZE) *4/3+1);
             int count = 0;
             for(Integer entry : entries) {
                 if(count>=MAX_IPSET_SIZE) unusedEntries.add(entry);
@@ -240,7 +240,7 @@ final public class Ipset {
         boolean modified = false;
 
         // Parse current set, deleting any that should no longer exist, flagging as modified
-        Set<Integer> existingEntries = new LinkedHashSet<Integer>(
+        Set<Integer> existingEntries = new LinkedHashSet<>(
             // Normally use 4/3+1, 5/3+1 here to leave room for 25% growth before any rehash
             entries.size() * 5/3 + 1
         );

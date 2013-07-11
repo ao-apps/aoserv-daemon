@@ -1,15 +1,18 @@
-package com.aoindustries.aoserv.daemon.report;
-
 /*
- * Copyright 2000-2009 by AO Industries, Inc.,
+ * Copyright 2000-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.daemon.*;
-import com.aoindustries.sql.*;
-import com.aoindustries.util.*;
-import java.io.*;
-import java.sql.*;
+package com.aoindustries.aoserv.daemon.report;
+
+import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.util.ErrorPrinter;
+import com.aoindustries.util.StringUtility;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.sql.SQLException;
 
 /**
  * Encapsulates the output of the /proc/meminfo file.
@@ -60,7 +63,7 @@ final public class ProcMemory {
             try {
                 String line;
                 while((line=in.readLine())!=null) {
-                    String[] words=StringUtility.splitString(line);
+                    String[] words = StringUtility.splitString(line);
                     String label=words[0];
                     if(label.equals("MemTotal:")) mem_total=Integer.parseInt(words[1]);
                     else if(label.equals("MemFree:")) mem_free=Integer.parseInt(words[1]);
@@ -112,6 +115,7 @@ final public class ProcMemory {
         }
     }
 
+	@Override
     public String toString() {
         return
             getClass().getName()

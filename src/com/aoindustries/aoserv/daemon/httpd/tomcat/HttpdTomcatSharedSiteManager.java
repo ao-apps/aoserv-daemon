@@ -51,12 +51,14 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
     /**
      * Worker is associated with the shared JVM.
      */
+	@Override
     protected HttpdWorker getHttpdWorker() throws IOException, SQLException {
         HttpdWorker hw = tomcatSharedSite.getHttpdSharedTomcat().getTomcat4Worker();
         if(hw==null) throw new SQLException("Unable to find shared HttpdWorker");
         return hw;
     }
 
+	@Override
     public UnixFile getPidFile() throws IOException, SQLException {
         return new UnixFile(
             HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
@@ -66,10 +68,12 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
         );
     }
 
+	@Override
     public boolean isStartable() throws IOException, SQLException {
         return !tomcatSharedSite.getHttpdSharedTomcat().isDisabled();
     }
 
+	@Override
     public String getStartStopScriptPath() throws IOException, SQLException {
         return
             HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
@@ -79,10 +83,12 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
         ;
     }
 
+	@Override
     public String getStartStopScriptUsername() throws IOException, SQLException {
         return tomcatSharedSite.getHttpdSharedTomcat().getLinuxServerAccount().getLinuxAccount().getUsername().getUsername();
     }
 
+	@Override
     protected void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws SQLException, IOException {
         sharedTomcatsNeedingRestarted.add(tomcatSharedSite.getHttpdSharedTomcat());
     }
@@ -92,6 +98,7 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
      * The HttpdSharedTomcat manager will update the profile.sites file
      * and restart to take care of this.
      */
+	@Override
     protected void enableDisable(UnixFile siteDirectory) {
         // Do nothing
     }

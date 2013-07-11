@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.httpd.tomcat;
-
 /*
- * Copyright 2008-2009 by AO Industries, Inc.,
+ * Copyright 2008-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd.tomcat;
+
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 
 /**
@@ -18,6 +18,7 @@ class HttpdSharedTomcatManager_3_1 extends HttpdSharedTomcatManager_3_X<TomcatCo
         super(sharedTomcat);
     }
     
+	@Override
     TomcatCommon_3_1 getTomcatCommon() {
         return TomcatCommon_3_1.getInstance();
     }

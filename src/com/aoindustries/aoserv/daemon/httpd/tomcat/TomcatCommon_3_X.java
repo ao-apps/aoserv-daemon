@@ -1,12 +1,11 @@
-package com.aoindustries.aoserv.daemon.httpd.tomcat;
-
 /*
- * Copyright 2008-2009 by AO Industries, Inc.,
+ * Copyright 2008-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd.tomcat;
+
 import com.aoindustries.aoserv.client.HttpdTomcatDataSource;
-import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.util.FileUtils;
 import com.aoindustries.io.ChainWriter;
 import java.io.IOException;
@@ -33,19 +32,11 @@ public abstract class TomcatCommon_3_X extends TomcatCommon {
         "tomcat.log"
     };
 
+	@Override
     public void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws SQLException {
         throw new SQLException("Not implemented for Tomcat 3.X");
     }
 
-    /**
-     * Uses os-default JDK.
-     * 
-     * @see  OperatingSystemConfiguration#getDefaultJdkVersion
-     */
-    public String getDefaultJdkVersion() throws IOException, SQLException {
-        return OperatingSystemConfiguration.getOperatingSystemConfiguration().getDefaultJdkVersion();
-    }
-    
     /**
      * Creates the test-tomcat.xml file in the provided conf directory.
      */
@@ -73,7 +64,7 @@ public abstract class TomcatCommon_3_X extends TomcatCommon {
     /**
      * Gets the servlet API version.
      */
-    abstract String getServletApiVersion();
+    //abstract String getServletApiVersion();
     
     /**
      * Gets the tomcat API version.

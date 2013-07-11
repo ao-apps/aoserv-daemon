@@ -55,6 +55,7 @@ final public class SendmailCFManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
+	@Override
     protected boolean doRebuild() {
         try {
             // Used on inner processing
@@ -237,7 +238,7 @@ final public class SendmailCFManager extends BuilderThread {
                         out.print("dnl Only listen to the IP addresses of this logical server\n"
                                 + "dnl\n"
                                 + "FEATURE(`no_default_msa')dnl\n");
-                        List<InetAddress> finishedIPs=new SortedArrayList<InetAddress>();
+                        List<InetAddress> finishedIPs=new SortedArrayList<>();
                         for(NetBind nb : smtpNetBinds) {
                             IPAddress ia=nb.getIPAddress();
                             InetAddress ip=ia.getInetAddress();
@@ -502,6 +503,7 @@ final public class SendmailCFManager extends BuilderThread {
         }
     }
 
+	@Override
     public String getProcessTimerDescription() {
         return "Rebuild sendmail.cf";
     }

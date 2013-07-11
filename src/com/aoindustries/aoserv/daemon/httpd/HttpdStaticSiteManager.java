@@ -40,6 +40,7 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 		this.staticSite = staticSite;
 	}
 
+	@Override
 	protected void buildSiteDirectory(UnixFile siteDirectory, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
 		final Stat tempStat = new Stat();
 		final boolean isAuto = !httpdSite.isManual();
@@ -73,6 +74,7 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 	/**
 	 * No CGI.
 	 */
+	@Override
 	protected boolean enableCgi() {
 		return false;
 	}
@@ -80,6 +82,7 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 	/**
 	 * No PHP.
 	 */
+	@Override
 	protected boolean enablePhp() {
 		return false;
 	}
@@ -87,12 +90,14 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 	/**
 	 * No anonymous FTP directory.
 	 */
+	@Override
 	public boolean enableAnonymousFtp() {
 		return false;
 	}
 
+	@Override
 	public SortedMap<String,WebAppSettings> getWebapps() throws IOException, SQLException {
-		SortedMap<String,WebAppSettings> webapps = new TreeMap<String,WebAppSettings>();
+		SortedMap<String,WebAppSettings> webapps = new TreeMap<>();
 		webapps.put(
 			"",
 			new WebAppSettings(

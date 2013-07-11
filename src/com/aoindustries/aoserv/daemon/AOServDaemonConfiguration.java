@@ -226,7 +226,7 @@ final public class AOServDaemonConfiguration {
 	 */
 	public static Map<String, NetworkMonitorConfiguration> getNetworkMonitors() throws IOException {
 		List<String> networkNames = StringUtility.splitStringCommaSpace(getProperty("monitor.NetworkMonitor.networkNames", true));
-		Map<String,NetworkMonitorConfiguration> networkMonitors = new LinkedHashMap<String,NetworkMonitorConfiguration>(networkNames.size()*4/3+1);
+		Map<String,NetworkMonitorConfiguration> networkMonitors = new LinkedHashMap<>(networkNames.size()*4/3+1);
 		for(String name : networkNames) {
 			String nullRoutePacketRate = getProperty("monitor.NetworkMonitor.network."+name+".nullRoute.packetRate");
 			String nullRouteBitRate = getProperty("monitor.NetworkMonitor.network."+name+".nullRoute.bitRate");

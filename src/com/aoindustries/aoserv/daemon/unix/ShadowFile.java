@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2012 by AO Industries, Inc.,
+ * Copyright 2001-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -90,17 +90,14 @@ final public class ShadowFile {
             /*
              * Get the old data from /etc/shadow
              */
-            Map<String,ShadowFileEntry> shadowEntries = new HashMap<String,ShadowFileEntry>();
-            BufferedReader in = new BufferedReader(new InputStreamReader(new BufferedInputStream(new FileInputStream(shadowFile.getFile()))));
-            try {
+            Map<String,ShadowFileEntry> shadowEntries = new HashMap<>();
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(new BufferedInputStream(new FileInputStream(shadowFile.getFile()))))) {
                 String line;
                 while ((line = in.readLine()) != null) {
                     ShadowFileEntry entry = new ShadowFileEntry(line);
                     if (shadowEntries.containsKey(entry.username)) throw new IllegalArgumentException("Shadow file contains duplicate entry: " + line);
                     shadowEntries.put(entry.username, entry);
                 }
-            } finally {
-                in.close();
             }
 
             /*
@@ -180,10 +177,9 @@ final public class ShadowFile {
             /*
              * Get the old data from /etc/shadow
              */
-            List<ShadowFileEntry> shadowEntries = new ArrayList<ShadowFileEntry>();
+            List<ShadowFileEntry> shadowEntries = new ArrayList<>();
             boolean userFound=false;
-            BufferedReader in = new BufferedReader(new InputStreamReader(new BufferedInputStream(new FileInputStream(shadowFile.getFile()))));
-            try {
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(new BufferedInputStream(new FileInputStream(shadowFile.getFile()))))) {
                 // Reset if already exists
                 String line;
                 while ((line = in.readLine()) != null) {
@@ -194,8 +190,6 @@ final public class ShadowFile {
                     }
                     shadowEntries.add(entry);
                 }
-            } finally {
-                in.close();
             }
 
             // Add if does not yet exist

@@ -41,6 +41,7 @@ final public class CvsManager extends BuilderThread {
 	}
 
 	private static final Object rebuildLock=new Object();
+	@Override
 	protected boolean doRebuild() {
 		try {
 			//AOServConnector conn=AOServDaemon.getConnector();
@@ -58,7 +59,7 @@ final public class CvsManager extends BuilderThread {
 				if(!cvsDir.exists()) new UnixFile(cvsDir).mkdir(false, 0755, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
 				String[] list=cvsDir.list();
 				int listLen=list.length;
-				Set<String> existing = new HashSet<String>(listLen);
+				Set<String> existing = new HashSet<>(listLen);
 				for(int c=0;c<listLen;c++) existing.add(CVS_DIRECTORY+'/'+list[c]);
 
 				// Add each directory that doesn't exist, fix permissions and ownerships, too
@@ -104,7 +105,7 @@ final public class CvsManager extends BuilderThread {
 				 */
 				int svLen=existing.size();
 				if(svLen>0) {
-					List<File> deleteFileList=new ArrayList<File>(svLen);
+					List<File> deleteFileList=new ArrayList<>(svLen);
 					for(String deleteFilename : existing) deleteFileList.add(new File(deleteFilename));
 
 					// Get the next backup filename
@@ -151,6 +152,7 @@ final public class CvsManager extends BuilderThread {
 		}
 	}
 
+	@Override
 	public String getProcessTimerDescription() {
 		return "Rebuild CVS";
 	}

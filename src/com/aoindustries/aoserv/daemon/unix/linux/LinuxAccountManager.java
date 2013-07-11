@@ -99,6 +99,7 @@ public class LinuxAccountManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
+	@Override
     protected boolean doRebuild() {
         try {
             rebuildLinuxAccountSettings();
@@ -127,16 +128,16 @@ public class LinuxAccountManager extends BuilderThread {
         synchronized(rebuildLock) {
             // A list of all files to delete is created so that all the data can
             // be backed-up before removal.
-            List<File> deleteFileList=new ArrayList<File>();
+            List<File> deleteFileList=new ArrayList<>();
 
             // Get the list of users from the database
             List<LinuxServerAccount> accounts = aoServer.getLinuxServerAccounts();
             int accountsLen = accounts.size();
 
             // Build a sorted vector of all the usernames, user ids, and home directories
-            final List<String> usernames=new SortedArrayList<String>(accountsLen);
+            final List<String> usernames=new SortedArrayList<>(accountsLen);
             final IntList uids=new SortedIntArrayList(accountsLen);
-            final List<String> homeDirs=new SortedArrayList<String>(accountsLen);
+            final List<String> homeDirs=new SortedArrayList<>(accountsLen);
             for(int c=0;c<accountsLen;c++) {
                 LinuxServerAccount lsa=accounts.get(c);
                 usernames.add(lsa.getLinuxAccount().getUsername().getUsername());
@@ -190,7 +191,7 @@ public class LinuxAccountManager extends BuilderThread {
                 )
             );
             try {
-                Map<String,Object> tempMap=new HashMap<String,Object>();
+                Map<String,Object> tempMap=new HashMap<>();
                 boolean rootFound=false;
                 // Write root first
                 for (int c = 0; c < groupsLen; c++) {
@@ -879,6 +880,7 @@ public class LinuxAccountManager extends BuilderThread {
         if(linuxAccountManager!=null) linuxAccountManager.waitForBuild();
     }
 
+	@Override
     public String getProcessTimerDescription() {
         return "Rebuild Linux Accounts";
     }

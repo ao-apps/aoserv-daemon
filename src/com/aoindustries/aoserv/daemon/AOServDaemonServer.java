@@ -56,7 +56,7 @@ final public class AOServDaemonServer extends Thread {
         this.protocol = protocol;
     }
 
-    private static final Map<Long,DaemonAccessEntry> accessKeys=new HashMap<Long,DaemonAccessEntry>();
+    private static final Map<Long,DaemonAccessEntry> accessKeys=new HashMap<>();
     private static long lastAccessKeyCleaning=-1;
 
     public static void grantDaemonAccess(long key, int command, String param1, String param2, String param3) {
@@ -67,7 +67,7 @@ final public class AOServDaemonServer extends Thread {
                 long timeSince=System.currentTimeMillis()-lastAccessKeyCleaning;
                 if(timeSince<0 || timeSince>=(5L*60*1000)) {
                     // Build a list of keys that should be removed
-                    List<Long> removeKeys=new ArrayList<Long>();
+                    List<Long> removeKeys=new ArrayList<>();
                     Iterator<Long> I=accessKeys.keySet().iterator();
                     while(I.hasNext()) {
                         Long keyLong=I.next();
@@ -113,44 +113,44 @@ final public class AOServDaemonServer extends Thread {
                     System.out.print(protocol);
                     System.out.println(')');
                 }
-                if(protocol.equals(Protocol.AOSERV_DAEMON)) {
-                    ServerSocket SS = new ServerSocket(serverPort, 50, serverBind.isUnspecified() ? null : address);
-                    try {
-                        while(true) {
-                            Socket socket=SS.accept();
-                            socket.setKeepAlive(true);
-                            socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
-                            //socket.setTcpNoDelay(true);
-                            AOServDaemonServerThread thread = new AOServDaemonServerThread(this, socket);
-							thread.start();
-                        }
-                    } finally {
-                        SS.close();
-                    }
-                } else if(protocol.equals(Protocol.AOSERV_DAEMON_SSL)) {
-                    SSLServerSocketFactory factory = (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
-                    SSLServerSocket SS=(SSLServerSocket)factory.createServerSocket(serverPort, 50, address);
-
-                    try {
-                        while (true) {
-                            Socket socket=SS.accept();
-                            try {
-                                socket.setKeepAlive(true);
-                                socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
-                                //socket.setTcpNoDelay(true);
-                                AOServDaemonServerThread thread = new AOServDaemonServerThread(this, socket);
+				switch (protocol) {
+					case Protocol.AOSERV_DAEMON:
+						try (ServerSocket SS = new ServerSocket(serverPort, 50, serverBind.isUnspecified() ? null : address)) {
+							while(true) {
+								Socket socket=SS.accept();
+								socket.setKeepAlive(true);
+								socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
+								//socket.setTcpNoDelay(true);
+								AOServDaemonServerThread thread = new AOServDaemonServerThread(this, socket);
 								thread.start();
-                            } catch(ThreadDeath TD) {
-                                throw TD;
-                            } catch(Throwable T) {
-                                LogFactory.getLogger(AOServDaemonServer.class).log(Level.SEVERE, null, T);
-                            }
-                        }
-                    } finally {
-                        SS.close();
-                    }
-
-                } else throw new IllegalArgumentException("Unsupported protocol: "+protocol);
+							}
+						}
+						// break;
+					case Protocol.AOSERV_DAEMON_SSL:
+						SSLServerSocketFactory factory = (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
+						SSLServerSocket SS=(SSLServerSocket)factory.createServerSocket(serverPort, 50, address);
+						try {
+							while (true) {
+								Socket socket=SS.accept();
+								try {
+									socket.setKeepAlive(true);
+									socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
+									//socket.setTcpNoDelay(true);
+									AOServDaemonServerThread thread = new AOServDaemonServerThread(this, socket);
+									thread.start();
+								} catch(ThreadDeath TD) {
+									throw TD;
+								} catch(Throwable T) {
+									LogFactory.getLogger(AOServDaemonServer.class).log(Level.SEVERE, null, T);
+								}
+							}
+						} finally {
+							SS.close();
+						}
+						// break;
+					default:
+						throw new IllegalArgumentException("Unsupported protocol: "+protocol);
+				}
             } catch (ThreadDeath TD) {
                 throw TD;
             } catch (Throwable T) {

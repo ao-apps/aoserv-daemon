@@ -1,12 +1,11 @@
-package com.aoindustries.aoserv.daemon.report;
-
 /*
- * Copyright 2000-2009 by AO Industries, Inc.,
+ * Copyright 2000-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.report;
+
 import com.aoindustries.aoserv.daemon.*;
-import com.aoindustries.sql.*;
 import com.aoindustries.util.*;
 import java.io.*;
 import java.sql.*;
@@ -41,9 +40,9 @@ final public class ProcStat {
     ;
 
     public ProcStat() throws IOException, SQLException {
-        List<Long> userCPUTimes=new ArrayList<Long>();
-        List<Long> niceCPUTimes=new ArrayList<Long>();
-        List<Long> sysCPUTimes=new ArrayList<Long>();
+        List<Long> userCPUTimes=new ArrayList<>();
+        List<Long> niceCPUTimes=new ArrayList<>();
+        List<Long> sysCPUTimes=new ArrayList<>();
         long pagesIn=0;
         long pagesOut=0;
         long swapsIn=0;

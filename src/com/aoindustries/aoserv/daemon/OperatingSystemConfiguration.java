@@ -17,108 +17,102 @@ import java.sql.SQLException;
  */
 public enum OperatingSystemConfiguration {
 	REDHAT_ES_4_X86_64 {
+		@Override
 		public HttpdOperatingSystemConfiguration getHttpdOperatingSystemConfiguration() {
 			return HttpdOperatingSystemConfiguration.REDHAT_ES_4_X86_64;
 		}
-		public String getDefaultJdkVersion() {
-			return "1.5.0";
-		}
+		@Override
 		public String getOpensslDefaultCaFile() {
 			return "/etc/ssl/CA/ca.txt";
 		}
+		@Override
 		public String getReplaceCommand() {
 			return "/opt/mysql-5.0/bin/replace";
 		}
-		public String getScriptInclude(String script) {
-			return "/opt/aoserv-client/scripts/"+script;
-		}
-		public String getAOServClientScriptInclude() {
-			return "/opt/aoserv-client/scripts/aoserv-client.sh";
-		}
+		//@Override
+		//public String getAOServClientScriptInclude() {
+		//	return "/opt/aoserv-client/scripts/aoserv-client.sh";
+		//}
+		@Override
 		public String getPostgresPath(String minorVersion) {
 			return "/opt/postgresql-"+minorVersion;
 		}
-		public String getMySQLConnectorJavaJarPath() {
-			return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
-		}
+		//public String getMySQLConnectorJavaJarPath() {
+		//	return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
+		//}
 	},
 	CENTOS_5_I686_AND_X86_64 {
+		@Override
 		public HttpdOperatingSystemConfiguration getHttpdOperatingSystemConfiguration() {
 			return HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64;
 		}
-		public String getDefaultJdkVersion() {
-			return "1";
-		}
+		@Override
 		public String getOpensslDefaultCaFile() {
 			return "/etc/pki/tls/certs/ca-bundle.crt";
 		}
+		@Override
 		public String getReplaceCommand() {
 			return "/opt/aoserv-daemon/bin/replace";
 		}
-		public String getScriptInclude(String script) {
-			return "/opt/aoserv-client/scripts/"+script;
-		}
-		public String getAOServClientScriptInclude() {
-			return "/opt/aoserv-client/scripts/aoserv-client.sh";
-		}
+		//@Override
+		//public String getAOServClientScriptInclude() {
+		//	return "/opt/aoserv-client/scripts/aoserv-client.sh";
+		//}
+		@Override
 		public String getPostgresPath(String minorVersion) {
 			return "/opt/postgresql-"+minorVersion+"-i686";
 		}
-		public String getMySQLConnectorJavaJarPath() {
-			return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
-		}
+		//public String getMySQLConnectorJavaJarPath() {
+		//	return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
+		//}
 	},
 	CENTOS_5DOM0_I686 {
+		@Override
 		public HttpdOperatingSystemConfiguration getHttpdOperatingSystemConfiguration() {
 			return null;
 		}
-		public String getDefaultJdkVersion() {
-			return "1.5.0";
-		}
+		@Override
 		public String getOpensslDefaultCaFile() {
 			return "/etc/pki/tls/certs/ca-bundle.crt";
 		}
+		@Override
 		public String getReplaceCommand() {
 			return null;
 		}
-		public String getScriptInclude(String script) {
-			return "/opt/aoserv-client/scripts/"+script;
-		}
-		public String getAOServClientScriptInclude() {
-			return "/opt/aoserv-client/scripts/aoserv-client.sh";
-		}
+		//public String getAOServClientScriptInclude() {
+		//	return "/opt/aoserv-client/scripts/aoserv-client.sh";
+		//}
+		@Override
 		public String getPostgresPath(String minorVersion) {
 			return null;
 		}
-		public String getMySQLConnectorJavaJarPath() {
-			return null;
-		}
+		//public String getMySQLConnectorJavaJarPath() {
+		//	return null;
+		//}
 	},
 	CENTOS_5DOM0_X86_64 {
+		@Override
 		public HttpdOperatingSystemConfiguration getHttpdOperatingSystemConfiguration() {
 			return null;
 		}
-		public String getDefaultJdkVersion() {
-			return "1.5.0";
-		}
+		@Override
 		public String getOpensslDefaultCaFile() {
 			return "/etc/pki/tls/certs/ca-bundle.crt";
 		}
+		@Override
 		public String getReplaceCommand() {
 			return null;
 		}
-		public String getScriptInclude(String script) {
-			return "/opt/aoserv-client/scripts/"+script;
-		}
-		public String getAOServClientScriptInclude() {
-			return "/opt/aoserv-client/scripts/aoserv-client.sh";
-		}
+		//public String getAOServClientScriptInclude() {
+		//	return "/opt/aoserv-client/scripts/aoserv-client.sh";
+		//}
+		@Override
 		public String getPostgresPath(String minorVersion) {
 			return null;
 		}
-		public String getMySQLConnectorJavaJarPath() {
-			return null;
-		}
+		//public String getMySQLConnectorJavaJarPath() {
+		//	return null;
+		//}
 	};
 
 	/**
@@ -151,11 +145,6 @@ public enum OperatingSystemConfiguration {
 	public abstract HttpdOperatingSystemConfiguration getHttpdOperatingSystemConfiguration();
 
 	/**
-	 * The default JDK version, not including any "jdk".
-	 */
-	public abstract String getDefaultJdkVersion();
-
-	/**
 	 * Gets the default certificate authority file for OpenSSL.
 	 */
 	public abstract String getOpensslDefaultCaFile();
@@ -167,16 +156,10 @@ public enum OperatingSystemConfiguration {
 	public abstract String getReplaceCommand();
 
 	/**
-	 * Gets the full path that a shell script would use to include the provided
-	 * profile script.
-	 */
-	public abstract String getScriptInclude(String script);
-
-	/**
 	 * Gets the full path that a shell script would use to include the AOServ
 	 * Client.
 	 */
-	public abstract String getAOServClientScriptInclude();
+	//public abstract String getAOServClientScriptInclude();
 
 	/**
 	 * Gets the path to the PostgreSQL installation directory for the provided
@@ -190,5 +173,5 @@ public enum OperatingSystemConfiguration {
 	 * Gets the full path to the preferred MySQL Java JDBC driver JAR or
 	 * <code>null</code> if none available.
 	 */
-	public abstract String getMySQLConnectorJavaJarPath();
+	//public abstract String getMySQLConnectorJavaJarPath();
 }

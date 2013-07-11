@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.random;
-
 /*
- * Copyright 2004-2009 by AO Industries, Inc.,
+ * Copyright 2004-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.random;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -63,6 +63,7 @@ public final class RandomEntropyManager implements Runnable {
     private RandomEntropyManager() {
     }
     
+	@Override
     public void run() {
         while(true) {
             try {

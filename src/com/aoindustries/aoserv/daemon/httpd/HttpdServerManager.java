@@ -136,7 +136,7 @@ public class HttpdServerManager {
 
         // The config directory should only contain files referenced in the database
         String[] list=new File(CONF_HOSTS).list();
-        Set<String> extraFiles = new HashSet<String>(list.length*4/3+1);
+        Set<String> extraFiles = new HashSet<>(list.length*4/3+1);
 		extraFiles.addAll(Arrays.asList(list));
 
         // Iterate through each site
@@ -1020,7 +1020,7 @@ public class HttpdServerManager {
      */
     private static void doRebuildInitScripts(AOServer aoServer, ByteArrayOutputStream bout, List<File> deleteFileList, Set<HttpdServer> serversNeedingReloaded) throws IOException, SQLException {
         List<HttpdServer> hss = aoServer.getHttpdServers();
-        Set<String> dontDeleteFilenames = new HashSet<String>(hss.size()*4/3+1);
+        Set<String> dontDeleteFilenames = new HashSet<>(hss.size()*4/3+1);
         for(HttpdServer hs : hss) {
             int num = hs.getNumber();
             bout.reset();

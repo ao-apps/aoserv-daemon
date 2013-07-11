@@ -32,10 +32,12 @@ class HttpdTomcatSharedSiteManager_3_1 extends HttpdTomcatSharedSiteManager_3_X<
         super(tomcatSharedSite);
     }
 
+	@Override
     public TomcatCommon_3_1 getTomcatCommon() {
         return TomcatCommon_3_1.getInstance();
     }
 
+	@Override
     protected byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException {
         final String siteName = httpdSite.getSiteName();
         final String siteDir = siteDirectory.getPath();

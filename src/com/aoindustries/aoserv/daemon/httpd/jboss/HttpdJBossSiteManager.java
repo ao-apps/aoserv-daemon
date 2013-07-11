@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.httpd.jboss;
-
 /*
- * Copyright 2007-2009 by AO Industries, Inc.,
+ * Copyright 2007-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd.jboss;
+
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
 import com.aoindustries.aoserv.client.HttpdJBossSite;
@@ -42,6 +42,7 @@ public abstract class HttpdJBossSiteManager<TC extends TomcatCommon> extends Htt
         this.jbossSite = jbossSite;
     }
 
+	@Override
     public UnixFile getPidFile() throws IOException, SQLException {
         return new UnixFile(
             HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
@@ -51,10 +52,12 @@ public abstract class HttpdJBossSiteManager<TC extends TomcatCommon> extends Htt
         );
     }
 
+	@Override
     public boolean isStartable() {
         return !httpdSite.isDisabled();
     }
     
+	@Override
     public String getStartStopScriptPath() throws IOException, SQLException {
         return
             HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
@@ -64,10 +67,12 @@ public abstract class HttpdJBossSiteManager<TC extends TomcatCommon> extends Htt
         ;
     }
 
+	@Override
     public String getStartStopScriptUsername() throws IOException, SQLException {
         return httpdSite.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername();
     }
 
+	@Override
     protected void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) {
         sitesNeedingRestarted.add(httpdSite);
     }

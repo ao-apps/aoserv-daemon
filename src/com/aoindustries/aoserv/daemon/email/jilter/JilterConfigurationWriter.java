@@ -71,11 +71,13 @@ public class JilterConfigurationWriter extends BuilderThread {
         }
     }
 
+	@Override
     public String getProcessTimerDescription() {
         return "JilterConfigurationWriter";
     }
     private static final Object rebuildLock=new Object();
 
+	@Override
     protected boolean doRebuild() {
         try {
             AOServer aoServer = AOServDaemon.getThisAOServer();
@@ -88,22 +90,22 @@ public class JilterConfigurationWriter extends BuilderThread {
             boolean restrict_outbound_email = aoServer.getRestrictOutboundEmail();
 
             // domainPackages and domainAddresses
-            Map<String,String> domainPackages = new HashMap<String,String>();
-            Map<String,Set<String>> domainAddresses = new HashMap<String,Set<String>>();
+            Map<String,String> domainPackages = new HashMap<>();
+            Map<String,Set<String>> domainAddresses = new HashMap<>();
             for(EmailDomain ed : aoServer.getEmailDomains()) {
                 DomainName domain = ed.getDomain();
                 // domainPackages
                 domainPackages.put(domain.toString(), ed.getPackage().getName());
                 // domainAddresses
                 List<EmailAddress> eas = ed.getEmailAddresses();
-                Set<String> addresses = new HashSet<String>(eas.size()*4/3+1);
+                Set<String> addresses = new HashSet<>(eas.size()*4/3+1);
                 for(EmailAddress ea : eas) addresses.add(ea.getAddress());
                 domainAddresses.put(domain.toString(), addresses);
             }
 
             // ips
             List<IPAddress> ias = server.getIPAddresses();
-            Set<String> ips = new HashSet<String>(ias.size()*4/3+1);
+            Set<String> ips = new HashSet<>(ias.size()*4/3+1);
             for(IPAddress ia : ias) {
                 InetAddress ip = ia.getInetAddress();
                 if(!ip.isUnspecified()) {
@@ -112,9 +114,9 @@ public class JilterConfigurationWriter extends BuilderThread {
             }
 
             // email_smtp_relays
-            Set<String> denies = new HashSet<String>();
-            Set<String> denySpams = new HashSet<String>();
-            Set<String> allowRelays = new HashSet<String>();
+            Set<String> denies = new HashSet<>();
+            Set<String> denySpams = new HashSet<>();
+            Set<String> allowRelays = new HashSet<>();
             for(EmailSmtpRelay esr : aoServer.getEmailSmtpRelays()) {
                 String host = esr.getHost().toString();
                 String type = esr.getType().getName();
@@ -126,9 +128,9 @@ public class JilterConfigurationWriter extends BuilderThread {
 
             // Builds email limits only for the packages referenced in domainPackages
             int noGrowSize = domainPackages.size() * 4 / 3 + 1;
-            Map<String,EmailLimit> emailInLimits = new HashMap<String,EmailLimit>(noGrowSize);
-            Map<String,EmailLimit> emailOutLimits = new HashMap<String,EmailLimit>(noGrowSize);
-            Map<String,EmailLimit> emailRelayLimits = new HashMap<String,EmailLimit>(noGrowSize);
+            Map<String,EmailLimit> emailInLimits = new HashMap<>(noGrowSize);
+            Map<String,EmailLimit> emailOutLimits = new HashMap<>(noGrowSize);
+            Map<String,EmailLimit> emailRelayLimits = new HashMap<>(noGrowSize);
             for(String packageName : domainPackages.values()) {
                 Package pk = AOServDaemon.getConnector().getPackages().get(packageName);
                 if(pk==null) throw new SQLException("Unable to find Package: "+packageName);

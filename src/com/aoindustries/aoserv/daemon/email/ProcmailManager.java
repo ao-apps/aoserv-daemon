@@ -74,6 +74,7 @@ public final class ProcmailManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
+	@Override
     protected boolean doRebuild() {
         try {
             AOServer aoServer=AOServDaemon.getThisAOServer();
@@ -337,8 +338,7 @@ public final class ProcmailManager extends BuilderThread {
                                         out.print("\n"
                                                 + "# Capture the current Return-path to pass to deliver\n"
                                                 + ":0 h\n"
-                                                //+ "RETURN_PATH=| /usr/bin/formail -c -x Return-Path: | /bin/sed -e 's/^ *<//' -e 's/>$//'\n");
-                                                + "RETURN_PATH=| /opt/aoserv-client/bin/returnpath\n");
+                                                + "RETURN_PATH=| /bin/sed -n 's/^Return-Path: <\\(.*\\)>.*$/\\1/p' | /usr/bin/head -n 1\n");
                                     } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
                                     // Only move to Junk folder when the inbox is enabled and in IMAP mode
@@ -354,7 +354,7 @@ public final class ProcmailManager extends BuilderThread {
                                                     + "* ^X-Spam-Status: Yes\n"
                                                     + "{\n"
                                                     + "  :0 w\n"
-                                                    + "  | /opt/aoserv-client/bin/skipfirstline | ").print(cyrusDeliverCentOs.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n"
+                                                    + "  | /usr/bin/tail -n +2 | ").print(cyrusDeliverCentOs.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n"
                                                     + "\n"
                                                     + "  # Delivery failed, return EX_TEMPFAIL to have sendmail retry delivery\n"
                                                     + "  EXITCODE=75\n"
@@ -365,7 +365,7 @@ public final class ProcmailManager extends BuilderThread {
                                                     + "* ^X-Spam-Status: Yes\n"
                                                     + "{\n"
                                                     + "  :0 w\n"
-                                                    + "  | /opt/aoserv-client/bin/skipfirstline | ").print(cyrusDeliverRedHat.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n"
+                                                    + "  | /usr/bin/tail -n +2 | ").print(cyrusDeliverRedHat.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n"
                                                     + "\n"
                                                     + "  # Delivery failed, return EX_TEMPFAIL to have sendmail retry delivery\n"
                                                     + "  EXITCODE=75\n"
@@ -381,7 +381,7 @@ public final class ProcmailManager extends BuilderThread {
                                         out.print("\n"
                                                 + ":0 w\n"
                                                 //+ "| /usr/bin/formail -I\"From \" | /usr/lib/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
-                                                + "| /opt/aoserv-client/bin/skipfirstline | ").print(cyrusDeliverCentOs.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n"
+                                                + "| /usr/bin/tail -n +2 | ").print(cyrusDeliverCentOs.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n"
                                                 + "\n"
                                                 + "# Delivery failed, return EX_TEMPFAIL to have sendmail retry delivery\n"
                                                 + "EXITCODE=75\n"
@@ -390,7 +390,7 @@ public final class ProcmailManager extends BuilderThread {
                                         out.print("\n"
                                                 + ":0 w\n"
                                                 //+ "| /usr/bin/formail -I\"From \" | /usr/lib64/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
-                                                + "| /opt/aoserv-client/bin/skipfirstline | ").print(cyrusDeliverRedHat.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n"
+                                                + "| /usr/bin/tail -n +2 | ").print(cyrusDeliverRedHat.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n"
                                                 + "\n"
                                                 + "# Delivery failed, return EX_TEMPFAIL to have sendmail retry delivery\n"
                                                 + "EXITCODE=75\n"
@@ -413,16 +413,15 @@ public final class ProcmailManager extends BuilderThread {
                             if(!procmailrcStat.exists() || !procmailrc.contentEquals(newBytes)) {
                                 // Create the new autoresponder config
                                 UnixFile tempUF=UnixFile.mktemp(home+"/.procmailrc.", false);
-                                FileOutputStream fout=tempUF.getSecureOutputStream(
-                                    lsa.getUid().getID(),
-                                    lsa.getPrimaryLinuxServerGroup().getGid().getID(),
-                                    0600,
-                                    true
-                                );
-                                try {
+                                try (
+									FileOutputStream fout = tempUF.getSecureOutputStream(
+										lsa.getUid().getID(),
+										lsa.getPrimaryLinuxServerGroup().getGid().getID(),
+										0600,
+										true
+									)
+								) {
                                     fout.write(newBytes);
-                                } finally {
-                                    fout.close();
                                 }
                                 tempUF.renameTo(procmailrc);
                             }
@@ -465,8 +464,7 @@ public final class ProcmailManager extends BuilderThread {
             int len2=OLD_AUTO_PROCMAILRC.length();
             StringBuilder oldSB=new StringBuilder(len2);
             int longest=len1>=len2?len1:len2;
-            BufferedInputStream in=new BufferedInputStream(new FileInputStream(procmailrc.getFile()));
-            try {
+            try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(procmailrc.getFile()))) {
                 int count=0;
                 int ch;
                 while(count<longest && (ch=in.read())!=-1) {
@@ -474,8 +472,6 @@ public final class ProcmailManager extends BuilderThread {
                     if(count<len2) oldSB.append((char)ch);
                     count++;
                 }
-            } finally {
-                in.close();
             }
             isManual=!(SB.toString().equals(AUTO_PROCMAILRC) || oldSB.toString().equals(OLD_AUTO_PROCMAILRC));
         } else {
@@ -508,6 +504,7 @@ public final class ProcmailManager extends BuilderThread {
         }
     }
 
+	@Override
     public String getProcessTimerDescription() {
         return "Rebuild .procmailrc files";
     }

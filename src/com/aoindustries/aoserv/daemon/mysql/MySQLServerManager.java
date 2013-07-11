@@ -35,6 +35,7 @@ final public class MySQLServerManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
+	@Override
     protected boolean doRebuild() {
         //AOServConnector connector=AOServDaemon.getConnector();
 
@@ -46,7 +47,7 @@ final public class MySQLServerManager extends BuilderThread {
         return true;
     }
 
-    private static final Map<Integer,AOConnectionPool> pools=new HashMap<Integer,AOConnectionPool>();
+    private static final Map<Integer,AOConnectionPool> pools=new HashMap<>();
     static AOConnectionPool getPool(MySQLServer ms) throws IOException, SQLException {
         synchronized(pools) {
             Integer I=Integer.valueOf(ms.getPkey());
@@ -96,6 +97,7 @@ final public class MySQLServerManager extends BuilderThread {
         if(mysqlServerManager!=null) mysqlServerManager.waitForBuild();
     }
 
+	@Override
     public String getProcessTimerDescription() {
         return "Rebuild MySQL Servers";
     }

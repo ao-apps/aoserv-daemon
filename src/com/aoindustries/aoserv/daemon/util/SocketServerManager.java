@@ -23,7 +23,7 @@ import java.util.logging.Level;
 abstract public class SocketServerManager {
 
     /** All of the servers that are currently running */
-    private final List<SocketServerThread> socketServers=new ArrayList<SocketServerThread>();
+    private final List<SocketServerThread> socketServers=new ArrayList<>();
 
     public SocketServerManager() {
     }
@@ -67,7 +67,7 @@ abstract public class SocketServerManager {
             NetBind[] nbs=getNetBinds();
 
             // Create the existing list
-            List<SocketServerThread> existing=new ArrayList<SocketServerThread>(socketServers.size());
+            List<SocketServerThread> existing=new ArrayList<>(socketServers.size());
             for(int c=0;c<socketServers.size();c++) existing.add(socketServers.get(c));
 
             for(int c=0;c<nbs.length;c++) {

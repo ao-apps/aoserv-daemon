@@ -361,6 +361,7 @@ final public class VirtualServerManager {
                                 // socketIn -> vncOut in another thread
                                 Thread inThread = new Thread(
                                     new Runnable() {
+										@Override
                                         public void run() {
                                             try {
                                                 try {
@@ -429,7 +430,7 @@ final public class VirtualServerManager {
     /**
      * Tracks the open connections to close them when new connections are established.
      */
-    private static final Map<Integer,Socket> openVncSockets = new HashMap<Integer,Socket>();
+    private static final Map<Integer,Socket> openVncSockets = new HashMap<>();
 
     /**
      * Gets a socket connection to the provided VNC port.  If any connection

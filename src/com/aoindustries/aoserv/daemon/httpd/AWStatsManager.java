@@ -58,6 +58,7 @@ final public class AWStatsManager extends BuilderThread {
 	}
 
 	private static final Object rebuildLock=new Object();
+	@Override
 	protected boolean doRebuild() {
 		try {
 			HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
@@ -80,21 +81,21 @@ final public class AWStatsManager extends BuilderThread {
 
 			synchronized(rebuildLock) {
 				// Get some variables that will be used throughout the method
-				List<File> deleteFileList=new ArrayList<File>();
+				List<File> deleteFileList=new ArrayList<>();
 
 				// Get the list of all files and directories under /etc/awstats
-				Map<String,Object> existingConfigFiles=new HashMap<String,Object>();
+				Map<String,Object> existingConfigFiles=new HashMap<>();
 				String[] configList=configDirectory.list();
 				for(String filename: configList) existingConfigFiles.put(filename, null);
 
 				// Get the list of all files and directories under /var/lib/awstats/hosts
-				Map<String,Object> existingHostDirectories=new HashMap<String,Object>();
+				Map<String,Object> existingHostDirectories=new HashMap<>();
 				String[] list=hostsDirectory.list();
 				for(String filename : list) existingHostDirectories.put(filename, null);
 
 				// These are cleared and reused for each iteration of the loop
-				Map<String,Object> usedHostnames=new HashMap<String,Object>();
-				Map<String,Object> usedLogs=new HashMap<String,Object>();
+				Map<String,Object> usedHostnames=new HashMap<>();
+				Map<String,Object> usedLogs=new HashMap<>();
 
 				// Iterate through each website on this server
 				for(HttpdSite site : aoServer.getHttpdSites()) {
@@ -174,7 +175,7 @@ final public class AWStatsManager extends BuilderThread {
 							+ "KeepBackupOfHistoricFiles=1\n"
 							+ "DefaultFile=\"index.html\"\n"
 							+ "SkipHosts=\"");
-					Set<String> finishedIPs = new HashSet<String>();
+					Set<String> finishedIPs = new HashSet<>();
 					for(IPAddress ip : server.getIPAddresses()) {
 						InetAddress ia = ip.getInetAddress();
 						if(!ia.isUnspecified()) {
@@ -576,6 +577,7 @@ final public class AWStatsManager extends BuilderThread {
 		}
 	}
 
+	@Override
 	public String getProcessTimerDescription() {
 		return "Rebuild AWStats";
 	}

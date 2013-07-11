@@ -39,14 +39,15 @@ final public class HttpdManager extends BuilderThread {
 	}
 
 	private static final Object rebuildLock=new Object();
+	@Override
 	protected boolean doRebuild() {
 		try {
 			synchronized(rebuildLock) {
 				// Get some variables that will be used throughout the method
-				List<File> deleteFileList=new ArrayList<File>();
-				Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted = new HashSet<HttpdSharedTomcat>();
-				Set<HttpdSite> sitesNeedingRestarted = new HashSet<HttpdSite>();
-				Set<HttpdServer> serversNeedingReloaded = new HashSet<HttpdServer>();
+				List<File> deleteFileList=new ArrayList<>();
+				Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted = new HashSet<>();
+				Set<HttpdSite> sitesNeedingRestarted = new HashSet<>();
+				Set<HttpdServer> serversNeedingReloaded = new HashSet<>();
 
 				// Rebuild file system objects
 				HttpdLogManager.doRebuild(deleteFileList, serversNeedingReloaded);
@@ -117,6 +118,7 @@ final public class HttpdManager extends BuilderThread {
 		if(httpdManager!=null) httpdManager.waitForBuild();
 	}
 
+	@Override
 	public String getProcessTimerDescription() {
 		return "Rebuild HTTPD";
 	}

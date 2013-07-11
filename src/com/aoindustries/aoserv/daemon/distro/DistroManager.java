@@ -99,6 +99,7 @@ final public class DistroManager implements Runnable {
     private static volatile boolean includeUser;
     private static volatile boolean runNow=false;
 
+	@Override
     public void run() {
         while(true) {
             try {
@@ -329,7 +330,7 @@ final public class DistroManager implements Runnable {
 			);
 
 			// Verify all the files, from the root to the lowest directory, accumulating the results in the results List
-			List<DistroReportFile> results=new ArrayList<DistroReportFile>();
+			List<DistroReportFile> results=new ArrayList<>();
 			checkDistroFile(
 				AOServDaemon.getThisAOServer(),
 				Integer.valueOf(AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey()),

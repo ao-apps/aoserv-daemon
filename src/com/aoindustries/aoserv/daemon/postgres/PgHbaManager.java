@@ -45,6 +45,7 @@ public final class PgHbaManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
+	@Override
     protected boolean doRebuild() {
         try {
             AOServConnector connector=AOServDaemon.getConnector();
@@ -283,6 +284,7 @@ public final class PgHbaManager extends BuilderThread {
         }
     }
 
+	@Override
     public String getProcessTimerDescription() {
         return "Rebuild PostgreSQL pg_hba.conf";
     }

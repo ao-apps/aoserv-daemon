@@ -59,6 +59,7 @@ final public class MrtgManager extends BuilderThread {
 	}
 
 	private static final Object rebuildLock=new Object();
+	@Override
 	protected boolean doRebuild() {
 		try {
 			AOServer thisAOServer=AOServDaemon.getThisAOServer();
@@ -529,6 +530,7 @@ final public class MrtgManager extends BuilderThread {
 		}
 	}
 
+	@Override
 	public String getProcessTimerDescription() {
 		return "Rebuild mrtg.cfg";
 	}
@@ -562,7 +564,7 @@ final public class MrtgManager extends BuilderThread {
 		AOServer thisAOServer = AOServDaemon.getThisAOServer();
 		if(thisAOServer.getFailoverServer()!=null) return Collections.emptyList();
 		int osv = thisAOServer.getServer().getOperatingSystemVersion().getPkey();
-		List<String> devices = new ArrayList<String>();
+		List<String> devices = new ArrayList<>();
 		String listPartitionsCommand;
 		if(
 			osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
@@ -604,7 +606,7 @@ final public class MrtgManager extends BuilderThread {
 
 	public static List<String> getSafeNames(List<String> devices) throws IOException {
 		if(devices.isEmpty()) return Collections.emptyList();
-		List<String> safeNames = new ArrayList<String>(devices.size());
+		List<String> safeNames = new ArrayList<>(devices.size());
 		for(String device : devices) {
 			String safeName;
 			if(device.equals("/var/lib/pgsql.aes256.img")) {

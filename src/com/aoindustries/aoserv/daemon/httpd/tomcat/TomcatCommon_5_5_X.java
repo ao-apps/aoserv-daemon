@@ -27,6 +27,7 @@ class TomcatCommon_5_5_X extends TomcatCommon {
 
 	private TomcatCommon_5_5_X() {}
 
+	@Override
 	public void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws SQLException, IOException {
 		out.print("          <Resource\n"
 				+ "            name=\"").encodeXmlAttribute(dataSource.getName()).print("\"\n"
@@ -47,15 +48,6 @@ class TomcatCommon_5_5_X extends TomcatCommon {
 				+ "            logAbandoned=\"true\"\n"
 				+ "          />\n");
 	}
-
-    /**
-     * Uses os-default JDK.
-     *
-     * @see  OperatingSystemConfiguration#getDefaultJdkVersion
-     */
-    public String getDefaultJdkVersion() throws IOException, SQLException {
-        return OperatingSystemConfiguration.getOperatingSystemConfiguration().getDefaultJdkVersion();
-    }
 
 	private static final UpgradeSymlink[] upgradeSymlinks_5_5 = {
 		// Upgrade from Tomcat 5.5.20
@@ -310,13 +302,13 @@ class TomcatCommon_5_5_X extends TomcatCommon {
 				if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 			}
 			// MySQL
-			for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_MySQL) {
-				if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
-			}
+			//for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_MySQL) {
+			//	if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+			//}
 			// PostgreSQL
-			for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_PostgreSQL) {
-				if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
-			}
+			//for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_PostgreSQL) {
+			//	if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+			//}
 			// Replace /usr/aoserv/etc in bin/profile
 			/*
 			String results = AOServDaemon.execAndCapture(

@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.failover;
-
 /*
- * Copyright 2006-2009 by AO Industries, Inc.,
+ * Copyright 2006-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.failover;
+
 import com.aoindustries.io.FilesystemIterator;
 import com.aoindustries.io.FilesystemIteratorRule;
 import com.aoindustries.io.unix.Stat;
@@ -87,8 +87,8 @@ final public class HardLinkVarBackup {
         String[] serversList = varBackup.list();
         if(serversList!=null && serversList.length>0) {
             Arrays.sort(serversList);
-            List<FilesystemIterator> iteratorList = new ArrayList<FilesystemIterator>();
-            List<String> iteratorStartsList = new ArrayList<String>();
+            List<FilesystemIterator> iteratorList = new ArrayList<>();
+            List<String> iteratorStartsList = new ArrayList<>();
             for(String serverDir : serversList) {
                 File datesDir = new File(varBackup, serverDir);
                 String[] datesList = datesDir.list();
@@ -153,10 +153,10 @@ final public class HardLinkVarBackup {
             }
 
             // During each unique path, the links created are tracked to improve performance when source and destination devices and inodes match
-            final Map<LinkKey,String> links = new HashMap<LinkKey,String>(numIterators * 4/3 + 1);
+            final Map<LinkKey,String> links = new HashMap<>(numIterators * 4/3 + 1);
 
             // When two files are compared but don't match, they are added here to avoid repetative comparisions for the same device/inode pairs
-            final Set<LinkKey> contentNotEquals = new HashSet<LinkKey>(numIterators * 4/3 + 1);
+            final Set<LinkKey> contentNotEquals = new HashSet<>(numIterators * 4/3 + 1);
 
             long lastDisplayTime = System.currentTimeMillis();
 
@@ -338,10 +338,12 @@ final public class HardLinkVarBackup {
             this.hashCode = (int)(fromDevice + fromInode*7 + toDevice*17 + toInode*37);
         }
         
+		@Override
         public int hashCode() {
             return hashCode;
         }
         
+		@Override
         public boolean equals(Object O) {
             if(O==null) return false;
             if(!(O instanceof LinkKey)) return false;

@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.unix.linux;
-
 /*
- * Copyright 2000-2009 by AO Industries, Inc.,
+ * Copyright 2000-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.unix.linux;
+
 import com.aoindustries.aoserv.daemon.unix.UnixProcess;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.File;
@@ -37,6 +37,7 @@ public class LinuxProcess extends UnixProcess {
      * /proc directory.  If the process is not running, a
      * FileNotFoundException is thrown.
      */
+	@Override
     public int getGid() throws IOException {
         return new UnixFile(getProc().getPath()).getStat().getGid();
     }
@@ -66,6 +67,7 @@ public class LinuxProcess extends UnixProcess {
      * /proc directory.  If the process is not running, a
      * FileNotFoundException is thrown.
      */
+	@Override
     public int getUid() throws IOException {
         return new UnixFile(getProc().getPath()).getStat().getUid();
     }
@@ -74,6 +76,7 @@ public class LinuxProcess extends UnixProcess {
      * Determines if the process is currently running.  The process
      * is considered running if a directory exists in /proc.
      */
+	@Override
     public boolean isRunning() throws IOException {
         return getProc().exists();
     }

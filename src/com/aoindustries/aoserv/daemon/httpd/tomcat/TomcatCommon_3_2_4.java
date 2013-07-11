@@ -1,12 +1,11 @@
-package com.aoindustries.aoserv.daemon.httpd.tomcat;
-
-import com.aoindustries.aoserv.daemon.util.FileUtils;
-
 /*
- * Copyright 2008-2009 by AO Industries, Inc.,
+ * Copyright 2008-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd.tomcat;
+
+import com.aoindustries.aoserv.daemon.util.FileUtils;
 import com.aoindustries.io.ChainWriter;
 import java.io.IOException;
 
@@ -24,14 +23,17 @@ public class TomcatCommon_3_2_4 extends TomcatCommon_3_X {
 
     private TomcatCommon_3_2_4() {}
 
+	@Override
     public void createWebDtd(String confDirectory, int uid, int gid, int mode) throws IOException {
         FileUtils.copyResource(TomcatCommon_3_2_4.class, "web.dtd-3.2.4", confDirectory+"/web.dtd", uid, gid, mode);
     }
 
+	@Override
     public void createWebXml(String confDirectory, int uid, int gid, int mode) throws IOException {
         FileUtils.copyResource(TomcatCommon_3_2_4.class, "web.xml-3.2.4", confDirectory+"/web.xml", uid, gid, mode);
     }
 
+	@Override
     public void printTomcatUsers(ChainWriter out) {
         out.print("<tomcat-users>\n"
                 + "  <user name=\"tomcat\" password=\"tomcat\" roles=\"tomcat\" />\n"
@@ -40,10 +42,11 @@ public class TomcatCommon_3_2_4 extends TomcatCommon_3_X {
                 + "</tomcat-users>\n");
     }
 
-    String getServletApiVersion() {
-        return "3.2";
-    }
+    //String getServletApiVersion() {
+    //    return "3.2";
+    //}
 
+	@Override
     String getTomcatApiVersion() {
         return "3.2";
     }

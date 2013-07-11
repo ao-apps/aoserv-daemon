@@ -1,17 +1,22 @@
-package com.aoindustries.aoserv.daemon.report;
-
 /*
- * Copyright 2000-2009 by AO Industries, Inc.,
+ * Copyright 2000-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import com.aoindustries.aoserv.client.*;
-import com.aoindustries.aoserv.daemon.*;
-import com.aoindustries.io.unix.*;
-import com.aoindustries.sql.*;
-import com.aoindustries.util.*;
-import java.io.*;
-import java.sql.*;
+package com.aoindustries.aoserv.daemon.report;
+
+import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.util.ErrorPrinter;
+import com.aoindustries.util.StringUtility;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.sql.SQLException;
 
 /**
  * Encapsulates the output of the /proc/<I>PID</I>/status files.
@@ -53,7 +58,7 @@ final public class ProcStates {
             user_unknown=0
         ;
 
-        AOServer aoServer=AOServDaemon.getThisAOServer();
+        AOServer aoServer= AOServDaemon.getThisAOServer();
         boolean isOuterServer=aoServer.getFailoverServer()==null;
 
         // Parse for the values
@@ -75,7 +80,7 @@ final public class ProcStates {
                                 String[] words=StringUtility.splitString(line);
                                 state=words[1];
                             } else if(line.startsWith("Uid:")) {
-                                String[] words=StringUtility.splitString(line);
+                                String[] words= StringUtility.splitString(line);
                                 uid=Integer.parseInt(words[1]);
                             }
                         }
@@ -92,7 +97,7 @@ final public class ProcStates {
                             }
                         }
                         if(
-                            uid>=UnixFile.MINIMUM_USER_UID
+                            uid>= UnixFile.MINIMUM_USER_UID
                             && aoServer.getLinuxServerAccount(uid)!=null
                         ) {
                             if(state==null) user_unknown++;
@@ -142,6 +147,7 @@ final public class ProcStates {
         }
     }
 
+	@Override
     public String toString() {
         return
             getClass().getName()

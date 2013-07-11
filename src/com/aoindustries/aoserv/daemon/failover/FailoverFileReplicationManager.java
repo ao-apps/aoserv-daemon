@@ -89,7 +89,7 @@ final public class FailoverFileReplicationManager {
     /**
      * TODO: Move this into a backup settings table.
      */
-    private static final Set<String> encryptedLoopFilePaths = new HashSet<String>();
+    private static final Set<String> encryptedLoopFilePaths = new HashSet<>();
     static {
         encryptedLoopFilePaths.add("/ao.aes128.img");
         encryptedLoopFilePaths.add("/ao.aes256.img");
@@ -464,7 +464,7 @@ final public class FailoverFileReplicationManager {
 
             String[] paths=null;
             boolean[] isLogDirs=null;
-            Map<UnixFile,ModifyTimeAndSizeCache> modifyTimeAndSizeCaches = new HashMap<UnixFile,ModifyTimeAndSizeCache>();
+            Map<UnixFile,ModifyTimeAndSizeCache> modifyTimeAndSizeCaches = new HashMap<>();
             long totalNewLogDirNanos = 0;
             long totalOldLogDirNanos = 0;
             long lastLogDirNanosDisplayTime = -1;
@@ -486,19 +486,19 @@ final public class FailoverFileReplicationManager {
             MD5 md5 = useCompression ? new MD5() : null;
             try {
                 // The extra files in directories are cleaned once the directory is done
-                Stack<UnixFile> directoryUFs=new Stack<UnixFile>();
+                Stack<UnixFile> directoryUFs=new Stack<>();
                 Stack<UnixFile> directoryLinkToUFs = linkToRoot==null ? null : new Stack<UnixFile>();
-                Stack<String> directoryUFRelativePaths=new Stack<String>();
-                Stack<Long> directoryModifyTimes=new Stack<Long>();
-                Stack<Set<String>> directoryContents=new Stack<Set<String>>();
+                Stack<String> directoryUFRelativePaths=new Stack<>();
+                Stack<Long> directoryModifyTimes=new Stack<>();
+                Stack<Set<String>> directoryContents=new Stack<>();
 
                 // The actual cleaning and modify time setting is delayed to the end of the batch by adding
                 // the lists of things to do here.
-                List<UnixFile> directoryFinalizeUFs = new ArrayList<UnixFile>();
+                List<UnixFile> directoryFinalizeUFs = new ArrayList<>();
                 List<UnixFile> directoryFinalizeLinkToUFs = linkToRoot==null ? null : new ArrayList<UnixFile>();
-                List<String> directoryFinalizeUFRelativePaths = new ArrayList<String>();
-                List<Long> directoryFinalizeModifyTimes = new ArrayList<Long>();
-                List<Set<String>> directoryFinalizeContents = new ArrayList<Set<String>>();
+                List<String> directoryFinalizeUFRelativePaths = new ArrayList<>();
+                List<Long> directoryFinalizeModifyTimes = new ArrayList<>();
+                List<Set<String>> directoryFinalizeContents = new ArrayList<>();
 
                 // Continue until a batchSize of -1 (end of replication)
                 int batchSize;
@@ -1718,8 +1718,8 @@ final public class FailoverFileReplicationManager {
     final static class ModifyTimeAndSizeCache {
 
         final private UnixFile directory;
-        final private Map<String,ModifyTimeAndSize> filenameMap = new HashMap<String,ModifyTimeAndSize>();
-        final private Map<ModifyTimeAndSize,List<String>> modifyTimeAndSizeMap = new HashMap<ModifyTimeAndSize,List<String>>();
+        final private Map<String,ModifyTimeAndSize> filenameMap = new HashMap<>();
+        final private Map<ModifyTimeAndSize,List<String>> modifyTimeAndSizeMap = new HashMap<>();
 
         ModifyTimeAndSizeCache(UnixFile directory, Stat tempStat) throws IOException {
             this.directory = directory;
@@ -1737,7 +1737,7 @@ final public class FailoverFileReplicationManager {
                         ModifyTimeAndSize modifyTimeAndSize = new ModifyTimeAndSize(tempStat.getModifyTime(), tempStat.getSize());
                         filenameMap.put(filename, modifyTimeAndSize);
                         List<String> fileList = modifyTimeAndSizeMap.get(modifyTimeAndSize);
-                        if(fileList==null) modifyTimeAndSizeMap.put(modifyTimeAndSize, fileList = new ArrayList<String>());
+                        if(fileList==null) modifyTimeAndSizeMap.put(modifyTimeAndSize, fileList = new ArrayList<>());
                         fileList.add(filename);
                     }
                 }
@@ -1824,7 +1824,7 @@ final public class FailoverFileReplicationManager {
             // Add to the maps
             filenameMap.put(filename, modifyTimeAndSize);
             List<String> fileList = modifyTimeAndSizeMap.get(modifyTimeAndSize);
-            if(fileList==null) modifyTimeAndSizeMap.put(modifyTimeAndSize, fileList = new ArrayList<String>());
+            if(fileList==null) modifyTimeAndSizeMap.put(modifyTimeAndSize, fileList = new ArrayList<>());
             fileList.add(filename);
         }
     }
@@ -1891,7 +1891,7 @@ final public class FailoverFileReplicationManager {
             Map<Integer,List<String>> directoriesByAge;
             {
                 String[] list = serverRootUF.list();
-                directoriesByAge = new HashMap<Integer,List<String>>(list.length*4/3 + 1);
+                directoriesByAge = new HashMap<>(list.length*4/3 + 1);
                 if(list!=null) {
                     for(String filename : list) {
                         if(!filename.endsWith(SAFE_DELETE_EXTENSION) && !filename.endsWith(RECYCLED_EXTENSION)) {
@@ -1914,7 +1914,7 @@ final public class FailoverFileReplicationManager {
                                             int age = (int)ageL;
                                             if(age>=0) {
                                                 List<String> directories = directoriesByAge.get(age);
-                                                if(directories==null) directoriesByAge.put(age, directories=new ArrayList<String>());
+                                                if(directories==null) directoriesByAge.put(age, directories=new ArrayList<>());
                                                 directories.add(filename);
                                             } else {
                                                 logger.log(Level.WARNING, null, new IOException("Directory date in future: "+filename));
@@ -1937,7 +1937,7 @@ final public class FailoverFileReplicationManager {
             }
 
             if(isFine) {
-                List<Integer> ages = new ArrayList<Integer>(directoriesByAge.keySet());
+                List<Integer> ages = new ArrayList<>(directoriesByAge.keySet());
                 Collections.sort(ages);
                 for(Integer age : ages) {
                     List<String> directories = directoriesByAge.get(age);
@@ -1948,7 +1948,7 @@ final public class FailoverFileReplicationManager {
             }
 
             // These will be marked for deletion first, recycled where possible, then actually deleted if not recycled
-            List<String> deleteFilenames = new ArrayList<String>();
+            List<String> deleteFilenames = new ArrayList<>();
 
             boolean lastHasSuccess = true;
             if(retention<=7) {
@@ -2007,7 +2007,7 @@ final public class FailoverFileReplicationManager {
             }
             // If there is at least one successful in the final grouping in the configuration, delete all except one after that grouping level
             boolean foundSuccessful = false;
-            List<Integer> ages = new ArrayList<Integer>(directoriesByAge.keySet());
+            List<Integer> ages = new ArrayList<>(directoriesByAge.keySet());
             Collections.sort(ages);
             for(Integer age : ages) {
                 if(age>=retention) {
@@ -2086,7 +2086,7 @@ final public class FailoverFileReplicationManager {
                 String[] list = serverRootUF.list();
                 if(list!=null && list.length>0) {
                     Arrays.sort(list);
-                    final List<File> directories = new ArrayList<File>(list.length);
+                    final List<File> directories = new ArrayList<>(list.length);
                     for(int c=0;c<list.length;c++) {
                         String directory = list[c];
                         if(directory.endsWith(SAFE_DELETE_EXTENSION)) {

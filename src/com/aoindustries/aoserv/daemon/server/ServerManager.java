@@ -30,7 +30,7 @@ final public class ServerManager {
     private static final File procMeminfo = new File("/proc/meminfo");
 
     /** One lock per process name */
-    private static final Map<String,Object> processLocks=new HashMap<String,Object>();
+    private static final Map<String,Object> processLocks=new HashMap<>();
     public static void controlProcess(String process, String command) throws IOException, SQLException {
         int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
         if(

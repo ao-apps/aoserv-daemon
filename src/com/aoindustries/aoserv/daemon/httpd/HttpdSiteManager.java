@@ -82,7 +82,7 @@ public abstract class HttpdSiteManager {
         // The www directories that exist but are not used will be removed
         UnixFile wwwDirectory = new UnixFile(osConfig.getHttpdSitesDirectory());
         String[] list = wwwDirectory.list();
-        Set<String> wwwRemoveList = new HashSet<String>(list.length*4/3+1);
+        Set<String> wwwRemoveList = new HashSet<>(list.length*4/3+1);
         for(int c=0;c<list.length;c++) {
             String dirname=list[c];
             if(
@@ -134,6 +134,7 @@ public abstract class HttpdSiteManager {
                     // Enabled, start or restart
                     if(sitesNeedingRestarted.contains(httpdSite)) {
                         commandCallable = new Callable<Object>() {
+							@Override
                             public Object call() throws IOException, SQLException {
                                 if(stopStartRestartable.stop()) {
                                     try {
@@ -148,6 +149,7 @@ public abstract class HttpdSiteManager {
                         };
                     } else {
                         commandCallable = new Callable<Object>() {
+							@Override
                             public Object call() throws IOException, SQLException {
                                 stopStartRestartable.start();
                                 return null;
@@ -157,6 +159,7 @@ public abstract class HttpdSiteManager {
                 } else {
                     // Disabled, can only stop if needed
                     commandCallable = new Callable<Object>() {
+						@Override
                         public Object call() throws IOException, SQLException {
                             stopStartRestartable.stop();
                             return null;
@@ -164,13 +167,9 @@ public abstract class HttpdSiteManager {
                     };
                 }
                 try {
-                    Future commandFuture = AOServDaemon.executorService.submit(commandCallable);
+                    Future<Object> commandFuture = AOServDaemon.executorService.submit(commandCallable);
                     commandFuture.get(60, TimeUnit.SECONDS);
-                } catch(InterruptedException err) {
-                    LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
-                } catch(ExecutionException err) {
-                    LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
-                } catch(TimeoutException err) {
+                } catch(InterruptedException | ExecutionException | TimeoutException err) {
                     LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
                 }
             }
@@ -204,6 +203,7 @@ public abstract class HttpdSiteManager {
                             try {
                                 Future<Object> stopFuture = AOServDaemon.executorService.submit(
                                     new Callable<Object>() {
+										@Override
                                         public Object call() throws IOException {
                                             AOServDaemon.suexec(
                                                 username,
@@ -215,11 +215,7 @@ public abstract class HttpdSiteManager {
                                     }
                                 );
                                 stopFuture.get(60, TimeUnit.SECONDS);
-                            } catch(InterruptedException err) {
-                                LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
-                            } catch(ExecutionException err) {
-                                LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
-                            } catch(TimeoutException err) {
+                            } catch(InterruptedException | ExecutionException | TimeoutException err) {
                                 LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
                             }
                         }
@@ -498,22 +494,27 @@ public abstract class HttpdSiteManager {
             ChainWriter out = new ChainWriter(bout);
             try {
                 out.print("#!/bin/sh\n");
-                if(phpMinorVersion.equals("4.4")) {
-					out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
-					out.print(". /opt/postgresql-7.3-i686/setenv.sh\n");
-                } else if(phpMinorVersion.equals("5.2")) {
-					out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
-					out.print(". /opt/postgresql-8.1-i686/setenv.sh\n");
-                } else if(phpMinorVersion.equals("5.3")) {
-					out.print(". /opt/mysql-5.1-i686/setenv.sh\n");
-					out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
-                } else if(
-					phpMinorVersion.equals("5.4")
-					|| phpMinorVersion.equals("5.5")
-				) {
-					out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
-					out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
-                } else throw new SQLException("Unexpected version for php: "+phpMinorVersion);
+				switch (phpMinorVersion) {
+					case "4.4":
+						out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
+						out.print(". /opt/postgresql-7.3-i686/setenv.sh\n");
+						break;
+					case "5.2":
+						out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
+						out.print(". /opt/postgresql-8.1-i686/setenv.sh\n");
+						break;
+					case "5.3":
+						out.print(". /opt/mysql-5.1-i686/setenv.sh\n");
+						out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
+						break;
+					case "5.4":
+					case "5.5":
+						out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
+						out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
+						break;
+					default:
+						throw new SQLException("Unexpected version for php: "+phpMinorVersion);
+				}
                 out.print("exec ").print(phpCgiPath).print(" \"$@\"\n");
             } finally {
                 out.close();
@@ -700,7 +701,7 @@ public abstract class HttpdSiteManager {
         return uid;
     }
  
-    private static final SortedSet<Location> standardRejectedLocations = new TreeSet<Location>();
+    private static final SortedSet<Location> standardRejectedLocations = new TreeSet<>();
     private static final SortedSet<Location> unmodifiableStandardRejectedLocations = Collections.unmodifiableSortedSet(standardRejectedLocations);
     static {
         // TODO: Benchmark faster with single or multiple rules
@@ -708,6 +709,7 @@ public abstract class HttpdSiteManager {
         // Protect CVS files http://www.bsd.net.au/article.php?story=2003031221495562
         standardRejectedLocations.add(new Location(true, "/\\.#"));
         standardRejectedLocations.add(new Location(true, ".*/CVS/.*"));
+        standardRejectedLocations.add(new Location(true, ".*/CVSROOT/.*"));
         //standardRejectedLocations.add(new Location(true, "/CVS/Attic"));
         //standardRejectedLocations.add(new Location(true, "/CVS/Entries"));
         // Already covered by Entries: standardRejectedLocations.add(new Location(true, "/CVS/Entries\\.Static"));
@@ -771,7 +773,7 @@ public abstract class HttpdSiteManager {
         return unmodifiableStandardRejectedLocations;
     }
     
-    private static final SortedMap<String,String> standardPermanentRewriteRules = new TreeMap<String,String>();
+    private static final SortedMap<String,String> standardPermanentRewriteRules = new TreeMap<>();
     private static final SortedMap<String,String> unmodifiableStandardPermanentRewriteRules = Collections.unmodifiableSortedMap(standardPermanentRewriteRules);
     static {
         // TODO: Benchmark faster with single or multiple rules

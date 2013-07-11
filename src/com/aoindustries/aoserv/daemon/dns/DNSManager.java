@@ -127,9 +127,10 @@ final public class DNSManager extends BuilderThread {
     /**
      * Each zone is only rebuild if the zone file does not exist or its serial has changed.
      */
-    private static final Map<DNSZone,Long> zoneSerials=new HashMap<DNSZone,Long>();
+    private static final Map<DNSZone,Long> zoneSerials=new HashMap<>();
 
     private static final Object rebuildLock=new Object();
+	@Override
     protected boolean doRebuild() {
         try {
             AOServConnector connector=AOServDaemon.getConnector();
@@ -146,7 +147,7 @@ final public class DNSManager extends BuilderThread {
                 boolean needsRestart=false;
 
                 // Keep track of all files that should NOT be deleted in /var/named
-                List<String> files=new ArrayList<String>();
+                List<String> files=new ArrayList<>();
 
                 // This buffer is used throughout the rest of the method
                 ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -237,12 +238,12 @@ final public class DNSManager extends BuilderThread {
                             + "\talso-notify { 216.218.130.2; 216.218.131.2; 216.218.132.2; };\n"
                             + "\tallow-query { " + ACL + " };\n"
                             + "\tallow-recursion { " + ACL + " };\n");
-                    Map<Integer,Set<InetAddress>> alreadyAddedIPs = new HashMap<Integer,Set<InetAddress>>();
+                    Map<Integer,Set<InetAddress>> alreadyAddedIPs = new HashMap<>();
                     for(NetBind nb : AOServDaemon.getThisAOServer().getServer().getNetBinds(connector.getProtocols().get(Protocol.DNS))) {
                         int port = nb.getPort().getPort();
                         InetAddress ip = nb.getIPAddress().getInetAddress();
                         Set<InetAddress> ips = alreadyAddedIPs.get(port);
-                        if(ips==null) alreadyAddedIPs.put(port, ips = new HashSet<InetAddress>());
+                        if(ips==null) alreadyAddedIPs.put(port, ips = new HashSet<>());
                         if(!ips.contains(ip)) {
                             if(ip.isIPv6()) {
                                 // IPv6
@@ -486,6 +487,7 @@ final public class DNSManager extends BuilderThread {
         }
     }
 
+	@Override
     public String getProcessTimerDescription() {
         return "Rebuild DNS";
     }

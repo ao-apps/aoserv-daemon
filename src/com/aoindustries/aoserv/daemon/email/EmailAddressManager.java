@@ -65,6 +65,7 @@ final public class EmailAddressManager extends BuilderThread {
 	}
 
 	private static final Object rebuildLock=new Object();
+	@Override
 	protected boolean doRebuild() {
 		try {
 			AOServer aoServer=AOServDaemon.getThisAOServer();
@@ -80,7 +81,7 @@ final public class EmailAddressManager extends BuilderThread {
 				List<EmailAddress> eas=aoServer.getEmailAddresses();
 
 				// Each username may only be used once within the aliases file
-				Set<String> usernamesUsed=new HashSet<String>();
+				Set<String> usernamesUsed=new HashSet<>();
 
 				//
 				// Write the new /etc/aliases file.
@@ -114,13 +115,12 @@ final public class EmailAddressManager extends BuilderThread {
 
 						// Hide the Linux account usernames, so support@tantrix.com does not go to support@aoindustries.com
 						String ex_nouser;
-						if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-							ex_nouser="/usr/aoserv/bin/ex_nouser";
-						} else if(
+						if(
 							osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
 							|| osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 						) {
-							ex_nouser="/opt/aoserv-client/sbin/ex_nouser";
+							//ex_nouser="/opt/aoserv-client/sbin/ex_nouser";
+							ex_nouser="\"/bin/sh -c 'exit 67'\""; // Code for EX_NOUSER in /usr/include/sysexits.h
 						} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 						for(LinuxServerAccount lsa : aoServer.getLinuxServerAccounts()) {
 							String username=lsa.getLinuxAccount().getUsername().getUsername();
@@ -134,10 +134,10 @@ final public class EmailAddressManager extends BuilderThread {
 
 						// Write the /etc/mail/virtusertable.new
 						String[] devNullUsername=new String[1];
-						Map<String,String> singleForwardingTies=new HashMap<String,String>();
-						Map<String,String> singleListTies=new HashMap<String,String>();
-						Map<String,String> singlePipeTies=new HashMap<String,String>();
-						Map<String,String> singleInboxTies=new HashMap<String,String>();
+						Map<String,String> singleForwardingTies=new HashMap<>();
+						Map<String,String> singleListTies=new HashMap<>();
+						Map<String,String> singlePipeTies=new HashMap<>();
+						Map<String,String> singleInboxTies=new HashMap<>();
 
 						// Process the non-wildcard entries first
 						for(EmailAddress ea : eas) {
@@ -213,11 +213,8 @@ final public class EmailAddressManager extends BuilderThread {
 					!userTable.getStat(tempStat).exists()
 					|| !userTable.contentEquals(usersNewBytes)
 				) {
-					FileOutputStream newOut = newUserTable.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true);
-					try {
+					try (FileOutputStream newOut = newUserTable.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)) {
 						newOut.write(usersNewBytes);
-					} finally {
-						newOut.close();
 					}
 					needMakeMap = true;
 				} else {
@@ -229,11 +226,8 @@ final public class EmailAddressManager extends BuilderThread {
 					!aliases.getStat(tempStat).exists()
 					|| !aliases.contentEquals(aliasesNewBytes)
 				) {
-					FileOutputStream newOut = newAliases.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true);
-					try {
+					try (FileOutputStream newOut = newAliases.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)) {
 						newOut.write(aliasesNewBytes);
-					} finally {
-						newOut.close();
 					}
 					needNewAliases = true;
 				} else {
@@ -445,18 +439,12 @@ final public class EmailAddressManager extends BuilderThread {
 			String[] cmd = { makemap, "hash", userTable.getPath() };
 			Process P = Runtime.getRuntime().exec(cmd);
 			try {
-				// Pipe the file into the process
-				InputStream in = new BufferedInputStream(new FileInputStream(userTable.getPath()));
-				try {
-					OutputStream out = P.getOutputStream();
-					try {
-						int ch;
-						while ((ch = in.read()) != -1) out.write(ch);
-					} finally {
-						out.close();
-					}
-				} finally {
-					in.close();
+				try (
+					InputStream in = new BufferedInputStream(new FileInputStream(userTable.getPath()));
+					OutputStream out = P.getOutputStream()
+				) {
+					int ch;
+					while ((ch = in.read()) != -1) out.write(ch);
 				}
 			} finally {
 				// Wait for the process to complete
@@ -516,6 +504,7 @@ final public class EmailAddressManager extends BuilderThread {
 		}
 	}
 
+	@Override
 	public String getProcessTimerDescription() {
 		return "Rebuild Email Addresses";
 	}

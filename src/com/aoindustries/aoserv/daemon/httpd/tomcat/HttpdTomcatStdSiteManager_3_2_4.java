@@ -31,10 +31,12 @@ class HttpdTomcatStdSiteManager_3_2_4 extends HttpdTomcatStdSiteManager_3_X<Tomc
         super(tomcatStdSite);
     }
 
+	@Override
     public TomcatCommon_3_2_4 getTomcatCommon() {
         return TomcatCommon_3_2_4.getInstance();
     }
 
+	@Override
     protected byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException {
         final TomcatCommon tomcatCommon = getTomcatCommon();
         final String siteDir = siteDirectory.getPath();

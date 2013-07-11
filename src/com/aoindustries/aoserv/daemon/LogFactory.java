@@ -22,7 +22,7 @@ import java.util.logging.Logger;
  */
 public class LogFactory {
 
-    private static final ConcurrentMap<String,Logger> loggers = new ConcurrentHashMap<String, Logger>();
+    private static final ConcurrentMap<String,Logger> loggers = new ConcurrentHashMap<>();
 
     private LogFactory() {
     }

@@ -41,6 +41,7 @@ public final class EmailDomainManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
+	@Override
     protected boolean doRebuild() {
         try {
             AOServer thisAOServer=AOServDaemon.getThisAOServer();
@@ -140,6 +141,7 @@ public final class EmailDomainManager extends BuilderThread {
         }
     }
 
+	@Override
     public String getProcessTimerDescription() {
         return "Rebuild Email Domains";
     }

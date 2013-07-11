@@ -27,6 +27,7 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 
     private TomcatCommon_7_0_X() {}
 
+	@Override
     public void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws SQLException, IOException {
         out.print("          <Resource\n"
                 + "            name=\"").encodeXmlAttribute(dataSource.getName()).print("\"\n"
@@ -46,15 +47,6 @@ class TomcatCommon_7_0_X extends TomcatCommon {
                 + "            removeAbandonedTimeout=\"300\"\n"
                 + "            logAbandoned=\"true\"\n"
                 + "          />\n");
-    }
-
-    /**
-     * Uses os-default JDK.
-     *
-     * @see  OperatingSystemConfiguration#getDefaultJdkVersion
-     */
-    public String getDefaultJdkVersion() throws IOException, SQLException {
-        return OperatingSystemConfiguration.getOperatingSystemConfiguration().getDefaultJdkVersion();
     }
 
 	private static final UpgradeSymlink[] upgradeSymlinks_7_0 = {
@@ -214,13 +206,13 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 				if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 			}
 			// MySQL
-			for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_MySQL) {
-				if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
-			}
+			//for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_MySQL) {
+			//	if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+			//}
 			// PostgreSQL
-			for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_PostgreSQL) {
-				if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
-			}
+			//for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_PostgreSQL) {
+			//	if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+			//}
 			// Update bin/profile
 			// TODO
 			/*
@@ -237,8 +229,6 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 					"php-4.sh",
 					"postgresql-7.3.3.sh",
 					"postgresql-7.3.sh",
-					"export \"CLASSPATH=/usr/aoserv/lib-1.3/aocode-public.jar:$CLASSPATH\".d/001_aoserv.sh",
-					"export \"CLASSPATH=/opt/aoserv-client/lib-1.3/aocode-public.jar:$CLASSPATH\"",
 					"--",
 					tomcatDirectory.getPath()+"/bin/profile"
 				}

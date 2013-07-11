@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.httpd.tomcat;
-
 /*
- * Copyright 2007-2009 by AO Industries, Inc.,
+ * Copyright 2007-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd.tomcat;
+
 import com.aoindustries.aoserv.client.HttpdJBossSite;
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
@@ -61,14 +61,17 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         this.tomcatSite = tomcatSite;
     }
 
+	@Override
     protected boolean enableCgi() {
         return true;
     }
 
+	@Override
     protected boolean enablePhp() {
         return true;
     }
     
+	@Override
     public boolean enableAnonymousFtp() {
         return true;
     }
@@ -86,7 +89,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         SortedSet<Location> standardRejectedLocations = super.getRejectedLocations();
         if(!tomcatSite.useApache()) return standardRejectedLocations;
 
-        SortedSet<Location> rejectedLocations = new TreeSet<Location>(standardRejectedLocations);
+        SortedSet<Location> rejectedLocations = new TreeSet<>(standardRejectedLocations);
         for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
             String path=htc.getPath();
             rejectedLocations.add(new Location(false, path+"/META-INF/"));
@@ -100,6 +103,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
      */
     protected abstract HttpdWorker getHttpdWorker() throws IOException, SQLException;
 
+	@Override
     public boolean stop() throws IOException, SQLException {
         UnixFile pidFile = getPidFile();
         if(pidFile.getStat().exists()) {
@@ -115,6 +119,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         }
     }
 
+	@Override
     public boolean start() throws IOException, SQLException {
         UnixFile pidFile = getPidFile();
         if(!pidFile.getStat().exists()) {
@@ -150,7 +155,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
     @Override
     public SortedSet<JkSetting> getJkSettings() throws IOException, SQLException {
         final String jkCode = getHttpdWorker().getCode().getCode();
-        SortedSet<JkSetting> settings = new TreeSet<JkSetting>();
+        SortedSet<JkSetting> settings = new TreeSet<>();
         if(tomcatSite.useApache()) {
             // Using Apache for static content, send specific requests to Tomcat
             for(HttpdTomcatContext context : tomcatSite.getHttpdTomcatContexts()) {
@@ -175,8 +180,9 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         return settings;
     }
 
+	@Override
     public SortedMap<String,WebAppSettings> getWebapps() throws IOException, SQLException {
-        SortedMap<String,WebAppSettings> webapps = new TreeMap<String,WebAppSettings>();
+        SortedMap<String,WebAppSettings> webapps = new TreeMap<>();
 
         // Set up all of the webapps
         for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
@@ -216,6 +222,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
     /**
      * Every Tomcat site is built through the same overall set of steps.
      */
+	@Override
     final protected void buildSiteDirectory(UnixFile siteDirectory, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
         final int apacheUid = getApacheUid();
         final int uid = httpdSite.getLinuxServerAccount().getUid().getID();

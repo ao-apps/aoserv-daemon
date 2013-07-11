@@ -151,7 +151,7 @@ final public class NullRouteManager {
 		}
 	}
 
-	private static final Map<Integer,NullRoute> nullRoutes = new LinkedHashMap<Integer,NullRoute>();
+	private static final Map<Integer,NullRoute> nullRoutes = new LinkedHashMap<>();
 
 	private static final Object threadLock = new Object();
 	private Thread thread;

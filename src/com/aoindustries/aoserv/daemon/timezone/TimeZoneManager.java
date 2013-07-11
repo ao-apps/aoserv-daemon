@@ -57,6 +57,7 @@ public class TimeZoneManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
+	@Override
     protected boolean doRebuild() {
         try {
             AOServer server=AOServDaemon.getThisAOServer();
@@ -141,6 +142,7 @@ public class TimeZoneManager extends BuilderThread {
         }
     }
 
+	@Override
     public String getProcessTimerDescription() {
         return "Rebuild time zones";
     }

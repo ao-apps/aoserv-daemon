@@ -41,6 +41,7 @@ final public class SshdManager extends BuilderThread {
      * Called by NetDeviceManager.doRebuild to ensure consistent state with the IP addresses.
      */
     private static final Object rebuildLock=new Object();
+	@Override
     protected boolean doRebuild() {
         try {
             AOServConnector connector=AOServDaemon.getConnector();
@@ -69,7 +70,7 @@ final public class SshdManager extends BuilderThread {
                 {
                     Protocol sshProtocol=connector.getProtocols().get(Protocol.SSH);
                     List<NetBind> nbs=thisAOServer.getServer().getNetBinds(sshProtocol);
-                    ips=new TreeSet<com.aoindustries.aoserv.client.validator.InetAddress>();
+                    ips=new TreeSet<>();
                     for(int c=0;c<nbs.size();c++) {
                         NetBind nb = nbs.get(c);
                         if(nb.getNetTcpRedirect()==null) {
@@ -106,7 +107,8 @@ final public class SshdManager extends BuilderThread {
                         for(com.aoindustries.aoserv.client.validator.InetAddress ip : ips) {
                             out.print("ListenAddress ").print(ip.toString()).print("\n");
                         }
-                        out.print("SyslogFacility AUTHPRIV\n"
+                        out.print("AcceptEnv SCREEN_SESSION\n"
+								+ "SyslogFacility AUTHPRIV\n"
                                 + "PermitRootLogin yes\n"
                                 + "PasswordAuthentication yes\n"
                                 + "ChallengeResponseAuthentication no\n"
@@ -136,11 +138,8 @@ final public class SshdManager extends BuilderThread {
                 ) {
                     // Write to temp file
                     UnixFile newConfigFile = new UnixFile("/etc/ssh/sshd_config.new");
-                    OutputStream newConfigOut = newConfigFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true);
-                    try {
+                    try (OutputStream newConfigOut = newConfigFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true)) {
                         newConfigOut.write(newBytes);
-                    } finally {
-                        newConfigOut.close();
                     }
 
                     // Atomically move into place
@@ -213,6 +212,7 @@ final public class SshdManager extends BuilderThread {
         }
     }
 
+	@Override
     public String getProcessTimerDescription() {
         return "Rebuild SSH Configuration";
     }

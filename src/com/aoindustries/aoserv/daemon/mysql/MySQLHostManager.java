@@ -38,6 +38,7 @@ final public class MySQLHostManager extends BuilderThread {
     }
 
     private static final Object rebuildLock=new Object();
+	@Override
     protected boolean doRebuild() {
         try {
             AOServConnector connector = AOServDaemon.getConnector();
@@ -60,7 +61,7 @@ final public class MySQLHostManager extends BuilderThread {
                     Connection conn = pool.getConnection();
                     try {
                         // Get the list of all existing hosts
-                        Set<String> existing = new HashSet<String>();
+                        Set<String> existing = new HashSet<>();
                         Statement stmt = conn.createStatement();
                         try {
                             ResultSet results = stmt.executeQuery("select host from host");
@@ -74,7 +75,7 @@ final public class MySQLHostManager extends BuilderThread {
                         }
 
                         // Get the list of all hosts that should exist
-                        Set<String> hosts=new HashSet<String>();
+                        Set<String> hosts=new HashSet<>();
                         // Always include loopback, just in case of data errors
                         hosts.add(IPAddress.LOOPBACK_IP);
                         hosts.add("localhost");
@@ -168,6 +169,7 @@ final public class MySQLHostManager extends BuilderThread {
         }
     }
 
+	@Override
     public String getProcessTimerDescription() {
         return "Rebuild MySQL Hosts";
     }

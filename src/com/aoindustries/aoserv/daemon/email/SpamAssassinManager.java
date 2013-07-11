@@ -115,6 +115,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
     private SpamAssassinManager() {
     }
 
+	@Override
     public void run() {
         long lastStartTime=-1;
         while(true) {
@@ -216,7 +217,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
         String[] fileList=incomingDirectory.list();
         if(fileList!=null && fileList.length>0) {
             // Get the list of UnixFile's of all messages that are at least one minute old or one minute in the future
-            List<UnixFile> readyList=new ArrayList<UnixFile>(fileList.length);
+            List<UnixFile> readyList=new ArrayList<>(fileList.length);
             for(int c=0;c<fileList.length;c++) {
                 String filename=fileList[c];
                 if(filename.startsWith("ham_") || filename.startsWith("spam_")) {
@@ -251,6 +252,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                 Collections.sort(
                     readyList,
                     new Comparator<UnixFile>() {
+						@Override
                         public int compare(UnixFile uf1, UnixFile uf2) {
                             try {
                                 long mtime1=uf1.getStat().getModifyTime();
@@ -276,7 +278,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                 // Work through the list from oldest to newest, and for each user batching as many spam or ham directories together as possible
                 AOServer aoServer=AOServDaemon.getThisAOServer();
                 StringBuilder tempSB=new StringBuilder();
-                List<UnixFile> thisPass=new ArrayList<UnixFile>();
+                List<UnixFile> thisPass=new ArrayList<>();
                 while(!readyList.isEmpty()) {
                     thisPass.clear();
                     UnixFile currentUF=readyList.get(0);
@@ -370,9 +372,9 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 
         // Used on inner loop
         Stat userDirectoryUfStat = new Stat();
-        List<File> deleteFileList=new ArrayList<File>();
+        List<File> deleteFileList=new ArrayList<>();
         StringBuilder tempSB = new StringBuilder();
-        List<UnixFile> thisPass = new ArrayList<UnixFile>(MAX_SALEARN_BATCH);
+        List<UnixFile> thisPass = new ArrayList<>(MAX_SALEARN_BATCH);
 
         while(true) {
             // End loop if no subdirectories
@@ -422,7 +424,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                     // Check each filename, searching if this lsa has the oldest timestamp (older or newer than one minute)
                     String[] userDirectoryList = userDirectoryUf.list();
                     if(userDirectoryList!=null && userDirectoryList.length>0) {
-                        Map<UnixFile,Long> readyMap = new HashMap<UnixFile,Long>(userDirectoryList.length*4/3+1);
+                        Map<UnixFile,Long> readyMap = new HashMap<>(userDirectoryList.length*4/3+1);
                         for(String userFilename : userDirectoryList) {
                             UnixFile userUf=new UnixFile(userDirectoryUf, userFilename, false);
                             File userFile = userUf.getFile();
@@ -492,10 +494,11 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 
             // Sort the list by oldest time first
             final Map<UnixFile,Long> readyMap = oldestReadyMap;
-            List<UnixFile> readyList = new ArrayList<UnixFile>(oldestReadyMap.keySet());
+            List<UnixFile> readyList = new ArrayList<>(oldestReadyMap.keySet());
             Collections.sort(
                 readyList,
                 new Comparator<UnixFile>() {
+					@Override
                     public int compare(UnixFile uf1, UnixFile uf2) {
                         return readyMap.get(uf1).compareTo(readyMap.get(uf2));
                     }
@@ -559,6 +562,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
     }
 
     private static final Object rebuildLock=new Object();
+	@Override
     protected boolean doRebuild() {
         try {
             AOServer aoServer=AOServDaemon.getThisAOServer();
@@ -587,7 +591,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                                + "# Options to spamd\n"
                                + "SPAMDOPTIONS=\"-d -c -m25 -H -i ").print(primaryIP.toString()).print(" -A ");
                     // Allow all IP addresses for this machine
-                    Set<InetAddress> usedIps = new HashSet<InetAddress>();
+                    Set<InetAddress> usedIps = new HashSet<>();
                     List<IPAddress> ips = server.getIPAddresses();
                     for(IPAddress ip : ips) {
                         InetAddress addr = ip.getInetAddress();
@@ -701,6 +705,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
         }
     }
 
+	@Override
     public String getProcessTimerDescription() {
         return "Rebuild SpamAssassin User Preferences";
     }
@@ -715,19 +720,23 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
         private static final int NUM_LINES_RETAINED = 1000;
 
         private static final Schedule schedule = new Schedule() {
+			@Override
             public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
                 return minute==5 && hour==1;
             }
         };
 
+		@Override
         public Schedule getCronJobSchedule() {
             return schedule;
         }
 
+		@Override
         public CronJobScheduleMode getCronJobScheduleMode() {
             return CronJobScheduleMode.SKIP;
         }
 
+		@Override
         public String getCronJobName() {
             return "RazorLogTrimmer";
         }
@@ -735,9 +744,10 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
         /**
          * Once a day, all of the razor-agent.log files are cleaned to only include the last 1000 lines.
          */
+		@Override
         public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
             try {
-                Queue<String> queuedLines = new LinkedList<String>();
+                Queue<String> queuedLines = new LinkedList<>();
                 for(LinuxServerAccount lsa : AOServDaemon.getThisAOServer().getLinuxServerAccounts()) {
                     // Only clean razor for accounts under /home/
                     String homePath = lsa.getHome();
@@ -789,6 +799,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
             }
         }
 
+		@Override
         public int getCronJobThreadPriority() {
             return Thread.MIN_PRIORITY;
         }

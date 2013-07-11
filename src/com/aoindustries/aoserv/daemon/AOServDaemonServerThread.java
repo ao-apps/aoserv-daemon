@@ -206,8 +206,8 @@ final public class AOServDaemonServerThread extends Thread {
                                 List<String> replicatedMySQLMinorVersions;
                                 if(retention==1) {
                                     int len=in.readCompressedInt();
-                                    replicatedMySQLServers=new ArrayList<String>(len);
-                                    replicatedMySQLMinorVersions=new ArrayList<String>(len);
+                                    replicatedMySQLServers=new ArrayList<>(len);
+                                    replicatedMySQLMinorVersions=new ArrayList<>(len);
                                     for(int c=0;c<len;c++) {
                                         replicatedMySQLServers.add(in.readUTF());
                                         replicatedMySQLMinorVersions.add(in.readUTF());
@@ -572,7 +572,7 @@ final public class AOServDaemonServerThread extends Thread {
                                 int port = in.readCompressedInt();
                                 String databaseName = in.readUTF();
                                 int numTables = in.readCompressedInt();
-                                List<String> tableNames = new ArrayList<String>(numTables);
+                                List<String> tableNames = new ArrayList<>(numTables);
                                 for(int c=0;c<numTables;c++) {
                                     tableNames.add(in.readUTF());
                                 }

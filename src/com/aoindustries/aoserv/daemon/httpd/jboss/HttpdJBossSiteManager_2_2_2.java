@@ -46,6 +46,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
     /**
      * Builds a JBoss 2.2.2 installation
      */
+	@Override
     protected void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
         /*
          * Resolve and allocate stuff used throughout the method
@@ -356,6 +357,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
         }
     }
 
+	@Override
     public TomcatCommon_3_2_4 getTomcatCommon() {
         return TomcatCommon_3_2_4.getInstance();
     }
@@ -375,6 +377,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
         throw new SQLException("Couldn't find ajp12");
     }
 
+	@Override
     protected void enableDisable(UnixFile siteDirectory) throws IOException, SQLException {
         UnixFile daemonUF = new UnixFile(siteDirectory, "daemon", false);
         UnixFile daemonSymlink = new UnixFile(daemonUF, "jboss", false);
@@ -456,6 +459,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
         return bout.toByteArray();
     }
 
+	@Override
     protected boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException {
         final String siteDir = siteDirectory.getPath();
         final Stat tempStat = new Stat();
@@ -499,6 +503,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
         return needsRestart;
     }
 
+	@Override
     protected boolean upgradeSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
         // TODO
         return false;

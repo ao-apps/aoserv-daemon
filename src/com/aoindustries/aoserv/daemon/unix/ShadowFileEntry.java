@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.unix;
-
 /*
- * Copyright 2000-2009 by AO Industries, Inc.,
+ * Copyright 2000-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.unix;
+
 import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.util.StringUtility;
 
@@ -128,6 +128,7 @@ final public class ShadowFileEntry {
     /**
      * Gets this <code>ShadowFileEntry</code> as it would be written in <code>/etc/shadow</code>.
      */
+	@Override
     public String toString() {
         StringBuilder SB=new StringBuilder();
         SB

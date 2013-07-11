@@ -21,7 +21,6 @@ import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.NetBind;
-import com.aoindustries.aoserv.client.PostgresServer;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
@@ -50,10 +49,12 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 		super(sharedTomcat);
 	}
 
+	@Override
 	TomcatCommon_5_5_X getTomcatCommon() {
 		return TomcatCommon_5_5_X.getInstance();
 	}
 
+	@Override
 	void buildSharedTomcatDirectory(UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
 		/*
 		 * Get values used in the rest of the loop.
@@ -97,8 +98,8 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 			workUF.mkdir().chown(lsaUID, lsgGID).setMode(0750);
 			FileUtils.mkdir(innerWorkUF.getPath(), 0750, lsaUID, lsgGID);
 
-			PostgresServer postgresServer=aoServer.getPreferredPostgresServer();
-			String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
+			//PostgresServer postgresServer=aoServer.getPreferredPostgresServer();
+			//String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
 
 			FileUtils.ln("../../.."+tomcatDirectory+"/bin/bootstrap.jar", wwwGroupDir+"/bin/bootstrap.jar", lsaUID, lsgGID);
 			FileUtils.ln("../../.."+tomcatDirectory+"/bin/catalina.sh", wwwGroupDir+"/bin/catalina.sh", lsaUID, lsgGID);
@@ -123,14 +124,13 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 						  + "\n");
 
 				out.print(". /etc/profile\n"
-	                    + ". /opt/jdk").print(tomcatCommon.getDefaultJdkVersion()).print("-i686/setenv.sh\n");
-				if(postgresServerMinorVersion!=null) {
-					out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
-				}
-				out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
-						+ "\n"
+	                    + ". /opt/jdk1-i686/setenv.sh\n");
+				//if(postgresServerMinorVersion!=null) {
+				//	out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
+				//}
+				//out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
+				out.print("\n"
 						+ "umask 002\n"
-						+ "export DISPLAY=:0.0\n"
 						+ "\n"
 						+ "export CATALINA_BASE=\"").print(wwwGroupDir).print("\"\n"
 						+ "export CATALINA_HOME=\"").print(wwwGroupDir).print("\"\n"
@@ -245,15 +245,15 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 			FileUtils.mkdir(wwwGroupDir+"/common/lib", 0770, lsaUID, lsgGID);
 			FileUtils.lnAll("../../../.."+tomcatDirectory+"/common/lib/", wwwGroupDir+"/common/lib/", lsaUID, lsgGID);
 
-			if(postgresServerMinorVersion!=null) {
-				String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
-				if(postgresPath!=null) FileUtils.ln("../../../.."+postgresPath+"/share/java/postgresql.jar", wwwGroupDir+"/common/lib/postgresql.jar", lsaUID, lsgGID);
-			}
-			String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
-			if(mysqlConnectorPath!=null) {
-				String filename = new UnixFile(mysqlConnectorPath).getFile().getName();
-				FileUtils.ln("../../../.."+mysqlConnectorPath, wwwGroupDir+"/common/lib/"+filename, lsaUID, lsgGID);
-			}
+			//if(postgresServerMinorVersion!=null) {
+			//	String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
+			//	if(postgresPath!=null) FileUtils.ln("../../../.."+postgresPath+"/share/java/postgresql.jar", wwwGroupDir+"/common/lib/postgresql.jar", lsaUID, lsgGID);
+			//}
+			//String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
+			//if(mysqlConnectorPath!=null) {
+			//	String filename = new UnixFile(mysqlConnectorPath).getFile().getName();
+			//	FileUtils.ln("../../../.."+mysqlConnectorPath, wwwGroupDir+"/common/lib/"+filename, lsaUID, lsgGID);
+			//}
 
 			// Write the conf/catalina.policy file
 			{
@@ -338,7 +338,7 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 		} else newSitesFileUF.delete();
 
 		// make work directories and remove extra work dirs
-		List<String> workFiles = new SortedArrayList<String>();
+		List<String> workFiles = new SortedArrayList<>();
 		String[] wlist = innerWorkUF.getFile().list();
 		if(wlist!=null) {
 			workFiles.addAll(Arrays.asList(wlist));
@@ -436,7 +436,7 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 						out.print("        xmlValidation=\"false\"\n"
 								+ "        xmlNamespaceAware=\"false\"\n");
 						out.print("      >\n");
-						List<String> usedHostnames=new SortedArrayList<String>();
+						List<String> usedHostnames=new SortedArrayList<>();
 						usedHostnames.add(primaryHostname);
 						List<HttpdSiteBind> binds=hs.getHttpdSiteBinds();
 						for(int d=0;d<binds.size();d++) {
@@ -544,6 +544,7 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 		if(needRestart && !sharedTomcat.isDisabled()) sharedTomcatsNeedingRestarted.add(sharedTomcat);
 	}
 
+	@Override
 	protected boolean upgradeSharedTomcatDirectory(UnixFile siteDirectory) throws IOException, SQLException {
 		// Upgrade Tomcat
 		boolean needsRestart = getTomcatCommon().upgradeTomcatDirectory(
