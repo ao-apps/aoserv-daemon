@@ -30,12 +30,25 @@ public class PackageManager {
 	 * to avoid accidental removal of critical system RPMs from outside callers.
 	 */
 	public enum PackageName {
+		APACHE_TOMCAT_3_1("apache-tomcat_3_1"),
+		APACHE_TOMCAT_3_2("apache-tomcat_3_2"),
+		APACHE_TOMCAT_4_1("apache-tomcat_4_1"),
+		APACHE_TOMCAT_5_5("apache-tomcat_5_5"),
+		APACHE_TOMCAT_6_0("apache-tomcat_6_0"),
+		APACHE_TOMCAT_7_0("apache-tomcat_7_0"),
 		AOSERV_JILTER("aoserv-jilter"),
-		MAJORDOMO("majordomo");
+		JBOSS_2_2_2("jboss_2_2_2"),
+		MAJORDOMO("majordomo"),
+		PHP_5_2("php_5_2-i686"),
+		PHP_5_3("php_5_3-i686"),
+		PHP_5_4("php_5_4-i686"),
+		PHP_5_5("php_5_5-i686");
 
 		private final String rpmName;
-		private PackageName(String rpmName) {
+		// Only needed when trying to automatically remove packages: private final PackageName[] requires;
+		private PackageName(String rpmName /* Only needed when trying to automatically remove packages: , PackageName... requires */) {
 			this.rpmName = rpmName;
+			// Only needed when trying to automatically remove packages: this.requires = requires;
 		}
 	}
 
@@ -457,6 +470,18 @@ public class PackageManager {
 				if(rpm.getName().equals(name.rpmName)) return rpm;
 			}
 			throw new AssertionError("Package does not exist after yum install: " + name.rpmName);
+		}
+	}
+
+	/**
+	 * Installs all of the packages that are not currently installed.
+	 * If a package is already installed, no action is taken for that package.
+	 *
+	 * @see  #installPackage(com.aoindustries.aoserv.daemon.unix.linux.PackageManager.PackageName) 
+	 */
+	public static void installPackages(Iterable<PackageName> packageNames) throws IOException {
+		synchronized(packagesLock) {
+			for(PackageName packageName : packageNames) installPackage(packageName);
 		}
 	}
 

@@ -20,6 +20,7 @@ import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.TomcatCommon_3_2_4;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.TomcatCommon_3_X;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.FileUtils;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
@@ -30,7 +31,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.SQLException;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Manages HttpdJBossSite version 2.2.2 configurations.
@@ -43,7 +46,12 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
         super(jbossSite);
     }
 
-    /**
+	@Override
+	protected Set<PackageManager.PackageName> getRequiredPackages() {
+		return EnumSet.of(PackageManager.PackageName.JBOSS_2_2_2);
+	}
+
+	/**
      * Builds a JBoss 2.2.2 installation
      */
 	@Override
@@ -404,8 +412,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
         final HttpdTomcatVersion htv = tomcatSite.getHttpdTomcatVersion();
 
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
-        ChainWriter out = new ChainWriter(bout);
-        try {
+        try (ChainWriter out = new ChainWriter(bout)) {
             out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n");
             if(!httpdSite.isManual()) out.print(autoWarning);
             out.print("<Server>\n"
@@ -435,9 +442,16 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 
                 out.print("    <Connector className=\"org.apache.tomcat.service.PoolTcpConnector\">\n"
                         + "      <Parameter name=\"handler\" value=\"");
-                if(protocol.equals(HttpdJKProtocol.AJP12)) out.print("org.apache.tomcat.service.connector.Ajp12ConnectionHandler");
-                else if(protocol.equals(HttpdJKProtocol.AJP13)) out.print("org.apache.tomcat.service.connector.Ajp13ConnectionHandler");
-                else throw new IllegalArgumentException("Unknown AJP version: "+htv);
+				switch (protocol) {
+					case HttpdJKProtocol.AJP12:
+						out.print("org.apache.tomcat.service.connector.Ajp12ConnectionHandler");
+						break;
+					case HttpdJKProtocol.AJP13:
+						out.print("org.apache.tomcat.service.connector.Ajp13ConnectionHandler");
+						break;
+					default:
+						throw new IllegalArgumentException("Unknown AJP version: "+htv);
+				}
                 out.print("\"/>\n"
                         + "      <Parameter name=\"port\" value=\"").print(netBind.getPort()).print("\"/>\n");
                 InetAddress ip=netBind.getIPAddress().getInetAddress();
@@ -453,8 +467,6 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
             }
             out.print("  </ContextManager>\n"
                     + "</Server>\n");
-        } finally {
-            out.close();
         }
         return bout.toByteArray();
     }

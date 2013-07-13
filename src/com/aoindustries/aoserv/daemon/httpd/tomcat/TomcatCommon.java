@@ -7,9 +7,11 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoindustries.aoserv.client.HttpdTomcatDataSource;
 import com.aoindustries.aoserv.client.HttpdTomcatParameter;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.io.ChainWriter;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Set;
 
 /**
  * Some common code for all installations of Tomcat.
@@ -21,7 +23,12 @@ public abstract class TomcatCommon {
     TomcatCommon() {
 	}
 
-    /**
+	/**
+	 * Gets any packages that must be installed for this site.
+	 */
+	protected abstract Set<PackageManager.PackageName> getRequiredPackages();
+
+	/**
      * Writes a single parameter.
      */
     public void writeHttpdTomcatParameter(HttpdTomcatParameter parameter, ChainWriter out) throws IOException {

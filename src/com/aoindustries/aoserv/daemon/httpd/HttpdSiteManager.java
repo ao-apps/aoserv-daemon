@@ -20,6 +20,7 @@ import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.FileUtils;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
@@ -97,7 +98,10 @@ public abstract class HttpdSiteManager {
         for(HttpdSite httpdSite : aoServer.getHttpdSites()) {
             final HttpdSiteManager manager = getInstance(httpdSite);
 
-            // Create and fill in any incomplete installations.
+			// Install any required RPMs
+			PackageManager.installPackages(manager.getRequiredPackages());
+
+			// Create and fill in any incomplete installations.
             final String siteName = httpdSite.getSiteName();
             UnixFile siteDirectory = new UnixFile(wwwDirectory, siteName, false);
             manager.buildSiteDirectory(siteDirectory, sitesNeedingRestarted, sharedTomcatsNeedingRestarted);
@@ -360,7 +364,16 @@ public abstract class HttpdSiteManager {
         ;
     }*/
 
-    /**
+	/**
+	 * Gets any packages that must be installed for this site.
+	 *
+	 * By default, no specific packages are required.
+	 */
+	protected Set<PackageManager.PackageName> getRequiredPackages() {
+		return Collections.emptySet();
+	}
+
+	/**
      * (Re)builds the site directory, from scratch if it doesn't exist.
      * Creates, recreates, or removes resources as necessary.
      * Also performs an automatic upgrade of resources if appropriate for the site.
@@ -489,26 +502,35 @@ public abstract class HttpdSiteManager {
             }
             String phpCgiPath = osConfig.getPhpCgiPath(phpMinorVersion);
 
-            // Build to RAM first
+			PackageManager.PackageName requiredPackage;
+
+			// Build to RAM first
             ByteArrayOutputStream bout = new ByteArrayOutputStream();
-            ChainWriter out = new ChainWriter(bout);
-            try {
+            try (ChainWriter out = new ChainWriter(bout)) {
                 out.print("#!/bin/sh\n");
 				switch (phpMinorVersion) {
 					case "4.4":
+						requiredPackage = null;
 						out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
 						out.print(". /opt/postgresql-7.3-i686/setenv.sh\n");
 						break;
 					case "5.2":
+						requiredPackage = PackageManager.PackageName.PHP_5_2;
 						out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
 						out.print(". /opt/postgresql-8.1-i686/setenv.sh\n");
 						break;
 					case "5.3":
+						requiredPackage = PackageManager.PackageName.PHP_5_3;
 						out.print(". /opt/mysql-5.1-i686/setenv.sh\n");
 						out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
 						break;
 					case "5.4":
+						requiredPackage = PackageManager.PackageName.PHP_5_4;
+						out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
+						out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
+						break;
 					case "5.5":
+						requiredPackage = PackageManager.PackageName.PHP_5_5;
 						out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
 						out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
 						break;
@@ -516,9 +538,10 @@ public abstract class HttpdSiteManager {
 						throw new SQLException("Unexpected version for php: "+phpMinorVersion);
 				}
                 out.print("exec ").print(phpCgiPath).print(" \"$@\"\n");
-            } finally {
-                out.close();
             }
+			// Make sure required RPM is installed
+			if(requiredPackage != null) PackageManager.installPackage(requiredPackage);
+
             // Only rewrite when needed
             int uid = httpdSite.getLinuxServerAccount().getUid().getID();
             int gid = httpdSite.getLinuxServerGroup().getGid().getID();
@@ -560,8 +583,7 @@ public abstract class HttpdSiteManager {
                 // Write to temp file first
                 UnixFile tempFile = UnixFile.mktemp(testFile.getPath()+".", false);
                 try {
-                    ChainWriter out = new ChainWriter(new FileOutputStream(tempFile.getFile()));
-                    try {
+                    try (ChainWriter out = new ChainWriter(new FileOutputStream(tempFile.getFile()))) {
                         out.print("#!/usr/bin/perl\n"
                                 + "print \"Content-Type: text/html\\n\";\n"
                                 + "print \"\\n\";\n"
@@ -576,8 +598,6 @@ public abstract class HttpdSiteManager {
                                 + "print \"@date.\\n\";\n"
                                 + "print \"  </body>\\n\";\n"
                                 + "print \"</html>\\n\";\n");
-                    } finally {
-                        out.close();
                     }
                     // Set permissions and ownership
                     tempFile.setMode(0755);
@@ -606,16 +626,13 @@ public abstract class HttpdSiteManager {
             // Write to temp file first
             UnixFile tempFile = UnixFile.mktemp(indexFile.getPath()+".", false);
             try {
-                ChainWriter out = new ChainWriter(new FileOutputStream(tempFile.getFile()));
-                try {
+                try (ChainWriter out = new ChainWriter(new FileOutputStream(tempFile.getFile()))) {
                     out.print("<html>\n"
                             + "  <head><title>Test HTML Page for ").print(primaryUrl).print("</title></head>\n"
                             + "  <body>\n"
                             + "    Test HTML Page for ").print(primaryUrl).print("\n"
                             + "  </body>\n"
                             + "</html>\n");
-                } finally {
-                    out.close();
                 }
                 // Set permissions and ownership
                 tempFile.setMode(0664);
@@ -645,8 +662,7 @@ public abstract class HttpdSiteManager {
                 // Write to temp file first
                 UnixFile tempFile = UnixFile.mktemp(testFile.getPath()+".", false);
                 try {
-                    ChainWriter out = new ChainWriter(new FileOutputStream(tempFile.getFile()));
-                    try {
+                    try (ChainWriter out = new ChainWriter(new FileOutputStream(tempFile.getFile()))) {
                     out.print("<html>\n"
                             + "  <head><title>Test PHP Page for ").print(primaryUrl).print("</title></head>\n"
                             + "  <body>\n"
@@ -655,8 +671,6 @@ public abstract class HttpdSiteManager {
                             + "    The current time is <?= date('r') ?>.\n"
                             + "  </body>\n"
                             + "</html>\n");
-                    } finally {
-                        out.close();
                     }
                     // Set permissions and ownership
                     tempFile.setMode(0664);

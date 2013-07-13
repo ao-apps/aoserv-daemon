@@ -7,11 +7,14 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoindustries.aoserv.client.HttpdTomcatDataSource;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.UpgradeSymlink;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.EnumSet;
+import java.util.Set;
 
 /**
  * Some common code for Tomcat 7.0.X
@@ -26,6 +29,11 @@ class TomcatCommon_7_0_X extends TomcatCommon {
     }
 
     private TomcatCommon_7_0_X() {}
+
+	@Override
+	protected Set<PackageManager.PackageName> getRequiredPackages() {
+		return EnumSet.of(PackageManager.PackageName.APACHE_TOMCAT_7_0);
+	}
 
 	@Override
     public void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws SQLException, IOException {

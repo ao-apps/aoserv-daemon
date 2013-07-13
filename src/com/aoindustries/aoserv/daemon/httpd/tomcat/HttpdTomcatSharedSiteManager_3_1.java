@@ -49,8 +49,7 @@ class HttpdTomcatSharedSiteManager_3_1 extends HttpdTomcatSharedSiteManager_3_X<
 
         // Build to RAM first
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
-        ChainWriter out = new ChainWriter(bout);
-        try {
+        try (ChainWriter out = new ChainWriter(bout)) {
             out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n");
             if(!httpdSite.isManual()) out.print(autoWarning);
             out.print("<Server>\n"
@@ -80,9 +79,15 @@ class HttpdTomcatSharedSiteManager_3_1 extends HttpdTomcatSharedSiteManager_3_X<
 
                 out.print("        <Connector className=\"org.apache.tomcat.service.PoolTcpConnector\">\n"
                         + "            <Parameter name=\"handler\" value=\"");
-                if(protocol.equals(HttpdJKProtocol.AJP12)) out.print("org.apache.tomcat.service.connector.Ajp12ConnectionHandler");
-                else if(protocol.equals(HttpdJKProtocol.AJP13)) throw new IllegalArgumentException("Tomcat Version "+htv+" does not support AJP version: "+protocol);
-                else throw new IllegalArgumentException("Unknown AJP version: "+htv);
+				switch (protocol) {
+					case HttpdJKProtocol.AJP12:
+						out.print("org.apache.tomcat.service.connector.Ajp12ConnectionHandler");
+						break;
+					case HttpdJKProtocol.AJP13:
+						throw new IllegalArgumentException("Tomcat Version "+htv+" does not support AJP version: "+protocol);
+					default:
+						throw new IllegalArgumentException("Unknown AJP version: "+htv);
+				}
                 out.print("\"/>\n"
                         + "            <Parameter name=\"port\" value=\"").print(netBind.getPort()).print("\"/>\n");
                 InetAddress ip=netBind.getIPAddress().getInetAddress();
@@ -98,8 +103,6 @@ class HttpdTomcatSharedSiteManager_3_1 extends HttpdTomcatSharedSiteManager_3_X<
             }
             out.print("  </ContextManager>\n"
                     + "</Server>\n");
-        } finally {
-            out.close();
         }
         return bout.toByteArray();
     }

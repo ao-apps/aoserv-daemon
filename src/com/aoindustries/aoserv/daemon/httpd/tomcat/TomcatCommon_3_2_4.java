@@ -5,9 +5,12 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.FileUtils;
 import com.aoindustries.io.ChainWriter;
 import java.io.IOException;
+import java.util.EnumSet;
+import java.util.Set;
 
 /**
  * Some common code for Tomcat 3.2.4
@@ -22,6 +25,11 @@ public class TomcatCommon_3_2_4 extends TomcatCommon_3_X {
     }
 
     private TomcatCommon_3_2_4() {}
+
+	@Override
+	protected Set<PackageManager.PackageName> getRequiredPackages() {
+		return EnumSet.of(PackageManager.PackageName.APACHE_TOMCAT_3_2);
+	}
 
 	@Override
     public void createWebDtd(String confDirectory, int uid, int gid, int mode) throws IOException {

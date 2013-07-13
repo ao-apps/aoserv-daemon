@@ -24,6 +24,7 @@ import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.FileUtils;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
@@ -244,8 +245,7 @@ public class HttpdServerManager {
 
         // Build to a temporary buffer
         bout.reset();
-        ChainWriter out = new ChainWriter(bout);
-        try {
+        try (ChainWriter out = new ChainWriter(bout)) {
             out.print("    ServerAdmin ").print(httpdSite.getServerAdmin()).print("\n");
 
             // Enable CGI PHP option if the site supports CGI and PHP
@@ -410,8 +410,6 @@ public class HttpdServerManager {
                         + "        </IfModule>\n"
                         + "    </IfModule>\n");
             }
-        } finally {
-            out.close();
         }
         return bout.toByteArray();
     }
@@ -464,8 +462,7 @@ public class HttpdServerManager {
         if(osConfig!=HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) throw new AssertionError("This method is for CentOS 5 only");
         final int serverNum = hs.getNumber();
         bout.reset();
-        ChainWriter out = new ChainWriter(bout);
-        try {
+        try (ChainWriter out = new ChainWriter(bout)) {
             LinuxServerAccount lsa=hs.getLinuxServerAccount();
             boolean isEnabled=!lsa.isDisabled();
             // The version of PHP module to run
@@ -624,8 +621,6 @@ public class HttpdServerManager {
                     }
                 }
             }
-        } finally {
-            out.close();
         }
         return bout.toByteArray();
     }
@@ -638,8 +633,7 @@ public class HttpdServerManager {
         if(osConfig!=HttpdOperatingSystemConfiguration.REDHAT_ES_4_X86_64) throw new AssertionError("This method is for RedHat ES 4 only");
         final int serverNum = hs.getNumber();
         bout.reset();
-        ChainWriter out = new ChainWriter(bout);
-        try {
+        try (ChainWriter out = new ChainWriter(bout)) {
             LinuxServerAccount lsa=hs.getLinuxServerAccount();
             boolean isEnabled=!lsa.isDisabled();
             // The version of PHP module to run
@@ -774,8 +768,6 @@ public class HttpdServerManager {
                     }
                 }
             }
-        } finally {
-            out.close();
         }
         return bout.toByteArray();
     }
@@ -801,8 +793,7 @@ public class HttpdServerManager {
         int workerCount=workers.size();
 
         bout.reset();
-        ChainWriter out = new ChainWriter(bout);
-        try {
+        try (ChainWriter out = new ChainWriter(bout)) {
             out.print("worker.list=");
             for(int d=0;d<workerCount;d++) {
                 if(d>0) out.print(',');
@@ -816,8 +807,6 @@ public class HttpdServerManager {
                         + "worker.").print(code).print(".type=").print(worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol()).print("\n"
                         + "worker.").print(code).print(".port=").print(worker.getNetBind().getPort().getPort()).print('\n');
             }
-        } finally {
-            out.close();
         }
         return bout.toByteArray();
     }
@@ -835,8 +824,7 @@ public class HttpdServerManager {
         String primaryHostname = primaryHSU.getHostname().toString();
 
         bout.reset();
-        ChainWriter out = new ChainWriter(bout);
-        try {
+        try (ChainWriter out = new ChainWriter(bout)) {
             out.print("<VirtualHost ").print(ipAddress.toBracketedString()).print(':').print(port).print(">\n"
                     + "    ServerName ").print(primaryHostname).print('\n'
             );
@@ -884,8 +872,6 @@ public class HttpdServerManager {
             out.print("    Include conf/hosts/").print(siteInclude).print("\n"
                     + "\n"
                     + "</VirtualHost>\n");
-        } finally {
-            out.close();
         }
         return bout.toByteArray();
     }
@@ -1024,8 +1010,7 @@ public class HttpdServerManager {
         for(HttpdServer hs : hss) {
             int num = hs.getNumber();
             bout.reset();
-            ChainWriter out = new ChainWriter(bout);
-            try {
+            try (ChainWriter out = new ChainWriter(bout)) {
                 out.print("#!/bin/bash\n"
                         + "#\n"
                         + "# httpd").print(num).print("        Startup script for the Apache HTTP Server ").print(num).print("\n"
@@ -1040,33 +1025,49 @@ public class HttpdServerManager {
                 // mod_php requires MySQL and PostgreSQL in the path
                 TechnologyVersion modPhpVersion = hs.getModPhpVersion();
                 if(modPhpVersion!=null) {
+					PackageManager.PackageName requiredPackage;
                     String version = modPhpVersion.getVersion();
 					String minorVersion = getMinorPhpVersion(version);
-                    if(minorVersion.equals("4.4")) {
-						out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
-						out.print(". /opt/postgresql-7.3-i686/setenv.sh\n");
-						out.print('\n');
-                    } else if(minorVersion.equals("5.2")) {
-						out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
-						out.print(". /opt/postgresql-8.1-i686/setenv.sh\n");
-						out.print('\n');
-                    } else if(minorVersion.equals("5.3")) {
-						out.print(". /opt/mysql-5.1-i686/setenv.sh\n");
-						out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
-						out.print('\n');
-                    } else if(
-						minorVersion.equals("5.4")
-						|| minorVersion.equals("5.5")
-					) {
-						out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
-						out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
-						out.print('\n');
-                    } else throw new SQLException("Unexpected version for mod_php: "+version);
+					switch (minorVersion) {
+						case "4.4":
+							requiredPackage = null;
+							out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
+							out.print(". /opt/postgresql-7.3-i686/setenv.sh\n");
+							out.print('\n');
+							break;
+						case "5.2":
+							requiredPackage = PackageManager.PackageName.PHP_5_2;
+							out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
+							out.print(". /opt/postgresql-8.1-i686/setenv.sh\n");
+							out.print('\n');
+							break;
+						case "5.3":
+							requiredPackage = PackageManager.PackageName.PHP_5_3;
+							out.print(". /opt/mysql-5.1-i686/setenv.sh\n");
+							out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
+							out.print('\n');
+							break;
+						case "5.4":
+							requiredPackage = PackageManager.PackageName.PHP_5_4;
+							out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
+							out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
+							out.print('\n');
+							break;
+						case "5.5":
+							requiredPackage = PackageManager.PackageName.PHP_5_5;
+							out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
+							out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
+							out.print('\n');
+							break;
+						default:
+							throw new SQLException("Unexpected version for mod_php: "+version);
+					}
+
+					// Make sure required RPM is installed
+					if(requiredPackage != null) PackageManager.installPackage(requiredPackage);
                 }
                 out.print("NUM=").print(num).print("\n"
                         + ". /opt/aoserv-daemon/init.d/httpd\n");
-            } finally {
-                out.close();
             }
             String filename = "httpd"+num;
             dontDeleteFilenames.add(filename);

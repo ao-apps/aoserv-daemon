@@ -18,6 +18,7 @@ import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.httpd.HttpdSiteManager;
 import com.aoindustries.aoserv.daemon.httpd.StopStartable;
 import com.aoindustries.aoserv.daemon.httpd.jboss.HttpdJBossSiteManager;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -219,7 +220,12 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
      */
     public abstract String getStartStopScriptUsername() throws IOException, SQLException;
 
-    /**
+	@Override
+	protected Set<PackageManager.PackageName> getRequiredPackages() {
+		return getTomcatCommon().getRequiredPackages();
+	}
+
+	/**
      * Every Tomcat site is built through the same overall set of steps.
      */
 	@Override
