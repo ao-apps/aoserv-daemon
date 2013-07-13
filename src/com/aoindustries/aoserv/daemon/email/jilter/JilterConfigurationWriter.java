@@ -68,6 +68,7 @@ public class JilterConfigurationWriter extends BuilderThread {
                 AOServConnector connector=AOServDaemon.getConnector();
                 configurationWriter=new JilterConfigurationWriter();
                 connector.getAoServers().addTableListener(configurationWriter, 0);
+                connector.getNetBinds().addTableListener(configurationWriter, 0);
                 connector.getNetDevices().addTableListener(configurationWriter, 0);
                 connector.getIpAddresses().addTableListener(configurationWriter, 0);
                 connector.getEmailDomains().addTableListener(configurationWriter, 0);
