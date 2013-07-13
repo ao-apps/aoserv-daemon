@@ -120,10 +120,19 @@ public class JilterConfigurationWriter extends BuilderThread {
             for(EmailSmtpRelay esr : aoServer.getEmailSmtpRelays()) {
                 String host = esr.getHost().toString();
                 String type = esr.getType().getName();
-                if(EmailSmtpRelayType.DENY.equals(type)) denies.add(host);
-                else if(EmailSmtpRelayType.DENY_SPAM.equals(type)) denySpams.add(host);
-                else if(EmailSmtpRelayType.ALLOW_RELAY.equals(type)) allowRelays.add(host);
-                else LogFactory.getLogger(JilterConfigurationWriter.class).log(Level.WARNING, null, new SQLException("Unexpected value for type: "+type));
+				switch (type) {
+					case EmailSmtpRelayType.DENY:
+						denies.add(host);
+						break;
+					case EmailSmtpRelayType.DENY_SPAM:
+						denySpams.add(host);
+						break;
+					case EmailSmtpRelayType.ALLOW_RELAY:
+						allowRelays.add(host);
+						break;
+					default:
+						LogFactory.getLogger(JilterConfigurationWriter.class).log(Level.WARNING, null, new SQLException("Unexpected value for type: "+type));
+				}
             }
 
             // Builds email limits only for the packages referenced in domainPackages

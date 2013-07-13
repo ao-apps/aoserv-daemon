@@ -76,8 +76,7 @@ final public class SendmailCFManager extends BuilderThread {
 
                 // Build the new version of /etc/mail/sendmail.mc in RAM
                 {
-                    ChainWriter out=new ChainWriter(bout);
-                    try {
+                    try (ChainWriter out = new ChainWriter(bout)) {
                         if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                             out.print("divert(-1)\n"
                                     + "dnl This is the macro config file used to generate the /etc/sendmail.cf\n"
@@ -331,18 +330,13 @@ final public class SendmailCFManager extends BuilderThread {
                                 + "Dj").print(aoServer.getHostname()).print("\n" // AO added
                                 + "\n"
                         );
-                    } finally {
-                        out.close();
                     }
                     byte[] newBytes = bout.toByteArray();
 
                     // Write the new file if it is different than the old
                     if(!sendmailMc.getStat(tempStat).exists() || !sendmailMc.contentEquals(newBytes)) {
-                        FileOutputStream fout = sendmailMcNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true);
-                        try {
+                        try (FileOutputStream fout = sendmailMcNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)) {
                             fout.write(newBytes);
-                        } finally {
-                            fout.close();
                         }
                         sendmailMcNew.renameTo(sendmailMc);
                     }
@@ -361,11 +355,8 @@ final public class SendmailCFManager extends BuilderThread {
                     String[] command = {"/usr/bin/m4", "/etc/mail/sendmail.mc"};
                     byte[] cfNewBytes = AOServDaemon.execAndCaptureBytes(command);
                     if(!sendmailCfStat.exists() || !sendmailCf.contentEquals(cfNewBytes)) {
-                        FileOutputStream sendmailCfNewOut = sendmailCfNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true);
-                        try {
+                        try (FileOutputStream sendmailCfNewOut = sendmailCfNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)) {
                             sendmailCfNewOut.write(cfNewBytes);
-                        } finally {
-                            sendmailCfNewOut.close();
                         }
                         sendmailCfNew.renameTo(sendmailCf);
                         needsReload = true;
@@ -375,8 +366,7 @@ final public class SendmailCFManager extends BuilderThread {
                 // Build the new version of /etc/mail/submit.mc in RAM
                 {
                     bout.reset();
-                    ChainWriter out=new ChainWriter(bout);
-                    try {
+                    try (ChainWriter out = new ChainWriter(bout)) {
                         // Submit will always be on the primary IP address
                         if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
                             out.print("divert(-1)\n"
@@ -428,18 +418,13 @@ final public class SendmailCFManager extends BuilderThread {
                         } else {
                             throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                         }
-                    } finally {
-                        out.close();
                     }
                     byte[] newBytes = bout.toByteArray();
 
                     // Write the new file if it is different than the old
                     if(!submitMc.getStat(tempStat).exists() || !submitMc.contentEquals(newBytes)) {
-                        FileOutputStream fout = submitMcNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true);
-                        try {
+                        try (FileOutputStream fout = submitMcNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)) {
                             fout.write(newBytes);
-                        } finally {
-                            fout.close();
                         }
                         submitMcNew.renameTo(submitMc);
                     }
@@ -455,11 +440,8 @@ final public class SendmailCFManager extends BuilderThread {
                     String[] command = {"/usr/bin/m4", "/etc/mail/submit.mc"};
                     byte[] cfNewBytes = AOServDaemon.execAndCaptureBytes(command);
                     if(!submitCfStat.exists() || !submitCf.contentEquals(cfNewBytes)) {
-                        FileOutputStream submitCfNewOut = submitCfNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true);
-                        try {
+                        try (FileOutputStream submitCfNewOut = submitCfNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)) {
                             submitCfNewOut.write(cfNewBytes);
-                        } finally {
-                            submitCfNewOut.close();
                         }
                         submitCfNew.renameTo(submitCf);
                         needsReload = true;

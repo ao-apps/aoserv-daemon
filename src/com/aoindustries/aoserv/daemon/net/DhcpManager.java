@@ -49,7 +49,7 @@ final public class DhcpManager implements Runnable {
                     in.close();
                 }
             } finally {
-                AOServDaemon.waitFor(cmd, P);
+                AOServDaemon.waitFor(P, cmd);
             }
             if(ip==null || (ip=ip.trim()).length()==0) throw new IOException("Unable to find IP address for device: "+device);
             return InetAddress.valueOf(ip);

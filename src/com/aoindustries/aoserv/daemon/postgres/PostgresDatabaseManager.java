@@ -222,13 +222,9 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                     try {
                         // Get the list of all existing databases
                         List<String> existing=new SortedArrayList<>();
-                        Statement stmt=conn.createStatement();
-                        try {
-                            ResultSet results=stmt.executeQuery("select datname from pg_database");
-                            try {
+                        try (Statement stmt = conn.createStatement()) {
+                            try (ResultSet results = stmt.executeQuery("select datname from pg_database")) {
                                 while(results.next()) existing.add(results.getString(1));
-                            } finally {
-                                results.close();
                             }
 
                             // Create the databases that do not exist and should
@@ -323,8 +319,6 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                                 stmt.executeUpdate("drop database "+dbName);
                                 conn.commit();
                             }
-                        } finally {
-                            stmt.close();
                         }
                     } finally {
                         pool.releaseConnection(conn);
@@ -366,9 +360,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                 tempFile.getPath()
             };
             AOServDaemon.exec(command);
-
-            InputStream dumpin=new FileInputStream(tempFile.getFile());
-            try {
+            try (InputStream dumpin = new FileInputStream(tempFile.getFile())) {
                 byte[] buff=BufferManager.getBytes();
                 try {
                     int ret;
@@ -380,8 +372,6 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                 } finally {
                     BufferManager.release(buff, false);
                 }
-            } finally {
-                dumpin.close();
             }
         } finally {
             if(tempFile.getStat().exists()) tempFile.delete();
@@ -506,55 +496,61 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                         }
                         try {
                             conn.setAutoCommit(true);
-                            Statement stmt=conn.createStatement();
-                            ResultSet results=stmt.executeQuery(
-                                postgresServerHasSchemas
-                                ? ("select tablename, schemaname from pg_tables where tableowner!='"+PostgresUser.POSTGRES+"'")
-                                : ("select tablename from pg_tables where tableowner!='"+PostgresUser.POSTGRES+"'")
-                            );
-                            tableNames.clear();
-                            if(postgresServerHasSchemas) schemas.clear();
-                            while(results.next()) {
-                                tableNames.add(results.getString(1));
-                                if(postgresServerHasSchemas) schemas.add(results.getString(2));
-                            }
-                            results.close();
-                            for(int c=0;c<tableNames.size();c++) {
-                                String tableName=tableNames.get(c);
-                                String schema=postgresServerHasSchemas ? schemas.get(c) : null;
-                                if(
-                                    postgresDatabaseTable.isValidDatabaseName(tableName.toLowerCase())
-                                ) {
-                                    if(!postgresServerHasSchemas || "public".equals(schema) || postgresDatabaseTable.isValidDatabaseName(schema.toLowerCase())) {
-                                        // VACUUM the table
-                                        stmt.executeUpdate(
-                                            postgresServerHasVacuumFull
-                                            ? (
-                                                postgresServerHasSchemas
-                                                ? ("vacuum full analyze "+schema+"."+tableName)
-                                                : ("vacuum full analyze "+tableName)
-                                            ) : (
-                                                postgresServerHasSchemas
-                                                ? ("vacuum analyze "+schema+"."+tableName)
-                                                : ("vacuum analyze "+tableName)
-                                            )
-                                        );
-                                        if(isReindexTime) {
-                                            // REINDEX the table
-                                            stmt.executeUpdate(
-                                                postgresServerHasSchemas
-                                                ? ("reindex table "+schema+"."+tableName)
-                                                : ("reindex table "+tableName)
-                                            );
-                                        }
-                                    } else {
-                                        LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.WARNING, "schema="+schema, new SQLWarning("Warning: not calling VACUUM or REINDEX because schema name does not pass the database name checks.  This is to make sure specially-crafted schema names cannot be used to execute arbitrary SQL with administrative privileges."));
-                                    }
-                                } else {
-                                    LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.WARNING, "tableName="+tableName, new SQLWarning("Warning: not calling VACUUM or REINDEX because table name does not pass the database name checks.  This is to make sure specially-crafted table names cannot be used to execute arbitrary SQL with administrative privileges."));
-                                }
-                            }
-                            stmt.close();
+							try (Statement stmt = conn.createStatement()) {
+								try (
+									ResultSet results = stmt.executeQuery(
+										postgresServerHasSchemas
+										? ("select tablename, schemaname from pg_tables where tableowner!='"+PostgresUser.POSTGRES+"'")
+										: ("select tablename from pg_tables where tableowner!='"+PostgresUser.POSTGRES+"'")
+									)
+								) {
+									tableNames.clear();
+									if(postgresServerHasSchemas) schemas.clear();
+									while(results.next()) {
+										tableNames.add(results.getString(1));
+										if(postgresServerHasSchemas) schemas.add(results.getString(2));
+									}
+								}
+								for(int c=0;c<tableNames.size();c++) {
+									String tableName=tableNames.get(c);
+									String schema=postgresServerHasSchemas ? schemas.get(c) : null;
+									if(
+										postgresDatabaseTable.isValidDatabaseName(tableName.toLowerCase())
+									) {
+										if(
+											!postgresServerHasSchemas
+											|| "public".equals(schema)
+											|| (schema!=null && postgresDatabaseTable.isValidDatabaseName(schema.toLowerCase()))
+										) {
+											// VACUUM the table
+											stmt.executeUpdate(
+												postgresServerHasVacuumFull
+												? (
+													postgresServerHasSchemas
+													? ("vacuum full analyze "+schema+"."+tableName)
+													: ("vacuum full analyze "+tableName)
+												) : (
+													postgresServerHasSchemas
+													? ("vacuum analyze "+schema+"."+tableName)
+													: ("vacuum analyze "+tableName)
+												)
+											);
+											if(isReindexTime) {
+												// REINDEX the table
+												stmt.executeUpdate(
+													postgresServerHasSchemas
+													? ("reindex table "+schema+"."+tableName)
+													: ("reindex table "+tableName)
+												);
+											}
+										} else {
+											LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.WARNING, "schema="+schema, new SQLWarning("Warning: not calling VACUUM or REINDEX because schema name does not pass the database name checks.  This is to make sure specially-crafted schema names cannot be used to execute arbitrary SQL with administrative privileges."));
+										}
+									} else {
+										LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.WARNING, "tableName="+tableName, new SQLWarning("Warning: not calling VACUUM or REINDEX because table name does not pass the database name checks.  This is to make sure specially-crafted table names cannot be used to execute arbitrary SQL with administrative privileges."));
+									}
+								}
+							}
                         } finally {
                             if(pool!=null) pool.releaseConnection(conn);
                             else conn.close();

@@ -259,7 +259,7 @@ final public class AOServDaemon {
      * Gets a single-String representation of the command.  This should be used
      * for display purposes only, because it doesn't quote things in a shell-safe way.
      */
-    public static String getCommandString(String[] command) {
+    public static String getCommandString(String... command) {
         StringBuilder SB = new StringBuilder();
         for(int c=0;c<command.length;c++) {
             if(c>0) SB.append(' ');
@@ -272,7 +272,7 @@ final public class AOServDaemon {
         return SB.toString();
     }
     
-    public static void exec(String[] command) throws IOException {
+    public static void exec(String... command) throws IOException {
         if(DEBUG) {
             System.out.print("DEBUG: AOServDaemon.exec(): ");
             System.out.println(getCommandString(command));
@@ -281,14 +281,14 @@ final public class AOServDaemon {
         try {
             P.getOutputStream().close();
         } finally {
-            waitFor(command, P);
+            waitFor(P, command);
         }
     }
 
     /**
      * TODO: Capture error stream
      */
-    public static void waitFor(String[] command, Process P) throws IOException {
+    public static void waitFor(Process P, String... command) throws IOException {
         try {
             P.waitFor();
         } catch (InterruptedException err) {
@@ -309,25 +309,18 @@ final public class AOServDaemon {
     /**
      * Executes a command and captures the output.
      */
-    public static String execAndCapture(String[] command) throws IOException {
+    public static String execAndCapture(String... command) throws IOException {
         Process P = Runtime.getRuntime().exec(command);
         try {
             P.getOutputStream().close();
-            // Read the results
-            Reader in = new InputStreamReader(P.getInputStream());
-            try {
+            try (Reader in = new InputStreamReader(P.getInputStream())) {
 				return IoUtils.readFully(in);
-            } finally {
-                in.close();
             }
         } finally {
             // Read the standard error
             String errorString;
-            Reader errIn = new InputStreamReader(P.getErrorStream());
-            try {
+            try (Reader errIn = new InputStreamReader(P.getErrorStream())) {
 				errorString = IoUtils.readFully(errIn);
-            } finally {
-                errIn.close();
             }
             // Write any standard error to standard error
             if(errorString.length()>0) System.err.println("'"+getCommandString(command)+"': "+errorString);
@@ -345,25 +338,18 @@ final public class AOServDaemon {
     /**
      * Executes a command and captures the output.
      */
-    public static byte[] execAndCaptureBytes(String[] command) throws IOException {
+    public static byte[] execAndCaptureBytes(String... command) throws IOException {
         Process P = Runtime.getRuntime().exec(command);
         try {
             P.getOutputStream().close();
-            // Read the results
-            InputStream in = P.getInputStream();
-            try {
+            try (InputStream in = P.getInputStream()) {
 				return IoUtils.readFully(in);
-            } finally {
-                in.close();
             }
         } finally {
             // Read the standard error
             String errorString;
-            Reader errIn = new InputStreamReader(P.getErrorStream());
-            try {
+            try (Reader errIn = new InputStreamReader(P.getErrorStream())) {
 				errorString = IoUtils.readFully(errIn);
-            } finally {
-                errIn.close();
             }
             // Write any standard error to standard error
             if(errorString.length()>0) System.err.println("'"+getCommandString(command)+"': "+errorString);
