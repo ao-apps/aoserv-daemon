@@ -19,7 +19,6 @@ import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.email.jilter.JilterConfigurationWriter;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.aoserv.jilter.config.JilterConfiguration;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -221,16 +220,20 @@ final public class SendmailCFManager extends BuilderThread {
                                 + "define(`confNICE_QUEUE_RUN',`10')dnl\n"
                                 + "define(`confPROCESS_TITLE_PREFIX',`").print(aoServer.getHostname()).print("')dnl\n"
                                 + "dnl\n");
-                        if(AOServDaemonConfiguration.isManagerEnabled(JilterConfigurationWriter.class)) {
+						// Look for the configured net bind for the jilter
+						NetBind jilterNetBind = JilterConfigurationWriter.getJilterNetBind();
+						// Only configure when the net bind has been found
+						if(jilterNetBind!=null) {
                             out.print("dnl Enable Jilter\n"
                                     + "dnl\n");
-                            InetAddress ip = primaryIpAddress.getInetAddress();
+							InetAddress ip = jilterNetBind.getIPAddress().getInetAddress();
+							if(ip.isUnspecified()) ip = primaryIpAddress.getInetAddress();
                             if(ip.isIPv6()) {
                                 // IPv6
-                                out.print("INPUT_MAIL_FILTER(`jilter',`S=inet6:"+JilterConfiguration.MILTER_PORT+"@").print(ip.toString()).print(", F=R, T=S:60s;R:60s')\n");
+                                out.print("INPUT_MAIL_FILTER(`jilter',`S=inet6:").print(jilterNetBind.getPort().getPort()).print('@').print(ip).print(", F=R, T=S:60s;R:60s')\n");
                             } else {
                                 // IPv4
-                                out.print("INPUT_MAIL_FILTER(`jilter',`S=inet:"+JilterConfiguration.MILTER_PORT+"@").print(ip.toString()).print(", F=R, T=S:60s;R:60s')\n");
+                                out.print("INPUT_MAIL_FILTER(`jilter',`S=inet:").print(jilterNetBind.getPort().getPort()).print('@').print(ip).print(", F=R, T=S:60s;R:60s')\n");
                             }
                             out.print("dnl\n");
                         }
