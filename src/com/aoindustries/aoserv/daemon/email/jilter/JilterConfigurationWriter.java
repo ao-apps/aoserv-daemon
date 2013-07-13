@@ -47,8 +47,6 @@ import java.util.logging.Level;
  */
 public class JilterConfigurationWriter extends BuilderThread {
 
-	private static final String PACKAGE_RPM_NAME = "aoserv-jilter";
-
 	private static JilterConfigurationWriter configurationWriter;
 
     public static void start() throws IOException, SQLException {
@@ -112,7 +110,7 @@ public class JilterConfigurationWriter extends BuilderThread {
 			// Only configure when the net bind has been found
 			if(jilterNetBind!=null) {
 				// Install package if needed
-				PackageManager.installPackage(PACKAGE_RPM_NAME);
+				PackageManager.installPackage(PackageManager.PackageName.AOSERV_JILTER);
 
 				// restrict_outbound_email
 				boolean restrict_outbound_email = aoServer.getRestrictOutboundEmail();
@@ -205,7 +203,7 @@ public class JilterConfigurationWriter extends BuilderThread {
 				}
 			} else {
 				// Remove the package
-				PackageManager.removePackage(PACKAGE_RPM_NAME);
+				PackageManager.removePackage(PackageManager.PackageName.AOSERV_JILTER);
 
 				// Remove any left-over config file and directory
 				File rpmSaveFile = new File(JilterConfiguration.PROPS_FILE + ".rpmsave");

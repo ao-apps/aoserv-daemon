@@ -26,6 +26,20 @@ import java.util.TreeSet;
 public class PackageManager {
 
 	/**
+	 * The set of all managed package names.  This is specified as an enum
+	 * to avoid accidental removal of critical system RPMs from outside callers.
+	 */
+	public enum PackageName {
+		AOSERV_JILTER("aoserv-jilter"),
+		MAJORDOMO("majordomo");
+
+		private final String rpmName;
+		private PackageName(String rpmName) {
+			this.rpmName = rpmName;
+		}
+	}
+
+	/**
 	 * Enables debugging output.
 	 */
 	private static final boolean DEBUG = false;
@@ -401,11 +415,11 @@ public class PackageManager {
 	 * Gets the highest version of an installed package or <code>null</code> if
 	 * not installed.
 	 */
-	public static RPM getInstalledPackage(String name) throws IOException {
+	public static RPM getInstalledPackage(PackageName name) throws IOException {
 		// Looking through all to find highest version
 		RPM highestVersionFound = null;
 		for(RPM rpm : getAllRpms()) {
-			if(rpm.getName().equals(name)) highestVersionFound = rpm;
+			if(rpm.getName().equals(name.rpmName)) highestVersionFound = rpm;
 		}
 		return highestVersionFound;
 	}
@@ -418,7 +432,7 @@ public class PackageManager {
 	 * 
 	 * @return  the highest version of RPM that is installed
 	 */
-	public static RPM installPackage(String name) throws IOException {
+	public static RPM installPackage(PackageName name) throws IOException {
 		synchronized(packagesLock) {
 			// Check if exists by looking through all to find highest version
 			RPM highestVersionFound = getInstalledPackage(name);
@@ -428,7 +442,7 @@ public class PackageManager {
 				final PrintStream out = System.out;
 				synchronized(out) {
 					out.print("Installing package: ");
-					out.println(name);
+					out.println(name.rpmName);
 				}
 			}
 			AOServDaemon.exec(
@@ -436,13 +450,13 @@ public class PackageManager {
 				"-q",
 				"-y",
 				"install",
-				name
+				name.rpmName
 			);
 			// Must exist now
 			for(RPM rpm : getAllRpms()) {
-				if(rpm.getName().equals(name)) return rpm;
+				if(rpm.getName().equals(name.rpmName)) return rpm;
 			}
-			throw new AssertionError("Package does not exist after yum install: " + name);
+			throw new AssertionError("Package does not exist after yum install: " + name.rpmName);
 		}
 	}
 
@@ -453,11 +467,11 @@ public class PackageManager {
 	 * 
 	 * @see RPM#remove() Call remove on a specific RPM when multiple version may be installed
 	 */
-	public static void removePackage(String name) throws IOException {
+	public static void removePackage(PackageName name) throws IOException {
 		synchronized(packagesLock) {
 			List<RPM> matches = new ArrayList<>();
 			for(RPM rpm : getAllRpms()) {
-				if(rpm.getName().equals(name)) matches.add(rpm);
+				if(rpm.getName().equals(name.rpmName)) matches.add(rpm);
 			}
 			if(!matches.isEmpty()) {
 				if(matches.size() > 1) throw new IOException("More than one installed RPM matches, refusing to remove: " + name);

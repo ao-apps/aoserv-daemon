@@ -39,8 +39,6 @@ import java.util.logging.Level;
  */
 final public class MajordomoManager extends BuilderThread {
 
-	private static final String PACKAGE_RPM_NAME = "majordomo";
-	
 	private static MajordomoManager majordomoManager;
 
 	private MajordomoManager() {
@@ -69,7 +67,7 @@ final public class MajordomoManager extends BuilderThread {
 				
 				if(!mss.isEmpty()) {
 					// Install package if needed
-					PackageManager.installPackage(PACKAGE_RPM_NAME);
+					PackageManager.installPackage(PackageManager.PackageName.MAJORDOMO);
 
 					// Create the directory if needed
 					// Will have been created by RPM: if(!serversUF.getStat(tempStat).exists()) serversUF.mkdir(false, 0755, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
@@ -983,7 +981,7 @@ final public class MajordomoManager extends BuilderThread {
 					// RPM will clean it up: if(serversUF.getStat(tempStat).exists()) serversUF.delete();
 
 					// Remove the package
-					PackageManager.removePackage(PACKAGE_RPM_NAME);
+					PackageManager.removePackage(PackageManager.PackageName.MAJORDOMO);
 				}
 			}
 			return true;
