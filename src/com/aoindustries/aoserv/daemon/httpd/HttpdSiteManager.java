@@ -517,7 +517,7 @@ public abstract class HttpdSiteManager {
 					case "5.2":
 						requiredPackage = PackageManager.PackageName.PHP_5_2;
 						out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
-						out.print(". /opt/postgresql-8.1-i686/setenv.sh\n");
+						out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
 						break;
 					case "5.3":
 						requiredPackage = PackageManager.PackageName.PHP_5_3;

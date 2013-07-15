@@ -1038,7 +1038,7 @@ public class HttpdServerManager {
 						case "5.2":
 							requiredPackage = PackageManager.PackageName.PHP_5_2;
 							out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
-							out.print(". /opt/postgresql-8.1-i686/setenv.sh\n");
+							out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
 							out.print('\n');
 							break;
 						case "5.3":

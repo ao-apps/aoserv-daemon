@@ -269,13 +269,15 @@ public class AOServerEnvironment extends UnixFileEnvironment {
         filesystemRules.put("/var/lock/subsys/mysql-4.1", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lock/subsys/mysql-5.0", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lock/subsys/mysql-5.1", FilesystemIteratorRule.SKIP);
+        filesystemRules.put("/var/lock/subsys/mysql-5.6", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lock/subsys/network", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lock/subsys/numlock", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lock/subsys/postgresql-7.1", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lock/subsys/postgresql-7.2", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lock/subsys/postgresql-7.3", FilesystemIteratorRule.SKIP);
-        filesystemRules.put("/var/lock/subsys/postgresql-8.0", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lock/subsys/postgresql-8.1", FilesystemIteratorRule.SKIP);
+        filesystemRules.put("/var/lock/subsys/postgresql-8.3", FilesystemIteratorRule.SKIP);
+        filesystemRules.put("/var/lock/subsys/postgresql-9.2", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lock/subsys/proftpd", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lock/subsys/route", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/var/lock/subsys/saslauthd", FilesystemIteratorRule.SKIP);
