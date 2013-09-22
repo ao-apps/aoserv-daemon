@@ -1,11 +1,9 @@
-package com.aoindustries.aoserv.daemon.report;
-
 /*
- * Copyright 2000-2009 by AO Industries, Inc.,
+ * Copyright 2000-2013 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
-import java.io.*;
+package com.aoindustries.aoserv.daemon.report;
 
 /**
  * Encapsulates the output of the /proc/swaps file

@@ -377,6 +377,8 @@ public class LinuxAccountManager extends BuilderThread {
                             unixFileStat.getUid()==UnixFile.ROOT_UID
                             || unixFileStat.getGid()==UnixFile.ROOT_GID
                         )
+			// Do not set permissions for encrypted home directories
+			&& !(new UnixFile(th+".aes256.img").getStat().exists())
                     ) {
                         unixFile.chown(uid, gid);
                         unixFile.setMode(0700);
@@ -417,6 +419,8 @@ public class LinuxAccountManager extends BuilderThread {
                         String dirName=homeList[c];
                         File dir=new File(homeDir, dirName);
                         String dirPath=dir.getPath();
+			// Allow encrypted form of home directory
+			if(dirPath.endsWith(".aes256.img")) dirPath = dirPath.substring(0, dirPath.length()-11);
                         if(!homeDirs.contains(dirPath)) deleteFileList.add(dir);
                     }
                 }

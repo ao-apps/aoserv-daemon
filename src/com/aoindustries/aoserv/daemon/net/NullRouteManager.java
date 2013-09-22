@@ -12,7 +12,7 @@ import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.server.VirtualServerManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxProcess;
 import com.aoindustries.io.FileUtils;
-import com.aoindustries.nio.charset.Charset;
+import com.aoindustries.nio.charset.Charsets;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -201,15 +201,11 @@ final public class NullRouteManager {
 												}
 											}
 										}
-										byte[] newBytes = newContents.toString().getBytes(Charset.UTF_8.name()); // .name() only for JDK < 1.6 compatibility
+										byte[] newBytes = newContents.toString().getBytes(Charsets.UTF_8.name()); // .name() only for JDK < 1.6 compatibility
 										// See if file has changed
 										if(!FileUtils.contentEquals(BIRD_NULL_CONFIG, newBytes)) {
-											// Write new file
-											OutputStream out = new FileOutputStream(BIRD_NULL_CONFIG_NEW);
-											try {
+											try (OutputStream out = new FileOutputStream(BIRD_NULL_CONFIG_NEW)) {
 												out.write(newBytes);
-											} finally {
-												out.close();
 											}
 											FileUtils.rename(BIRD_NULL_CONFIG_NEW, BIRD_NULL_CONFIG);
 											// kill -HUP bird if updated
