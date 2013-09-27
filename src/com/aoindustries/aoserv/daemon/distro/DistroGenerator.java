@@ -176,9 +176,9 @@ final public class DistroGenerator extends Thread {
 				try {
 					String line;
 					while ((line=in.readLine())!=null) {
-						String[] fields = StringUtility.splitString(line, ':');
-						String username = fields[0];
-						Integer userID = Integer.valueOf(Integer.parseInt(fields[2]));
+						List<String> fields = StringUtility.splitString(line, ':');
+						String username = fields.get(0);
+						Integer userID = Integer.valueOf(Integer.parseInt(fields.get(2)));
 						if(!realNames.containsKey(userID)) realNames.put(userID, username);
 					}
 				} finally {
@@ -213,9 +213,9 @@ final public class DistroGenerator extends Thread {
 				try {
 					String line;
 					while ((line=in.readLine())!=null) {
-						String[] fields = StringUtility.splitString(line, ':');
-						String groupname = fields[0];
-						Integer groupID = Integer.valueOf(Integer.parseInt(fields[2]));
+						List<String> fields = StringUtility.splitString(line, ':');
+						String groupname = fields.get(0);
+						Integer groupID = Integer.valueOf(Integer.parseInt(fields.get(2)));
 						if(!realGroups.containsKey(groupID)) realGroups.put(groupID, groupname);
 					}
 				} finally {

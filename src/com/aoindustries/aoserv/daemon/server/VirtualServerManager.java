@@ -22,6 +22,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.text.ParseException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -322,29 +323,29 @@ final public class VirtualServerManager {
                             "0pPnT"
                         }
                     );
-                    String[] values = StringUtility.splitString(lsof, '\u0000');
-                    System.out.println("values.length="+values.length);
+                    List<String> values = StringUtility.splitString(lsof, '\u0000');
+                    System.out.println("values.size()="+values.size());
                     if(
-                        values.length<7
-                        || (values.length%5)!=2
-                        || !values[0].equals("p"+pid)
-                        || values[values.length-1].trim().length()!=0
+                        values.size()<7
+                        || (values.size()%5)!=2
+                        || !values.get(0).equals("p"+pid)
+                        || values.get(values.size()-1).trim().length()!=0
                     ) throw new ParseException("Unexpected output from lsof: "+lsof, 0);
                     int vncPort = Integer.MIN_VALUE;
-                    for(int c=1; c<values.length; c+=5) {
+                    for(int c=1; c<values.size(); c+=5) {
                         if(
-                            !values[c].trim().equals("PTCP")
-                            || !values[c+2].startsWith("TST=")
-                            || !values[c+3].startsWith("TQR=")
-                            || !values[c+4].startsWith("TQS=")
+                            !values.get(c).trim().equals("PTCP")
+                            || !values.get(c+2).startsWith("TST=")
+                            || !values.get(c+3).startsWith("TQR=")
+                            || !values.get(c+4).startsWith("TQS=")
                         ) {
                             throw new ParseException("Unexpected output from lsof: "+lsof, 0);
                         }
                         if(
-                            (values[c+1].startsWith("n127.0.0.1:") || values[c+1].startsWith("n*:"))
-                            && values[c+2].equals("TST=LISTEN")
+                            (values.get(c+1).startsWith("n127.0.0.1:") || values.get(c+1).startsWith("n*:"))
+                            && values.get(c+2).equals("TST=LISTEN")
                         ) {
-                            vncPort = Integer.parseInt(values[c+1].substring(values[c+1].indexOf(':')+1));
+                            vncPort = Integer.parseInt(values.get(c+1).substring(values.get(c+1).indexOf(':')+1));
                             break;
                         }
                     }

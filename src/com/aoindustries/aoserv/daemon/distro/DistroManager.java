@@ -523,15 +523,7 @@ final public class DistroManager implements Runnable {
                 if(distroLink!=null) {
                     String fileLink=file.readLink();
                     // Allow multiple destinations separated by |
-                    String[] dests=StringUtility.splitString(distroLink, '|');
-                    boolean found=false;
-                    for(int c=0;c<dests.length;c++) {
-                        if(dests[c].equals(fileLink)) {
-                            found=true;
-                            break;
-                        }
-                    }
-                    if(!found) {
+                    if(!StringUtility.splitString(distroLink, '|').contains(fileLink)) {
 						addResult(
 							results,
 							verboseOut,
