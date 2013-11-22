@@ -83,7 +83,10 @@ final public class MySQLDBUserManager extends BuilderThread {
                         if(version.startsWith(MySQLServer.VERSION_4_0_PREFIX)) insertSQL="insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
                         else if(version.startsWith(MySQLServer.VERSION_4_1_PREFIX)) insertSQL="insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
                         else if(version.startsWith(MySQLServer.VERSION_5_0_PREFIX)) insertSQL="insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-                        else if(version.startsWith(MySQLServer.VERSION_5_1_PREFIX)) insertSQL="insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                        else if(
+							version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
+							|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
+						) insertSQL="insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
                         else throw new SQLException("Unsupported MySQL version: "+version);
                         PreparedStatement pstmt = conn.prepareStatement(insertSQL);
                         try {
@@ -131,13 +134,17 @@ final public class MySQLDBUserManager extends BuilderThread {
                                     if(
                                         version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
                                         || version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
+                                        || version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
                                     ) {
                                         pstmt.setString(16, mdu.canCreateView()?"Y":"N");
                                         pstmt.setString(17, mdu.canShowView()?"Y":"N");
                                         pstmt.setString(18, mdu.canCreateRoutine()?"Y":"N");
                                         pstmt.setString(19, mdu.canAlterRoutine()?"Y":"N");
                                         pstmt.setString(20, mdu.canExecute()?"Y":"N");
-                                        if(version.startsWith(MySQLServer.VERSION_5_1_PREFIX)) {
+                                        if(
+											version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
+											|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
+										) {
                                             pstmt.setString(21, mdu.canEvent()?"Y":"N");
                                             pstmt.setString(22, mdu.canTrigger()?"Y":"N");
                                         }

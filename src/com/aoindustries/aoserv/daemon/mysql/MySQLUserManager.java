@@ -257,7 +257,10 @@ final public class MySQLUserManager extends BuilderThread {
                                     + "    or max_connections!=?\n"
                                     + "    or max_user_connections!=?\n"
                                     + "  )";
-                        } else if(version.startsWith(MySQLServer.VERSION_5_1_PREFIX)) {
+                        } else if(
+							version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
+							|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
+						) {
                             updateSQL="update user set\n"
                                     + "  Select_priv=?,\n"
                                     + "  Insert_priv=?,\n"
@@ -365,13 +368,17 @@ final public class MySQLUserManager extends BuilderThread {
                                     if(
                                         version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
                                         || version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
+                                        || version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
                                     ) {
                                         pstmt.setString(pos++, mu.canCreateView()?"Y":"N");
                                         pstmt.setString(pos++, mu.canShowView()?"Y":"N");
                                         pstmt.setString(pos++, mu.canCreateRoutine()?"Y":"N");
                                         pstmt.setString(pos++, mu.canAlterRoutine()?"Y":"N");
                                         pstmt.setString(pos++, mu.canCreateUser()?"Y":"N");
-                                        if(version.startsWith(MySQLServer.VERSION_5_1_PREFIX)) {
+                                        if(
+											version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
+											|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
+										) {
                                             pstmt.setString(pos++, mu.canEvent()?"Y":"N");
                                             pstmt.setString(pos++, mu.canTrigger()?"Y":"N");
                                         }
@@ -382,6 +389,7 @@ final public class MySQLUserManager extends BuilderThread {
                                     if(
                                         version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
                                         || version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
+                                        || version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
                                     ) pstmt.setInt(pos++, msu.getMaxUserConnections());
                                     // where
                                     pstmt.setString(pos++, host);
@@ -410,13 +418,17 @@ final public class MySQLUserManager extends BuilderThread {
                                     if(
                                         version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
                                         || version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
+                                        || version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
                                     ) {
                                         pstmt.setString(pos++, mu.canCreateView()?"Y":"N");
                                         pstmt.setString(pos++, mu.canShowView()?"Y":"N");
                                         pstmt.setString(pos++, mu.canCreateRoutine()?"Y":"N");
                                         pstmt.setString(pos++, mu.canAlterRoutine()?"Y":"N");
                                         pstmt.setString(pos++, mu.canCreateUser()?"Y":"N");
-                                        if(version.startsWith(MySQLServer.VERSION_5_1_PREFIX)) {
+                                        if(
+											version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
+											|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
+										) {
                                             pstmt.setString(pos++, mu.canEvent()?"Y":"N");
                                             pstmt.setString(pos++, mu.canTrigger()?"Y":"N");
                                         }
@@ -427,6 +439,7 @@ final public class MySQLUserManager extends BuilderThread {
                                     if(
                                         version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
                                         || version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
+                                        || version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
                                     ) pstmt.setInt(pos++, msu.getMaxUserConnections());
                                     int updateCount=pstmt.executeUpdate();
                                     if(updateCount>0) modified = true;
@@ -442,6 +455,7 @@ final public class MySQLUserManager extends BuilderThread {
                         else if(version.startsWith(MySQLServer.VERSION_4_1_PREFIX)) insertSQL="insert into user values(?,?,'"+MySQLUser.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?)";
                         else if(version.startsWith(MySQLServer.VERSION_5_0_PREFIX)) insertSQL="insert into user values(?,?,'"+MySQLUser.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?,?)";
                         else if(version.startsWith(MySQLServer.VERSION_5_1_PREFIX)) insertSQL="insert into user values(?,?,'"+MySQLUser.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?,?)";
+                        else if(version.startsWith(MySQLServer.VERSION_5_6_PREFIX)) insertSQL="insert into user values(?,?,'"+MySQLUser.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'N','','','','',?,?,?,?,'',NULL,'N')";
                         else throw new SQLException("Unsupported MySQL version: "+version);
 
                         pstmt = conn.prepareStatement(insertSQL);
@@ -481,13 +495,17 @@ final public class MySQLUserManager extends BuilderThread {
                                     if(
                                         version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
                                         || version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
+                                        || version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
                                     ) {
                                         pstmt.setString(pos++, mu.canCreateView()?"Y":"N");
                                         pstmt.setString(pos++, mu.canShowView()?"Y":"N");
                                         pstmt.setString(pos++, mu.canCreateRoutine()?"Y":"N");
                                         pstmt.setString(pos++, mu.canAlterRoutine()?"Y":"N");
                                         pstmt.setString(pos++, mu.canCreateUser()?"Y":"N");
-                                        if(version.startsWith(MySQLServer.VERSION_5_1_PREFIX)) {
+                                        if(
+											version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
+											|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
+										) {
                                             pstmt.setString(pos++, mu.canEvent()?"Y":"N");
                                             pstmt.setString(pos++, mu.canTrigger()?"Y":"N");
                                         }
@@ -498,6 +516,7 @@ final public class MySQLUserManager extends BuilderThread {
                                     if(
                                         version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
                                         || version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
+                                        || version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
                                     ) pstmt.setInt(pos++, msu.getMaxUserConnections());
                                     pstmt.executeUpdate();
 

@@ -98,8 +98,19 @@ final public class MySQLDatabaseManager extends BuilderThread {
 							for(String dbName : existing) {
 								if(
 									dbName.equals(MySQLDatabase.MYSQL)
-									|| (version.startsWith(MySQLServer.VERSION_5_0_PREFIX) && dbName.equals(MySQLDatabase.INFORMATION_SCHEMA))
-									|| (version.startsWith(MySQLServer.VERSION_5_1_PREFIX) && dbName.equals(MySQLDatabase.INFORMATION_SCHEMA))
+									|| (
+										version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
+										&& dbName.equals(MySQLDatabase.INFORMATION_SCHEMA)
+									) || (
+										version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
+										&& dbName.equals(MySQLDatabase.INFORMATION_SCHEMA)
+									) || (
+										version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
+										&& (
+											dbName.equals(MySQLDatabase.INFORMATION_SCHEMA)
+											|| dbName.equals(MySQLDatabase.PERFORMANCE_SCHEMA)
+										)
+									)
 								) {
 									LogFactory.getLogger(MySQLDatabaseManager.class).log(Level.WARNING, null, new SQLException("Refusing to drop critical MySQL Database: "+dbName+" on "+mysqlServer));
 								} else {
