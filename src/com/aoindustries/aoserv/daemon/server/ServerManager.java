@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013 by AO Industries, Inc.,
+ * Copyright 2002-2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -90,84 +90,75 @@ final public class ServerManager {
     }
 
     public static String get3wareRaidReport() throws IOException {
-        String[] command = {
+        return AOServDaemon.execAndCapture(
             "/opt/tw_cli/tw_cli",
             "show"
-        };
-        return AOServDaemon.execAndCapture(command);
+		);
     }
 
-    public static String getMdRaidReport() throws IOException {
+    public static String getMdStatReport() throws IOException {
         File procFile = new File("/proc/mdstat");
         String report;
         if(procFile.exists()) {
             StringBuilder SB=new StringBuilder();
-            InputStream in=new BufferedInputStream(new FileInputStream(procFile));
-            try {
+            try (InputStream in = new BufferedInputStream(new FileInputStream(procFile))) {
                 int ch;
                 while((ch=in.read())!=-1) SB.append((char)ch);
-            } finally {
-                in.close();
             }
             report = SB.toString();
         } else report="";
         return report;
     }
 
-    public static String getDrbdReport() throws IOException {
-        String[] command = {
-            "/opt/aoserv-daemon/bin/drbdcstate"
-        };
-        return AOServDaemon.execAndCapture(command);
+    public static String getMdMismatchCntReport() throws IOException {
+        return AOServDaemon.execAndCapture(
+			"/opt/aoserv-daemon/bin/get_md_mismatch_cnt"
+		);
+    }
+
+	public static String getDrbdReport() throws IOException {
+        return AOServDaemon.execAndCapture(
+			"/opt/aoserv-daemon/bin/drbdcstate"
+		);
     }
 
     public static String[] getLvmReport() throws IOException {
         return new String[] {
             AOServDaemon.execAndCapture(
-                new String[] {
-                    "/usr/sbin/vgs",
-                    "--noheadings",
-                    "--separator=\t",
-                    "--units=b",
-                    "-o",
-                    "vg_name,vg_extent_size,vg_extent_count,vg_free_count,pv_count,lv_count"
-                }
+				"/usr/sbin/vgs",
+				"--noheadings",
+				"--separator=\t",
+				"--units=b",
+				"-o",
+				"vg_name,vg_extent_size,vg_extent_count,vg_free_count,pv_count,lv_count"
             ),
             AOServDaemon.execAndCapture(
-                new String[] {
-                    "/usr/sbin/pvs",
-                    "--noheadings",
-                    "--separator=\t",
-                    "--units=b",
-                    "-o",
-                    "pv_name,pv_pe_count,pv_pe_alloc_count,pv_size,vg_name"
-                }
+				"/usr/sbin/pvs",
+				"--noheadings",
+				"--separator=\t",
+				"--units=b",
+				"-o",
+				"pv_name,pv_pe_count,pv_pe_alloc_count,pv_size,vg_name"
             ),
             AOServDaemon.execAndCapture(
-                new String[] {
-                    "/usr/sbin/lvs",
-                    "--noheadings",
-                    "--separator=\t",
-                    "-o",
-                    "vg_name,lv_name,seg_count,segtype,stripes,seg_start_pe,seg_pe_ranges"
-                }
+				"/usr/sbin/lvs",
+				"--noheadings",
+				"--separator=\t",
+				"-o",
+				"vg_name,lv_name,seg_count,segtype,stripes,seg_start_pe,seg_pe_ranges"
             )
         };
     }
 
     public static String getHddTempReport() throws IOException {
         return AOServDaemon.execAndCapture(
-            new String[] {
-                "/opt/aoserv-daemon/bin/hddtemp"
-            }
+			"/opt/aoserv-daemon/bin/hddtemp"
         );
     }
 
     public static String getHddModelReport() throws IOException {
         return AOServDaemon.execAndCapture(
-            new String[] {
-                "/opt/aoserv-daemon/bin/hddmodel"
-            }
+			"/opt/aoserv-daemon/bin/hddmodel"
         );
     }
 
@@ -183,17 +174,13 @@ final public class ServerManager {
                 || osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
             ) {
                 return AOServDaemon.execAndCapture(
-                    new String[] {
-                        "/opt/aoserv-daemon/bin/filesystemscsv"
-                    }
+					"/opt/aoserv-daemon/bin/filesystemscsv"
                 );
             } else if(
                 osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
             ) {
                 return AOServDaemon.execAndCapture(
-                    new String[] {
-                        "/usr/aoserv/daemon/bin/filesystemscsv"
-                    }
+					"/usr/aoserv/daemon/bin/filesystemscsv"
                 );
             } else {
                 throw new IOException("Unexpected operating system version: "+osv);

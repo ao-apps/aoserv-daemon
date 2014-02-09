@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013 by AO Industries, Inc.,
+ * Copyright 2000-2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -298,11 +298,20 @@ final public class AOServDaemonServerThread extends Thread {
                                 out.writeUTF(report);
                             }
                             break;
-                        case AOServDaemonProtocol.GET_MD_RAID_REPORT :
+                        case AOServDaemonProtocol.GET_MD_STAT_REPORT :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_MD_RAID_REPORT, Thread="+toString());
                                 if(daemonKey==null) throw new IOException("Only the master server may GET_MD_RAID_REPORT");
-                                String report = ServerManager.getMdRaidReport();
+                                String report = ServerManager.getMdStatReport();
+                                out.write(AOServDaemonProtocol.DONE);
+                                out.writeUTF(report);
+                            }
+                            break;
+                        case AOServDaemonProtocol.GET_MD_MISMATCH_CNT_REPORT :
+                            {
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_MD_STAT_REPORT, Thread="+toString());
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_MD_STAT_REPORT");
+                                String report = ServerManager.getMdMismatchCntReport();
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(report);
                             }
