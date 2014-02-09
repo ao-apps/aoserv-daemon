@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2013 by AO Industries, Inc.,
+ * Copyright 2012-2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -87,12 +87,10 @@ final public class VirtualServerManager {
         XmList(String serverName) throws ParseException, IOException {
             XmListNode rootNode = XmListNode.parseResult(
                 AOServDaemon.execAndCapture(
-                    new String[] {
-                        "/usr/sbin/xm",
-                        "list",
-                        "-l",
-                        serverName
-                    }
+					"/usr/sbin/xm",
+					"list",
+					"-l",
+					serverName
                 )
             );
             // Should have one child
@@ -310,18 +308,16 @@ final public class VirtualServerManager {
 
                     // Find its port from lsof given its PID
                     String lsof = AOServDaemon.execAndCapture(
-                        new String[] {
-                            "/usr/sbin/lsof",
-                            "-n", // Numeric IP addresses
-                            "-P", // Numeric port numbers
-                            "-a",
-                            "-p",
-                            Integer.toString(pid),
-                            "-i",
-                            "TCP",
-                            "-F",
-                            "0pPnT"
-                        }
+						"/usr/sbin/lsof",
+						"-n", // Numeric IP addresses
+						"-P", // Numeric port numbers
+						"-a",
+						"-p",
+						Integer.toString(pid),
+						"-i",
+						"TCP",
+						"-F",
+						"0pPnT"
                     );
                     List<String> values = StringUtility.splitString(lsof, '\u0000');
                     System.out.println("values.size()="+values.size());

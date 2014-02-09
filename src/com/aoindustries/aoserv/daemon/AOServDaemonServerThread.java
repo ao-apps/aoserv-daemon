@@ -307,11 +307,11 @@ final public class AOServDaemonServerThread extends Thread {
                                 out.writeUTF(report);
                             }
                             break;
-                        case AOServDaemonProtocol.GET_MD_MISMATCH_CNT_REPORT :
+                        case AOServDaemonProtocol.GET_MD_MISMATCH_REPORT :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_MD_STAT_REPORT, Thread="+toString());
                                 if(daemonKey==null) throw new IOException("Only the master server may GET_MD_STAT_REPORT");
-                                String report = ServerManager.getMdMismatchCntReport();
+                                String report = ServerManager.getMdMismatchReport();
                                 out.write(AOServDaemonProtocol.DONE);
                                 out.writeUTF(report);
                             }

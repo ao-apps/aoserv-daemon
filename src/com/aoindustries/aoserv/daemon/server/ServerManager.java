@@ -110,9 +110,9 @@ final public class ServerManager {
         return report;
     }
 
-    public static String getMdMismatchCntReport() throws IOException {
+    public static String getMdMismatchReport() throws IOException {
         return AOServDaemon.execAndCapture(
-			"/opt/aoserv-daemon/bin/get_md_mismatch_cnt"
+			"/opt/aoserv-daemon/bin/get_md_mismatch"
 		);
     }
 
