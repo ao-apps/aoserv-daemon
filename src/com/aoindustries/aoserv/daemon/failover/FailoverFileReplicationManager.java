@@ -1831,7 +1831,7 @@ final public class FailoverFileReplicationManager {
 
     /**
      * Determines if a specific file may be deleted on clean-up.
-     * Don't delete anything in /proc/*, /sys/*, /dev/pts/*, or MySQL replication-related files
+     * Don't delete anything in /proc/*, /sys/*, /selinux/*, /dev/pts/*, or MySQL replication-related files
      */
     private static boolean deleteOnCleanup(String fromServer, int retention, String relativePath, List<String> replicatedMySQLServers, List<String> replicatedMySQLMinorVersions) {
         Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
@@ -1841,6 +1841,8 @@ final public class FailoverFileReplicationManager {
             || relativePath.startsWith("/proc/")
             || relativePath.equals("/sys")
             || relativePath.startsWith("/sys/")
+            || relativePath.equals("/selinux")
+            || relativePath.startsWith("/selinux/")
             || relativePath.equals("/dev/pts")
             || relativePath.startsWith("/dev/pts/")
         ) {
@@ -1863,6 +1865,18 @@ final public class FailoverFileReplicationManager {
                             || relativePath.startsWith("/var/lib/mysql/"+name+"-fast/")
                             ||     relativePath.equals("/var/lib/mysql/"+name+"-slow")
                             || relativePath.startsWith("/var/lib/mysql/"+name+"-slow/")
+                        )
+					) || (
+                        relativePath.startsWith("/var/lib/mysql-fast/")
+                        && (
+                                   relativePath.equals("/var/lib/mysql-fast/"+name)
+                            || relativePath.startsWith("/var/lib/mysql-fast/"+name+"/")
+                        )
+					) || (
+                        relativePath.startsWith("/var/lib/mysql-slow/")
+                        && (
+                                   relativePath.equals("/var/lib/mysql-slow/"+name)
+                            || relativePath.startsWith("/var/lib/mysql-slow/"+name+"/")
                         )
                     ) || relativePath.equals("/var/lock/subsys/mysql-"+name)
                 ) {
