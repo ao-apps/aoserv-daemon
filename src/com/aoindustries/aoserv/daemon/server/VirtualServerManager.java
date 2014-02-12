@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2014 by AO Industries, Inc.,
+ * Copyright 2012-2013, 2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -594,4 +594,21 @@ final public class VirtualServerManager {
             throw ioErr;
         }
     }
+
+	public static long verifyVirtualDisk(String virtualServer, String device) throws IOException {
+		return Long.parseLong(
+			AOServDaemon.execAndCapture(
+				"/opt/aoserv-daemon/bin/drbd-verify",
+				virtualServer + "-" + device
+			)
+		);
+	}
+
+	public static void updateVirtualDiskLastVerified(String virtualServer, String device, long lastVerified) throws IOException {
+		AOServDaemon.exec(
+			"/opt/aoserv-daemon/bin/set-drbd-last-verified",
+			virtualServer + "-" + device,
+			Long.toString(lastVerified)
+		);
+	}
 }
