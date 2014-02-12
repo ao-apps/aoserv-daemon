@@ -7,6 +7,7 @@ package com.aoindustries.aoserv.daemon.server;
 
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.util.AoArrays;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -28,6 +29,7 @@ final public class ServerManager {
 
     private static final File procLoadavg = new File("/proc/loadavg");
     private static final File procMeminfo = new File("/proc/meminfo");
+	private static final File xenAutoStartDirectory = new File("/etc/xen/auto");
 
     /** One lock per process name */
     private static final Map<String,Object> processLocks=new HashMap<>();
@@ -190,25 +192,30 @@ final public class ServerManager {
 
     public static String getLoadAvgReport() throws IOException, SQLException {
         StringBuilder report = new StringBuilder(40);
-        InputStream in=new BufferedInputStream(new FileInputStream(procLoadavg));
-        try {
+        try (InputStream in = new BufferedInputStream(new FileInputStream(procLoadavg))) {
             int ch;
             while((ch=in.read())!=-1) report.append((char)ch);
-        } finally {
-            in.close();
         }
         return report.toString();
     }
 
     public static String getMemInfoReport() throws IOException, SQLException {
         StringBuilder report = new StringBuilder(40);
-        InputStream in=new BufferedInputStream(new FileInputStream(procMeminfo));
-        try {
+        try (InputStream in = new BufferedInputStream(new FileInputStream(procMeminfo))) {
             int ch;
             while((ch=in.read())!=-1) report.append((char)ch);
-        } finally {
-            in.close();
         }
         return report.toString();
     }
+
+	/**
+	 * Gets the listing of the /etc/xen/auto directory.
+	 */
+	public static String[] getXenAutoStartLinks() {
+		if(xenAutoStartDirectory.isDirectory()) {
+			String[] list = xenAutoStartDirectory.list();
+			if(list != null) return list;
+		}
+		return AoArrays.EMPTY_STRING_ARRAY;
+	}
 }

@@ -1,9 +1,11 @@
 /*
- * Copyright 2000-2013 by AO Industries, Inc.,
+ * Copyright 2000-2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.report;
+
+import com.aoindustries.util.AoArrays;
 
 /**
  * Encapsulates the output of the /bin/df command.
@@ -19,7 +21,7 @@ final public class DF {
     public final long[] frees;
 
     public DF() {
-        device_majors=device_minors=new int[0];
-        totals=useds=frees=new long[0];
+        device_majors=device_minors = AoArrays.EMPTY_INT_ARRAY;
+        totals=useds=frees = AoArrays.EMPTY_LONG_ARRAY;
     }
 }

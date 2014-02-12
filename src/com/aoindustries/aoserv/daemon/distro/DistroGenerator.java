@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013 by AO Industries, Inc.,
+ * Copyright 2001-2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -16,6 +16,7 @@ import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.md5.MD5;
 import com.aoindustries.md5.MD5Utils;
 import com.aoindustries.sql.SQLUtility;
+import com.aoindustries.util.AoArrays;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.StringUtility;
 import java.io.BufferedInputStream;
@@ -355,7 +356,7 @@ final public class DistroGenerator extends Thread {
 						// Push on stacks for next level
 						currentDirectories.push(filename);
 						String[] list=unixFile.list();
-						if(list==null) list=new String[0];
+						if(list==null) list = AoArrays.EMPTY_STRING_ARRAY;
 						Arrays.sort(list);
 						currentLists.push(list);
 						currentIndexes.push(Integer.valueOf(0));

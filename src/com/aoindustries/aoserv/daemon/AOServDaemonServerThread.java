@@ -600,6 +600,16 @@ final public class AOServDaemonServerThread extends Thread {
                                 out.writeUTF(password);
                             }
                             break;
+                        case AOServDaemonProtocol.GET_XEN_AUTO_START_LINKS :
+                            {
+                                if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_XEN_AUTO_START_LINKS, Thread="+toString());
+                                if(daemonKey==null) throw new IOException("Only the master server may GET_XEN_AUTO_START_LINKS");
+                                String[] links = ServerManager.getXenAutoStartLinks();
+                                out.write(AOServDaemonProtocol.DONE);
+								out.writeCompressedInt(links.length);
+								for(String link : links) out.writeUTF(link);
+                            }
+                            break;
                         case AOServDaemonProtocol.GRANT_DAEMON_ACCESS :
                             {
                                 if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GRANT_DAEMON_ACCESS, Thread="+toString());

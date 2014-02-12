@@ -1,9 +1,11 @@
 /*
- * Copyright 2000-2013 by AO Industries, Inc.,
+ * Copyright 2000-2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.report;
+
+import com.aoindustries.util.AoArrays;
 
 /**
  * Encapsulates the output of the /bin/netstat -ln command.
@@ -16,7 +18,7 @@ final public class NetStatLN {
     final public int[] listens;
 
     public NetStatLN() {
-        deviceIDs=new String[0];
-        listens=new int[0];
+        deviceIDs = AoArrays.EMPTY_STRING_ARRAY;
+        listens = AoArrays.EMPTY_INT_ARRAY;
     }
 }
