@@ -600,7 +600,7 @@ final public class VirtualServerManager {
 			AOServDaemon.execAndCapture(
 				"/opt/aoserv-daemon/bin/drbd-verify",
 				virtualServer + "-" + device
-			)
+			).trim()
 		);
 	}
 
