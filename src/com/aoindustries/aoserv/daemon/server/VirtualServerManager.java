@@ -595,20 +595,29 @@ final public class VirtualServerManager {
         }
     }
 
+	/**
+	 * No concurrent update of state file.
+	 */
+	private static final Object drbdVerifyStateLock = new Object();
+
 	public static long verifyVirtualDisk(String virtualServer, String device) throws IOException {
-		return Long.parseLong(
-			AOServDaemon.execAndCapture(
-				"/opt/aoserv-daemon/bin/drbd-verify",
-				virtualServer + "-" + device
-			).trim()
-		);
+		synchronized(drbdVerifyStateLock) {
+			return Long.parseLong(
+				AOServDaemon.execAndCapture(
+					"/opt/aoserv-daemon/bin/drbd-verify",
+					virtualServer + "-" + device
+				).trim()
+			);
+		}
 	}
 
 	public static void updateVirtualDiskLastVerified(String virtualServer, String device, long lastVerified) throws IOException {
-		AOServDaemon.exec(
-			"/opt/aoserv-daemon/bin/set-drbd-last-verified",
-			virtualServer + "-" + device,
-			Long.toString(lastVerified)
-		);
+		synchronized(drbdVerifyStateLock) {
+			AOServDaemon.exec(
+				"/opt/aoserv-daemon/bin/set-drbd-last-verified",
+				virtualServer + "-" + device,
+				Long.toString(lastVerified)
+			);
+		}
 	}
 }
