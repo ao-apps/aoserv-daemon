@@ -118,6 +118,7 @@ final public class SshdManager extends BuilderThread {
                                 + "AcceptEnv LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES\n"
                                 + "AcceptEnv LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT\n"
                                 + "AcceptEnv LC_IDENTIFICATION LC_ALL\n"
+								+ "MaxStartups 60:30:100\n"
                                 + "X11Forwarding yes\n"
                                 + "UsePrivilegeSeparation yes\n"
                                 + "Subsystem sftp /usr/libexec/openssh/sftp-server\n"
