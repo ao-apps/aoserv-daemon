@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -27,6 +27,7 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
+import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.util.BufferManager;
@@ -252,13 +253,13 @@ public class LinuxAccountManager extends BuilderThread {
              * Move the new files into place.
              */
             if(newPasswd.length()>0) {
-                passwd.renameTo(backupPasswd);
-                newPasswd.renameTo(passwd);
+                FileUtils.rename(passwd, backupPasswd);
+                FileUtils.rename(newPasswd, passwd);
             } else throw new IOException(newPasswd.getPath()+" is zero or unknown length");
 
             if(newGroup.length()>0) {
-                group.renameTo(backupGroup);
-                newGroup.renameTo(group);
+                FileUtils.rename(group, backupGroup);
+                FileUtils.rename(newGroup, group);
             } else throw new IOException(newGroup.getPath()+" is zero or unknown length");
 
             if(newGShadow.length()>0) {
@@ -269,8 +270,8 @@ public class LinuxAccountManager extends BuilderThread {
                 } else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                     newGShadowUF.setMode(0400);
                 } else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
-                gshadow.renameTo(backupGShadow);
-                newGShadow.renameTo(gshadow);
+                FileUtils.rename(gshadow, backupGShadow);
+                FileUtils.rename(newGShadow, gshadow);
             } else throw new IOException(newGShadow.getPath()+" is zero or unknown length");
 
             if(
@@ -730,16 +731,17 @@ public class LinuxAccountManager extends BuilderThread {
         File file=new File(path);
         synchronized(rebuildLock) {
             if(content==null) {
-                if(file.exists() && !file.delete()) throw new IOException("Unable to delete file: "+file.getPath());
+                if(file.exists()) FileUtils.delete(file);
             } else {
-                //int len=content.length();
-                PrintWriter out=new PrintWriter(
-                    new BufferedOutputStream(
-                        new UnixFile(file).getSecureOutputStream(uid, gid, 0600, true)
-                    )
-                );
-                out.print(content);
-                out.close();
+				try (
+					PrintWriter out = new PrintWriter(
+						new BufferedOutputStream(
+							new UnixFile(file).getSecureOutputStream(uid, gid, 0600, true)
+						)
+					)
+				) {
+					out.print(content);
+				}
             }
         }
     }
@@ -749,7 +751,7 @@ public class LinuxAccountManager extends BuilderThread {
         File cronFile=new File(cronDirectory, username);
         synchronized(rebuildLock) {
             if(cronTable.length()==0) {
-                if(cronFile.exists()) cronFile.delete();
+                if(cronFile.exists()) FileUtils.delete(cronFile);
             } else {
                 PrintWriter out=new PrintWriter(
                     new BufferedOutputStream(

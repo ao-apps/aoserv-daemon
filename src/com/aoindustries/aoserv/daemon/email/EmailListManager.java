@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2012 by AO Industries, Inc.,
+ * Copyright 2000-2012, 2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -8,6 +8,7 @@ package com.aoindustries.aoserv.daemon.email;
 import com.aoindustries.aoserv.client.MajordomoServer;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.BufferedInputStream;
@@ -59,7 +60,7 @@ final public class EmailListManager {
         ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
         File file = new File(path);
-        if(file.exists() && !file.delete()) throw new IOException("Unable to delete file: " + path);
+        if(file.exists()) FileUtils.delete(file);
     }
 
     /**
