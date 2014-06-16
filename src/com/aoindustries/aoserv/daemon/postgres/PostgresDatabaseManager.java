@@ -277,7 +277,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 
     private static final Schedule schedule = new Schedule() {
         /**
-         * Runs once a month for automatic vacuuming and reindexing of all user tables, at 1:05 every Sunday.
+         * Runs for automatic vacuuming and reindexing of all user tables, at 1:05 every Sunday.
          * REINDEX is only called on the first Sunday of the month.
          */
 		@Override
@@ -326,7 +326,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
                 String postgresServerVersion=postgresServer.getPostgresVersion().getTechnologyVersion(aoservConn).getVersion();
                 boolean postgresServerHasSchemas=
                     !postgresServerVersion.startsWith(PostgresVersion.VERSION_7_1+'.')
-                    || !postgresServerVersion.startsWith(PostgresVersion.VERSION_7_2+'.')
+                    && !postgresServerVersion.startsWith(PostgresVersion.VERSION_7_2+'.')
                 ;
                 boolean postgresServerHasVacuumFull=
                     !postgresServerVersion.startsWith(PostgresVersion.VERSION_7_1+'.')
