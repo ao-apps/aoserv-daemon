@@ -233,9 +233,9 @@ final public class DNSManager extends BuilderThread {
                                 // safe-mail.net didn't resolve with this source port: + "\tquery-source-v6 port 53;\n"
                         );
                     }
-                    out.print("\tallow-transfer { 216.218.130.2; 216.218.131.2; 216.218.132.2; };\n"
+                    out.print("\tallow-transfer { 216.218.130.2; 216.218.131.2; 216.218.132.2; 216.66.1.2; 216.66.80.18; 216.218.133.2; };\n"
                             + "\tnotify explicit;\n"
-                            + "\talso-notify { 216.218.130.2; 216.218.131.2; 216.218.132.2; };\n"
+                            + "\talso-notify { 216.218.130.2; 216.218.131.2; 216.218.132.2; 216.66.1.2; 216.66.80.18; 216.218.133.2; };\n"
                             + "\tallow-query { " + ACL + " };\n"
                             + "\tallow-recursion { " + ACL + " };\n");
                     Map<Integer,Set<InetAddress>> alreadyAddedIPs = new HashMap<>();
