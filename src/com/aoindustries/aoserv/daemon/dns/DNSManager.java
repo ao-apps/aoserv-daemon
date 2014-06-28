@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -71,7 +71,7 @@ final public class DNSManager extends BuilderThread {
         // Amsterdam
         //+ " 64.62.145.40/29;"  // Firewalls
         // Mobile
-        //+ " 70.91.161.42;"     // 7262 Bull Pen Cir
+        // + " 50.242.159.138;"     // 7262 Bull Pen Cir
         // Spain
         //+ " 81.19.103.96/28;"  // Firewalls
         //+ " 81.19.103.64/27;"  // Hosts
@@ -233,9 +233,9 @@ final public class DNSManager extends BuilderThread {
                                 // safe-mail.net didn't resolve with this source port: + "\tquery-source-v6 port 53;\n"
                         );
                     }
-                    out.print("\tallow-transfer { 216.218.130.2; 216.218.131.2; 216.218.132.2; 216.66.1.2; 216.66.80.18; 216.218.133.2; };\n"
-                            + "\tnotify explicit;\n"
-                            + "\talso-notify { 216.218.130.2; 216.218.131.2; 216.218.132.2; 216.66.1.2; 216.66.80.18; 216.218.133.2; };\n"
+                    out.print("\tallow-transfer { none; };\n"
+                            + "\tnotify no;\n"
+                            //+ "\talso-notify { none; };\n"
                             + "\tallow-query { " + ACL + " };\n"
                             + "\tallow-recursion { " + ACL + " };\n");
                     Map<Integer,Set<InetAddress>> alreadyAddedIPs = new HashMap<>();
@@ -287,8 +287,14 @@ final public class DNSManager extends BuilderThread {
                                     + "\ttype master;\n"
                                     + "\tfile \"").print(file).print("\";\n"
                                     + "\tallow-query { any; };\n"
-                                    + "\tallow-update { none; };\n"
-                                    + "};\n");
+                                    + "\tallow-update { none; };\n");
+							if(zone.isArpa()) {
+								// Allow notify HE slaves and allow transfer
+								out.print("\tallow-transfer { 216.218.133.2; };\n"
+										+ "\tnotify explicit;\n"
+										+ "\talso-notify { 216.218.130.2; 216.218.131.2; 216.218.132.2; 216.66.1.2; 216.66.80.18; };\n");
+							}
+							out.print("};\n");
                         }
                     }
                     if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
