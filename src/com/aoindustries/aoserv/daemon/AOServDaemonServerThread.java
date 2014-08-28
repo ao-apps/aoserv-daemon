@@ -157,6 +157,7 @@ final public class AOServDaemonServerThread extends Thread {
 			int taskCode;
 		Loop:
 			while ((taskCode = in.readCompressedInt()) != AOServDaemonProtocol.QUIT) {
+				boolean logIOException = true;
 				try {
 					switch (taskCode) {
 						case AOServDaemonProtocol.COMPARE_LINUX_ACCOUNT_PASSWORD :
@@ -390,7 +391,10 @@ final public class AOServDaemonServerThread extends Thread {
 								String netProtocol = in.readUTF();
 								String appProtocol = in.readUTF();
 								String monitoringParameters = in.readUTF();
-								String result = PortMonitor.getPortMonitor(ipAddress, port, netProtocol, appProtocol, NetBind.decodeParameters(monitoringParameters)).checkPort();
+								PortMonitor portMonitor = PortMonitor.getPortMonitor(ipAddress, port, netProtocol, appProtocol, NetBind.decodeParameters(monitoringParameters));
+								logIOException = false;
+								String result = portMonitor.checkPort();
+								logIOException = true;
 								out.write(AOServDaemonProtocol.DONE);
 								out.writeUTF(result);
 							}
@@ -1090,7 +1094,8 @@ final public class AOServDaemonServerThread extends Thread {
 				} catch (IOException err) {
 					String message=err.getMessage();
 					if(
-						!"Connection reset by peer".equals(message)
+						logIOException
+						&& !"Connection reset by peer".equals(message)
 					) {
 						LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.SEVERE, null, err);
 					}
