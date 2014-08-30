@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -126,7 +126,7 @@ final public class PostgresUserManager extends BuilderThread {
                                 try {
                                     if(DEBUG) debug("Dropping user: " + sqlString);
                                     stmt.executeUpdate(sqlString);
-                                    conn.commit();
+                                    //conn.commit();
                                 } catch(SQLException err) {
                                     throw new WrappedSQLException(err, sqlString);
                                 }
@@ -182,7 +182,7 @@ final public class PostgresUserManager extends BuilderThread {
                                 try {
                                     if(DEBUG) debug("Adding user: " + sqlString);
                                     stmt.executeUpdate(sqlString);
-                                    conn.commit();
+                                    //conn.commit();
                                 } catch(SQLException err) {
                                     throw new WrappedSQLException(err, sqlString);
                                 }
