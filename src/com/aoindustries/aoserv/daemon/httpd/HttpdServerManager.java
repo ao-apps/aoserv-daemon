@@ -254,8 +254,12 @@ public class HttpdServerManager {
                         + "    # Use CGI-based PHP when not using mod_php\n"
                         + "    <IfModule !sapi_apache2.c>\n"
                         + "        <IfModule !mod_php5.c>\n"
-                        + "            Action php-script /cgi-bin/php\n"
-                        + "            AddHandler php-script .php\n"
+						// Avoid *.php.txt going to PHP: http://php.net/manual/en/install.unix.apache2.php
+						+ "            <FilesMatch \\.php$>\n"
+						+ "                SetHandler application/x-httpd-php\n"
+						+ "            </FilesMatch>\n"
+                        //+ "            Action php-script /cgi-bin/php\n"
+                        //+ "            AddHandler php-script .php\n"
                         + "        </IfModule>\n"
                         + "    </IfModule>\n");
             }
