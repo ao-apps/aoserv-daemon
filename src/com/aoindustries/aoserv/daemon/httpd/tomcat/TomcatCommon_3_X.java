@@ -1,12 +1,12 @@
 /*
- * Copyright 2008-2013 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoindustries.aoserv.client.HttpdTomcatDataSource;
-import com.aoindustries.aoserv.daemon.util.FileUtils;
+import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.io.ChainWriter;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -41,7 +41,7 @@ public abstract class TomcatCommon_3_X extends TomcatCommon {
      * Creates the test-tomcat.xml file in the provided conf directory.
      */
     public void createTestTomcatXml(String confDirectory, int uid, int gid, int mode) throws IOException {
-        FileUtils.copyResource(TomcatCommon_3_X.class, "test-tomcat.xml", confDirectory+"/test-tomcat.xml", uid, gid, 0660);
+        DaemonFileUtils.copyResource(TomcatCommon_3_X.class, "test-tomcat.xml", confDirectory+"/test-tomcat.xml", uid, gid, 0660);
     }
 
     public abstract void createWebDtd(String confDirectory, int uid, int gid, int mode) throws IOException;
@@ -49,11 +49,11 @@ public abstract class TomcatCommon_3_X extends TomcatCommon {
     public abstract void createWebXml(String confDirectory, int uid, int gid, int mode) throws IOException;
 
     public void copyCocoonProperties1(OutputStream out) throws IOException {
-        FileUtils.copyResource(TomcatCommon_3_X.class, "cocoon.properties.1", out);
+        DaemonFileUtils.copyResource(TomcatCommon_3_X.class, "cocoon.properties.1", out);
     }
 
     public void copyCocoonProperties2(OutputStream out) throws IOException {
-        FileUtils.copyResource(TomcatCommon_3_X.class, "cocoon.properties.2", out);
+        DaemonFileUtils.copyResource(TomcatCommon_3_X.class, "cocoon.properties.2", out);
     }
     
     /**

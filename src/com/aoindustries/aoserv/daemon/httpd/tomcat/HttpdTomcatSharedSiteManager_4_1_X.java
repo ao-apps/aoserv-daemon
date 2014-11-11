@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -7,7 +7,7 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoindustries.aoserv.client.HttpdTomcatContext;
 import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
-import com.aoindustries.aoserv.daemon.util.FileUtils;
+import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.BufferedOutputStream;
@@ -40,28 +40,29 @@ class HttpdTomcatSharedSiteManager_4_1_X extends HttpdTomcatSharedSiteManager<To
         /*
          * Create the skeleton of the site, the directories and links.
          */
-        FileUtils.mkdir(siteDir+"/bin", 0770, uid, gid);
-        FileUtils.mkdir(siteDir+"/conf", 0775, uid, gid);
-        FileUtils.mkdir(siteDir+"/daemon", 0770, uid, gid);
-        FileUtils.ln("var/log", siteDir+"/logs", uid, gid);
-        FileUtils.mkdir(siteDir+"/var", 0770, uid, gid);
-        FileUtils.mkdir(siteDir+"/var/log", 0770, uid, gid);
-        FileUtils.mkdir(siteDir+"/webapps", 0775, uid, gid);
-        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, uid, gid);
-        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, uid, gid);
-        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
-        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);	
+        DaemonFileUtils.mkdir(siteDir+"/bin", 0770, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/conf", 0775, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/daemon", 0770, uid, gid);
+        DaemonFileUtils.ln("var/log", siteDir+"/logs", uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/var", 0770, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/var/log", 0770, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/webapps", 0775, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);	
 
         /*
          * Write the ROOT/WEB-INF/web.xml file.
          */
         String webXML=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/web.xml";
-        ChainWriter out=new ChainWriter(
-            new BufferedOutputStream(
-                new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false)
-            )
-        );
-        try {
+        try (
+			ChainWriter out = new ChainWriter(
+				new BufferedOutputStream(
+					new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false)
+				)
+			)
+		) {
             out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
                     + "\n"
                     + "<!DOCTYPE web-app\n"
@@ -74,8 +75,6 @@ class HttpdTomcatSharedSiteManager_4_1_X extends HttpdTomcatSharedSiteManager<To
                     + "    Welcome to Tomcat\n"
                     + "  </description>\n"
                     + "</web-app>\n");
-        } finally {
-            out.close();
         }
     }
 

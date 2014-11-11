@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -8,7 +8,7 @@ package com.aoindustries.aoserv.daemon.httpd;
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
 import com.aoindustries.aoserv.client.HttpdStaticSite;
-import com.aoindustries.aoserv.daemon.util.FileUtils;
+import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.IOException;
@@ -58,10 +58,10 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 		final boolean isNew = tempStat.getUid() == UnixFile.ROOT_UID;
 
 		// conf/
-		if(isNew || isAuto) FileUtils.mkdir(new UnixFile(siteDirectory, "conf", false), 0775, uid, gid);
+		if(isNew || isAuto) DaemonFileUtils.mkdir(new UnixFile(siteDirectory, "conf", false), 0775, uid, gid);
 		// htdocs/
 		UnixFile htdocsDirectory = new UnixFile(siteDirectory, "htdocs", false);
-		if(isNew || isAuto) FileUtils.mkdir(htdocsDirectory, 0775, uid, gid);
+		if(isNew || isAuto) DaemonFileUtils.mkdir(htdocsDirectory, 0775, uid, gid);
 		// htdocs/index.html
 		if(isNew) createTestIndex(new UnixFile(htdocsDirectory, "index.html", false));
 

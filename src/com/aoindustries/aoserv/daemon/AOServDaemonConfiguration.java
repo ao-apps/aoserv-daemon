@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -159,6 +159,7 @@ final public class AOServDaemonConfiguration {
 		private final CountDirection inCountDirection;
 		private final NetworkDirection outNetworkDirection;
 		private final CountDirection outCountDirection;
+		private final Long nullRouteFifoErrorRate;
 		private final Long nullRoutePacketRate;
 		private final Long nullRouteBitRate;
 
@@ -170,6 +171,7 @@ final public class AOServDaemonConfiguration {
 			CountDirection inCountDirection,
 			NetworkDirection outNetworkDirection,
 			CountDirection outCountDirection,
+			Long nullRouteFifoErrorRate,
 			Long nullRoutePacketRate,
 			Long nullRouteBitRate
 		) {
@@ -180,6 +182,7 @@ final public class AOServDaemonConfiguration {
 			this.inCountDirection = inCountDirection;
 			this.outNetworkDirection = outNetworkDirection;
 			this.outCountDirection = outCountDirection;
+			this.nullRouteFifoErrorRate = nullRouteFifoErrorRate;
 			this.nullRoutePacketRate = nullRoutePacketRate;
 			this.nullRouteBitRate = nullRouteBitRate;
 		}
@@ -212,6 +215,10 @@ final public class AOServDaemonConfiguration {
 			return outCountDirection;
 		}
 		
+		public Long getNullRouteFifoErrorRate() {
+			return nullRouteFifoErrorRate;
+		}
+
 		public Long getNullRoutePacketRate() {
 			return nullRoutePacketRate;
 		}
@@ -228,6 +235,7 @@ final public class AOServDaemonConfiguration {
 		List<String> networkNames = StringUtility.splitStringCommaSpace(getProperty("monitor.NetworkMonitor.networkNames", true));
 		Map<String,NetworkMonitorConfiguration> networkMonitors = new LinkedHashMap<>(networkNames.size()*4/3+1);
 		for(String name : networkNames) {
+			String nullRouteFifoErrorRate = getProperty("monitor.NetworkMonitor.network."+name+".nullRoute.fifoErrorRate");
 			String nullRoutePacketRate = getProperty("monitor.NetworkMonitor.network."+name+".nullRoute.packetRate");
 			String nullRouteBitRate = getProperty("monitor.NetworkMonitor.network."+name+".nullRoute.bitRate");
 			if(
@@ -241,6 +249,7 @@ final public class AOServDaemonConfiguration {
 						NetworkMonitorConfiguration.CountDirection.valueOf(getProperty("monitor.NetworkMonitor.network."+name+".in.countDirection", true)),
 						NetworkMonitorConfiguration.NetworkDirection.valueOf(getProperty("monitor.NetworkMonitor.network."+name+".out.networkDirection", true)),
 						NetworkMonitorConfiguration.CountDirection.valueOf(getProperty("monitor.NetworkMonitor.network."+name+".out.countDirection", true)),
+						nullRouteFifoErrorRate==null || nullRouteFifoErrorRate.length()==0 ? null : Long.valueOf(nullRouteFifoErrorRate),
 						nullRoutePacketRate==null || nullRoutePacketRate.length()==0 ? null : Long.valueOf(nullRoutePacketRate),
 						nullRouteBitRate==null || nullRouteBitRate.length()==0 ? null : Long.valueOf(nullRouteBitRate)
 					)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -26,7 +26,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
-import com.aoindustries.aoserv.daemon.util.FileUtils;
+import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -92,22 +92,22 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
             confUF.mkdir().chown(lsaUID, lsgGID).setMode(0770);
             new UnixFile(confUF, "Catalina", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
             daemonUF.mkdir().chown(lsaUID, lsgGID).setMode(0770);
-            FileUtils.ln("var/log", wwwGroupDir+"/logs", lsaUID, lsgGID);
-            FileUtils.mkdir(wwwGroupDir+"/temp", 0770, lsaUID, lsgGID);
+            DaemonFileUtils.ln("var/log", wwwGroupDir+"/logs", lsaUID, lsgGID);
+            DaemonFileUtils.mkdir(wwwGroupDir+"/temp", 0770, lsaUID, lsgGID);
             UnixFile varUF = new UnixFile(sharedTomcatDirectory, "var", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
             new UnixFile(varUF, "log", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
             new UnixFile(varUF, "run", false).mkdir().chown(lsaUID, lsgGID).setMode(0700);
 
             workUF.mkdir().chown(lsaUID, lsgGID).setMode(0750);
-            FileUtils.mkdir(innerWorkUF.getPath(), 0750, lsaUID, lsgGID);
+            DaemonFileUtils.mkdir(innerWorkUF.getPath(), 0750, lsaUID, lsgGID);
 
             //PostgresServer postgresServer=aoServer.getPreferredPostgresServer();
             //String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
 
-            FileUtils.ln("../../.."+tomcatDirectory+"/bin/bootstrap.jar", wwwGroupDir+"/bin/bootstrap.jar", lsaUID, lsgGID);
-            FileUtils.ln("../../.."+tomcatDirectory+"/bin/catalina.sh", wwwGroupDir+"/bin/catalina.sh", lsaUID, lsgGID);
-            FileUtils.ln("../../.."+tomcatDirectory+"/bin/commons-daemon.jar", wwwGroupDir+"/bin/commons-daemon.jar", lsaUID, lsgGID);
-            FileUtils.ln("../../.."+tomcatDirectory+"/bin/digest.sh", wwwGroupDir+"/bin/digest.sh", lsaUID, lsgGID);
+            DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/bootstrap.jar", wwwGroupDir+"/bin/bootstrap.jar", lsaUID, lsgGID);
+            DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/catalina.sh", wwwGroupDir+"/bin/catalina.sh", lsaUID, lsgGID);
+            DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/commons-daemon.jar", wwwGroupDir+"/bin/commons-daemon.jar", lsaUID, lsgGID);
+            DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/digest.sh", wwwGroupDir+"/bin/digest.sh", lsaUID, lsgGID);
 
             String profileFile = wwwGroupDir + "/bin/profile";
             LinuxAccountManager.setBashProfile(lsa, profileFile);
@@ -206,7 +206,7 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
                 out.close();
             }
 
-            FileUtils.ln("../../.."+tomcatDirectory+"/bin/setclasspath.sh", wwwGroupDir+"/bin/setclasspath.sh", lsaUID, lsgGID);
+            DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/setclasspath.sh", wwwGroupDir+"/bin/setclasspath.sh", lsaUID, lsgGID);
 
             UnixFile shutdown=new UnixFile(wwwGroupDir+"/bin/shutdown.sh");
             out=new ChainWriter(shutdown.getSecureOutputStream(lsaUID, lsgGID, 0700, true));
@@ -226,13 +226,13 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
                 out.close();
             }
 
-            FileUtils.ln("../../.."+tomcatDirectory+"/bin/tomcat-juli.jar", wwwGroupDir+"/bin/tomcat-juli.jar", lsaUID, lsgGID);
-            FileUtils.ln("../../.."+tomcatDirectory+"/bin/tool-wrapper.sh", wwwGroupDir+"/bin/tool-wrapper.sh", lsaUID, lsgGID);
-            FileUtils.ln("../../.."+tomcatDirectory+"/bin/version.sh", wwwGroupDir+"/bin/version.sh", lsaUID, lsgGID);
+            DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/tomcat-juli.jar", wwwGroupDir+"/bin/tomcat-juli.jar", lsaUID, lsgGID);
+            DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/tool-wrapper.sh", wwwGroupDir+"/bin/tool-wrapper.sh", lsaUID, lsgGID);
+            DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/version.sh", wwwGroupDir+"/bin/version.sh", lsaUID, lsgGID);
 
             // Create the lib directory and all contents
-            FileUtils.mkdir(wwwGroupDir+"/lib", 0770, lsaUID, lsgGID);
-            FileUtils.lnAll("../../.."+tomcatDirectory+"/lib/", wwwGroupDir+"/lib/", lsaUID, lsgGID);
+            DaemonFileUtils.mkdir(wwwGroupDir+"/lib", 0770, lsaUID, lsgGID);
+            DaemonFileUtils.lnAll("../../.."+tomcatDirectory+"/lib/", wwwGroupDir+"/lib/", lsaUID, lsgGID);
 
             //if(postgresServerMinorVersion!=null) {
             //    String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
@@ -474,12 +474,12 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
             } else newConfServerXMLUF.delete();
         } else {
             try {
-                FileUtils.stripFilePrefix(
+                DaemonFileUtils.stripFilePrefix(
                     confServerXMLUF,
                     autoWarningOld,
                     tempStat
                 );
-                FileUtils.stripFilePrefix(
+                DaemonFileUtils.stripFilePrefix(
                     confServerXMLUF,
                     autoWarning,
                     tempStat

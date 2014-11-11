@@ -1,18 +1,16 @@
-package com.aoindustries.aoserv.daemon.util;
-
 /*
- * Copyright 2008-2009 by AO Industries, Inc.,
+ * Copyright 2008-2009, 2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.util;
+
 import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -22,24 +20,21 @@ import java.io.OutputStream;
  *
  * @author  AO Industries, Inc.
  */
-public class FileUtils {
+public class DaemonFileUtils {
 
 	/**
 	 * Make no instances.
 	 */
-	private FileUtils() {
+	private DaemonFileUtils() {
 	}
 
     /**
      * Copies a resource to the provided output stream.
      */
     public static void copyResource(Class<?> clazz, String resource, OutputStream out) throws IOException {
-        InputStream in=clazz.getResourceAsStream(resource);
-        try {
+        try (InputStream in = clazz.getResourceAsStream(resource)) {
             if(in==null) throw new IOException("Unable to find resource: "+resource);
 			IoUtils.copy(in, out);
-        } finally {
-            in.close();
         }
     }
 
@@ -49,11 +44,8 @@ public class FileUtils {
      * TODO: Copy to a temp file and rename into place.
      */
     public static void copyResource(Class<?> clazz, String resource, String filename, int uid, int gid, int mode) throws IOException {
-        OutputStream out=new UnixFile(filename).getSecureOutputStream(uid, gid, mode, false);
-        try {
+        try (OutputStream out = new UnixFile(filename).getSecureOutputStream(uid, gid, mode, false)) {
             copyResource(clazz, resource, out);
-        } finally {
-            out.close();
         }
     }
     
@@ -77,9 +69,9 @@ public class FileUtils {
      */
     public static void lnAll(String targetBase, String srcBase, int uid, int gid) throws IOException {
         String[] destinations=new UnixFile(targetBase).list();
-        for (int i=0;i<destinations.length;i++) {
-            ln(targetBase+destinations[i], srcBase+destinations[i], uid, gid);
-        }
+		for (String destination : destinations) {
+			ln(targetBase + destination, srcBase + destination, uid, gid);
+		}
     }
 
     /**
@@ -114,8 +106,7 @@ public class FileUtils {
         uf.getStat(tempStat);
         if(tempStat.getSize()>=prefixLen) {
             UnixFile newUF=null;
-            InputStream in=new BufferedInputStream(uf.getSecureInputStream());
-            try {
+            try (InputStream in = new BufferedInputStream(uf.getSecureInputStream())) {
                 StringBuilder SB=new StringBuilder(prefixLen);
                 int ch;
                 while(SB.length()<prefixLen && (ch=in.read())!=-1) {
@@ -123,22 +114,17 @@ public class FileUtils {
                 }
                 if(SB.toString().equals(prefix)) {
                     newUF=UnixFile.mktemp(uf.getPath()+'.', false);
-                    OutputStream out=new BufferedOutputStream(
-                        newUF.getSecureOutputStream(
-                            tempStat.getUid(),
-                            tempStat.getGid(),
-                            tempStat.getMode(),
-                            true
-                        )
-                    );
-                    try {
+                    try (OutputStream out = new BufferedOutputStream(
+						newUF.getSecureOutputStream(
+							tempStat.getUid(),
+							tempStat.getGid(),
+							tempStat.getMode(),
+							true
+						)
+					)) {
 						IoUtils.copy(in, out);
-                    } finally {
-                        out.close();
                     }
                 }
-            } finally {
-                in.close();
             }
             if(newUF!=null) newUF.renameTo(uf);
         }
@@ -178,16 +164,15 @@ public class FileUtils {
             // Create temp file if none provided
             if(tempFile==null) tempFile = UnixFile.mktemp(file.getPath()+".", false);
             try {
-                FileOutputStream newOut = tempFile.getSecureOutputStream(
-                    uid,
-                    gid,
-                    mode,
-                    true
-                );
-                try {
+                try (
+					FileOutputStream newOut = tempFile.getSecureOutputStream(
+						uid,
+						gid,
+						mode,
+						true
+					)
+				) {
                     newOut.write(newContents);
-                } finally {
-                    newOut.close();
                 }
                 tempFile.renameTo(file);
             } finally {
@@ -200,19 +185,4 @@ public class FileUtils {
             return false;
         }
     }
-    
-    /**
-     * Reads the contents of a File and returns as a String.
-     */
-    public static String readFileAsString(UnixFile file) throws IOException {
-        StringBuilder SB = new StringBuilder();
-        BufferedReader in = new BufferedReader(new FileReader(file.getFile()));
-        try {
-            int ch;
-            while((ch=in.read())!=-1) SB.append((char)ch);
-        } finally {
-            in.close();
-        }
-        return SB.toString();
-    }    
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -21,8 +21,9 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
-import com.aoindustries.aoserv.daemon.util.FileUtils;
+import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.io.ChainWriter;
+import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.ByteArrayOutputStream;
@@ -409,7 +410,7 @@ public abstract class HttpdSiteManager {
     public void configureFtpDirectory(UnixFile ftpDirectory) throws IOException, SQLException {
         if(httpdSite.isDisabled()) {
             // Disabled
-            FileUtils.mkdir(
+            DaemonFileUtils.mkdir(
                 ftpDirectory,
                 0700,
                 UnixFile.ROOT_UID,
@@ -417,7 +418,7 @@ public abstract class HttpdSiteManager {
             );
         } else {
             // Enabled
-            FileUtils.mkdir(
+            DaemonFileUtils.mkdir(
                 ftpDirectory,
                 0775,
                 httpdSite.getLinuxServerAccount().getUid().getID(),
@@ -454,7 +455,7 @@ public abstract class HttpdSiteManager {
             final String phpMinorVersion;
             if(phpFile.getStat().exists()) {
 				// TODO: Get from DB-based per-httpd_site config
-                String contents = FileUtils.readFileAsString(phpFile);
+                String contents = FileUtils.readFileAsString(phpFile.getFile());
                 if(
                     contents.contains("/opt/php-5/bin/php")
                     || contents.contains("/opt/php-5-i686/bin/php")
@@ -550,8 +551,8 @@ public abstract class HttpdSiteManager {
             UnixFile parent = cgibinDirectory.getParent();
             if(!parent.getStat().exists()) parent.mkdir(true, 0775, uid, gid);
             // Create cgi-bin if missing
-            FileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
-            FileUtils.writeIfNeeded(
+            DaemonFileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
+            DaemonFileUtils.writeIfNeeded(
                 bout.toByteArray(),
                 null,
                 phpFile,

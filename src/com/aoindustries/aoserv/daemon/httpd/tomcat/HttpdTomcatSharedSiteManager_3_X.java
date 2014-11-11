@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -11,7 +11,7 @@ import com.aoindustries.aoserv.client.HttpdTomcatContext;
 import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
 import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.util.FileUtils;
+import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -63,22 +63,22 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
         /*
          * Create the skeleton of the site, the directories and links.
          */
-        FileUtils.mkdir(siteDir+"/bin", 0770, uid, gid);
-        FileUtils.mkdir(siteDir+"/conf", 0775, uid, gid);
-        FileUtils.mkdir(siteDir+"/daemon", 0770, uid, gid);
-        FileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
-        FileUtils.mkdir(siteDir+"/lib", 0770, uid, gid);
-        FileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", siteDir+"/servlet", uid, gid);
-        FileUtils.mkdir(siteDir+"/var", 0770, uid, gid);
-        FileUtils.mkdir(siteDir+"/var/log", 0770, uid, gid);
-        FileUtils.mkdir(siteDir+"/webapps", 0775, uid, gid);
-        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, uid, gid);
-        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF", 0775, uid, gid);
-        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, uid, gid);
-        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
-        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon", 0770, uid, gid);
-        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf", 0770, uid, gid);
-        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/bin", 0770, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/conf", 0775, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/daemon", 0770, uid, gid);
+        DaemonFileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/lib", 0770, uid, gid);
+        DaemonFileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", siteDir+"/servlet", uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/var", 0770, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/var/log", 0770, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/webapps", 0775, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF", 0775, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon", 0770, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf", 0770, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);
 
         /*
          * Write the manifest.servlet file.
@@ -290,7 +290,7 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
         if(!httpdSite.isManual() || !confServerXMLFile.getStat(tempStat).exists()) {
             // Only write to the actual file when missing or changed
             if(
-                FileUtils.writeIfNeeded(
+                DaemonFileUtils.writeIfNeeded(
                     buildServerXml(siteDirectory, autoWarning),
                     null,
                     confServerXMLFile,
@@ -304,12 +304,12 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
             }
         } else {
             try {
-                FileUtils.stripFilePrefix(
+                DaemonFileUtils.stripFilePrefix(
                     confServerXMLFile,
                     autoWarningOld,
                     tempStat
                 );
-                FileUtils.stripFilePrefix(
+                DaemonFileUtils.stripFilePrefix(
                     confServerXMLFile,
                     autoWarning,
                     tempStat

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 by AO Industries, Inc.,
+ * Copyright 2013, 2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -9,10 +9,12 @@ import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.net.NullRouteManager;
+import com.aoindustries.io.FileUtils;
 import com.aoindustries.math.SafeMath;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -50,6 +52,7 @@ final public class NetworkMonitor {
 							config.getNetworkRanges(),
 							config.getInNetworkDirection(),
 							config.getInCountDirection(),
+							config.getNullRouteFifoErrorRate(),
 							config.getNullRoutePacketRate(),
 							config.getNullRouteBitRate()
 						);
@@ -65,6 +68,7 @@ final public class NetworkMonitor {
 							config.getNetworkRanges(),
 							config.getOutNetworkDirection(),
 							config.getOutCountDirection(),
+							null, // Null routes only done on incoming traffic
 							null, // Null routes only done on incoming traffic
 							null  // Null routes only done on incoming traffic
 						);
@@ -82,6 +86,7 @@ final public class NetworkMonitor {
 	private final List<String> networkRanges;
 	private final AOServDaemonConfiguration.NetworkMonitorConfiguration.NetworkDirection networkDirection;
 	private final AOServDaemonConfiguration.NetworkMonitorConfiguration.CountDirection countDirection;
+	private final Long nullRouteFifoErrorRate;
 	private final Long nullRoutePacketRate;
 	private final Long nullRouteBitRate;
 
@@ -93,6 +98,7 @@ final public class NetworkMonitor {
 		List<String> networkRanges,
 		AOServDaemonConfiguration.NetworkMonitorConfiguration.NetworkDirection networkDirection,
 		AOServDaemonConfiguration.NetworkMonitorConfiguration.CountDirection countDirection,
+		Long nullRouteFifoErrorRate,
 		Long nullRoutePacketRate,
 		Long nullRouteBitRate
 	) {
@@ -101,6 +107,7 @@ final public class NetworkMonitor {
 		this.networkRanges = networkRanges;
 		this.networkDirection = networkDirection;
 		this.countDirection = countDirection;
+		this.nullRouteFifoErrorRate = nullRouteFifoErrorRate;
 		this.nullRoutePacketRate = nullRoutePacketRate;
 		this.nullRouteBitRate = nullRouteBitRate;
     }
@@ -286,7 +293,20 @@ final public class NetworkMonitor {
 		if(thread==null) {
 			final String threadName = NetworkMonitor.class.getName()+"("+device+", "+direction+")";
 			final String errorInThreadName = threadName+".errorIn";
-			final boolean controllingNullRoutes = nullRoutePacketRate!=null || nullRouteBitRate!=null;
+			final boolean controllingNullRoutes = nullRouteFifoErrorRate!=null || nullRoutePacketRate!=null || nullRouteBitRate!=null;
+
+			// Determine which sys file to watch for fifo errors
+			final File fifoErrorsFile;
+			if(nullRouteFifoErrorRate != null) {
+				fifoErrorsFile = new File(
+					"/sys/class/net/" + device + "/statistics/"
+					+ (networkDirection==AOServDaemonConfiguration.NetworkMonitorConfiguration.NetworkDirection.in ? "rx_fifo_errors" : "tx_fifo_errors")
+				);
+			} else {
+				fifoErrorsFile = null;
+			}
+
+			// Run in a separate thread
 			thread = new Thread(threadName) {
 				@Override
 				public void run() {
@@ -317,8 +337,7 @@ final public class NetworkMonitor {
 									@Override
 									public void run() {
 										try {
-											BufferedReader in = new BufferedReader(new InputStreamReader(errorIn));
-											try {
+											try (BufferedReader in = new BufferedReader(new InputStreamReader(errorIn))) {
 												String line;
 												while((line = in.readLine()) != null) {
 													synchronized(System.err) {
@@ -327,8 +346,6 @@ final public class NetworkMonitor {
 														System.err.println(line);
 													}
 												}
-											} finally {
-												in.close();
 											}
 										} catch (ThreadDeath TD) {
 											throw TD;
@@ -340,6 +357,7 @@ final public class NetworkMonitor {
 								// Read standard in
 								DataInputStream in = new DataInputStream(new BufferedInputStream(process.getInputStream()));
 								try {
+									Long lastFifoErrors = null;
 									while(true) {
 										// Read one record
 										final byte protocolVersion = in.readByte();
@@ -416,6 +434,52 @@ final public class NetworkMonitor {
 										long timeSpanMicros = (timeEndSeconds - timeStartSeconds) * MICROS_PER_SECOND + (timeEndMicros - timeStartMicros);
 										// Do not null route on short samples
 										if(timeSpanMicros >= (MICROS_PER_SECOND/2)) {
+											// Add null route on fifo errors
+											if(nullRouteFifoErrorRate != null) {
+												long newFifoErrors = Long.parseLong(FileUtils.readFileAsString(fifoErrorsFile).trim());
+												if(
+													lastFifoErrors != null
+													&& newFifoErrors >= lastFifoErrors
+												) {
+													long fifoErrorRate = getPacketRate(newFifoErrors - lastFifoErrors, timeSpanMicros);
+													if(fifoErrorRate >= nullRouteFifoErrorRate) {
+														// Find host with highest packets count (all protocols combined)
+														int nullingIp = 0;
+														long highestPacketCount = Long.MIN_VALUE;
+														for(Network network : networks) {
+															if(network instanceof IPv4Network) {
+																IPv4Network ipv4Network = (IPv4Network)network;
+																ProtocolCounts[] ips = ipv4Network.ips;
+																for(int ipIndex=0, len=ips.length; ipIndex<len; ipIndex++) {
+																	long packetCount = ips[ipIndex].getPackets();
+																	if(packetCount > highestPacketCount) {
+																		nullingIp = ipv4Network.address + ipIndex;
+																		highestPacketCount = packetCount;
+																	}
+																}
+															} else {
+																throw new AssertionError("Unexpected type of network: " + network.getClass().getName());
+															}
+														}
+														if(highestPacketCount == Long.MIN_VALUE) throw new AssertionError("Unable to find IP to null route");
+														PrintStream out = System.out;
+														synchronized(out) {
+															out.print(threadName);
+															out.print(": null routing: ");
+															out.print(fifoErrorRate);
+															out.print(" FIFO errors per second >= ");
+															out.print(nullRouteFifoErrorRate);
+															out.print(" pps: Found highest IP ");
+															out.print(IPAddress.getIPAddressForInt(nullingIp));
+															out.print(" @ ");
+															out.print(getPacketRate(highestPacketCount, timeSpanMicros));
+															out.println(" pps");
+														}
+														NullRouteManager.addNullRoute(nullingIp);
+													}
+												}
+												lastFifoErrors = newFifoErrors;
+											}
 											// Add null routes due to packets/sec
 											if(nullRoutePacketRate != null) {
 												// Compute current packets/sec
@@ -496,7 +560,6 @@ final public class NetworkMonitor {
 													NullRouteManager.addNullRoute(nullingIp);
 												}
 											}
-											// TODO: Add null route on fifo errors and/or iface drops?
 										}
 										// TODO: Build statistics database/history (in master since roles can change?  Or history per gateway?)
 										// TODO: Report to any listeners

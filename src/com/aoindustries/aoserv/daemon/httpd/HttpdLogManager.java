@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -11,7 +11,7 @@ import com.aoindustries.aoserv.client.HttpdSite;
 import com.aoindustries.aoserv.client.HttpdSiteBind;
 import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.util.FileUtils;
+import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -87,7 +87,7 @@ class HttpdLogManager {
             if(serverLogDirStat.exists() && serverLogDirStat.isSymLink()) serverLogDir.delete();
 
             // Create /var/log/httpd if missing
-            FileUtils.mkdir(serverLogDir, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
+            DaemonFileUtils.mkdir(serverLogDir, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
 
             // Create all /var/log/httpd/* directories
             List<HttpdServer> hss = aoServer.getHttpdServers();
@@ -95,7 +95,7 @@ class HttpdLogManager {
             for(HttpdServer hs : hss) {
                 String filename = "httpd"+hs.getNumber();
                 dontDeleteFilenames.add(filename);
-                FileUtils.mkdir(new UnixFile(serverLogDir, filename, false), 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
+                DaemonFileUtils.mkdir(new UnixFile(serverLogDir, filename, false), 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
             }
 
             // Remove any extra
@@ -248,7 +248,7 @@ class HttpdLogManager {
         }
 
         // Create directory if missing
-        FileUtils.mkdir(siteLogRotationDir, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
+        DaemonFileUtils.mkdir(siteLogRotationDir, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
 
         // The log rotations that exist but are not used will be removed
         String[] list = new File(siteLogRotationDir).list();
@@ -296,7 +296,7 @@ class HttpdLogManager {
             byte[] newFileContent=byteOut.toByteArray();
 
             // Write to disk if file missing or doesn't match
-            FileUtils.writeIfNeeded(
+            DaemonFileUtils.writeIfNeeded(
                 newFileContent,
                 null,
                 new UnixFile(siteLogRotationDir, site.getSiteName()),
@@ -314,7 +314,7 @@ class HttpdLogManager {
         
         if(serverLogRotationDir!=null) {
             // Create directory if missing
-            FileUtils.mkdir(serverLogRotationDir, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
+            DaemonFileUtils.mkdir(serverLogRotationDir, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
             
             // The log rotations that exist but are not used will be removed
             logRotationFiles.clear();
@@ -371,7 +371,7 @@ class HttpdLogManager {
                 } finally {
                     out.close();
                 }
-                FileUtils.writeIfNeeded(
+                DaemonFileUtils.writeIfNeeded(
                     byteOut.toByteArray(),
                     null,
                     new UnixFile(serverLogRotationDir+"/"+filename),

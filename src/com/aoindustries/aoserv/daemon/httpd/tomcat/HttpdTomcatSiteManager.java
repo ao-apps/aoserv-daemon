@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -19,7 +19,8 @@ import com.aoindustries.aoserv.daemon.httpd.HttpdSiteManager;
 import com.aoindustries.aoserv.daemon.httpd.StopStartable;
 import com.aoindustries.aoserv.daemon.httpd.jboss.HttpdJBossSiteManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
-import com.aoindustries.aoserv.daemon.util.FileUtils;
+import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
+import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.IOException;
@@ -132,7 +133,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
             return true;
         } else {
             // Read the PID file and make sure the process is still running
-            String pid = FileUtils.readFileAsString(pidFile);
+            String pid = FileUtils.readFileAsString(pidFile.getFile());
             try {
                 int pidNum = Integer.parseInt(pid.trim());
                 UnixFile procDir = new UnixFile("/proc/"+pidNum);
@@ -255,7 +256,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 
             // CGI
             if(enableCgi()) {
-                FileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
+                DaemonFileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
                 //FileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
                 createTestCGI(cgibinDirectory);
             }

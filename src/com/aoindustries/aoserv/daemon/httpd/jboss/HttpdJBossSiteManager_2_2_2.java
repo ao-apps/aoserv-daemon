@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -21,7 +21,7 @@ import com.aoindustries.aoserv.daemon.httpd.tomcat.TomcatCommon_3_2_4;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.TomcatCommon_3_X;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
-import com.aoindustries.aoserv.daemon.util.FileUtils;
+import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.io.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -75,17 +75,17 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
         /*
          * Create the skeleton of the site, the directories and links.
          */
-        FileUtils.mkdir(new UnixFile(siteDirectory, "bin", false), 0770, uid, gid);
-        FileUtils.mkdir(siteDir+"/conf", 0775, uid, gid);
-        FileUtils.mkdir(siteDir+"/daemon", 0770, uid, gid);
-        FileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
-        FileUtils.mkdir(siteDir+"/lib", 0770, uid, gid);
-        FileUtils.ln("var/log", siteDir+"/logs", uid, gid);
-        FileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", siteDir+"/servlet", uid, gid);
-        FileUtils.mkdir(siteDir+"/var", 0770, uid, gid);
-        FileUtils.mkdir(siteDir+"/var/log", 0770, uid, gid);
-        FileUtils.mkdir(siteDir+"/var/run", 0770, uid, gid);
-        FileUtils.mkdir(siteDir+"/webapps", 0775, uid, gid);
+        DaemonFileUtils.mkdir(new UnixFile(siteDirectory, "bin", false), 0770, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/conf", 0775, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/daemon", 0770, uid, gid);
+        DaemonFileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/lib", 0770, uid, gid);
+        DaemonFileUtils.ln("var/log", siteDir+"/logs", uid, gid);
+        DaemonFileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", siteDir+"/servlet", uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/var", 0770, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/var/log", 0770, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/var/run", 0770, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/webapps", 0775, uid, gid);
 
         String templateDir = jbossSite.getHttpdJBossVersion().getTemplateDirectory();
         File f = new File(templateDir);
@@ -149,16 +149,16 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
             siteDir+"/bin/profile.user"
         };
         AOServDaemon.exec(command4);
-        FileUtils.ln(".", siteDir+"/tomcat", uid, gid);
+        DaemonFileUtils.ln(".", siteDir+"/tomcat", uid, gid);
 
-        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, uid, gid);
-        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF", 0775, uid, gid);
-        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, uid, gid);
-        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
-        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon", 0770, uid, gid);
-        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf", 0770, uid, gid);
-        FileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);	
-        FileUtils.mkdir(siteDir+"/work", 0750, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF", 0775, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon", 0770, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf", 0770, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);	
+        DaemonFileUtils.mkdir(siteDir+"/work", 0750, uid, gid);
 
         /*
          * Set up the bash profile source
@@ -169,7 +169,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
         /*
          * The classes directory
          */
-        FileUtils.mkdir(siteDir+"/classes", 0770, uid, gid);
+        DaemonFileUtils.mkdir(siteDir+"/classes", 0770, uid, gid);
 
         /*
          * Write the manifest.servlet file.
@@ -484,7 +484,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
         if(!httpdSite.isManual() || !confServerXMLFile.getStat(tempStat).exists()) {
             // Only write to the actual file when missing or changed
             if(
-                FileUtils.writeIfNeeded(
+                DaemonFileUtils.writeIfNeeded(
                     buildServerXml(siteDirectory, autoWarning),
                     null,
                     confServerXMLFile,
@@ -498,12 +498,12 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
             }
         } else {
             try {
-                FileUtils.stripFilePrefix(
+                DaemonFileUtils.stripFilePrefix(
                     confServerXMLFile,
                     autoWarningOld,
                     tempStat
                 );
-                FileUtils.stripFilePrefix(
+                DaemonFileUtils.stripFilePrefix(
                     confServerXMLFile,
                     autoWarning,
                     tempStat

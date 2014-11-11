@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -25,8 +25,9 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
-import com.aoindustries.aoserv.daemon.util.FileUtils;
+import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.io.ChainWriter;
+import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.ByteArrayOutputStream;
@@ -157,7 +158,7 @@ public class HttpdServerManager {
             final UnixFile sharedFile = new UnixFile(CONF_HOSTS, siteName);
             if(!manager.httpdSite.isManual() || !sharedFile.getStat(tempStat).exists()) {
                 if(
-                    FileUtils.writeIfNeeded(
+                    DaemonFileUtils.writeIfNeeded(
                         buildHttpdSiteSharedFile(manager, bout),
                         null,
                         sharedFile,
@@ -197,7 +198,7 @@ public class HttpdServerManager {
                 ) {
                     // Save manual config file for later restoration
                     if(exists && isManual && isDisabled && predisableConfig==null) {
-                        bind.setPredisableConfig(FileUtils.readFileAsString(bindFile));
+                        bind.setPredisableConfig(FileUtils.readFileAsString(bindFile.getFile()));
                     }
                     
                     // Restore/build the file
@@ -215,7 +216,7 @@ public class HttpdServerManager {
                     }
                     // Write only when missing or modified
                     if(
-                        FileUtils.writeIfNeeded(
+                        DaemonFileUtils.writeIfNeeded(
                             newContent,
                             null,
                             bindFile,
@@ -430,7 +431,7 @@ public class HttpdServerManager {
         for(HttpdServer hs : aoServer.getHttpdServers()) {
             // Rebuild the httpd.conf file
             if(
-                FileUtils.writeIfNeeded(
+                DaemonFileUtils.writeIfNeeded(
                     buildHttpdConf(hs, bout),
                     new UnixFile(getHttpdConfNewFile(hs)),
                     new UnixFile(getHttpdConfFile(hs)),
@@ -444,7 +445,7 @@ public class HttpdServerManager {
 
             // Rebuild the workers.properties file
             if(
-                FileUtils.writeIfNeeded(
+                DaemonFileUtils.writeIfNeeded(
                     buildWorkersFile(hs, bout),
                     new UnixFile(getWorkersNewFile(hs)),
                     new UnixFile(getWorkersFile(hs)),
@@ -1076,7 +1077,7 @@ public class HttpdServerManager {
             String filename = "httpd"+num;
             dontDeleteFilenames.add(filename);
             if(
-                FileUtils.writeIfNeeded(
+                DaemonFileUtils.writeIfNeeded(
                     bout.toByteArray(),
                     null,
                     new UnixFile(INIT_DIRECTORY+"/"+filename),
