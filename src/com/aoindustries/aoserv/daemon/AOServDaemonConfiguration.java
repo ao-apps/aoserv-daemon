@@ -160,6 +160,7 @@ final public class AOServDaemonConfiguration {
 		private final NetworkDirection outNetworkDirection;
 		private final CountDirection outCountDirection;
 		private final Long nullRouteFifoErrorRate;
+		private final Long nullRouteFifoErrorRateMinPps;
 		private final Long nullRoutePacketRate;
 		private final Long nullRouteBitRate;
 
@@ -172,6 +173,7 @@ final public class AOServDaemonConfiguration {
 			NetworkDirection outNetworkDirection,
 			CountDirection outCountDirection,
 			Long nullRouteFifoErrorRate,
+			Long nullRouteFifoErrorRateMinPps,
 			Long nullRoutePacketRate,
 			Long nullRouteBitRate
 		) {
@@ -183,6 +185,7 @@ final public class AOServDaemonConfiguration {
 			this.outNetworkDirection = outNetworkDirection;
 			this.outCountDirection = outCountDirection;
 			this.nullRouteFifoErrorRate = nullRouteFifoErrorRate;
+			this.nullRouteFifoErrorRateMinPps = nullRouteFifoErrorRateMinPps;
 			this.nullRoutePacketRate = nullRoutePacketRate;
 			this.nullRouteBitRate = nullRouteBitRate;
 		}
@@ -219,6 +222,10 @@ final public class AOServDaemonConfiguration {
 			return nullRouteFifoErrorRate;
 		}
 
+		public Long getNullRouteFifoErrorRateMinPps() {
+			return nullRouteFifoErrorRateMinPps;
+		}
+
 		public Long getNullRoutePacketRate() {
 			return nullRoutePacketRate;
 		}
@@ -236,6 +243,7 @@ final public class AOServDaemonConfiguration {
 		Map<String,NetworkMonitorConfiguration> networkMonitors = new LinkedHashMap<>(networkNames.size()*4/3+1);
 		for(String name : networkNames) {
 			String nullRouteFifoErrorRate = getProperty("monitor.NetworkMonitor.network."+name+".nullRoute.fifoErrorRate");
+			String nullRouteFifoErrorRateMinPps = getProperty("monitor.NetworkMonitor.network."+name+".nullRoute.fifoErrorRateMinPps");
 			String nullRoutePacketRate = getProperty("monitor.NetworkMonitor.network."+name+".nullRoute.packetRate");
 			String nullRouteBitRate = getProperty("monitor.NetworkMonitor.network."+name+".nullRoute.bitRate");
 			if(
@@ -250,6 +258,7 @@ final public class AOServDaemonConfiguration {
 						NetworkMonitorConfiguration.NetworkDirection.valueOf(getProperty("monitor.NetworkMonitor.network."+name+".out.networkDirection", true)),
 						NetworkMonitorConfiguration.CountDirection.valueOf(getProperty("monitor.NetworkMonitor.network."+name+".out.countDirection", true)),
 						nullRouteFifoErrorRate==null || nullRouteFifoErrorRate.length()==0 ? null : Long.valueOf(nullRouteFifoErrorRate),
+						nullRouteFifoErrorRateMinPps==null || nullRouteFifoErrorRateMinPps.length()==0 ? null : Long.valueOf(nullRouteFifoErrorRateMinPps),
 						nullRoutePacketRate==null || nullRoutePacketRate.length()==0 ? null : Long.valueOf(nullRoutePacketRate),
 						nullRouteBitRate==null || nullRouteBitRate.length()==0 ? null : Long.valueOf(nullRouteBitRate)
 					)

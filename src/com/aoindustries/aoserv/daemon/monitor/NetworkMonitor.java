@@ -53,6 +53,7 @@ final public class NetworkMonitor {
 							config.getInNetworkDirection(),
 							config.getInCountDirection(),
 							config.getNullRouteFifoErrorRate(),
+							config.getNullRouteFifoErrorRateMinPps(),
 							config.getNullRoutePacketRate(),
 							config.getNullRouteBitRate()
 						);
@@ -68,6 +69,7 @@ final public class NetworkMonitor {
 							config.getNetworkRanges(),
 							config.getOutNetworkDirection(),
 							config.getOutCountDirection(),
+							null, // Null routes only done on incoming traffic
 							null, // Null routes only done on incoming traffic
 							null, // Null routes only done on incoming traffic
 							null  // Null routes only done on incoming traffic
@@ -87,6 +89,7 @@ final public class NetworkMonitor {
 	private final AOServDaemonConfiguration.NetworkMonitorConfiguration.NetworkDirection networkDirection;
 	private final AOServDaemonConfiguration.NetworkMonitorConfiguration.CountDirection countDirection;
 	private final Long nullRouteFifoErrorRate;
+	private final Long nullRouteFifoErrorRateMinPps;
 	private final Long nullRoutePacketRate;
 	private final Long nullRouteBitRate;
 
@@ -99,6 +102,7 @@ final public class NetworkMonitor {
 		AOServDaemonConfiguration.NetworkMonitorConfiguration.NetworkDirection networkDirection,
 		AOServDaemonConfiguration.NetworkMonitorConfiguration.CountDirection countDirection,
 		Long nullRouteFifoErrorRate,
+		Long nullRouteFifoErrorRateMinPps,
 		Long nullRoutePacketRate,
 		Long nullRouteBitRate
 	) {
@@ -108,6 +112,7 @@ final public class NetworkMonitor {
 		this.networkDirection = networkDirection;
 		this.countDirection = countDirection;
 		this.nullRouteFifoErrorRate = nullRouteFifoErrorRate;
+		this.nullRouteFifoErrorRateMinPps = nullRouteFifoErrorRateMinPps;
 		this.nullRoutePacketRate = nullRoutePacketRate;
 		this.nullRouteBitRate = nullRouteBitRate;
     }
@@ -357,6 +362,7 @@ final public class NetworkMonitor {
 								// Read standard in
 								DataInputStream in = new DataInputStream(new BufferedInputStream(process.getInputStream()));
 								try {
+									// Must be at least 5 seconds between FIFO-generate null routes
 									Long lastFifoErrors = null;
 									while(true) {
 										// Read one record
@@ -462,20 +468,39 @@ final public class NetworkMonitor {
 															}
 														}
 														if(highestPacketCount == Long.MIN_VALUE) throw new AssertionError("Unable to find IP to null route");
-														PrintStream out = System.out;
-														synchronized(out) {
-															out.print(threadName);
-															out.print(": null routing: ");
-															out.print(fifoErrorRate);
-															out.print(" FIFO errors per second >= ");
-															out.print(nullRouteFifoErrorRate);
-															out.print(" pps: Found highest IP ");
-															out.print(IPAddress.getIPAddressForInt(nullingIp));
-															out.print(" @ ");
-															out.print(getPacketRate(highestPacketCount, timeSpanMicros));
-															out.println(" pps");
+														if(
+															nullRouteFifoErrorRateMinPps != null
+															&& highestPacketCount < nullRouteFifoErrorRateMinPps
+														) {
+															PrintStream out = System.out;
+															synchronized(out) {
+																out.print(threadName);
+																out.print(": skipping FIFO error null routing due to insufficient pps (under " + nullRouteFifoErrorRateMinPps + "): ");
+																out.print(fifoErrorRate);
+																out.print(" FIFO errors per second >= ");
+																out.print(nullRouteFifoErrorRate);
+																out.print(" pps: Found highest IP ");
+																out.print(IPAddress.getIPAddressForInt(nullingIp));
+																out.print(" @ ");
+																out.print(getPacketRate(highestPacketCount, timeSpanMicros));
+																out.println(" pps");
+															}
+														} else {
+															PrintStream out = System.out;
+															synchronized(out) {
+																out.print(threadName);
+																out.print(": null routing: ");
+																out.print(fifoErrorRate);
+																out.print(" FIFO errors per second >= ");
+																out.print(nullRouteFifoErrorRate);
+																out.print(" pps: Found highest IP ");
+																out.print(IPAddress.getIPAddressForInt(nullingIp));
+																out.print(" @ ");
+																out.print(getPacketRate(highestPacketCount, timeSpanMicros));
+																out.println(" pps");
+															}
+															NullRouteManager.addNullRoute(nullingIp);
 														}
-														NullRouteManager.addNullRoute(nullingIp);
 													}
 												}
 												lastFifoErrors = newFifoErrors;
