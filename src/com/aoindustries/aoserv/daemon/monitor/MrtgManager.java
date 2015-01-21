@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2013 by AO Industries, Inc.,
+ * Copyright 2006-2013, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -191,49 +191,43 @@ final public class MrtgManager extends BuilderThread {
 								+ "XSize[load]: ").print(GRAPH_WIDTH).print("\n"
 								+ "YSize[load]: ").print(GRAPH_HEIGHT).print("\n");
 						// Figure out the number of CPUs
-						int numCPU=getNumberOfCPUs();
+						int numCPUs=getNumberOfCPUs();
 						out.print("\n"
 								+ "Target[cpu]: `").print(daemonBin).print("/mrtg_cpu`\n"
 								+ "Options[cpu]: gauge, noinfo, growright, transparent, nopercent\n"
 								+ "MaxBytes[cpu]: 100\n"
 								+ "YLegend[cpu]: CPU Utilization\n"
 								+ "ShortLegend[cpu]: %\n");
-						if(numCPU == 20) {
-							out.print("Legend1[cpu]: CPU 0 - 9\n"
-									+ "Legend2[cpu]: CPU 10 - 19\n"
+						// Handle any even number of CPU
+						if(numCPUs>=6 && (numCPUs&1)==0) {
+							out.print("Legend1[cpu]: CPU 0 - ").print((numCPUs/2)-1).print("\n"
+									+ "Legend2[cpu]: CPU ").print(numCPUs/2).print(" - ").print(numCPUs-1).print("\n"
 									+ "Legend3[cpu]: Maximal 5 Minute\n"
 									+ "Legend4[cpu]: Maximal 5 Minute\n"
-									+ "LegendI[cpu]:  cpu0-9:\n"
-									+ "LegendO[cpu]:  cpu10-19:\n");
-						} else if(numCPU == 8) {
-							out.print("Legend1[cpu]: CPU 0 - 3\n"
-									+ "Legend2[cpu]: CPU 4 - 7\n"
-									+ "Legend3[cpu]: Maximal 5 Minute\n"
-									+ "Legend4[cpu]: Maximal 5 Minute\n"
-									+ "LegendI[cpu]:  cpu0-3:\n"
-									+ "LegendO[cpu]:  cpu4-7:\n");
-						} else if(numCPU==4) {
+									+ "LegendI[cpu]:  cpu0-").print((numCPUs/2)-1).print(":\n"
+									+ "LegendO[cpu]:  cpu").print(numCPUs/2).print('-').print(numCPUs-1).print(":\n");
+						} else if(numCPUs==4) {
 							out.print("Legend1[cpu]: CPU 0 and 1\n"
 									+ "Legend2[cpu]: CPU 2 and 3\n"
 									+ "Legend3[cpu]: Maximal 5 Minute\n"
 									+ "Legend4[cpu]: Maximal 5 Minute\n"
 									+ "LegendI[cpu]:  cpu0+1:\n"
 									+ "LegendO[cpu]:  cpu2+3:\n");
-						} else if(numCPU==2) {
+						} else if(numCPUs==2) {
 							out.print("Legend1[cpu]: CPU 0\n"
 									+ "Legend2[cpu]: CPU 1\n"
 									+ "Legend3[cpu]: Maximal 5 Minute\n"
 									+ "Legend4[cpu]: Maximal 5 Minute\n"
 									+ "LegendI[cpu]:  cpu0:\n"
 									+ "LegendO[cpu]:  cpu1:\n");
-						} else if(numCPU==1) {
+						} else if(numCPUs==1) {
 							out.print("Legend1[cpu]: System\n"
 									+ "Legend2[cpu]: Total\n"
 									+ "Legend3[cpu]: Maximal 5 Minute\n"
 									+ "Legend4[cpu]: Maximal 5 Minute\n"
 									+ "LegendI[cpu]:  system:\n"
 									+ "LegendO[cpu]:  total:\n");
-						} else throw new IOException("Unsupported number of CPUs: "+numCPU);
+						} else throw new IOException("Unsupported number of CPUs: "+numCPUs);
 						out.print("Timezone[cpu]: ").print(thisAOServer.getTimeZone()).print("\n"
 								+ "Title[cpu]: Server CPU Utilization (%)\n"
 								+ "PageFoot[cpu]: <p>\n"
