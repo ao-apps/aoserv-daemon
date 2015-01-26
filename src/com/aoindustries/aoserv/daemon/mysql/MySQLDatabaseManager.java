@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -20,6 +20,7 @@ import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.util.BufferManager;
+import com.aoindustries.util.PropertiesUtils;
 import com.aoindustries.util.concurrent.ConcurrencyLimiter;
 import java.io.File;
 import java.io.FileInputStream;
@@ -252,10 +253,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 			file = new File(failoverRoot+"/etc/opt/aoserv-daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
 		} else throw new SQLException("Unsupport OperatingSystemVersion: "+nestedOperatingSystemVersion);
 		if(!file.exists()) throw new SQLException("Properties file doesn't exist: "+file.getPath());
-		Properties nestedProps = new Properties();
-		try (InputStream in = new FileInputStream(file)) {
-			nestedProps.load(in);
-		}
+		Properties nestedProps = PropertiesUtils.loadFromFile(file);
 		String user = nestedProps.getProperty("aoserv.daemon.mysql.user");
 		String password = nestedProps.getProperty("aoserv.daemon.mysql.password");
 
