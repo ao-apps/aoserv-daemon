@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2013 by AO Industries, Inc.,
+ * Copyright 2006-2013, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -529,6 +529,7 @@ final public class NetDeviceManager extends BuilderThread {
 
     private static final long MAX_GIGABIT_BIT_RATE = 2000000000L; // Allow twice gigabit speed before assuming counter reset
     private static final long MAX_GIGABIT_PACKET_RATE = MAX_GIGABIT_BIT_RATE / (64 * 8); // Smallest packet is 64 octets
+	private static final long MAX_LINK_AGGREGATION = 4;
 
     /**
      * Updates all of the counts to the current values.  This is called by
@@ -667,10 +668,10 @@ final public class NetDeviceManager extends BuilderThread {
                 long currentTxPacketRate = (newTotalTxPackets - oldTotalTxPackets) * 8 * 1000 / timeDiff;
                 long currentRxPacketRate = (newTotalRxPackets - oldTotalRxPackets) * 8 * 1000 / timeDiff;
                 if(
-                    currentTxBitRate>MAX_GIGABIT_BIT_RATE
-                    || currentRxBitRate>MAX_GIGABIT_BIT_RATE
-                    || currentTxPacketRate>MAX_GIGABIT_PACKET_RATE
-                    || currentRxPacketRate>MAX_GIGABIT_PACKET_RATE
+                    currentTxBitRate > (MAX_GIGABIT_BIT_RATE * MAX_LINK_AGGREGATION)
+                    || currentRxBitRate > (MAX_GIGABIT_BIT_RATE * MAX_LINK_AGGREGATION)
+                    || currentTxPacketRate > (MAX_GIGABIT_PACKET_RATE * MAX_LINK_AGGREGATION)
+                    || currentRxPacketRate > (MAX_GIGABIT_PACKET_RATE * MAX_LINK_AGGREGATION)
                 ) {
                     // Counter reset, remove totals to indicate reset
                     //System.err.println("NetDeviceManager: Device reset detected on "+netDevice);
