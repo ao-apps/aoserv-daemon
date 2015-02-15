@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -27,7 +27,6 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.jilter.config.EmailLimit;
 import com.aoindustries.aoserv.jilter.config.JilterConfiguration;
 import com.aoindustries.io.FileUtils;
-import com.aoindustries.sql.NoRowException;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -93,7 +92,7 @@ public class JilterConfigurationWriter extends BuilderThread {
 	 */
 	public static NetBind getJilterNetBind() throws IOException, SQLException {
 		Protocol protocol = AOServDaemon.getConnector().getProtocols().get(Protocol.MILTER);
-		if(protocol==null) throw new NoRowException("Protocol not found: " + Protocol.MILTER);
+		if(protocol==null) throw new SQLException("Protocol not found: " + Protocol.MILTER);
 		List<NetBind> milterBinds = AOServDaemon.getThisAOServer().getServer().getNetBinds(protocol);
 		if(milterBinds.size()>1) throw new SQLException("More than one milter found in net_binds, refusing to configure jilter");
 		return milterBinds.isEmpty() ? null : milterBinds.get(0);
