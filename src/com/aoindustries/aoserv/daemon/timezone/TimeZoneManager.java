@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2013 by AO Industries, Inc.,
+ * Copyright 2006-2013, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -12,7 +12,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.io.ChainWriter;
+import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.ByteArrayOutputStream;
@@ -97,8 +97,7 @@ public class TimeZoneManager extends BuilderThread {
                  */
                 // Build the new file contents to RAM
                 ByteArrayOutputStream bout = new ByteArrayOutputStream();
-                ChainWriter newOut = new ChainWriter(bout);
-                try {
+                try (ChainWriter newOut = new ChainWriter(bout)) {
                     if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
                         newOut.print("ZONE=\"").print(timeZone).print("\"\n"
                                    + "UTC=true\n"
@@ -113,8 +112,6 @@ public class TimeZoneManager extends BuilderThread {
                     } else {
                         throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
                     }
-                } finally {
-                    newOut.close();
                 }
                 byte[] newBytes = bout.toByteArray();
 
@@ -123,11 +120,8 @@ public class TimeZoneManager extends BuilderThread {
                 if(!clockConfig.getStat().exists() || !clockConfig.contentEquals(newBytes)) {
                     // Write to temp file
                     UnixFile newClockConfig = new UnixFile("/etc/sysconfig/clock.new");
-                    OutputStream newClockOut = newClockConfig.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0755, true);
-                    try {
+                    try (OutputStream newClockOut = newClockConfig.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0755, true)) {
                         newClockOut.write(newBytes);
-                    } finally {
-                        newClockOut.close();
                     }
                     // Atomically move into place
                     newClockConfig.renameTo(clockConfig);

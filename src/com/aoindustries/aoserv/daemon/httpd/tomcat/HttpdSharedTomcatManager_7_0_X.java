@@ -1,5 +1,5 @@
 /*
- * Copyright 2013, 2014 by AO Industries, Inc.,
+ * Copyright 2013, 2014, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -27,7 +27,7 @@ import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.io.ChainWriter;
+import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.util.SortedArrayList;
@@ -420,7 +420,7 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
                             if(hs.listFirst()) {
                                 String ip=bind.getHttpdBind().getNetBind().getIPAddress().getInetAddress().toString();
                                 if(!usedHostnames.contains(ip)) {
-                                    out.print("        <Alias>").encodeHtml(ip).print("</Alias>\n");
+                                    out.print("        <Alias>").encodeXhtml(ip).print("</Alias>\n");
                                     usedHostnames.add(ip);
                                 }
                             }

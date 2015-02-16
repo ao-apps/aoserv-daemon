@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -18,7 +18,7 @@ import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.io.ChainWriter;
+import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -311,10 +311,10 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
         }
         tomcatCommon.createWebDtd(siteDir+"/conf", uid, gid, 0660);
         tomcatCommon.createWebXml(siteDir+"/conf", uid, gid, 0660);
-        for(int c=0;c<TomcatCommon_3_X.tomcatLogFiles.length;c++) {
-            String filename=siteDir+"/var/log/"+TomcatCommon_3_X.tomcatLogFiles[c];
-            new UnixFile(filename).getSecureOutputStream(uid, gid, 0660, false).close();
-        }
+		for (String tomcatLogFile : TomcatCommon_3_X.tomcatLogFiles) {
+			String filename = siteDir+"/var/log/" + tomcatLogFile;
+			new UnixFile(filename).getSecureOutputStream(uid, gid, 0660, false).close();
+		}
         final String manifestFile=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF/MANIFEST.MF";
         new ChainWriter(new UnixFile(manifestFile).getSecureOutputStream(uid, gid, 0664, false)).print("Manifest-Version: 1.0").close();
 

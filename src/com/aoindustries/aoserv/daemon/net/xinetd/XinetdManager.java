@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -23,7 +23,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.email.ImapManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.io.ChainWriter;
+import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.ByteArrayOutputStream;
@@ -611,11 +611,8 @@ public final class XinetdManager extends BuilderThread {
 
 					// Build to RAM first
 					bout.reset();
-					ChainWriter out = new ChainWriter(bout);
-					try {
+					try (ChainWriter out = new ChainWriter(bout)) {
 						service.printXinetdConfig(out);
-					} finally {
-						out.close();
 					}
 					byte[] newBytes = bout.toByteArray();
 
@@ -638,8 +635,7 @@ public final class XinetdManager extends BuilderThread {
 				// Cleanup extra configs
 				String[] list = xinetdDirectory.list();
 				if(list!=null) {
-					for(int c=0;c<list.length;c++) {
-						String filename=list[c];
+					for (String filename : list) {
 						if(!filenames.contains(filename)) {
 							new UnixFile(xinetdDirectory, filename).delete();
 							needsReloaded=true;

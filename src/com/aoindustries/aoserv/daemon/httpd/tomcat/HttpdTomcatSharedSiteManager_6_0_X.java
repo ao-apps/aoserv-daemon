@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -8,7 +8,7 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
 import com.aoindustries.aoserv.client.HttpdTomcatContext;
 import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.io.ChainWriter;
+import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -53,12 +53,13 @@ class HttpdTomcatSharedSiteManager_6_0_X extends HttpdTomcatSharedSiteManager<To
          * Write the ROOT/WEB-INF/web.xml file.
          */
         String webXML=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/web.xml";
-        ChainWriter out=new ChainWriter(
-            new BufferedOutputStream(
-                new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false)
-            )
-        );
-        try {
+        try (
+			ChainWriter out = new ChainWriter(
+				new BufferedOutputStream(
+					new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false)
+				)
+			)
+		) {
             out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
                     + "<web-app xmlns=\"http://java.sun.com/xml/ns/javaee\"\n"
                     + "   xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
@@ -69,8 +70,6 @@ class HttpdTomcatSharedSiteManager_6_0_X extends HttpdTomcatSharedSiteManager<To
                     + "     Welcome to Tomcat\n"
                     + "  </description>\n"
                     + "</web-app>\n");
-        } finally {
-            out.close();
         }
     }
 

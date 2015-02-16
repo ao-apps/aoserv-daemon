@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -11,7 +11,7 @@ import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.NetPort;
 import com.aoindustries.aoserv.client.NetProtocol;
 import com.aoindustries.aoserv.client.validator.InetAddress;
-import com.aoindustries.io.ChainWriter;
+import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.lang.ObjectUtils;
 import java.io.IOException;
 import java.sql.SQLException;

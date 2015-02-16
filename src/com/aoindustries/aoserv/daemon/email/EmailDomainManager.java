@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -13,7 +13,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.io.ChainWriter;
+import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
@@ -59,21 +59,15 @@ public final class EmailDomainManager extends BuilderThread {
 
                 // Create the new file
                 ByteArrayOutputStream bout = new ByteArrayOutputStream();
-                ChainWriter out = new ChainWriter(bout);
-                try {
+                try (ChainWriter out = new ChainWriter(bout)) {
                     for(EmailDomain domain : domains) out.println(domain.getDomain());
-                } finally {
-                    out.close();
                 }
                 byte[] newBytes = bout.toByteArray();
 
                 // Write new file only when needed
                 if(!configFile.getStat().exists() || !configFile.contentEquals(newBytes)) {
-                    FileOutputStream newOut = newFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, false);
-                    try {
+                    try (FileOutputStream newOut = newFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, false)) {
                         newOut.write(newBytes);
-                    } finally {
-                        newOut.close();
                     }
                     newFile.renameTo(configFile);
 

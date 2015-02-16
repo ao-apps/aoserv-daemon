@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -8,7 +8,7 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
 import com.aoindustries.aoserv.client.HttpdTomcatContext;
 import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.io.ChainWriter;
+import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.BufferedOutputStream;
 import java.io.IOException;

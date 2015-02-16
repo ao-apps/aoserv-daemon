@@ -1,5 +1,5 @@
 /*
- * Copyright 2005-2013 by AO Industries, Inc.,
+ * Copyright 2005-2013, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -25,7 +25,7 @@ import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
 import com.aoindustries.cron.CronJobScheduleMode;
 import com.aoindustries.cron.Schedule;
-import com.aoindustries.io.ChainWriter;
+import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.util.WrappedException;
@@ -218,35 +218,34 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
         if(fileList!=null && fileList.length>0) {
             // Get the list of UnixFile's of all messages that are at least one minute old or one minute in the future
             List<UnixFile> readyList=new ArrayList<>(fileList.length);
-            for(int c=0;c<fileList.length;c++) {
-                String filename=fileList[c];
-                if(filename.startsWith("ham_") || filename.startsWith("spam_")) {
-                    // Must be a directory
-                    UnixFile uf=new UnixFile(incomingDirectory, filename, false);
-                    Stat ufStat = uf.getStat();
-                    if(ufStat.isDirectory()) {
-                        long mtime=ufStat.getModifyTime();
-                        if(mtime==-1) {
-                            LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectory="+incomingDirectory.getPath()+", filename="+filename, new IOException("getModifyTime() returned -1"));
-                        } else {
-                            long currentTime=System.currentTimeMillis();
-                            if(
-                                (mtime-currentTime)>60000
-                                || (currentTime-mtime)>60000
-                            ) {
-                                if(isFilenameOk(filename)) readyList.add(uf);
-                                else {
-                                    LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectory="+incomingDirectory.getPath()+", filename="+filename, new IOException("Invalid directory name"));
-                                }
-                            }
-                        }
-                    } else {
-                        LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectory="+incomingDirectory.getPath()+", filename="+filename, new IOException("Not a directory"));
-                    }
-                } else {
-                    LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectory="+incomingDirectory.getPath()+", filename="+filename, new IOException("Unexpected filename, should start with spam_ or ham_"));
-                }
-            }
+			for (String filename : fileList) {
+				if(filename.startsWith("ham_") || filename.startsWith("spam_")) {
+					// Must be a directory
+					UnixFile uf=new UnixFile(incomingDirectory, filename, false);
+					Stat ufStat = uf.getStat();
+					if(ufStat.isDirectory()) {
+						long mtime=ufStat.getModifyTime();
+						if(mtime==-1) {
+							LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectory="+incomingDirectory.getPath()+", filename="+filename, new IOException("getModifyTime() returned -1"));
+						} else {
+							long currentTime=System.currentTimeMillis();
+							if(
+								(mtime-currentTime)>60000
+								|| (currentTime-mtime)>60000
+								) {
+								if(isFilenameOk(filename)) readyList.add(uf);
+								else {
+									LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectory="+incomingDirectory.getPath()+", filename="+filename, new IOException("Invalid directory name"));
+								}
+							}
+						}
+					} else {
+						LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectory="+incomingDirectory.getPath()+", filename="+filename, new IOException("Not a directory"));
+					}
+				} else {
+					LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectory="+incomingDirectory.getPath()+", filename="+filename, new IOException("Unexpected filename, should start with spam_ or ham_"));
+				}
+			}
             if(!readyList.isEmpty()) {
                 // Sort the list by oldest time first
                 Collections.sort(
@@ -334,8 +333,9 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                             uf.chown(UnixFile.ROOT_UID, UnixFile.ROOT_GID).setMode(0700);
                             String[] list=uf.list();
                             if(list!=null) {
-                                // Delete all the immediate children, not recursing deeper
-                                for(int d=0;d<list.length;d++) new UnixFile(uf, list[d], false).delete();
+								for (String filename : list) {
+									new UnixFile(uf, filename, false).delete();
+								}
                             }
                             uf.delete();
                         }
@@ -581,8 +581,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
              */
             ByteArrayOutputStream bout=new ByteArrayOutputStream();
             {
-                ChainWriter newOut=new ChainWriter(bout);
-                try {
+                try (ChainWriter newOut = new ChainWriter(bout)) {
                     // Build a new file in RAM
                     newOut.print("#\n"
                                + "# Generated by ").print(SpamAssassinManager.class.getName()).print("\n"
@@ -620,18 +619,12 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                                + "\n"
                                + "# Run at nice level of 10\n"
                                + "NICELEVEL=\"+10\"\n");
-                } finally {
-                    newOut.close();
                 }
                 byte[] newBytes=bout.toByteArray();
                 // Compare to existing
                 if(!configUnixFile.getStat().exists() || !configUnixFile.contentEquals(newBytes)) {
-                    // Replace when changed
-                    FileOutputStream out=new FileOutputStream(configUnixFileNew.getFile());
-                    try {
+                    try (FileOutputStream out = new FileOutputStream(configUnixFileNew.getFile())) {
                         out.write(newBytes);
-                    } finally {
-                        out.close();
                     }
                     configUnixFileNew.setMode(0644);
                     configUnixFileNew.renameTo(configUnixFile);
@@ -666,8 +659,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                             UnixFile userPrefs=new UnixFile(spamAssassinDir, "user_prefs", false);
                             // Build the new file in RAM
                             bout.reset();
-                            ChainWriter newOut=new ChainWriter(bout);
-                            try {
+                            try (ChainWriter newOut = new ChainWriter(bout)) {
                                 newOut.print("#\n"
                                            + "# Generated by ").print(SpamAssassinManager.class.getName()).print("\n"
                                            + "#\n"
@@ -675,8 +667,6 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                                 if(integrationMode.getName().equals(EmailSpamAssassinIntegrationMode.POP3)) {
                                     newOut.print("rewrite_header Subject *****SPAM*****\n");
                                 }
-                            } finally {
-                                newOut.close();
                             }
                             byte[] newBytes=bout.toByteArray();
 
@@ -684,11 +674,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                             if(!userPrefs.getStat().exists() || !userPrefs.contentEquals(newBytes)) {
                                 // Replace when changed
                                 UnixFile userPrefsNew=new UnixFile(spamAssassinDir, "user_prefs.new", false);
-                                FileOutputStream out=userPrefsNew.getSecureOutputStream(lsa.getUid().getID(), lsa.getPrimaryLinuxServerGroup().getGid().getID(), 0600, true);
-                                try {
+                                try (FileOutputStream out = userPrefsNew.getSecureOutputStream(lsa.getUid().getID(), lsa.getPrimaryLinuxServerGroup().getGid().getID(), 0600, true)) {
                                     out.write(newBytes);
-                                } finally {
-                                    out.close();
                                 }
                                 userPrefsNew.renameTo(userPrefs);
                             }
@@ -758,8 +745,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                         if(razorAgentLog.getStat().exists()) {
                             try {
                                 boolean removed = false;
-                                BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(razorAgentLog.getFile())));
-                                try {
+                                try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(razorAgentLog.getFile())))) {
                                     queuedLines.clear();
                                     String line;
                                     while((line=in.readLine())!=null) {
@@ -769,19 +755,14 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                                             removed=true;
                                         }
                                     }
-                                } finally {
-                                    in.close();
                                 }
                                 if(removed) {
                                     int uid = lsa.getUid().getID();
                                     int gid = lsa.getPrimaryLinuxServerGroup().getGid().getID();
                                     UnixFile tempFile = UnixFile.mktemp(razorAgentLog.getPath()+'.', false);
                                     try {
-                                        PrintWriter out = new PrintWriter(new BufferedOutputStream(tempFile.getSecureOutputStream(uid, gid, 0644, true)));
-                                        try {
+                                        try (PrintWriter out = new PrintWriter(new BufferedOutputStream(tempFile.getSecureOutputStream(uid, gid, 0644, true)))) {
                                             while(!queuedLines.isEmpty()) out.println(queuedLines.remove());
-                                        } finally {
-                                            out.close();
                                         }
                                         tempFile.renameTo(razorAgentLog);
                                     } finally {
