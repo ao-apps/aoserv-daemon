@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -609,7 +609,7 @@ final public class DistroManager implements Runnable {
 
 									long startTime=System.currentTimeMillis();
 
-                                    byte[] fileHash=MD5Utils.md5(file);
+                                    byte[] fileHash=MD5Utils.md5(file.getFile());
                                     long file_md5_hi=MD5.getMD5Hi(fileHash);
                                     long file_md5_lo=MD5.getMD5Lo(fileHash);
                                     long distro_md5_hi=distroFile.getFileMD5Hi();
