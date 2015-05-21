@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2014 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2014, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -217,21 +217,22 @@ final public class AOServDaemonServerThread extends Thread {
 									replicatedMySQLMinorVersions=Collections.emptyList();
 								}
 								DaemonAccessEntry dae=AOServDaemonServer.getDaemonAccessEntry(daemonAccessKey);
-								if(dae.command!=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION) throw new IOException("Mismatched DaemonAccessEntry command, dae.command!="+AOServDaemonProtocol.FAILOVER_FILE_REPLICATION);
+								if(dae.command != AOServDaemonProtocol.FAILOVER_FILE_REPLICATION) throw new IOException("Mismatched DaemonAccessEntry command, dae.command!="+AOServDaemonProtocol.FAILOVER_FILE_REPLICATION);
 								FailoverFileReplicationManager.failoverServer(
 									socket,
 									in,
 									out,
-									dae.param1, // fromServer
+									Integer.parseInt(dae.param1), // failover_file_replication.pkey
+									dae.param2, // fromServer
 									useCompression,
 									retention,
-									dae.param2, // toPath (complete with server hostname and other path stuff)
+									dae.param3, // toPath (complete with server hostname and other path stuff)
 									fromServerYear,
 									fromServerMonth,
 									fromServerDay,
 									replicatedMySQLServers,
 									replicatedMySQLMinorVersions,
-									dae.param3==null ? -1 : Integer.parseInt(dae.param3) // quota_gid
+									dae.param4==null ? -1 : Integer.parseInt(dae.param4) // quota_gid
 								);
 							}
 							break;
@@ -264,6 +265,29 @@ final public class AOServDaemonServerThread extends Thread {
 								String cronTable=LinuxAccountManager.getCronTable(username);
 								out.write(AOServDaemonProtocol.DONE);
 								out.writeUTF(cronTable);
+							}
+							break;
+						case AOServDaemonProtocol.GET_FAILOVER_FILE_REPLICATION_ACTIVITY :
+							{
+								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_FAILOVER_FILE_REPLICATION_ACTIVITY, Thread="+toString());
+								int replication = in.readCompressedInt();
+								if(daemonKey==null) throw new IOException("Only the master server may GET_FAILOVER_FILE_REPLICATION_ACTIVITY");
+								FailoverFileReplicationManager.Activity activity = FailoverFileReplicationManager.getActivity(replication);
+								long timeSince;
+								String message;
+								if(activity == null) {
+									timeSince = -1;
+									message = "";
+								} else {
+									synchronized(activity) {
+										timeSince = System.currentTimeMillis() - activity.getTime();
+										message = activity.getMessage();
+									}
+									if(timeSince < 0) timeSince = 0;
+								}
+								out.write(AOServDaemonProtocol.DONE);
+								out.writeLong(timeSince);
+								out.writeUTF(message);
 							}
 							break;
 						case AOServDaemonProtocol.GET_NET_DEVICE_BONDING_REPORT :
@@ -622,8 +646,9 @@ final public class AOServDaemonServerThread extends Thread {
 								String param1 = in.readBoolean() ? in.readUTF() : null;
 								String param2 = in.readBoolean() ? in.readUTF() : null;
 								String param3 = in.readBoolean() ? in.readUTF() : null;
+								String param4 = in.readBoolean() ? in.readUTF() : null;
 								if(daemonKey==null) throw new IOException("Only the master server may GRANT_DAEMON_ACCESS");
-								AOServDaemonServer.grantDaemonAccess(accessKey, command, param1, param2, param3);
+								AOServDaemonServer.grantDaemonAccess(accessKey, command, param1, param2, param3, param4);
 								out.write(AOServDaemonProtocol.DONE);
 							}
 							break;
