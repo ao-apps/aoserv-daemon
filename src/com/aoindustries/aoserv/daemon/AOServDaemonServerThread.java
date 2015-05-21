@@ -275,15 +275,16 @@ final public class AOServDaemonServerThread extends Thread {
 								FailoverFileReplicationManager.Activity activity = FailoverFileReplicationManager.getActivity(replication);
 								long timeSince;
 								String message;
-								if(activity == null) {
-									timeSince = -1;
-									message = "";
-								} else {
-									synchronized(activity) {
-										timeSince = System.currentTimeMillis() - activity.getTime();
+								synchronized(activity) {
+									long time = activity.getTime();
+									if(time == -1) {
+										timeSince = -1;
+										message = "";
+									} else {
+										timeSince = System.currentTimeMillis() - time;
+										if(timeSince < 0) timeSince = 0;
 										message = activity.getMessage();
 									}
-									if(timeSince < 0) timeSince = 0;
 								}
 								out.write(AOServDaemonProtocol.DONE);
 								out.writeLong(timeSince);

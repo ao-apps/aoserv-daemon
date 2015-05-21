@@ -179,7 +179,7 @@ final public class FailoverFileReplicationManager {
 
 	public static class Activity /*implements Cloneable*/ {
 
-		private long time;
+		private long time = -1;
 		// When set, this is the complete human-readable form
 		private Object message1;
 		private Object message2;
