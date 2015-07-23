@@ -332,7 +332,7 @@ final public class SendmailCFManager extends BuilderThread {
 								+ "O CipherList=HIGH:!ADH\n"
 								+ "O DHParameters=/etc/ssl/sendmail/dhparams.pem\n"
 								+ "O ServerSSLOptions=+SSL_OP_NO_SSLv2 +SSL_OP_NO_SSLv3 +SSL_OP_CIPHER_SERVER_PREFERENCE\n"
-								+ "O ClientSSLOptions=+SSL_OP_NO_SSLv2 +SSL_OP_NO_SSLv3"
+								+ "O ClientSSLOptions=+SSL_OP_NO_SSLv2 +SSL_OP_NO_SSLv3\n"
                                 // Add envelop header recipient
                                 + "H?m?X-RCPT-To: $u\n"
                                 + "Dj").print(aoServer.getHostname()).print("\n" // AO added
