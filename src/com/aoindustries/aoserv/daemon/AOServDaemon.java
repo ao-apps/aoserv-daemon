@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -50,7 +50,6 @@ import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.profiler.Profiler;
 import com.aoindustries.util.IntList;
 import java.io.File;
 import java.io.IOException;
@@ -74,125 +73,123 @@ import java.util.logging.Logger;
  */
 final public class AOServDaemon {
 
-    public static final boolean DEBUG=false;
+	public static final boolean DEBUG=false;
 
-    /**
-     * A single random number generator is shared by all daemon resources to provide better randomness.
-     */
-    private static final Random random = new SecureRandom();
-    public static Random getRandom() {
-        return random;
-    }
+	/**
+	 * A single random number generator is shared by all daemon resources to provide better randomness.
+	 */
+	private static final Random random = new SecureRandom();
+	public static Random getRandom() {
+		return random;
+	}
 
-    /**
-     * The default connection is used to the database, because it should be configured in the properties files.
-     */
-    private static AOServConnector conn;
+	/**
+	 * The default connection is used to the database, because it should be configured in the properties files.
+	 */
+	private static AOServConnector conn;
 
-    /**
-     * An unbounded executor for daemon-wide tasks.
-     */
-    public final static ExecutorService executorService = Executors.newCachedThreadPool();
+	/**
+	 * An unbounded executor for daemon-wide tasks.
+	 */
+	public final static ExecutorService executorService = Executors.newCachedThreadPool();
 
-    /**
-     * Create no instances.
-     */
-    private AOServDaemon() {
-    }
+	/**
+	 * Create no instances.
+	 */
+	private AOServDaemon() {
+	}
 
-    /**
-     * Recursively searches for any files that are not owned by a UID in
-     * the provided list.  If an unowned file is found and is a directory,
-     * its contents are not searched.  To avoid infinite recursion, symbolic
-     * links are not followed but may be deleted.
-     * 
-     * @param  file  the <code>File</code> to search from
-     * @param  uids  the <code>IntList</code> containing the list of uids
-     */
-    public static void findUnownedFiles(File file, IntList uids, List<File> deleteFileList, int recursionLevel) throws IOException {
-        if(file.exists()) {
-            // Figure out the ownership
-            UnixFile unixFile=new UnixFile(file.getPath());
-            Stat stat = unixFile.getStat();
-            int uid=stat.getUid();
-            if(uids.contains(uid)) {
-                if(!stat.isSymLink()) {
-                    // Search any children files
-                    String[] list=file.list();
-                    if(list!=null) {
-                        int newRecursionLevel=recursionLevel+1;
-                        int len=list.length;
-                        for(int c=0;c<len;c++) findUnownedFiles(new File(file, list[c]), uids, deleteFileList, newRecursionLevel);
-                    }
-                }
-            } else deleteFileList.add(file);
-        }
-    }
+	/**
+	 * Recursively searches for any files that are not owned by a UID in
+	 * the provided list.  If an unowned file is found and is a directory,
+	 * its contents are not searched.  To avoid infinite recursion, symbolic
+	 * links are not followed but may be deleted.
+	 * 
+	 * @param  file  the <code>File</code> to search from
+	 * @param  uids  the <code>IntList</code> containing the list of uids
+	 */
+	public static void findUnownedFiles(File file, IntList uids, List<File> deleteFileList, int recursionLevel) throws IOException {
+		if(file.exists()) {
+			// Figure out the ownership
+			UnixFile unixFile=new UnixFile(file.getPath());
+			Stat stat = unixFile.getStat();
+			int uid=stat.getUid();
+			if(uids.contains(uid)) {
+				if(!stat.isSymLink()) {
+					// Search any children files
+					String[] list=file.list();
+					if(list!=null) {
+						int newRecursionLevel=recursionLevel+1;
+						int len=list.length;
+						for(int c=0;c<len;c++) findUnownedFiles(new File(file, list[c]), uids, deleteFileList, newRecursionLevel);
+					}
+				}
+			} else deleteFileList.add(file);
+		}
+	}
 
-    public static AOServConnector getConnector() throws IOException {
-        synchronized(AOServDaemon.class) {
-            if(conn==null) {
-                // Get the connector that will be used
-                conn=AOServConnector.getConnector(Logger.getLogger(AOServConnector.class.getName()));
-            }
-            return conn;
-        }
-    }
+	public static AOServConnector getConnector() throws IOException {
+		synchronized(AOServDaemon.class) {
+			if(conn==null) {
+				// Get the connector that will be used
+				conn=AOServConnector.getConnector(Logger.getLogger(AOServConnector.class.getName()));
+			}
+			return conn;
+		}
+	}
 
-    public static AOServer getThisAOServer() throws IOException, SQLException {
-        String hostname=AOServDaemonConfiguration.getServerHostname();
-        Server server=getConnector().getServers().get(hostname);
-        if(server==null) throw new SQLException("Unable to find Server: "+hostname);
-        AOServer ao=server.getAOServer();
-        if(ao==null) throw new SQLException("Server is not an AOServer: "+hostname);
-        return ao;
-    }
+	public static AOServer getThisAOServer() throws IOException, SQLException {
+		String hostname=AOServDaemonConfiguration.getServerHostname();
+		Server server=getConnector().getServers().get(hostname);
+		if(server==null) throw new SQLException("Unable to find Server: "+hostname);
+		AOServer ao=server.getAOServer();
+		if(ao==null) throw new SQLException("Server is not an AOServer: "+hostname);
+		return ao;
+	}
 
-    /**
-     * Runs the <code>AOServDaemon</code> with the values
-     * provided in <code>com/aoindustries/aoserv/daemon/aoserv-daemon.properties</code>.
-     * This will typically be called by the init scripts of the dedicated machine.
-     */
-    public static void main(String[] args) {
-	boolean done=false;
-	while(!done) {
-            try {
-                Profiler.setProfilerLevel(AOServDaemonConfiguration.getProfilerLevel());
+	/**
+	 * Runs the <code>AOServDaemon</code> with the values
+	 * provided in <code>com/aoindustries/aoserv/daemon/aoserv-daemon.properties</code>.
+	 * This will typically be called by the init scripts of the dedicated machine.
+	 */
+	public static void main(String[] args) {
+		boolean done=false;
+		while(!done) {
+			try {
+				// Configure the SSL
+				String trustStorePath=AOServClientConfiguration.getSslTruststorePath();
+				if(trustStorePath!=null && trustStorePath.length()>0) {
+					System.setProperty("javax.net.ssl.trustStore", trustStorePath);
+				}
+				String trustStorePassword=AOServClientConfiguration.getSslTruststorePassword();
+				if(trustStorePassword!=null && trustStorePassword.length()>0) {
+					System.setProperty("javax.net.ssl.trustStorePassword", trustStorePassword);
+				}
+				String keyStorePath=AOServDaemonConfiguration.getSSLKeystorePath();
+				if(keyStorePath!=null && keyStorePath.length()>0) {
+					System.setProperty("javax.net.ssl.keyStore", keyStorePath);
+				}
+				String keyStorePassword=AOServDaemonConfiguration.getSSLKeystorePassword();
+				if(keyStorePassword!=null && keyStorePassword.length()>0) {
+					System.setProperty("javax.net.ssl.keyStorePassword", keyStorePassword);
+				}
 
-                // Configure the SSL
-                String trustStorePath=AOServClientConfiguration.getSslTruststorePath();
-                if(trustStorePath!=null && trustStorePath.length()>0) {
-                    System.setProperty("javax.net.ssl.trustStore", trustStorePath);
-                }
-                String trustStorePassword=AOServClientConfiguration.getSslTruststorePassword();
-                if(trustStorePassword!=null && trustStorePassword.length()>0) {
-                    System.setProperty("javax.net.ssl.trustStorePassword", trustStorePassword);
-                }
-                String keyStorePath=AOServDaemonConfiguration.getSSLKeystorePath();
-                if(keyStorePath!=null && keyStorePath.length()>0) {
-                    System.setProperty("javax.net.ssl.keyStore", keyStorePath);
-                }
-                String keyStorePassword=AOServDaemonConfiguration.getSSLKeystorePassword();
-                if(keyStorePassword!=null && keyStorePassword.length()>0) {
-                    System.setProperty("javax.net.ssl.keyStorePassword", keyStorePassword);
-                }
-
-                // Start up the managers
+				// Start up the managers
 				// cvsd
-                CvsManager.start();
+				CvsManager.start();
 				// distro
-                DistroManager.start();
+				DistroManager.start();
 				// dns
 				DNSManager.start();
 				// email
-                EmailAddressManager.start();
-                EmailDomainManager.start();
-                ImapManager.start();
+				EmailAddressManager.start();
+				EmailDomainManager.start();
+				ImapManager.start();
 				MajordomoManager.start();
-                ProcmailManager.start();
+				ProcmailManager.start();
 				SendmailCFManager.start();
-                SpamAssassinManager.start();
-                SmtpRelayManager.start();
+				SpamAssassinManager.start();
+				SmtpRelayManager.start();
 				// email.jilter
 				JilterConfigurationWriter.start();
 				// failover
@@ -200,221 +197,221 @@ final public class AOServDaemon {
 				// ftp
 				FTPManager.start();
 				// httpd
-                AWStatsManager.start();
+				AWStatsManager.start();
 				HttpdManager.start();
 				// iptables
-                IpReputationManager.start();
+				IpReputationManager.start();
 				// monitor
-                MrtgManager.start();
+				MrtgManager.start();
 				NetworkMonitor.start();
 				// mysql
-                // TODO: Move to aoserv-daemon: MySQLCreditCardScanner.start();
-                MySQLDatabaseManager.start();
-                MySQLDBUserManager.start();
-                MySQLHostManager.start();
-                MySQLServerManager.start();
-                MySQLUserManager.start();
+				// TODO: Move to aoserv-daemon: MySQLCreditCardScanner.start();
+				MySQLDatabaseManager.start();
+				MySQLDBUserManager.start();
+				MySQLHostManager.start();
+				MySQLServerManager.start();
+				MySQLUserManager.start();
 				// net
-                DhcpManager.start();
-                NetDeviceManager.start();
-                NullRouteManager.start();
+				DhcpManager.start();
+				NetDeviceManager.start();
+				NullRouteManager.start();
 				// net.ssh
-                SshdManager.start();
+				SshdManager.start();
 				// net.xinetd
-                XinetdManager.start();
+				XinetdManager.start();
 				// postgres
-                PgHbaManager.start();
-                PostgresDatabaseManager.start();
-                PostgresServerManager.start();
-                PostgresUserManager.start();
+				PgHbaManager.start();
+				PostgresDatabaseManager.start();
+				PostgresServerManager.start();
+				PostgresUserManager.start();
 				// random
-                RandomEntropyManager.start();
+				RandomEntropyManager.start();
 				// timezone
-                TimeZoneManager.start();
+				TimeZoneManager.start();
 				// unix.linux
-                LinuxAccountManager.start();
+				LinuxAccountManager.start();
 
-                // Start up the AOServDaemonServers
-                NetBind bind=getThisAOServer().getDaemonBind();
-                if(bind!=null) {
+				// Start up the AOServDaemonServers
+				NetBind bind=getThisAOServer().getDaemonBind();
+				if(bind!=null) {
 					AOServDaemonServer server = new AOServDaemonServer(bind.getIPAddress().getInetAddress(), bind.getPort().getPort(), bind.getAppProtocol().getProtocol());
 					server.start();
 				}
-                done=true;
-            } catch (ThreadDeath TD) {
-                throw TD;
-            } catch (Throwable T) {
-                Logger logger = LogFactory.getLogger(AOServDaemon.class);
-                logger.log(Level.SEVERE, null, T);
-                try {
-                    Thread.sleep(60000);
-                } catch(InterruptedException err) {
-                    logger.log(Level.WARNING, null, err);
-                }
-            }
-        }
-    }
+				done=true;
+			} catch (ThreadDeath TD) {
+				throw TD;
+			} catch (Throwable T) {
+				Logger logger = LogFactory.getLogger(AOServDaemon.class);
+				logger.log(Level.SEVERE, null, T);
+				try {
+					Thread.sleep(60000);
+				} catch(InterruptedException err) {
+					logger.log(Level.WARNING, null, err);
+				}
+			}
+		}
+	}
 
-    /**
-     * Gets a single-String representation of the command.  This should be used
-     * for display purposes only, because it doesn't quote things in a shell-safe way.
-     */
-    public static String getCommandString(String... command) {
-        StringBuilder SB = new StringBuilder();
-        for(int c=0;c<command.length;c++) {
-            if(c>0) SB.append(' ');
-            String cmd=command[c];
-            boolean needQuote=cmd.indexOf(' ')!=-1;
-            if(needQuote) SB.append('"');
-            SB.append(command[c]);
-            if(needQuote) SB.append('"');
-        }
-        return SB.toString();
-    }
-    
-    public static void exec(String... command) throws IOException {
-        if(DEBUG) {
-            System.out.print("DEBUG: AOServDaemon.exec(): ");
-            System.out.println(getCommandString(command));
-        }
-        Process P = Runtime.getRuntime().exec(command);
-        try {
-            P.getOutputStream().close();
-        } finally {
-            waitFor(P, command);
-        }
-    }
+	/**
+	 * Gets a single-String representation of the command.  This should be used
+	 * for display purposes only, because it doesn't quote things in a shell-safe way.
+	 */
+	public static String getCommandString(String... command) {
+		StringBuilder SB = new StringBuilder();
+		for(int c=0;c<command.length;c++) {
+			if(c>0) SB.append(' ');
+			String cmd=command[c];
+			boolean needQuote=cmd.indexOf(' ')!=-1;
+			if(needQuote) SB.append('"');
+			SB.append(command[c]);
+			if(needQuote) SB.append('"');
+		}
+		return SB.toString();
+	}
 
-    /**
-     * TODO: Capture error stream
-     */
-    public static void waitFor(Process P, String... command) throws IOException {
-        try {
-            P.waitFor();
-        } catch (InterruptedException err) {
-            InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
-            ioErr.initCause(err);
-            throw ioErr;
-        }
-        int exit = P.exitValue();
-        if(exit!=0) {
-            StringBuilder SB=new StringBuilder();
-            SB.append("Non-zero exit status from '");
-            SB.append(getCommandString(command));
-            SB.append("': ").append(exit);
-            throw new IOException(SB.toString());
-        }
-    }
+	public static void exec(String... command) throws IOException {
+		if(DEBUG) {
+			System.out.print("DEBUG: AOServDaemon.exec(): ");
+			System.out.println(getCommandString(command));
+		}
+		Process P = Runtime.getRuntime().exec(command);
+		try {
+			P.getOutputStream().close();
+		} finally {
+			waitFor(P, command);
+		}
+	}
 
-    /**
-     * Executes a command and captures the output.
-     */
-    public static String execAndCapture(String... command) throws IOException {
-        Process P = Runtime.getRuntime().exec(command);
-        try {
-            P.getOutputStream().close();
-            try (Reader in = new InputStreamReader(P.getInputStream())) {
+	/**
+	 * TODO: Capture error stream
+	 */
+	public static void waitFor(Process P, String... command) throws IOException {
+		try {
+			P.waitFor();
+		} catch (InterruptedException err) {
+			InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
+			ioErr.initCause(err);
+			throw ioErr;
+		}
+		int exit = P.exitValue();
+		if(exit!=0) {
+			StringBuilder SB=new StringBuilder();
+			SB.append("Non-zero exit status from '");
+			SB.append(getCommandString(command));
+			SB.append("': ").append(exit);
+			throw new IOException(SB.toString());
+		}
+	}
+
+	/**
+	 * Executes a command and captures the output.
+	 */
+	public static String execAndCapture(String... command) throws IOException {
+		Process P = Runtime.getRuntime().exec(command);
+		try {
+			P.getOutputStream().close();
+			try (Reader in = new InputStreamReader(P.getInputStream())) {
 				return IoUtils.readFully(in);
-            }
-        } finally {
-            // Read the standard error
-            String errorString;
-            try (Reader errIn = new InputStreamReader(P.getErrorStream())) {
+			}
+		} finally {
+			// Read the standard error
+			String errorString;
+			try (Reader errIn = new InputStreamReader(P.getErrorStream())) {
 				errorString = IoUtils.readFully(errIn);
-            }
-            // Write any standard error to standard error
-            if(errorString.length()>0) System.err.println("'"+getCommandString(command)+"': "+errorString);
-            try {
-                int retCode = P.waitFor();
-                if(retCode!=0) throw new IOException("Non-zero exit status from '"+getCommandString(command)+"': "+retCode+", standard error was: "+errorString);
-            } catch(InterruptedException err) {
-                InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
-                ioErr.initCause(err);
-                throw ioErr;
-            }
-        }
-    }
+			}
+			// Write any standard error to standard error
+			if(errorString.length()>0) System.err.println("'"+getCommandString(command)+"': "+errorString);
+			try {
+				int retCode = P.waitFor();
+				if(retCode!=0) throw new IOException("Non-zero exit status from '"+getCommandString(command)+"': "+retCode+", standard error was: "+errorString);
+			} catch(InterruptedException err) {
+				InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
+				ioErr.initCause(err);
+				throw ioErr;
+			}
+		}
+	}
 
-    /**
-     * Executes a command and captures the output.
-     */
-    public static byte[] execAndCaptureBytes(String... command) throws IOException {
-        Process P = Runtime.getRuntime().exec(command);
-        try {
-            P.getOutputStream().close();
-            try (InputStream in = P.getInputStream()) {
+	/**
+	 * Executes a command and captures the output.
+	 */
+	public static byte[] execAndCaptureBytes(String... command) throws IOException {
+		Process P = Runtime.getRuntime().exec(command);
+		try {
+			P.getOutputStream().close();
+			try (InputStream in = P.getInputStream()) {
 				return IoUtils.readFully(in);
-            }
-        } finally {
-            // Read the standard error
-            String errorString;
-            try (Reader errIn = new InputStreamReader(P.getErrorStream())) {
+			}
+		} finally {
+			// Read the standard error
+			String errorString;
+			try (Reader errIn = new InputStreamReader(P.getErrorStream())) {
 				errorString = IoUtils.readFully(errIn);
-            }
-            // Write any standard error to standard error
-            if(errorString.length()>0) System.err.println("'"+getCommandString(command)+"': "+errorString);
-            try {
-                int retCode = P.waitFor();
-                if(retCode!=0) throw new IOException("Non-zero exit status from '"+getCommandString(command)+"': "+retCode+", standard error was: "+errorString);
-            } catch(InterruptedException err) {
-                InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
-                ioErr.initCause(err);
-                throw ioErr;
-            }
-        }
-    }
+			}
+			// Write any standard error to standard error
+			if(errorString.length()>0) System.err.println("'"+getCommandString(command)+"': "+errorString);
+			try {
+				int retCode = P.waitFor();
+				if(retCode!=0) throw new IOException("Non-zero exit status from '"+getCommandString(command)+"': "+retCode+", standard error was: "+errorString);
+			} catch(InterruptedException err) {
+				InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
+				ioErr.initCause(err);
+				throw ioErr;
+			}
+		}
+	}
 
-    /**
-     * Switches to the specified user and executes a command.
-     * 
-     * @param  nice  a nice level passed to /bin/nice, a value of zero (0) will cause nice to not be called
-     */
-    public static void suexec(String username, String command, int nice) throws IOException {
-        /*
-         * Not needed because command is passed as String[] and any funny stuff will
-         * be executed as the proper user.
-        if(command==null) throw new IllegalArgumentException("command is null");
-        int len = command.length();
-        if(len==0) throw new IllegalArgumentException("command is empty");
-        for(int c=0;c<len;c++) {
-            char ch = command.charAt(c);
-            if(
-                (ch<'a' || ch>'z')
-                && (ch<'A' || ch>'Z')
-                && (ch<'0' || ch>'9')
-                && ch!=' '
-                && ch!='-'
-                && ch!='_'
-                && ch!='.'
-                && ch!='/'
-            ) {
-                throw new IllegalArgumentException("Invalid command character: "+ch);
-            }
-        }*/
+	/**
+	 * Switches to the specified user and executes a command.
+	 * 
+	 * @param  nice  a nice level passed to /bin/nice, a value of zero (0) will cause nice to not be called
+	 */
+	public static void suexec(String username, String command, int nice) throws IOException {
+		/*
+		 * Not needed because command is passed as String[] and any funny stuff will
+		 * be executed as the proper user.
+		if(command==null) throw new IllegalArgumentException("command is null");
+		int len = command.length();
+		if(len==0) throw new IllegalArgumentException("command is empty");
+		for(int c=0;c<len;c++) {
+			char ch = command.charAt(c);
+			if(
+				(ch<'a' || ch>'z')
+				&& (ch<'A' || ch>'Z')
+				&& (ch<'0' || ch>'9')
+				&& ch!=' '
+				&& ch!='-'
+				&& ch!='_'
+				&& ch!='.'
+				&& ch!='/'
+			) {
+				throw new IllegalArgumentException("Invalid command character: "+ch);
+			}
+		}*/
 
-        String[] cmd;
-        if(nice!=0) {
-            cmd = new String[] {
-                "/bin/nice",
-                "-n",
-                Integer.toString(nice),
-                "/bin/su",
-                "-s",
-                Shell.BASH,
-                "-c",
-                command,
-                username
-            };
-        } else {
-            cmd = new String[] {
-                "/bin/su",
-                "-s",
-                Shell.BASH,
-                "-c",
-                command,
-                username
-            };
-        }
-        exec(cmd);
-    }
+		String[] cmd;
+		if(nice!=0) {
+			cmd = new String[] {
+				"/bin/nice",
+				"-n",
+				Integer.toString(nice),
+				"/bin/su",
+				"-s",
+				Shell.BASH,
+				"-c",
+				command,
+				username
+			};
+		} else {
+			cmd = new String[] {
+				"/bin/su",
+				"-s",
+				Shell.BASH,
+				"-c",
+				command,
+				username
+			};
+		}
+		exec(cmd);
+	}
 }

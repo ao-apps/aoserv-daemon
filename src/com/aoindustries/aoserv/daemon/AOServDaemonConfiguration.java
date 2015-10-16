@@ -1,12 +1,11 @@
 /*
- * Copyright 2001-2013, 2014 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2014, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon;
 
 import com.aoindustries.io.AOPool;
-import com.aoindustries.profiler.Profiler;
 import com.aoindustries.util.PropertiesUtils;
 import com.aoindustries.util.StringUtility;
 import java.io.IOException;
@@ -23,122 +22,118 @@ import java.util.Properties;
  */
 final public class AOServDaemonConfiguration {
 
-    private AOServDaemonConfiguration() {
-    }
+	private AOServDaemonConfiguration() {
+	}
 
-    private static Properties props;
+	private static Properties props;
 
 	/**
 	 * Gets a property value.
 	 *
 	 * @param  required  when <code>true</code> the value must be non-null and non-empty
 	 */
-    private static String getProperty(String name, boolean required) throws IOException {
+	private static String getProperty(String name, boolean required) throws IOException {
 		final String propName = "aoserv.daemon."+name;
 		final String value;
-        synchronized(AOServDaemonConfiguration.class) {
-            if(props == null) props = PropertiesUtils.loadFromResource(AOServDaemonConfiguration.class, "aoserv-daemon.properties");
+		synchronized(AOServDaemonConfiguration.class) {
+			if(props == null) props = PropertiesUtils.loadFromResource(AOServDaemonConfiguration.class, "aoserv-daemon.properties");
 			value = props.getProperty(propName);
-        }
+		}
 		if(required && (value==null || value.length()==0)) throw new IOException("Required property not found: " + propName);
 		return value;
-    }
+	}
 
 	/**
 	 * Gets a property value, value not required.
 	 */
-    private static String getProperty(String name) throws IOException {
+	private static String getProperty(String name) throws IOException {
 		return getProperty(name, false);
 	}
 
-	public static int getProfilerLevel() throws IOException {
-        return Profiler.parseProfilerLevel(getProperty("profiler.level"));
-    }
+	public static boolean isNested() throws IOException {
+		return "true".equalsIgnoreCase(getProperty("nested"));
+	}
 
-    public static boolean isNested() throws IOException {
-        return "true".equalsIgnoreCase(getProperty("nested"));
-    }
+	public static String getMonitorEmailFullTo() throws IOException {
+		return getProperty("monitor.email.full.to");
+	}
 
-    public static String getMonitorEmailFullTo() throws IOException {
-        return getProperty("monitor.email.full.to");
-    }
+	public static String getMonitorEmailFullFrom() throws IOException {
+		return getProperty("monitor.email.full.from");
+	}
 
-    public static String getMonitorEmailFullFrom() throws IOException {
-        return getProperty("monitor.email.full.from");
-    }
+	public static String getMonitorEmailSummaryTo() throws IOException {
+		return getProperty("monitor.email.summary.to");
+	}
 
-    public static String getMonitorEmailSummaryTo() throws IOException {
-        return getProperty("monitor.email.summary.to");
-    }
+	public static String getMonitorEmailSummaryFrom() throws IOException {
+		return getProperty("monitor.email.summary.from");
+	}
 
-    public static String getMonitorEmailSummaryFrom() throws IOException {
-        return getProperty("monitor.email.summary.from");
-    }
+	public static String getMonitorSmtpServer() throws IOException {
+		return getProperty("monitor.smtp.server");
+	}
 
-    public static String getMonitorSmtpServer() throws IOException {
-        return getProperty("monitor.smtp.server");
-    }
+	public static String getServerHostname() throws IOException {
+		return getProperty("server.hostname", true);
+	}
 
-    public static String getServerHostname() throws IOException {
-        return getProperty("server.hostname", true);
-    }
+	public static String getSSLKeystorePassword() throws IOException {
+		return getProperty("ssl.keystore.password");
+	}
 
-    public static String getSSLKeystorePassword() throws IOException {
-        return getProperty("ssl.keystore.password");
-    }
+	public static String getSSLKeystorePath() throws IOException {
+		return getProperty("ssl.keystore.path");
+	}
 
-    public static String getSSLKeystorePath() throws IOException {
-        return getProperty("ssl.keystore.path");
-    }
+	public static String getPostgresPassword() throws IOException {
+		return getProperty("postgres.password", true);
+	}
 
-    public static String getPostgresPassword() throws IOException {
-        return getProperty("postgres.password", true);
-    }
+	public static int getPostgresConnections() throws IOException {
+		return Integer.parseInt(getProperty("postgres.connections", true));
+	}
 
-    public static int getPostgresConnections() throws IOException {
-        return Integer.parseInt(getProperty("postgres.connections", true));
-    }
+	public static long getPostgresMaxConnectionAge() throws IOException {
+		String S=getProperty("postgres.max_connection_age");
+		return S==null || S.length()==0 ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(S);
+	}
 
-    public static long getPostgresMaxConnectionAge() throws IOException {
-        String S=getProperty("postgres.max_connection_age");
-        return S==null || S.length()==0 ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(S);
-    }
+	public static String getMySqlDriver() throws IOException {
+		return getProperty("mysql.driver", true);
+	}
 
-    public static String getMySqlDriver() throws IOException {
-        return getProperty("mysql.driver", true);
-    }
+	public static String getMySqlUser() throws IOException {
+		return getProperty("mysql.user", true);
+	}
 
-    public static String getMySqlUser() throws IOException {
-        return getProperty("mysql.user", true);
-    }
+	public static String getMySqlPassword() throws IOException {
+		return getProperty("mysql.password", true);
+	}
 
-    public static String getMySqlPassword() throws IOException {
-        return getProperty("mysql.password", true);
-    }
+	public static int getMySqlConnections() throws IOException {
+		return Integer.parseInt(getProperty("mysql.connections", true));
+	}
 
-    public static int getMySqlConnections() throws IOException {
-        return Integer.parseInt(getProperty("mysql.connections", true));
-    }
+	public static long getMySqlMaxConnectionAge() throws IOException {
+		String S=getProperty("mysql.max_connection_age");
+		return S==null || S.length()==0 ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(S);
+	}
 
-    public static long getMySqlMaxConnectionAge() throws IOException {
-        String S=getProperty("mysql.max_connection_age");
-        return S==null || S.length()==0 ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(S);
-    }
+	public static String getCyrusPassword() throws IOException {
+		return getProperty("cyrus.password", true);
+	}
 
-    public static String getCyrusPassword() throws IOException {
-        return getProperty("cyrus.password", true);
-    }
-
-    public static boolean isManagerEnabled(Class<?> clazz) throws IOException {
-        final String stripPrefix="com.aoindustries.aoserv.daemon.";
-        String key=clazz.getName();
-        if(key.startsWith(stripPrefix)) key=key.substring(stripPrefix.length());
-        key=key+".enabled";
-        String value=getProperty(key, true);
-        if("true".equalsIgnoreCase(value)) return true;
-        if("false".equalsIgnoreCase(value)) return false;
-        throw new IOException("Value in aoserv-daemon.properties must be either \"true\" or \"false\": "+key);
-    }
+	public static boolean isManagerEnabled(Class<?> clazz) throws IOException {
+		final String stripPrefix="com.aoindustries.aoserv.daemon.";
+		String key=clazz.getName();
+		if(key.startsWith(stripPrefix)) key = key.substring(stripPrefix.length());
+		key += ".enabled";
+		String value=getProperty(key, true);
+		if("true".equalsIgnoreCase(value)) return true;
+		if("false".equalsIgnoreCase(value)) return false;
+		throw new IOException("Value in aoserv-daemon.properties must be either \"true\" or \"false\": "+key);
+	}
 
 	public static class NetworkMonitorConfiguration {
 
@@ -217,7 +212,7 @@ final public class AOServDaemonConfiguration {
 		public CountDirection getOutCountDirection() {
 			return outCountDirection;
 		}
-		
+
 		public Long getNullRouteFifoErrorRate() {
 			return nullRouteFifoErrorRate;
 		}

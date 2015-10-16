@@ -1,6 +1,3 @@
-# Profiling provides data in the daemon_profile table
-aoserv.daemon.profiler.level=slow
-
 # Tells the daemon that it is nested in another operating system and should not assume absolute
 # control over resources like networking and processes
 aoserv.daemon.nested=false

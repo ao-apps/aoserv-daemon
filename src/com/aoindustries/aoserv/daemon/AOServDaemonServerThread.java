@@ -6,10 +6,8 @@
 package com.aoindustries.aoserv.daemon;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.AOServProtocol;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.AOServerDaemonHost;
-import com.aoindustries.aoserv.client.DaemonProfile;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.MySQLDatabase;
 import com.aoindustries.aoserv.client.MySQLServer;
@@ -19,7 +17,6 @@ import com.aoindustries.aoserv.client.PostgresDatabase;
 import com.aoindustries.aoserv.client.PostgresServer;
 import com.aoindustries.aoserv.client.PostgresServerUser;
 import com.aoindustries.aoserv.client.SchemaTable;
-import com.aoindustries.aoserv.client.validator.DomainName;
 import com.aoindustries.aoserv.client.validator.HashedPassword;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
@@ -48,8 +45,6 @@ import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.noc.monitor.portmon.PortMonitor;
-import com.aoindustries.profiler.MethodProfile;
-import com.aoindustries.profiler.Profiler;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.EOFException;
@@ -454,26 +449,6 @@ final public class AOServDaemonServerThread extends Thread {
 								boolean isManual=ProcmailManager.isManual(lsa);
 								out.write(AOServDaemonProtocol.DONE);
 								out.writeBoolean(isManual);
-							}
-							break;
-						case AOServDaemonProtocol.GET_DAEMON_PROFILE :
-							{
-								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_DAEMON_PROFILE, Thread="+toString());
-								if(daemonKey==null) throw new IOException("Only the master server may GET_DAEMON_PROFILE");
-								if(Profiler.getProfilerLevel()>Profiler.NONE) {
-									DomainName hostname=AOServDaemon.getThisAOServer().getHostname();
-									List<MethodProfile> profs=Profiler.getMethodProfiles();
-									int len=profs.size();
-									for(int c=0;c<len;c++) {
-										DaemonProfile dp=DaemonProfile.getDaemonProfile(
-											hostname,
-											profs.get(c)
-										);
-										out.write(AOServDaemonProtocol.NEXT);
-										dp.write(out, AOServProtocol.Version.CURRENT_VERSION);
-									}
-								}
-								out.write(AOServDaemonProtocol.DONE);
 							}
 							break;
 						case AOServDaemonProtocol.GET_DISK_DEVICE_TOTAL_SIZE :
