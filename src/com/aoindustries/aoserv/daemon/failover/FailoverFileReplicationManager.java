@@ -31,8 +31,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
-import java.sql.SQLException;
 import java.net.Socket;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -46,9 +46,6 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-//import java.util.zip.DeflaterOutputStream;
-//import java.util.zip.GZIPInputStream;
-
 /**
  * Handles the replication of data for the failover system.
  *
@@ -86,6 +83,11 @@ final public class FailoverFileReplicationManager {
 	 * is especially important for meta-data journalling filesystems, such as reiserfs, to maximize scalability.
 	 */
 	private static final String RECYCLED_EXTENSION=".recycled";
+
+	/**
+	 * The directory name that contains the data index.
+	 */
+	private static final String DATA_INDEX_DIRECTORY_NAME = "DATA-INDEX";
 
 	/**
 	 * TODO: Move this into a backup settings table.
@@ -136,13 +138,85 @@ final public class FailoverFileReplicationManager {
 	}
 
 	/**
-	 * Make sure a path is absolute (starts with "/") and doesn't contain "/../"
+	 * Checks a path for sanity:
+	 * <ol>
+	 *   <li>Must not be empty</li>
+	 *   <li>Must start with '/'</li>
+	 *   <li>Must not contain null character</li>
+	 *   <li>Must not contain empty path element "//"</li>
+	 *   <li>Must not end with '/', unless is the root "/" itself</li>
+	 *   <li>Must not contain "/../"</li>
+	 *   <li>Must not end with "/.."</li>
+	 *   <li>Must not contain "/./"</li>
+	 *   <li>Must not end with "/."</li>
+	 * </ol>
 	 */
 	public static void checkPath(String path) throws IOException {
+		// Must not be empty
+		int pathLen = path.length();
+		if(pathLen == 0) {
+			throw new IOException("Illegal path: Must not be empty");
+		}
+		// Must start with '/'
+		if(path.charAt(0) != '/') {
+			throw new IOException("Illegal path: Must start with '/': " + path);
+		}
+		// Must not contain null character
+		if(path.indexOf(0) != -1) {
+			throw new IOException("Illegal path: Must not contain null character: " + path);
+		}
+		// Must not contain empty path element "//"
+		if(path.contains("//")) {
+			throw new IOException("Illegal path: Must not contain empty path element \"//\": " + path);
+		}
+		// Must not end with '/', unless is the root "/" itself
+		if(pathLen > 1 && path.charAt(pathLen - 1) == '/') {
+			throw new IOException("Illegal path: Must not end with '/', unless is the root \"/\" itself: " + path);
+		}
+		// Must not contain "/../"
+		if(path.contains("/../")) {
+			throw new IOException("Illegal path: Must not contain \"/../\": " + path);
+		}
+		// Must not end with "/.."
 		if(
-			path.charAt(0)!='/'
-			|| path.indexOf("/../")!=-1
-		) throw new IOException("Illegal path: "+path);
+			pathLen >= 3
+			&& path.charAt(pathLen - 3) == '/'
+			&& path.charAt(pathLen - 2) == '.'
+			&& path.charAt(pathLen - 1) == '.'
+		) {
+			throw new IOException("Illegal path: Must not end with \"/..\": " + path);
+		}
+		// Must not contain "/./"
+		if(path.contains("/./")) {
+			throw new IOException("Illegal path: Must not contain \"/./\": " + path);
+		}
+		// Must not end with "/."
+		if(
+			pathLen >= 2
+			&& path.charAt(pathLen - 2) == '/'
+			&& path.charAt(pathLen - 1) == '.'
+		) {
+			throw new IOException("Illegal path: Must not end with \"/.\": " + path);
+		}
+	}
+
+	/**
+	 * Checks a symlink target for sanity:
+	 * <ol>
+	 *   <li>Must not be empty</li>
+	 *   <li>Must not contain null character</li>
+	 * </ol>
+	 */
+	public static void checkSymlinkTarget(String target) throws IOException {
+		// Must not be empty
+		int targetLen = target.length();
+		if(targetLen == 0) {
+			throw new IOException("Illegal target: Must not be empty");
+		}
+		// Must not contain null character
+		if(target.indexOf(0) != -1) {
+			throw new IOException("Illegal target: Must not contain null character: " + target);
+		}
 	}
 
 	/**
@@ -300,7 +374,7 @@ final public class FailoverFileReplicationManager {
 	 * Receives incoming data for a failover replication.  The critical information, such as the directory to store to,
 	 * has been provided by the master server because we can't trust the sending server.
 	 * 
-	 * @param toPath  the full path to the root of the backup, including any hostnames, packages, or names
+	 * @param backupPartition  the full path to the root of the backup partition, without any hostnames, packages, or names
 	 * @param quota_gid  the quota_gid or <code>-1</code> for no quotas
 	 */
 	public static void failoverServer(
@@ -311,7 +385,7 @@ final public class FailoverFileReplicationManager {
 		final String fromServer,
 		final boolean useCompression,
 		final short retention,
-		final String toPath,
+		final String backupPartition,
 		final short fromServerYear,
 		final short fromServerMonth,
 		final short fromServerDay,
@@ -322,6 +396,7 @@ final public class FailoverFileReplicationManager {
 		boolean success = false;
 		final Activity activity = getActivity(failoverFileReplicationPkey);
 		activity.update("logic: init");
+		final String toPath = backupPartition + '/' + fromServer;
 		try {
 			final PostPassChecklist postPassChecklist = new PostPassChecklist();
 			Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
@@ -335,11 +410,12 @@ final public class FailoverFileReplicationManager {
 						+ "    fromServer=\"" + fromServer + "\"\n"
 						+ "    useCompression=" + useCompression + "\n"
 						+ "    retention=" + retention + "\n"
-						+ "    toPath=\"" + toPath + "\"\n"
+						+ "    backupPartition=\"" + backupPartition + "\"\n"
 						+ "    fromServerYear=" + fromServerYear + "\n"
 						+ "    fromServerMonth=" + fromServerMonth + "\n"
 						+ "    fromServerDay=" + fromServerDay + "\n"
 						+ "    quota_gid=" + quota_gid + "\n"
+						+ "    toPath=\"" + toPath + "\"\n"
 						+ "    thread.id=" + Thread.currentThread().getId()
 					);
 				}
@@ -366,18 +442,20 @@ final public class FailoverFileReplicationManager {
 				out.flush();
 
 				// Determine the directory that is/will be storing the mirror
-				String partialMirrorRoot;
-				String recycledPartialMirrorRoot;
-				String finalMirrorRoot;
+				final String partialMirrorRoot;
+				final String recycledPartialMirrorRoot;
+				final String finalMirrorRoot;
 				String linkToRoot;
-				UnixFile serverRootUF;
+				final UnixFile serverRootUF;
 				boolean isRecycling;
+				final DataIndex dataIndex;
 				if(retention==1) {
 					partialMirrorRoot = finalMirrorRoot = toPath;
 					recycledPartialMirrorRoot = null;
 					linkToRoot = null;
 					serverRootUF = null;
 					isRecycling = false;
+					dataIndex = null;
 
 					// Create the server root if it doesn't exist
 					UnixFile dirUF = new UnixFile(toPath);
@@ -395,12 +473,13 @@ final public class FailoverFileReplicationManager {
 						throw new IOException("toPath exists but is not a directory: "+toPath);
 					}
 				} else {
+					if(DATA_INDEX_DIRECTORY_NAME.equals(fromServer)) throw new IOException("fromServer conflicts with data index: " + fromServer);
+					dataIndex = DataIndex.getInstance(new File(backupPartition, DATA_INDEX_DIRECTORY_NAME));
 					// The directory that holds the different versions
 					StringBuilder SB = new StringBuilder(toPath);
-					String serverRoot = SB.toString();
 
 					// Create the server root if it doesn't exist
-					serverRootUF = new UnixFile(serverRoot);
+					serverRootUF = new UnixFile(toPath);
 					activity.update("file: stat: ", serverRootUF);
 					serverRootUF.getStat(tempStat);
 					if(!tempStat.exists()) {
@@ -412,7 +491,7 @@ final public class FailoverFileReplicationManager {
 							quota_gid==-1 ? UnixFile.ROOT_GID : quota_gid
 						);
 					} else if(!tempStat.isDirectory()) {
-						throw new IOException("Server Root exists but is not a directory: "+serverRoot);
+						throw new IOException("Server Root exists but is not a directory: "+toPath);
 					}
 
 					// The directory including the date
@@ -533,7 +612,7 @@ final public class FailoverFileReplicationManager {
 								// Find most recent complete pass
 								for(int c=list.length-1;c>=0;c--) {
 									String filename = list[c];
-									String fullFilename = serverRoot+"/"+filename;
+									String fullFilename = toPath+"/"+filename;
 									if(fullFilename.equals(finalMirrorRoot)) throw new AssertionError("finalMirrorRoot exists, but should have already been renamed to .partial");
 									if(
 										filename.length()==10
@@ -597,7 +676,7 @@ final public class FailoverFileReplicationManager {
 					if(linkToRoot.equals(finalMirrorRoot)) throw new IOException("linkToRoot==finalMirrorRoot: "+linkToRoot);
 				}
 
-				CompressedDataInputStream in =
+				final CompressedDataInputStream in =
 					/*useCompression
 					? new CompressedDataInputStream(new GZIPInputStream(new DontCloseInputStream(rawIn), BufferManager.BUFFER_SIZE))
 					:*/ rawIn
@@ -677,8 +756,8 @@ final public class FailoverFileReplicationManager {
 								}
 								// Read the current file
 								final String relativePath=paths[c]=in.readCompressedUTF();
-								isLogDirs[c]=relativePath.startsWith("/logs/") || relativePath.startsWith("/var/log/");
 								checkPath(relativePath);
+								isLogDirs[c]=relativePath.startsWith("/logs/") || relativePath.startsWith("/var/log/");
 								String path=paths[c]=(isRecycling ? recycledPartialMirrorRoot : partialMirrorRoot)+relativePath;
 								UnixFile uf=new UnixFile(path);
 								activity.update("file: stat: ", uf);
@@ -725,6 +804,7 @@ final public class FailoverFileReplicationManager {
 								if(UnixFile.isSymLink(mode)) {
 									activity.update("socket: read: Reading symlinkTarget ", batchPos, " of ", batchSizeObj);
 									symlinkTarget = in.readCompressedUTF();
+									checkSymlinkTarget(symlinkTarget);
 								} else {
 									symlinkTarget = null;
 								}
