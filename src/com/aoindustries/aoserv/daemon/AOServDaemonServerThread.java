@@ -221,7 +221,7 @@ final public class AOServDaemonServerThread extends Thread {
 									dae.param2, // fromServer
 									useCompression,
 									retention,
-									dae.param3, // toPath (complete with server hostname and other path stuff)
+									dae.param3, // backupPartition
 									fromServerYear,
 									fromServerMonth,
 									fromServerDay,
