@@ -97,10 +97,34 @@ import java.util.logging.Logger;
  * backup directory, the files will be linked together to save space.
  * </p>
  * <p>
- * When the data index is enabled, each file is replaced in one of two ways,
+ * When the data index is enabled, each file is handled one of three ways:
+ * </p>
+ * <ol>
+ * <li>If the file is empty, it is stored directly in place not using the data index</li>
+ * <li>If the filename is less than <code>MAX_NODIR_FILENAME</code> in length:
+ *   <ol type="a">
+ *     <li>The file is represented by an empty surrogate in it's original location</li>
+ *     <li>A series of hard linked data chunks with original filename as prefix</li>
+ *   </ol>
+ * </li>
+ * <li>If the filename is too long:
+ *   <ol type="a">
+ *     <li>A directory is put in place of the filename</li>
+ *     <li>An empty surrogate named "&lt;A&lt;O&lt;SURROGATE&gt;O&gt;A&gt;" is created</li>
+ *     <li>A series of hard linked data chunks</li>
+ * </ol>
+ * <p>
+ * A surrogate file contain all the ownership, mode, and (in the future) will
+ * represent the hard link relationships in the original source tree.
+ * </p>
+ * <p>
+ * During an expansion process, the surrogate might not be empty as data is put
+ * back in place.  The restore processes resume where they left off, even when
+ * interrupted.
+ * </p>
  * depending on the length of the filename.
  *
- * 16 TiB = 2 ^ (10 + 10 + 10 + 10 + 4) = 2 ^ 44
+16 TiB = 2 ^ (10 + 10 + 10 + 10 + 4) = 2 ^ 44
 
 Each chunk is up to 1 MiB: 2 ^ 20
 

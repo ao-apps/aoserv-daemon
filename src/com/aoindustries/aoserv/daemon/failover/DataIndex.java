@@ -317,6 +317,7 @@ public class DataIndex {
 								) {
 									logger.log(Level.WARNING, "Removing orphan: " + uf);
 									uf.delete();
+									// TODO: Renumber any files after this one by both collision# and link#
 								}
 							}
 							// We'll play extra nice by letting others grab the lock before
