@@ -13,6 +13,7 @@ import com.aoindustries.cron.CronJobScheduleMode;
 import com.aoindustries.cron.Schedule;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.util.StringUtility;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
@@ -22,68 +23,111 @@ import java.util.logging.Logger;
 
 /**
  * <p>
- * Each backup partition has a central index of data chunks for files
- * of <code>FAILOVER_FILE_REPLICATION_CHUNK_SIZE</code> or larger.
- * Each chunk is up to <code>FAILOVER_FILE_REPLICATION_CHUNK_SIZE</code>
- * in size and may be reused via hard links in order to achieve space savings.
- * Each chunk is also gzip compressed for additional space savings.  File tails
- * (partial chunks at the end less than <code>FAILOVER_FILE_REPLICATION_CHUNK_SIZE</code>)
- * are also added to the index.
+ * Each backup partition may optionally use a central index of data chunks for
+ * all non-empty regular files.  Files are split into chunks of
+ * <code>FAILOVER_FILE_REPLICATION_CHUNK_SIZE</code> bytes.  Each chunk may be
+ * reused via hard links in order to achieve space savings.  Each chunk is also
+ * optionally gzip compressed for additional space savings.  File tails (partial
+ * chunks at the end less than <code>FAILOVER_FILE_REPLICATION_CHUNK_SIZE</code>
+ * in length) are also added to the index.  A zero length chunk may never be
+ * added.
  * </p>
  * <p>
- * The central index is in a flat directory named <code>DATA-INDEX</code>.
- * Because this is a flat directory, a filesystem with support for many files in one
- * directory, such as ext4 or xfs, is required for large backup partitions.
+ * The central index is a single layer directory hash, based on the first four
+ * characters of the content's MD5 hash.  Because of this single layer hash, an
+ * individual hash directory can easily have enough entries to require a
+ * filesystem with support for many files in one directory, such as ext4 or xfs.
  * </p>
  * <p>
- * Files are named based on the MD5 hash of the uncompressed file contents.  However, due to
- * both MD5 hash collisions and the per-file hard link limits, there may be more
- * than one file per either the unique MD5 hash value or the uncompressed content.
- * The files are named as follows:
+ * Files are named based on the lowercase hex-coded MD5 hash of the uncompressed
+ * chunk contents.  However, due to both MD5 hash collisions and the per-file
+ * hard link limits, there may be more than one file per MD5 hash value.  The
+ * files are named as follows:
  * </p>
- * <pre>(/backup-partition)/DATA-INDEX/(MD5-hash)-(collision#)-(link#).gz</pre>
+ * <pre>(/backup_partition)/DATA-INDEX/(directory_hash)/(remaining_hash)-(uncompressed_length)-(collision#)-(link#)[.gz]</pre>
  * <p>
- * The <code>MD5-hash</code> is the lowercase hex-coded MD5 sum of the
- * uncompressed file contents.
- * </p>
- * <p>
- * The <code>collision#</code> is the unique set of data resulting in this MD5 hash.
- * When locating new data from the index, we do not assume data matches by MD5 alone,
- * the contents will be verified byte-by-byte.  When a second set of content must
- * be added for a given MD5 hash, it will be <code>(MD5-hash)-<em>2</em>-(link#).gz</code>.
+ * The <code>directory_hash</code> is the first four characters of the MD5 sum.
  * </p>
  * <p>
- * The <code>link#</code> is a way to workaround the filesystem limits on the number of
- * hard links allowed to one file (65000 for ext4).  Once the first file is "full",
- * a second version of the content is stored.  The second link file will be named
- * <code>(MD5-hash)-(collision#)-<em>2</em>.gz</code>
+ * The <code>remaining_hash</code> is the remaining 28 characters of the MD5 sum.
+ * </p>
+ * <p>
+ * The <code>uncompressed_length</code> is the hex-coded length of the
+ * uncompressed chunk contents.  When the length is a multiple of 0x100000
+ * (1 MiB), it is represented with an "M" following the number of mebibytes in
+ * hex.  When the length is a multiple of 0x400 (1 kiB), it is represented with
+ * a "k" following the number of kibibytes in hex.
+ * </p>
+ * <p>
+ * The uncompressed length is added to the filename to allow the efficient
+ * location of candidate contents in the event of an MD5 collision.  Chunks with
+ * a different size can be immediately excluded by filename without any
+ * additional <code>stat</code> (for uncompressed) or full decompression.  Note
+ * that if the file does not end with ".gz", this length will always equal the
+ * actual file length.
+ * </p>
+ * <p>
+ * The <code>collision#</code> is a zero-based hex counter for each unique set
+ * of data resulting in this MD5 hash.  When locating new data from the index,
+ * matches are not done by MD5 alone, the contents will be verified byte-by-byte.
+ * When a second set of content must be added for a given MD5 hash, it will be
+ * <code>(remaining_hash)-(uncompressed_length)-<em>1</em>-(link#)[.gz]</code>.
+ * </p>
+ * <p>
+ * The <code>link#</code> is a zero-based hex counter to workaround the
+ * filesystem limits on the number of hard links allowed to one file (65000 for
+ * ext4).  Once the first file is "full", a second copy of the content is stored.
+ * The second link file will be named
+ * <code>(remaining_hash)-(uncompressed_length)-(collision#)-<em>1</em>[.gz]</code>
+ * </p>
+ * <p>
+ * The <code>.gz</code> extension is added to chunks that have been gzip
+ * compressed.  Chunks smaller than <code>FILESYSTEM_BLOCK_SIZE</code> are
+ * never compressed as the space reduction will not yield any savings.
+ * For larger files, the chunk is compressed, then the compressed version is
+ * only used if it is sufficiently smaller to cross a
+ * <code>FILESYSTEM_BLOCK_SIZE</code> block boundary in size.  This avoids
+ * further compression overhead when the space reduction does not yield any
+ * savings.
  * </p>
  * <p>
  * Both <code>collision#</code> and <code>link#</code> are maintained in sequential
- * order starting at <code>1</code>.  The system renumbers files as-needed as
+ * order starting at <code>0</code>.  The system renumbers files as-needed as
  * things are removed in order to maintain no gaps in the sequence.  During routine
- * operations, searches are done one-past to detect and correct any gaps in the
- * sequence caused by any unclean shutdowns.
+ * operations, searches are done one-past the end to detect and correct any gaps
+ * in the sequence caused by any unclean shutdowns.
  * </p>
  * <p>
  * Files are normally removed from the index immediately as they are removed from
  * the backup directory trees.  However, in the event of an unclean shutdown or
  * manual administrative action, there may be orphaned index files (with a link
- * count of 1).  A cleanup job is ran once per week to find and delete any
- * orphaned index files.  This cleanup job could also be accomplished manually
- * on the shell:
+ * count of 1).  A cleanup job is ran at startup as well as once per day to find
+ * and delete any orphaned index files.  This cleanup job can also be
+ * accomplished manually on the shell:
  * </p>
  * <pre>
  * /etc/init.d/aoserv-daemon stop
- * find (/backup-partition)/DATA-INDEX -mindepth 1 -maxdepth 1 -type f -links 1 -print # -delete
+ * find (/backup-partition)/DATA-INDEX -mindepth 2 -maxdepth 2 -type f -links 1 -print # -delete
+ * find (/backup-partition)/DATA-INDEX -mindepth 1 -maxdepth 1 -type d -empty -print # -delete
+ * # Note: -delete commented for safety, uncomment to actually delete the orphans.
  * /etc/init.d/aoserv-daemon start
  * </pre>
  * <p>
- * The backup process will recreate missing index files from existing hard linked files,
+ * The backup process recreates missing index files from existing hard linked chunks,
  * so the entire index may be discarded and it will be recreated with minimal loss
  * of drive space.  Some links might not be created from new data to old (if not
  * yet put back in the index), but the system will still function and eventually
  * settle to an optimal state once again as backup directories are recycled.
+ * </p>
+ * <p>
+ * Security: Client-provided MD5 values must never be trusted for what goes into
+ * the index.  They can be used to link to existing data within the client's
+ * backup, but anything being added to the index must have server-side MD5
+ * computed.
+ * </p>
+ * <p>
+ * Locks are maintained on a per-hash-directory basis, so the I/O can be
+ * dispatched with up to 2^16 concurrency.
  * </p>
  *
  * @see  AOServDaemonProtocol#FAILOVER_FILE_REPLICATION_CHUNK_SIZE
@@ -99,7 +143,23 @@ public class DataIndex {
 	 * ext4 has a maximum of 65000, so this leaves some unused link count for
 	 * other administrative purposes.
 	 */
-	private static final int MAX_LINK_COUNT = 60000;
+	private static final int FILESYSTEM_MAX_LINK_COUNT = 60000;
+
+	/**
+	 * The page size assumed for the underlying filesystem.  This affects when
+	 * gzip compressed may be attempted.
+	 */
+	private static final int FILESYSTEM_BLOCK_SIZE = 4096;
+
+	/**
+	 * The index directory permissions.
+	 */
+	private static final int DIRECTORY_MODE = 0700;
+
+	/**
+	 * The index file permissions.
+	 */
+	private static final int FILE_MODE = 0600;
 
 	/**
 	 * Only one instance is created per canonical index directory.
@@ -124,15 +184,50 @@ public class DataIndex {
 
 	private final UnixFile canonicalDirectory;
 
-	/** Per-index lock */
-	private final Object lock = new Object();
+	/**
+	 * Per hash locks (one for each hash sub directory).
+	 */
+	private final Map<Integer,Object> hashLocks = new HashMap<>();
+
+	/**
+	 * Gets the lock for a specific hash directory, never removed once created.
+	 */
+	private Object getHashLock(Integer hashDir) {
+		if(hashDir < 0 || hashDir > 0xffff) throw new IllegalArgumentException("hashDir out of range (0-0xffff): " + hashDir);
+		synchronized(hashLocks) {
+			Object hashLock = hashLocks.get(hashDir);
+			if(hashLock == null) {
+				hashLock = new Object() {
+					@Override
+					public String toString() {
+						return
+							DataIndex.class.getName()
+							+ "("
+							+ canonicalDirectory
+							+ ").hashLock("
+							+ StringUtility.getHexChar(hashDir >>> 12)
+							+ StringUtility.getHexChar(hashDir >>> 8)
+							+ StringUtility.getHexChar(hashDir >>> 4)
+							+ StringUtility.getHexChar(hashDir)
+							+ ")"
+						;
+					}
+				};
+				hashLocks.put(hashDir, hashLock);
+			}
+			return hashLock;
+		}
+	}
 
 	private DataIndex(File canonicalDirectory) throws IOException {
 		this.canonicalDirectory = new UnixFile(canonicalDirectory);
 
 		// Create the index directory if missing
-		if(!this.canonicalDirectory.getStat().exists()) {
-			this.canonicalDirectory.mkdir(false, 0700);
+		Stat stat = this.canonicalDirectory.getStat();
+		if(!stat.exists()) {
+			this.canonicalDirectory.mkdir(false, DIRECTORY_MODE);
+		} else if(!stat.isDirectory()) {
+			throw new IOException("Not a directory: " + this.canonicalDirectory);
 		}
 
 		/**
@@ -177,35 +272,80 @@ public class DataIndex {
 	}
 
 	/**
-	 * Cleans all orphaned index files.  The lock is only held for small
-	 * sections of the entire list of files, so other I/O can be interleaved
-	 * with this cleanup process.  It is possible that new orphans created
-	 * during the cleanup will not be cleaned-up on this pass.
+	 * Parses a hash directory name.
+	 */
+	private static int parseHashDir(String hex) throws NumberFormatException {
+		if(hex.length() != 4) throw new NumberFormatException("Hash directory must be four characters long: " + hex);
+		return
+			  (StringUtility.getHex(hex.charAt(0)) << 12)
+			| (StringUtility.getHex(hex.charAt(1)) << 8)
+			| (StringUtility.getHex(hex.charAt(2)) << 4)
+			|  StringUtility.getHex(hex.charAt(3))
+		;
+	}
+
+	/**
+	 * Cleans all orphaned index files.  The lock is only held briefly one file
+	 * at a time, so other I/O can be interleaved with this cleanup process.
+	 * It is possible that new orphans created during the cleanup will not be
+	 * cleaned-up on this pass.
 	 */
 	public void cleanOrphans() throws IOException {
-		String[] list;
-		synchronized(lock) {
-			list = canonicalDirectory.list();
-		}
-		if(list != null) {
-			final Stat stat = new Stat();
-			for(String filename : list) {
-				UnixFile uf = new UnixFile(canonicalDirectory, filename, false);
-				synchronized(lock) {
-					uf.getStat(stat);
-					if(
-						// Must be a regular file
-						stat.isRegularFile()
-						// Must have a link count of one
-						&& stat.getNumberLinks() == 1
-					) {
-						logger.log(Level.WARNING, "Removing orphan: " + uf);
-						uf.delete();
+		String[] hashDirs = canonicalDirectory.list();
+		if(hashDirs != null) {
+			for(String hashDir : hashDirs) {
+				try {
+					final Object hashDirLock = getHashLock(parseHashDir(hashDir));
+					final UnixFile hashDirUF = new UnixFile(canonicalDirectory, hashDir, false);
+					String[] list;
+					synchronized(hashDirLock) {
+						list = hashDirUF.list();
 					}
+					if(list != null) {
+						final Stat stat = new Stat();
+						for(String filename : list) {
+							UnixFile uf = new UnixFile(hashDirUF, filename, false);
+							synchronized(hashDirLock) {
+								uf.getStat(stat);
+								if(
+									// Must still exist
+									stat.exists()
+									// Must be a regular file
+									&& stat.isRegularFile()
+									// Must have a link count of one
+									&& stat.getNumberLinks() == 1
+								) {
+									logger.log(Level.WARNING, "Removing orphan: " + uf);
+									uf.delete();
+								}
+							}
+							// We'll play extra nice by letting others grab the lock before
+							// going on to the next file.
+							Thread.yield();
+						}
+						// Remove the hash directory itself if now empty
+						boolean logSkippedNonDirectory = false;
+						synchronized(hashDirLock) {
+							hashDirUF.getStat(stat);
+							if(stat.exists()) {
+								if(stat.isDirectory()) {
+									list = hashDirUF.list();
+									if(list==null || list.length == 0) {
+										logger.log(Level.WARNING, "Removing empty hash directory: " + hashDirUF);
+										hashDirUF.delete();
+									}
+								} else {
+									logSkippedNonDirectory = true;
+								}
+							}
+						}
+						if(logSkippedNonDirectory) {
+							logger.log(Level.WARNING, "Skipping non-directory: " + hashDir);
+						}
+					}
+				} catch(NumberFormatException e) {
+					logger.log(Level.WARNING, "Skipping non-hash directory: " + hashDir, e);
 				}
-				// We'll play extra nice by letting others grab the lock before
-				// going on to the next file.
-				Thread.yield();
 			}
 		}
 	}
