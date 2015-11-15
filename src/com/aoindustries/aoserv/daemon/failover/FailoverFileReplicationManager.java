@@ -46,14 +46,81 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 /**
- * Handles the replication of data for the failover system.
+ * Handles the replication of data for the failover and backup system.
+ * <p>
+ * In failover mode, only one replication directory is maintained and it is
+ * updated in-place.  No space saving techniques are applied.  A data index is
+ * never used in failover mode.
+ * </p>
+ * <p>
+ * In backup mode, multiple directories (on per date) are maintained.  Also,
+ * regular files are hard linked between directories (and optionally the data
+ * index).
+ * </p>
+ * <p>
+ * Compression may be enabled, which will compare chunks of files by MD5 hash.
+ * This will save networking at the cost of additional CPU cycles.  This is
+ * generally a good thing, but when your network is significantly faster than
+ * your processor, it may be better to turn off compression.
+ * </p>
+ * <p>
+ * The compression also assumes that if the MD5 matches in the same chunk location,
+ * then chunk has not changed.  To be absolutely sure there is no hash collision
+ * the compression must be disabled.
+ * </p>
+ * <p>
+ * Files are compared only by modified time and file length.  If both these are
+ * the same, the file is assumed to be the same.  There is currently no facility
+ * to for full checksumming or copying of data.
+ * </p>
+ * <p>
+ * When the data index is enabled, the underlying filesystem must have the
+ * capabilities of <code>ext4</code> or better (support 2^16 sub directories
+ * and over <code>DataIndex.FILESYSTEM_MAX_LINK_COUNT</code> links to a file).
+ * </p>
+ * <p>
+ * To minimize the amount of meta data updates, old backup trees are recycled
+ * and used as the starting point for new backups.  This dramatically improves
+ * the throughput in the normal case where most things do not change.
+ * </p>
+ * <p>
+ * The data index may be turned on and off for a partition.  Newly created backup
+ * directory trees will use the format currently set, but will also recognize the
+ * existing data in either format.
+ * </p>
+ * <p>
+ * When data index is off, each file is simply stored, in its entirety, directly
+ * in-place.  If the file contents (possibly assumed only be length and modified
+ * time) and all attributes (ownership, permission, times, ...) match another
+ * backup directory, the files will be linked together to save space.
+ * </p>
+ * <p>
+ * When the data index is enabled, each file is replaced in one of two ways,
+ * depending on the length of the filename.
  *
+ * 16 TiB = 2 ^ (10 + 10 + 10 + 10 + 4) = 2 ^ 44
+
+Each chunk is up to 1 MiB: 2 ^ 20
+
+Maximum number of chunks per file: 2 ^ (44 - 20): 2 ^ 24
+
+ * TODO: filename&lt;A&lt;O&lt;S&gt;O&gt;A&gt;...
+ * TODO: Can't have any regular filename from client with &lt;A&lt;O&lt;CHUNK&gt;O&gt;A&gt; pattern.
+ * TODO: Can't have any regular file exactly named "&lt;A&lt;O&lt;SURROGATE&gt;O&gt;A&gt;"
+ * </p>
+ * <p>
  * TODO: Handle hard links (pertinence space savings)
  *
  * TODO: Need to do mysqldump and postgresql dump on preBackup
  *
  * TODO: Use more compression within the protocol (perhaps to byte[] in RAM and then across the network, or an OutputStream "wrapper")
+ *
+ * TODO: Use LVM snapshots within the client layer
+ * </p>
+ *
+ * @see  DataIndex
  *
  * @author  AO Industries, Inc.
  */
