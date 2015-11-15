@@ -333,46 +333,54 @@ public class DataIndex {
 						list = hashDirUF.list();
 					}
 					if(list != null) {
+						boolean hasKeptFile = false;
 						final Stat stat = new Stat();
 						for(String filename : list) {
 							UnixFile uf = new UnixFile(hashDirUF, filename, false);
 							synchronized(hashDirLock) {
 								uf.getStat(stat);
-								if(
-									// Must still exist
-									stat.exists()
-									// Must be a regular file
-									&& stat.isRegularFile()
-									// Must have a link count of one
-									&& stat.getNumberLinks() == 1
-								) {
-									logger.log(Level.WARNING, "Removing orphan: " + uf);
-									uf.delete();
-									// TODO: Renumber any files after this one by both collision# and link#
+								// Must still exist
+								if(stat.exists()) {
+									if(
+										// Must be a regular file
+										stat.isRegularFile()
+										// Must have a link count of one
+										&& stat.getNumberLinks() == 1
+									) {
+										logger.log(Level.WARNING, "Removing orphan: " + uf);
+										uf.delete();
+										// TODO: Renumber any files after this one by both collision# and link#
+									} else {
+										hasKeptFile = true;
+									}
 								}
 							}
 							// We'll play extra nice by letting others grab the lock before
 							// going on to the next file.
 							Thread.yield();
 						}
+						list = null; // Done with this potentially long array
+
 						// Remove the hash directory itself if now empty
-						boolean logSkippedNonDirectory = false;
-						synchronized(hashDirLock) {
-							hashDirUF.getStat(stat);
-							if(stat.exists()) {
-								if(stat.isDirectory()) {
-									list = hashDirUF.list();
-									if(list==null || list.length == 0) {
-										logger.log(Level.WARNING, "Removing empty hash directory: " + hashDirUF);
-										hashDirUF.delete();
+						if(!hasKeptFile) {
+							boolean logSkippedNonDirectory = false;
+							synchronized(hashDirLock) {
+								hashDirUF.getStat(stat);
+								if(stat.exists()) {
+									if(stat.isDirectory()) {
+										list = hashDirUF.list();
+										if(list==null || list.length == 0) {
+											logger.log(Level.WARNING, "Removing empty hash directory: " + hashDirUF);
+											hashDirUF.delete();
+										}
+									} else {
+										logSkippedNonDirectory = true;
 									}
-								} else {
-									logSkippedNonDirectory = true;
 								}
 							}
-						}
-						if(logSkippedNonDirectory) {
-							logger.log(Level.WARNING, "Skipping non-directory: " + hashDir);
+							if(logSkippedNonDirectory) {
+								logger.log(Level.WARNING, "Skipping non-directory: " + hashDir);
+							}
 						}
 					}
 				} catch(NumberFormatException e) {
