@@ -44,7 +44,7 @@ import java.util.logging.Logger;
  * hard link limits, there may be more than one file per MD5 hash value.  The
  * files are named as follows:
  * </p>
- * <pre>(/backup_partition)/DATA-INDEX/(directory_hash)/(remaining_hash)-(uncompressed_length)-(collision#)-(link#)[.gz]</pre>
+ * <pre>(/backup_partition)/DATA-INDEX/(directory_hash)/(remaining_hash)-(uncompressed_length)-(collision#)-(link#)[.gz][.corrupt]</pre>
  * <p>
  * The <code>directory_hash</code> is the first four characters of the MD5 sum.
  * </p>
@@ -91,6 +91,16 @@ import java.util.logging.Logger;
  * savings.
  * </p>
  * <p>
+ * The <code>.corrupt</code> extension indicates that the background verifier
+ * detected this chunk to no longer match the expected MD5 sum or chunk length.
+ * This file will no longer be used for any new links, and links pointing to it
+ * will be migrated to another copy of the data (see <code>link#</code>).  If
+ * there is no other copy of the link, then the client will be asked to re-upload
+ * the chunk.  During restore, an attempt will be made to locate an alternate
+ * copy of the chunk.  Once all links are migrated, this corrupt chunk will be
+ * deleted as normal when link count reaches one.
+ * </p>
+ * <p>
  * Both <code>collision#</code> and <code>link#</code> are maintained in sequential
  * order starting at <code>0</code>.  The system renumbers files as-needed as
  * things are removed in order to maintain no gaps in the sequence.  During routine
@@ -118,6 +128,11 @@ import java.util.logging.Logger;
  * of drive space.  Some links might not be created from new data to old (if not
  * yet put back in the index), but the system will still function and eventually
  * settle to an optimal state once again as backup directories are recycled.
+ * </p>
+ * <p>
+ * The background verifier uses the chunk's modified time to keep track of the
+ * last time the chunk was verified.  The chunk will be re-verified
+ * approximately once every <code>VERIFICATION_INTERVAL</code> milliseconds.
  * </p>
  * <p>
  * Security: Client-provided MD5 values must never be trusted for what goes into
@@ -160,6 +175,19 @@ public class DataIndex {
 	 * The index file permissions.
 	 */
 	private static final int FILE_MODE = 0600;
+
+	/**
+	 * The number of milliseconds between file verifications.
+	 */
+	private static final long VERIFICATION_INTERVAL = 7L * 24L * 60L * 60L * 1000L; // 7 Days
+
+	/**
+	 * The time that orphans will be cleaned.
+	 */
+	private static final int
+		CLEAN_ORPHANS_HOUR = 1,
+		CLEAN_ORPHANS_MINUTE = 49
+	;
 
 	/**
 	 * Only one instance is created per canonical index directory.
@@ -236,7 +264,10 @@ public class DataIndex {
 		CronJob cleanupJob = new CronJob() {
 			@Override
 			public Schedule getCronJobSchedule() {
-				return (int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) -> minute==49 && hour==1;
+				return
+					(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year)
+					-> minute==CLEAN_ORPHANS_MINUTE && hour==CLEAN_ORPHANS_HOUR
+				;
 			}
 			@Override
 			public CronJobScheduleMode getCronJobScheduleMode() {
