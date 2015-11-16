@@ -100,7 +100,11 @@ import java.util.logging.Logger;
  * When the data index is enabled, each file is handled one of three ways:
  * </p>
  * <ol>
- * <li>If the file is empty, it is stored directly in place not using the data index</li>
+ * <li>
+ *   If the file is empty, it is stored directly in place not using the
+ *   dataindex.  Also, empty files are never hard linked because no space is
+ *   saved by doing so.
+ * </li>
  * <li>If the filename is less than <code>MAX_NODIR_FILENAME</code> in length:
  *   <ol type="a">
  *     <li>The file is represented by an empty surrogate in it's original location</li>

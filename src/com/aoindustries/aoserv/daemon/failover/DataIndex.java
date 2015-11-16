@@ -92,7 +92,9 @@ import java.util.logging.Logger;
  * </p>
  * <p>
  * The <code>.corrupt</code> extension indicates that the background verifier
- * detected this chunk to no longer match the expected MD5 sum or chunk length.
+ * detected this chunk to no longer match the expected MD5 sum or chunk length
+ * and the chunk could not be restored from another copy (see <code>link#</code>).
+ * TODO: Can we restore this from backup and recover in-place and remove .corrupted from the filename?
  * This file will no longer be used for any new links, and links pointing to it
  * will be migrated to another copy of the data (see <code>link#</code>).  If
  * there is no other copy of the link, then the client will be asked to re-upload
