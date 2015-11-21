@@ -12,6 +12,10 @@ import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.backup.AOServerEnvironment;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
+import com.aoindustries.cron.CronDaemon;
+import com.aoindustries.cron.CronJob;
+import com.aoindustries.cron.CronJobScheduleMode;
+import com.aoindustries.cron.Schedule;
 import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.io.ParallelDelete;
@@ -130,6 +134,10 @@ import java.util.logging.Logger;
  * back in place.  The restore processes resume where they left off, even when
  * interrupted.
  * </p>
+ * <p>
+ * Data indexes are verified once per day as well as a quick verification on
+ * start-up.
+ * </p>
  * depending on the length of the filename.
  *
 16 TiB = 2 ^ (10 + 10 + 10 + 10 + 4) = 2 ^ 44
@@ -187,6 +195,13 @@ final public class FailoverFileReplicationManager {
 	 * The directory name that contains the data index.
 	 */
 	private static final String DATA_INDEX_DIRECTORY_NAME = "DATA-INDEX";
+
+	/**
+	 * The time that orphans will be cleaned.
+	 */
+	private static final Schedule CLEAN_ORPHANS_SCHEDULE =
+		(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) -> (minute == 49 && hour == 1)
+	;
 
 	/**
 	 * TODO: Move this into a backup settings table.
@@ -469,6 +484,70 @@ final public class FailoverFileReplicationManager {
 		return UnixFile.mktemp(tempPath, false);
 	}
 
+	private static final Map<String,DedupDataIndex> dedupIndexes = new HashMap<>();
+	/**
+	 * Only one data index is created per backup partition, and a cron job is created
+	 * for daily cleaning.  The cron job is also launched immediately in quick mode.
+	 */
+	private static DedupDataIndex getDedupDataIndex(Activity activity, String backupPartition) throws IOException {
+		synchronized(dedupIndexes) {
+			DedupDataIndex dedupIndex = dedupIndexes.get(backupPartition);
+			if(dedupIndex == null) {
+				UnixFileSystem fileSystem = DefaultUnixFileSystem.getInstance();
+				Path dataIndexDir = new Path(
+					fileSystem.parsePath(backupPartition),
+					DATA_INDEX_DIRECTORY_NAME
+				);
+				activity.update("data-index: Opening data index: ", dataIndexDir);
+				DedupDataIndex newDedupIndex = DedupDataIndex.getInstance(fileSystem, dataIndexDir);
+				Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
+				/**
+				 * Add the CronJob that cleans orphaned data in the background.
+				 */
+				CronJob cleanupJob = new CronJob() {
+					@Override
+					public Schedule getCronJobSchedule() {
+						return CLEAN_ORPHANS_SCHEDULE;
+					}
+					@Override
+					public CronJobScheduleMode getCronJobScheduleMode() {
+						return CronJobScheduleMode.SKIP;
+					}
+					@Override
+					public String getCronJobName() {
+						return DedupDataIndex.class.getName()+".cleanOrphans()";
+					}
+					@Override
+					public int getCronJobThreadPriority() {
+						return Thread.NORM_PRIORITY;
+					}
+					@Override
+					public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
+						try {
+							newDedupIndex.verify(false);
+						} catch(IOException e) {
+							logger.log(Level.SEVERE, "verify index failed", e);
+						}
+					}
+				};
+				CronDaemon.addCronJob(cleanupJob, logger);
+				// Quick verification once on startup
+				new Thread(
+					() -> {
+						try {
+							newDedupIndex.verify(true);
+						} catch(IOException e) {
+							logger.log(Level.SEVERE, "quick verify index failed", e);
+						}
+					}
+				).start();
+				dedupIndex = newDedupIndex;
+				dedupIndexes.put(backupPartition, dedupIndex);
+			}
+			return dedupIndex;
+		}
+	}
+
 	/**
 	 * Receives incoming data for a failover replication.  The critical information, such as the directory to store to,
 	 * has been provided by the master server because we can't trust the sending server.
@@ -484,7 +563,7 @@ final public class FailoverFileReplicationManager {
 		final String fromServer,
 		final boolean useCompression,
 		final short retention,
-		final String backupPartition,
+		final String backupPartition, // TODO: Make sure this partition is enabled
 		final short fromServerYear,
 		final short fromServerMonth,
 		final short fromServerDay,
@@ -570,13 +649,7 @@ final public class FailoverFileReplicationManager {
 					}
 				} else {
 					if(DATA_INDEX_DIRECTORY_NAME.equals(fromServer)) throw new IOException("fromServer conflicts with data index: " + fromServer);
-					UnixFileSystem fileSystem = DefaultUnixFileSystem.getInstance();
-					Path dataIndexDir = new Path(
-						fileSystem.parsePath(backupPartition),
-						DATA_INDEX_DIRECTORY_NAME
-					);
-					activity.update("data-index: Opening data index: ", dataIndexDir);
-					dataIndex = DedupDataIndex.getInstance(fileSystem, dataIndexDir);
+					dataIndex = getDedupDataIndex(activity, backupPartition);
 					// The directory that holds the different versions
 					StringBuilder SB = new StringBuilder(toPath);
 
