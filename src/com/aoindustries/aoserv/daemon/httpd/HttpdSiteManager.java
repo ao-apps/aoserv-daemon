@@ -79,7 +79,6 @@ public abstract class HttpdSiteManager {
 		// Get values used in the rest of the method.
 		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		AOServer aoServer = AOServDaemon.getThisAOServer();
-		Stat tempStat = new Stat();
 
 		// The www directories that exist but are not used will be removed
 		UnixFile wwwDirectory = new UnixFile(osConfig.getHttpdSitesDirectory());
@@ -113,7 +112,7 @@ public abstract class HttpdSiteManager {
 		for(String siteName : wwwRemoveList) {
 			UnixFile removeFile = new UnixFile(wwwDirectory, siteName, false);
 			// Stop and disable any daemons
-			stopAndDisableDaemons(removeFile, tempStat);
+			stopAndDisableDaemons(removeFile);
 			// Only remove the directory when not used by a home directory
 			if(!aoServer.isHomeUsed(removeFile.getPath())) deleteFileList.add(removeFile.getFile());
 		}
@@ -190,11 +189,11 @@ public abstract class HttpdSiteManager {
 	 * 
 	 * @see  #doRebuild
 	 */
-	public static void stopAndDisableDaemons(UnixFile siteDirectory, Stat tempStat) throws IOException, SQLException {
+	public static void stopAndDisableDaemons(UnixFile siteDirectory) throws IOException, SQLException {
 		UnixFile daemonDirectory = new UnixFile(siteDirectory, "daemon", false);
-		daemonDirectory.getStat(tempStat);
-		if(tempStat.exists()) {
-			int daemonUid=tempStat.getUid();
+		Stat daemonDirectoryStat = daemonDirectory.getStat();
+		if(daemonDirectoryStat.exists()) {
+			int daemonUid=daemonDirectoryStat.getUid();
 			LinuxServerAccount daemonLsa = AOServDaemon.getThisAOServer().getLinuxServerAccount(daemonUid);
 			// If the account doesn't exist or is disabled, the process killer will kill any processes
 			if(daemonLsa!=null && !daemonLsa.isDisabled()) {
@@ -576,9 +575,8 @@ public abstract class HttpdSiteManager {
 	 */
 	protected void createTestCGI(UnixFile cgibinDirectory) throws IOException, SQLException {
 		if(enableCgi()) {
-			Stat tempStat = new Stat();
 			UnixFile testFile = new UnixFile(cgibinDirectory, "test", false);
-			if(!testFile.getStat(tempStat).exists()) {
+			if(!testFile.getStat().exists()) {
 				HttpdSiteURL primaryHsu = httpdSite.getPrimaryHttpdSiteURL();
 				String primaryUrl = primaryHsu==null ? httpdSite.getSiteName() : primaryHsu.getHostname().toString();
 				// Write to temp file first
@@ -607,7 +605,7 @@ public abstract class HttpdSiteManager {
 					tempFile.renameTo(testFile);
 				} finally {
 					// If still exists then there was a problem, clean-up
-					if(tempFile.getStat(tempStat).exists()) tempFile.delete();
+					if(tempFile.getStat().exists()) tempFile.delete();
 				}
 			}
 		}
@@ -620,8 +618,7 @@ public abstract class HttpdSiteManager {
 	 *       Or, better, put into logic of static site rebuild.
 	 */
 	protected void createTestIndex(UnixFile indexFile) throws IOException, SQLException {
-		Stat tempStat = new Stat();
-		if(!indexFile.getStat(tempStat).exists()) {
+		if(!indexFile.getStat().exists()) {
 			HttpdSiteURL primaryHsu = httpdSite.getPrimaryHttpdSiteURL();
 			String primaryUrl = primaryHsu==null ? httpdSite.getSiteName() : primaryHsu.getHostname().toString();
 			// Write to temp file first
@@ -642,7 +639,7 @@ public abstract class HttpdSiteManager {
 				tempFile.renameTo(indexFile);
 			} finally {
 				// If still exists then there was a problem, clean-up
-				if(tempFile.getStat(tempStat).exists()) tempFile.delete();
+				if(tempFile.getStat().exists()) tempFile.delete();
 			}
 		}
 	}
@@ -655,9 +652,8 @@ public abstract class HttpdSiteManager {
 	protected void createTestPHP(UnixFile rootDirectory) throws IOException, SQLException {
 		// TODO: Overwrite the phpinfo pages with this new version, for security
 		if(enablePhp()) {
-			Stat tempStat = new Stat();
 			UnixFile testFile = new UnixFile(rootDirectory, "test.php", false);
-			if(!testFile.getStat(tempStat).exists()) {
+			if(!testFile.getStat().exists()) {
 				HttpdSiteURL primaryHsu = httpdSite.getPrimaryHttpdSiteURL();
 				String primaryUrl = primaryHsu==null ? httpdSite.getSiteName() : primaryHsu.getHostname().toString();
 				// Write to temp file first
@@ -680,7 +676,7 @@ public abstract class HttpdSiteManager {
 					tempFile.renameTo(testFile);
 				} finally {
 					// If still exists then there was a problem, clean-up
-					if(tempFile.getStat(tempStat).exists()) tempFile.delete();
+					if(tempFile.getStat().exists()) tempFile.delete();
 				}
 			}
 		}

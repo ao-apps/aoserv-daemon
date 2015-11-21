@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -72,12 +72,12 @@ final public class CvsManager extends BuilderThread {
 					// Make the directory
 					if(!cvsStat.exists()) {
 						cvsUF.mkdir(true, cvsMode);
-						cvsUF.getStat(cvsStat);
+						cvsStat = cvsUF.getStat();
 					}
 					// Set the mode
 					if(cvsStat.getMode()!=cvsMode) {
 						cvsUF.setMode(cvsMode);
-						cvsUF.getStat(cvsStat);
+						cvsStat = cvsUF.getStat();
 					}
 					// Set the owner and group
 					LinuxServerAccount lsa=cvs.getLinuxServerAccount();
@@ -85,7 +85,7 @@ final public class CvsManager extends BuilderThread {
 					int gid=cvs.getLinuxServerGroup().getGid().getID();
 					if(uid!=cvsStat.getUid() || gid!=cvsStat.getGid()) {
 						cvsUF.chown(uid, gid);
-						cvsUF.getStat(cvsStat);
+						cvsStat = cvsUF.getStat();
 					}
 					// Init if needed
 					UnixFile cvsRootUF=new UnixFile(cvsUF, "CVSROOT", false);

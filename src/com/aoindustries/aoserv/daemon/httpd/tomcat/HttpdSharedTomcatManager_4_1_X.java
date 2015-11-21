@@ -61,7 +61,6 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
          */
         final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
         final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
-        final Stat tempStat = new Stat();
         final AOServer aoServer = AOServDaemon.getThisAOServer();
         final HttpdTomcatVersion htv=sharedTomcat.getHttpdTomcatVersion();
         final String tomcatDirectory=htv.getInstallDirectory();
@@ -79,12 +78,13 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
         UnixFile innerWorkUF = new UnixFile(workUF, "Tomcat-Apache", false);
 
         boolean needRestart=false;
-        if (!sharedTomcatDirectory.getStat(tempStat).exists() || sharedTomcatDirectory.getStat(tempStat).getUid() == UnixFile.ROOT_GID) {
+		Stat sharedTomcatStat = sharedTomcatDirectory.getStat();
+        if (!sharedTomcatStat.exists() || sharedTomcatStat.getUid() == UnixFile.ROOT_GID) {
 
             // Create the /wwwgroup/name/...
 
             // 001
-            if (!sharedTomcatDirectory.getStat(tempStat).exists()) sharedTomcatDirectory.mkdir();
+            if (!sharedTomcatStat.exists()) sharedTomcatDirectory.mkdir();
             sharedTomcatDirectory.setMode(0770);
             new UnixFile(sharedTomcatDirectory, "bin", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
             new UnixFile(sharedTomcatDirectory, "conf", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
@@ -315,10 +315,13 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
         }
         // flag as needing a restart if this file is different than any existing
         UnixFile sitesFile = new UnixFile(sharedTomcatDirectory, "bin/profile.sites", false);
-        if(!sitesFile.getStat(tempStat).exists() || !newSitesFileUF.contentEquals(sitesFile)) {
+		Stat sitesStat = sitesFile.getStat();
+        if(!sitesStat.exists() || !newSitesFileUF.contentEquals(sitesFile)) {
             needRestart=true;
-            UnixFile backupFile=new UnixFile(sharedTomcatDirectory, "bin/profile.sites.old", false);
-            if(sitesFile.getStat(tempStat).exists()) sitesFile.renameTo(backupFile);
+            if(sitesStat.exists()) {
+	            UnixFile backupFile=new UnixFile(sharedTomcatDirectory, "bin/profile.sites.old", false);
+				sitesFile.renameTo(backupFile);
+			}
             newSitesFileUF.renameTo(sitesFile);
         } else newSitesFileUF.delete();
 
@@ -332,7 +335,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
                 String subwork = hs.getPrimaryHttpdSiteURL().getHostname().toString();
                 workFiles.remove(subwork);
                 UnixFile workDir = new UnixFile(innerWorkUF, subwork, false);
-                if (!workDir.getStat(tempStat).exists()) {
+                if (!workDir.getStat().exists()) {
                     workDir
                         .mkdir()
                         .chown(
@@ -358,7 +361,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
         String autoWarningOld = getAutoWarningXmlOld();
         String confServerXML=wwwGroupDir+"/conf/server.xml";
         UnixFile confServerXMLUF=new UnixFile(confServerXML);
-        if(!sharedTomcat.isManual() || !confServerXMLUF.getStat(tempStat).exists()) {
+        if(!sharedTomcat.isManual() || !confServerXMLUF.getStat().exists()) {
             String newConfServerXML=wwwGroupDir+"/conf/server.xml.new";
             UnixFile newConfServerXMLUF=new UnixFile(newConfServerXML);
             out=new ChainWriter(
@@ -504,7 +507,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 
             // Must restart JVM if this file has changed
             if(
-                !confServerXMLUF.getStat(tempStat).exists()
+                !confServerXMLUF.getStat().exists()
                 || !newConfServerXMLUF.contentEquals(confServerXMLUF)
             ) {
                 needRestart=true;
@@ -514,13 +517,11 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
             try {
                 DaemonFileUtils.stripFilePrefix(
                     confServerXMLUF,
-                    autoWarningOld,
-                    tempStat
+                    autoWarningOld
                 );
                 DaemonFileUtils.stripFilePrefix(
                     confServerXMLUF,
-                    autoWarning,
-                    tempStat
+                    autoWarning
                 );
             } catch(IOException err) {
                 // Errors OK because this is done in manual mode and they might have symbolic linked stuff
@@ -531,7 +532,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
         UnixFile daemonSymlink = new UnixFile(daemonUF, "tomcat", false);
         if(!sharedTomcat.isDisabled()) {
             // Enabled
-            if(!daemonSymlink.getStat(tempStat).exists()) {
+            if(!daemonSymlink.getStat().exists()) {
                 daemonSymlink.symLink("../bin/tomcat").chown(
                     lsaUID,
                     lsgGID
@@ -539,7 +540,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
             }
         } else {
             // Disabled
-            if(daemonSymlink.getStat(tempStat).exists()) daemonSymlink.delete();
+            if(daemonSymlink.getStat().exists()) daemonSymlink.delete();
         }
 
         // Start if needed

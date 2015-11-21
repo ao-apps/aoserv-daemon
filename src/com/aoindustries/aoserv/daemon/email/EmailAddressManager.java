@@ -24,7 +24,6 @@ import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.util.StringUtility;
 import java.io.BufferedInputStream;
@@ -177,11 +176,9 @@ final public class EmailAddressManager extends BuilderThread {
 				// Only write to disk if changed, this will almost always be the case when
 				// tie usernames are used for any reason, but this will help for servers with
 				// simple configurations.
-				Stat tempStat = new Stat();
-
 				boolean needMakeMap;
 				if(
-					!userTable.getStat(tempStat).exists()
+					!userTable.getStat().exists()
 					|| !userTable.contentEquals(usersNewBytes)
 				) {
 					try (FileOutputStream newOut = newUserTable.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)) {
@@ -194,7 +191,7 @@ final public class EmailAddressManager extends BuilderThread {
 
 				boolean needNewAliases;
 				if(
-					!aliases.getStat(tempStat).exists()
+					!aliases.getStat().exists()
 					|| !aliases.contentEquals(aliasesNewBytes)
 				) {
 					try (FileOutputStream newOut = newAliases.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)) {

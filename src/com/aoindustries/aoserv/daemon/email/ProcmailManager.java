@@ -97,7 +97,7 @@ public final class ProcmailManager extends BuilderThread {
                     Stat deliverStat = cyrusDeliverCentOs.getStat();
                     if(deliverStat.getUid()!=UnixFile.ROOT_UID || deliverStat.getGid()!=mailGid) {
                         cyrusDeliverCentOs.chown(UnixFile.ROOT_UID, mailGid);
-                        cyrusDeliverCentOs.getStat(deliverStat);
+                        deliverStat = cyrusDeliverCentOs.getStat();
                     }
                     if(deliverStat.getMode()!=02755) {
                         cyrusDeliverCentOs.setMode(02755);
@@ -106,7 +106,7 @@ public final class ProcmailManager extends BuilderThread {
                     Stat deliverStat = cyrusDeliverRedHat.getStat();
                     if(deliverStat.getUid()!=UnixFile.ROOT_UID || deliverStat.getGid()!=mailGid) {
                         cyrusDeliverRedHat.chown(UnixFile.ROOT_UID, mailGid);
-                        cyrusDeliverRedHat.getStat(deliverStat);
+                        deliverStat = cyrusDeliverRedHat.getStat();
                     }
                     if(deliverStat.getMode()!=02755) {
                         cyrusDeliverRedHat.setMode(02755);

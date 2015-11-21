@@ -58,12 +58,11 @@ class HttpdLogManager {
         Set<HttpdServer> serversNeedingReloaded
     ) throws IOException, SQLException {
         // Used below
-        Stat tempStat = new Stat();
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
         AOServer aoServer = AOServDaemon.getThisAOServer();
 
         // Rebuild /logs
-        doRebuildLogs(aoServer, deleteFileList, tempStat, serversNeedingReloaded);
+        doRebuildLogs(aoServer, deleteFileList, serversNeedingReloaded);
 
         // Rebuild /etc/httpd/conf/logrotate.(d|sites|servers) files
         doRebuildLogrotate(aoServer, deleteFileList, bout);
@@ -130,11 +129,10 @@ class HttpdLogManager {
     private static void fixFilesystem(List<File> deleteFileList) throws IOException, SQLException {
         HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
         if(osConfig==HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
-            Stat tempStat = new Stat();
             // Make sure these files don't exist.  They may be due to upgrades or a
             // result of RPM installs.
             for(UnixFile uf : centOsAlwaysDelete) {
-                if(uf.getStat(tempStat).exists()) deleteFileList.add(uf.getFile());
+                if(uf.getStat().exists()) deleteFileList.add(uf.getFile());
             }
         }
     }
@@ -145,7 +143,6 @@ class HttpdLogManager {
     private static void doRebuildLogs(
         AOServer aoServer,
         List<File> deleteFileList,
-        Stat tempStat,
         Set<HttpdServer> serversNeedingReloaded
     ) throws IOException, SQLException {
         // Values used below
@@ -164,13 +161,13 @@ class HttpdLogManager {
             // Create the /logs/<site_name> directory
             String siteName = httpdSite.getSiteName();
             UnixFile logDirectory = new UnixFile(LOG_DIR, siteName);
-            logDirectory.getStat(tempStat);
-            if(!tempStat.exists()) {
+            Stat logStat = logDirectory.getStat();
+            if(!logStat.exists()) {
                 logDirectory.mkdir();
-                logDirectory.getStat(tempStat);
+                logStat = logDirectory.getStat();
             }
-            if(tempStat.getUid()!=awstatsUID || tempStat.getGid()!=lsgGID) logDirectory.chown(awstatsUID, lsgGID);
-            if(tempStat.getMode()!=0750) logDirectory.setMode(0750);
+            if(logStat.getUid()!=awstatsUID || logStat.getGid()!=lsgGID) logDirectory.chown(awstatsUID, lsgGID);
+            if(logStat.getMode()!=0750) logDirectory.setMode(0750);
 
             // Remove from list so it will not be deleted
             logDirectories.remove(siteName);
@@ -181,13 +178,14 @@ class HttpdLogManager {
                 // access_log
                 String accessLog = hsb.getAccessLog();
                 UnixFile accessLogFile = new UnixFile(hsb.getAccessLog());
-                if(!accessLogFile.getStat(tempStat).exists()) {
+				Stat accessLogStat = accessLogFile.getStat();
+                if(!accessLogStat.exists()) {
                     // Make sure the parent directory exists
                     UnixFile accessLogParent=accessLogFile.getParent();
-                    if(!accessLogParent.getStat(tempStat).exists()) accessLogParent.mkdir(true, 0750, awstatsUID, lsgGID);
+                    if(!accessLogParent.getStat().exists()) accessLogParent.mkdir(true, 0750, awstatsUID, lsgGID);
                     // Create the empty logfile
                     new FileOutputStream(accessLogFile.getFile(), true).close();
-                    accessLogFile.getStat(tempStat);
+					accessLogStat = accessLogFile.getStat();
                     // Need to restart servers if log file created
                     for(HttpdSiteBind hsb2 : hsbs) {
                         if(hsb2.getAccessLog().equals(accessLog)) {
@@ -195,19 +193,20 @@ class HttpdLogManager {
                         }
                     }
                 }
-                if(tempStat.getMode()!=0640) accessLogFile.setMode(0640);
-                if(tempStat.getUid()!=awstatsUID || tempStat.getGid()!=lsgGID) accessLogFile.chown(awstatsUID, lsgGID);
+                if(accessLogStat.getMode()!=0640) accessLogFile.setMode(0640);
+                if(accessLogStat.getUid()!=awstatsUID || accessLogStat.getGid()!=lsgGID) accessLogFile.chown(awstatsUID, lsgGID);
                 
                 // error_log
                 String errorLog = hsb.getErrorLog();
                 UnixFile errorLogFile = new UnixFile(hsb.getErrorLog());
-                if(!errorLogFile.getStat(tempStat).exists()) {
+				Stat errorLogStat = errorLogFile.getStat();
+                if(!errorLogStat.exists()) {
                     // Make sure the parent directory exists
                     UnixFile errorLogParent=errorLogFile.getParent();
-                    if(!errorLogParent.getStat(tempStat).exists()) errorLogParent.mkdir(true, 0750, awstatsUID, lsgGID);
+                    if(!errorLogParent.getStat().exists()) errorLogParent.mkdir(true, 0750, awstatsUID, lsgGID);
                     // Create the empty logfile
                     new FileOutputStream(errorLogFile.getFile(), true).close();
-                    errorLogFile.getStat(tempStat);
+					errorLogStat = errorLogFile.getStat();
                     // Need to restart servers if log file created
                     for(HttpdSiteBind hsb2 : hsbs) {
                         if(hsb2.getErrorLog().equals(errorLog)) {
@@ -215,8 +214,8 @@ class HttpdLogManager {
                         }
                     }
                 }
-                if(tempStat.getMode()!=0640) errorLogFile.setMode(0640);
-                if(tempStat.getUid()!=awstatsUID || tempStat.getGid()!=lsgGID) errorLogFile.chown(awstatsUID, lsgGID);
+                if(errorLogStat.getMode()!=0640) errorLogFile.setMode(0640);
+                if(errorLogStat.getUid()!=awstatsUID || errorLogStat.getGid()!=lsgGID) errorLogFile.chown(awstatsUID, lsgGID);
             }
         }
 

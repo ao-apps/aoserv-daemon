@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2009, 2014 by AO Industries, Inc.,
+ * Copyright 2008-2009, 2014, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -90,7 +90,7 @@ public class DaemonFileUtils {
         Stat ufStat = uf.getStat();
         if(!ufStat.exists()) {
             uf.mkdir();
-            uf.getStat(ufStat);
+            ufStat = uf.getStat();
         } else if(!ufStat.isDirectory()) throw new IOException("File exists and is not a directory: "+uf.getPath());
         if(ufStat.getMode()!=mode) uf.setMode(mode);
         if(ufStat.getUid()!=uid || ufStat.getGid()!=gid) uf.chown(uid, gid);
@@ -100,11 +100,11 @@ public class DaemonFileUtils {
      * If the file starts with the provided prefix, strips that prefix from the
      * file.  A new temp file is created and then renamed over the old.
      */
-    public static void stripFilePrefix(UnixFile uf, String prefix, Stat tempStat) throws IOException {
+    public static void stripFilePrefix(UnixFile uf, String prefix) throws IOException {
         // Remove the auto warning if the site has recently become manual
         int prefixLen=prefix.length();
-        uf.getStat(tempStat);
-        if(tempStat.getSize()>=prefixLen) {
+        Stat ufStat = uf.getStat();
+        if(ufStat.getSize()>=prefixLen) {
             UnixFile newUF=null;
             try (InputStream in = new BufferedInputStream(uf.getSecureInputStream())) {
                 StringBuilder SB=new StringBuilder(prefixLen);
@@ -116,9 +116,9 @@ public class DaemonFileUtils {
                     newUF=UnixFile.mktemp(uf.getPath()+'.', false);
                     try (OutputStream out = new BufferedOutputStream(
 						newUF.getSecureOutputStream(
-							tempStat.getUid(),
-							tempStat.getGid(),
-							tempStat.getMode(),
+							ufStat.getUid(),
+							ufStat.getGid(),
+							ufStat.getMode(),
 							true
 						)
 					)) {
@@ -152,13 +152,13 @@ public class DaemonFileUtils {
         int gid,
         int mode
     ) throws IOException {
-        Stat tempStat = new Stat();
-        if(file.getStat(tempStat).exists() && tempStat.isSymLink()) {
+        Stat fileStat = file.getStat();
+        if(fileStat.exists() && fileStat.isSymLink()) {
             file.delete();
-            file.getStat(tempStat);
+            fileStat = file.getStat();
         }
         if(
-            !tempStat.exists()
+            !fileStat.exists()
             || !file.contentEquals(newContents)
         ) {
             // Create temp file if none provided
@@ -178,7 +178,7 @@ public class DaemonFileUtils {
             } finally {
                 // If newFile still exists there was a problem and it should be
                 // cleaned-up
-                if(tempFile.getStat(tempStat).exists()) tempFile.delete();
+                if(tempFile.getStat().exists()) tempFile.delete();
             }
             return true;
         } else {

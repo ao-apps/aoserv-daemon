@@ -28,7 +28,6 @@ import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.FileUtils;
-import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -133,9 +132,6 @@ public class HttpdServerManager {
         List<File> deleteFileList,
         Set<HttpdServer> serversNeedingReloaded
     ) throws IOException, SQLException {
-        // Values used below
-        Stat tempStat = new Stat();
-
         // The config directory should only contain files referenced in the database
         String[] list=new File(CONF_HOSTS).list();
         Set<String> extraFiles = new HashSet<>(list.length*4/3+1);
@@ -156,7 +152,7 @@ public class HttpdServerManager {
 
             // The shared config part
             final UnixFile sharedFile = new UnixFile(CONF_HOSTS, siteName);
-            if(!manager.httpdSite.isManual() || !sharedFile.getStat(tempStat).exists()) {
+            if(!manager.httpdSite.isManual() || !sharedFile.getStat().exists()) {
                 if(
                     DaemonFileUtils.writeIfNeeded(
                         buildHttpdSiteSharedFile(manager, bout),
@@ -184,7 +180,7 @@ public class HttpdServerManager {
                 // Generate the filename
                 final String bindFilename = siteName+"_"+nb.getIPAddress().getInetAddress()+"_"+nb.getPort().getPort();
                 final UnixFile bindFile = new UnixFile(CONF_HOSTS, bindFilename);
-                final boolean exists = bindFile.getStat(tempStat).exists();
+                final boolean exists = bindFile.getStat().exists();
 
                 // Remove from delete list
                 extraFiles.remove(bindFilename);
@@ -997,11 +993,10 @@ public class HttpdServerManager {
     private static void fixFilesystem(List<File> deleteFileList) throws IOException, SQLException {
         HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
         if(osConfig==HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
-            Stat tempStat = new Stat();
             // Make sure these files don't exist.  They may be due to upgrades or a
             // result of RPM installs.
             for(UnixFile uf : centOsAlwaysDelete) {
-                if(uf.getStat(tempStat).exists()) deleteFileList.add(uf.getFile());
+                if(uf.getStat().exists()) deleteFileList.add(uf.getFile());
             }
         }
     }

@@ -269,8 +269,7 @@ final public class ImapManager extends BuilderThread {
 		PrintWriter logOut,
 		String username,
 		String[] tempPassword,
-		UnixFile passwordBackup,
-		Stat tempStat
+		UnixFile passwordBackup
 	) throws IOException, SQLException, MessagingException {
 		return getUserStore(
 			logOut,
@@ -279,8 +278,7 @@ final public class ImapManager extends BuilderThread {
 			username,
 			username,
 			tempPassword,
-			passwordBackup,
-			tempStat
+			passwordBackup
 		);
 	}
 
@@ -291,8 +289,7 @@ final public class ImapManager extends BuilderThread {
 		PrintWriter logOut,
 		String username,
 		String[] tempPassword,
-		UnixFile passwordBackup,
-		Stat tempStat
+		UnixFile passwordBackup
 	) throws IOException, SQLException, MessagingException {
 		InetAddress host = getImapServerIPAddress();
 		if(host==null) throw new IOException("Not an IMAP server");
@@ -303,8 +300,7 @@ final public class ImapManager extends BuilderThread {
 			username,
 			username.indexOf('@')==-1 ? (username+"@default") : username,
 			tempPassword,
-			passwordBackup,
-			tempStat
+			passwordBackup
 		);
 	}
 
@@ -318,14 +314,13 @@ final public class ImapManager extends BuilderThread {
 		String username,
 		String imapUsername,
 		String[] tempPassword,
-		UnixFile passwordBackup,
-		Stat tempStat
+		UnixFile passwordBackup
 	) throws IOException, SQLException, MessagingException {
 		// Reset the user password if needed
 		String password = tempPassword[0];
 		if(password==null) {
 			// Backup the password
-			if(!passwordBackup.getStat(tempStat).exists()) {
+			if(!passwordBackup.getStat().exists()) {
 				log(logOut, Level.FINE, username, "Backing-up password");
 				String encryptedPassword = LinuxAccountManager.getEncryptedPassword(username);
 				UnixFile tempFile = UnixFile.mktemp(passwordBackup.getPath()+".", false);
@@ -368,7 +363,6 @@ final public class ImapManager extends BuilderThread {
 			int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
 			if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 				// Used inside synchronized block
-				Stat tempStat = new Stat();
 				ByteArrayOutputStream bout = new ByteArrayOutputStream();
 				AOServConnector conn = AOServDaemon.getConnector();
 				Server server = thisAOServer.getServer();
@@ -407,26 +401,26 @@ final public class ImapManager extends BuilderThread {
 						}
 
 						// chkconfig off if needed
-						if(cyrusRcFile.getStat(tempStat).exists()) {
+						if(cyrusRcFile.getStat().exists()) {
 							if(isFine) logger.fine("Disabling cyrus-imapd service");
 							AOServDaemon.exec(new String[] {"/sbin/chkconfig", "cyrus-imapd", "off"});
-							if(cyrusRcFile.getStat(tempStat).exists()) throw new IOException(cyrusRcFile.getPath()+" still exists after chkconfig off");
+							if(cyrusRcFile.getStat().exists()) throw new IOException(cyrusRcFile.getPath()+" still exists after chkconfig off");
 						}
 
 						// Delete config files if exist
-						if(imapdConfNewFile.getStat(tempStat).exists()) {
+						if(imapdConfNewFile.getStat().exists()) {
 							if(isFine) logger.log(Level.FINE, "Deleting unnecessary config file: {0}", imapdConfNewFile.getPath());
 							imapdConfNewFile.delete();
 						}
-						if(imapdConfFile.getStat(tempStat).exists()) {
+						if(imapdConfFile.getStat().exists()) {
 							if(isFine) logger.log(Level.FINE, "Deleting unnecessary config file: {0}", imapdConfFile.getPath());
 							imapdConfFile.delete();
 						}
-						if(cyrusConfNewFile.getStat(tempStat).exists()) {
+						if(cyrusConfNewFile.getStat().exists()) {
 							if(isFine) logger.log(Level.FINE, "Deleting unnecessary config file: {0}", cyrusConfNewFile.getPath());
 							cyrusConfNewFile.delete();
 						}
-						if(cyrusConfFile.getStat(tempStat).exists()) {
+						if(cyrusConfFile.getStat().exists()) {
 							if(isFine) logger.log(Level.FINE, "Deleting unnecessary config file: {0}", cyrusConfFile.getPath());
 							cyrusConfFile.delete();
 						}
@@ -535,7 +529,7 @@ final public class ImapManager extends BuilderThread {
 							byte[] newBytes = bout.toByteArray();
 
 							// Only write when changed
-							if(!cyrusConfFile.getStat(tempStat).exists() || !cyrusConfFile.contentEquals(newBytes)) {
+							if(!cyrusConfFile.getStat().exists() || !cyrusConfFile.contentEquals(newBytes)) {
 								if(isFine) logger.fine("Writing new config file: "+cyrusConfFile.getPath());
 								try (FileOutputStream newOut = new FileOutputStream(cyrusConfNewFile.getFile())) {
 									newOut.write(newBytes);
@@ -581,7 +575,7 @@ final public class ImapManager extends BuilderThread {
 									if(!pkiVostsDirectoryStat.exists()) {
 										if(isFine) logger.fine("Creating vhosts directory: "+pkiVostsDirectory.getPath());
 										pkiVostsDirectory.mkdir();
-										pkiVostsDirectory.getStat(pkiVostsDirectoryStat);
+										pkiVostsDirectoryStat = pkiVostsDirectory.getStat();
 									}
 									if(pkiVostsDirectoryStat.getMode()!=0755) {
 										if(isFine) logger.fine("Setting vhosts directory permissions: "+pkiVostsDirectory.getPath());
@@ -620,7 +614,7 @@ final public class ImapManager extends BuilderThread {
 									// cert file
 									String certFilename = protocol+"_"+ipAddress.toString()+"_"+port+".cert";
 									UnixFile certFile = new UnixFile(pkiVostsDirectory, certFilename, false);
-									if(!certFile.getStat(tempStat).exists()) {
+									if(!certFile.getStat().exists()) {
 										if(isFine) logger.fine("Creating default cert symlink: "+certFile.getPath()+"->"+DEFAULT_CERT_SYMLINK);
 										certFile.symLink(DEFAULT_CERT_SYMLINK);
 									}
@@ -630,7 +624,7 @@ final public class ImapManager extends BuilderThread {
 									// key file
 									String keyFilename = protocol+"_"+ipAddress.toString()+"_"+port+".key";
 									UnixFile keyFile = new UnixFile(pkiVostsDirectory, keyFilename, false);
-									if(!keyFile.getStat(tempStat).exists()) {
+									if(!keyFile.getStat().exists()) {
 										if(isFine) logger.fine("Creating default key symlink: "+keyFile.getPath()+"->"+DEFAULT_KEY_SYMLINK);
 										keyFile.symLink(DEFAULT_KEY_SYMLINK);
 									}
@@ -640,7 +634,7 @@ final public class ImapManager extends BuilderThread {
 									// ca file
 									String caFilename = protocol+"_"+ipAddress.toString()+"_"+port+".ca";
 									UnixFile caFile = new UnixFile(pkiVostsDirectory, caFilename, false);
-									if(!caFile.getStat(tempStat).exists()) {
+									if(!caFile.getStat().exists()) {
 										if(isFine) logger.fine("Creating default ca symlink: "+caFile.getPath()+"->"+DEFAULT_CA_SYMLINK);
 										caFile.symLink(DEFAULT_CA_SYMLINK);
 									}
@@ -681,7 +675,7 @@ final public class ImapManager extends BuilderThread {
 							byte[] newBytes = bout.toByteArray();
 
 							// Only write when changed
-							if(!imapdConfFile.getStat(tempStat).exists() || !imapdConfFile.contentEquals(newBytes)) {
+							if(!imapdConfFile.getStat().exists() || !imapdConfFile.contentEquals(newBytes)) {
 								if(isFine) logger.fine("Writing new config file: "+imapdConfFile.getPath());
 								FileOutputStream newOut = new FileOutputStream(imapdConfNewFile.getFile());
 								try {
@@ -700,8 +694,7 @@ final public class ImapManager extends BuilderThread {
 							for(String filename : list) {
 								if(!vhostsFiles.contains(filename)) {
 									UnixFile vhostsFile = new UnixFile(pkiVostsDirectory, filename, false);
-									vhostsFile.getStat(tempStat);
-									if(tempStat.isSymLink()) {
+									if(vhostsFile.getStat().isSymLink()) {
 										String target = vhostsFile.readLink();
 										if(
 											target.equals(DEFAULT_CERT_SYMLINK)
@@ -721,10 +714,10 @@ final public class ImapManager extends BuilderThread {
 						}
 
 						// chkconfig on if needed
-						if(!cyrusRcFile.getStat(tempStat).exists()) {
+						if(!cyrusRcFile.getStat().exists()) {
 							if(isFine) logger.fine("Enabling cyrus-imapd service");
 							AOServDaemon.exec(new String[] {"/sbin/chkconfig", "cyrus-imapd", "on"});
-							if(!cyrusRcFile.getStat(tempStat).exists()) throw new IOException(cyrusRcFile.getPath()+" still does not exists after chkconfig on");
+							if(!cyrusRcFile.getStat().exists()) throw new IOException(cyrusRcFile.getPath()+" still does not exists after chkconfig on");
 						}
 
 						// Start service if not running
@@ -901,14 +894,13 @@ final public class ImapManager extends BuilderThread {
 		final UnixFile backupDirectory,
 		final String folderPath,
 		final String[] tempPassword,
-		final UnixFile passwordBackup,
-		final Stat tempStat
+		final UnixFile passwordBackup
 	) throws IOException, SQLException, MessagingException {
 		// Careful not a symbolic link
-		if(!directory.getStat(tempStat).isDirectory()) throw new IOException("Not a directory: "+directory.getPath());
+		if(!directory.getStat().isDirectory()) throw new IOException("Not a directory: "+directory.getPath());
 
 		// Create backup directory
-		if(!backupDirectory.getStat(tempStat).exists()) {
+		if(!backupDirectory.getStat().exists()) {
 			log(logOut, Level.FINE, username, "Creating backup directory: "+backupDirectory.getPath());
 			backupDirectory.mkdir(false, 0700);
 		}
@@ -919,7 +911,7 @@ final public class ImapManager extends BuilderThread {
 			Arrays.sort(list);
 			for(String childName : list) {
 				UnixFile childUf = new UnixFile(directory, childName, false);
-				long mode = childUf.getStat(tempStat).getRawMode();
+				long mode = childUf.getStat().getRawMode();
 				boolean isDirectory = UnixFile.isDirectory(mode);
 				boolean isFile = UnixFile.isRegularFile(mode);
 				if(isDirectory && isFile) throw new IOException("Both directory and regular file: "+childUf.getPath());
@@ -927,7 +919,7 @@ final public class ImapManager extends BuilderThread {
 				String folderName = folderPath.length()==0 ? childName : (folderPath+'/'+childName);
 
 				// Get New Store
-				IMAPStore newStore = getNewUserStore(logOut, username, tempPassword, passwordBackup, tempStat);
+				IMAPStore newStore = getNewUserStore(logOut, username, tempPassword, passwordBackup);
 				try {
 					// Get New Folder
 					IMAPFolder newFolder = (IMAPFolder)newStore.getFolder(folderName);
@@ -955,9 +947,9 @@ final public class ImapManager extends BuilderThread {
 				// Recurse
 				UnixFile childBackupUf = new UnixFile(backupDirectory, childName, false);
 				if(isDirectory && !isFile) {
-					convertImapDirectory(logOut, username, junkRetention, trashRetention, childUf, childBackupUf, folderName, tempPassword, passwordBackup, tempStat);
+					convertImapDirectory(logOut, username, junkRetention, trashRetention, childUf, childBackupUf, folderName, tempPassword, passwordBackup);
 				} else if(isFile && !isDirectory) {
-					convertImapFile(logOut, username, junkRetention, trashRetention, childUf, childBackupUf, folderName, tempPassword, passwordBackup, tempStat);
+					convertImapFile(logOut, username, junkRetention, trashRetention, childUf, childBackupUf, folderName, tempPassword, passwordBackup);
 				} else {
 					throw new AssertionError("This should already have been caught by the isDirectory and isFile checks above");
 				}
@@ -1054,14 +1046,13 @@ final public class ImapManager extends BuilderThread {
 		final UnixFile backupFile,
 		final String folderName,
 		final String[] tempPassword,
-		final UnixFile passwordBackup,
-		final Stat tempStat
+		final UnixFile passwordBackup
 	) throws IOException, SQLException, MessagingException {
 		// Careful not a symolic link
 		if(!file.getStat().isRegularFile()) throw new IOException("Not a regular file: "+file.getPath());
 
 		// Backup file
-		if(!backupFile.getStat(tempStat).exists()) {
+		if(!backupFile.getStat().exists()) {
 			log(logOut, Level.FINE, username, "Backing-up \""+folderName+"\" to \""+backupFile.getPath()+"\"");
 			UnixFile tempFile = UnixFile.mktemp(backupFile.getPath()+".", false);
 			file.copyTo(tempFile, true);
@@ -1086,7 +1077,7 @@ final public class ImapManager extends BuilderThread {
 		} else {
 			// Get Old Store
 			boolean deleteOldFolder;
-			IMAPStore oldStore = getOldUserStore(logOut, username, tempPassword, passwordBackup, tempStat);
+			IMAPStore oldStore = getOldUserStore(logOut, username, tempPassword, passwordBackup);
 			try {
 				// Get Old Folder
 				IMAPFolder oldFolder = (IMAPFolder)oldStore.getFolder(folderName);
@@ -1094,7 +1085,7 @@ final public class ImapManager extends BuilderThread {
 					if(!oldFolder.exists()) throw new MessagingException(username+": Old folder doesn't exist: "+folderName);
 					oldFolder.open(Folder.READ_WRITE);
 					// Get New Store
-					IMAPStore newStore = getNewUserStore(logOut, username, tempPassword, passwordBackup, tempStat);
+					IMAPStore newStore = getNewUserStore(logOut, username, tempPassword, passwordBackup);
 					try {
 						// Get New Folder
 						IMAPFolder newFolder = (IMAPFolder)newStore.getFolder(folderName);
@@ -1253,7 +1244,7 @@ final public class ImapManager extends BuilderThread {
 			} finally {
 				oldStore.close();
 			}
-			if(deleteOldFolder && file.getStat(tempStat).exists()) {
+			if(deleteOldFolder && file.getStat().exists()) {
 				// If INBOX, need to remove file
 				if(folderName.equals("INBOX")) {
 					log(logOut, Level.FINE, username, "Deleting mailbox file: "+file.getPath());
@@ -1384,14 +1375,13 @@ final public class ImapManager extends BuilderThread {
 									new Callable<Object>() {
 										@Override
 										public Object call() throws IOException, SQLException, MessagingException {
-											Stat tempStat = new Stat();
 											// Create the backup directory
-											if(!wuBackupDirectory.getStat(tempStat).exists()) {
+											if(!wuBackupDirectory.getStat().exists()) {
 												if(isDebug) logger.fine("Creating directory: "+wuBackupDirectory.getPath());
 												wuBackupDirectory.mkdir(true, 0700);
 											}
 											UnixFile userBackupDirectory = new UnixFile(wuBackupDirectory, laUsername, false);
-											if(!userBackupDirectory.getStat(tempStat).exists()) {
+											if(!userBackupDirectory.getStat().exists()) {
 												if(isDebug) logger.fine(laUsername+": Creating backup directory: "+userBackupDirectory.getPath());
 												userBackupDirectory.mkdir(false, 0700);
 											}
@@ -1401,7 +1391,7 @@ final public class ImapManager extends BuilderThread {
 											if(isTrace) logger.finer(laUsername+": Using logfile: "+logFile.getPath());
 											PrintWriter logOut = new PrintWriter(new FileOutputStream(logFile.getFile(), true));
 											try {
-												if(logFile.getStat(tempStat).getMode()!=0600) logFile.setMode(0600);
+												if(logFile.getStat().getMode()!=0600) logFile.setMode(0600);
 												// Password backup is delayed until immediately before the password is reset.
 												// This avoids unnecessary password resets.
 												UnixFile passwordBackup = new UnixFile(userBackupDirectory, "passwd", false);
@@ -1409,10 +1399,11 @@ final public class ImapManager extends BuilderThread {
 												// Backup the mailboxlist
 												UnixFile homeDir = new UnixFile(homePath);
 												UnixFile mailBoxListFile = new UnixFile(homeDir, ".mailboxlist", false);
-												if(mailBoxListFile.getStat(tempStat).exists()) {
-													if(!tempStat.isRegularFile()) throw new IOException("Not a regular file: "+mailBoxListFile.getPath());
+												Stat mailBoxListFileStat = mailBoxListFile.getStat();
+												if(mailBoxListFileStat.exists()) {
+													if(!mailBoxListFileStat.isRegularFile()) throw new IOException("Not a regular file: "+mailBoxListFile.getPath());
 													UnixFile mailBoxListBackup = new UnixFile(userBackupDirectory, "mailboxlist", false);
-													if(!mailBoxListBackup.getStat(tempStat).exists()) {
+													if(!mailBoxListBackup.getStat().exists()) {
 														log(logOut, Level.FINE, laUsername, "Backing-up mailboxlist");
 														UnixFile tempFile = UnixFile.mktemp(mailBoxListBackup.getPath()+".", false);
 														mailBoxListFile.copyTo(tempFile, true);
@@ -1427,25 +1418,27 @@ final public class ImapManager extends BuilderThread {
 												int trashRetention = lsa.getTrashEmailRetention();
 												// Convert old INBOX
 												UnixFile inboxFile = new UnixFile(mailSpool, laUsername);
-												if(inboxFile.getStat(tempStat).exists()) {
-													if(!tempStat.isRegularFile()) throw new IOException("Not a regular file: "+inboxFile.getPath());
-													convertImapFile(logOut, laUsername, junkRetention, trashRetention, inboxFile, new UnixFile(userBackupDirectory, "INBOX", false), "INBOX", tempPassword, passwordBackup, tempStat);
+												Stat inboxFileStat = inboxFile.getStat();
+												if(inboxFileStat.exists()) {
+													if(!inboxFileStat.isRegularFile()) throw new IOException("Not a regular file: "+inboxFile.getPath());
+													convertImapFile(logOut, laUsername, junkRetention, trashRetention, inboxFile, new UnixFile(userBackupDirectory, "INBOX", false), "INBOX", tempPassword, passwordBackup);
 												}
 
 												// Convert old folders from UW software
 												if(!"/home/a/acccorpapp".equals(homeDir.getPath())) {
 													UnixFile mailDir = new UnixFile(homeDir, "Mail", false);
-													if(mailDir.getStat(tempStat).exists()) {
-														if(!tempStat.isDirectory()) throw new IOException("Not a directory: "+mailDir.getPath());
-														convertImapDirectory(logOut, laUsername, junkRetention, trashRetention, mailDir, new UnixFile(userBackupDirectory, "Mail", false), "", tempPassword, passwordBackup, tempStat);
+													Stat mailDirStat = mailDir.getStat();
+													if(mailDirStat.exists()) {
+														if(!mailDirStat.isDirectory()) throw new IOException("Not a directory: "+mailDir.getPath());
+														convertImapDirectory(logOut, laUsername, junkRetention, trashRetention, mailDir, new UnixFile(userBackupDirectory, "Mail", false), "", tempPassword, passwordBackup);
 													}
 												}
 
 												// Remove the mailboxlist file
-												if(mailBoxListFile.getStat(tempStat).exists()) mailBoxListFile.delete();
+												if(mailBoxListFile.getStat().exists()) mailBoxListFile.delete();
 
 												// Restore passwd, if needed
-												if(passwordBackup.getStat(tempStat).exists()) {
+												if(passwordBackup.getStat().exists()) {
 													String currentEncryptedPassword = LinuxAccountManager.getEncryptedPassword(laUsername);
 													String savedEncryptedPassword;
 													BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(passwordBackup.getFile())));

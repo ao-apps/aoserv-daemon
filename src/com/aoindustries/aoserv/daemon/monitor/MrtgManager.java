@@ -17,7 +17,6 @@ import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.CompressedDataOutputStream;
-import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.util.BufferManager;
 import java.io.BufferedReader;
@@ -71,8 +70,6 @@ final public class MrtgManager extends BuilderThread {
 				&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
 				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
-
-			final Stat tempStat = new Stat();
 
 			AOServer failoverServer = thisAOServer.getFailoverServer();
 			String daemonBin;
@@ -315,13 +312,10 @@ final public class MrtgManager extends BuilderThread {
 						out.close();
 					}
 					byte[] newFile=bout.toByteArray();
-					if(!cfgFile.getStat(tempStat).exists() || !cfgFile.contentEquals(newFile)) {
-						OutputStream fileOut=cfgFileNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true);
-						try {
+					if(!cfgFile.getStat().exists() || !cfgFile.contentEquals(newFile)) {
+						try (OutputStream fileOut = cfgFileNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true)) {
 							fileOut.write(newFile);
 							fileOut.flush();
-						} finally {
-							fileOut.close();
 						}
 						cfgFileNew.renameTo(cfgFile);
 					}
@@ -477,13 +471,10 @@ final public class MrtgManager extends BuilderThread {
 						out.close();
 					}
 					byte[] newFile=bout.toByteArray();
-					if(!statsFile.getStat(tempStat).exists() || !statsFile.contentEquals(newFile)) {
-						OutputStream fileOut=statsFileNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true);
-						try {
+					if(!statsFile.getStat().exists() || !statsFile.contentEquals(newFile)) {
+						try (OutputStream fileOut = statsFileNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)) {
 							fileOut.write(newFile);
 							fileOut.flush();
-						} finally {
-							fileOut.close();
 						}
 						statsFileNew.renameTo(statsFile);
 					}

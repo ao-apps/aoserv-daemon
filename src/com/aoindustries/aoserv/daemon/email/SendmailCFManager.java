@@ -65,8 +65,6 @@ final public class SendmailCFManager extends BuilderThread {
             ServerFarm serverFarm = server.getServerFarm();
             IPAddress primaryIpAddress = aoServer.getPrimaryIPAddress();
             ByteArrayOutputStream bout = new ByteArrayOutputStream();
-            Stat tempStat = new Stat();
-
             synchronized(rebuildLock) {
                 // Get the values used by different files once for internal consistency on dynamic data
                 List<NetBind> smtpNetBinds = server.getNetBinds(conn.getProtocols().get(Protocol.SMTP));
@@ -342,7 +340,7 @@ final public class SendmailCFManager extends BuilderThread {
                     byte[] newBytes = bout.toByteArray();
 
                     // Write the new file if it is different than the old
-                    if(!sendmailMc.getStat(tempStat).exists() || !sendmailMc.contentEquals(newBytes)) {
+                    if(!sendmailMc.getStat().exists() || !sendmailMc.contentEquals(newBytes)) {
                         try (FileOutputStream fout = sendmailMcNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)) {
                             fout.write(newBytes);
                         }
@@ -357,7 +355,7 @@ final public class SendmailCFManager extends BuilderThread {
                 Stat sendmailCfStat = sendmailCf.getStat();
                 if(
                     !sendmailCfStat.exists()
-                    || sendmailCfStat.getModifyTime()<sendmailMc.getStat(tempStat).getModifyTime()
+                    || sendmailCfStat.getModifyTime()<sendmailMc.getStat().getModifyTime()
                 ) {
                     // Build to RAM to compare
                     String[] command = {"/usr/bin/m4", "/etc/mail/sendmail.mc"};
@@ -430,7 +428,7 @@ final public class SendmailCFManager extends BuilderThread {
                     byte[] newBytes = bout.toByteArray();
 
                     // Write the new file if it is different than the old
-                    if(!submitMc.getStat(tempStat).exists() || !submitMc.contentEquals(newBytes)) {
+                    if(!submitMc.getStat().exists() || !submitMc.contentEquals(newBytes)) {
                         try (FileOutputStream fout = submitMcNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)) {
                             fout.write(newBytes);
                         }
@@ -442,7 +440,7 @@ final public class SendmailCFManager extends BuilderThread {
                 Stat submitCfStat = submitCf.getStat();
                 if(
                     !submitCfStat.exists()
-                    || submitCfStat.getModifyTime()<submitMc.getStat(tempStat).getModifyTime()
+                    || submitCfStat.getModifyTime()<submitMc.getStat().getModifyTime()
                 ) {
                     // Build to RAM to compare
                     String[] command = {"/usr/bin/m4", "/etc/mail/submit.mc"};

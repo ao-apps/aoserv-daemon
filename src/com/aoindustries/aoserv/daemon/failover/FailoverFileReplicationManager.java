@@ -15,6 +15,10 @@ import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.io.ParallelDelete;
+import com.aoindustries.io.filesystems.Path;
+import com.aoindustries.io.filesystems.unix.DedupDataIndex;
+import com.aoindustries.io.filesystems.unix.DefaultUnixFileSystem;
+import com.aoindustries.io.filesystems.unix.UnixFileSystem;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.math.SafeMath;
@@ -148,7 +152,7 @@ Maximum number of chunks per file: 2 ^ (44 - 20): 2 ^ 24
  * TODO: Use LVM snapshots within the client layer
  * </p>
  *
- * @see  DataIndex
+ * @see  DedupDataIndex
  *
  * @author  AO Industries, Inc.
  */
@@ -528,9 +532,6 @@ final public class FailoverFileReplicationManager {
 					if(replicatedMySQLMinorVersion.indexOf('/')!=-1 || replicatedMySQLMinorVersion.indexOf("..")!=-1) throw new IOException("Invalid replicatedMySQLMinorVersion: "+replicatedMySQLMinorVersion);
 				}
 
-				// This Stat may be used for any short-term tempStat
-				final Stat tempStat = new Stat();
-
 				// Tell the client it is OK to continue
 				activity.update("socket: write: AOServDaemonProtocol.NEXT");
 				out.write(AOServDaemonProtocol.NEXT);
@@ -543,7 +544,7 @@ final public class FailoverFileReplicationManager {
 				String linkToRoot;
 				final UnixFile serverRootUF;
 				boolean isRecycling;
-				final DataIndex dataIndex;
+				final DedupDataIndex dataIndex;
 				if(retention==1) {
 					partialMirrorRoot = finalMirrorRoot = toPath;
 					recycledPartialMirrorRoot = null;
@@ -555,8 +556,8 @@ final public class FailoverFileReplicationManager {
 					// Create the server root if it doesn't exist
 					UnixFile dirUF = new UnixFile(toPath);
 					activity.update("file: stat: ", dirUF);
-					dirUF.getStat(tempStat);
-					if(!tempStat.exists()) {
+					Stat dirStat = dirUF.getStat();
+					if(!dirStat.exists()) {
 						activity.update("file: mkdir: ", dirUF);
 						dirUF.mkdir(
 							true,
@@ -564,20 +565,26 @@ final public class FailoverFileReplicationManager {
 							UnixFile.ROOT_UID,
 							quota_gid==-1 ? UnixFile.ROOT_GID : quota_gid
 						);
-					} else if(!tempStat.isDirectory()) {
+					} else if(!dirStat.isDirectory()) {
 						throw new IOException("toPath exists but is not a directory: "+toPath);
 					}
 				} else {
 					if(DATA_INDEX_DIRECTORY_NAME.equals(fromServer)) throw new IOException("fromServer conflicts with data index: " + fromServer);
-					dataIndex = DataIndex.getInstance(new File(backupPartition, DATA_INDEX_DIRECTORY_NAME));
+					UnixFileSystem fileSystem = DefaultUnixFileSystem.getInstance();
+					Path dataIndexDir = new Path(
+						fileSystem.parsePath(backupPartition),
+						DATA_INDEX_DIRECTORY_NAME
+					);
+					activity.update("data-index: Opening data index: ", dataIndexDir);
+					dataIndex = DedupDataIndex.getInstance(fileSystem, dataIndexDir);
 					// The directory that holds the different versions
 					StringBuilder SB = new StringBuilder(toPath);
 
 					// Create the server root if it doesn't exist
 					serverRootUF = new UnixFile(toPath);
 					activity.update("file: stat: ", serverRootUF);
-					serverRootUF.getStat(tempStat);
-					if(!tempStat.exists()) {
+					Stat serverRootStat = serverRootUF.getStat();
+					if(!serverRootStat.exists()) {
 						activity.update("file: mkdir: ", serverRootUF);
 						serverRootUF.mkdir(
 							true,
@@ -585,7 +592,7 @@ final public class FailoverFileReplicationManager {
 							UnixFile.ROOT_UID,
 							quota_gid==-1 ? UnixFile.ROOT_GID : quota_gid
 						);
-					} else if(!tempStat.isDirectory()) {
+					} else if(!serverRootStat.isDirectory()) {
 						throw new IOException("Server Root exists but is not a directory: "+toPath);
 					}
 
@@ -627,7 +634,7 @@ final public class FailoverFileReplicationManager {
 					// is used when multiple passes are performed in a single day, it is basically the same behavior as a failover replication.
 					UnixFile finalUF = new UnixFile(finalMirrorRoot);
 					activity.update("file: stat: ", finalUF);
-					if(finalUF.getStat(tempStat).exists()) {
+					if(finalUF.getStat().exists()) {
 						// See (1) above
 						UnixFile partialUF = new UnixFile(partialMirrorRoot);
 						renameToNoExists(activity, finalUF, partialUF);
@@ -637,13 +644,13 @@ final public class FailoverFileReplicationManager {
 						{
 							UnixFile recycledPartialUF = new UnixFile(recycledPartialMirrorRoot);
 							activity.update("file: stat: ", recycledPartialUF);
-							if(recycledPartialUF.getStat(tempStat).exists()) {
+							if(recycledPartialUF.getStat().exists()) {
 								// See (2) above
 								isRecycling = true;
 							} else {
 								UnixFile partialUF = new UnixFile(partialMirrorRoot);
 								activity.update("file: stat: ", partialUF);
-								if(partialUF.getStat(tempStat).exists()) {
+								if(partialUF.getStat().exists()) {
 									// See (3) above
 									isRecycling = false;
 								} else {
@@ -790,12 +797,6 @@ final public class FailoverFileReplicationManager {
 				long[] modifyTimes=null;
 				int[] results=null;
 
-				// Used in the inner loop
-				final Stat ufStat = new Stat();
-				final Stat linkToUFStat = new Stat();
-				final Stat otherFileStat = new Stat();
-				final Stat tempNewFileStat = new Stat();
-
 				byte[] buff=BufferManager.getBytes();
 				byte[] chunkBuffer = useCompression ? new byte[AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE] : null;
 				MD5 md5 = useCompression ? new MD5() : null;
@@ -856,21 +857,22 @@ final public class FailoverFileReplicationManager {
 								String path=paths[c]=(isRecycling ? recycledPartialMirrorRoot : partialMirrorRoot)+relativePath;
 								UnixFile uf=new UnixFile(path);
 								activity.update("file: stat: ", uf);
-								uf.getStat(ufStat);
+								Stat ufStat = uf.getStat();
 								UnixFile ufParent=uf.getParent();
 								String linkToPath;
 								UnixFile linkToUF;
+								Stat linkToUFStat;
 								UnixFile linkToParent;
 								if(linkToRoot!=null) {
 									linkToPath=linkToRoot+relativePath;
 									linkToUF=new UnixFile(linkToPath);
 									activity.update("file: stat: ", linkToUF);
-									linkToUF.getStat(linkToUFStat);
+									linkToUFStat = linkToUF.getStat();
 									linkToParent=linkToUF.getParent();
 								} else {
 									linkToPath=null;
 									linkToUF=null;
-									linkToUFStat.reset();
+									linkToUFStat = null;
 									linkToParent=null;
 								}
 								activity.update("socket: read: Reading mode ", batchPos, " of ", batchSizeObj);
@@ -960,14 +962,15 @@ final public class FailoverFileReplicationManager {
 										activity.update("file: deleteRecursive: ", uf);
 										uf.deleteRecursive();
 										activity.update("file: stat: ", uf);
-										uf.getStat(ufStat);
+										ufStat = uf.getStat();
 									}
 									if(!ufStat.exists()) {
 										activity.update("file: mknod: ", uf);
 										uf.mknod(mode, deviceID);
 										activity.update("file: stat: ", uf);
-										uf.getStat(ufStat);
+										ufStat = uf.getStat();
 										if(linkToUF!=null) {
+											assert linkToUFStat != null;
 											// Only modified if not in last backup set, too
 											if(
 												!linkToUFStat.exists()
@@ -999,14 +1002,15 @@ final public class FailoverFileReplicationManager {
 										activity.update("file: deleteRecursive: ", uf);
 										uf.deleteRecursive();
 										activity.update("file: stat: ", uf);
-										uf.getStat(ufStat);
+										ufStat = uf.getStat();
 									}
 									if(!ufStat.exists()) {
 										activity.update("file: mknod: ", uf);
 										uf.mknod(mode, deviceID);
 										activity.update("file: stat: ", uf);
-										uf.getStat(ufStat);
+										ufStat = uf.getStat();
 										if(linkToUF!=null) {
+											assert linkToUFStat != null;
 											// Only modified if not in last backup set, too
 											if(
 												!linkToUFStat.exists()
@@ -1035,14 +1039,15 @@ final public class FailoverFileReplicationManager {
 										activity.update("file: deleteRecursive: ", uf);
 										uf.deleteRecursive();
 										activity.update("file: stat: ", uf);
-										uf.getStat(ufStat);
+										ufStat = uf.getStat();
 									}
 									if(!ufStat.exists()) {
 										activity.update("file: mkdir: ", uf);
 										uf.mkdir();
 										activity.update("file: stat: ", uf);
-										uf.getStat(ufStat);
+										ufStat = uf.getStat();
 										if(linkToUF!=null) {
+											assert linkToUFStat != null;
 											// Only modified if not in last backup set, too
 											if(
 												!linkToUFStat.exists()
@@ -1062,8 +1067,8 @@ final public class FailoverFileReplicationManager {
 									directoryUFs.push(uf);
 									if(directoryLinkToUFs!=null) directoryLinkToUFs.push(linkToUF);
 									directoryUFRelativePaths.push(relativePath);
-									directoryModifyTimes.push(Long.valueOf(modifyTime));
-									directoryContents.push(new HashSet<String>());
+									directoryModifyTimes.push(modifyTime);
+									directoryContents.push(new HashSet<>());
 								} else if(UnixFile.isFifo(mode)) {
 									if(
 										ufStat.exists()
@@ -1078,14 +1083,15 @@ final public class FailoverFileReplicationManager {
 										activity.update("file: deleteRecursive: ", uf);
 										uf.deleteRecursive();
 										activity.update("file: stat: ", uf);
-										uf.getStat(ufStat);
+										ufStat = uf.getStat();
 									}
 									if(!ufStat.exists()) {
 										activity.update("file: mkfifo: ", uf);
 										uf.mkfifo(mode);
 										activity.update("file: stat: ", uf);
-										uf.getStat(ufStat);
+										ufStat = uf.getStat();
 										if(linkToUF!=null) {
+											assert linkToUFStat != null;
 											// Only modified if not in last backup set, too
 											if(
 												!linkToUFStat.exists()
@@ -1131,7 +1137,7 @@ final public class FailoverFileReplicationManager {
 											activity.update("file: delete: ", uf);
 											uf.delete();
 											activity.update("file: stat: ", uf);
-											uf.getStat(ufStat);
+											ufStat = uf.getStat();
 										} else if(ufStat.isDirectory()) {
 											// Update caches
 											long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
@@ -1141,7 +1147,7 @@ final public class FailoverFileReplicationManager {
 											activity.update("file: deleteRecursive: ", uf);
 											uf.deleteRecursive();
 											activity.update("file: stat: ", uf);
-											uf.getStat(ufStat);
+											ufStat = uf.getStat();
 										}
 									}
 									// Look in the current directory for an exact match
@@ -1180,7 +1186,7 @@ final public class FailoverFileReplicationManager {
 														activity.update("file: link: ", uf, " to ", linkToUF);
 														uf.link(linkToUF);
 														activity.update("file: stat: ", uf);
-														uf.getStat(ufStat);
+														ufStat = uf.getStat();
 														// Update caches
 														long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
 														renamed(modifyTimeAndSizeCaches, uf, tempUF, ufParent);
@@ -1198,7 +1204,7 @@ final public class FailoverFileReplicationManager {
 														activity.update("file: link: ", uf, " to ", linkToUF);
 														uf.link(linkToUF);
 														activity.update("file: stat: ", uf);
-														uf.getStat(ufStat);
+														ufStat = uf.getStat();
 														// Update caches
 														startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
 														added(activity, modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
@@ -1215,7 +1221,7 @@ final public class FailoverFileReplicationManager {
 													activity.update("file: link: ", uf, " to ", linkToUF);
 													uf.link(linkToUF);
 													activity.update("file: stat: ", uf);
-													uf.getStat(ufStat);
+													ufStat = uf.getStat();
 													// Update caches
 													startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
 													added(activity, modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
@@ -1226,7 +1232,7 @@ final public class FailoverFileReplicationManager {
 												activity.update("file: link: ", uf, " to ", linkToUF);
 												uf.link(linkToUF);
 												activity.update("file: stat: ", uf);
-												uf.getStat(ufStat);
+												ufStat = uf.getStat();
 												// Update caches
 												long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
 												added(activity, modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
@@ -1247,7 +1253,7 @@ final public class FailoverFileReplicationManager {
 												ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.isEmpty() ? null : modifyTimeAndSizeCaches.get(ufParent);
 												if(modifyTimeAndSizeCache==null) {
 													// Not in cache, load from disk
-													modifyTimeAndSizeCaches.put(ufParent, modifyTimeAndSizeCache = new ModifyTimeAndSizeCache(activity, ufParent, tempStat));
+													modifyTimeAndSizeCaches.put(ufParent, modifyTimeAndSizeCache = new ModifyTimeAndSizeCache(activity, ufParent));
 												}
 												List<String> matchedFilenames = modifyTimeAndSizeCache.getFilenamesByModifyTimeAndSize(modifyTimeAndSize);
 												if(matchedFilenames!=null && !matchedFilenames.isEmpty()) {
@@ -1265,7 +1271,7 @@ final public class FailoverFileReplicationManager {
 														for(int d = 0; d < list.length; d++) {
 															UnixFile otherFile = new UnixFile(ufParent, list[d], false);
 															activity.update("file: stat: ", otherFile);
-															otherFile.getStat(otherFileStat);
+															Stat otherFileStat = otherFile.getStat();
 															if(
 																otherFileStat.exists()
 																&& otherFileStat.isRegularFile()
@@ -1289,7 +1295,7 @@ final public class FailoverFileReplicationManager {
 														}
 														// Verify that the file on disk actually matches the size and modifyTime
 														activity.update("file: stat: ", oldLogUF);
-														oldLogUF.getStat(otherFileStat);
+														Stat otherFileStat = oldLogUF.getStat();
 														if(otherFileStat.getModifyTime()!=modifyTime) {
 															throw new IOException("oldLogUF.getModifyTime()!=modifyTime, oldLogUF="+oldLogUF);
 														}
@@ -1310,7 +1316,7 @@ final public class FailoverFileReplicationManager {
 													ModifyTimeAndSizeCache modifyTimeAndSizeCache2 = modifyTimeAndSizeCaches.isEmpty() ? null : modifyTimeAndSizeCaches.get(linkToParent);
 													if(modifyTimeAndSizeCache2==null) {
 														// Not in cache, load from disk
-														modifyTimeAndSizeCaches.put(linkToParent, modifyTimeAndSizeCache2 = new ModifyTimeAndSizeCache(activity, linkToParent, tempStat));
+														modifyTimeAndSizeCaches.put(linkToParent, modifyTimeAndSizeCache2 = new ModifyTimeAndSizeCache(activity, linkToParent));
 													}
 													List<String> matchedFilenames2 = modifyTimeAndSizeCache2.getFilenamesByModifyTimeAndSize(modifyTimeAndSize);
 													if(matchedFilenames2!=null && !matchedFilenames2.isEmpty()) {
@@ -1328,7 +1334,7 @@ final public class FailoverFileReplicationManager {
 															for(int d=0;d<linkToList.length;d++) {
 																UnixFile otherFile = new UnixFile(linkToParent, linkToList[d], false);
 																activity.update("file: stat: ", otherFile);
-																otherFile.getStat(otherFileStat);
+																Stat otherFileStat = otherFile.getStat();
 																if(
 																	otherFileStat.exists()
 																	&& otherFileStat.isRegularFile()
@@ -1352,7 +1358,7 @@ final public class FailoverFileReplicationManager {
 															}
 															// Verify that the file on disk actually matches the size and modifyTime
 															activity.update("file: stat: ", oldLogUF);
-															oldLogUF.getStat(otherFileStat);
+															Stat otherFileStat = oldLogUF.getStat();
 															if(otherFileStat.getModifyTime()!=modifyTime) {
 																throw new IOException("oldLogUF.getModifyTime()!=modifyTime, oldLogUF="+oldLogUF);
 															}
@@ -1421,7 +1427,7 @@ final public class FailoverFileReplicationManager {
 														if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
 													}
 													activity.update("file: stat: ", uf);
-													uf.getStat(ufStat);
+													ufStat = uf.getStat();
 													result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
 													updated(retention, postPassChecklist, relativePath);
 													linkedOldLogFile = true;
@@ -1511,7 +1517,7 @@ final public class FailoverFileReplicationManager {
 																activity.update("file: touch: ", uf);
 																new FileOutputStream(uf.getFile()).close();
 																activity.update("file: stat: ", uf);
-																uf.getStat(ufStat);
+																ufStat = uf.getStat();
 																// modifyTimeAndSizeCaches is not updated here, it will be updated below when the data is received
 															}
 														}
@@ -1565,7 +1571,7 @@ final public class FailoverFileReplicationManager {
 														activity.update("file: touch: ", uf);
 														new FileOutputStream(uf.getFile()).close();
 														activity.update("file: stat: ", uf);
-														uf.getStat(ufStat);
+														ufStat = uf.getStat();
 													} else {
 														// Build new temp file
 														UnixFile tempUF = mktemp(activity, uf);
@@ -1594,13 +1600,13 @@ final public class FailoverFileReplicationManager {
 										activity.update("file: deleteRecursive: ", uf);
 										uf.deleteRecursive();
 										activity.update("file: stat: ", uf);
-										uf.getStat(ufStat);
+										ufStat = uf.getStat();
 									}
 									if(!ufStat.exists()) {
 										activity.update("file: symLink: ", uf, " to ", symlinkTarget);
 										uf.symLink(symlinkTarget);
 										activity.update("file: stat: ", uf);
-										uf.getStat(ufStat);
+										ufStat = uf.getStat();
 										if(linkToUF!=null) {
 											// Only modified if not in last backup set, too
 											if(
@@ -1626,9 +1632,8 @@ final public class FailoverFileReplicationManager {
 									effectiveUFStat = ufStat;
 								} else {
 									effectiveUF = tempNewFiles[c];
-									effectiveUFStat = tempNewFileStat;
 									activity.update("file: stat: ", effectiveUF);
-									effectiveUF.getStat(effectiveUFStat);
+									effectiveUFStat = effectiveUF.getStat();
 								}
 								if(
 									!UnixFile.isSymLink(mode)
@@ -1642,7 +1647,7 @@ final public class FailoverFileReplicationManager {
 										activity.update("file: setMode: ", effectiveUF);
 										effectiveUF.setMode(mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK));
 										activity.update("file: stat: ", effectiveUF);
-										effectiveUF.getStat(effectiveUFStat);
+										effectiveUFStat = effectiveUF.getStat();
 									} catch(FileNotFoundException err) {
 										logger.log(Level.WARNING, "path="+path+", mode="+Long.toOctalString(mode), err);
 									}
@@ -1677,7 +1682,7 @@ final public class FailoverFileReplicationManager {
 									activity.update("file: chown: ", effectiveUF);
 									effectiveUF.chown(uid, (quota_gid==-1 ? gid : quota_gid));
 									activity.update("file: stat: ", effectiveUF);
-									effectiveUF.getStat(effectiveUFStat);
+									effectiveUFStat = effectiveUF.getStat();
 									if(result==AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_NO_CHANGE) {
 										if(linkToUF!=null) {
 											// Only modified if not in last backup set, too
@@ -1709,7 +1714,7 @@ final public class FailoverFileReplicationManager {
 										activity.update("file: utime: ", effectiveUF);
 										effectiveUF.utime(effectiveUFStat.getAccessTime(), modifyTime);
 										activity.update("file: stat: ", effectiveUF);
-										effectiveUF.getStat(effectiveUFStat);
+										effectiveUFStat = effectiveUF.getStat();
 									//} catch(IOException err) {
 									//    throw new WrappedException(err, new Object[] {"effectiveUF="+effectiveUF.getPath()});
 									//}
@@ -1840,7 +1845,7 @@ final public class FailoverFileReplicationManager {
 											&& tempUF!=null
 										) {
 											activity.update("file: stat: ", uf);
-											uf.getStat(ufStat);
+											Stat ufStat = uf.getStat();
 											if(!ufStat.exists()) {
 												// If it doesn't exist, can't compare file sizes, just rename
 												if(isFine) logger.fine("Renaming partial temp file to final filename because final filename doesn't exist: "+uf.getPath());
@@ -1849,8 +1854,7 @@ final public class FailoverFileReplicationManager {
 											} else {
 												long ufSize = ufStat.getSize();
 												activity.update("file: stat: ", tempUF);
-												tempUF.getStat(tempStat);
-												long tempUFSize = tempStat.getSize();
+												long tempUFSize = tempUF.getStat().getSize();
 												if(tempUFSize > ufSize) {
 													if(isFine) logger.fine("Renaming partial temp file to final filename because temp file is longer than the final file: "+uf.getPath());
 													activity.update("file: rename: ", tempUF, " to ", uf);
@@ -1861,9 +1865,9 @@ final public class FailoverFileReplicationManager {
 										}
 									}
 									activity.update("file: utime: ", fileOutUF);
-									fileOutUF.utime(fileOutUF.getStat(tempStat).getAccessTime(), modifyTimes[c]);
+									fileOutUF.utime(fileOutUF.getStat().getAccessTime(), modifyTimes[c]);
 									activity.update("file: stat: ", uf);
-									uf.getStat(ufStat);
+									Stat ufStat = uf.getStat();
 									if(tempUF!=null) {
 										if(ufStat.exists()) {
 											if(ufStat.isRegularFile()) {
@@ -1881,7 +1885,7 @@ final public class FailoverFileReplicationManager {
 														activity.update("file: rename: ", tempUF, " to ", uf);
 														tempUF.renameTo(uf);
 														activity.update("file: stat: ", uf);
-														uf.getStat(ufStat);
+														ufStat = uf.getStat();
 													} else {
 														// Backup mode uses a more efficient approach because partial states are OK
 														activity.update("file: rename: ", uf, " to ", tempUFLog);
@@ -1889,7 +1893,7 @@ final public class FailoverFileReplicationManager {
 														activity.update("file: rename: ", tempUF, " to ", uf);
 														tempUF.renameTo(uf);
 														activity.update("file: stat: ", uf);
-														uf.getStat(ufStat);
+														ufStat = uf.getStat();
 													}
 													// Update cache (cache update counted as removeByValue and then add because cache renaming method expects renameTo to not exist
 													long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
@@ -1905,7 +1909,7 @@ final public class FailoverFileReplicationManager {
 													activity.update("file: rename: ", tempUF, " to ", uf);
 													tempUF.renameTo(uf);
 													activity.update("file: stat: ", uf);
-													uf.getStat(ufStat);
+													ufStat = uf.getStat();
 												}
 											} else {
 												// Update cache
@@ -1918,13 +1922,13 @@ final public class FailoverFileReplicationManager {
 												activity.update("file: rename: ", tempUF, " to ", uf);
 												tempUF.renameTo(uf);
 												activity.update("file: stat: ", uf);
-												uf.getStat(ufStat);
+												ufStat = uf.getStat();
 											}
 										} else {
 											activity.update("file: rename: ", tempUF, " to ", uf);
 											tempUF.renameTo(uf);
 											activity.update("file: stat: ", uf);
-											uf.getStat(ufStat);
+											ufStat = uf.getStat();
 										}
 									}
 									// Update cache (cache update counted as removeByValue and then add because cache renaming method expects renameTo to not exist
@@ -1940,14 +1944,14 @@ final public class FailoverFileReplicationManager {
 							UnixFile dirUF = directoryFinalizeUFs.get(c);
 							UnixFile dirLinkToUF = directoryFinalizeLinkToUFs==null ? null : directoryFinalizeLinkToUFs.get(c);
 							String relativePath = directoryFinalizeUFRelativePaths.get(c);
-							long dirModifyTime = directoryFinalizeModifyTimes.get(c).longValue();
+							long dirModifyTime = directoryFinalizeModifyTimes.get(c);
 							Set<String> dirContents = directoryFinalizeContents.get(c);
 							// Remove from the caches since we are done with the directory entirely for this pass
 							if(!modifyTimeAndSizeCaches.isEmpty()) modifyTimeAndSizeCaches.remove(dirUF);
 							if(dirLinkToUF!=null && !modifyTimeAndSizeCaches.isEmpty()) modifyTimeAndSizeCaches.remove(dirLinkToUF);
 							// Remove extra files
 							String dirPath = dirUF.getPath();
-							if(!dirPath.endsWith("/")) dirPath = dirPath+'/';
+							if(!dirPath.endsWith("/")) dirPath += '/';
 							activity.update("file: list: ", dirUF);
 							String[] list = dirUF.list();
 							if(list != null) {
@@ -1970,10 +1974,10 @@ final public class FailoverFileReplicationManager {
 							}
 							// Set the modified time
 							activity.update("file: stat: ", dirUF);
-							dirUF.getStat(tempStat);
-							if(tempStat.getModifyTime()!=dirModifyTime) {
+							Stat dirStat = dirUF.getStat();
+							if(dirStat.getModifyTime()!=dirModifyTime) {
 								activity.update("file: utime: ", dirUF);
-								dirUF.utime(tempStat.getAccessTime(), dirModifyTime);
+								dirUF.utime(dirStat.getAccessTime(), dirModifyTime);
 							}
 						}
 					}
@@ -2015,10 +2019,10 @@ final public class FailoverFileReplicationManager {
 							}
 						}
 						activity.update("file: stat: ", dirUF);
-						dirUF.getStat(tempStat);
-						if(tempStat.getModifyTime()!=dirModifyTime) {
+						Stat dirStat = dirUF.getStat();
+						if(dirStat.getModifyTime()!=dirModifyTime) {
 							activity.update("file: utime: ", dirUF);
-							dirUF.utime(tempStat.getAccessTime(), dirModifyTime);
+							dirUF.utime(dirStat.getAccessTime(), dirModifyTime);
 						}
 					}
 
@@ -2035,7 +2039,7 @@ final public class FailoverFileReplicationManager {
 						renameToNoExists(activity, new UnixFile(from), new UnixFile(finalMirrorRoot));
 
 						// The pass was successful, now cleanup old directories based on retention settings
-						cleanAndRecycleBackups(activity, retention, serverRootUF, tempStat, fromServerYear, fromServerMonth, fromServerDay);
+						cleanAndRecycleBackups(activity, retention, serverRootUF, fromServerYear, fromServerMonth, fromServerDay);
 					}
 
 					// Tell the client we are done OK
@@ -2187,7 +2191,7 @@ final public class FailoverFileReplicationManager {
 		final private Map<String,ModifyTimeAndSize> filenameMap = new HashMap<>();
 		final private Map<ModifyTimeAndSize,List<String>> modifyTimeAndSizeMap = new HashMap<>();
 
-		ModifyTimeAndSizeCache(Activity activity, UnixFile directory, Stat tempStat) throws IOException {
+		ModifyTimeAndSizeCache(Activity activity, UnixFile directory) throws IOException {
 			this.directory = directory;
 			// Read all files in the directory to populate the caches
 			activity.update("file: list: ", directory);
@@ -2197,12 +2201,12 @@ final public class FailoverFileReplicationManager {
 					String filename = list[d];
 					UnixFile file = new UnixFile(directory, filename, false);
 					activity.update("file: stat: ", file);
-					file.getStat(tempStat);
+					Stat stat = file.getStat();
 					if(
-						tempStat.exists()
-						&& tempStat.isRegularFile()
+						stat.exists()
+						&& stat.isRegularFile()
 					) {
-						ModifyTimeAndSize modifyTimeAndSize = new ModifyTimeAndSize(tempStat.getModifyTime(), tempStat.getSize());
+						ModifyTimeAndSize modifyTimeAndSize = new ModifyTimeAndSize(stat.getModifyTime(), stat.getSize());
 						filenameMap.put(filename, modifyTimeAndSize);
 						List<String> fileList = modifyTimeAndSizeMap.get(modifyTimeAndSize);
 						if(fileList==null) modifyTimeAndSizeMap.put(modifyTimeAndSize, fileList = new ArrayList<>());
@@ -2357,7 +2361,7 @@ final public class FailoverFileReplicationManager {
 		return true;
 	}
 
-	private static void cleanAndRecycleBackups(Activity activity, short retention, UnixFile serverRootUF, Stat tempStat, short fromServerYear, short fromServerMonth, short fromServerDay) throws IOException, SQLException {
+	private static void cleanAndRecycleBackups(Activity activity, short retention, UnixFile serverRootUF, short fromServerYear, short fromServerMonth, short fromServerDay) throws IOException, SQLException {
 		final Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
 		final boolean isFine = logger.isLoggable(Level.FINE);
 		try {

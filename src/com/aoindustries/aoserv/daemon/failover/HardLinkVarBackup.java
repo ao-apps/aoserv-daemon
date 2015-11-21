@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2013 by AO Industries, Inc.,
+ * Copyright 2006-2013, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -77,11 +77,6 @@ final public class HardLinkVarBackup {
         long totalNumberFileBytes = 0;
         long bytesSaved = 0;
 
-        // Reused throughout the method
-        final Stat tempStat = new Stat();
-        final Stat ufStat = new Stat();
-        final Stat otherUFStat = new Stat();
-
         // Find all the candidate directories under /var/backup
         File varBackup = new File("/var/backup");
         String[] serversList = varBackup.list();
@@ -111,8 +106,7 @@ final public class HardLinkVarBackup {
                             String path = "/var/backup/"+serverDir+"/"+datesFilename;
                             UnixFile uf = new UnixFile(path);
                             try {
-                                uf.getStat(ufStat);
-                                if(ufStat.isDirectory()) {
+                                if(uf.getStat().isDirectory()) {
                                     out.print("Scanning "); out.println(path);
                                     Map<String,FilesystemIteratorRule> rules = Collections.singletonMap(path, FilesystemIteratorRule.OK);
                                     Map<String,FilesystemIteratorRule> prefixRules = Collections.emptyMap();
@@ -188,7 +182,7 @@ final public class HardLinkVarBackup {
                             // Keep stats
                             totalObjects++;
                             try {
-                                uf.getStat(ufStat);
+                                Stat ufStat = uf.getStat();
                                 long statMode = ufStat.getRawMode();
                                 long mode = statMode & UnixFile.PERMISSION_MASK;
                                 if(UnixFile.isDirectory(statMode)) totalDirectories++;
@@ -212,7 +206,7 @@ final public class HardLinkVarBackup {
                                             // Have the same exact path relative to their /var/backup/hostname/####-##-## directories
                                             && isLowestRelativePaths[d] //relativePaths[d].equals(lowestRelativePath)
                                         ) {
-                                            otherUF.getStat(otherUFStat);
+                                            Stat otherUFStat = otherUF.getStat();
                                             if(
                                                 // Are on the same underlying partition
                                                 device==otherUFStat.getDevice()
@@ -257,7 +251,7 @@ final public class HardLinkVarBackup {
                                                             for(int e=0;e<Integer.MAX_VALUE;e++) {
                                                                 String tempPath=uf.getPath()+'.'+e;
                                                                 UnixFile temp = new UnixFile(tempPath);
-                                                                if(!temp.getStat(tempStat).exists()) {
+                                                                if(!temp.getStat().exists()) {
                                                                     tempUF=temp;
                                                                     break;
                                                                 }

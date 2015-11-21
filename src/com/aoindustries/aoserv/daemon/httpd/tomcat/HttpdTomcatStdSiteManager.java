@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -15,7 +15,6 @@ import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -131,14 +130,13 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 	@Override
     protected boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException {
         final String siteDir = siteDirectory.getPath();
-        final Stat tempStat = new Stat();
         boolean needsRestart = false;
         String autoWarning = getAutoWarningXml();
         String autoWarningOld = getAutoWarningXmlOld();
 
         String confServerXML=siteDir+"/conf/server.xml";
         UnixFile confServerXMLFile=new UnixFile(confServerXML);
-        if(!httpdSite.isManual() || !confServerXMLFile.getStat(tempStat).exists()) {
+        if(!httpdSite.isManual() || !confServerXMLFile.getStat().exists()) {
             // Only write to the actual file when missing or changed
             if(
                 DaemonFileUtils.writeIfNeeded(
@@ -157,13 +155,11 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
             try {
                 DaemonFileUtils.stripFilePrefix(
                     confServerXMLFile,
-                    autoWarningOld,
-                    tempStat
+                    autoWarningOld
                 );
                 DaemonFileUtils.stripFilePrefix(
                     confServerXMLFile,
-                    autoWarning,
-                    tempStat
+                    autoWarning
                 );
             } catch(IOException err) {
                 // Errors OK because this is done in manual mode and they might have symbolic linked stuff

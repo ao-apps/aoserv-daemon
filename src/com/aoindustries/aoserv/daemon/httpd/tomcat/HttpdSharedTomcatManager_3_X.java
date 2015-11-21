@@ -50,7 +50,6 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
          */
         final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
         final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
-        final Stat tempStat = new Stat();
         final AOServer aoServer = AOServDaemon.getThisAOServer();
         final HttpdTomcatVersion htv=sharedTomcat.getHttpdTomcatVersion();
         final String tomcatDirectory=htv.getInstallDirectory();
@@ -66,12 +65,13 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
         final UnixFile workUF = new UnixFile(sharedTomcatDirectory, "work", false);
 
         boolean needRestart=false;
-        if (!sharedTomcatDirectory.getStat(tempStat).exists() || sharedTomcatDirectory.getStat(tempStat).getUid() == UnixFile.ROOT_GID) {
+		Stat sharedTomcatStat = sharedTomcatDirectory.getStat();
+        if (!sharedTomcatStat.exists() || sharedTomcatStat.getUid() == UnixFile.ROOT_GID) {
 
             // Create the /wwwgroup/name/...
 
             // 001
-            if (!sharedTomcatDirectory.getStat(tempStat).exists()) sharedTomcatDirectory.mkdir();
+            if (!sharedTomcatStat.exists()) sharedTomcatDirectory.mkdir();
             sharedTomcatDirectory.setMode(0770);
             new UnixFile(sharedTomcatDirectory, "bin", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
             new UnixFile(sharedTomcatDirectory, "conf", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
@@ -280,10 +280,13 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
         }
         // flag as needing a restart if this file is different than any existing
         UnixFile sitesFile = new UnixFile(sharedTomcatDirectory, "bin/profile.sites", false);
-        if(!sitesFile.getStat(tempStat).exists() || !newSitesFileUF.contentEquals(sitesFile)) {
+		Stat sitesStat = sitesFile.getStat();
+        if(!sitesStat.exists() || !newSitesFileUF.contentEquals(sitesFile)) {
             needRestart=true;
-            UnixFile backupFile=new UnixFile(sharedTomcatDirectory, "bin/profile.sites.old", false);
-            if(sitesFile.getStat(tempStat).exists()) sitesFile.renameTo(backupFile);
+            if(sitesStat.exists()) {
+	            UnixFile backupFile=new UnixFile(sharedTomcatDirectory, "bin/profile.sites.old", false);
+				sitesFile.renameTo(backupFile);
+			}
             newSitesFileUF.renameTo(sitesFile);
         } else newSitesFileUF.delete();
 
@@ -297,7 +300,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
                 String subwork = hs.getSiteName();
                 workFiles.remove(subwork);
                 UnixFile workDir = new UnixFile(workUF, subwork, false);
-                if (!workDir.getStat(tempStat).exists()) {
+                if (!workDir.getStat().exists()) {
                     workDir
                         .mkdir()
                         .chown(
@@ -322,7 +325,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
         UnixFile daemonSymlink = new UnixFile(daemonUF, "tomcat", false);
         if(!sharedTomcat.isDisabled()) {
             // Enabled
-            if(!daemonSymlink.getStat(tempStat).exists()) {
+            if(!daemonSymlink.getStat().exists()) {
                 daemonSymlink.symLink("../bin/tomcat").chown(
                     lsaUID,
                     lsgGID
@@ -330,7 +333,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
             }
         } else {
             // Disabled
-            if(daemonSymlink.getStat(tempStat).exists()) daemonSymlink.delete();
+            if(daemonSymlink.getStat().exists()) daemonSymlink.delete();
         }
 
         // Start if needed

@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2012 by AO Industries, Inc.,
+ * Copyright 2008-2012, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -70,7 +70,7 @@ public class UpgradeSymlink {
             if(!linkStat.exists()) {
 				try {
 					link.symLink(newLinkTarget);
-					link.getStat(linkStat);
+					linkStat = link.getStat();
 					needsRestart = true;
 				} catch(FileNotFoundException e) {
 					System.err.println("FileNotFound: link="+link);
@@ -83,7 +83,7 @@ public class UpgradeSymlink {
                 if(target.equals(oldLinkTarget)) {
                     link.delete();
                     if(newLinkTarget!=null) link.symLink(newLinkTarget);
-                    link.getStat(linkStat);
+                    linkStat = link.getStat();
                     needsRestart = true;
                 }
             }

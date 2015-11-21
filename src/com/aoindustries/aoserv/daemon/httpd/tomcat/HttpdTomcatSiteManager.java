@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -239,10 +239,10 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         final UnixFile cgibinDirectory = new UnixFile(rootDirectory, "cgi-bin", false);
 
         // Create wwwDirectory if needed
-        final Stat siteDirectoryStat = new Stat();
-        if(!siteDirectory.getStat(siteDirectoryStat).exists()) {
+        Stat siteDirectoryStat = siteDirectory.getStat();
+        if(!siteDirectoryStat.exists()) {
             siteDirectory.mkdir(false, 0700);
-            siteDirectory.getStat(siteDirectoryStat);
+            siteDirectoryStat = siteDirectory.getStat();
         } else if(!siteDirectoryStat.isDirectory()) throw new IOException("Not a directory: "+siteDirectory);
 
         // New if still owned by root
@@ -282,7 +282,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         if(rebuildConfigFiles(siteDirectory)) needsRestart = true;
 
         // Complete, set permission and ownership
-        siteDirectory.getStat(siteDirectoryStat);
+        siteDirectoryStat = siteDirectory.getStat();
         if(siteDirectoryStat.getMode()!=0770) siteDirectory.setMode(0770);
         if(siteDirectoryStat.getUid()!=apacheUid || siteDirectoryStat.getGid()!=gid) siteDirectory.chown(apacheUid, gid);
 

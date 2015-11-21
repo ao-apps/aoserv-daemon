@@ -350,12 +350,12 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
         Stat incomingStat = incomingDirectory.getStat();
         if(!incomingStat.exists()) {
             incomingDirectory.mkdir();
-            incomingDirectory.getStat(incomingStat);
+            incomingStat = incomingDirectory.getStat();
         }
         // Make sure mode 0755
         if(incomingStat.getMode()!=0755) {
             incomingDirectory.setMode(0755);
-            incomingDirectory.getStat(incomingStat);
+            incomingStat = incomingDirectory.getStat();
         }
         // Make sure user cyrus and group mail
         AOServer aoServer = AOServDaemon.getThisAOServer();
@@ -367,11 +367,10 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
         int mailGid = mail.getGid().getID();
         if(incomingStat.getUid()!=cyrusUid || incomingStat.getGid()!=mailGid) {
             incomingDirectory.chown(cyrusUid, mailGid);
-            incomingDirectory.getStat(incomingStat);
+            incomingStat = incomingDirectory.getStat();
         }
 
         // Used on inner loop
-        Stat userDirectoryUfStat = new Stat();
         List<File> deleteFileList=new ArrayList<>();
         StringBuilder tempSB = new StringBuilder();
         List<UnixFile> thisPass = new ArrayList<>(MAX_SALEARN_BATCH);
@@ -410,16 +409,16 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
                     deleteFileList.add(userDirectoryFile);
                 } else {
                     // Set permissions, should be 0770
-                    userDirectoryUf.getStat(userDirectoryUfStat);
+                    Stat userDirectoryUfStat = userDirectoryUf.getStat();
                     if(userDirectoryUfStat.getMode()!=0770) {
                         userDirectoryUf.setMode(0770);
-                        userDirectoryUf.getStat(userDirectoryUfStat);
+                        userDirectoryUfStat = userDirectoryUf.getStat();
                     }
                     // Set ownership, should by username and group mail
                     int lsaUid = lsa.getUid().getID();
                     if(userDirectoryUfStat.getUid()!=lsaUid || userDirectoryUfStat.getGid()!=mailGid) {
                         userDirectoryUf.chown(lsaUid, mailGid);
-                        userDirectoryUf.getStat(userDirectoryUfStat);
+                        userDirectoryUfStat = userDirectoryUf.getStat();
                     }
                     // Check each filename, searching if this lsa has the oldest timestamp (older or newer than one minute)
                     String[] userDirectoryList = userDirectoryUf.list();

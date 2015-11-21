@@ -23,7 +23,6 @@ import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -474,14 +473,13 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 	@Override
     protected boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException {
         final String siteDir = siteDirectory.getPath();
-        final Stat tempStat = new Stat();
         boolean needsRestart = false;
         String autoWarning = getAutoWarningXml();
         String autoWarningOld = getAutoWarningXmlOld();
 
         String confServerXML=siteDir+"/conf/server.xml";
         UnixFile confServerXMLFile=new UnixFile(confServerXML);
-        if(!httpdSite.isManual() || !confServerXMLFile.getStat(tempStat).exists()) {
+        if(!httpdSite.isManual() || !confServerXMLFile.getStat().exists()) {
             // Only write to the actual file when missing or changed
             if(
                 DaemonFileUtils.writeIfNeeded(
@@ -500,13 +498,11 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
             try {
                 DaemonFileUtils.stripFilePrefix(
                     confServerXMLFile,
-                    autoWarningOld,
-                    tempStat
+                    autoWarningOld
                 );
                 DaemonFileUtils.stripFilePrefix(
                     confServerXMLFile,
-                    autoWarning,
-                    tempStat
+                    autoWarning
                 );
             } catch(IOException err) {
                 // Errors OK because this is done in manual mode and they might have symbolic linked stuff

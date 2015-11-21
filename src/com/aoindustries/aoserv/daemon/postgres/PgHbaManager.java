@@ -22,7 +22,6 @@ import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxProcess;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.BufferedReader;
 import java.io.File;
@@ -58,8 +57,6 @@ public final class PgHbaManager extends BuilderThread {
                 && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
                 && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
             ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
-
-            final Stat tempStat = new Stat();
 
             synchronized(rebuildLock) {
                 for(PostgresServer ps : thisAOServer.getPostgresServers()) {
@@ -234,7 +231,7 @@ public final class PgHbaManager extends BuilderThread {
 
                     // Move the new file into place
                     UnixFile hbaUF=new UnixFile(serverDir, "pg_hba.conf");
-                    if(hbaUF.getStat(tempStat).exists() && newHbaUF.contentEquals(hbaUF)) newHbaUF.delete();
+                    if(hbaUF.getStat().exists() && newHbaUF.contentEquals(hbaUF)) newHbaUF.delete();
                     else {
                         // Move the new file into place
                         newHbaUF.renameTo(hbaUF);

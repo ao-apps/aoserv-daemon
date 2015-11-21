@@ -24,7 +24,6 @@ import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.email.ImapManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -69,7 +68,6 @@ public final class XinetdManager extends BuilderThread {
 			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
 			// Reused on inner loops
-			final Stat tempStat = new Stat();
 			final ByteArrayOutputStream bout = new ByteArrayOutputStream();
 
 			synchronized(rebuildLock) {
@@ -619,7 +617,7 @@ public final class XinetdManager extends BuilderThread {
 					// Move into place if different than existing
 					UnixFile existingUF=new UnixFile(xinetdDirectory, filename);
 					if(
-						!existingUF.getStat(tempStat).exists()
+						!existingUF.getStat().exists()
 						|| !existingUF.contentEquals(newBytes)
 					) {
 						UnixFile newUF = new UnixFile(xinetdDirectory, filename+".new");
@@ -647,7 +645,7 @@ public final class XinetdManager extends BuilderThread {
 				UnixFile rcFile=new UnixFile("/etc/rc.d/rc3.d/S56xinetd");
 				if(numServices==0) {
 					// Turn off xinetd completely if not already off
-					if(rcFile.getStat(tempStat).exists()) {
+					if(rcFile.getStat().exists()) {
 						// Stop service
 						AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/xinetd", "stop"});
 						// Disable with chkconfig
@@ -659,7 +657,7 @@ public final class XinetdManager extends BuilderThread {
 					}
 				} else {
 					// Turn on xinetd if not already on
-					if(!rcFile.getStat(tempStat).exists()) {
+					if(!rcFile.getStat().exists()) {
 						// Enable with chkconfig
 						if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 							AOServDaemon.exec(new String[] {"/sbin/chkconfig", "--add", "xinetd"});

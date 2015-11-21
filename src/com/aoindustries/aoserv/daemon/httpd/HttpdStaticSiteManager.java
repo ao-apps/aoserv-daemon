@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -42,20 +42,20 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 
 	@Override
 	protected void buildSiteDirectory(UnixFile siteDirectory, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
-		final Stat tempStat = new Stat();
 		final boolean isAuto = !httpdSite.isManual();
 		final int apacheUid = getApacheUid();
 		final int uid = httpdSite.getLinuxServerAccount().getUid().getID();
 		final int gid = httpdSite.getLinuxServerGroup().getGid().getID();
 
 		// Create wwwDirectory if needed
-		if(!siteDirectory.getStat(tempStat).exists()) {
+		Stat siteDirectoryStat = siteDirectory.getStat();
+		if(!siteDirectoryStat.exists()) {
 			siteDirectory.mkdir(false, 0700);
-			siteDirectory.getStat(tempStat);
-		} else if(!tempStat.isDirectory()) throw new IOException("Not a directory: "+siteDirectory);
+			siteDirectoryStat = siteDirectory.getStat();
+		} else if(!siteDirectoryStat.isDirectory()) throw new IOException("Not a directory: "+siteDirectory);
 
 		// New if still owned by root
-		final boolean isNew = tempStat.getUid() == UnixFile.ROOT_UID;
+		final boolean isNew = siteDirectoryStat.getUid() == UnixFile.ROOT_UID;
 
 		// conf/
 		if(isNew || isAuto) DaemonFileUtils.mkdir(new UnixFile(siteDirectory, "conf", false), 0775, uid, gid);
@@ -66,9 +66,9 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 		if(isNew) createTestIndex(new UnixFile(htdocsDirectory, "index.html", false));
 
 		// Complete, set permission and ownership
-		siteDirectory.getStat(tempStat);
-		if(tempStat.getMode()!=0770) siteDirectory.setMode(0770);
-		if(tempStat.getUid()!=apacheUid || tempStat.getGid()!=gid) siteDirectory.chown(apacheUid, gid);
+		siteDirectoryStat = siteDirectory.getStat();
+		if(siteDirectoryStat.getMode()!=0770) siteDirectory.setMode(0770);
+		if(siteDirectoryStat.getUid()!=apacheUid || siteDirectoryStat.getGid()!=gid) siteDirectory.chown(apacheUid, gid);
 	}
 
 	/**

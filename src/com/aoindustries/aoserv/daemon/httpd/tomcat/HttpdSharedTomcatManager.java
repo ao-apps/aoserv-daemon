@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2014 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014, 2015 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -17,7 +17,6 @@ import com.aoindustries.aoserv.daemon.httpd.HttpdSiteManager;
 import com.aoindustries.aoserv.daemon.httpd.StopStartable;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.io.FileUtils;
-import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.File;
 import java.io.IOException;
@@ -67,7 +66,6 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 		// Get values used in the rest of the method.
 		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		AOServer aoServer = AOServDaemon.getThisAOServer();
-		Stat tempStat = new Stat();
 
 		// The www group directories that exist but are not used will be removed
 		UnixFile wwwgroupDirectory = new UnixFile(osConfig.getHttpdSharedTomcatsDirectory());
@@ -101,7 +99,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 		for (String tomcatName : wwwgroupRemoveList) {
 			UnixFile removeFile = new UnixFile(wwwgroupDirectory, tomcatName, false);
 			// Stop and disable any daemons
-			stopAndDisableDaemons(removeFile, tempStat);
+			stopAndDisableDaemons(removeFile);
 			// Only remove the directory when not used by a home directory
 			if(!aoServer.isHomeUsed(removeFile.getPath())) deleteFileList.add(removeFile.getFile());
 		}
@@ -170,8 +168,8 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	/**
 	 * @see  HttpdSiteManager#stopAndDisableDaemons
 	 */
-	private static void stopAndDisableDaemons(UnixFile sharedTomcatDirectory, Stat tempStat) throws IOException, SQLException {
-		HttpdSiteManager.stopAndDisableDaemons(sharedTomcatDirectory, tempStat);
+	private static void stopAndDisableDaemons(UnixFile sharedTomcatDirectory) throws IOException, SQLException {
+		HttpdSiteManager.stopAndDisableDaemons(sharedTomcatDirectory);
 	}
 
 	final protected HttpdSharedTomcat sharedTomcat;

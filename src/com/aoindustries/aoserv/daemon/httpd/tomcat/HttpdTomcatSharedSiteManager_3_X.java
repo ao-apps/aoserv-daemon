@@ -13,7 +13,6 @@ import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -280,14 +279,13 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
 	@Override
     protected boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException {
         final String siteDir = siteDirectory.getPath();
-        final Stat tempStat = new Stat();
         boolean needsRestart = false;
         String autoWarning = getAutoWarningXml();
         String autoWarningOld = getAutoWarningXmlOld();
 
         String confServerXML=siteDir+"/conf/server.xml";
         UnixFile confServerXMLFile=new UnixFile(confServerXML);
-        if(!httpdSite.isManual() || !confServerXMLFile.getStat(tempStat).exists()) {
+        if(!httpdSite.isManual() || !confServerXMLFile.getStat().exists()) {
             // Only write to the actual file when missing or changed
             if(
                 DaemonFileUtils.writeIfNeeded(
@@ -306,13 +304,11 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
             try {
                 DaemonFileUtils.stripFilePrefix(
                     confServerXMLFile,
-                    autoWarningOld,
-                    tempStat
+                    autoWarningOld
                 );
                 DaemonFileUtils.stripFilePrefix(
                     confServerXMLFile,
-                    autoWarning,
-                    tempStat
+                    autoWarning
                 );
             } catch(IOException err) {
                 // Errors OK because this is done in manual mode and they might have symbolic linked stuff

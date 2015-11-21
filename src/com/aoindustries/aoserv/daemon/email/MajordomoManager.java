@@ -58,8 +58,6 @@ final public class MajordomoManager extends BuilderThread {
 			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
 			// Reused during processing below
-			Stat tempStat = new Stat();
-
 			final UnixFile serversUF=new UnixFile(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY);
 
 			synchronized(rebuildLock) {
@@ -70,7 +68,7 @@ final public class MajordomoManager extends BuilderThread {
 					PackageManager.installPackage(PackageManager.PackageName.MAJORDOMO);
 
 					// Create the directory if needed
-					// Will have been created by RPM: if(!serversUF.getStat(tempStat).exists()) serversUF.mkdir(false, 0755, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
+					// Will have been created by RPM: if(!serversUF.getStat().exists()) serversUF.mkdir(false, 0755, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
 				}
 
 				// Resolve the GID for "mail"
@@ -978,7 +976,7 @@ final public class MajordomoManager extends BuilderThread {
 				}
 				if(mss.isEmpty()) {
 					// Delete the directory if no longer needed (it should be empty already)
-					// RPM will clean it up: if(serversUF.getStat(tempStat).exists()) serversUF.delete();
+					// RPM will clean it up: if(serversUF.getStat().exists()) serversUF.delete();
 
 					// Remove the package
 					PackageManager.removePackage(PackageManager.PackageName.MAJORDOMO);
