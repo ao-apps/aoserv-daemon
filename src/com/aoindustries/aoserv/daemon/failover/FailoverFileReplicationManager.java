@@ -731,7 +731,10 @@ final public class FailoverFileReplicationManager {
 					isRecycling = false;
 					dataIndex = null;
 				} else {
-					if(DATA_INDEX_DIRECTORY_NAME.equals(fromServer)) throw new IOException("fromServer conflicts with data index: " + fromServer);
+					if(
+						DATA_INDEX_DIRECTORY_NAME.equals(fromServer)
+						|| fromServer.startsWith(DATA_INDEX_DIRECTORY_NAME + '/')
+					) throw new IOException("fromServer conflicts with data index: " + fromServer);
 					dataIndex = getDedupDataIndex(activity, backupPartition);
 
 					// The directory that holds the different versions
