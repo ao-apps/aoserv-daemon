@@ -27,9 +27,6 @@ import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.math.SafeMath;
 import com.aoindustries.md5.MD5;
-import com.aoindustries.util.BufferManager;
-import com.aoindustries.util.LongArrayList;
-import com.aoindustries.util.LongList;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -167,12 +164,6 @@ Maximum number of chunks per file: 2 ^ (44 - 20): 2 ^ 24
 final public class FailoverFileReplicationManager {
 
 	/**
-	 * When true, runs both the old and new implementations of log directory hard linking and verifies consistent behavior of the two.
-	 * Also times their performance.
-	 */
-	private static final boolean USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING = false;
-
-	/**
 	 * The extension added to the directory name when it is a partial pass.
 	 */
 	private static final String PARTIAL_EXTENSION = ".partial";
@@ -226,6 +217,10 @@ final public class FailoverFileReplicationManager {
 		encryptedLoopFilePaths.add("/var/spool.aes256.img");
 		encryptedLoopFilePaths.add("/www.aes128.img");
 		encryptedLoopFilePaths.add("/www.aes256.img");
+		// AO desktop home directories in Debian seem to update modified times
+		//encryptedLoopFilePaths.add("/home/b/bugnugger.aes256.img");
+		//encryptedLoopFilePaths.add("/home/k/kaori.aes256.img");
+		//encryptedLoopFilePaths.add("/home/o/orion.aes256.img");
 	}
 	private static boolean isEncryptedLoopFile(String path) {
 		return encryptedLoopFilePaths.contains(path);
@@ -235,9 +230,9 @@ final public class FailoverFileReplicationManager {
 	 * The number of recycled copies varies based on retention.
 	 */
 	private static int getNumberRecycleDirectories(int retention) {
-		if(retention<=7) return 1;
-		if(retention<=31) return 2;
-		if(retention<=92) return 3;
+		if(retention <= 7) return 1;
+		if(retention <= 31) return 2;
+		if(retention <= 92) return 3;
 		return 4;
 	}
 
@@ -355,16 +350,6 @@ final public class FailoverFileReplicationManager {
 		}
 	}
 
-	private static void renameToNoExists(Activity activity, UnixFile from, UnixFile to) throws IOException {
-		Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
-		boolean isFine = logger.isLoggable(Level.FINE);
-		if(isFine) logger.fine("Renaming \""+from+"\" to \""+to+'"');
-		activity.update("file: stat: ", to);
-		if(to.getStat().exists()) throw new IOException("to exists: "+to);
-		activity.update("file: rename: ", from, " to ", to);
-		from.renameTo(to);
-	}
-
 	public static class Activity /*implements Cloneable*/ {
 
 		private long time = -1;
@@ -404,7 +389,6 @@ final public class FailoverFileReplicationManager {
 				null
 			);
 		}
-
 		private void update(Object message1, Object message2, Object message3) {
 			update(
 				message1,
@@ -478,10 +462,107 @@ final public class FailoverFileReplicationManager {
 	 */
 	private static UnixFile mktemp(Activity activity, UnixFile uf) throws IOException {
 		String name = uf.getFile().getName();
-		UnixFile templateUF = name.length()>64 ? new UnixFile(uf.getParent(), name.substring(0, 64), false) : uf;
+		UnixFile templateUF = name.length() > 64 ? new UnixFile(uf.getParent(), name.substring(0, 64), false) : uf;
 		String tempPath = templateUF.getPath()+'.';
 		activity.update("file: mktemp: ", tempPath);
 		return UnixFile.mktemp(tempPath, false);
+	}
+
+	private static void delete(Activity activity, UnixFile uf) throws IOException {
+		activity.update("file: delete: ", uf);
+		uf.delete();
+	}
+
+	private static void deleteRecursive(Activity activity, UnixFile uf) throws IOException {
+		activity.update("file: deleteRecursive: ", uf);
+		uf.deleteRecursive();
+	}
+
+	private static Stat stat(Activity activity, UnixFile uf) throws IOException {
+		activity.update("file: stat: ", uf);
+		return uf.getStat();
+	}
+
+	private static void link(Activity activity, UnixFile from, UnixFile to) throws IOException {
+		activity.update("file: link: ", from, " to ", to);
+		from.link(to);
+	}
+
+	private static void rename(Activity activity, UnixFile from, UnixFile to) throws IOException {
+		activity.update("file: rename: ", from, " to ", to);
+		from.renameTo(to);
+	}
+
+	private static void mkdir(Activity activity, UnixFile uf) throws IOException {
+		activity.update("file: mkdir: ", uf);
+		uf.mkdir();
+	}
+
+	private static void mkdir(Activity activity, UnixFile uf, boolean makeParents, long mode, int uid, int gid) throws IOException {
+		activity.update("file: mkdir: ", uf);
+		uf.mkdir(
+			makeParents,
+			mode,
+			uid,
+			gid
+		);
+	}
+
+	private static String[] list(Activity activity, UnixFile uf) throws IOException {
+		activity.update("file: list: ", uf);
+		return uf.list();
+	}
+
+	private static void mknod(Activity activity, UnixFile uf, long mode, long device) throws IOException {
+		activity.update("file: mknod: ", uf);
+		uf.mknod(mode, device);
+	}
+
+	private static void mkfifo(Activity activity, UnixFile uf, long mode) throws IOException {
+		activity.update("file: mkfifo: ", uf);
+		uf.mkfifo(mode);
+	}
+
+	private static void touch(Activity activity, UnixFile uf) throws IOException {
+		activity.update("file: touch: ", uf);
+		new FileOutputStream(uf.getFile()).close();
+	}
+
+	private static FileInputStream openIn(Activity activity, UnixFile uf) throws IOException {
+		activity.update("file: open: < ", uf);
+		return new FileInputStream(uf.getFile());
+	}
+
+	private static RandomAccessFile openInRaf(Activity activity, UnixFile uf) throws IOException {
+		activity.update("file: open: < ", uf);
+		return new RandomAccessFile(uf.getFile(), "r");
+	}
+
+	private static FileOutputStream openOut(Activity activity, UnixFile uf) throws IOException {
+		activity.update("file: open: > ", uf);
+		return new FileOutputStream(uf.getFile());
+	}
+
+	private static void close(Activity activity, UnixFile uf, InputStream in) throws IOException {
+		activity.update("file: close: < ", uf);
+		in.close();
+	}
+
+	private static void close(Activity activity, UnixFile uf, RandomAccessFile raf) throws IOException {
+		activity.update("file: close: < ", uf);
+		raf.close();
+	}
+
+	private static void close(Activity activity, UnixFile uf, OutputStream out) throws IOException {
+		activity.update("file: close: > ", uf);
+		out.close();
+	}
+
+	private static void renameToNoExists(Logger logger, Activity activity, UnixFile from, UnixFile to) throws IOException {
+		boolean isFine = logger.isLoggable(Level.FINE);
+		if(isFine) logger.fine("Renaming \""+from+"\" to \""+to+'"');
+		if(stat(activity, to).exists()) throw new IOException("to exists: "+to);
+		rename(activity, from, to);
 	}
 
 	private static final Map<String,DedupDataIndex> dedupIndexes = new HashMap<>();
@@ -611,6 +692,24 @@ final public class FailoverFileReplicationManager {
 					if(replicatedMySQLMinorVersion.indexOf('/')!=-1 || replicatedMySQLMinorVersion.indexOf("..")!=-1) throw new IOException("Invalid replicatedMySQLMinorVersion: "+replicatedMySQLMinorVersion);
 				}
 
+				// Create the server root if it doesn't exist
+				{
+					UnixFile toPathUF = new UnixFile(toPath);
+					Stat dirStat = stat(activity, toPathUF);
+					if(!dirStat.exists()) {
+						mkdir(
+							activity,
+							toPathUF,
+							true,
+							quota_gid==-1 ? 0700 : 0750,
+							UnixFile.ROOT_UID,
+							quota_gid==-1 ? UnixFile.ROOT_GID : quota_gid
+						);
+					} else if(!dirStat.isDirectory()) {
+						throw new IOException("toPath exists but is not a directory: "+toPath);
+					}
+				}
+
 				// Tell the client it is OK to continue
 				activity.update("socket: write: AOServDaemonProtocol.NEXT");
 				out.write(AOServDaemonProtocol.NEXT);
@@ -621,55 +720,25 @@ final public class FailoverFileReplicationManager {
 				final String recycledPartialMirrorRoot;
 				final String finalMirrorRoot;
 				String linkToRoot;
-				final UnixFile serverRootUF;
+				final UnixFile perDateRoot;
 				boolean isRecycling;
 				final DedupDataIndex dataIndex;
-				if(retention==1) {
+				if(retention == 1) {
 					partialMirrorRoot = finalMirrorRoot = toPath;
 					recycledPartialMirrorRoot = null;
 					linkToRoot = null;
-					serverRootUF = null;
+					perDateRoot = null;
 					isRecycling = false;
 					dataIndex = null;
-
-					// Create the server root if it doesn't exist
-					UnixFile dirUF = new UnixFile(toPath);
-					activity.update("file: stat: ", dirUF);
-					Stat dirStat = dirUF.getStat();
-					if(!dirStat.exists()) {
-						activity.update("file: mkdir: ", dirUF);
-						dirUF.mkdir(
-							true,
-							quota_gid==-1 ? 0700 : 0750,
-							UnixFile.ROOT_UID,
-							quota_gid==-1 ? UnixFile.ROOT_GID : quota_gid
-						);
-					} else if(!dirStat.isDirectory()) {
-						throw new IOException("toPath exists but is not a directory: "+toPath);
-					}
 				} else {
 					if(DATA_INDEX_DIRECTORY_NAME.equals(fromServer)) throw new IOException("fromServer conflicts with data index: " + fromServer);
 					dataIndex = getDedupDataIndex(activity, backupPartition);
+
 					// The directory that holds the different versions
+					perDateRoot = new UnixFile(toPath);
+
+					// The directories including the date
 					StringBuilder SB = new StringBuilder(toPath);
-
-					// Create the server root if it doesn't exist
-					serverRootUF = new UnixFile(toPath);
-					activity.update("file: stat: ", serverRootUF);
-					Stat serverRootStat = serverRootUF.getStat();
-					if(!serverRootStat.exists()) {
-						activity.update("file: mkdir: ", serverRootUF);
-						serverRootUF.mkdir(
-							true,
-							quota_gid==-1 ? 0700 : 0750,
-							UnixFile.ROOT_UID,
-							quota_gid==-1 ? UnixFile.ROOT_GID : quota_gid
-						);
-					} else if(!serverRootStat.isDirectory()) {
-						throw new IOException("Server Root exists but is not a directory: "+toPath);
-					}
-
-					// The directory including the date
 					SB.append('/').append(fromServerYear).append('-');
 					if(fromServerMonth<10) SB.append('0');
 					SB.append(fromServerMonth).append('-');
@@ -706,24 +775,21 @@ final public class FailoverFileReplicationManager {
 					// When the finalMirrorRoot exists, it is assumed to be complete and no linking to other directories will be performed.  This mode
 					// is used when multiple passes are performed in a single day, it is basically the same behavior as a failover replication.
 					UnixFile finalUF = new UnixFile(finalMirrorRoot);
-					activity.update("file: stat: ", finalUF);
-					if(finalUF.getStat().exists()) {
+					if(stat(activity, finalUF).exists()) {
 						// See (1) above
 						UnixFile partialUF = new UnixFile(partialMirrorRoot);
-						renameToNoExists(activity, finalUF, partialUF);
+						renameToNoExists(logger, activity, finalUF, partialUF);
 						linkToRoot = null;
 						isRecycling = false;
 					} else {
 						{
 							UnixFile recycledPartialUF = new UnixFile(recycledPartialMirrorRoot);
-							activity.update("file: stat: ", recycledPartialUF);
-							if(recycledPartialUF.getStat().exists()) {
+							if(stat(activity, recycledPartialUF).exists()) {
 								// See (2) above
 								isRecycling = true;
 							} else {
 								UnixFile partialUF = new UnixFile(partialMirrorRoot);
-								activity.update("file: stat: ", partialUF);
-								if(partialUF.getStat().exists()) {
+								if(stat(activity, partialUF).exists()) {
 									// See (3) above
 									isRecycling = false;
 								} else {
@@ -731,9 +797,8 @@ final public class FailoverFileReplicationManager {
 									boolean foundPartial = false;
 									isRecycling = false;
 
-									activity.update("file: list: ", serverRootUF);
-									String[] list = serverRootUF.list();
-									if(list!=null && list.length>0) {
+									String[] list = list(activity, perDateRoot);
+									if(list != null && list.length > 0) {
 										// This is not y10k compliant - this is assuming lexical order is the same as chronological order.
 										Arrays.sort(list);
 										// Find most recent partial
@@ -742,8 +807,9 @@ final public class FailoverFileReplicationManager {
 											if(filename.endsWith(PARTIAL_EXTENSION)) {
 												isRecycling = filename.endsWith(RECYCLED_PARTIAL_EXTENSION);
 												renameToNoExists(
+													logger,
 													activity,
-													new UnixFile(serverRootUF, filename, false),
+													new UnixFile(perDateRoot, filename, false),
 													isRecycling ? recycledPartialUF : partialUF
 												);
 												foundPartial = true;
@@ -757,8 +823,9 @@ final public class FailoverFileReplicationManager {
 												String filename = list[c];
 												if(filename.endsWith(RECYCLED_EXTENSION)) {
 													renameToNoExists(
+														logger,
 														activity,
-														new UnixFile(serverRootUF, filename, false),
+														new UnixFile(perDateRoot, filename, false),
 														recycledPartialUF
 													);
 													isRecycling = true;
@@ -769,8 +836,7 @@ final public class FailoverFileReplicationManager {
 									}
 									if(!foundPartial && !isRecycling) {
 										// Neither found, create new directory
-										activity.update("file: mkdir: ", partialUF);
-										partialUF.mkdir();
+										mkdir(activity, partialUF);
 									}
 								}
 							}
@@ -779,13 +845,12 @@ final public class FailoverFileReplicationManager {
 						// Find the most recent complete pass that is not today's directory (which should not exist anyways because renamed above)
 						linkToRoot = null;
 						{
-							activity.update("file: list: ", serverRootUF);
-							String[] list = serverRootUF.list();
-							if(list!=null && list.length>0) {
+							String[] list = list(activity, perDateRoot);
+							if(list != null && list.length > 0) {
 								// This is not y10k compliant - this is assuming lexical order is the same as chronological order.
 								Arrays.sort(list);
 								// Find most recent complete pass
-								for(int c=list.length-1;c>=0;c--) {
+								for(int c = list.length - 1; c >=0; c--) {
 									String filename = list[c];
 									String fullFilename = toPath+"/"+filename;
 									if(fullFilename.equals(finalMirrorRoot)) throw new AssertionError("finalMirrorRoot exists, but should have already been renamed to .partial");
@@ -845,10 +910,10 @@ final public class FailoverFileReplicationManager {
 					logger.fine("isRecycling="+isRecycling);
 				}
 				// Safety checks to make sure above logic isn't linking in obviously incorrect ways
-				if(linkToRoot!=null) {
-					if(linkToRoot.equals(partialMirrorRoot)) throw new IOException("linkToRoot==partialMirrorRoot: "+linkToRoot);
-					if(linkToRoot.equals(recycledPartialMirrorRoot)) throw new IOException("linkToRoot==recycledPartialMirrorRoot: "+linkToRoot);
-					if(linkToRoot.equals(finalMirrorRoot)) throw new IOException("linkToRoot==finalMirrorRoot: "+linkToRoot);
+				if(linkToRoot != null) {
+					if(linkToRoot.equals(partialMirrorRoot)) throw new AssertionError("linkToRoot==partialMirrorRoot: "+linkToRoot);
+					if(linkToRoot.equals(recycledPartialMirrorRoot)) throw new AssertionError("linkToRoot==recycledPartialMirrorRoot: "+linkToRoot);
+					if(linkToRoot.equals(finalMirrorRoot)) throw new AssertionError("linkToRoot==finalMirrorRoot: "+linkToRoot);
 				}
 
 				final CompressedDataInputStream in =
@@ -857,1233 +922,994 @@ final public class FailoverFileReplicationManager {
 					:*/ rawIn
 				;
 
-				String[] paths=null;
-				boolean[] isLogDirs=null;
+				String[] paths = null;
+				boolean[] isLogDirs = null;
 				Map<UnixFile,ModifyTimeAndSizeCache> modifyTimeAndSizeCaches = new HashMap<>();
-				long totalNewLogDirNanos = 0;
-				long totalOldLogDirNanos = 0;
-				long lastLogDirNanosDisplayTime = -1;
 
-				UnixFile[] tempNewFiles=null;
-				UnixFile[] chunkingFroms=null;
-				LongList[] chunksMD5s=null;
-				long[] modifyTimes=null;
-				int[] results=null;
+				UnixFile[] tempNewFiles = null;
+				UnixFile[] chunkingFroms = null;
+				long[] chunkingSizes = null;
+				long[][] chunksMD5His = null;
+				long[][] chunksMD5Los = null;
+				long[] modifyTimes = null;
+				int[] results = null;
 
-				byte[] buff=BufferManager.getBytes();
-				byte[] chunkBuffer = useCompression ? new byte[AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE] : null;
-				MD5 md5 = useCompression ? new MD5() : null;
-				try {
-					// The extra files in directories are cleaned once the directory is done
-					Stack<UnixFile> directoryUFs=new Stack<>();
-					Stack<UnixFile> directoryLinkToUFs = linkToRoot==null ? null : new Stack<UnixFile>();
-					Stack<String> directoryUFRelativePaths=new Stack<>();
-					Stack<Long> directoryModifyTimes=new Stack<>();
-					Stack<Set<String>> directoryContents=new Stack<>();
+				final byte[] chunkBuffer = new byte[AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE];
+				final MD5 md5 = useCompression ? new MD5() : null;
+				// The extra files in directories are cleaned once the directory is done
+				final Stack<UnixFile> directoryUFs = new Stack<>();
+				final Stack<UnixFile> directoryLinkToUFs = linkToRoot==null ? null : new Stack<>();
+				final Stack<String> directoryUFRelativePaths = new Stack<>();
+				final Stack<Long> directoryModifyTimes = new Stack<>();
+				final Stack<Set<String>> directoryContents = new Stack<>();
 
-					// The actual cleaning and modify time setting is delayed to the end of the batch by adding
-					// the lists of things to do here.
-					List<UnixFile> directoryFinalizeUFs = new ArrayList<>();
-					List<UnixFile> directoryFinalizeLinkToUFs = linkToRoot==null ? null : new ArrayList<UnixFile>();
-					List<String> directoryFinalizeUFRelativePaths = new ArrayList<>();
-					List<Long> directoryFinalizeModifyTimes = new ArrayList<>();
-					List<Set<String>> directoryFinalizeContents = new ArrayList<>();
+				// The actual cleaning and modify time setting is delayed to the end of the batch by adding
+				// the lists of things to do here.
+				final List<UnixFile> directoryFinalizeUFs = new ArrayList<>();
+				final List<UnixFile> directoryFinalizeLinkToUFs = linkToRoot==null ? null : new ArrayList<>();
+				final List<String> directoryFinalizeUFRelativePaths = new ArrayList<>();
+				final List<Long> directoryFinalizeModifyTimes = new ArrayList<>();
+				final List<Set<String>> directoryFinalizeContents = new ArrayList<>();
 
-					// Continue until a batchSize of -1 (end of replication)
-					int batchSize;
-					activity.update("socket: read: Reading batchSize");
-					while((batchSize=in.readCompressedInt())!=-1) {
-						final Integer batchSizeObj = batchSize;
-						if(paths==null || paths.length < batchSize) {
-							paths=new String[batchSize];
-							isLogDirs=new boolean[batchSize];
-							tempNewFiles=new UnixFile[batchSize];
-							chunkingFroms=new UnixFile[batchSize];
-							chunksMD5s=useCompression ? new LongList[batchSize] : null;
-							modifyTimes=new long[batchSize];
-							results=new int[batchSize];
+				// Continue until a batchSize of -1 (end of replication)
+				int batchSize;
+				activity.update("socket: read: Reading batchSize");
+				while((batchSize = in.readCompressedInt()) != -1) {
+					final Integer batchSizeObj = batchSize;
+					if(paths == null || paths.length < batchSize) {
+						paths = new String[batchSize];
+						isLogDirs = new boolean[batchSize];
+						tempNewFiles = new UnixFile[batchSize];
+						if(useCompression) {
+							chunkingFroms = new UnixFile[batchSize];
+							chunkingSizes = new long[batchSize];
+							chunksMD5His = new long[batchSize][];
+							chunksMD5Los = new long[batchSize][];
 						}
-						// Reset the directory finalization for each batch
-						directoryFinalizeUFs.clear();
-						if(directoryFinalizeLinkToUFs!=null) directoryFinalizeLinkToUFs.clear();
-						directoryFinalizeUFRelativePaths.clear();
-						directoryFinalizeModifyTimes.clear();
-						directoryFinalizeContents.clear();
+						modifyTimes = new long[batchSize];
+						results = new int[batchSize];
+					}
+					// Reset the directory finalization for each batch
+					directoryFinalizeUFs.clear();
+					if(directoryFinalizeLinkToUFs!=null) directoryFinalizeLinkToUFs.clear();
+					directoryFinalizeUFRelativePaths.clear();
+					directoryFinalizeModifyTimes.clear();
+					directoryFinalizeContents.clear();
 
-						for(int c=0;c<batchSize;c++) {
-							final Integer batchPos = (c+1);
-							activity.update("socket: read: Reading exists ", batchPos, " of ", batchSizeObj);
-							if(in.readBoolean()) {
-								if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING && isInfo) {
-									long currentTime = System.currentTimeMillis();
-									if(lastLogDirNanosDisplayTime==-1 || Math.abs(currentTime-lastLogDirNanosDisplayTime)>60000) {
-										logger.info("modifyTimeAndSizeCachesSize="+modifyTimeAndSizeCaches.size());
-										logger.info("totalNewLogDirNanos="+totalNewLogDirNanos);
-										logger.info("totalOldLogDirNanos="+totalOldLogDirNanos);
-										lastLogDirNanosDisplayTime = currentTime;
-									}
-								}
-								// Read the current file
-								final String relativePath=paths[c]=in.readCompressedUTF();
-								checkPath(relativePath);
-								isLogDirs[c]=relativePath.startsWith("/logs/") || relativePath.startsWith("/var/log/");
-								String path=paths[c]=(isRecycling ? recycledPartialMirrorRoot : partialMirrorRoot)+relativePath;
-								UnixFile uf=new UnixFile(path);
-								activity.update("file: stat: ", uf);
-								Stat ufStat = uf.getStat();
-								UnixFile ufParent=uf.getParent();
-								String linkToPath;
-								UnixFile linkToUF;
-								Stat linkToUFStat;
-								UnixFile linkToParent;
-								if(linkToRoot!=null) {
-									linkToPath=linkToRoot+relativePath;
-									linkToUF=new UnixFile(linkToPath);
-									activity.update("file: stat: ", linkToUF);
-									linkToUFStat = linkToUF.getStat();
-									linkToParent=linkToUF.getParent();
-								} else {
-									linkToPath=null;
-									linkToUF=null;
-									linkToUFStat = null;
-									linkToParent=null;
-								}
-								activity.update("socket: read: Reading mode ", batchPos, " of ", batchSizeObj);
-								long mode=in.readLong();
-								long length;
-								if(UnixFile.isRegularFile(mode)) {
-									activity.update("socket: read: Reading length ", batchPos, " of ", batchSizeObj);
-									length = in.readLong();
-								} else {
-									length = -1;
-								}
-								activity.update("socket: read: Reading uid ", batchPos, " of ", batchSizeObj);
-								int uid=in.readCompressedInt();
-								activity.update("socket: read: Reading gid ", batchPos, " of ", batchSizeObj);
-								int gid=in.readCompressedInt();
-								long modifyTime;
-								if(UnixFile.isSymLink(mode)) {
-									modifyTime = -1;
-								} else {
-									activity.update("socket: read: Reading modifyTime ", batchPos, " of ", batchSizeObj);
-									modifyTime = in.readLong();
-								}
-								modifyTimes[c] = modifyTime;
-								//if(modifyTime<1000 && !UnixFile.isSymLink(mode) && log.isWarnEnabled()) log.warn("Non-symlink modifyTime<1000: "+relativePath+": "+modifyTime);
-								String symlinkTarget;
-								if(UnixFile.isSymLink(mode)) {
-									activity.update("socket: read: Reading symlinkTarget ", batchPos, " of ", batchSizeObj);
-									symlinkTarget = in.readCompressedUTF();
-									checkSymlinkTarget(symlinkTarget);
-								} else {
-									symlinkTarget = null;
-								}
-								long deviceID;
+					for(int c = 0; c < batchSize; c++) {
+						final Integer batchPosObj = c + 1;
+						activity.update("socket: read: Reading exists ", batchPosObj, " of ", batchSizeObj);
+						if(in.readBoolean()) {
+							// Read the current file
+							final String relativePath = in.readCompressedUTF();
+							checkPath(relativePath);
+							isLogDirs[c] = relativePath.startsWith("/logs/") || relativePath.startsWith("/var/log/");
+							String path = (isRecycling ? recycledPartialMirrorRoot : partialMirrorRoot) + relativePath;
+							paths[c] = path;
+							UnixFile uf = new UnixFile(path);
+							Stat ufStat = stat(activity, uf);
+							UnixFile ufParent = uf.getParent();
+							String linkToPath;
+							UnixFile linkToUF;
+							Stat linkToUFStat;
+							UnixFile linkToParent;
+							if(linkToRoot != null) {
+								linkToPath = linkToRoot+relativePath;
+								linkToUF = new UnixFile(linkToPath);
+								linkToUFStat = stat(activity, linkToUF);
+								linkToParent = linkToUF.getParent();
+							} else {
+								linkToPath = null;
+								linkToUF = null;
+								linkToUFStat = null;
+								linkToParent = null;
+							}
+							activity.update("socket: read: Reading mode ", batchPosObj, " of ", batchSizeObj);
+							long mode = in.readLong();
+							long length;
+							if(UnixFile.isRegularFile(mode)) {
+								activity.update("socket: read: Reading length ", batchPosObj, " of ", batchSizeObj);
+								length = in.readLong();
+							} else {
+								length = -1;
+							}
+							activity.update("socket: read: Reading uid ", batchPosObj, " of ", batchSizeObj);
+							int uid = in.readCompressedInt();
+							activity.update("socket: read: Reading gid ", batchPosObj, " of ", batchSizeObj);
+							int gid = in.readCompressedInt();
+							long modifyTime;
+							// TODO: Once glibc >= 2.6 and kernel >= 2.6.22, can use lutimes call for symbolic links
+							if(UnixFile.isSymLink(mode)) {
+								modifyTime = -1;
+							} else {
+								activity.update("socket: read: Reading modifyTime ", batchPosObj, " of ", batchSizeObj);
+								modifyTime = in.readLong();
+							}
+							modifyTimes[c] = modifyTime;
+							//if(modifyTime<1000 && !UnixFile.isSymLink(mode) && log.isWarnEnabled()) log.warn("Non-symlink modifyTime<1000: "+relativePath+": "+modifyTime);
+							String symlinkTarget;
+							if(UnixFile.isSymLink(mode)) {
+								activity.update("socket: read: Reading symlinkTarget ", batchPosObj, " of ", batchSizeObj);
+								symlinkTarget = in.readCompressedUTF();
+								checkSymlinkTarget(symlinkTarget);
+							} else {
+								symlinkTarget = null;
+							}
+							long deviceID;
+							if(
+								UnixFile.isBlockDevice(mode)
+								|| UnixFile.isCharacterDevice(mode)
+							) {
+								activity.update("socket: read: Reading deviceID ", batchPosObj, " of ", batchSizeObj);
+								deviceID = in.readLong();
+							} else {
+								deviceID = -1;
+							}
+							final ModifyTimeAndSize modifyTimeAndSize = new ModifyTimeAndSize(modifyTime, length);
+
+							// Cleanup extra entries in completed directories, setting modifyTime on the directories
+							while(!directoryUFs.isEmpty()) {
+								UnixFile dirUF = directoryUFs.peek();
+								String dirPath = dirUF.getPath();
+								if(!dirPath.endsWith("/")) dirPath = dirPath+'/';
+
+								// If the current file starts with the current directory, continue
+								if(path.startsWith(dirPath)) break;
+
+								// Otherwise, schedule to clean and complete the directory at the end of this batch
+								directoryUFs.pop();
+								directoryFinalizeUFs.add(dirUF);
+								if(directoryFinalizeLinkToUFs!=null) directoryFinalizeLinkToUFs.add(directoryLinkToUFs.pop());
+								directoryFinalizeUFRelativePaths.add(directoryUFRelativePaths.pop());
+								directoryFinalizeModifyTimes.add(directoryModifyTimes.pop());
+								directoryFinalizeContents.add(directoryContents.pop());
+							}
+
+							// Add the current to the directory
+							if(!directoryContents.isEmpty()) {
+								directoryContents.peek().add(path);
+							}
+
+							// Process the current file
+							int result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_NO_CHANGE;
+							tempNewFiles[c] = null;
+							if(useCompression) {
+								chunkingFroms[c] = null;
+								chunkingSizes[c] = Long.MIN_VALUE;
+								chunksMD5His[c] = null;
+								chunksMD5Los[c] = null;
+							}
+							if(UnixFile.isBlockDevice(mode)) {
 								if(
-									UnixFile.isBlockDevice(mode)
-									|| UnixFile.isCharacterDevice(mode)
+									ufStat.exists()
+									&& (
+										!ufStat.isBlockDevice()
+										|| ufStat.getDeviceIdentifier()!=deviceID
+									)
 								) {
-									activity.update("socket: read: Reading deviceID ", batchPos, " of ", batchSizeObj);
-									deviceID = in.readLong();
-								} else {
-									deviceID = -1;
+									if(isTrace) logger.finer("Deleting to create block device: "+uf.getPath());
+									// Update caches
+									removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+									// Update filesystem
+									deleteRecursive(activity, uf);
+									ufStat = Stat.NOT_EXISTS;
 								}
-								final ModifyTimeAndSize modifyTimeAndSize = new ModifyTimeAndSize(modifyTime, length);
-
-								// Cleanup extra entries in completed directories, setting modifyTime on the directories
-								while(!directoryUFs.isEmpty()) {
-									UnixFile dirUF = directoryUFs.peek();
-									String dirPath = dirUF.getPath();
-									if(!dirPath.endsWith("/")) dirPath = dirPath+'/';
-
-									// If the current file starts with the current directory, continue
-									if(path.startsWith(dirPath)) break;
-
-									// Otherwise, schedule to clean and complete the directory at the end of this batch
-									directoryUFs.pop();
-									directoryFinalizeUFs.add(dirUF);
-									if(directoryFinalizeLinkToUFs!=null) directoryFinalizeLinkToUFs.add(directoryLinkToUFs.pop());
-									directoryFinalizeUFRelativePaths.add(directoryUFRelativePaths.pop());
-									directoryFinalizeModifyTimes.add(directoryModifyTimes.pop());
-									directoryFinalizeContents.add(directoryContents.pop());
-								}
-
-								// Add the current to the directory
-								if(!directoryContents.isEmpty()) {
-									directoryContents.peek().add(path);
-								}
-
-								// Process the current file
-								int result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_NO_CHANGE;
-								tempNewFiles[c]=null;
-								chunkingFroms[c]=null;
-								if(useCompression) chunksMD5s[c]=null;
-								if(UnixFile.isBlockDevice(mode)) {
-									if(
-										ufStat.exists()
-										&& (
-											!ufStat.isBlockDevice()
-											|| ufStat.getDeviceIdentifier()!=deviceID
-										)
-									) {
-										if(isTrace) logger.finer("Deleting to create block device: "+uf.getPath());
-										// Update caches
-										long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-										removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
-										if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
-										// Update filesystem
-										activity.update("file: deleteRecursive: ", uf);
-										uf.deleteRecursive();
-										activity.update("file: stat: ", uf);
-										ufStat = uf.getStat();
-									}
-									if(!ufStat.exists()) {
-										activity.update("file: mknod: ", uf);
-										uf.mknod(mode, deviceID);
-										activity.update("file: stat: ", uf);
-										ufStat = uf.getStat();
-										if(linkToUF!=null) {
-											assert linkToUFStat != null;
-											// Only modified if not in last backup set, too
-											if(
-												!linkToUFStat.exists()
-												|| !linkToUFStat.isBlockDevice()
-												|| linkToUFStat.getDeviceIdentifier()!=deviceID
-											) {
-												result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
-												updated(retention, postPassChecklist, relativePath);
-											}
-										} else {
+								if(!ufStat.exists()) {
+									mknod(activity, uf, mode, deviceID);
+									ufStat = stat(activity, uf);
+									if(linkToUF!=null) {
+										assert linkToUFStat != null;
+										// Only modified if not in last backup set, too
+										if(
+											!linkToUFStat.exists()
+											|| !linkToUFStat.isBlockDevice()
+											|| linkToUFStat.getDeviceIdentifier()!=deviceID
+										) {
 											result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
 											updated(retention, postPassChecklist, relativePath);
 										}
-									}
-								} else if(UnixFile.isCharacterDevice(mode)) {
-									if(
-										ufStat.exists()
-										&& (
-											!ufStat.isCharacterDevice()
-											|| ufStat.getDeviceIdentifier()!=deviceID
-										)
-									) {
-										if(isTrace) logger.finer("Deleting to create character device: "+uf.getPath());
-										// Update caches
-										long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-										removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
-										if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
-										// Update filesystem
-										activity.update("file: deleteRecursive: ", uf);
-										uf.deleteRecursive();
-										activity.update("file: stat: ", uf);
-										ufStat = uf.getStat();
-									}
-									if(!ufStat.exists()) {
-										activity.update("file: mknod: ", uf);
-										uf.mknod(mode, deviceID);
-										activity.update("file: stat: ", uf);
-										ufStat = uf.getStat();
-										if(linkToUF!=null) {
-											assert linkToUFStat != null;
-											// Only modified if not in last backup set, too
-											if(
-												!linkToUFStat.exists()
-												|| !linkToUFStat.isCharacterDevice()
-												|| linkToUFStat.getDeviceIdentifier()!=deviceID
-											) {
-												result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
-												updated(retention, postPassChecklist, relativePath);
-											}
-										} else {
-											result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
-											updated(retention, postPassChecklist, relativePath);
-										}
-									}
-								} else if(UnixFile.isDirectory(mode)) {
-									if(
-										ufStat.exists()
-										&& !ufStat.isDirectory()
-									) {
-										if(isTrace) logger.finer("Deleting to create directory: "+uf.getPath());
-										// Update caches
-										long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-										removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
-										if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
-										// Update filesystem
-										activity.update("file: deleteRecursive: ", uf);
-										uf.deleteRecursive();
-										activity.update("file: stat: ", uf);
-										ufStat = uf.getStat();
-									}
-									if(!ufStat.exists()) {
-										activity.update("file: mkdir: ", uf);
-										uf.mkdir();
-										activity.update("file: stat: ", uf);
-										ufStat = uf.getStat();
-										if(linkToUF!=null) {
-											assert linkToUFStat != null;
-											// Only modified if not in last backup set, too
-											if(
-												!linkToUFStat.exists()
-												|| !linkToUFStat.isDirectory()
-											) {
-												result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
-												updated(retention, postPassChecklist, relativePath);
-											}
-										} else {
-											result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
-											updated(retention, postPassChecklist, relativePath);
-										}
-									} else if(ufStat.getModifyTime()!=modifyTime) {
+									} else {
 										result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
 										updated(retention, postPassChecklist, relativePath);
 									}
-									directoryUFs.push(uf);
-									if(directoryLinkToUFs!=null) directoryLinkToUFs.push(linkToUF);
-									directoryUFRelativePaths.push(relativePath);
-									directoryModifyTimes.push(modifyTime);
-									directoryContents.push(new HashSet<>());
-								} else if(UnixFile.isFifo(mode)) {
-									if(
-										ufStat.exists()
-										&& !ufStat.isFifo()
-									) {
-										if(isTrace) logger.finer("Deleting to create FIFO: "+uf.getPath());
-										// Update caches
-										long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-										removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
-										if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
-										// Update filesystem
-										activity.update("file: deleteRecursive: ", uf);
-										uf.deleteRecursive();
-										activity.update("file: stat: ", uf);
-										ufStat = uf.getStat();
-									}
-									if(!ufStat.exists()) {
-										activity.update("file: mkfifo: ", uf);
-										uf.mkfifo(mode);
-										activity.update("file: stat: ", uf);
-										ufStat = uf.getStat();
-										if(linkToUF!=null) {
-											assert linkToUFStat != null;
-											// Only modified if not in last backup set, too
-											if(
-												!linkToUFStat.exists()
-												|| !linkToUFStat.isFifo()
-											) {
-												result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
-												updated(retention, postPassChecklist, relativePath);
-											}
-										} else {
+								}
+							} else if(UnixFile.isCharacterDevice(mode)) {
+								if(
+									ufStat.exists()
+									&& (
+										!ufStat.isCharacterDevice()
+										|| ufStat.getDeviceIdentifier()!=deviceID
+									)
+								) {
+									if(isTrace) logger.finer("Deleting to create character device: "+uf.getPath());
+									// Update caches
+									removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+									// Update filesystem
+									deleteRecursive(activity, uf);
+									ufStat = Stat.NOT_EXISTS;
+								}
+								if(!ufStat.exists()) {
+									mknod(activity, uf, mode, deviceID);
+									ufStat = stat(activity, uf);
+									if(linkToUF!=null) {
+										assert linkToUFStat != null;
+										// Only modified if not in last backup set, too
+										if(
+											!linkToUFStat.exists()
+											|| !linkToUFStat.isCharacterDevice()
+											|| linkToUFStat.getDeviceIdentifier()!=deviceID
+										) {
 											result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
 											updated(retention, postPassChecklist, relativePath);
 										}
+									} else {
+										result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
+										updated(retention, postPassChecklist, relativePath);
 									}
-								} else if(UnixFile.isRegularFile(mode)) {
-									/* 
-									 * When receiving a regular file, we will always look in the current directory and the linkTo directory
-									 * for an exact match with the same filename (based on length and mtime only).  If the exact match is in the
-									 * current directory, then no data will be transferred.  If the exact match is in the linkTo directory,
-									 * then link to the current directory and no data will be transferred.
-									 *
-									 * There is an exception made for encrypted filesystem blockfiles.  Because the mtime of the underlying
-									 * file is not modified when the contents of the file are modified, we must always use the chunking algorithm
-									 * described below.
-									 *
-									 * If an exact match is not found with the current filename, and we are in a log directory, the
-									 * entire current directory and the entire linkTo directory will be searched for a match based on
-									 * length and mtime.  If found in either place, any existing file will be moved to a temp
-									 * filename, and the found one will be linked to the final filename - no data will be sent.
-									 *
-									 * If an exact match is not found in either regular mode or log directory mode, we will next try
-									 * to chunk the contents.  The resolution of what to chunk to depends on if we are currently recycling.
-									 * When recycling, we will first try the linkTo file then the current directory.  When not recycling
-									 * we will try the current directory and then the linkTo directory.
-									 */
-									if(ufStat.exists()) {
-										// If there is a symlink that has now been replaced with a regular file, just delete the symlink to avoid confusion in the following code
-										if(ufStat.isSymLink()) {
-											// Update caches
-											long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-											removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
-											if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
-											// Update the filesystem
-											activity.update("file: delete: ", uf);
-											uf.delete();
-											activity.update("file: stat: ", uf);
-											ufStat = uf.getStat();
-										} else if(ufStat.isDirectory()) {
-											// Update caches
-											long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-											removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
-											if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
-											// If there is a directory that has now been replaced with a regular file, just delete the directory recursively to avoid confusion in the following code
-											activity.update("file: deleteRecursive: ", uf);
-											uf.deleteRecursive();
-											activity.update("file: stat: ", uf);
-											ufStat = uf.getStat();
+								}
+							} else if(UnixFile.isDirectory(mode)) {
+								if(
+									ufStat.exists()
+									&& !ufStat.isDirectory()
+								) {
+									if(isTrace) logger.finer("Deleting to create directory: "+uf.getPath());
+									// Update caches
+									removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+									// Update filesystem
+									deleteRecursive(activity, uf);
+									ufStat = Stat.NOT_EXISTS;
+								}
+								if(!ufStat.exists()) {
+									mkdir(activity, uf);
+									ufStat = stat(activity, uf);
+									if(linkToUF != null) {
+										assert linkToUFStat != null;
+										// Only modified if not in last backup set, too
+										if(
+											!linkToUFStat.exists()
+											|| !linkToUFStat.isDirectory()
+										) {
+											result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
+											updated(retention, postPassChecklist, relativePath);
 										}
+									} else {
+										result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
+										updated(retention, postPassChecklist, relativePath);
 									}
-									// Look in the current directory for an exact match
-									final boolean isEncryptedLoopFile = isEncryptedLoopFile(relativePath);
+								} else if(ufStat.getModifyTime()!=modifyTime) {
+									result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
+									updated(retention, postPassChecklist, relativePath);
+								}
+								directoryUFs.push(uf);
+								if(directoryLinkToUFs!=null) directoryLinkToUFs.push(linkToUF);
+								directoryUFRelativePaths.push(relativePath);
+								directoryModifyTimes.push(modifyTime);
+								directoryContents.push(new HashSet<>());
+							} else if(UnixFile.isFifo(mode)) {
+								if(
+									ufStat.exists()
+									&& !ufStat.isFifo()
+								) {
+									if(isTrace) logger.finer("Deleting to create FIFO: "+uf.getPath());
+									// Update caches
+									removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+									// Update filesystem
+									deleteRecursive(activity, uf);
+									ufStat = Stat.NOT_EXISTS;
+								}
+								if(!ufStat.exists()) {
+									mkfifo(activity, uf, mode);
+									ufStat = stat(activity, uf);
+									if(linkToUF!=null) {
+										assert linkToUFStat != null;
+										// Only modified if not in last backup set, too
+										if(
+											!linkToUFStat.exists()
+											|| !linkToUFStat.isFifo()
+										) {
+											result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
+											updated(retention, postPassChecklist, relativePath);
+										}
+									} else {
+										result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
+										updated(retention, postPassChecklist, relativePath);
+									}
+								}
+							} else if(UnixFile.isRegularFile(mode)) {
+								/* 
+								 * When receiving a regular file, we will always look in the current directory and the linkTo directory
+								 * for an exact match with the same filename (based on length and mtime only).  If the exact match is in the
+								 * current directory, then no data will be transferred.  If the exact match is in the linkTo directory,
+								 * then link to the current directory and no data will be transferred.
+								 *
+								 * There is an exception made for encrypted filesystem blockfiles.  Because the mtime of the underlying
+								 * file is not modified when the contents of the file are modified, we must always use the chunking algorithm
+								 * described below.
+								 *
+								 * If an exact match is not found with the current filename, and we are in a log directory, the
+								 * entire current directory and the entire linkTo directory will be searched for a match based on
+								 * length and mtime.  If found in either place, any existing file will be moved to a temp
+								 * filename, and the found one will be linked to the final filename - no data will be sent.
+								 *
+								 * If an exact match is not found in either regular mode or log directory mode, we will next try
+								 * to chunk the contents.  The resolution of what to chunk to depends on if we are currently recycling.
+								 * When recycling, we will first try the linkTo file then the current directory.  When not recycling
+								 * we will try the current directory and then the linkTo directory.
+								 */
+								if(ufStat.exists()) {
+									// If there is a directory that has now been replaced with a regular file, just delete the directory recursively to avoid confusion in the following code
+									if(ufStat.isDirectory()) {
+										// Update caches
+										removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+										deleteRecursive(activity, uf);
+										ufStat = Stat.NOT_EXISTS;
+									}
+									// If there is any non-regular file that has now been replaced with a regular file, just delete the symlink to avoid confusion in the following code
+									else if(!ufStat.isRegularFile()) {
+										// Update caches
+										removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+										// Update the filesystem
+										delete(activity, uf);
+										ufStat = Stat.NOT_EXISTS;
+									}
+									// At this point, the file either exists and is a regular file, or does not exist
+								}
+								// Look in the current directory for an exact match
+								final boolean isEncryptedLoopFile = isEncryptedLoopFile(relativePath);
+								if(
+									!isEncryptedLoopFile
+									&& ufStat.exists()
+									&& ufStat.getSize() == length
+									&& ufStat.getModifyTime() == modifyTime
+								) {
+									assert ufStat.isRegularFile() : "All non-regular files should have been deleted";
+									// Found in current directory, simply use default result = NO_CHANGE
+								} else {
+									// Steps below this need to know if we are in a log directory or not
+									final boolean isLogDir = isLogDirs[c];
+
+									// Look in the linkTo directory for an exact match
 									if(
 										!isEncryptedLoopFile
-										&& ufStat.exists()
-										&& ufStat.isRegularFile()
-										&& ufStat.getSize()==length
-										&& ufStat.getModifyTime()==modifyTime
+										&& linkToUFStat != null
+										&& linkToUFStat.exists()
+										&& linkToUFStat.isRegularFile()
+										&& linkToUFStat.getSize() == length
+										&& linkToUFStat.getModifyTime() == modifyTime
 									) {
-										// Found in current directory, simply use default result = NO_CHANGE
-									} else {
-										// Steps below this need to know if we are in a log directory or not
-										final boolean isLogDir = isLogDirs[c];
-
-										// Look in the linkTo directory for an exact match
-										if(
-											!isEncryptedLoopFile
-											&& linkToUF!=null
-											&& linkToUFStat.exists()
-											&& linkToUFStat.isRegularFile()
-											&& linkToUFStat.getSize()==length
-											&& linkToUFStat.getModifyTime()==modifyTime
-										) {
-											// Found match in linkTo, link to linkTo directory
-											if(ufStat.exists()) {
-												// If we are in a log directory, move a regular file out of the way into a temp file (for possible later reuse)
-												if(ufStat.isRegularFile()) {
-													if(isLogDir) {
-														// Move to a new temp filename for later reuse
-														UnixFile tempUF = mktemp(activity, uf);
-														// Update the filesystem
-														activity.update("file: rename: ", uf, " to ", tempUF);
-														uf.renameTo(tempUF);
-														activity.update("file: link: ", uf, " to ", linkToUF);
-														uf.link(linkToUF);
-														activity.update("file: stat: ", uf);
-														ufStat = uf.getStat();
-														// Update caches
-														long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-														renamed(modifyTimeAndSizeCaches, uf, tempUF, ufParent);
-														added(activity, modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
-														if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
-													} else {
-														// Delete and link is OK because this is using a linkTo directory (therefore not in failover mode)
-														// Update caches
-														long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-														removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
-														if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
-														// Update the filesystem
-														activity.update("file: delete: ", uf);
-														uf.delete();
-														activity.update("file: link: ", uf, " to ", linkToUF);
-														uf.link(linkToUF);
-														activity.update("file: stat: ", uf);
-														ufStat = uf.getStat();
-														// Update caches
-														startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-														added(activity, modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
-														if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
-													}
-												} else {
-													// Update caches
-													long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-													removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
-													if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
-													// Update the filesystem
-													activity.update("file: deleteRecursive: ", uf);
-													uf.deleteRecursive();
-													activity.update("file: link: ", uf, " to ", linkToUF);
-													uf.link(linkToUF);
-													activity.update("file: stat: ", uf);
-													ufStat = uf.getStat();
-													// Update caches
-													startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-													added(activity, modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
-													if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
-												}
-											} else {
+										// Found match in linkTo, link to linkTo directory
+										if(ufStat.exists()) {
+											assert ufStat.isRegularFile() : "All non-regular files should have been deleted";
+											// If we are in a log directory, move the regular file out of the way into a temp file (for possible later reuse)
+											if(isLogDir) {
+												// Move to a new temp filename for later reuse
+												UnixFile tempUF = mktemp(activity, uf);
 												// Update the filesystem
-												activity.update("file: link: ", uf, " to ", linkToUF);
-												uf.link(linkToUF);
-												activity.update("file: stat: ", uf);
-												ufStat = uf.getStat();
+												rename(activity, uf, tempUF);
+												link(activity, uf, linkToUF);
+												ufStat = stat(activity, uf);
 												// Update caches
-												long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
+												renamed(modifyTimeAndSizeCaches, uf, tempUF, ufParent);
 												added(activity, modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
-												if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
+											} else {
+												// Delete and link is OK because this is using a linkTo directory (therefore not in failover mode)
+												// Update caches
+												removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+												// Update the filesystem
+												delete(activity, uf);
+												link(activity, uf, linkToUF);
+												ufStat = stat(activity, uf);
+												// Update caches
+												added(activity, modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
 											}
 										} else {
-											// If we are in a log directory, search all regular files in current directory and linkTo directory for matching length and mtime
-											// link to it if found
-											boolean linkedOldLogFile = false;
-											if(!isEncryptedLoopFile && isLogDir) {
-												// Look for another file with the same size and modify time in this partial directory
+											// Update the filesystem
+											link(activity, uf, linkToUF);
+											ufStat = stat(activity, uf);
+											// Update caches
+											added(activity, modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
+										}
+									} else {
+										// If we are in a log directory, search all regular files in current directory and linkTo directory for matching length and mtime
+										// link to it if found
+										boolean linkedOldLogFile = false;
+										if(!isEncryptedLoopFile && isLogDir) {
+											// Look for another file with the same size and modify time in this partial directory
+											UnixFile oldLogUF = null;
+											ModifyTimeAndSizeCache modifyTimeAndSizeCache =
+												// isEmpty checked first to avoid hashing for the common case of no caches
+												modifyTimeAndSizeCaches.isEmpty()
+												? null
+												: modifyTimeAndSizeCaches.get(ufParent)
+											;
+											if(modifyTimeAndSizeCache == null) {
+												// Not in cache, load from disk
+												modifyTimeAndSizeCaches.put(ufParent, modifyTimeAndSizeCache = new ModifyTimeAndSizeCache(activity, ufParent));
+											}
+											List<String> matchedFilenames = modifyTimeAndSizeCache.getFilenamesByModifyTimeAndSize(modifyTimeAndSize);
+											if(matchedFilenames != null && !matchedFilenames.isEmpty()) {
+												oldLogUF = new UnixFile(ufParent, matchedFilenames.get(0), false);
+											}
+
+											if(oldLogUF == null && linkToUF != null) {
+												// Look for another file with the same size and modify time in the link to directory (previous backup pass).
 
 												// New implementation is used first because it will load the directory physically from
 												// disk first, thus the old implementation will have the advantage of the disk cache.
 												// Therefore, if the new implementation is still faster, it is clearly the winner.
-												long newStartNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-												UnixFile oldLogUF = null;
-												ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.isEmpty() ? null : modifyTimeAndSizeCaches.get(ufParent);
-												if(modifyTimeAndSizeCache==null) {
+												ModifyTimeAndSizeCache modifyTimeAndSizeCache2 =
+													// isEmpty checked first to avoid hashing for the common case of no caches
+													modifyTimeAndSizeCaches.isEmpty()
+													? null
+													: modifyTimeAndSizeCaches.get(linkToParent)
+												;
+												if(modifyTimeAndSizeCache2 == null) {
 													// Not in cache, load from disk
-													modifyTimeAndSizeCaches.put(ufParent, modifyTimeAndSizeCache = new ModifyTimeAndSizeCache(activity, ufParent));
+													modifyTimeAndSizeCaches.put(linkToParent, modifyTimeAndSizeCache2 = new ModifyTimeAndSizeCache(activity, linkToParent));
 												}
-												List<String> matchedFilenames = modifyTimeAndSizeCache.getFilenamesByModifyTimeAndSize(modifyTimeAndSize);
-												if(matchedFilenames!=null && !matchedFilenames.isEmpty()) {
-													oldLogUF = new UnixFile(ufParent, matchedFilenames.get(0), false);
-												}
-												if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - newStartNanos;
-
-												if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) {
-													// Old implementation
-													long oldStartNanos = System.nanoTime();
-													UnixFile oldOldLogUF = null;
-													activity.update("file: list: ", ufParent);
-													String[] list = ufParent.list();
-													if(list != null) {
-														for(int d = 0; d < list.length; d++) {
-															UnixFile otherFile = new UnixFile(ufParent, list[d], false);
-															activity.update("file: stat: ", otherFile);
-															Stat otherFileStat = otherFile.getStat();
-															if(
-																otherFileStat.exists()
-																&& otherFileStat.isRegularFile()
-																&& otherFileStat.getSize()==length
-																&& otherFileStat.getModifyTime()==modifyTime
-															) {
-																oldOldLogUF = otherFile;
-																break;
-															}
-														}
-													}
-													totalOldLogDirNanos += System.nanoTime() - oldStartNanos;
-													// Verify compatible results between implementations between oldOldLogUF (old) and oldLogUF (new)
-													// Either both are null
-													if(oldOldLogUF==null && oldLogUF==null) {
-														// This is acceptable
-													} else if(oldOldLogUF!=null && oldLogUF!=null) {
-														// Or this is acceptable, but oldOldLogUF must be one of the options in matchedFilenames
-														if(!matchedFilenames.contains(oldOldLogUF.getFile().getName())) {
-															throw new IOException("matchedFilenames doesn't contain name for oldOldLogUF: oldOldLogUF="+oldOldLogUF);
-														}
-														// Verify that the file on disk actually matches the size and modifyTime
-														activity.update("file: stat: ", oldLogUF);
-														Stat otherFileStat = oldLogUF.getStat();
-														if(otherFileStat.getModifyTime()!=modifyTime) {
-															throw new IOException("oldLogUF.getModifyTime()!=modifyTime, oldLogUF="+oldLogUF);
-														}
-														if(otherFileStat.getSize()!=length) {
-															throw new IOException("oldLogUF.getSize()!=length, oldLogUF="+oldLogUF);
-														}
-													} else {
-														throw new IOException("Incompatible results old and new logDir implementation: oldOldLogUF="+oldOldLogUF+" and oldLogUF="+oldLogUF);
-													}
-												}
-												if(oldLogUF==null && linkToUF!=null) {
-													// Look for another file with the same size and modify time in the link to directory (previous backup pass).
-
-													// New implementation is used first because it will load the directory physically from
-													// disk first, thus the old implementation will have the advantage of the disk cache.
-													// Therefore, if the new implementation is still faster, it is clearly the winner.
-													long newStartNanos2 = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-													ModifyTimeAndSizeCache modifyTimeAndSizeCache2 = modifyTimeAndSizeCaches.isEmpty() ? null : modifyTimeAndSizeCaches.get(linkToParent);
-													if(modifyTimeAndSizeCache2==null) {
-														// Not in cache, load from disk
-														modifyTimeAndSizeCaches.put(linkToParent, modifyTimeAndSizeCache2 = new ModifyTimeAndSizeCache(activity, linkToParent));
-													}
-													List<String> matchedFilenames2 = modifyTimeAndSizeCache2.getFilenamesByModifyTimeAndSize(modifyTimeAndSize);
-													if(matchedFilenames2!=null && !matchedFilenames2.isEmpty()) {
-														oldLogUF = new UnixFile(linkToParent, matchedFilenames2.get(0), false);
-													}
-													if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - newStartNanos2;
-
-													if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) {
-														// Old implementation
-														long oldStartNanos = System.nanoTime();
-														UnixFile oldOldLogUF = null;
-														activity.update("file: list: ", linkToParent);
-														String[] linkToList = linkToParent.list();
-														if(linkToList!=null) {
-															for(int d=0;d<linkToList.length;d++) {
-																UnixFile otherFile = new UnixFile(linkToParent, linkToList[d], false);
-																activity.update("file: stat: ", otherFile);
-																Stat otherFileStat = otherFile.getStat();
-																if(
-																	otherFileStat.exists()
-																	&& otherFileStat.isRegularFile()
-																	&& otherFileStat.getSize()==length
-																	&& otherFileStat.getModifyTime()==modifyTime
-																) {
-																	oldOldLogUF = otherFile;
-																	break;
-																}
-															}
-														}
-														totalOldLogDirNanos += System.nanoTime() - oldStartNanos;
-														// Verify compatible results between implementations between oldOldLogUF (old) and oldLogUF (new)
-														// Either both are null
-														if(oldOldLogUF==null && oldLogUF==null) {
-															// This is acceptable
-														} else if(oldOldLogUF!=null && oldLogUF!=null) {
-															// Or this is acceptable, but oldOldLogUF must be one of the options in matchedFilenames
-															if(!matchedFilenames2.contains(oldOldLogUF.getFile().getName())) {
-																throw new IOException("matchedFilenames2 doesn't contain name for oldOldLogUF: oldOldLogUF="+oldOldLogUF);
-															}
-															// Verify that the file on disk actually matches the size and modifyTime
-															activity.update("file: stat: ", oldLogUF);
-															Stat otherFileStat = oldLogUF.getStat();
-															if(otherFileStat.getModifyTime()!=modifyTime) {
-																throw new IOException("oldLogUF.getModifyTime()!=modifyTime, oldLogUF="+oldLogUF);
-															}
-															if(otherFileStat.getSize()!=length) {
-																throw new IOException("oldLogUF.getSize()!=length, oldLogUF="+oldLogUF);
-															}
-														} else {
-															throw new IOException("Incompatible results old and new logDir implementation: oldOldLogUF="+oldOldLogUF+" and oldLogUF="+oldLogUF);
-														}
-													}
-												}
-												if(oldLogUF!=null) {
-													if(ufStat.exists()) {
-														if(ufStat.isRegularFile()) {
-															// Move to a new temp filename for later reuse
-															UnixFile tempUF = mktemp(activity, uf);
-															// Update filesystem
-															if(retention==1) {
-																// Failover mode does a more cautious link to temp and rename over to avoid
-																// any moment where there is no file in the path of uf
-																activity.update("file: delete: ", tempUF);
-																tempUF.delete();
-																activity.update("file: link: ", tempUF, " to ", uf);
-																tempUF.link(uf);
-																UnixFile tempUF2 = mktemp(activity, uf);
-																activity.update("file: delete: ", tempUF2);
-																tempUF2.delete();
-																activity.update("file: link: ", tempUF2, " to ", oldLogUF);
-																tempUF2.link(oldLogUF);
-																activity.update("file: rename: ", tempUF2, " to ", uf);
-																tempUF2.renameTo(uf);
-															} else {
-																// Backup mode uses a more efficient approach because partial states are OK
-																activity.update("file: rename: ", uf, " to ", tempUF);
-																uf.renameTo(tempUF);
-																activity.update("file: link: ", uf, " to ", oldLogUF);
-																uf.link(oldLogUF);
-															}
-															// Update cache
-															long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-															renamed(modifyTimeAndSizeCaches, uf, tempUF, ufParent);
-															added(activity, modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
-															if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
-														} else {
-															// Update cache
-															long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-															removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
-															if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
-															// Update filesystem
-															activity.update("file: deleteRecursive: ", uf);
-															uf.deleteRecursive();
-															activity.update("file: link: ", uf, " to ", oldLogUF);
-															uf.link(oldLogUF);
-															// Update cache
-															startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-															added(activity, modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
-															if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
-														}
-													} else {
-														// Update filesystem
-														activity.update("file: link: ", uf, " to ", oldLogUF);
-														uf.link(oldLogUF);
-														// Update cache
-														long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-														added(activity, modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
-														if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
-													}
-													activity.update("file: stat: ", uf);
-													ufStat = uf.getStat();
-													result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
-													updated(retention, postPassChecklist, relativePath);
-													linkedOldLogFile = true;
+												List<String> matchedFilenames2 = modifyTimeAndSizeCache2.getFilenamesByModifyTimeAndSize(modifyTimeAndSize);
+												if(matchedFilenames2 != null && !matchedFilenames2.isEmpty()) {
+													oldLogUF = new UnixFile(linkToParent, matchedFilenames2.get(0), false);
 												}
 											}
-											if(!linkedOldLogFile) {
-												boolean chunkingFile = false;
-												if(
-													useCompression
-													// File is not so large that chunking can't possibly store md5's in RAM (> 8 Terabytes currently)
-													&& (2*length/AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE) < Integer.MAX_VALUE
-												) {
-													// Next we will try chunking.  For chunking, we will start by determining what we are chunking from.
-													UnixFile chunkingFrom;
-													Stat chunkingFromStat;
-													if(isRecycling) {
-														// When recycling, try linkToUF then uf
-														long size;
-														if(
-															linkToUF!=null
-															&& linkToUFStat.exists()
-															&& linkToUFStat.isRegularFile()
-															// Old file is not small (<CHUNK_SIZE)
-															&& (size=linkToUFStat.getSize())>=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE
-															// Chunk at best reduces transfer size by CHUNK_SIZE/17 (md5 + 1 byte response)
-															&& size>(length/(AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE/17))
-														) {
-															chunkingFrom = linkToUF;
-															chunkingFromStat = linkToUFStat;
-														} else if(
-															ufStat.exists()
-															&& ufStat.isRegularFile()
-															// Old file is not small (<CHUNK_SIZE)
-															&& (size=ufStat.getSize())>=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE
-															// Chunk at best reduces transfer size by CHUNK_SIZE/17 (md5 + 1 byte response)
-															&& size>(length/(AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE/17))
-														) {
-															chunkingFrom = uf;
-															chunkingFromStat = ufStat;
-														} else {
-															chunkingFrom = null;
-															chunkingFromStat = null;
-														}
-													} else {
-														// When not recycling, try uf then linkToUF
-														long size;
-														if(
-															ufStat.exists()
-															&& ufStat.isRegularFile()
-															// Old file is not small (<CHUNK_SIZE)
-															&& (size=ufStat.getSize())>=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE
-															// Chunk at best reduces transfer size by CHUNK_SIZE/17 (md5 + 1 byte response)
-															&& size>(length/(AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE/17))
-														) {
-															chunkingFrom = uf;
-															chunkingFromStat = ufStat;
-														} else if(
-															linkToUF!=null
-															&& linkToUFStat.exists()
-															&& linkToUFStat.isRegularFile()
-															// Old file is not small (<CHUNK_SIZE)
-															&& (size=linkToUFStat.getSize())>=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE
-															// Chunk at best reduces transfer size by CHUNK_SIZE/17 (md5 + 1 byte response)
-															&& size>(length/(AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE/17))
-														) {
-															chunkingFrom = linkToUF;
-															chunkingFromStat = linkToUFStat;
-														} else {
-															chunkingFrom = null;
-															chunkingFromStat = null;
-														}
-													}
-													if(chunkingFrom!=null) {
-														// Now we figure out what we are chunking to.
-														if(
-															ufStat.exists()
-															|| retention==1
-															|| (!isRecycling && linkToUF!=null)
-														) {
-															// When uf exists, chunk to a temp file
-															UnixFile tempUF = mktemp(activity, uf);
-															tempNewFiles[c] = tempUF;
-															if(isTrace) logger.finer("Using temp file (chunked): "+tempUF.getPath());
-															// modifyTimeAndSizeCaches is not updated here, it will be updated below when the data is received
-														} else {
-															if(!ufStat.exists()) {
-																activity.update("file: touch: ", uf);
-																new FileOutputStream(uf.getFile()).close();
-																activity.update("file: stat: ", uf);
-																ufStat = uf.getStat();
-																// modifyTimeAndSizeCaches is not updated here, it will be updated below when the data is received
-															}
-														}
-
-														// Build the list of MD5 hashes per chunk
-														long sizeToChunk = Math.min(length, chunkingFromStat.getSize());
-														LongList md5s = chunksMD5s[c] = new LongArrayList((int)(2*(sizeToChunk/AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE)));
-														// Generate the MD5 hashes for the current file
-														activity.update("file: open: ", chunkingFrom);
-														InputStream fileIn = new FileInputStream(chunkingFrom.getFile());
-														try {
-															long filePos = 0;
-															while(true) {
-																// Read in blocks of CHUNK_SIZE
-																int pos=0;
-																while(pos<AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE) {
-																	activity.update("file: md5: ", chunkingFrom, " at ", filePos);
-																	int ret = fileIn.read(chunkBuffer, pos, AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE-pos);
-																	if(ret==-1) break;
-																	filePos += ret;
-																	pos += ret;
-																}
-																if(pos==AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE) {
-																	md5.Init();
-																	md5.Update(chunkBuffer, 0, AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE);
-																	byte[] md5Bytes=md5.Final();
-																	long md5Hi = MD5.getMD5Hi(md5Bytes);
-																	long md5Lo = MD5.getMD5Lo(md5Bytes);
-																	md5s.add(md5Hi);
-																	md5s.add(md5Lo);
-																} else {
-																	// End of file
-																	break;
-																}
-															}
-														} finally {
-															activity.update("file: close: ", chunkingFrom);
-															fileIn.close();
-														}
-														chunkingFroms[c]=chunkingFrom;
-														chunkingFile = true;
-														result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA_CHUNKED;
-														updated(retention, postPassChecklist, relativePath);
-													}
-												}
-												if(!chunkingFile) {
-													result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA;
-													updated(retention, postPassChecklist, relativePath);
-													// If the file doesn't exist, will download in-place
-													if(!ufStat.exists()) {
-														activity.update("file: touch: ", uf);
-														new FileOutputStream(uf.getFile()).close();
-														activity.update("file: stat: ", uf);
-														ufStat = uf.getStat();
-													} else {
-														// Build new temp file
-														UnixFile tempUF = mktemp(activity, uf);
-														tempNewFiles[c] = tempUF;
-														if(isTrace) logger.finer("Using temp file (not chunked): "+tempUF.getPath());
-														// modifyTimeAndSizeCaches is not updated here, it will be updated below when the data is received
-													}
-												}
-											}
-										}
-									}
-								} else if(UnixFile.isSymLink(mode)) {
-									if(
-										ufStat.exists()
-										&& (
-											!ufStat.isSymLink()
-											|| !readLink(activity, uf).equals(symlinkTarget)
-										)
-									) {
-										if(isTrace) logger.finer("Deleting to create sybolic link: "+uf.getPath());
-										// Update cache
-										long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-										removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
-										if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
-										// Update filesystem
-										activity.update("file: deleteRecursive: ", uf);
-										uf.deleteRecursive();
-										activity.update("file: stat: ", uf);
-										ufStat = uf.getStat();
-									}
-									if(!ufStat.exists()) {
-										activity.update("file: symLink: ", uf, " to ", symlinkTarget);
-										uf.symLink(symlinkTarget);
-										activity.update("file: stat: ", uf);
-										ufStat = uf.getStat();
-										if(linkToUF!=null) {
-											// Only modified if not in last backup set, too
-											if(
-												!linkToUFStat.exists()
-												|| !linkToUFStat.isSymLink()
-												|| !readLink(activity, linkToUF).equals(symlinkTarget)
-											) {
-												result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
-												updated(retention, postPassChecklist, relativePath);
-											}
-										} else {
-											result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
-											updated(retention, postPassChecklist, relativePath);
-										}
-									}
-								} else throw new IOException("Unknown mode type: "+Long.toOctalString(mode&UnixFile.TYPE_MASK));
-
-								// Update the permissions (mode)
-								UnixFile effectiveUF;
-								Stat effectiveUFStat;
-								if(tempNewFiles[c]==null) {
-									effectiveUF = uf;
-									effectiveUFStat = ufStat;
-								} else {
-									effectiveUF = tempNewFiles[c];
-									activity.update("file: stat: ", effectiveUF);
-									effectiveUFStat = effectiveUF.getStat();
-								}
-								if(
-									!UnixFile.isSymLink(mode)
-									&& (
-										(effectiveUFStat.getRawMode() & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
-										!= (mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
-									)
-								) {
-									try {
-										if(retention!=1) copyIfHardLinked(activity, effectiveUF, effectiveUFStat);
-										activity.update("file: setMode: ", effectiveUF);
-										effectiveUF.setMode(mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK));
-										activity.update("file: stat: ", effectiveUF);
-										effectiveUFStat = effectiveUF.getStat();
-									} catch(FileNotFoundException err) {
-										logger.log(Level.WARNING, "path="+path+", mode="+Long.toOctalString(mode), err);
-									}
-									if(result==AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_NO_CHANGE) {
-										if(linkToUF!=null) {
-											// Only modified if wrong permission in last backup set, too
-											if(
-												!linkToUFStat.exists()
-												|| (
-													(linkToUFStat.getRawMode() & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
-													!= (mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
-												)
-											) {
-												result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
-												updated(retention, postPassChecklist, relativePath);
-											}
-										} else {
-											result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
-											updated(retention, postPassChecklist, relativePath);
-										}
-									}
-								}
-
-								// Update the ownership
-								if(
-									effectiveUFStat.getUid()!=uid
-									// TODO: Store GID in xattr (if not 0)
-									|| effectiveUFStat.getGid()!=(quota_gid==-1 ? gid : quota_gid)
-								) {
-									if(retention!=1) copyIfHardLinked(activity, effectiveUF, effectiveUFStat);
-									// TODO: Store GID in xattr (if not 0)
-									activity.update("file: chown: ", effectiveUF);
-									effectiveUF.chown(uid, (quota_gid==-1 ? gid : quota_gid));
-									activity.update("file: stat: ", effectiveUF);
-									effectiveUFStat = effectiveUF.getStat();
-									if(result==AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_NO_CHANGE) {
-										if(linkToUF!=null) {
-											// Only modified if not in last backup set, too
-											if(
-												!linkToUFStat.exists()
-												|| linkToUFStat.getUid()!=uid
-												// TODO: Store GID in xattr
-												|| linkToUFStat.getGid()!=(quota_gid==-1 ? gid : quota_gid)
-											) {
-												result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
-												updated(retention, postPassChecklist, relativePath);
-											}
-										} else {
-											result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
-											updated(retention, postPassChecklist, relativePath);
-										}
-									}
-								}
-
-								// Update the modified time
-								if(
-									!UnixFile.isSymLink(mode)
-									&& !UnixFile.isRegularFile(mode) // Regular files will be re-transferred below when their modified times don't match, so no need to set the modified time here
-									&& !UnixFile.isDirectory(mode) // Directory modification times are set on the way out of the directories
-									&& effectiveUFStat.getModifyTime()!=modifyTime
-								) {
-									if(retention!=1) copyIfHardLinked(activity, effectiveUF, effectiveUFStat);
-									//try {
-										activity.update("file: utime: ", effectiveUF);
-										effectiveUF.utime(effectiveUFStat.getAccessTime(), modifyTime);
-										activity.update("file: stat: ", effectiveUF);
-										effectiveUFStat = effectiveUF.getStat();
-									//} catch(IOException err) {
-									//    throw new WrappedException(err, new Object[] {"effectiveUF="+effectiveUF.getPath()});
-									//}
-									if(result==AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_NO_CHANGE) {
-										if(linkToUF!=null) {
-											// Only modified if not in last backup set, too
-											if(
-												!linkToUFStat.exists()
-												|| linkToUFStat.getModifyTime()!=modifyTime
-											) {
-												result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
-												updated(retention, postPassChecklist, relativePath);
-											}
-										} else {
-											result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
-											updated(retention, postPassChecklist, relativePath);
-										}
-										//result=MODIFIED;
-									}
-								}
-								results[c]=result;
-							} else paths[c]=null;
-						}
-
-						// Write the results
-						activity.update("socket: write: Writing batch results");
-						out.write(AOServDaemonProtocol.NEXT);
-						for(int c=0;c<batchSize;c++) {
-							if(paths[c]!=null) {
-								final Integer batchPos = (c+1);
-								int result = results[c];
-								activity.update("socket: write: Writing result ", batchPos, " of ", batchSizeObj);
-								out.write(result);
-								if(result==AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA_CHUNKED) {
-									LongList md5s = chunksMD5s[c];
-									int md5sSize = md5s.size();
-									if((md5sSize&1)==1) throw new AssertionError("md5sSize has an odd value, should be even: md5sSize="+md5sSize);
-									activity.update("socket: write: Writing chunk md5s ", batchPos, " of ", batchSizeObj);
-									out.writeCompressedInt(md5sSize/2);
-									for(int d=0;d<md5sSize;d++) out.writeLong(md5s.getLong(d));
-								}
-							}
-						}
-
-						// Flush the results
-						out.flush();
-
-						// Store incoming data
-						for(int c=0;c<batchSize;c++) {
-							String path=paths[c];
-							if(path!=null) {
-								final Integer batchPos = (c+1);
-								int result=results[c];
-								if(result==AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA || result==AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA_CHUNKED) {
-									// tempNewFiles[c] is only possibly set for the data transfer results
-									UnixFile tempUF = tempNewFiles[c];
-									UnixFile uf=new UnixFile(path);
-									UnixFile ufParent = uf.getParent();
-
-									// Load into the temporary file or directly to the file (based on above calculations)
-									UnixFile fileOutUF = tempUF==null ? uf : tempUF;
-									activity.update("file: open: ", fileOutUF);
-									OutputStream fileOut = new FileOutputStream(fileOutUF.getFile());
-									boolean newFileComplete = false;
-									try {
-										long filePos = 0;
-										if(result==AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA) {
-											int response;
-											while(true) {
-												activity.update("socket: read: ", uf, " at ", filePos);
-												response=in.read();
-												if(response != AOServDaemonProtocol.NEXT) {
-													break;
-												}
-												int blockLen=in.readShort();
-												in.readFully(buff, 0, blockLen);
-												activity.update("file: write: ", fileOutUF, " at ", filePos);
-												fileOut.write(buff, 0, blockLen);
-												filePos += blockLen;
-											}
-											if(response!=AOServDaemonProtocol.DONE) throw new IOException("Unexpected response code: "+response);
-										} else if(result==AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA_CHUNKED) {
-											UnixFile chunkingFromUF = chunkingFroms[c];
-											activity.update("file: open: ", chunkingFromUF);
-											RandomAccessFile chunkingFromRaf=new RandomAccessFile(chunkingFromUF.getFile(), "r");
-											try {
-												int response;
-												while(true) {
-													activity.update("socket: read: chunk result of ", uf, " at ", filePos);
-													response = in.read();
-													if(response == AOServDaemonProtocol.NEXT) {
-														activity.update("socket: read: ", uf, " at ", filePos);
-														int chunkLen=in.readShort();
-														in.readFully(chunkBuffer, 0, chunkLen);
-														activity.update("file: write: ", fileOutUF, " at ", filePos);
-														fileOut.write(chunkBuffer, 0, chunkLen);
-														filePos += chunkLen;
-													} else if(response == AOServDaemonProtocol.NEXT_CHUNK) {
-														// Get the values from the old file (chunk matches)
-														activity.update("file: read: ", chunkingFromUF, " at ", filePos);
-														chunkingFromRaf.seek(filePos);
-														chunkingFromRaf.readFully(chunkBuffer, 0, AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE);
-														activity.update("file: write: ", fileOutUF, " at ", filePos);
-														fileOut.write(chunkBuffer, 0, AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE);
-														filePos += AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE;
-													} else {
-														break;
-													}
-												}
-												if(response==-1) throw new EOFException();
-												else if(response!=AOServDaemonProtocol.DONE) throw new IOException("Unexpected response code: "+response);
-											} finally {
-												activity.update("file: close: ", chunkingFromUF);
-												chunkingFromRaf.close();
-											}
-										} else throw new RuntimeException("Unexpected value for result: "+result);
-										newFileComplete = true;
-									} finally {
-										activity.update("file: close: ", fileOutUF);
-										fileOut.close();
-
-										// If the new file is incomplete for any reason (presumably due to an exception)
-										// and we are doing a backup to a temporary file, move the temp file over the old file
-										// if it is longer
-										if(
-											!newFileComplete
-											&& retention!=1
-											&& tempUF!=null
-										) {
-											activity.update("file: stat: ", uf);
-											Stat ufStat = uf.getStat();
-											if(!ufStat.exists()) {
-												// If it doesn't exist, can't compare file sizes, just rename
-												if(isFine) logger.fine("Renaming partial temp file to final filename because final filename doesn't exist: "+uf.getPath());
-												renameToNoExists(activity, tempUF, uf);
-												// This should only happen during exceptions, so no need to keep directory caches synchronized
-											} else {
-												long ufSize = ufStat.getSize();
-												activity.update("file: stat: ", tempUF);
-												long tempUFSize = tempUF.getStat().getSize();
-												if(tempUFSize > ufSize) {
-													if(isFine) logger.fine("Renaming partial temp file to final filename because temp file is longer than the final file: "+uf.getPath());
-													activity.update("file: rename: ", tempUF, " to ", uf);
-													tempUF.renameTo(uf);
-													// This should only happen during exceptions, so no need to keep directory caches synchronized
-												}
-											}
-										}
-									}
-									activity.update("file: utime: ", fileOutUF);
-									fileOutUF.utime(fileOutUF.getStat().getAccessTime(), modifyTimes[c]);
-									activity.update("file: stat: ", uf);
-									Stat ufStat = uf.getStat();
-									if(tempUF!=null) {
-										if(ufStat.exists()) {
-											if(ufStat.isRegularFile()) {
-												if(isLogDirs[c]) {
+											if(oldLogUF != null) {
+												if(ufStat.exists()) {
+													assert ufStat.isRegularFile() : "All non-regular files should have been deleted";
 													// Move to a new temp filename for later reuse
-													UnixFile tempUFLog = mktemp(activity, uf);
+													UnixFile tempUF = mktemp(activity, uf);
 													// Update filesystem
-													if(retention==1) {
+													if(retention == 1) {
 														// Failover mode does a more cautious link to temp and rename over to avoid
 														// any moment where there is no file in the path of uf
-														activity.update("file: delete: ", tempUFLog);
-														tempUFLog.delete();
-														activity.update("file: link: ", tempUFLog, " to ", uf);
-														tempUFLog.link(uf);
-														activity.update("file: rename: ", tempUF, " to ", uf);
-														tempUF.renameTo(uf);
-														activity.update("file: stat: ", uf);
-														ufStat = uf.getStat();
+														delete(activity, tempUF);
+														link(activity, tempUF, uf);
+														UnixFile tempUF2 = mktemp(activity, uf);
+														delete(activity, tempUF2);
+														link(activity, tempUF2, oldLogUF);
+														rename(activity, tempUF2, uf);
 													} else {
 														// Backup mode uses a more efficient approach because partial states are OK
-														activity.update("file: rename: ", uf, " to ", tempUFLog);
-														uf.renameTo(tempUFLog);
-														activity.update("file: rename: ", tempUF, " to ", uf);
-														tempUF.renameTo(uf);
-														activity.update("file: stat: ", uf);
-														ufStat = uf.getStat();
+														rename(activity, uf, tempUF);
+														link(activity, uf, oldLogUF);
 													}
-													// Update cache (cache update counted as removeByValue and then add because cache renaming method expects renameTo to not exist
-													long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-													renamed(modifyTimeAndSizeCaches, uf, tempUFLog, ufParent);
-													if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
+													// Update cache
+													renamed(modifyTimeAndSizeCaches, uf, tempUF, ufParent);
+													added(activity, modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
 												} else {
-													// Not a log directory, just replace old regular file
-													// Update cache (cache update counted as removeByValue and then add because cache renaming method expects renameTo to not exist
-													long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-													removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
-													if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
 													// Update filesystem
-													activity.update("file: rename: ", tempUF, " to ", uf);
-													tempUF.renameTo(uf);
-													activity.update("file: stat: ", uf);
-													ufStat = uf.getStat();
+													link(activity, uf, oldLogUF);
+													// Update cache
+													added(activity, modifyTimeAndSizeCaches, uf, ufParent, modifyTimeAndSize);
 												}
-											} else {
-												// Update cache
-												long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-												removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
-												if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
-												// Update filesystem
-												activity.update("file: deleteRecursive: ", uf);
-												uf.deleteRecursive();
-												activity.update("file: rename: ", tempUF, " to ", uf);
-												tempUF.renameTo(uf);
-												activity.update("file: stat: ", uf);
-												ufStat = uf.getStat();
+												ufStat = stat(activity, uf);
+												result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
+												updated(retention, postPassChecklist, relativePath);
+												linkedOldLogFile = true;
 											}
-										} else {
-											activity.update("file: rename: ", tempUF, " to ", uf);
-											tempUF.renameTo(uf);
-											activity.update("file: stat: ", uf);
-											ufStat = uf.getStat();
 										}
-									}
-									// Update cache (cache update counted as removeByValue and then add because cache renaming method expects renameTo to not exist
-									long startNanos = USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING ? System.nanoTime() : 0;
-									added(activity, modifyTimeAndSizeCaches, uf, ufParent, new ModifyTimeAndSize(ufStat.getModifyTime(), ufStat.getSize()));
-									if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) totalNewLogDirNanos += System.nanoTime() - startNanos;
-								}
-							}
-						}
+										if(!linkedOldLogFile) {
+											boolean chunkingFile = false;
+											if(
+												useCompression
+												// File is not so large that chunking can't possibly store md5's in the arrays (larger than 2 ^ (31 + 20) = 2 Pebibytes currently)
+												&& (
+													length
+													< (((long)Integer.MAX_VALUE) << AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE_BITS)
+												)
+											) {
+												// Next we will try chunking.  For chunking, we will start by determining what we are chunking from.
+												UnixFile chunkingFrom;
+												Stat chunkingFromStat;
+												if(isRecycling) {
+													// When recycling, try linkToUF then uf
+													if(
+														linkToUFStat != null
+														&& linkToUFStat.exists()
+														&& linkToUFStat.isRegularFile()
+													) {
+														chunkingFrom = linkToUF;
+														chunkingFromStat = linkToUFStat;
+													} else if(
+														ufStat.exists()
+													) {
+														assert ufStat.isRegularFile() : "All non-regular files should have been deleted";
+														chunkingFrom = uf;
+														chunkingFromStat = ufStat;
+													} else {
+														chunkingFrom = null;
+														chunkingFromStat = null;
+													}
+												} else {
+													// When not recycling, try uf then linkToUF
+													if(
+														ufStat.exists()
+													) {
+														assert ufStat.isRegularFile() : "All non-regular files should have been deleted";
+														chunkingFrom = uf;
+														chunkingFromStat = ufStat;
+													} else if(
+														linkToUFStat != null
+														&& linkToUFStat.exists()
+														&& linkToUFStat.isRegularFile()
+													) {
+														chunkingFrom = linkToUF;
+														chunkingFromStat = linkToUFStat;
+													} else {
+														chunkingFrom = null;
+														chunkingFromStat = null;
+													}
+												}
+												if(chunkingFrom != null) {
+													assert chunkingFromStat != null;
+													assert md5 != null;
+													// Now we figure out what we are chunking to.
+													if(
+														ufStat.exists()
+														|| retention == 1
+														|| (!isRecycling && linkToUF != null)
+													) {
+														// When uf exists, chunk to a temp file
+														UnixFile tempUF = mktemp(activity, uf);
+														tempNewFiles[c] = tempUF;
+														if(isTrace) logger.finer("Using temp file (chunked): "+tempUF.getPath());
+														// modifyTimeAndSizeCaches is not updated here, it will be updated below when the data is received
+													} else {
+														// Chunk in-place
+														if(!ufStat.exists()) {
+															touch(activity, uf);
+															ufStat = stat(activity, uf);
+															// modifyTimeAndSizeCaches is not updated here, it will be updated below when the data is received
+														}
+													}
 
-						// For any directories that were completed during this batch, removeByValue caches, clean extra files and set its modify time
-						for(int c=0; c<directoryFinalizeUFs.size(); c++) {
-							UnixFile dirUF = directoryFinalizeUFs.get(c);
-							UnixFile dirLinkToUF = directoryFinalizeLinkToUFs==null ? null : directoryFinalizeLinkToUFs.get(c);
-							String relativePath = directoryFinalizeUFRelativePaths.get(c);
-							long dirModifyTime = directoryFinalizeModifyTimes.get(c);
-							Set<String> dirContents = directoryFinalizeContents.get(c);
-							// Remove from the caches since we are done with the directory entirely for this pass
-							if(!modifyTimeAndSizeCaches.isEmpty()) modifyTimeAndSizeCaches.remove(dirUF);
-							if(dirLinkToUF!=null && !modifyTimeAndSizeCaches.isEmpty()) modifyTimeAndSizeCaches.remove(dirLinkToUF);
-							// Remove extra files
-							String dirPath = dirUF.getPath();
-							if(!dirPath.endsWith("/")) dirPath += '/';
-							activity.update("file: list: ", dirUF);
-							String[] list = dirUF.list();
-							if(list != null) {
-								for(int d=0;d<list.length;d++) {
-									String filename = list[d];
-									String fullpath = dirPath + filename;
-									if(!dirContents.contains(fullpath)) {
-										if(deleteOnCleanup(fromServer, retention, relativePath+'/'+filename, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
-											if(isTrace) logger.finer("Deleting extra file: "+fullpath);
-											try {
-												UnixFile deleteMe = new UnixFile(fullpath);
-												activity.update("file: deleteRecursive: ", deleteMe);
-												deleteMe.deleteRecursive();
-											} catch(FileNotFoundException err) {
-												logger.log(Level.SEVERE, "fullpath="+fullpath, err);
+													// Build the list of MD5 hashes per chunk
+													final long chunkingSize = Math.min(length, chunkingFromStat.getSize());
+													final int numChunks;
+													{
+														long numChunksL = chunkingSize >> AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE_BITS;
+														if((chunkingSize & (AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE-1)) != 0) numChunksL++;
+														numChunks = SafeMath.castInt(numChunksL);
+													}
+													final long[] md5His = new long[numChunks];
+													final long[] md5Los = new long[numChunks];
+													// Generate the MD5 hashes for the current file
+													final InputStream fileIn = openIn(activity, chunkingFrom);
+													try {
+														long filePos = 0;
+														for(int chunkIndex = 0; chunkIndex < numChunks; chunkIndex++) {
+															int chunkSize;
+															if(chunkIndex < (numChunks - 1)) {
+																// All except last chunk are full sized
+																chunkSize = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE;
+															} else {
+																assert chunkIndex == (numChunks - 1);
+																// Last chunk may be partial
+																chunkSize = SafeMath.castInt(chunkingSize - filePos);
+																assert chunkSize > 0 && chunkSize <= AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE;
+															}
+															// Read chunk fully
+															activity.update("file: md5: ", chunkingFrom, " at ", filePos);
+															int pos = 0;
+															while(pos < chunkSize) {
+																int ret = fileIn.read(chunkBuffer, pos, chunkSize - pos);
+																if(ret == -1) throw new EOFException("End of file while reading chunkingFrom: " + chunkingFrom);
+																filePos += ret;
+																pos += ret;
+															}
+															md5.Init();
+															md5.Update(chunkBuffer, 0, chunkSize);
+															byte[] md5Bytes = md5.Final();
+															md5His[chunkIndex] = MD5.getMD5Hi(md5Bytes);
+															md5Los[chunkIndex] = MD5.getMD5Lo(md5Bytes);
+														}
+														assert filePos == chunkingSize : "Expected chunking must have been read fully";
+													} finally {
+														close(activity, chunkingFrom, fileIn);
+													}
+													chunkingFroms[c] = chunkingFrom;
+													chunkingSizes[c] = chunkingSize;
+													chunksMD5His[c] = md5His;
+													chunksMD5Los[c] = md5Los;
+													chunkingFile = true;
+													result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA_CHUNKED;
+													updated(retention, postPassChecklist, relativePath);
+												}
+											}
+											if(!chunkingFile) {
+												result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA;
+												updated(retention, postPassChecklist, relativePath);
+												// If the file doesn't exist, will download in-place
+												if(!ufStat.exists()) {
+													touch(activity, uf);
+													ufStat = stat(activity, uf);
+												} else {
+													// Build new temp file
+													UnixFile tempUF = mktemp(activity, uf);
+													tempNewFiles[c] = tempUF;
+													if(isTrace) logger.finer("Using temp file (not chunked): "+tempUF.getPath());
+													// modifyTimeAndSizeCaches is not updated here, it will be updated below when the data is received
+												}
 											}
 										}
 									}
 								}
+							} else if(UnixFile.isSymLink(mode)) {
+								if(
+									ufStat.exists()
+									&& (
+										!ufStat.isSymLink()
+										|| !readLink(activity, uf).equals(symlinkTarget)
+									)
+								) {
+									if(isTrace) logger.finer("Deleting to create sybolic link: "+uf.getPath());
+									// Update cache
+									removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+									// Update filesystem
+									deleteRecursive(activity, uf);
+									ufStat = Stat.NOT_EXISTS;
+								}
+								if(!ufStat.exists()) {
+									activity.update("file: symLink: ", uf, " to ", symlinkTarget);
+									uf.symLink(symlinkTarget);
+									ufStat = stat(activity, uf);
+									if(linkToUFStat != null) {
+										// Only modified if not in last backup set, too
+										if(
+											!linkToUFStat.exists()
+											|| !linkToUFStat.isSymLink()
+											|| !readLink(activity, linkToUF).equals(symlinkTarget)
+										) {
+											result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
+											updated(retention, postPassChecklist, relativePath);
+										}
+									} else {
+										result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
+										updated(retention, postPassChecklist, relativePath);
+									}
+								}
+							} else throw new IOException("Unknown mode type: "+Long.toOctalString(mode&UnixFile.TYPE_MASK));
+
+							// Update the permissions (mode)
+							UnixFile effectiveUF;
+							Stat effectiveUFStat;
+							if(tempNewFiles[c] == null) {
+								effectiveUF = uf;
+								effectiveUFStat = ufStat;
+							} else {
+								effectiveUF = tempNewFiles[c];
+								effectiveUFStat = stat(activity, effectiveUF);
 							}
-							// Set the modified time
-							activity.update("file: stat: ", dirUF);
-							Stat dirStat = dirUF.getStat();
-							if(dirStat.getModifyTime()!=dirModifyTime) {
-								activity.update("file: utime: ", dirUF);
-								dirUF.utime(dirStat.getAccessTime(), dirModifyTime);
+							if(
+								!UnixFile.isSymLink(mode)
+								&& (
+									(effectiveUFStat.getRawMode() & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
+									!= (mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
+								)
+							) {
+								//try {
+									if(retention!=1) copyIfHardLinked(activity, effectiveUF, effectiveUFStat);
+									activity.update("file: setMode: ", effectiveUF);
+									effectiveUF.setMode(mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK));
+									effectiveUFStat = stat(activity, effectiveUF);
+								//} catch(FileNotFoundException err) {
+									//logger.log(Level.WARNING, "path="+path+", mode="+Long.toOctalString(mode), err);
+								//}
+								if(result == AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_NO_CHANGE) {
+									// Only modified if wrong permission in last backup set, too
+									if(
+										linkToUFStat == null
+										|| !linkToUFStat.exists()
+										|| (
+											(linkToUFStat.getRawMode() & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
+											!= (mode & (UnixFile.TYPE_MASK|UnixFile.PERMISSION_MASK))
+										)
+									) {
+										result = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
+										updated(retention, postPassChecklist, relativePath);
+									}
+								}
+							}
+
+							// Update the ownership
+							if(
+								effectiveUFStat.getUid() != uid
+								// TODO: Store GID in xattr (if not 0)
+								|| effectiveUFStat.getGid() != (quota_gid==-1 ? gid : quota_gid)
+							) {
+								if(retention!=1) copyIfHardLinked(activity, effectiveUF, effectiveUFStat);
+								// TODO: Store GID in xattr (if not 0)
+								activity.update("file: chown: ", effectiveUF);
+								effectiveUF.chown(uid, (quota_gid==-1 ? gid : quota_gid));
+								effectiveUFStat = stat(activity, effectiveUF);
+								if(result == AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_NO_CHANGE) {
+									// Only modified if not in last backup set, too
+									if(
+										linkToUFStat == null
+										|| !linkToUFStat.exists()
+										|| linkToUFStat.getUid() != uid
+										// TODO: Store GID in xattr
+										|| linkToUFStat.getGid() != (quota_gid==-1 ? gid : quota_gid)
+									) {
+										result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
+										updated(retention, postPassChecklist, relativePath);
+									}
+								}
+							}
+
+							// Update the modified time
+							if(
+								!UnixFile.isSymLink(mode)
+								&& !UnixFile.isRegularFile(mode) // Regular files will be re-transferred below when their modified times don't match, so no need to set the modified time here
+								&& !UnixFile.isDirectory(mode) // Directory modification times are set on the way out of the directories
+								&& effectiveUFStat.getModifyTime() != modifyTime
+							) {
+								if(retention != 1) copyIfHardLinked(activity, effectiveUF, effectiveUFStat);
+								activity.update("file: utime: ", effectiveUF);
+								effectiveUF.utime(effectiveUFStat.getAccessTime(), modifyTime);
+								effectiveUFStat = stat(activity, effectiveUF);
+								if(result == AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_NO_CHANGE) {
+									// Only modified if not in last backup set, too
+									if(
+										linkToUFStat == null
+										|| !linkToUFStat.exists()
+										|| linkToUFStat.getModifyTime() != modifyTime
+									) {
+										result=AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED;
+										updated(retention, postPassChecklist, relativePath);
+									}
+								}
+							}
+							results[c]=result;
+						} else {
+							paths[c] = null;
+						}
+					}
+
+					// Write the results
+					activity.update("socket: write: Writing batch results");
+					out.write(AOServDaemonProtocol.NEXT);
+					for(int c = 0; c < batchSize; c++) {
+						if(paths[c] != null) {
+							final Integer batchPosObj = c + 1;
+							int result = results[c];
+							activity.update("socket: write: Writing result ", batchPosObj, " of ", batchSizeObj);
+							out.write(result);
+							if(result == AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA_CHUNKED) {
+								long[] md5His = chunksMD5His[c];
+								long[] md5Los = chunksMD5Los[c];
+								int md5sSize = md5His.length;
+								assert md5Los.length == md5sSize;
+								activity.update("socket: write: Writing chunk md5s ", batchPosObj, " of ", batchSizeObj);
+								out.writeLong(chunkingSizes[c]);
+								for(int d = 0; d < md5sSize; d++) {
+									out.writeLong(md5His[d]);
+									out.writeLong(md5Los[d]);
+								}
 							}
 						}
 					}
 
-					// modifyTimeAndSizeCaches is no longer used after this, this makes sure
-					int modifyTimeAndSizeCachesSize = modifyTimeAndSizeCaches.size();
-					modifyTimeAndSizeCaches = null;
+					// Flush the results
+					out.flush();
 
-					// Clean all remaining directories all the way to /, setting modifyTime on the directories
-					while(!directoryUFs.isEmpty()) {
-						UnixFile dirUF = directoryUFs.peek();
+					// Store incoming data
+					for(int c = 0; c < batchSize; c++) {
+						String path = paths[c];
+						if(path != null) {
+							int result = results[c];
+							if(
+								result == AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA
+								|| result == AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA_CHUNKED
+							) {
+								// tempNewFiles[c] is only possibly set for the data transfer results
+								UnixFile tempUF = tempNewFiles[c];
+								UnixFile uf = new UnixFile(path);
+								UnixFile ufParent = uf.getParent();
+
+								// Load into the temporary file or directly to the file (based on above calculations)
+								UnixFile fileOutUF = tempUF == null ? uf : tempUF;
+								OutputStream fileOut = openOut(activity, fileOutUF);
+								boolean newFileComplete = false;
+								try {
+									long filePos = 0;
+									if(result == AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA) {
+										// Only the last chunk may be partial
+										int lastChunkSize = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE;
+										int response;
+										while(true) {
+											activity.update("socket: read: ", uf, " at ", filePos);
+											response = in.read();
+											if(response != AOServDaemonProtocol.NEXT) {
+												break;
+											}
+											if(lastChunkSize < AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE) {
+												throw new IOException("Only the last chunk may be partial");
+											}
+											int blockLen = in.readCompressedInt();
+											if(blockLen <= 0 || blockLen > AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE) {
+												throw new IOException("Invalid block length: " + blockLen);
+											}
+											in.readFully(chunkBuffer, 0, blockLen);
+											activity.update("file: write: ", fileOutUF, " at ", filePos);
+											fileOut.write(chunkBuffer, 0, blockLen);
+											filePos += blockLen;
+											lastChunkSize = blockLen;
+										}
+										if(response == -1) throw new EOFException();
+										else if(response != AOServDaemonProtocol.DONE) throw new IOException("Unexpected response code: "+response);
+									} else if(result == AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_MODIFIED_REQUEST_DATA_CHUNKED) {
+										if(!useCompression) throw new IOException("Not using compression, chunked transfer not supported");
+										assert chunkingFroms != null;
+										UnixFile chunkingFromUF = chunkingFroms[c];
+										long chunkingSize = chunkingSizes[c];
+										RandomAccessFile chunkingFromRaf = openInRaf(activity, chunkingFromUF);
+										try {
+											int partialChunkPos = 0;
+											int response;
+											while(true) {
+												activity.update("socket: read: chunk result of ", uf, " at ", filePos);
+												response = in.read();
+												if(response == AOServDaemonProtocol.NEXT) {
+													activity.update("socket: read: ", uf, " at ", filePos);
+													int chunkLen = in.readCompressedInt();
+													if(chunkLen < 0 || (partialChunkPos + chunkLen) > AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE) {
+														throw new IOException("Invalid chunk length: " + chunkLen);
+													}
+													in.readFully(chunkBuffer, partialChunkPos, chunkLen);
+													partialChunkPos += chunkLen;
+													if(partialChunkPos == AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE) {
+														// Full chunk to write
+														activity.update("file: write: ", fileOutUF, " at ", filePos);
+														fileOut.write(chunkBuffer, 0, AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE);
+														filePos += AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE;
+														partialChunkPos = 0;
+													}
+												} else if(response == AOServDaemonProtocol.NEXT_CHUNK) {
+													if(partialChunkPos != 0) throw new IOException("Chunk matched after partial chunk");
+													// Get the values from the old file (chunk matches)
+													{
+														long chunkSizeL = chunkingSize - filePos;
+														if(chunkSizeL < 0) throw new IOException("Client sent chunk beyond end of server chunks");
+														if(chunkSizeL >= AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE) {
+															partialChunkPos = AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE;
+														} else {
+															partialChunkPos = (int)chunkSizeL;
+														}
+													}
+													activity.update("file: read: ", chunkingFromUF, " at ", filePos);
+													chunkingFromRaf.seek(filePos);
+													chunkingFromRaf.readFully(chunkBuffer, 0, partialChunkPos);
+													if(partialChunkPos == AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE) {
+														// Full chunk to write
+														activity.update("file: write: ", fileOutUF, " at ", filePos);
+														fileOut.write(chunkBuffer, 0, AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE);
+														filePos += AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_CHUNK_SIZE;
+														partialChunkPos = 0;
+													}
+												} else {
+													break;
+												}
+											}
+											// Write any incomplete partial chunk data
+											if(partialChunkPos != 0) {
+												activity.update("file: write: ", fileOutUF, " at ", filePos);
+												fileOut.write(chunkBuffer, 0, partialChunkPos);
+												filePos += partialChunkPos;
+												partialChunkPos = 0;
+											}
+											if(response == -1) throw new EOFException();
+											else if(response != AOServDaemonProtocol.DONE) throw new IOException("Unexpected response code: "+response);
+										} finally {
+											close(activity, chunkingFromUF, chunkingFromRaf);
+										}
+									} else {
+										throw new RuntimeException("Unexpected value for result: "+result);
+									}
+									newFileComplete = true;
+								} finally {
+									close(activity, fileOutUF, fileOut);
+
+									// If the new file is incomplete for any reason (presumably due to an exception)
+									// and we are doing a backup to a temporary file, move the temp file over the old file
+									// if it is longer
+									if(
+										!newFileComplete
+										&& retention != 1
+										&& tempUF != null
+									) {
+										Stat ufStat = stat(activity, uf);
+										if(!ufStat.exists()) {
+											// If it doesn't exist, can't compare file sizes, just rename
+											if(isFine) logger.fine("Renaming partial temp file to final filename because final filename doesn't exist: "+uf.getPath());
+											renameToNoExists(logger, activity, tempUF, uf);
+											// This should only happen during exceptions, so no need to keep directory caches synchronized
+										} else {
+											long ufSize = ufStat.getSize();
+											long tempUFSize = stat(activity, tempUF).getSize();
+											if(tempUFSize > ufSize) {
+												if(isFine) logger.fine("Renaming partial temp file to final filename because temp file is longer than the final file: "+uf.getPath());
+												rename(activity, tempUF, uf);
+												// This should only happen during exceptions, so no need to keep directory caches synchronized
+											}
+										}
+									}
+								}
+								activity.update("file: utime: ", fileOutUF);
+								fileOutUF.utime(stat(activity, fileOutUF).getAccessTime(), modifyTimes[c]);
+								Stat ufStat = stat(activity, uf);
+								if(tempUF != null) {
+									if(ufStat.exists()) {
+										if(ufStat.isRegularFile()) {
+											if(isLogDirs[c]) {
+												// Move to a new temp filename for later reuse
+												UnixFile tempUFLog = mktemp(activity, uf);
+												// Update filesystem
+												if(retention==1) {
+													// Failover mode does a more cautious link to temp and rename over to avoid
+													// any moment where there is no file in the path of uf
+													delete(activity, tempUFLog);
+													link(activity, tempUFLog, uf);
+													rename(activity, tempUF, uf);
+													ufStat = stat(activity, uf);
+												} else {
+													// Backup mode uses a more efficient approach because partial states are OK
+													rename(activity, uf, tempUFLog);
+													rename(activity, tempUF, uf);
+													ufStat = stat(activity, uf);
+												}
+												// Update cache (cache update counted as removeByValue and then add because cache renaming method expects renameTo to not exist
+												renamed(modifyTimeAndSizeCaches, uf, tempUFLog, ufParent);
+											} else {
+												// Not a log directory, just replace old regular file
+												// Update cache (cache update counted as removeByValue and then add because cache renaming method expects renameTo to not exist
+												removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+												// Update filesystem
+												rename(activity, tempUF, uf);
+												ufStat = stat(activity, uf);
+											}
+										} else {
+											// Update cache
+											removing(modifyTimeAndSizeCaches, uf, ufStat, ufParent);
+											// Update filesystem
+											deleteRecursive(activity, uf);
+											rename(activity, tempUF, uf);
+											ufStat = stat(activity, uf);
+										}
+									} else {
+										rename(activity, tempUF, uf);
+										ufStat = stat(activity, uf);
+									}
+								}
+								// Update cache (cache update counted as removeByValue and then add because cache renaming method expects renameTo to not exist
+								added(activity, modifyTimeAndSizeCaches, uf, ufParent, new ModifyTimeAndSize(ufStat.getModifyTime(), ufStat.getSize()));
+							}
+						}
+					}
+
+					// For any directories that were completed during this batch, removeByValue caches, clean extra files and set its modify time
+					for(int c=0; c<directoryFinalizeUFs.size(); c++) {
+						UnixFile dirUF = directoryFinalizeUFs.get(c);
+						UnixFile dirLinkToUF = directoryFinalizeLinkToUFs==null ? null : directoryFinalizeLinkToUFs.get(c);
+						String relativePath = directoryFinalizeUFRelativePaths.get(c);
+						long dirModifyTime = directoryFinalizeModifyTimes.get(c);
+						Set<String> dirContents = directoryFinalizeContents.get(c);
+						// Remove from the caches since we are done with the directory entirely for this pass
+						if(!modifyTimeAndSizeCaches.isEmpty()) modifyTimeAndSizeCaches.remove(dirUF);
+						if(dirLinkToUF!=null && !modifyTimeAndSizeCaches.isEmpty()) modifyTimeAndSizeCaches.remove(dirLinkToUF);
+						// Remove extra files
 						String dirPath = dirUF.getPath();
-						if(!dirPath.endsWith("/")) dirPath=dirPath+'/';
-
-						// Otherwise, clean and complete the directory
-						directoryUFs.pop();
-						if(directoryLinkToUFs!=null) directoryLinkToUFs.pop(); // Just to keep the stacks uniform between them
-						String relativePath = directoryUFRelativePaths.pop();
-						long dirModifyTime=directoryModifyTimes.pop().longValue();
-						Set<String> dirContents=directoryContents.pop();
-						activity.update("file: list: ", dirUF);
-						String[] list = dirUF.list();
+						if(!dirPath.endsWith("/")) dirPath += '/';
+						String[] list = list(activity, dirUF);
 						if(list != null) {
-							for(int c=0;c<list.length;c++) {
-								String filename = list[c];
+							for(int d=0;d<list.length;d++) {
+								String filename = list[d];
 								String fullpath = dirPath + filename;
 								if(!dirContents.contains(fullpath)) {
 									if(deleteOnCleanup(fromServer, retention, relativePath+'/'+filename, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
-										if(isTrace) logger.finer("Deleting final clean-up: "+fullpath);
+										if(isTrace) logger.finer("Deleting extra file: "+fullpath);
 										try {
 											UnixFile deleteMe = new UnixFile(fullpath);
-											activity.update("file: deleteRecursive: ", deleteMe);
-											deleteMe.deleteRecursive();
+											deleteRecursive(activity, deleteMe);
 										} catch(FileNotFoundException err) {
 											logger.log(Level.SEVERE, "fullpath="+fullpath, err);
 										}
@@ -2091,37 +1917,74 @@ final public class FailoverFileReplicationManager {
 								}
 							}
 						}
-						activity.update("file: stat: ", dirUF);
-						Stat dirStat = dirUF.getStat();
-						if(dirStat.getModifyTime()!=dirModifyTime) {
+						// Set the modified time
+						Stat dirStat = stat(activity, dirUF);
+						if(dirStat.getModifyTime() != dirModifyTime) {
 							activity.update("file: utime: ", dirUF);
 							dirUF.utime(dirStat.getAccessTime(), dirModifyTime);
 						}
 					}
-
-					// Log the final timings
-					if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING && isInfo) {
-						logger.info("modifyTimeAndSizeCachesSize="+modifyTimeAndSizeCachesSize);
-						logger.info("totalNewLogDirNanos="+totalNewLogDirNanos+" (successful pass completed)");
-						logger.info("totalOldLogDirNanos="+totalOldLogDirNanos+" (successful pass completed)");
-					}
-
-					if(retention!=1) {
-						// The pass was successful, now rename partial to final
-						String from = isRecycling ? recycledPartialMirrorRoot : partialMirrorRoot;
-						renameToNoExists(activity, new UnixFile(from), new UnixFile(finalMirrorRoot));
-
-						// The pass was successful, now cleanup old directories based on retention settings
-						cleanAndRecycleBackups(activity, retention, serverRootUF, fromServerYear, fromServerMonth, fromServerDay);
-					}
-
-					// Tell the client we are done OK
-					activity.update("socket: write: AOServDaemonProtocol.DONE");
-					out.write(AOServDaemonProtocol.DONE);
-					out.flush();
-				} finally {
-					BufferManager.release(buff, false);
 				}
+
+				// modifyTimeAndSizeCaches is no longer used after this, this makes sure
+				int modifyTimeAndSizeCachesSize = modifyTimeAndSizeCaches.size();
+				modifyTimeAndSizeCaches = null;
+
+				// Clean all remaining directories all the way to /, setting modifyTime on the directories
+				while(!directoryUFs.isEmpty()) {
+					UnixFile dirUF = directoryUFs.peek();
+					String dirPath = dirUF.getPath();
+					if(!dirPath.endsWith("/")) dirPath += '/';
+
+					// Otherwise, clean and complete the directory
+					directoryUFs.pop();
+					if(directoryLinkToUFs!=null) directoryLinkToUFs.pop(); // Just to keep the stacks uniform between them
+					String relativePath = directoryUFRelativePaths.pop();
+					long dirModifyTime=directoryModifyTimes.pop();
+					Set<String> dirContents=directoryContents.pop();
+					String[] list = list(activity, dirUF);
+					if(list != null) {
+						for(int c=0;c<list.length;c++) {
+							String filename = list[c];
+							String fullpath = dirPath + filename;
+							if(!dirContents.contains(fullpath)) {
+								if(deleteOnCleanup(fromServer, retention, relativePath+'/'+filename, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
+									if(isTrace) logger.finer("Deleting final clean-up: "+fullpath);
+									try {
+										UnixFile deleteMe = new UnixFile(fullpath);
+										deleteRecursive(activity, deleteMe);
+									} catch(FileNotFoundException err) {
+										logger.log(Level.SEVERE, "fullpath="+fullpath, err);
+									}
+								}
+							}
+						}
+					}
+					Stat dirStat = stat(activity, dirUF);
+					if(dirStat.getModifyTime() != dirModifyTime) {
+						activity.update("file: utime: ", dirUF);
+						dirUF.utime(dirStat.getAccessTime(), dirModifyTime);
+					}
+				}
+
+				// Log the final stats
+				if(isInfo) {
+					logger.info("modifyTimeAndSizeCachesSize="+modifyTimeAndSizeCachesSize);
+				}
+
+				if(retention!=1) {
+					// The pass was successful, now rename partial to final
+					String from = isRecycling ? recycledPartialMirrorRoot : partialMirrorRoot;
+					renameToNoExists(logger, activity, new UnixFile(from), new UnixFile(finalMirrorRoot));
+
+					// The pass was successful, now cleanup old directories based on retention settings
+					cleanAndRecycleBackups(activity, retention, perDateRoot, fromServerYear, fromServerMonth, fromServerDay);
+				}
+
+				// Tell the client we are done OK
+				activity.update("socket: write: AOServDaemonProtocol.DONE");
+				out.write(AOServDaemonProtocol.DONE);
+				out.flush();
 			} catch(RuntimeException err) {
 				activity.update("socket: close");
 				socket.close();
@@ -2193,12 +2056,6 @@ final public class FailoverFileReplicationManager {
 	 * Called after a file is added, to keep the cache in sync.
 	 */
 	private static void added(Activity activity, Map<UnixFile,ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, UnixFile uf, UnixFile ufParent, ModifyTimeAndSize ufModifyTimeAndSize) throws IOException {
-		if(USE_OLD_AND_NEW_LOG_DIRECTORY_LINKING) {
-			activity.update("file: stat: ", uf);
-			Stat ufStat = uf.getStat();
-			if(ufStat.getModifyTime()!=ufModifyTimeAndSize.modifyTime) throw new AssertionError("uf.getStat().getModifyTime()!=ufModifyTimeAndSize.modifyTime");
-			if(ufStat.getSize()!=ufModifyTimeAndSize.size) throw new AssertionError("uf.getStat().getSize()!=ufModifyTimeAndSize.size");
-		}
 		if(!modifyTimeAndSizeCaches.isEmpty()) {
 			ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.get(ufParent);
 			if(modifyTimeAndSizeCache!=null) {
@@ -2267,14 +2124,12 @@ final public class FailoverFileReplicationManager {
 		ModifyTimeAndSizeCache(Activity activity, UnixFile directory) throws IOException {
 			this.directory = directory;
 			// Read all files in the directory to populate the caches
-			activity.update("file: list: ", directory);
-			String[] list = directory.list();
-			if(list!=null) {
-				for(int d=0, len=list.length;d<len;d++) {
+			String[] list = list(activity, directory);
+			if(list != null) {
+				for(int d = 0, len = list.length; d < len; d++) {
 					String filename = list[d];
 					UnixFile file = new UnixFile(directory, filename, false);
-					activity.update("file: stat: ", file);
-					Stat stat = file.getStat();
+					Stat stat = stat(activity, file);
 					if(
 						stat.exists()
 						&& stat.isRegularFile()
@@ -2450,9 +2305,8 @@ final public class FailoverFileReplicationManager {
 			long fromServerDate = cal.getTimeInMillis();
 			Map<Integer,List<String>> directoriesByAge;
 			{
-				activity.update("file: list: ", serverRootUF);
-				String[] list = serverRootUF.list();
-				directoriesByAge = new HashMap<>(list.length*4/3 + 1);
+				String[] list = list(activity, serverRootUF);
+				directoriesByAge = new HashMap<>(list==null ? 0 : (list.length*4/3 + 1));
 				if(list != null) {
 					for(String filename : list) {
 						if(!filename.endsWith(SAFE_DELETE_EXTENSION) && !filename.endsWith(RECYCLED_EXTENSION)) {
@@ -2626,13 +2480,13 @@ final public class FailoverFileReplicationManager {
 					// 1) Flag all those that were completed as recycled
 					final UnixFile currentUF = new UnixFile(serverRootUF, directory, false);
 					final UnixFile newUF = new UnixFile(serverRootUF, directory+RECYCLED_EXTENSION, false);
-					renameToNoExists(activity, currentUF, newUF);
+					renameToNoExists(logger, activity, currentUF, newUF);
 				} else {
 					// 2) Flag all those that where not completed directly as .deleted, schedule for delete
 					if(!directory.endsWith(SAFE_DELETE_EXTENSION)) {
 						final UnixFile currentUF = new UnixFile(serverRootUF, directory, false);
 						final UnixFile newUF = new UnixFile(serverRootUF, directory+SAFE_DELETE_EXTENSION, false);
-						renameToNoExists(activity, currentUF, newUF);
+						renameToNoExists(logger, activity, currentUF, newUF);
 					}
 				}
 			}
@@ -2641,9 +2495,8 @@ final public class FailoverFileReplicationManager {
 			// 4) Rename older .recycled directories to .deleted
 			{
 				final int numRecycle = getNumberRecycleDirectories(retention);
-				activity.update("file: list: ", serverRootUF);
-				String[] list = serverRootUF.list();
-				if(list!=null && list.length>0) {
+				String[] list = list(activity, serverRootUF);
+				if(list != null && list.length > 0) {
 					Arrays.sort(list);
 					int recycledFoundCount = 0;
 					for(int c=list.length-1;c>=0;c--) {
@@ -2656,7 +2509,7 @@ final public class FailoverFileReplicationManager {
 								String newFilename = directory.substring(0, directory.length()-RECYCLED_EXTENSION.length())+SAFE_DELETE_EXTENSION;
 								final UnixFile currentUF = new UnixFile(serverRootUF, directory, false);
 								final UnixFile newUF = new UnixFile(serverRootUF, newFilename, false);
-								renameToNoExists(activity, currentUF, newUF);
+								renameToNoExists(logger, activity, currentUF, newUF);
 							}
 						}
 					}
@@ -2665,9 +2518,8 @@ final public class FailoverFileReplicationManager {
 
 			// 5) Delete all those that end in .deleted, from oldest to newest
 			if(!SAFE_DELETE) {
-				activity.update("file: list: ", serverRootUF);
-				String[] list = serverRootUF.list();
-				if(list!=null && list.length>0) {
+				String[] list = list(activity, serverRootUF);
+				if(list != null && list.length > 0) {
 					Arrays.sort(list);
 					final List<File> directories = new ArrayList<>(list.length);
 					for(int c=0;c<list.length;c++) {
@@ -2781,8 +2633,7 @@ final public class FailoverFileReplicationManager {
 			temp.setMode(ufStat.getMode());
 			long atime = ufStat.getAccessTime();
 			long mtime = ufStat.getModifyTime();
-			activity.update("file: rename: ", temp, " to ", uf);
-			temp.renameTo(uf);
+			rename(activity, temp, uf);
 			activity.update("file: utime: ", uf);
 			uf.utime(atime, mtime);
 			return true;
