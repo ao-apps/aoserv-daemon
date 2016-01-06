@@ -78,6 +78,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 					AOConnectionPool pool=PostgresServerManager.getPool(ps);
 					Connection conn=pool.getConnection(false);
 					try {
+						conn.setAutoCommit(true);
 						// Get the list of all existing databases
 						List<String> existing=new SortedArrayList<>();
 						try (Statement stmt = conn.createStatement()) {
@@ -99,13 +100,13 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 										|| version.startsWith(PostgresVersion.VERSION_8_3+'R')
 									) {
 										stmt.executeUpdate("create database "+name+" with owner="+datdba.getPostgresUser().getUsername().getUsername()+" encoding='"+database.getPostgresEncoding().getEncoding()+'\'');
-										conn.commit();
+										//conn.commit();
 									} else if(
 										version.startsWith(PostgresVersion.VERSION_9_4+'.')
 										|| version.startsWith(PostgresVersion.VERSION_9_4+'R')
 									) {
 										stmt.executeUpdate("create database "+name+" with owner="+datdba.getPostgresUser().getUsername().getUsername()+" template=template0 encoding='"+database.getPostgresEncoding().getEncoding()+'\'');
-										conn.commit();
+										//conn.commit();
 									} else if(
 										version.startsWith(PostgresVersion.VERSION_7_1+'.')
 										|| version.startsWith(PostgresVersion.VERSION_7_2+'.')
@@ -113,7 +114,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 										// Create the database
 										stmt.executeUpdate("create database "+name+" with encoding='"+database.getPostgresEncoding().getEncoding()+"'");
 										stmt.executeUpdate("update pg_database set datdba=(select usesysid from pg_user where usename='"+datdba.getPostgresUser().getUsername().getUsername()+"') where datname='"+name+"'");
-										conn.commit();
+										//conn.commit();
 									} else throw new SQLException("Unsupported version of PostgreSQL: "+version);
 
 									// Automatically add plpgsql support
@@ -159,7 +160,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 										try {
 											// Drop the new database if not fully configured
 											stmt.executeUpdate("drop database "+name);
-											conn.commit();
+											//conn.commit();
 										} catch(SQLException err2) {
 											LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.SEVERE, null, err2);
 											throw err2;
@@ -181,7 +182,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 									|| dbName.equals(PostgresDatabase.AOWEB)
 								) throw new SQLException("AOServ Daemon will not automatically drop database, please drop manually: "+dbName);
 								stmt.executeUpdate("drop database "+dbName);
-								conn.commit();
+								//conn.commit();
 							}
 						}
 					} finally {
