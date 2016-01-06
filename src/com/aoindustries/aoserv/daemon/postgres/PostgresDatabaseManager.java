@@ -97,10 +97,14 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 										|| version.startsWith(PostgresVersion.VERSION_8_1+'.')
 										|| version.startsWith(PostgresVersion.VERSION_8_3+'.')
 										|| version.startsWith(PostgresVersion.VERSION_8_3+'R')
-										|| version.startsWith(PostgresVersion.VERSION_9_4+'.')
-										|| version.startsWith(PostgresVersion.VERSION_9_4+'R')
 									) {
 										stmt.executeUpdate("create database "+name+" with owner="+datdba.getPostgresUser().getUsername().getUsername()+" encoding='"+database.getPostgresEncoding().getEncoding()+'\'');
+										conn.commit();
+									} else if(
+										version.startsWith(PostgresVersion.VERSION_9_4+'.')
+										|| version.startsWith(PostgresVersion.VERSION_9_4+'R')
+									) {
+										stmt.executeUpdate("create database "+name+" with owner="+datdba.getPostgresUser().getUsername().getUsername()+" template=template0 encoding='"+database.getPostgresEncoding().getEncoding()+'\'');
 										conn.commit();
 									} else if(
 										version.startsWith(PostgresVersion.VERSION_7_1+'.')
