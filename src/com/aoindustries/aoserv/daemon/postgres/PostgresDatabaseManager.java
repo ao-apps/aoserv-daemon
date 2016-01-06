@@ -117,7 +117,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 										//conn.commit();
 									} else throw new SQLException("Unsupported version of PostgreSQL: "+version);
 
-									// Automatically add plpgsql support
+									// createlang
 									try {
 										String createlang;
 										String psql;
@@ -141,7 +141,16 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 										} else {
 											throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 										}
-										AOServDaemon.suexec(LinuxAccount.POSTGRES, createlang+" -p "+port+" plpgsql "+name, 0);
+										// Automatically add plpgsql support for PostgreSQL 7 and 8
+										// PostgreSQL 9 is already installed:
+										//     bash-3.2$ /opt/postgresql-9.4-i686/bin/createlang -p 5461 plpgsql asdfdasf
+										//     createlang: language "plpgsql" is already installed in database "asdfdasf"
+										if(
+											version.startsWith("7.")
+											|| version.startsWith("8.")
+										) {
+											AOServDaemon.suexec(LinuxAccount.POSTGRES, createlang+" -p "+port+" plpgsql "+name, 0);
+										}
 										if(
 											version.startsWith(PostgresVersion.VERSION_7_1+'.')
 											|| version.startsWith(PostgresVersion.VERSION_7_2+'.')
