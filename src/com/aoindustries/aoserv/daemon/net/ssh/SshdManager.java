@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2015 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015, 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -32,186 +32,186 @@ import java.util.logging.Level;
  */
 final public class SshdManager extends BuilderThread {
 
-    private static SshdManager sshdManager;
+	private static SshdManager sshdManager;
 
-    private SshdManager() {
-    }
+	private SshdManager() {
+	}
 
-    /**
-     * Called by NetDeviceManager.doRebuild to ensure consistent state with the IP addresses.
-     */
-    private static final Object rebuildLock=new Object();
+	/**
+	 * Called by NetDeviceManager.doRebuild to ensure consistent state with the IP addresses.
+	 */
+	private static final Object rebuildLock = new Object();
 	@Override
-    protected boolean doRebuild() {
-        try {
-            AOServConnector connector=AOServDaemon.getConnector();
-            AOServer thisAOServer=AOServDaemon.getThisAOServer();
+	protected boolean doRebuild() {
+		try {
+			AOServConnector connector=AOServDaemon.getConnector();
+			AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
-            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+			int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
 
-            // Nothing is done for these operating systems
-            if(
-                osv==OperatingSystemVersion.CENTOS_5_DOM0_I686
-                || osv==OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-            ) {
-                throw new SQLException("Should not have been started");
-            }
+			// Nothing is done for these operating systems
+			if(
+				osv==OperatingSystemVersion.CENTOS_5_DOM0_I686
+				|| osv==OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+			) {
+				throw new SQLException("Should not have been started");
+			}
 
-            // Otherwise, make sure it is a supported OS
-            if(
-                osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-            ) {
-                throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
-            }
+			// Otherwise, make sure it is a supported OS
+			if(
+				osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			) {
+				throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+			}
 
-            synchronized(rebuildLock) {
-                // Find all the IPs that should be bound to
-                SortedSet<com.aoindustries.aoserv.client.validator.InetAddress> ips;
-                {
-                    Protocol sshProtocol=connector.getProtocols().get(Protocol.SSH);
-                    List<NetBind> nbs=thisAOServer.getServer().getNetBinds(sshProtocol);
-                    ips=new TreeSet<>();
-                    for(int c=0;c<nbs.size();c++) {
-                        NetBind nb = nbs.get(c);
-                        if(nb.getNetTcpRedirect()==null) {
-                            int port = nb.getPort().getPort();
-                            if(port!=22) throw new IOException("SSH only supported on port 22 at this time");
-                            IPAddress ip = nb.getIPAddress();
-                            if(ip==null) throw new NullPointerException("nbs["+c+"].getIPAddress() is null");
-                            NetDevice nd=ip.getNetDevice();
-                            if(nd==null) throw new NullPointerException("nbs["+c+"].getIPAddress().getNetDevice() is null");
-                            if(nd.getNetDeviceID().isLoopback()) throw new IOException("Can't use localhost for SSH for chroot failover support: nbs["+c+"].getIPAddress().getNetDevice().getNetDeviceId().isLoopback()==true");
-                            com.aoindustries.aoserv.client.validator.InetAddress address=ip.getInetAddress();
-                            if(address.isUnspecified()) throw new IOException("Can't use wildcard for SSH for chroot failover support: address.isUnspecified()==true");
-                            if(!ips.contains(address)) ips.add(address);
-                        }
-                    }
-                }
-                if(ips.isEmpty()) throw new IOException("No IP addresses found for SSH, refusing to update sshd_config");
+			synchronized(rebuildLock) {
+				// Find all the IPs that should be bound to
+				SortedSet<com.aoindustries.aoserv.client.validator.InetAddress> ips;
+				{
+					Protocol sshProtocol=connector.getProtocols().get(Protocol.SSH);
+					List<NetBind> nbs=thisAOServer.getServer().getNetBinds(sshProtocol);
+					ips=new TreeSet<>();
+					for(int c=0;c<nbs.size();c++) {
+						NetBind nb = nbs.get(c);
+						if(nb.getNetTcpRedirect()==null) {
+							int port = nb.getPort().getPort();
+							if(port!=22) throw new IOException("SSH only supported on port 22 at this time");
+							IPAddress ip = nb.getIPAddress();
+							if(ip==null) throw new NullPointerException("nbs["+c+"].getIPAddress() is null");
+							NetDevice nd=ip.getNetDevice();
+							if(nd==null) throw new NullPointerException("nbs["+c+"].getIPAddress().getNetDevice() is null");
+							if(nd.getNetDeviceID().isLoopback()) throw new IOException("Can't use localhost for SSH for chroot failover support: nbs["+c+"].getIPAddress().getNetDevice().getNetDeviceId().isLoopback()==true");
+							com.aoindustries.aoserv.client.validator.InetAddress address=ip.getInetAddress();
+							if(address.isUnspecified()) throw new IOException("Can't use wildcard for SSH for chroot failover support: address.isUnspecified()==true");
+							if(!ips.contains(address)) ips.add(address);
+						}
+					}
+				}
+				if(ips.isEmpty()) throw new IOException("No IP addresses found for SSH, refusing to update sshd_config");
 
-                // Build the new config file to RAM
-                ByteArrayOutputStream bout = new ByteArrayOutputStream();
-                try (ChainWriter out = new ChainWriter(bout)) {
-                    if(
-                        osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-                    ) {
-                        out.print("#\n"
-                                + "# This configuration file is automatically generated by\n"
-                                + "# ").print(SshdManager.class.getName()).print("\n"
-                                + "#\n"
-                                + "Port 22\n"
-                                + "Protocol 2\n");
-                                // Changed to not allow Protocol 1 on 2005-02-01 by Dan Armstrong
-                                //+ "Protocol 2,1\n");
-                        for(com.aoindustries.aoserv.client.validator.InetAddress ip : ips) {
-                            out.print("ListenAddress ").print(ip.toString()).print("\n");
-                        }
-                        out.print("AcceptEnv SCREEN_SESSION\n"
+				// Build the new config file to RAM
+				ByteArrayOutputStream bout = new ByteArrayOutputStream();
+				try (ChainWriter out = new ChainWriter(bout)) {
+					if(
+						osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					) {
+						out.print("#\n"
+								+ "# This configuration file is automatically generated by\n"
+								+ "# ").print(SshdManager.class.getName()).print("\n"
+								+ "#\n"
+								+ "Port 22\n"
+								+ "Protocol 2\n");
+								// Changed to not allow Protocol 1 on 2005-02-01 by Dan Armstrong
+								//+ "Protocol 2,1\n");
+						for(com.aoindustries.aoserv.client.validator.InetAddress ip : ips) {
+							out.print("ListenAddress ").print(ip.toString()).print("\n");
+						}
+						out.print("AcceptEnv SCREEN_SESSION\n"
 								+ "SyslogFacility AUTHPRIV\n"
-                                + "PermitRootLogin yes\n"
-                                + "PasswordAuthentication yes\n"
-                                + "ChallengeResponseAuthentication no\n"
-                                + "GSSAPIAuthentication yes\n"
-                                + "GSSAPICleanupCredentials yes\n"
-                                + "UsePAM yes\n"
-                                + "AcceptEnv LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES\n"
-                                + "AcceptEnv LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT\n"
-                                + "AcceptEnv LC_IDENTIFICATION LC_ALL\n"
+								+ "PermitRootLogin yes\n"
+								+ "PasswordAuthentication yes\n"
+								+ "ChallengeResponseAuthentication no\n"
+								+ "GSSAPIAuthentication yes\n"
+								+ "GSSAPICleanupCredentials yes\n"
+								+ "UsePAM yes\n"
+								+ "AcceptEnv LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES\n"
+								+ "AcceptEnv LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT\n"
+								+ "AcceptEnv LC_IDENTIFICATION LC_ALL\n"
 								+ "MaxStartups 60:30:100\n"
-                                + "X11Forwarding yes\n"
-                                + "UsePrivilegeSeparation yes\n"
-                                + "Subsystem sftp /usr/libexec/openssh/sftp-server\n"
-                        );
-                    } else {
-                        throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
-                    }
-                }
-                byte[] newBytes = bout.toByteArray();
+								+ "X11Forwarding yes\n"
+								+ "UsePrivilegeSeparation yes\n"
+								+ "Subsystem sftp /usr/libexec/openssh/sftp-server\n"
+						);
+					} else {
+						throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+					}
+				}
+				byte[] newBytes = bout.toByteArray();
 
-                // Write the new file and restart process only when update needed
-                UnixFile configFile = new UnixFile("/etc/ssh/sshd_config");
-                if(
-                    !configFile.getStat().exists()
-                    || !configFile.contentEquals(newBytes)
-                ) {
-                    // Write to temp file
-                    UnixFile newConfigFile = new UnixFile("/etc/ssh/sshd_config.new");
-                    try (OutputStream newConfigOut = newConfigFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true)) {
-                        newConfigOut.write(newBytes);
-                    }
+				// Write the new file and restart process only when update needed
+				UnixFile configFile = new UnixFile("/etc/ssh/sshd_config");
+				if(
+					!configFile.getStat().exists()
+					|| !configFile.contentEquals(newBytes)
+				) {
+					// Write to temp file
+					UnixFile newConfigFile = new UnixFile("/etc/ssh/sshd_config.new");
+					try (OutputStream newConfigOut = newConfigFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true)) {
+						newConfigOut.write(newBytes);
+					}
 
-                    // Atomically move into place
-                    newConfigFile.renameTo(configFile);
+					// Atomically move into place
+					newConfigFile.renameTo(configFile);
 
-                    // Try reload config first
-                    try {
-                        AOServDaemon.exec(
-                            new String[] {
-                                "/etc/rc.d/init.d/sshd",
-                                "reload"
-                            }
-                        );
-                    } catch(IOException err) {
-                        LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, err);
+					// Try reload config first
+					try {
+						AOServDaemon.exec(
+							new String[] {
+								"/etc/rc.d/init.d/sshd",
+								"reload"
+							}
+						);
+					} catch(IOException err) {
+						LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, err);
 
-                        // Try more forceful stop/start
-                        try {
-                            AOServDaemon.exec(
-                                new String[] {
-                                    "/etc/rc.d/init.d/sshd",
-                                    "stop"
-                                }
-                            );
-                        } catch(IOException err2) {
-                            LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, err2);
-                        }
-                        try {
-                            Thread.sleep(1000);
-                        } catch(InterruptedException err2) {
-                            LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err2);
-                        }
-                        AOServDaemon.exec(
-                            new String[] {
-                                "/etc/rc.d/init.d/sshd",
-                                "start"
-                            }
-                        );
-                    }
-                }
-            }
-            return true;
-        } catch(ThreadDeath TD) {
-            throw TD;
-        } catch(Throwable T) {
-            LogFactory.getLogger(SshdManager.class).log(Level.SEVERE, null, T);
-            return false;
-        }
-    }
+						// Try more forceful stop/start
+						try {
+							AOServDaemon.exec(
+								new String[] {
+									"/etc/rc.d/init.d/sshd",
+									"stop"
+								}
+							);
+						} catch(IOException err2) {
+							LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, err2);
+						}
+						try {
+							Thread.sleep(1000);
+						} catch(InterruptedException err2) {
+							LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err2);
+						}
+						AOServDaemon.exec(
+							new String[] {
+								"/etc/rc.d/init.d/sshd",
+								"start"
+							}
+						);
+					}
+				}
+			}
+			return true;
+		} catch(ThreadDeath TD) {
+			throw TD;
+		} catch(Throwable T) {
+			LogFactory.getLogger(SshdManager.class).log(Level.SEVERE, null, T);
+			return false;
+		}
+	}
 
-    public static void start() throws IOException, SQLException {
-        AOServer thisAOServer=AOServDaemon.getThisAOServer();
-        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+	public static void start() throws IOException, SQLException {
+		AOServer thisAOServer=AOServDaemon.getThisAOServer();
+		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
 
-        synchronized(System.out) {
-            if(
-                // Nothing is done for these operating systems
-                osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
-                && osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-                // Check config after OS check so config entry not needed
-                && AOServDaemonConfiguration.isManagerEnabled(SshdManager.class)
-                && sshdManager==null
-            ) {
-                System.out.print("Starting SshdManager: ");
-                AOServConnector conn=AOServDaemon.getConnector();
-                sshdManager=new SshdManager();
-                conn.getNetBinds().addTableListener(sshdManager, 0);
-                System.out.println("Done");
-            }
-        }
-    }
+		synchronized(System.out) {
+			if(
+				// Nothing is done for these operating systems
+				osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				// Check config after OS check so config entry not needed
+				&& AOServDaemonConfiguration.isManagerEnabled(SshdManager.class)
+				&& sshdManager==null
+			) {
+				System.out.print("Starting SshdManager: ");
+				AOServConnector conn=AOServDaemon.getConnector();
+				sshdManager=new SshdManager();
+				conn.getNetBinds().addTableListener(sshdManager, 0);
+				System.out.println("Done");
+			}
+		}
+	}
 
 	@Override
-    public String getProcessTimerDescription() {
-        return "Rebuild SSH Configuration";
-    }
+	public String getProcessTimerDescription() {
+		return "Rebuild SSH Configuration";
+	}
 }

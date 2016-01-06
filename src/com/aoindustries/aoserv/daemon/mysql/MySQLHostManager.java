@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -34,29 +34,29 @@ import java.util.logging.Level;
  */
 final public class MySQLHostManager extends BuilderThread {
 
-    private MySQLHostManager() {
-    }
+	private MySQLHostManager() {
+	}
 
-    private static final Object rebuildLock=new Object();
+	private static final Object rebuildLock = new Object();
 	@Override
-    protected boolean doRebuild() {
-        try {
-            AOServConnector connector = AOServDaemon.getConnector();
-            AOServer thisAOServer=AOServDaemon.getThisAOServer();
+	protected boolean doRebuild() {
+		try {
+			AOServConnector connector = AOServDaemon.getConnector();
+			AOServer thisAOServer=AOServDaemon.getThisAOServer();
 
-            int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
-            if(
-                osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-                && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-                && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-            ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+			int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+			if(
+				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+				&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
-            synchronized (rebuildLock) {
-                for(MySQLServer mysqlServer : connector.getMysqlServers()) {
-                    String version=mysqlServer.getVersion().getVersion();
+			synchronized (rebuildLock) {
+				for(MySQLServer mysqlServer : connector.getMysqlServers()) {
+					String version=mysqlServer.getVersion().getVersion();
 					// hosts no longer exists in MySQL 5.6.7+
 					if(!version.startsWith(MySQLServer.VERSION_5_6_PREFIX)) {
-	                    boolean modified = false;
+						boolean modified = false;
 						// Get the connection to work through
 						AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
 						Connection conn = pool.getConnection();
@@ -136,43 +136,43 @@ final public class MySQLHostManager extends BuilderThread {
 						}
 						if(modified) MySQLServerManager.flushPrivileges(mysqlServer);
 					}
-                }
-            }
-            return true;
-        } catch(ThreadDeath TD) {
-            throw TD;
-        } catch(Throwable T) {
-            LogFactory.getLogger(MySQLHostManager.class).log(Level.SEVERE, null, T);
-            return false;
-        }
-    }
+				}
+			}
+			return true;
+		} catch(ThreadDeath TD) {
+			throw TD;
+		} catch(Throwable T) {
+			LogFactory.getLogger(MySQLHostManager.class).log(Level.SEVERE, null, T);
+			return false;
+		}
+	}
 
-    private static MySQLHostManager mysqlHostManager;
-    public static void start() throws IOException, SQLException {
-        AOServer thisAOServer=AOServDaemon.getThisAOServer();
-        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+	private static MySQLHostManager mysqlHostManager;
+	public static void start() throws IOException, SQLException {
+		AOServer thisAOServer=AOServDaemon.getThisAOServer();
+		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
 
-        synchronized(System.out) {
-            if(
-                // Nothing is done for these operating systems
-                osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
-                && osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-                // Check config after OS check so config entry not needed
-                && AOServDaemonConfiguration.isManagerEnabled(MySQLHostManager.class)
-                && mysqlHostManager==null
-            ) {
-                System.out.print("Starting MySQLHostManager: ");
-                AOServConnector conn=AOServDaemon.getConnector();
-                mysqlHostManager=new MySQLHostManager();
-                conn.getIpAddresses().addTableListener(mysqlHostManager, 0);
-                conn.getMysqlServers().addTableListener(mysqlHostManager, 0);
-                System.out.println("Done");
-            }
-        }
-    }
+		synchronized(System.out) {
+			if(
+				// Nothing is done for these operating systems
+				osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				// Check config after OS check so config entry not needed
+				&& AOServDaemonConfiguration.isManagerEnabled(MySQLHostManager.class)
+				&& mysqlHostManager==null
+			) {
+				System.out.print("Starting MySQLHostManager: ");
+				AOServConnector conn=AOServDaemon.getConnector();
+				mysqlHostManager=new MySQLHostManager();
+				conn.getIpAddresses().addTableListener(mysqlHostManager, 0);
+				conn.getMysqlServers().addTableListener(mysqlHostManager, 0);
+				System.out.println("Done");
+			}
+		}
+	}
 
 	@Override
-    public String getProcessTimerDescription() {
-        return "Rebuild MySQL Hosts";
-    }
+	public String getProcessTimerDescription() {
+		return "Rebuild MySQL Hosts";
+	}
 }

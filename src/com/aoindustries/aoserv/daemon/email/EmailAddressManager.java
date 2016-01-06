@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2015 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2015, 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -63,7 +63,7 @@ final public class EmailAddressManager extends BuilderThread {
 	private EmailAddressManager() {
 	}
 
-	private static final Object rebuildLock=new Object();
+	private static final Object rebuildLock = new Object();
 	@Override
 	protected boolean doRebuild() {
 		try {

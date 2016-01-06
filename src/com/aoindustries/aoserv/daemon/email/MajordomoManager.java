@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013, 2015 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2015, 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -44,7 +44,7 @@ final public class MajordomoManager extends BuilderThread {
 	private MajordomoManager() {
 	}
 
-	private static final Object rebuildLock=new Object();
+	private static final Object rebuildLock = new Object();
 	@Override
 	protected boolean doRebuild() {
 		try {
@@ -62,7 +62,7 @@ final public class MajordomoManager extends BuilderThread {
 
 			synchronized(rebuildLock) {
 				final List<MajordomoServer> mss=aoServer.getMajordomoServers();
-				
+
 				if(!mss.isEmpty()) {
 					// Install package if needed
 					PackageManager.installPackage(PackageManager.PackageName.MAJORDOMO);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2015 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2015, 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -353,7 +353,7 @@ final public class ImapManager extends BuilderThread {
 		return store;
 	}
 
-	private static final Object rebuildLock=new Object();
+	private static final Object rebuildLock = new Object();
 	@Override
 	protected boolean doRebuild() {
 		Logger logger = LogFactory.getLogger(ImapManager.class);

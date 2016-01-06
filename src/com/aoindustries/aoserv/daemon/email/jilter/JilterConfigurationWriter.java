@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2015 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2015, 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -48,40 +48,40 @@ public class JilterConfigurationWriter extends BuilderThread {
 
 	private static JilterConfigurationWriter configurationWriter;
 
-    public static void start() throws IOException, SQLException {
-        AOServer thisAOServer=AOServDaemon.getThisAOServer();
-        int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+	public static void start() throws IOException, SQLException {
+		AOServer thisAOServer=AOServDaemon.getThisAOServer();
+		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
 
-        synchronized(System.out) {
-            if(
-                // Nothing is done for these operating systems
-                osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
-                && osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-                // Check config after OS check so config entry not needed
-                && AOServDaemonConfiguration.isManagerEnabled(JilterConfigurationWriter.class)
-                && configurationWriter==null
-            ) {
-                System.out.print("Starting JilterConfigurationWriter: ");
-                AOServConnector connector=AOServDaemon.getConnector();
-                configurationWriter=new JilterConfigurationWriter();
-                connector.getAoServers().addTableListener(configurationWriter, 0);
-                connector.getNetBinds().addTableListener(configurationWriter, 0);
-                connector.getNetDevices().addTableListener(configurationWriter, 0);
-                connector.getIpAddresses().addTableListener(configurationWriter, 0);
-                connector.getEmailDomains().addTableListener(configurationWriter, 0);
-                connector.getEmailAddresses().addTableListener(configurationWriter, 0);
-                connector.getEmailSmtpRelays().addTableListener(configurationWriter, 0);
-                connector.getPackages().addTableListener(configurationWriter, 0);
-                System.out.println("Done");
-            }
-        }
-    }
+		synchronized(System.out) {
+			if(
+				// Nothing is done for these operating systems
+				osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				// Check config after OS check so config entry not needed
+				&& AOServDaemonConfiguration.isManagerEnabled(JilterConfigurationWriter.class)
+				&& configurationWriter==null
+			) {
+				System.out.print("Starting JilterConfigurationWriter: ");
+				AOServConnector connector=AOServDaemon.getConnector();
+				configurationWriter=new JilterConfigurationWriter();
+				connector.getAoServers().addTableListener(configurationWriter, 0);
+				connector.getNetBinds().addTableListener(configurationWriter, 0);
+				connector.getNetDevices().addTableListener(configurationWriter, 0);
+				connector.getIpAddresses().addTableListener(configurationWriter, 0);
+				connector.getEmailDomains().addTableListener(configurationWriter, 0);
+				connector.getEmailAddresses().addTableListener(configurationWriter, 0);
+				connector.getEmailSmtpRelays().addTableListener(configurationWriter, 0);
+				connector.getPackages().addTableListener(configurationWriter, 0);
+				System.out.println("Done");
+			}
+		}
+	}
 
 	@Override
-    public String getProcessTimerDescription() {
-        return "JilterConfigurationWriter";
-    }
-    private static final Object rebuildLock=new Object();
+	public String getProcessTimerDescription() {
+		return "JilterConfigurationWriter";
+	}
+	private static final Object rebuildLock = new Object();
 
 	/**
 	 * Finds the NetBind that the jilter should listen on.
@@ -99,10 +99,10 @@ public class JilterConfigurationWriter extends BuilderThread {
 	}
 
 	@Override
-    protected boolean doRebuild() {
-        try {
-            AOServer aoServer = AOServDaemon.getThisAOServer();
-            Server server = aoServer.getServer();
+	protected boolean doRebuild() {
+		try {
+			AOServer aoServer = AOServDaemon.getThisAOServer();
+			Server server = aoServer.getServer();
 
 			// Look for the configured net bind for the jilter
 			NetBind jilterNetBind = getJilterNetBind();
@@ -210,12 +210,12 @@ public class JilterConfigurationWriter extends BuilderThread {
 				File configDir = rpmSaveFile.getParentFile();
 				if(configDir.exists()) FileUtils.delete(configDir);
 			}
-            return true;
-        } catch(ThreadDeath TD) {
-            throw TD;
-        } catch(Throwable T) {
-            LogFactory.getLogger(JilterConfigurationWriter.class).log(Level.SEVERE, null, T);
-            return false;
-        }
-    }
+			return true;
+		} catch(ThreadDeath TD) {
+			throw TD;
+		} catch(Throwable T) {
+			LogFactory.getLogger(JilterConfigurationWriter.class).log(Level.SEVERE, null, T);
+			return false;
+		}
+	}
 }
