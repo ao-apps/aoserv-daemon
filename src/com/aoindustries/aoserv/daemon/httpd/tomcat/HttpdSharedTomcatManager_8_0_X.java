@@ -1,5 +1,5 @@
 /*
- * Copyright 2013, 2014, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -40,19 +40,19 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Manages HttpdSharedTomcat version 7.0.X configurations.
+ * Manages HttpdSharedTomcat version 8.0.X configurations.
  *
  * @author  AO Industries, Inc.
  */
-class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatCommon_7_0_X> {
+class HttpdSharedTomcatManager_8_0_X extends HttpdSharedTomcatManager<TomcatCommon_8_0_X> {
 
-	HttpdSharedTomcatManager_7_0_X(HttpdSharedTomcat sharedTomcat) {
+	HttpdSharedTomcatManager_8_0_X(HttpdSharedTomcat sharedTomcat) {
 		super(sharedTomcat);
 	}
 
 	@Override
-	TomcatCommon_7_0_X getTomcatCommon() {
-		return TomcatCommon_7_0_X.getInstance();
+	TomcatCommon_8_0_X getTomcatCommon() {
+		return TomcatCommon_8_0_X.getInstance();
 	}
 
 	@Override
@@ -269,6 +269,7 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 				new UnixFile(tomcatDirectory+"/conf/tomcat-users.xml").copyTo(tuUF, false);
 				tuUF.chown(lsaUID, lsgGID).setMode(0660);
 			}
+			DaemonFileUtils.ln("../../.."+tomcatDirectory+"/conf/tomcat-users.xsd", wwwGroupDir+"/conf/tomcat-users.xsd", lsaUID, lsgGID);
 			{
 				UnixFile webUF=new UnixFile(wwwGroupDir+"/conf/web.xml");
 				new UnixFile(tomcatDirectory+"/conf/web.xml").copyTo(webUF, false);
@@ -371,13 +372,23 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 				if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for HttpdSharedTomcat: "+sharedTomcat);
 				out.print(//"<?xml version='1.0' encoding='utf-8'?>\n"
 						"<Server port=\"").print(shutdownPort.getPort().getPort()).print("\" shutdown=\"").print(shutdownKey).print("\">\n"
+						+ "  <Listener className=\"org.apache.catalina.startup.VersionLoggerListener\" />\n"
+						+ "  <!-- Security listener. Documentation at /docs/config/listeners.html\n"
+						+ "  <Listener className=\"org.apache.catalina.security.SecurityListener\" />\n"
+						+ "  -->\n"
+						+ "  <!--APR library loader. Documentation at /docs/apr.html -->\n"
 						+ "  <Listener className=\"org.apache.catalina.core.AprLifecycleListener\" SSLEngine=\"on\" />\n"
-						+ "  <Listener className=\"org.apache.catalina.core.JasperListener\" />\n"
 						+ "  <!-- Prevent memory leaks due to use of particular java/javax APIs-->\n"
 						+ "  <Listener className=\"org.apache.catalina.core.JreMemoryLeakPreventionListener\" />\n"
 						+ "  <Listener className=\"org.apache.catalina.mbeans.GlobalResourcesLifecycleListener\" />\n"
 						+ "  <Listener className=\"org.apache.catalina.core.ThreadLocalLeakPreventionListener\" />\n"
+						+ "  <!-- Global JNDI resources\n"
+						+ "       Documentation at /docs/jndi-resources-howto.html\n"
+						+ "  -->\n"
 						+ "  <GlobalNamingResources>\n"
+						+ "    <!-- Editable user database that can also be used by\n"
+						+ "         UserDatabaseRealm to authenticate users\n"
+						+ "    -->\n"
 						+ "    <Resource name=\"UserDatabase\" auth=\"Container\"\n"
 						+ "              type=\"org.apache.catalina.UserDatabase\"\n"
 						+ "              description=\"User database that can be updated and saved\"\n"
@@ -393,7 +404,9 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 						+ "      URIEncoding=\"UTF-8\"\n"
 						+ "    />\n"
 						+ "    <Engine name=\"Catalina\" defaultHost=\"localhost\">\n"
-						+ "      <Realm className=\"org.apache.catalina.realm.UserDatabaseRealm\" resourceName=\"UserDatabase\" />\"\n");
+						+ "      <Realm className=\"org.apache.catalina.realm.LockOutRealm\">\n"
+						+ "        <Realm className=\"org.apache.catalina.realm.UserDatabaseRealm\" resourceName=\"UserDatabase\"/>\n"
+						+ "      </Realm>\n");
 				for(int c=0;c<sites.size();c++) {
 					HttpdSite hs=sites.get(c).getHttpdTomcatSite().getHttpdSite();
 					if(!hs.isDisabled()) {
@@ -403,8 +416,6 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 								+ "        appBase=\"").print(wwwDirectory).print('/').print(hs.getSiteName()).print("/webapps\"\n"
 								+ "        unpackWARs=\"true\"\n"
 								+ "        autoDeploy=\"true\"\n"
-								+ "        xmlValidation=\"false\"\n"
-								+ "        xmlNamespaceAware=\"false\"\n"
 								+ "      >\n");
 						List<String> usedHostnames=new SortedArrayList<>();
 						usedHostnames.add(primaryHostname.toString());

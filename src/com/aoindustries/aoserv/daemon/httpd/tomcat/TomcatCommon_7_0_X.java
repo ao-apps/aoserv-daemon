@@ -1,5 +1,5 @@
 /*
- * Copyright 2013, 2015 by AO Industries, Inc.,
+ * Copyright 2013, 2015, 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -203,13 +203,13 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 	};
 
 	/**
-	 * Upgrades the Tomcat 6.0.X installed in the provided directory.
+	 * Upgrades the Tomcat 7.0.X installed in the provided directory.
 	 */
 	boolean upgradeTomcatDirectory(UnixFile tomcatDirectory, int uid, int gid) throws IOException, SQLException {
 		boolean needsRestart = false;
 		OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
 		if(osConfig==OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
-			// Tomcat 6.0
+			// Tomcat 7.0
 			for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0) {
 				if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 			}

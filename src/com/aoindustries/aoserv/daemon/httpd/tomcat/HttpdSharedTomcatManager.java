@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2014, 2015 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014, 2015, 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -51,6 +51,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 		if(htv.isTomcat5_5_X(connector)) return new HttpdSharedTomcatManager_5_5_X(sharedTomcat);
 		if(htv.isTomcat6_0_X(connector)) return new HttpdSharedTomcatManager_6_0_X(sharedTomcat);
 		if(htv.isTomcat7_0_X(connector)) return new HttpdSharedTomcatManager_7_0_X(sharedTomcat);
+		if(htv.isTomcat8_0_X(connector)) return new HttpdSharedTomcatManager_8_0_X(sharedTomcat);
 		throw new SQLException("Unsupported version of shared Tomcat: "+htv.getTechnologyVersion(connector).getVersion()+" on "+sharedTomcat);
 	}
 

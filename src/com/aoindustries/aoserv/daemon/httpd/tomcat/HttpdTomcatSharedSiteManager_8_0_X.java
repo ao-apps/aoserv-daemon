@@ -1,5 +1,5 @@
 /*
- * Copyright 2013, 2014, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -15,18 +15,18 @@ import java.io.IOException;
 import java.sql.SQLException;
 
 /**
- * Manages HttpdTomcatSharedSite version 7.0.X configurations.
+ * Manages HttpdTomcatSharedSite version 8.0.X configurations.
  *
  * @author  AO Industries, Inc.
  */
-class HttpdTomcatSharedSiteManager_7_0_X extends HttpdTomcatSharedSiteManager<TomcatCommon_7_0_X> {
+class HttpdTomcatSharedSiteManager_8_0_X extends HttpdTomcatSharedSiteManager<TomcatCommon_8_0_X> {
 
-	HttpdTomcatSharedSiteManager_7_0_X(HttpdTomcatSharedSite tomcatSharedSite) throws SQLException, IOException {
+	HttpdTomcatSharedSiteManager_8_0_X(HttpdTomcatSharedSite tomcatSharedSite) throws SQLException, IOException {
 		super(tomcatSharedSite);
 	}
 
 	/**
-	 * Builds a shared site for Tomcat 7.0.X
+	 * Builds a shared site for Tomcat 8.0.X
 	 */
 	@Override
 	protected void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
@@ -61,11 +61,11 @@ class HttpdTomcatSharedSiteManager_7_0_X extends HttpdTomcatSharedSiteManager<To
 			)
 		) {
 			out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
-					+ "<web-app xmlns=\"http://java.sun.com/xml/ns/javaee\"\n"
+					+ "<web-app xmlns=\"http://xmlns.jcp.org/xml/ns/javaee\"\n"
 					+ "  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
-					+ "  xsi:schemaLocation=\"http://java.sun.com/xml/ns/javaee\n"
-					+ "                      http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd\"\n"
-					+ "  version=\"3.0\"\n"
+					+ "  xsi:schemaLocation=\"http://xmlns.jcp.org/xml/ns/javaee\n"
+					+ "                      http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd\"\n"
+					+ "  version=\"3.1\"\n"
 					+ "  metadata-complete=\"true\">\n"
 					+ "\n"
 					+ "  <display-name>Welcome to Tomcat</display-name>\n"
@@ -78,8 +78,8 @@ class HttpdTomcatSharedSiteManager_7_0_X extends HttpdTomcatSharedSiteManager<To
 	}
 
 	@Override
-	public TomcatCommon_7_0_X getTomcatCommon() {
-		return TomcatCommon_7_0_X.getInstance();
+	public TomcatCommon_8_0_X getTomcatCommon() {
+		return TomcatCommon_8_0_X.getInstance();
 	}
 
 	@Override

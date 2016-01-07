@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -40,6 +40,7 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
         if(htv.isTomcat5_5_X(connector)) return new HttpdTomcatStdSiteManager_5_5_X(stdSite);
         if(htv.isTomcat6_0_X(connector)) return new HttpdTomcatStdSiteManager_6_0_X(stdSite);
         if(htv.isTomcat7_0_X(connector)) return new HttpdTomcatStdSiteManager_7_0_X(stdSite);
+        if(htv.isTomcat8_0_X(connector)) return new HttpdTomcatStdSiteManager_8_0_X(stdSite);
         throw new SQLException("Unsupported version of standard Tomcat: "+htv.getTechnologyVersion(connector).getVersion()+" on "+stdSite);
     }
 

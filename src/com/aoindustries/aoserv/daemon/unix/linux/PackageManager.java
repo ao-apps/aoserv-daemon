@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 by AO Industries, Inc.,
+ * Copyright 2013, 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -36,6 +36,7 @@ public class PackageManager {
 		APACHE_TOMCAT_5_5("apache-tomcat_5_5"),
 		APACHE_TOMCAT_6_0("apache-tomcat_6_0"),
 		APACHE_TOMCAT_7_0("apache-tomcat_7_0"),
+		APACHE_TOMCAT_8_0("apache-tomcat_8_0"),
 		AOSERV_JILTER("aoserv-jilter"),
 		JBOSS_2_2_2("jboss_2_2_2"),
 		MAJORDOMO("majordomo"),
@@ -78,7 +79,7 @@ public class PackageManager {
 	}
 
 	public static class Version implements Comparable<Version> {
-		
+
 		private static class Segment implements Comparable<Segment> {
 
 			private static Segment[] parseSegments(String version) {
@@ -165,7 +166,7 @@ public class PackageManager {
 
 		private final String version;
 		private final Segment[] segments;
-		
+
 		public Version(String version) {
 			this.version = version;
 			this.segments = Segment.parseSegments(version);
@@ -314,7 +315,7 @@ public class PackageManager {
 		public Architecture getArchitecture() {
 			return architecture;
 		}
-		
+
 		/**
 		 * Removes this package.
 		 */
