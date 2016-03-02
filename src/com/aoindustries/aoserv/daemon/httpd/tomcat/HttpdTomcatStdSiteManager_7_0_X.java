@@ -1,5 +1,5 @@
 /*
- * Copyright 2013, 2014, 2015 by AO Industries, Inc.,
+ * Copyright 2013, 2014, 2015, 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -316,6 +316,7 @@ class HttpdTomcatStdSiteManager_7_0_X extends HttpdTomcatStdSiteManager<TomcatCo
             if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for HttpdTomcatStdSite="+tomcatStdSite);
 			out.print(//"<?xml version='1.0' encoding='utf-8'?>\n"
 					"<Server port=\"").print(shutdownPort.getPort().getPort()).print("\" shutdown=\"").print(shutdownKey).print("\">\n"
+					+ "  <Listener className=\"org.apache.catalina.startup.VersionLoggerListener\" />\n" // Added Tomcat 7.0.68
 					+ "  <Listener className=\"org.apache.catalina.core.AprLifecycleListener\" SSLEngine=\"on\" />\n"
 					+ "  <Listener className=\"org.apache.catalina.core.JasperListener\" />\n"
 					+ "  <!-- Prevent memory leaks due to use of particular java/javax APIs-->\n"

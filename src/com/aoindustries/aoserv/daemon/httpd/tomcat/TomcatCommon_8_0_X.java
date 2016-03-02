@@ -57,8 +57,28 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 				+ "          />\n");
 	}
 
-	private static final UpgradeSymlink[] upgradeSymlinks_8_0 = {
-		// None yet
+	/**
+	 * Upgrade to Tomcat 8.0.30.
+	 */
+	private static final UpgradeSymlink[] upgradeSymlinks_8_0_30 = {
+		// Nothing to do
+	};
+
+	/**
+	 * Upgrade to Tomcat 8.0.32.
+	 */
+	private static final UpgradeSymlink[] upgradeSymlinks_8_0_32 = {
+		// Upgrade from Tomcat 8.0.30 to 8.0.32
+		new UpgradeSymlink(
+			"lib/postgresql-9.4.1207.jar",
+			"../../../opt/apache-tomcat-8.0/lib/postgresql-9.4.1207.jar",
+			null
+		),
+		new UpgradeSymlink(
+			"lib/postgresql-9.4.1208.jar",
+			null,
+			"../../../opt/apache-tomcat-8.0/lib/postgresql-9.4.1208.jar"
+		)
 	};
 
 	/**
@@ -68,40 +88,18 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 		boolean needsRestart = false;
 		OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
 		if(osConfig==OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
-			// Tomcat 7.0
-			for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_0) {
-				if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
-			}
-			// MySQL
-			//for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_MySQL) {
-			//	if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
-			//}
-			// PostgreSQL
-			//for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_PostgreSQL) {
-			//	if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
-			//}
-			// Update bin/profile
-			// TODO
-			/*
-			String results = AOServDaemon.execAndCapture(
-				new String[] {
-					osConfig.getReplaceCommand(),
-					"/aoserv.sh",
-					"/aoserv-client.sh",
-					"php-4.3.sh",
-					"php-4.sh",
-					"php-4.3.3.sh",
-					"php-4.sh",
-					"php-4.3.8.sh",
-					"php-4.sh",
-					"postgresql-7.3.3.sh",
-					"postgresql-7.3.sh",
-					"--",
-					tomcatDirectory.getPath()+"/bin/profile"
+			String rpmVersion = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_8_0).getVersion().toString();
+			if(rpmVersion.equals("8.0.30")) {
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_0_30) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
-			);
-			if(results.length()>0) needsRestart = true;
-			 */
+			} else if(rpmVersion.equals("8.0.32")) {
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_0_32) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+			} else {
+				throw new IllegalStateException("Unexpected version of Tomcat: " + rpmVersion);
+			}
 		}
 		return needsRestart;
 	}

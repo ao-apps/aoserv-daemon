@@ -371,6 +371,7 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 				if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for HttpdSharedTomcat: "+sharedTomcat);
 				out.print(//"<?xml version='1.0' encoding='utf-8'?>\n"
 						"<Server port=\"").print(shutdownPort.getPort().getPort()).print("\" shutdown=\"").print(shutdownKey).print("\">\n"
+						+ "  <Listener className=\"org.apache.catalina.startup.VersionLoggerListener\" />\n" // Added Tomcat 7.0.68
 						+ "  <Listener className=\"org.apache.catalina.core.AprLifecycleListener\" SSLEngine=\"on\" />\n"
 						+ "  <Listener className=\"org.apache.catalina.core.JasperListener\" />\n"
 						+ "  <!-- Prevent memory leaks due to use of particular java/javax APIs-->\n"
