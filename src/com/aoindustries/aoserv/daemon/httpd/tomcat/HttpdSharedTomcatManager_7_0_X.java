@@ -389,6 +389,7 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 						+ "    <Connector\n"
 						+ "      port=\"").print(hw.getNetBind().getPort().getPort()).print("\"\n"
 						+ "      address=\""+IPAddress.LOOPBACK_IP+"\"\n"
+						+ "      maxPostSize=\"" + TomcatCommon_6_0_X.MAX_POST_SIZE + "\"\n"
 						+ "      protocol=\"AJP/1.3\"\n"
 						+ "      redirectPort=\"8443\"\n"
 						+ "      URIEncoding=\"UTF-8\"\n"

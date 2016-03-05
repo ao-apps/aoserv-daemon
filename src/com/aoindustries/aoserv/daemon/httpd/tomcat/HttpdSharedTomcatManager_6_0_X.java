@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2014, 2015 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014, 2015, 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -385,6 +385,7 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
                         + "    <Connector\n"
                         + "      port=\"").print(hw.getNetBind().getPort().getPort()).print("\"\n"
                         + "      address=\""+IPAddress.LOOPBACK_IP+"\"\n"
+						+ "      maxPostSize=\"" + TomcatCommon_6_0_X.MAX_POST_SIZE + "\"\n"
                         + "      protocol=\"AJP/1.3\"\n"
                         + "      redirectPort=\"8443\"\n"
                         + "    />\n"
