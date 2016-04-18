@@ -79,8 +79,9 @@ final public class IpReputationManager extends BuilderThread {
 			synchronized(System.out) {
 				if(
 					// Only runs on Xen dom0 (firewalling done outside virtual servers)
-					osv==OperatingSystemVersion.CENTOS_5_DOM0_I686
-					|| osv==OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+					osv == OperatingSystemVersion.CENTOS_5_DOM0_I686
+					|| osv == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+					|| osv == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 					// Check config after OS check so config entry not needed
 					&& AOServDaemonConfiguration.isManagerEnabled(IpReputationManager.class)
 					&& ipReputationManager==null
@@ -104,61 +105,52 @@ final public class IpReputationManager extends BuilderThread {
 	/**
 	 * Orders hosts with worse reputation first.
 	 */
-	private static final Comparator<IpReputationSetHost> badHostComparator = new Comparator<IpReputationSetHost>() {
-		@Override
-		public int compare(IpReputationSetHost host1, IpReputationSetHost host2) {
-			// Sort by effective reputation first
-			int rep1 = host1.getReputation();
-			int rep2 = host2.getReputation();
-			if(rep1<rep2) return -1;
-			if(rep1>rep2) return 1;
-			// Sort by IP next
-			int ip1 = host1.getHost();
-			int ip2 = host2.getHost();
-			if(ip1<ip2) return -1;
-			if(ip1>ip2) return 1;
-			return 0;
-		}
+	private static final Comparator<IpReputationSetHost> badHostComparator = (IpReputationSetHost host1, IpReputationSetHost host2) -> {
+		// Sort by effective reputation first
+		int rep1 = host1.getReputation();
+		int rep2 = host2.getReputation();
+		if(rep1<rep2) return -1;
+		if(rep1>rep2) return 1;
+		// Sort by IP next
+		int ip1 = host1.getHost();
+		int ip2 = host2.getHost();
+		if(ip1<ip2) return -1;
+		if(ip1>ip2) return 1;
+		return 0;
 	};
 
 	/**
 	 * Orders networks with best reputation first.
 	 */
-	private static final Comparator<IpReputationSetNetwork> goodNetworkComparator = new Comparator<IpReputationSetNetwork>() {
-		@Override
-		public int compare(IpReputationSetNetwork network1, IpReputationSetNetwork network2) {
-			// Sort by effective reputation first
-			int count1 = network1.getCounter();
-			int count2 = network2.getCounter();
-			if(count1>count2) return -1;
-			if(count1<count2) return 1;
-			// Sort by IP next
-			int ipNet1 = network1.getNetwork();
-			int ipNet2 = network2.getNetwork();
-			if(ipNet1<ipNet2) return -1;
-			if(ipNet1>ipNet2) return 1;
-			return 0;
-		}
+	private static final Comparator<IpReputationSetNetwork> goodNetworkComparator = (IpReputationSetNetwork network1, IpReputationSetNetwork network2) -> {
+		// Sort by effective reputation first
+		int count1 = network1.getCounter();
+		int count2 = network2.getCounter();
+		if(count1>count2) return -1;
+		if(count1<count2) return 1;
+		// Sort by IP next
+		int ipNet1 = network1.getNetwork();
+		int ipNet2 = network2.getNetwork();
+		if(ipNet1<ipNet2) return -1;
+		if(ipNet1>ipNet2) return 1;
+		return 0;
 	};
 
 	/**
 	 * Orders hosts with best reputation first.
 	 */
-	private static final Comparator<IpReputationSetHost> goodHostComparator = new Comparator<IpReputationSetHost>() {
-		@Override
-		public int compare(IpReputationSetHost host1, IpReputationSetHost host2) {
-			// Sort by effective reputation first
-			int rep1 = host1.getReputation();
-			int rep2 = host2.getReputation();
-			if(rep1>rep2) return -1;
-			if(rep1<rep2) return 1;
-			// Sort by IP next
-			int ip1 = host1.getHost();
-			int ip2 = host2.getHost();
-			if(ip1<ip2) return -1;
-			if(ip1>ip2) return 1;
-			return 0;
-		}
+	private static final Comparator<IpReputationSetHost> goodHostComparator = (IpReputationSetHost host1, IpReputationSetHost host2) -> {
+		// Sort by effective reputation first
+		int rep1 = host1.getReputation();
+		int rep2 = host2.getReputation();
+		if(rep1>rep2) return -1;
+		if(rep1<rep2) return 1;
+		// Sort by IP next
+		int ip1 = host1.getHost();
+		int ip2 = host2.getHost();
+		if(ip1<ip2) return -1;
+		if(ip1>ip2) return 1;
+		return 0;
 	};
 
 	/**
@@ -220,8 +212,9 @@ final public class IpReputationManager extends BuilderThread {
 			int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
 			if(
 				// Only runs on Xen dom0 (firewalling done outside virtual servers)
-				osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
 			synchronized(rebuildLock) {

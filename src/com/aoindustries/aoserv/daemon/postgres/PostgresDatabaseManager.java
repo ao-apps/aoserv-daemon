@@ -62,9 +62,10 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 
 			int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
 			if(
-				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osv != OperatingSystemVersion.MANDRIVA_2006_0_I586
+				&& osv != OperatingSystemVersion.REDHAT_ES_4_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
 			synchronized(rebuildLock) {
@@ -119,27 +120,32 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 
 									// createlang
 									try {
-										String createlang;
-										String psql;
-										String lib;
-										String share;
-										if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-											createlang = "/opt/postgresql-"+minorVersion+"-i686/bin/createlang";
-											psql = "/opt/postgresql-"+minorVersion+"-i686/bin/psql";
-											lib = "/opt/postgresql-"+minorVersion+"-i686/lib";
-											share = "/opt/postgresql-"+minorVersion+"-i686/share";
-										} else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-											createlang = "/opt/postgresql-"+minorVersion+"/bin/createlang";
-											psql = "/opt/postgresql-"+minorVersion+"/bin/psql";
-											lib = "/opt/postgresql-"+minorVersion+"/lib";
-											share = "/opt/postgresql-"+minorVersion+"/share";
-										} else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-											createlang = "/usr/postgresql/"+minorVersion+"/bin/createlang";
-											psql = "/usr/postgresql/"+minorVersion+"/bin/psql";
-											lib = "/usr/postgresql/"+minorVersion+"/lib";
-											share = "/usr/postgresql/"+minorVersion+"/share";
-										} else {
-											throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+										final String createlang;
+										final String psql;
+										final String lib;
+										final String share;
+										switch(osv) {
+											case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64:
+												createlang = "/opt/postgresql-"+minorVersion+"-i686/bin/createlang";
+												psql = "/opt/postgresql-"+minorVersion+"-i686/bin/psql";
+												lib = "/opt/postgresql-"+minorVersion+"-i686/lib";
+												share = "/opt/postgresql-"+minorVersion+"-i686/share";
+												break;
+											case OperatingSystemVersion.REDHAT_ES_4_X86_64:
+											case OperatingSystemVersion.CENTOS_7_X86_64:
+												createlang = "/opt/postgresql-"+minorVersion+"/bin/createlang";
+												psql = "/opt/postgresql-"+minorVersion+"/bin/psql";
+												lib = "/opt/postgresql-"+minorVersion+"/lib";
+												share = "/opt/postgresql-"+minorVersion+"/share";
+												break;
+											case OperatingSystemVersion.MANDRIVA_2006_0_I586:
+												createlang = "/usr/postgresql/"+minorVersion+"/bin/createlang";
+												psql = "/usr/postgresql/"+minorVersion+"/bin/psql";
+												lib = "/usr/postgresql/"+minorVersion+"/lib";
+												share = "/usr/postgresql/"+minorVersion+"/share";
+												break;
+											default:
+												throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 										}
 										// Automatically add plpgsql support for PostgreSQL 7 and 8
 										// PostgreSQL 9 is already installed:
@@ -180,16 +186,17 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 							}
 
 							// Remove the extra databases
-							for(int d=0;d<existing.size();d++) {
+							for (String dbName : existing) {
 								// Remove the extra database
-								String dbName=existing.get(d);
 								if(
 									dbName.equals(PostgresDatabase.TEMPLATE0)
 									|| dbName.equals(PostgresDatabase.TEMPLATE1)
 									|| dbName.equals(PostgresDatabase.AOSERV)
 									|| dbName.equals(PostgresDatabase.AOINDUSTRIES)
 									|| dbName.equals(PostgresDatabase.AOWEB)
-								) throw new SQLException("AOServ Daemon will not automatically drop database, please drop manually: "+dbName);
+								) {
+									throw new SQLException("AOServ Daemon will not automatically drop database, please drop manually: "+dbName);
+								}
 								stmt.executeUpdate("drop database "+dbName);
 								//conn.commit();
 							}
@@ -219,7 +226,11 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 
 			int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
 			String commandPath;
-			if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64 || osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+			if(
+				osv == OperatingSystemVersion.REDHAT_ES_4_X86_64
+				|| osv == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				|| osv == OperatingSystemVersion.CENTOS_7_X86_64
+			) {
 				commandPath = "/opt/aoserv-daemon/bin/dump_postgres_database";
 			} else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 				commandPath = "/usr/aoserv/daemon/bin/dump_postgres_database";
@@ -261,8 +272,9 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(PostgresDatabaseManager.class)
 				&& (postgresDatabaseManager==null || !cronStarted)
@@ -291,20 +303,15 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 		return "Rebuild PostgreSQL Databases";
 	}
 
-	private static final Schedule schedule = new Schedule() {
-		/**
-		 * Runs for automatic vacuuming and reindexing of all user tables, at 1:05 every Sunday.
-		 * REINDEX is only called on the first Sunday of the month.
-		 */
-		@Override
-		public boolean isCronJobScheduled(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
-			return
-				minute==5
-				&& hour==1
-				&& dayOfWeek==Calendar.SUNDAY
-			;
-		}
-	};
+	/**
+	 * Runs for automatic vacuuming and reindexing of all user tables, at 1:05 every Sunday.
+	 * REINDEX is only called on the first Sunday of the month.
+	 */
+	private static final Schedule schedule = (int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) ->
+		minute==5
+		&& hour==1
+		&& dayOfWeek==Calendar.SUNDAY
+	;
 
 	@Override
 	public Schedule getCronJobSchedule() {

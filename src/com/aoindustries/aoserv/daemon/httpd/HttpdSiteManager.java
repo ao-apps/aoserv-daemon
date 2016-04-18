@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -84,8 +84,7 @@ public abstract class HttpdSiteManager {
 		UnixFile wwwDirectory = new UnixFile(osConfig.getHttpdSitesDirectory());
 		String[] list = wwwDirectory.list();
 		Set<String> wwwRemoveList = new HashSet<>(list.length*4/3+1);
-		for(int c=0;c<list.length;c++) {
-			String dirname=list[c];
+		for (String dirname : list) {
 			if(
 				!dirname.equals("lost+found")
 				&& !dirname.equals("aquota.user")
@@ -137,37 +136,28 @@ public abstract class HttpdSiteManager {
 				if(stopStartRestartable.isStartable()) {
 					// Enabled, start or restart
 					if(sitesNeedingRestarted.contains(httpdSite)) {
-						commandCallable = new Callable<Object>() {
-							@Override
-							public Object call() throws IOException, SQLException {
-								if(stopStartRestartable.stop()) {
-									try {
-										Thread.sleep(5000);
-									} catch(InterruptedException err) {
-										LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
-									}
+						commandCallable = () -> {
+							if(stopStartRestartable.stop()) {
+								try {
+									Thread.sleep(5000);
+								} catch(InterruptedException err) {
+									LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
 								}
-								stopStartRestartable.start();
-								return null;
 							}
+							stopStartRestartable.start();
+							return null;
 						};
 					} else {
-						commandCallable = new Callable<Object>() {
-							@Override
-							public Object call() throws IOException, SQLException {
-								stopStartRestartable.start();
-								return null;
-							}
+						commandCallable = () -> {
+							stopStartRestartable.start();
+							return null;
 						};
 					}
 				} else {
 					// Disabled, can only stop if needed
-					commandCallable = new Callable<Object>() {
-						@Override
-						public Object call() throws IOException, SQLException {
-							stopStartRestartable.stop();
-							return null;
-						}
+					commandCallable = () -> {
+						stopStartRestartable.stop();
+						return null;
 					};
 				}
 				try {
@@ -205,19 +195,14 @@ public abstract class HttpdSiteManager {
 						if(daemonUid!=UnixFile.ROOT_UID) {
 							final String username = daemonLsa.getLinuxAccount().getUsername().getUsername();
 							try {
-								Future<Object> stopFuture = AOServDaemon.executorService.submit(
-									new Callable<Object>() {
-										@Override
-										public Object call() throws IOException {
-											AOServDaemon.suexec(
-												username,
-												scriptFile.getPath()+" stop",
-												0
-											);
-											return null;
-										}
-									}
-								);
+								Future<Object> stopFuture = AOServDaemon.executorService.submit(() -> {
+									AOServDaemon.suexec(
+										username,
+										scriptFile.getPath()+" stop",
+										0
+									);
+									return null;
+								});
 								stopFuture.get(60, TimeUnit.SECONDS);
 							} catch(InterruptedException | ExecutionException | TimeoutException err) {
 								LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);

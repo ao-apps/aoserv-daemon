@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -133,6 +133,12 @@ public enum OperatingSystemConfiguration {
 				return CENTOS_5DOM0_I686;
 			case OperatingSystemVersion.CENTOS_5_DOM0_X86_64 :
 				return CENTOS_5DOM0_X86_64;
+			/* TODO: CentOS 7:
+			case OperatingSystemVersion.CENTOS_7_X86_64 :
+				return CENTOS_7_X86_64;
+			case OperatingSystemVersion.CENTOS_7_DOM0_X86_64 :
+				return CENTOS_7DOM0_X86_64;
+			 */
 			default :
 				throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 		}

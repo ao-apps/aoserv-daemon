@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2014, 2015 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2014, 2015, 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -116,8 +116,7 @@ final public class DistroGenerator extends Thread {
 
 	private static Map<Integer,Map<String,Boolean>> loadFileList(String name) throws IOException {
 		Map<Integer,Map<String,Boolean>> osVersions=new HashMap<>();
-		BufferedReader in=new BufferedReader(new InputStreamReader(DistroGenerator.class.getResourceAsStream(name+".txt")));
-		try {
+		try (BufferedReader in = new BufferedReader(new InputStreamReader(DistroGenerator.class.getResourceAsStream(name+".txt")))) {
 			String line;
 			while((line=in.readLine())!=null) {
 				if(line.length()>0 && line.charAt(0)!='#') {
@@ -133,20 +132,18 @@ final public class DistroGenerator extends Thread {
 						line.substring(pos2+1, pos3)
 					);
 					String filename=line.substring(pos3);
-					Integer I=Integer.valueOf(osVersion);
+					Integer I=osVersion;
 					Map<String,Boolean> filenames=osVersions.get(I);
 					if(filenames==null) osVersions.put(I, filenames=new HashMap<>());
 					filenames.put(filename, Boolean.FALSE);
 				}
 			}
-		} finally {
-			in.close();
 		}
 		return osVersions;
 	}
 
 	private static boolean containsFile(Map<Integer,Map<String,Boolean>> osVersions, OSFilename osFilename) throws IOException {
-		Integer I=Integer.valueOf(osFilename.operating_system_version);
+		Integer I=osFilename.operating_system_version;
 		Map<String,Boolean> filenames=osVersions.get(I);
 		if(filenames==null) return false;
 		Boolean B=filenames.get(osFilename.filename);
@@ -159,11 +156,11 @@ final public class DistroGenerator extends Thread {
 	private static String getUsername(OSFilename osFilename, int fileUID) throws IOException {
 		synchronized(DistroGenerator.class) {
 			if (usernames==null) usernames=new HashMap<>();
-			Integer I=Integer.valueOf(osFilename.operating_system_version);
+			Integer I=osFilename.operating_system_version;
 			Map<Integer,String> realNames=usernames.get(I);
 			if(realNames==null) {
 				usernames.put(I, realNames=new HashMap<>());
-				BufferedReader in = new BufferedReader(
+				try (BufferedReader in = new BufferedReader(
 					new InputStreamReader(
 						new BufferedInputStream(
 							new FileInputStream(
@@ -173,17 +170,14 @@ final public class DistroGenerator extends Thread {
 							)
 						)
 					)
-				);
-				try {
+				)) {
 					String line;
 					while ((line=in.readLine())!=null) {
 						List<String> fields = StringUtility.splitString(line, ':');
 						String username = fields.get(0);
-						Integer userID = Integer.valueOf(Integer.parseInt(fields.get(2)));
+						Integer userID = Integer.parseInt(fields.get(2));
 						if(!realNames.containsKey(userID)) realNames.put(userID, username);
 					}
-				} finally {
-					in.close();
 				}
 			}
 			String username=realNames.get(Integer.valueOf(fileUID));
@@ -196,11 +190,11 @@ final public class DistroGenerator extends Thread {
 	private static String getGroupname(OSFilename osFilename, int fileGID) throws IOException {
 		synchronized(DistroGenerator.class) {
 			if (groupnames==null) groupnames=new HashMap<>();
-			Integer I=Integer.valueOf(osFilename.operating_system_version);
+			Integer I=osFilename.operating_system_version;
 			Map<Integer,String> realGroups=groupnames.get(I);
 			if(realGroups==null) {
 				groupnames.put(I, realGroups=new HashMap<>());
-				BufferedReader in = new BufferedReader(
+				try (BufferedReader in = new BufferedReader(
 					new InputStreamReader(
 						new BufferedInputStream(
 							new FileInputStream(
@@ -210,17 +204,14 @@ final public class DistroGenerator extends Thread {
 							)
 						)
 					)
-				);
-				try {
+				)) {
 					String line;
 					while ((line=in.readLine())!=null) {
 						List<String> fields = StringUtility.splitString(line, ':');
 						String groupname = fields.get(0);
-						Integer groupID = Integer.valueOf(Integer.parseInt(fields.get(2)));
+						Integer groupID = Integer.parseInt(fields.get(2));
 						if(!realGroups.containsKey(groupID)) realGroups.put(groupID, groupname);
 					}
-				} finally {
-					in.close();
 				}
 			}
 			String groupname=realGroups.get(Integer.valueOf(fileGID));
@@ -239,7 +230,7 @@ final public class DistroGenerator extends Thread {
 			Iterator<Integer> operatingSystems=nevers.keySet().iterator();
 			while(operatingSystems.hasNext()) {
 				Integer OSV=operatingSystems.next();
-				int osv=OSV.intValue();
+				int osv=OSV;
 				Iterator<String> filenames=nevers.get(OSV).keySet().iterator();
 				while(filenames.hasNext()) {
 					String filename=getOperatingSystemPath(osv)+filenames.next();
@@ -307,7 +298,7 @@ final public class DistroGenerator extends Thread {
 				if(currentDirectories==null) {
 					(currentDirectories=new Stack<>()).push("");
 					(currentLists=new Stack<>()).push(new String[] {""});
-					(currentIndexes=new Stack<>()).push(Integer.valueOf(0));
+					(currentIndexes=new Stack<>()).push(0);
 				}
 			}
 			String currentDirectory=null;
@@ -316,7 +307,7 @@ final public class DistroGenerator extends Thread {
 			try {
 				currentDirectory=currentDirectories.peek();
 				currentList=currentLists.peek();
-				currentIndex=currentIndexes.peek().intValue();
+				currentIndex=currentIndexes.peek();
 
 				// Undo the stack as far as needed
 				while(currentDirectory!=null && currentIndex>=currentList.length) {
@@ -325,7 +316,7 @@ final public class DistroGenerator extends Thread {
 					currentLists.pop();
 					currentList=currentLists.peek();
 					currentIndexes.pop();
-					currentIndex=currentIndexes.peek().intValue();
+					currentIndex=currentIndexes.peek();
 				}
 			} catch(EmptyStackException err) {
 				currentDirectory=null;
@@ -340,7 +331,7 @@ final public class DistroGenerator extends Thread {
 
 				// Set to the next file
 				currentIndexes.pop();
-				currentIndexes.push(Integer.valueOf(currentIndex));
+				currentIndexes.push(currentIndex);
 
 				// Recurse for directories
 				try {
@@ -359,7 +350,7 @@ final public class DistroGenerator extends Thread {
 						if(list==null) list = AoArrays.EMPTY_STRING_ARRAY;
 						Arrays.sort(list);
 						currentLists.push(list);
-						currentIndexes.push(Integer.valueOf(0));
+						currentIndexes.push(0);
 					}
 				} catch(FileNotFoundException err) {
 					System.err.println("Error trying to access file: "+root+filename);
@@ -466,14 +457,11 @@ final public class DistroGenerator extends Thread {
 									Process P = Runtime.getRuntime().exec(command);
 									try {
 										P.getOutputStream().close();
-										BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()));
-										try {
+										try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
 											String line = in.readLine();
 											if(line.length()<32) throw new IOException("Line too short, must be at least 32 characters: "+line);
 											String md5 = line.substring(0, 32);
 											SB.append(MD5.getMD5Hi(md5)).append("::int8, ").append(MD5.getMD5Lo(md5)).append("::int8");
-										} finally {
-											in.close();
 										}
 									} finally {
 										try {
@@ -593,20 +581,28 @@ final public class DistroGenerator extends Thread {
 			&& version.equals(OperatingSystemVersion.VERSION_5_DOM0)
 			&& architecture.equals(Architecture.X86_64)
 		) return OperatingSystemVersion.CENTOS_5_DOM0_X86_64;
+		if(
+			name.equals(OperatingSystem.CENTOS)
+			&& version.equals(OperatingSystemVersion.VERSION_7)
+			&& architecture.equals(Architecture.X86_64)
+		) return OperatingSystemVersion.CENTOS_7_X86_64;
+		if(
+			name.equals(OperatingSystem.CENTOS)
+			&& version.equals(OperatingSystemVersion.VERSION_7_DOM0)
+			&& architecture.equals(Architecture.X86_64)
+		) return OperatingSystemVersion.CENTOS_7_DOM0_X86_64;
 		throw new RuntimeException("Unsupported operating system: name="+name+", version="+version+", architecture="+architecture);
 	}
 
 	public static void reportMissingTemplateFiles(String filename, Map<Integer,Map<String,Boolean>> lists) {
 		boolean reportedOne=false;
 		List<Integer> osvs=sort(lists.keySet().iterator());
-		for(int c=0;c<osvs.size();c++) {
-			Integer OSV=osvs.get(c);
-			int osv=OSV.intValue();
+		for (Integer OSV : osvs) {
+			int osv=OSV;
 			Map<String,Boolean> filenameMap=lists.get(OSV);
 			List<String> filenames=sort(filenameMap.keySet().iterator());
-			for(int d=0;d<filenames.size();d++) {
-				String path=(String)filenames.get(d);
-				boolean found=((Boolean)filenameMap.get(path)).booleanValue();
+			for (String path : filenames) {
+				boolean found=filenameMap.get(path);
 				if(!found) {
 					if(!reportedOne) {
 						reportedOne=true;
@@ -617,9 +613,11 @@ final public class DistroGenerator extends Thread {
 						System.err.println("* but not found in the distribution template");
 						System.err.println("*************************************************************************");
 					}
-					if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) System.err.print("centos/5/i686,x86_64");
-					else if(osv==OperatingSystemVersion.CENTOS_5_DOM0_X86_64) System.err.print("centos/5.dom0/86_64");
-					else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) System.err.print("redhat/ES 4/x86_64");
+					if(osv == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) System.err.print("centos/5/i686,x86_64");
+					else if(osv == OperatingSystemVersion.CENTOS_5_DOM0_X86_64) System.err.print("centos/5.dom0/86_64");
+					else if(osv == OperatingSystemVersion.CENTOS_7_X86_64) System.err.print("centos/7/x86_64");
+					else if(osv == OperatingSystemVersion.CENTOS_7_DOM0_X86_64) System.err.print("centos/7.dom0/86_64");
+					else if(osv == OperatingSystemVersion.REDHAT_ES_4_X86_64) System.err.print("redhat/ES 4/x86_64");
 					else throw new RuntimeException("Unknown value for osv: "+osv);
 					System.err.println(path);
 					System.err.flush();
@@ -631,6 +629,8 @@ final public class DistroGenerator extends Thread {
 	private static String getOperatingSystemPath(int osv) {
 		if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) return root+"/centos/5/i686,x86_64";
 		if(osv==OperatingSystemVersion.CENTOS_5_DOM0_X86_64) return root+"/centos/5.dom0/x86_64";
+		if(osv==OperatingSystemVersion.CENTOS_7_X86_64) return root+"/centos/7/x86_64";
+		if(osv==OperatingSystemVersion.CENTOS_7_DOM0_X86_64) return root+"/centos/7.dom0/x86_64";
 		if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) return root+"/redhat/ES 4/x86_64";
 		else throw new RuntimeException("Unknown value for osv: "+osv);
 	}

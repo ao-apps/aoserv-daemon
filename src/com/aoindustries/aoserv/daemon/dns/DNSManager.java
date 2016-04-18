@@ -28,6 +28,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -114,8 +115,9 @@ final public class DNSManager extends BuilderThread {
 		"slaves"
 	};
 	private static String[] getStaticFiles(int osv) throws IllegalArgumentException {
-		if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) return mandrivaStaticFiles;
-		if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) return centos5StaticFiles;
+		if(osv == OperatingSystemVersion.MANDRIVA_2006_0_I586) return mandrivaStaticFiles;
+		if(osv == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) return centos5StaticFiles;
+		// TODO: CentOS 7: if(osv == OperatingSystemVersion.CENTOS_7_X86_64) return centos7StaticFiles;
 		throw new IllegalArgumentException("Unsupported OperatingSystemVersion: "+osv);
 	}
 
@@ -174,8 +176,8 @@ final public class DNSManager extends BuilderThread {
 						UnixFile realFile=new UnixFile(namedZoneDir, file, false);
 						Stat realFileStat = realFile.getStat();
 						if(
-							lastSerial==null
-							|| lastSerial.longValue()!=serial
+							lastSerial == null
+							|| lastSerial != serial
 							|| !realFileStat.exists()
 						) {
 							// Build to a memory buffer
@@ -202,7 +204,7 @@ final public class DNSManager extends BuilderThread {
 								needsRestart=true;
 							}
 
-							zoneSerials.put(zone, Long.valueOf(serial));
+							zoneSerials.put(zone, serial);
 						}
 						files.add(file);
 					}
@@ -441,7 +443,7 @@ final public class DNSManager extends BuilderThread {
 				 * Remove any files that should no longer be in /var/named
 				 */
 				String[] staticFiles = getStaticFiles(osv);
-				for(int c=0;c<staticFiles.length;c++) files.add(staticFiles[c]);
+				files.addAll(Arrays.asList(staticFiles));
 				FTPManager.trimFiles(namedZoneDir, files);
 			}
 			return true;
@@ -474,9 +476,10 @@ final public class DNSManager extends BuilderThread {
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-				&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+				&& osv != OperatingSystemVersion.REDHAT_ES_4_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(DNSManager.class)
 				&& dnsManager==null

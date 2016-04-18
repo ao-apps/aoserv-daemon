@@ -490,8 +490,9 @@ final public class MrtgManager extends BuilderThread {
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(MrtgManager.class)
 				&& mrtgManager==null
@@ -581,35 +582,41 @@ final public class MrtgManager extends BuilderThread {
 		if(devices.isEmpty()) return Collections.emptyList();
 		List<String> safeNames = new ArrayList<>(devices.size());
 		for(String device : devices) {
-			String safeName;
-			if(device.equals("/var/lib/pgsql.aes256.img")) {
-				safeName = "pgsqlaes256";
-			} else if(device.equals("/www.aes256.img")) {
-				safeName = "wwwaes256";
-			} else if(device.equals("/ao.aes256.img")) {
-				safeName = "aoaes256";
-			} else if(device.equals("/ao.copy.aes256.img")) {
-				safeName = "aocopyaes256";
-			} else if(device.equals("/dev/mapper/ao")) {
-				safeName = "aoluks";
-			} else {
-				if(device.startsWith("/dev/mapper/")) {
-					device = "mapper_" + device.substring(12).replace('-', '_');
-				} else if(device.startsWith("/dev/")) {
-					device = device.substring(5);
+			final String safeName;
+			switch (device) {
+				case "/var/lib/pgsql.aes256.img":
+					safeName = "pgsqlaes256";
+					break;
+				case "/www.aes256.img":
+					safeName = "wwwaes256";
+					break;
+				case "/ao.aes256.img":
+					safeName = "aoaes256";
+					break;
+				case "/ao.copy.aes256.img":
+					safeName = "aocopyaes256";
+					break;
+				case "/dev/mapper/ao":
+					safeName = "aoluks";
+					break;
+				default: {
+					if(device.startsWith("/dev/mapper/")) {
+						device = "mapper_" + device.substring(12).replace('-', '_');
+					} else if(device.startsWith("/dev/")) {
+						device = device.substring(5);
+					}	// All characters should now be a-z, A-Z, 0-9 or _
+					if(device.isEmpty()) throw new IOException("Empty device name: "+device);
+					for(int c = 0; c < device.length(); c++) {
+						char ch=device.charAt(c);
+						if(
+							(ch<'a' || ch>'z')
+							&& (ch<'A' || ch>'Z')
+							&& (ch<'0' || ch>'9')
+							&& ch != '_'
+						) throw new IOException("Invalid character in device.  ch="+ch+", device="+device);
+					}
+					safeName = device;
 				}
-				// All characters should now be a-z, A-Z, 0-9 or _
-				if(device.isEmpty()) throw new IOException("Empty device name: "+device);
-				for(int c = 0; c < device.length(); c++) {
-					char ch=device.charAt(c);
-					if(
-						(ch<'a' || ch>'z')
-						&& (ch<'A' || ch>'Z')
-						&& (ch<'0' || ch>'9')
-						&& ch != '_'
-					) throw new IOException("Invalid character in device.  ch="+ch+", device="+device);
-				}
-				safeName = device;
 			}
 			safeNames.add(safeName);
 		}

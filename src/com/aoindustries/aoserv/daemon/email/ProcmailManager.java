@@ -129,8 +129,7 @@ public final class ProcmailManager extends BuilderThread {
 							String spamAssassinMode = lsa.getEmailSpamAssassinIntegrationMode().getName();
 							// Build the file in RAM, first
 							ByteArrayOutputStream bout=new ByteArrayOutputStream(4096);
-							ChainWriter out=new ChainWriter(bout);
-							try {
+							try (ChainWriter out=new ChainWriter(bout)) {
 								out.print(AUTO_PROCMAILRC
 										  + "\n"
 										  + "# Setup the environment\n"
@@ -241,14 +240,14 @@ public final class ProcmailManager extends BuilderThread {
 									} else {
 										out.print("\n"
 												+ "  # Build the list of disallowed extensions\n");
-										for(int d=0;d<eabs.size();d++) {
-											String extension=eabs.get(d).getEmailAttachmentType().getExtension();
+										for (EmailAttachmentBlock eab : eabs) {
+											String extension = eab.getEmailAttachmentType().getExtension();
 											out.print("  :0\n"
-													+ "  *^Content-Type: (multipart/.*|application/octet-stream)\n"
-													+ "  * HB ?? ^Content-(Type|Disposition): .*;.*($.*)?name=(\")?.*\\.").print(extension).print("(\")?$\n"
+												+ "  *^Content-Type: (multipart/.*|application/octet-stream)\n"
+												+ "  * HB ?? ^Content-(Type|Disposition): .*;.*($.*)?name=(\")?.*\\.").print(extension).print("(\")?$\n"
 													+ "  {\n"
 													+ "    EXTENSIONS=\"$EXTENSIONS ").print(extension).print("\"\n"
-													+ "  }\n");
+														+ "  }\n");
 										}
 									}
 									// Fourth, send the response
@@ -403,9 +402,6 @@ public final class ProcmailManager extends BuilderThread {
 											  + ":0\n"
 											  + "/dev/null\n");
 								}
-							} finally {
-								// Close the file and move it into place
-								out.close();
 							}
 
 							// Write to disk if different than the copy on disk
@@ -487,8 +483,9 @@ public final class ProcmailManager extends BuilderThread {
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(ProcmailManager.class)
 				&& procmailManager==null

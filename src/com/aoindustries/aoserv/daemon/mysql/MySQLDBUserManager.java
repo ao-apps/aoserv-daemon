@@ -47,9 +47,10 @@ final public class MySQLDBUserManager extends BuilderThread {
 
 			int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
 			if(
-				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osv != OperatingSystemVersion.MANDRIVA_2006_0_I586
+				&& osv != OperatingSystemVersion.REDHAT_ES_4_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
 			synchronized(rebuildLock) {
@@ -63,16 +64,11 @@ final public class MySQLDBUserManager extends BuilderThread {
 					try {
 						// Get the list of all existing db entries
 						Set<String> existing = new HashSet<>();
-						Statement stmt = conn.createStatement();
-						try {
-							ResultSet results = stmt.executeQuery("select db, user from db");
-							try {
-								while (results.next()) existing.add(results.getString(1) + '|' + results.getString(2));
-							} finally {
-								results.close();
-							}
-						} finally {
-							stmt.close();
+						try (
+							Statement stmt = conn.createStatement();
+							ResultSet results = stmt.executeQuery("select db, user from db")
+						) {
+							while (results.next()) existing.add(results.getString(1) + '|' + results.getString(2));
 						}
 
 						// Get the list of all db entries that should exist
@@ -88,8 +84,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 							|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
 						) insertSQL="insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 						else throw new SQLException("Unsupported MySQL version: "+version);
-						PreparedStatement pstmt = conn.prepareStatement(insertSQL);
-						try {
+						try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
 							for(MySQLDBUser mdu : dbUsers) {
 								MySQLDatabase md = mdu.getMySQLDatabase();
 								String db=md.getName();
@@ -154,14 +149,11 @@ final public class MySQLDBUserManager extends BuilderThread {
 									modified = true;
 								}
 							}
-						} finally {
-							pstmt.close();
 						}
 
 						// Remove the extra db entries
 						if (!existing.isEmpty()) {
-							pstmt = conn.prepareStatement("delete from db where db=? and user=?");
-							try {
+							try (PreparedStatement pstmt = conn.prepareStatement("delete from db where db=? and user=?")) {
 								for (String key : existing) {
 									// Remove the extra db entry
 									int pos=key.indexOf('|');
@@ -171,8 +163,6 @@ final public class MySQLDBUserManager extends BuilderThread {
 
 									modified = true;
 								}
-							} finally {
-								pstmt.close();
 							}
 						}
 					} finally {
@@ -198,8 +188,9 @@ final public class MySQLDBUserManager extends BuilderThread {
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(MySQLDBUserManager.class)
 				&& mysqlDBUserManager==null

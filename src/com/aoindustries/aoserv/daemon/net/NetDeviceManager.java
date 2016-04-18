@@ -167,11 +167,8 @@ final public class NetDeviceManager extends BuilderThread {
 								}
 							} else {
 								UnixFile newFile=new UnixFile(netScriptDirectory, "ifcfg-"+deviceId+".new", false);
-								FileOutputStream newOut=newFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true);
-								try {
+								try (FileOutputStream newOut = newFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true)) {
 									newOut.write(newBytes);
-								} finally {
-									newOut.close();
 								}
 								newFile.renameTo(existing);
 							}
@@ -237,11 +234,8 @@ final public class NetDeviceManager extends BuilderThread {
 												}
 											} else {
 												UnixFile newCfgUF=new UnixFile(netScriptDirectory, filename+".new", false);
-												FileOutputStream newOut=newCfgUF.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true);
-												try {
+												try (FileOutputStream newOut = newCfgUF.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true)) {
 													newOut.write(newBytes);
-												} finally {
-													newOut.close();
 												}
 												newCfgUF.renameTo(cfgUF);
 											}
@@ -324,17 +318,14 @@ final public class NetDeviceManager extends BuilderThread {
 							System.err.println("--------------------------------------------------------------------------------");
 						}
 					} else {
-						FileOutputStream newOut=networkScriptNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0755, true);
-						try {
+						try (FileOutputStream newOut = networkScriptNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0755, true)) {
 							newOut.write(newBytes);
-						} finally {
-							newOut.close();
 						}
 						networkScriptNew.renameTo(networkScript);
 					}
 					// Restart all devices in this scenario
-					for(int c=0;c<devices.size();c++) {
-						NetDeviceID deviceId=devices.get(c).getNetDeviceID();
+					for (NetDevice device : devices) {
+						NetDeviceID deviceId = device.getNetDeviceID();
 						if(
 							// Don't build loopback
 							!deviceId.isLoopback()
@@ -435,8 +426,9 @@ final public class NetDeviceManager extends BuilderThread {
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(NetDeviceManager.class)
 				&& netDeviceManager==null
@@ -460,8 +452,9 @@ final public class NetDeviceManager extends BuilderThread {
 		File procFile;
 		int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
 		if(
-			osv==OperatingSystemVersion.CENTOS_5_DOM0_I686
-			|| osv==OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+			osv == OperatingSystemVersion.CENTOS_5_DOM0_I686
+			|| osv == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+			|| osv == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 		) {
 			// Xen adds a "p" to the name, try that first
 			procFile = new File("/proc/net/bonding/p"+netDevice.getNetDeviceID().getName());
@@ -472,12 +465,9 @@ final public class NetDeviceManager extends BuilderThread {
 		String report;
 		if(procFile.exists()) {
 			StringBuilder SB=new StringBuilder();
-			InputStream in=new BufferedInputStream(new FileInputStream(procFile));
-			try {
+			try (InputStream in = new BufferedInputStream(new FileInputStream(procFile))) {
 				int ch;
 				while((ch=in.read())!=-1) SB.append((char)ch);
-			} finally {
-				in.close();
 			}
 			report = SB.toString();
 		} else report="";
@@ -489,12 +479,9 @@ final public class NetDeviceManager extends BuilderThread {
 	 */
 	private static long readLongFile(File file, StringBuilder tempSB) throws IOException {
 		tempSB.setLength(0);
-		InputStream in=new BufferedInputStream(new FileInputStream(file));
-		try {
+		try (InputStream in = new BufferedInputStream(new FileInputStream(file))) {
 			int ch;
 			while((ch=in.read())!=-1) tempSB.append((char)ch);
-		} finally {
-			in.close();
 		}
 		return Long.parseLong(tempSB.toString().trim());
 	}
@@ -511,15 +498,15 @@ final public class NetDeviceManager extends BuilderThread {
 	 */
 	private static final Object _netDeviceStatisticsLock = new Object();
 	private static Thread _netDeviceStatisticsThread;
-	private static Map<NetDevice,Long> _lastTime = new HashMap<>();
-	private static Map<NetDevice,Long> _lastTxBytes = new HashMap<>();
-	private static Map<NetDevice,Long> _lastRxBytes = new HashMap<>();
-	private static Map<NetDevice,Long> _lastTxPackets = new HashMap<>();
-	private static Map<NetDevice,Long> _lastRxPackets = new HashMap<>();
-	private static Map<NetDevice,Long> _totalTxBytes = new HashMap<>();
-	private static Map<NetDevice,Long> _totalRxBytes = new HashMap<>();
-	private static Map<NetDevice,Long> _totalTxPackets = new HashMap<>();
-	private static Map<NetDevice,Long> _totalRxPackets = new HashMap<>();
+	private static final Map<NetDevice,Long> _lastTime = new HashMap<>();
+	private static final Map<NetDevice,Long> _lastTxBytes = new HashMap<>();
+	private static final Map<NetDevice,Long> _lastRxBytes = new HashMap<>();
+	private static final Map<NetDevice,Long> _lastTxPackets = new HashMap<>();
+	private static final Map<NetDevice,Long> _lastRxPackets = new HashMap<>();
+	private static final Map<NetDevice,Long> _totalTxBytes = new HashMap<>();
+	private static final Map<NetDevice,Long> _totalRxBytes = new HashMap<>();
+	private static final Map<NetDevice,Long> _totalTxPackets = new HashMap<>();
+	private static final Map<NetDevice,Long> _totalRxPackets = new HashMap<>();
 
 	private static final long MAX_GIGABIT_BIT_RATE = 2000000000L; // Allow twice gigabit speed before assuming counter reset
 	private static final long MAX_GIGABIT_PACKET_RATE = MAX_GIGABIT_BIT_RATE / (64 * 8); // Smallest packet is 64 octets
@@ -538,8 +525,9 @@ final public class NetDeviceManager extends BuilderThread {
 		int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
 		if(
 			(
-				osv==OperatingSystemVersion.CENTOS_5_DOM0_I686
-				|| osv==OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				osv == OperatingSystemVersion.CENTOS_5_DOM0_I686
+				|| osv == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				|| osv == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 			) && !netDevice.getNetDeviceID().getName().equals(NetDeviceID.LO)
 		) {
 			// Xen adds a "p" to the name or any device (except lo or non-xen devices)
@@ -740,10 +728,10 @@ final public class NetDeviceManager extends BuilderThread {
 				// Add the current system time so the bit rate calculations are unaffected by network latency
 				.append(_lastTime.get(netDevice)).append('\n')
 				// Add the counts
-				.append(totalTxBytes==null ? -1 : totalTxBytes.longValue()).append('\n')
-				.append(totalRxBytes==null ? -1 : totalRxBytes.longValue()).append('\n')
-				.append(totalTxPackets==null ? -1 : totalTxPackets.longValue()).append('\n')
-				.append(totalRxPackets==null ? -1 : totalRxPackets.longValue()).append('\n')
+				.append(totalTxBytes==null ? -1L : totalTxBytes).append('\n')
+				.append(totalRxBytes==null ? -1L : totalRxBytes).append('\n')
+				.append(totalTxPackets==null ? -1L : totalTxPackets).append('\n')
+				.append(totalRxPackets==null ? -1L : totalRxPackets).append('\n')
 			;
 		}
 		return tempSB.toString();
@@ -782,8 +770,7 @@ final public class NetDeviceManager extends BuilderThread {
 		for(int attempt=1; attempt<=numAttempts; attempt++) {
 			int sourcePort = getNextPrivilegedPort();
 			try {
-				Socket socket=new Socket();
-				try {
+				try (Socket socket = new Socket()) {
 					socket.setKeepAlive(true);
 					socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
 					//socket.setTcpNoDelay(true);
@@ -791,24 +778,17 @@ final public class NetDeviceManager extends BuilderThread {
 					socket.bind(new InetSocketAddress(sourceIp, sourcePort));
 					socket.connect(new InetSocketAddress(connectIp, 25), 60*1000);
 
-					PrintWriter out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), charset));
-					try {
-						BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), charset));
-						try {
-							// Status line
-							String line = in.readLine();
-							if(line==null) throw new EOFException("End of file reading status");
-							out.println("QUIT");
-							out.flush();
-							return line;
-						} finally {
-							in.close();
-						}
-					} finally {
-						out.close();
+					try (
+						PrintWriter out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), charset));
+						BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), charset))
+					) {
+						// Status line
+						String line = in.readLine();
+						if(line==null) throw new EOFException("End of file reading status");
+						out.println("QUIT");
+						out.flush();
+						return line;
 					}
-				} finally {
-					socket.close();
 				}
 			} catch(IOException err) {
 				// TODO: Catch specific exception for local port in use

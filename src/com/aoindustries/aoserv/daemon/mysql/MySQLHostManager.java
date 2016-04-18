@@ -46,9 +46,10 @@ final public class MySQLHostManager extends BuilderThread {
 
 			int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
 			if(
-				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osv != OperatingSystemVersion.MANDRIVA_2006_0_I586
+				&& osv != OperatingSystemVersion.REDHAT_ES_4_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
 			synchronized (rebuildLock) {
@@ -63,16 +64,11 @@ final public class MySQLHostManager extends BuilderThread {
 						try {
 							// Get the list of all existing hosts
 							Set<String> existing = new HashSet<>();
-							Statement stmt = conn.createStatement();
-							try {
-								ResultSet results = stmt.executeQuery("select host from host");
-								try {
-									while (results.next()) existing.add(results.getString(1));
-								} finally {
-									results.close();
-								}
-							} finally {
-								stmt.close();
+							try (
+								Statement stmt = conn.createStatement();
+								ResultSet results = stmt.executeQuery("select host from host")
+							) {
+								while (results.next()) existing.add(results.getString(1));
 							}
 
 							// Get the list of all hosts that should exist
@@ -100,8 +96,7 @@ final public class MySQLHostManager extends BuilderThread {
 							else if(version.startsWith(MySQLServer.VERSION_5_1_PREFIX)) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
 							else throw new SQLException("Unsupported MySQL version: "+version);
 
-							PreparedStatement pstmt = conn.prepareStatement(insertSQL);
-							try {
+							try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
 								for (String hostname : hosts) {
 									if (existing.contains(hostname)) existing.remove(hostname);
 									else {
@@ -112,14 +107,11 @@ final public class MySQLHostManager extends BuilderThread {
 										modified = true;
 									}
 								}
-							} finally {
-								pstmt.close();
 							}
 
 							// Remove the extra hosts
 							if (!existing.isEmpty()) {
-								pstmt = conn.prepareStatement("delete from host where host=?");
-								try {
+								try (PreparedStatement pstmt = conn.prepareStatement("delete from host where host=?")) {
 									for (String dbName : existing) {
 										// Remove the extra host entry
 										pstmt.setString(1, dbName);
@@ -127,8 +119,6 @@ final public class MySQLHostManager extends BuilderThread {
 
 										modified = true;
 									}
-								} finally {
-									pstmt.close();
 								}
 							}
 						} finally {
@@ -155,8 +145,9 @@ final public class MySQLHostManager extends BuilderThread {
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(MySQLHostManager.class)
 				&& mysqlHostManager==null

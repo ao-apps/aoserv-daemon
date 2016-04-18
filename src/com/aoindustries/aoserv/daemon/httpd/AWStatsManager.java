@@ -326,16 +326,13 @@ final public class AWStatsManager extends BuilderThread {
 					UnixFile configFile=new UnixFile(configDirectory, configFilename);
 					Stat configFileStat = configFile.getStat();
 					if(!configFileStat.exists() || !configFile.contentEquals(newFileContent)) {
-						OutputStream fileOut=configFile.getSecureOutputStream(
+						try (OutputStream fileOut = configFile.getSecureOutputStream(
 							UnixFile.ROOT_UID,
 							awstatsGID,
 							0640,
 							true
-						);
-						try {
+						)) {
 							fileOut.write(newFileContent);
-						} finally {
-							fileOut.close();
 						}
 					} else {
 						if(configFileStat.getMode()!=0640) configFile.setMode(0640);
@@ -404,16 +401,13 @@ final public class AWStatsManager extends BuilderThread {
 					UnixFile logviewFile=new UnixFile(hostDirectory, "logview.sh", false);
 					Stat logviewStat = logviewFile.getStat();
 					if(!logviewStat.exists() || !logviewFile.contentEquals(newFileContent)) {
-						OutputStream fileOut=logviewFile.getSecureOutputStream(
+						try (OutputStream fileOut = logviewFile.getSecureOutputStream(
 							UnixFile.ROOT_UID,
 							awstatsGID,
 							0750,
 							true
-						);
-						try {
+						)) {
 							fileOut.write(newFileContent);
-						} finally {
-							fileOut.close();
 						}
 					} else {
 						if(logviewStat.getMode()!=0750) logviewFile.setMode(0750);
@@ -465,16 +459,13 @@ final public class AWStatsManager extends BuilderThread {
 					UnixFile runascgiFile=new UnixFile(hostDirectory, "runascgi.sh", false);
 					Stat runascgiStat = runascgiFile.getStat();
 					if(!runascgiStat.exists() || !runascgiFile.contentEquals(newFileContent)) {
-						OutputStream fileOut=runascgiFile.getSecureOutputStream(
+						try (OutputStream fileOut = runascgiFile.getSecureOutputStream(
 							UnixFile.ROOT_UID,
 							awstatsGID,
 							0750,
 							true
-						);
-						try {
+						)) {
 							fileOut.write(newFileContent);
-						} finally {
-							fileOut.close();
 						}
 					} else {
 						if(runascgiStat.getMode()!=0750) runascgiFile.setMode(0750);
@@ -496,16 +487,13 @@ final public class AWStatsManager extends BuilderThread {
 					UnixFile updateFile=new UnixFile(hostDirectory, "update.sh", false);
 					Stat updateStat = updateFile.getStat();
 					if(!updateStat.exists() || !updateFile.contentEquals(newFileContent)) {
-						OutputStream fileOut=updateFile.getSecureOutputStream(
+						try (OutputStream fileOut = updateFile.getSecureOutputStream(
 							UnixFile.ROOT_UID,
 							awstatsGID,
 							0750,
 							true
-						);
-						try {
+						)) {
 							fileOut.write(newFileContent);
-						} finally {
-							fileOut.close();
 						}
 					} else {
 						if(updateStat.getMode()!=0750) updateFile.setMode(0750);
@@ -556,8 +544,9 @@ final public class AWStatsManager extends BuilderThread {
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(AWStatsManager.class)
 				&& awstatsManager==null
@@ -598,7 +587,7 @@ final public class AWStatsManager extends BuilderThread {
 			// Check the queryStrings
 			String escapedSiteName=StringUtility.replace(siteName, '.', "\\.");
 			if(
-				queryString.equals("")
+				queryString.isEmpty()
 				|| queryString.equals("framename=mainright")
 				|| queryString.equals("framename=mainleft")
 				|| queryString.matches("^framename=mainright&output=\\w*$")
@@ -631,8 +620,7 @@ final public class AWStatsManager extends BuilderThread {
 				Process P = Runtime.getRuntime().exec(cmd);
 				try {
 					P.getOutputStream().close();
-					BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
-					try {
+					try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
 						// Skip the headers
 						String line;
 						while((line=in.readLine())!=null && line.length()>0) {
@@ -659,8 +647,6 @@ final public class AWStatsManager extends BuilderThread {
 						} finally {
 							BufferManager.release(buff, false);
 						}
-					} finally {
-						in.close();
 					}
 				} finally {
 					// Wait for the process to complete
@@ -675,11 +661,10 @@ final public class AWStatsManager extends BuilderThread {
 				throw new IOException("Unsupported queryString for awstats.pl: "+queryString);
 			}
 		} else {
-			if(path.startsWith("icon/") && path.indexOf("..")==-1) {
+			if(path.startsWith("icon/") && !path.contains("..")) {
 				final File iconDirectory = new File(osConfig.getAwstatsIconDirectory());
 				File file=new File(iconDirectory, path.substring(5));
-				FileInputStream in=new FileInputStream(file);
-				try {
+				try (FileInputStream in = new FileInputStream(file)) {
 					byte[] buff=BufferManager.getBytes();
 					try {
 						int ret;
@@ -691,8 +676,6 @@ final public class AWStatsManager extends BuilderThread {
 					} finally {
 						BufferManager.release(buff, false);
 					}
-				} finally {
-					in.close();
 				}
 			} else throw new IOException("Unsupported path: "+path);
 		}

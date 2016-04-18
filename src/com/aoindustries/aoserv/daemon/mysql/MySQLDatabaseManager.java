@@ -8,7 +8,6 @@ package com.aoindustries.aoserv.daemon.mysql;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.MySQLDatabase;
-import com.aoindustries.aoserv.client.MySQLDatabase.CheckTableResult;
 import com.aoindustries.aoserv.client.MySQLServer;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -37,7 +36,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -63,9 +61,10 @@ final public class MySQLDatabaseManager extends BuilderThread {
 
 			int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
 			if(
-				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osv != OperatingSystemVersion.MANDRIVA_2006_0_I586
+				&& osv != OperatingSystemVersion.REDHAT_ES_4_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
 			synchronized(rebuildLock) {
@@ -147,12 +146,13 @@ final public class MySQLDatabaseManager extends BuilderThread {
 			MySQLServer ms=md.getMySQLServer();
 			String path;
 			if(
-				osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+				osv == OperatingSystemVersion.MANDRIVA_2006_0_I586
 			) {
 				path="/usr/aoserv/daemon/bin/dump_mysql_database";
 			} else if(
-				osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
-				|| osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osv == OperatingSystemVersion.REDHAT_ES_4_X86_64
+				|| osv == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				|| osv == OperatingSystemVersion.CENTOS_7_X86_64
 			) {
 				path="/opt/aoserv-daemon/bin/dump_mysql_database";
 			} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
@@ -189,8 +189,9 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(MySQLDatabaseManager.class)
 				&& mysqlDatabaseManager==null
@@ -244,11 +245,12 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	public static Connection getMySQLConnection(String failoverRoot, int nestedOperatingSystemVersion, int port) throws IOException, SQLException {
 		// Load the properties from the failover image
 		File file;
-		if(nestedOperatingSystemVersion==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+		if(nestedOperatingSystemVersion == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 			file = new File(failoverRoot+"/etc/aoserv/daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
 		} else if(
-			nestedOperatingSystemVersion==OperatingSystemVersion.REDHAT_ES_4_X86_64
-			|| nestedOperatingSystemVersion==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			nestedOperatingSystemVersion == OperatingSystemVersion.REDHAT_ES_4_X86_64
+			|| nestedOperatingSystemVersion == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			|| nestedOperatingSystemVersion == OperatingSystemVersion.CENTOS_7_X86_64
 		) {
 			file = new File(failoverRoot+"/etc/opt/aoserv-daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
 		} else throw new SQLException("Unsupport OperatingSystemVersion: "+nestedOperatingSystemVersion);
@@ -460,76 +462,67 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		final List<String> tableNames,
 		CompressedDataOutputStream out
 	) throws IOException, SQLException {
-		Future<List<MySQLDatabase.CheckTableResult>> future = AOServDaemon.executorService.submit(
-			new Callable<List<MySQLDatabase.CheckTableResult>>() {
-				@Override
-				public List<CheckTableResult> call() throws Exception {
-					List<MySQLDatabase.CheckTableResult> allTableResults = new ArrayList<>();
-					for(final String tableName : tableNames) {
-						if(!MySQLDatabase.isSafeName(tableName)) {
-							allTableResults.add(
-								new MySQLDatabase.CheckTableResult(
-									tableName,
-									0,
-									MySQLDatabase.CheckTableResult.MsgType.error,
-									"Unsafe table name, refusing to check table"
-								)
-							);
-						} else {
-							try {
-								allTableResults.addAll(
-									checkTableLimiter.executeSerialized(
-										new CheckTableConcurrencyKey(
-											failoverRoot,
-											port,
-											databaseName,
-											tableName
-										),
-										new Callable<List<MySQLDatabase.CheckTableResult>>() {
-											@Override
-											public List<MySQLDatabase.CheckTableResult> call() throws Exception {
-												final String dbNamePrefix = databaseName+'.';
-												final long startTime = System.currentTimeMillis();
-												try (
-													Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, port);
-													Statement stmt = conn.createStatement();
-													ResultSet results = stmt.executeQuery("CHECK TABLE `"+databaseName+"`.`"+tableName+"` FAST QUICK")
-												) {
-													long duration = System.currentTimeMillis() - startTime;
-													if(duration<0) duration = 0; // System time possibly reset
-													final List<MySQLDatabase.CheckTableResult> tableResults = new ArrayList<>();
-													while(results.next()) {
-														try {
-															String table = results.getString("Table");
-															if(table.startsWith(dbNamePrefix)) table = table.substring(dbNamePrefix.length());
-															final String msgType = results.getString("Msg_type");
-															tableResults.add(
-																new MySQLDatabase.CheckTableResult(
-																	table,
-																	duration,
-																	msgType==null ? null : MySQLDatabase.CheckTableResult.MsgType.valueOf(msgType),
-																	results.getString("Msg_text")
-																)
-															);
-														} catch(IllegalArgumentException err) {
-															throw new IOException(err);
-														}
-													}
-													return tableResults;
-												}
+		Future<List<MySQLDatabase.CheckTableResult>> future = AOServDaemon.executorService.submit(() -> {
+			List<MySQLDatabase.CheckTableResult> allTableResults = new ArrayList<>();
+			for(final String tableName : tableNames) {
+				if(!MySQLDatabase.isSafeName(tableName)) {
+					allTableResults.add(
+						new MySQLDatabase.CheckTableResult(
+							tableName,
+							0,
+							MySQLDatabase.CheckTableResult.MsgType.error,
+							"Unsafe table name, refusing to check table"
+						)
+					);
+				} else {
+					try {
+						allTableResults.addAll(
+							checkTableLimiter.executeSerialized(new CheckTableConcurrencyKey(
+									failoverRoot,
+									port,
+									databaseName,
+									tableName
+								),
+								() -> {
+									final String dbNamePrefix = databaseName+'.';
+									final long startTime = System.currentTimeMillis();
+									try (
+										Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, port);
+										Statement stmt = conn.createStatement();
+										ResultSet results = stmt.executeQuery("CHECK TABLE `"+databaseName+"`.`"+tableName+"` FAST QUICK")
+										) {
+										long duration = System.currentTimeMillis() - startTime;
+										if(duration<0) duration = 0; // System time possibly reset
+										final List<MySQLDatabase.CheckTableResult> tableResults = new ArrayList<>();
+										while(results.next()) {
+											try {
+												String table = results.getString("Table");
+												if(table.startsWith(dbNamePrefix)) table = table.substring(dbNamePrefix.length());
+												final String msgType = results.getString("Msg_type");
+												tableResults.add(
+													new MySQLDatabase.CheckTableResult(
+														table,
+														duration,
+														msgType==null ? null : MySQLDatabase.CheckTableResult.MsgType.valueOf(msgType),
+														results.getString("Msg_text")
+													)
+												);
+											} catch(IllegalArgumentException err) {
+												throw new IOException(err);
 											}
 										}
-									)
-								);
-							} catch(InterruptedException | ExecutionException e) {
-								throw new SQLException(e);
-							}
-						}
+										return tableResults;
+									}
+								}
+							)
+						);
+					} catch(InterruptedException | ExecutionException e) {
+						throw new SQLException(e);
 					}
-					return allTableResults;
 				}
 			}
-		);
+			return allTableResults;
+		});
 		try {
 			List<MySQLDatabase.CheckTableResult> allTableResults = future.get(60, TimeUnit.SECONDS);
 			out.write(AOServDaemonProtocol.NEXT);

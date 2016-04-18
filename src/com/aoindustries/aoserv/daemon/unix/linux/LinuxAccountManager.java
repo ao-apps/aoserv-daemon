@@ -282,8 +282,7 @@ public class LinuxAccountManager extends BuilderThread {
 				 */
 				LinuxServerGroup mailGroup=connector.getLinuxGroups().get(LinuxGroup.MAIL).getLinuxServerGroup(aoServer);
 				if(mailGroup==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+aoServer.getHostname());
-				for (int c = 0; c < accounts.size(); c++) {
-					LinuxServerAccount account = accounts.get(c);
+				for (LinuxServerAccount account : accounts) {
 					LinuxAccount linuxAccount = account.getLinuxAccount();
 					if(linuxAccount.getType().isEmail()) {
 						String username=linuxAccount.getUsername().getUsername();
@@ -442,8 +441,7 @@ public class LinuxAccountManager extends BuilderThread {
 			}
 
 			// Disable and enable accounts
-			for(int c=0;c<accounts.size();c++) {
-				LinuxServerAccount lsa=accounts.get(c);
+			for (LinuxServerAccount lsa : accounts) {
 				String prePassword=lsa.getPredisablePassword();
 				if(!lsa.isDisabled()) {
 					if(prePassword!=null) {
@@ -497,9 +495,10 @@ public class LinuxAccountManager extends BuilderThread {
 									) {
 										// Also must not be in a nested server
 										boolean found=false;
-										for(int d=0;d<nestedServers.size();d++) {
+										for (AOServer nestedServer : nestedServers) {
+											lsa = nestedServer.getLinuxServerAccount(uid);
 											if(
-												(lsa=nestedServers.get(d).getLinuxServerAccount(uid))!=null
+												lsa!=null
 												&& !lsa.isDisabled()
 											) {
 												found=true;
@@ -554,12 +553,9 @@ public class LinuxAccountManager extends BuilderThread {
 		String content;
 		if(file.getStat().exists()) {
 			StringBuilder SB=new StringBuilder();
-			InputStream in=new BufferedInputStream(file.getSecureInputStream());
-			try {
+			try (InputStream in = new BufferedInputStream(file.getSecureInputStream())) {
 				int ch;
 				while((ch=in.read())!=-1) SB.append((char)ch);
-			} finally {
-				in.close();
 			}
 			content=SB.toString();
 		} else content="";
@@ -571,12 +567,9 @@ public class LinuxAccountManager extends BuilderThread {
 		String cronTable;
 		if(cronFile.exists()) {
 			StringBuilder SB=new StringBuilder();
-			InputStream in=new BufferedInputStream(new FileInputStream(cronFile));
-			try {
+			try (InputStream in = new BufferedInputStream(new FileInputStream(cronFile))) {
 				int ch;
 				while((ch=in.read())!=-1) SB.append((char)ch);
-			} finally {
-				in.close();
 			}
 			cronTable=SB.toString();
 		} else cronTable="";
@@ -704,25 +697,25 @@ public class LinuxAccountManager extends BuilderThread {
 
 		// Make sure the file exists
 		if(profileFile.getStat().exists()) {
-			// Read the old file, looking for the source in the file
-			BufferedReader in=new BufferedReader(new InputStreamReader(profileFile.getSecureInputStream()));
-			String line;
-
 			boolean found=false;
-			while((line=in.readLine())!=null) {
-				if(line.equals(profileLine)) {
-					found=true;
-					break;
+			// Read the old file, looking for the source in the file
+			try (BufferedReader in=new BufferedReader(new InputStreamReader(profileFile.getSecureInputStream()))) {
+				String line;
+
+				while((line=in.readLine())!=null) {
+					if(line.equals(profileLine)) {
+						found=true;
+						break;
+					}
 				}
 			}
-			in.close();
 			if(!found) {
-				RandomAccessFile out=profileFile.getSecureRandomAccessFile("rw");
-				out.seek(out.length());
-				out.write('\n');
-				out.writeBytes(profileLine);
-				out.write('\n');
-				out.close();
+				try (RandomAccessFile out=profileFile.getSecureRandomAccessFile("rw")) {
+					out.seek(out.length());
+					out.write('\n');
+					out.writeBytes(profileLine);
+					out.write('\n');
+				}
 			}
 		}
 	}
@@ -747,24 +740,25 @@ public class LinuxAccountManager extends BuilderThread {
 	}
 
 	public static void setCronTable(String username, String cronTable) throws IOException, SQLException {
-		int len=cronTable.length();
 		File cronFile=new File(cronDirectory, username);
 		synchronized(rebuildLock) {
-			if(cronTable.length()==0) {
+			if(cronTable.isEmpty()) {
 				if(cronFile.exists()) FileUtils.delete(cronFile);
 			} else {
-				PrintWriter out=new PrintWriter(
-					new BufferedOutputStream(
-						new UnixFile(cronFile).getSecureOutputStream(
-							UnixFile.ROOT_UID,
-							AOServDaemon.getThisAOServer().getLinuxServerAccount(username).getPrimaryLinuxServerGroup().getGid().getID(),
-							0600,
-							true
+				try (
+					PrintWriter out = new PrintWriter(
+						new BufferedOutputStream(
+							new UnixFile(cronFile).getSecureOutputStream(
+								UnixFile.ROOT_UID,
+								AOServDaemon.getThisAOServer().getLinuxServerAccount(username).getPrimaryLinuxServerGroup().getGid().getID(),
+								0600,
+								true
+							)
 						)
 					)
-				);
-				out.print(cronTable);
-				out.close();
+				) {
+					out.print(cronTable);
+				}
 			}
 		}
 	}
@@ -791,8 +785,9 @@ public class LinuxAccountManager extends BuilderThread {
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(LinuxAccountManager.class)
 				&& linuxAccountManager==null
@@ -825,19 +820,19 @@ public class LinuxAccountManager extends BuilderThread {
 				"."
 			};
 			AOServDaemon.exec(cmd);
-			InputStream in=new FileInputStream(tempUF.getFile());
-			byte[] buff=BufferManager.getBytes();
-			try {
-				int ret;
-				while((ret=in.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
-					out.writeByte(AOServDaemonProtocol.NEXT);
-					out.writeShort(ret);
-					out.write(buff, 0, ret);
+			try (InputStream in=new FileInputStream(tempUF.getFile())) {
+				byte[] buff=BufferManager.getBytes();
+				try {
+					int ret;
+					while((ret=in.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
+						out.writeByte(AOServDaemonProtocol.NEXT);
+						out.writeShort(ret);
+						out.write(buff, 0, ret);
+					}
+				} finally {
+					BufferManager.release(buff, false);
 				}
-			} finally {
-				BufferManager.release(buff, false);
 			}
-			in.close();
 		} finally {
 			tempUF.delete();
 		}
@@ -849,19 +844,19 @@ public class LinuxAccountManager extends BuilderThread {
 			String home=lsa.getHome();
 			UnixFile tempUF=UnixFile.mktemp("/tmp/untar_home_directory.tar.", true);
 			try {
-				OutputStream out=tempUF.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true);
 				int code;
-				byte[] buff=BufferManager.getBytes();
-				try {
-					while((code=in.readByte())==AOServDaemonProtocol.NEXT) {
-						int len=in.readShort();
-						in.readFully(buff, 0, len);
-						out.write(buff, 0, len);
+				try (OutputStream out=tempUF.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true)) {
+					byte[] buff=BufferManager.getBytes();
+					try {
+						while((code=in.readByte())==AOServDaemonProtocol.NEXT) {
+							int len=in.readShort();
+							in.readFully(buff, 0, len);
+							out.write(buff, 0, len);
+						}
+					} finally {
+						BufferManager.release(buff, false);
 					}
-				} finally {
-					BufferManager.release(buff, false);
 				}
-				out.close();
 				if(code!=AOServDaemonProtocol.DONE) {
 					if(code==AOServDaemonProtocol.IO_EXCEPTION) throw new IOException(in.readUTF());
 					else if(code==AOServDaemonProtocol.SQL_EXCEPTION) throw new SQLException(in.readUTF());
@@ -902,9 +897,7 @@ public class LinuxAccountManager extends BuilderThread {
 	public static void main(String[] args) {
 		try {
 			rebuildLinuxAccountSettings();
-		} catch(IOException err) {
-			ErrorPrinter.printStackTraces(err);
-		} catch(SQLException err) {
+		} catch(RuntimeException | IOException | SQLException err) {
 			ErrorPrinter.printStackTraces(err);
 		}
 	}

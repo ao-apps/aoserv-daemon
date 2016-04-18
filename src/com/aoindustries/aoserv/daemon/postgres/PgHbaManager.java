@@ -53,9 +53,10 @@ public final class PgHbaManager extends BuilderThread {
 
 			int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
 			if(
-				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osv != OperatingSystemVersion.MANDRIVA_2006_0_I586
+				&& osv != OperatingSystemVersion.REDHAT_ES_4_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
 			synchronized(rebuildLock) {
@@ -128,8 +129,6 @@ public final class PgHbaManager extends BuilderThread {
 							version.startsWith(PostgresVersion.VERSION_8_1+'.')
 							|| version.startsWith(PostgresVersion.VERSION_8_3+'.')
 							|| version.startsWith(PostgresVersion.VERSION_8_3+'R')
-							|| version.startsWith(PostgresVersion.VERSION_9_4+'.')
-							|| version.startsWith(PostgresVersion.VERSION_9_4+'R')
 						) {
 							List<PostgresServerUser> users=ps.getPostgresServerUsers();
 							for(PostgresDatabase db : ps.getPostgresDatabases()) {
@@ -225,6 +224,104 @@ public final class PgHbaManager extends BuilderThread {
 								}
 								out.print(" 0.0.0.0 0.0.0.0 md5\n");
 							}
+						} else if(
+							version.startsWith(PostgresVersion.VERSION_9_4+'.')
+							|| version.startsWith(PostgresVersion.VERSION_9_4+'R')
+						) {
+							List<PostgresServerUser> users=ps.getPostgresServerUsers();
+							for(PostgresDatabase db : ps.getPostgresDatabases()) {
+								// peer used from local
+								out.print("local ").print(db.getName()).print(' ');
+								boolean didOne=false;
+								for(PostgresServerUser psu : users) {
+									Username un=psu.getPostgresUser().getUsername();
+
+									if(
+										// Allow postgres to all databases
+										un.getUsername().equals(PostgresUser.POSTGRES)
+
+										// Allow database admin
+										|| psu.equals(db.getDatDBA())
+
+										// Allow in same business
+										|| un.getPackage().getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness())
+									) {
+										if(didOne) out.print(',');
+										else didOne=true;
+										out.print(un.getUsername());
+									}
+								}
+								out.print(" peer\n");
+
+								// ident used from 127.0.0.1
+								out.print("host ").print(db.getName()).print(' ');
+								didOne=false;
+								for(PostgresServerUser psu : users) {
+									Username un=psu.getPostgresUser().getUsername();
+
+									if(
+										// Allow postgres to all databases
+										un.getUsername().equals(PostgresUser.POSTGRES)
+
+										// Allow database admin
+										|| psu.equals(db.getDatDBA())
+
+										// Allow in same business
+										|| un.getPackage().getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness())
+									) {
+										if(didOne) out.print(',');
+										else didOne=true;
+										out.print(un.getUsername());
+									}
+								}
+								out.print(" 127.0.0.1/32 ident\n");
+
+								// ident used from ::1/128
+								out.print("host ").print(db.getName()).print(' ');
+								didOne=false;
+								for(PostgresServerUser psu : users) {
+									Username un=psu.getPostgresUser().getUsername();
+
+									if(
+										// Allow postgres to all databases
+										un.getUsername().equals(PostgresUser.POSTGRES)
+
+										// Allow database admin
+										|| psu.equals(db.getDatDBA())
+
+										// Allow in same business
+										|| un.getPackage().getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness())
+									) {
+										if(didOne) out.print(',');
+										else didOne=true;
+										out.print(un.getUsername());
+									}
+								}
+								out.print(" ::1/128 ident\n");
+
+								// md5 used for other connections
+								out.print("host ").print(db.getName()).print(' ');
+								didOne=false;
+								for(PostgresServerUser psu : users) {
+									Username un=psu.getPostgresUser().getUsername();
+
+									if(
+										// Allow postgres to all databases
+										un.getUsername().equals(PostgresUser.POSTGRES)
+
+										// Allow database admin
+										|| psu.equals(db.getDatDBA())
+
+										// Allow in same business
+										|| un.getPackage().getBusiness().equals(db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness())
+									) {
+										if(didOne) out.print(',');
+										else didOne=true;
+										out.print(un.getUsername());
+									}
+								}
+								out.print(" 0.0.0.0 0.0.0.0 md5\n");
+							}
 						} else throw new RuntimeException("Unexpected version of PostgreSQL: "+version);
 					} finally {
 						out.flush();
@@ -267,8 +364,9 @@ public final class PgHbaManager extends BuilderThread {
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(PgHbaManager.class)
 				&& pgHbaManager==null

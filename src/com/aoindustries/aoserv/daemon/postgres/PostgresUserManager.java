@@ -57,9 +57,10 @@ final public class PostgresUserManager extends BuilderThread {
 
 			int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
 			if(
-				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osv != OperatingSystemVersion.MANDRIVA_2006_0_I586
+				&& osv != OperatingSystemVersion.REDHAT_ES_4_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
 			synchronized (rebuildLock) {
@@ -274,25 +275,24 @@ final public class PostgresUserManager extends BuilderThread {
 		AOConnectionPool pool=PostgresServerManager.getPool(ps);
 		Connection conn=pool.getConnection(true);
 		try {
-			PreparedStatement pstmt=conn.prepareStatement(
+			try (PreparedStatement pstmt = conn.prepareStatement(
 				version.startsWith(PostgresVersion.VERSION_7_1+'.')
 				|| version.startsWith(PostgresVersion.VERSION_7_2+'.')
 				|| version.startsWith(PostgresVersion.VERSION_7_3+'.')
 				|| version.startsWith(PostgresVersion.VERSION_8_0+'.')
 				? "select passwd from pg_shadow where usename=?"
 				: "select rolpassword from pg_authid where rolname=?"
-			);
-			try {
-				pstmt.setString(1, psu.getPostgresUser().getUsername().getUsername());
-				try (ResultSet result = pstmt.executeQuery()) {
-					if(result.next()) {
-						return result.getString(1);
-					} else throw new SQLException("No rows returned.");
+			)) {
+				try {
+					pstmt.setString(1, psu.getPostgresUser().getUsername().getUsername());
+					try (ResultSet result = pstmt.executeQuery()) {
+						if(result.next()) {
+							return result.getString(1);
+						} else throw new SQLException("No rows returned.");
+					}
+				} catch(SQLException err) {
+					throw new WrappedSQLException(err, pstmt);
 				}
-			} catch(SQLException err) {
-				throw new WrappedSQLException(err, pstmt);
-			} finally {
-				pstmt.close();
 			}
 		} finally {
 			pool.releaseConnection(conn);
@@ -322,14 +322,13 @@ final public class PostgresUserManager extends BuilderThread {
 					}
 				} else {
 					// Reset the password
-					PreparedStatement pstmt = conn.prepareStatement("alter user " + username + " with password ?");
-					try {
-						pstmt.setString(1, password);
-						pstmt.executeUpdate();
-					} catch(SQLException err) {
-						throw new WrappedSQLException(err, pstmt);
-					} finally {
-						pstmt.close();
+					try (PreparedStatement pstmt = conn.prepareStatement("alter user " + username + " with password ?")) {
+						try {
+							pstmt.setString(1, password);
+							pstmt.executeUpdate();
+						} catch(SQLException err) {
+							throw new WrappedSQLException(err, pstmt);
+						}
 					}
 				}
 			} else if(version.startsWith(PostgresVersion.VERSION_7_2+'.') || version.startsWith(PostgresVersion.VERSION_7_3+'.')) {
@@ -346,14 +345,13 @@ final public class PostgresUserManager extends BuilderThread {
 					}
 				} else {
 					// Reset the password
-					PreparedStatement pstmt = conn.prepareStatement("alter user " + username + " with unencrypted password ?");
-					try {
-						pstmt.setString(1, password);
-						pstmt.executeUpdate();
-					} catch(SQLException err) {
-						throw new WrappedSQLException(err, pstmt);
-					} finally {
-						pstmt.close();
+					try (PreparedStatement pstmt = conn.prepareStatement("alter user " + username + " with unencrypted password ?")) {
+						try {
+							pstmt.setString(1, password);
+							pstmt.executeUpdate();
+						} catch(SQLException err) {
+							throw new WrappedSQLException(err, pstmt);
+						}
 					}
 				}
 			} else if(
@@ -365,39 +363,36 @@ final public class PostgresUserManager extends BuilderThread {
 			) {
 				if(ObjectUtils.equals(password, PostgresUser.NO_PASSWORD)) {
 					// Remove the password
-					Statement stmt = conn.createStatement();
-					String sqlString = "alter role " + username + " with unencrypted password '"+PostgresUser.NO_PASSWORD_DB_VALUE+'\'';
-					try {
-						stmt.executeUpdate(sqlString);
-					} catch(SQLException err) {
-						throw new WrappedSQLException(err, sqlString);
-					} finally {
-						stmt.close();
+					try (Statement stmt = conn.createStatement()) {
+						String sqlString = "alter role " + username + " with unencrypted password '"+PostgresUser.NO_PASSWORD_DB_VALUE+'\'';
+						try {
+							stmt.executeUpdate(sqlString);
+						} catch(SQLException err) {
+							throw new WrappedSQLException(err, sqlString);
+						}
 					}
 				} else {
 					// TODO: Find a way to use PreparedStatement here for PostgreSQL 8.1 and PostgreSQL 8.3
 					checkPasswordChars(password);
 					if(forceUnencrypted) {
 						// Reset the password (unencrypted)
-						Statement stmt = conn.createStatement();
-						String sqlString = "alter role " + username + " with unencrypted password '"+password+'\'';
-						try {
-							stmt.executeUpdate(sqlString);
-						} catch(SQLException err) {
-							throw new WrappedSQLException(err, sqlString);
-						} finally {
-							stmt.close();
+						try (Statement stmt = conn.createStatement()) {
+							String sqlString = "alter role " + username + " with unencrypted password '"+password+'\'';
+							try {
+								stmt.executeUpdate(sqlString);
+							} catch(SQLException err) {
+								throw new WrappedSQLException(err, sqlString);
+							}
 						}
 					} else {
 						// Reset the password (encrypted)
-						Statement stmt = conn.createStatement();
-						String sqlString = "alter role " + username + " with password '"+password+'\'';
-						try {
-							stmt.executeUpdate(sqlString);
-						} catch(SQLException err) {
-							throw new WrappedSQLException(err, sqlString);
-						} finally {
-							stmt.close();
+						try (Statement stmt = conn.createStatement()) {
+							String sqlString = "alter role " + username + " with password '"+password+'\'';
+							try {
+								stmt.executeUpdate(sqlString);
+							} catch(SQLException err) {
+								throw new WrappedSQLException(err, sqlString);
+							}
 						}
 					}
 				}
@@ -464,8 +459,9 @@ final public class PostgresUserManager extends BuilderThread {
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(PostgresUserManager.class)
 				&& postgresUserManager==null

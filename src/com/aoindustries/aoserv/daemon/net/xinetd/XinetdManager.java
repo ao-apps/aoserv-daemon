@@ -109,8 +109,7 @@ public final class XinetdManager extends BuilderThread {
 					);
 				}
 
-				for(int c=0;c<binds.size();c++) {
-					NetBind bind=binds.get(c);
+				for (NetBind bind : binds) {
 					NetPort port=bind.getPort();
 					NetTcpRedirect redirect=bind.getNetTcpRedirect();
 					Protocol protocolObj=bind.getAppProtocol();
@@ -123,21 +122,21 @@ public final class XinetdManager extends BuilderThread {
 						|| protocol.equals(Protocol.TALK)
 						|| protocol.equals(Protocol.TELNET)
 						|| (
-							// POP and IMAP is handled through xinetd on Mandriva 2006.0
-							osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-							&& (
-								//protocol.equals(Protocol.POP2)
-								protocol.equals(Protocol.POP3)
-								|| protocol.equals(Protocol.SIMAP)
-								|| protocol.equals(Protocol.SPOP3)
-								|| protocol.equals(Protocol.IMAP2)
-							)
-						) || (
-							// FTP is handled through xinetd on CentOS 5
-							osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-							&& protocol.equals(Protocol.FTP)
+						// POP and IMAP is handled through xinetd on Mandriva 2006.0
+						osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+						&& (
+						//protocol.equals(Protocol.POP2)
+						protocol.equals(Protocol.POP3)
+						|| protocol.equals(Protocol.SIMAP)
+						|| protocol.equals(Protocol.SPOP3)
+						|| protocol.equals(Protocol.IMAP2)
 						)
-					) {
+						) || (
+						// FTP is handled through xinetd on CentOS 5
+						osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+						&& protocol.equals(Protocol.FTP)
+						)
+						) {
 						Service service;
 						if(redirect!=null) {
 							NetProtocol netProtocol=bind.getNetProtocol();
@@ -169,26 +168,26 @@ public final class XinetdManager extends BuilderThread {
 						} else {
 							boolean portMatches=protocolObj.getPort(connector).equals(port);
 							/*if(protocol.equals(Protocol.AUTH)) {
-								service=new Service(
-								portMatches?null:UNLISTED,
-								-1,
-								null,
-								null,
-								portMatches?"auth":"auth-unlisted",
-								bind.getNetProtocol(),
-								bind.getInetAddress(),
-								portMatches?null:port,
-								true,
-								rootUser,
-								null,
-								"/usr/sbin/in.identd",
-								"-w -e",
-								null,
-								null,
-								-1,
-								null,
-								null
-								);
+							service=new Service(
+							portMatches?null:UNLISTED,
+							-1,
+							null,
+							null,
+							portMatches?"auth":"auth-unlisted",
+							bind.getNetProtocol(),
+							bind.getInetAddress(),
+							portMatches?null:port,
+							true,
+							rootUser,
+							null,
+							"/usr/sbin/in.identd",
+							"-w -e",
+							null,
+							null,
+							-1,
+							null,
+							null
+							);
 							} else */
 							switch (protocol) {
 								case Protocol.CVSPSERVER:
@@ -361,31 +360,31 @@ public final class XinetdManager extends BuilderThread {
 											null
 										);
 									} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
-								/*} else if(protocol.equals(Protocol.POP2)) {
+									/*} else if(protocol.equals(Protocol.POP2)) {
 									if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-										service=new Service(
-											portMatches?null:UNLISTED,
-											-1,
-											-1,
-											"100 30",
-											null,
-											null,
-											portMatches?"pop2":"pop2-unlisted",
-											bind.getNetProtocol(),
-											bind.getInetAddress(),
-											portMatches?null:port,
-											false,
-											rootUser,
-											null,
-											"/usr/sbin/ipop2d",
-											null,
-											null,
-											"HOST DURATION",
-											"HOST USERID",
-											-1,
-											null,
-											null
-										);
+									service=new Service(
+									portMatches?null:UNLISTED,
+									-1,
+									-1,
+									"100 30",
+									null,
+									null,
+									portMatches?"pop2":"pop2-unlisted",
+									bind.getNetProtocol(),
+									bind.getInetAddress(),
+									portMatches?null:port,
+									false,
+									rootUser,
+									null,
+									"/usr/sbin/ipop2d",
+									null,
+									null,
+									"HOST DURATION",
+									"HOST USERID",
+									-1,
+									null,
+									null
+									);
 									} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);*/
 									break;
 								case Protocol.POP3:
@@ -724,8 +723,9 @@ public final class XinetdManager extends BuilderThread {
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(XinetdManager.class)
 				&& xinetdManager==null

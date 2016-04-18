@@ -226,23 +226,17 @@ final public class FTPManager extends BuilderThread {
 			// Jailed users
 			{
 				bout.reset();
-				ChainWriter out = new ChainWriter(bout);
-				try {
+				try (ChainWriter out = new ChainWriter(bout)) {
 					for(FTPGuestUser ftpGuestUser : thisAOServer.getFTPGuestUsers()) {
 						out.print(ftpGuestUser.getLinuxAccount().getUsername().getUsername()).print('\n');
 					}
-				} finally {
-					out.close();
 				}
 				byte[] newBytes = bout.toByteArray();
 
 				// Only write to filesystem if missing or changed
 				if(!vsFtpdChrootList.getStat().exists() || !vsFtpdChrootList.contentEquals(newBytes)) {
-					FileOutputStream newOut = vsFtpdChrootListNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true);
-					try {
+					try (FileOutputStream newOut = vsFtpdChrootListNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true)) {
 						newOut.write(newBytes);
-					} finally {
-						newOut.close();
 					}
 					vsFtpdChrootListNew.renameTo(vsFtpdChrootList);
 				}
@@ -251,8 +245,7 @@ final public class FTPManager extends BuilderThread {
 			// Write the default config file
 			{
 				bout.reset();
-				ChainWriter out = new ChainWriter(bout);
-				try {
+				try (ChainWriter out = new ChainWriter(bout)) {
 					out.print("# BOOLEAN OPTIONS\n"
 							+ "anonymous_enable=YES\n"
 							+ "async_abor_enable=YES\n"
@@ -282,18 +275,13 @@ final public class FTPManager extends BuilderThread {
 							+ "chroot_list_file=/etc/vsftpd/chroot_list\n"
 							+ "ftpd_banner=FTP Server [").print(thisAOServer.getHostname()).print("]\n"
 							+ "pam_service_name=vsftpd\n");
-				} finally {
-					out.close();
 				}
 				byte[] newBytes = bout.toByteArray();
 
 				// Only write to filesystem if missing or changed
 				if(!vsFtpdConf.getStat().exists() || !vsFtpdConf.contentEquals(newBytes)) {
-					FileOutputStream newOut = vsFtpdConfNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true);
-					try {
+					try (FileOutputStream newOut = vsFtpdConfNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true)) {
 						newOut.write(newBytes);
-					} finally {
-						newOut.close();
 					}
 					vsFtpdConfNew.renameTo(vsFtpdConf);
 				}
@@ -325,8 +313,7 @@ final public class FTPManager extends BuilderThread {
 
 						// Write to buffer
 						bout.reset();
-						ChainWriter out = new ChainWriter(bout);
-						try {
+						try (ChainWriter out = new ChainWriter(bout)) {
 							out.print("# BOOLEAN OPTIONS\n"
 									+ "anonymous_enable=").print(privateServer==null || privateServer.allowAnonymous() ? "YES" : "NO").print("\n"
 									+ "async_abor_enable=YES\n"
@@ -370,8 +357,6 @@ final public class FTPManager extends BuilderThread {
 							if(privateServer!=null) {
 								out.print("xferlog_file=").print(privateServer.getLogfile()).print('\n');
 							}
-						} finally {
-							out.close();
 						}
 						byte[] newBytes = bout.toByteArray();
 
@@ -381,11 +366,8 @@ final public class FTPManager extends BuilderThread {
 						UnixFile confFile = new UnixFile(vsFtpdVhostsirectory, filename, false);
 						if(!confFile.getStat().exists() || !confFile.contentEquals(newBytes)) {
 							UnixFile newConfFile = new UnixFile(vsFtpdVhostsirectory, filename+".new", false);
-							FileOutputStream newOut = newConfFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true);
-							try {
+							try (FileOutputStream newOut = newConfFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true)) {
 								newOut.write(newBytes);
-							} finally {
-								newOut.close();
 							}
 							newConfFile.renameTo(confFile);
 						}
@@ -403,7 +385,7 @@ final public class FTPManager extends BuilderThread {
 	}
 
 	/**
-	 * Rebuilds the contents of /var/cvs  Each site optinally gets its own
+	 * Rebuilds the contents of /var/cvs  Each site optionally gets its own
 	 * shared FTP space.
 	 */
 	private static void doRebuildSharedFtpDirectory() throws IOException, SQLException {
@@ -440,8 +422,9 @@ final public class FTPManager extends BuilderThread {
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(FTPManager.class)
 				&& ftpManager==null

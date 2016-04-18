@@ -50,7 +50,7 @@ final public class MySQLServerManager extends BuilderThread {
 	private static final Map<Integer,AOConnectionPool> pools=new HashMap<>();
 	static AOConnectionPool getPool(MySQLServer ms) throws IOException, SQLException {
 		synchronized(pools) {
-			Integer I=Integer.valueOf(ms.getPkey());
+			Integer I=ms.getPkey();
 			AOConnectionPool pool=pools.get(I);
 			if(pool==null) {
 				MySQLDatabase md=ms.getMySQLDatabase(MySQLDatabase.MYSQL);
@@ -78,8 +78,9 @@ final public class MySQLServerManager extends BuilderThread {
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv!=OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv!=OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(MySQLServerManager.class)
 				&& mysqlServerManager==null
@@ -147,6 +148,7 @@ final public class MySQLServerManager extends BuilderThread {
 				path="/opt/mysql-"+mysqlServer.getMinorVersion()+"-i686/bin/mysqladmin";
 			} else if(
 				osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+				|| osv==OperatingSystemVersion.CENTOS_7_X86_64
 			) {
 				path="/opt/mysql-"+mysqlServer.getMinorVersion()+"/bin/mysqladmin";
 			} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);

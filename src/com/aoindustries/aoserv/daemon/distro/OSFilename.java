@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -61,6 +61,8 @@ public final class OSFilename {
             case OperatingSystemVersion.REDHAT_ES_4_X86_64: return OperatingSystem.REDHAT;
             case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64: return OperatingSystem.CENTOS;
             case OperatingSystemVersion.CENTOS_5_DOM0_X86_64: return OperatingSystem.CENTOS;
+            case OperatingSystemVersion.CENTOS_7_X86_64: return OperatingSystem.CENTOS;
+            case OperatingSystemVersion.CENTOS_7_DOM0_X86_64: return OperatingSystem.CENTOS;
             default: throw new RuntimeException("Unsupported operating_system_version: "+operating_system_version);
         }
     }
@@ -70,6 +72,8 @@ public final class OSFilename {
             case OperatingSystemVersion.REDHAT_ES_4_X86_64: return OperatingSystemVersion.VERSION_ES_4;
             case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64: return OperatingSystemVersion.VERSION_5;
             case OperatingSystemVersion.CENTOS_5_DOM0_X86_64: return OperatingSystemVersion.VERSION_5_DOM0;
+            case OperatingSystemVersion.CENTOS_7_X86_64: return OperatingSystemVersion.VERSION_7;
+            case OperatingSystemVersion.CENTOS_7_DOM0_X86_64: return OperatingSystemVersion.VERSION_7_DOM0;
             default: throw new RuntimeException("Unsupported operating_system_version: "+operating_system_version);
         }
     }
@@ -79,6 +83,8 @@ public final class OSFilename {
             case OperatingSystemVersion.REDHAT_ES_4_X86_64: return Architecture.X86_64;
             case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64: return Architecture.I686_AND_X86_64;
             case OperatingSystemVersion.CENTOS_5_DOM0_X86_64: return Architecture.X86_64;
+            case OperatingSystemVersion.CENTOS_7_X86_64: return Architecture.X86_64;
+            case OperatingSystemVersion.CENTOS_7_DOM0_X86_64: return Architecture.X86_64;
             default: throw new RuntimeException("Unsupported operating_system_version: "+operating_system_version);
         }
     }
