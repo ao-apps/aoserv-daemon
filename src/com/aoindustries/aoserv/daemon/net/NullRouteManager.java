@@ -1,12 +1,15 @@
 /*
- * Copyright 2013 by AO Industries, Inc.,
+ * Copyright 2013, 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.net;
 
+import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.IPAddress;
+import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.validator.InetAddress;
+import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.server.VirtualServerManager;
@@ -18,6 +21,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -58,8 +62,19 @@ final public class NullRouteManager {
 
 	volatile private static NullRouteManager instance;
 
-	public static void start() throws IOException {
-        if(AOServDaemonConfiguration.isManagerEnabled(NullRouteManager.class)) {
+	public static void start() throws IOException, SQLException {
+		AOServer thisAOServer=AOServDaemon.getThisAOServer();
+		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+		if(
+			// Only done for these operating systems
+			(
+				osv == OperatingSystemVersion.CENTOS_5_DOM0_I686
+				|| osv == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				|| osv == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+			)
+			// Check config after OS check so config entry not needed
+			&& AOServDaemonConfiguration.isManagerEnabled(NullRouteManager.class)
+		) {
 			synchronized(System.out) {
 				if(instance==null) {
 					System.out.print("Starting NullRouteManager: ");
@@ -68,8 +83,8 @@ final public class NullRouteManager {
 					System.out.println("Done");
 				}
 			}
-        }
-    }
+		}
+	}
 
 	static class NullRoute {
 		final int ip;
@@ -157,7 +172,7 @@ final public class NullRouteManager {
 	private Thread thread;
 
 	private NullRouteManager() {
-    }
+	}
 
 	private void startThread() {
 		synchronized(threadLock) {
