@@ -59,7 +59,7 @@ public enum HttpdOperatingSystemConfiguration {
 		// TODO: Set to 5.5 - or better put in control panels and make be user selectable and changeable
 		@Override
 		public String getDefaultPhpMinorVersion() {
-			return "5.5";
+			return "5.6";
 		}
 		//public String getDefaultPhpPostgresMinorVersion() {
 		//    return "9.2";

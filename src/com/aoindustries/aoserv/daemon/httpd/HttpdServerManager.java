@@ -1059,6 +1059,12 @@ public class HttpdServerManager {
 							out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
 							out.print('\n');
 							break;
+						case "5.6":
+							requiredPackage = PackageManager.PackageName.PHP_5_6;
+							out.print(". /opt/mysql-5.7-i686/setenv.sh\n");
+							out.print(". /opt/postgresql-9.4-i686/setenv.sh\n");
+							out.print('\n');
+							break;
 						default:
 							throw new SQLException("Unexpected version for mod_php: "+version);
 					}

@@ -475,6 +475,11 @@ public abstract class HttpdSiteManager {
 				) {
 					phpMinorVersion = "5.5";
 				} else if(
+					contents.contains("/opt/php-5.6/bin/php")
+					|| contents.contains("/opt/php-5.6-i686/bin/php")
+				) {
+					phpMinorVersion = "5.6";
+				} else if(
 					contents.contains("/opt/php-4/bin/php")
 					|| contents.contains("/opt/php-4-i686/bin/php")
 				) {
@@ -518,6 +523,11 @@ public abstract class HttpdSiteManager {
 						requiredPackage = PackageManager.PackageName.PHP_5_5;
 						out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
 						out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
+						break;
+					case "5.6":
+						requiredPackage = PackageManager.PackageName.PHP_5_6;
+						out.print(". /opt/mysql-5.7-i686/setenv.sh\n");
+						out.print(". /opt/postgresql-9.4-i686/setenv.sh\n");
 						break;
 					default:
 						throw new SQLException("Unexpected version for php: "+phpMinorVersion);

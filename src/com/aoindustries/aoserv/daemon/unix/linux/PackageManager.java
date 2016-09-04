@@ -43,7 +43,8 @@ public class PackageManager {
 		PHP_5_2("php_5_2-i686"),
 		PHP_5_3("php_5_3-i686"),
 		PHP_5_4("php_5_4-i686"),
-		PHP_5_5("php_5_5-i686");
+		PHP_5_5("php_5_5-i686"),
+		PHP_5_6("php_5_6-i686");
 
 		private final String rpmName;
 		// Only needed when trying to automatically remove packages: private final PackageName[] requires;
