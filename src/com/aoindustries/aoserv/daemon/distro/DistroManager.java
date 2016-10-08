@@ -111,6 +111,8 @@ final public class DistroManager implements Runnable {
                     try {
                         Thread.sleep(10L*60*1000);
                     } catch(InterruptedException err) {
+						// Restore the interrupted status
+						Thread.currentThread().interrupt();
                         // Normal from startDistro method
                     }
                     isSleeping=false;
@@ -180,6 +182,8 @@ final public class DistroManager implements Runnable {
                     Thread.sleep(MAX_SLEEP_TIME);
                 } catch(InterruptedException err) {
                     LogFactory.getLogger(DistroManager.class).log(Level.WARNING, null, err);
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
                 }
             }
         }
@@ -587,6 +591,8 @@ final public class DistroManager implements Runnable {
                                         Thread.sleep(timeSpan);
                                     } catch(InterruptedException err) {
                                         LogFactory.getLogger(DistroManager.class).log(Level.WARNING, null, err);
+										// Restore the interrupted status
+										Thread.currentThread().interrupt();
                                     }
                                 }
                             } else if(type.equals(DistroFileType.SYSTEM)) {
@@ -637,6 +643,8 @@ final public class DistroManager implements Runnable {
                                             Thread.sleep(timeSpan);
                                         } catch(InterruptedException err) {
                                             LogFactory.getLogger(DistroManager.class).log(Level.WARNING, null, err);
+											// Restore the interrupted status
+											Thread.currentThread().interrupt();
                                         }
                                     }
                                 }
@@ -721,6 +729,8 @@ final public class DistroManager implements Runnable {
                 int retCode = P.waitFor();
                 if(retCode!=0) throw new IOException("Non-zero response from command: "+AOServDaemon.getCommandString(command));
             } catch(InterruptedException err) {
+				// Restore the interrupted status
+				Thread.currentThread().interrupt();
                 IOException ioErr = new InterruptedIOException();
                 ioErr.initCause(err);
                 throw ioErr;

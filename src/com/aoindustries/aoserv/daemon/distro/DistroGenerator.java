@@ -468,6 +468,8 @@ final public class DistroGenerator extends Thread {
 											int retCode = P.waitFor();
 											if(retCode!=0) throw new IOException("Non-zero response from command: "+AOServDaemon.getCommandString(command));
 										} catch(InterruptedException err) {
+											// Restore the interrupted status
+											Thread.currentThread().interrupt();
 											IOException ioErr = new InterruptedIOException();
 											ioErr.initCause(err);
 											throw ioErr;
@@ -502,6 +504,8 @@ final public class DistroGenerator extends Thread {
 											int retCode = P.waitFor();
 											if(retCode!=0) throw new IOException("Non-zero response from command: "+AOServDaemon.getCommandString(command));
 										} catch(InterruptedException err2) {
+											// Restore the interrupted status
+											Thread.currentThread().interrupt();
 											IOException ioErr = new InterruptedIOException();
 											ioErr.initCause(err2);
 											throw ioErr;

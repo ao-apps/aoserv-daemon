@@ -142,6 +142,8 @@ public abstract class HttpdSiteManager {
 									Thread.sleep(5000);
 								} catch(InterruptedException err) {
 									LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
+									// Restore the interrupted status
+									Thread.currentThread().interrupt();
 								}
 							}
 							stopStartRestartable.start();
@@ -163,7 +165,11 @@ public abstract class HttpdSiteManager {
 				try {
 					Future<Object> commandFuture = AOServDaemon.executorService.submit(commandCallable);
 					commandFuture.get(60, TimeUnit.SECONDS);
-				} catch(InterruptedException | ExecutionException | TimeoutException err) {
+				} catch(InterruptedException err) {
+					LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
+				} catch(ExecutionException | TimeoutException err) {
 					LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
 				}
 			}
@@ -204,7 +210,11 @@ public abstract class HttpdSiteManager {
 									return null;
 								});
 								stopFuture.get(60, TimeUnit.SECONDS);
-							} catch(InterruptedException | ExecutionException | TimeoutException err) {
+							} catch(InterruptedException err) {
+								LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
+								// Restore the interrupted status
+								Thread.currentThread().interrupt();
+							} catch(ExecutionException | TimeoutException err) {
 								LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
 							}
 						}
@@ -237,6 +247,8 @@ public abstract class HttpdSiteManager {
 						Thread.sleep(5000);
 					} catch(InterruptedException err) {
 						LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
+						// Restore the interrupted status
+						Thread.currentThread().interrupt();
 					}
 				}
 				stopStartable.start();

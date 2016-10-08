@@ -144,6 +144,8 @@ public final class RandomEntropyManager implements Runnable {
                         Thread.sleep(sleepyTime);
                     } catch(InterruptedException err) {
                         LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
+						// Restore the interrupted status
+						Thread.currentThread().interrupt();
                     }
                 }
             } catch(ThreadDeath TD) {
@@ -154,6 +156,8 @@ public final class RandomEntropyManager implements Runnable {
                     Thread.sleep(ERROR_DELAY);
                 } catch(InterruptedException err) {
                     LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
                 }
             }
         }

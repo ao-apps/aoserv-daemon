@@ -571,6 +571,8 @@ final public class MrtgManager extends BuilderThread {
 				if(retCode!=0) throw new IOException("Non-zero return value from list_partitions: "+retCode);
 			} catch(InterruptedException err) {
 				LogFactory.getLogger(MrtgManager.class).log(Level.WARNING, null, err);
+				// Restore the interrupted status
+				Thread.currentThread().interrupt();
 			}
 		}
 

@@ -160,6 +160,8 @@ final public class AOServDaemonServer extends Thread {
 				sleep(60000);
 			} catch (InterruptedException err) {
 				LogFactory.getLogger(AOServDaemonServer.class).log(Level.WARNING, null, err);
+				// Restore the interrupted status
+				Thread.currentThread().interrupt();
 			}
 		}
 	}

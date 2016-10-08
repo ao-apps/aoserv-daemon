@@ -67,6 +67,8 @@ abstract public class BuilderThread implements TableListener {
                                         isSleeping=true;
                                         sleep(getRandomDelay());
                                     } catch (InterruptedException err) {
+										// Restore the interrupted status
+										Thread.currentThread().interrupt();
                                         // Interrupted by waitForRebuild call
                                     }
                                     isSleeping=false;
@@ -91,6 +93,8 @@ abstract public class BuilderThread implements TableListener {
                                                 Thread.sleep(getRandomDelay());
                                             } catch(InterruptedException err) {
                                                 logger.logp(Level.WARNING, BuilderThread.this.getClass().getName(), "run", null, err);
+												// Restore the interrupted status
+												Thread.currentThread().interrupt();
                                             }
                                             isSleeping=false;
                                         }
@@ -111,6 +115,8 @@ abstract public class BuilderThread implements TableListener {
                                         Thread.sleep(getRandomDelay());
                                     } catch(InterruptedException err) {
                                         logger.logp(Level.WARNING, BuilderThread.this.getClass().getName(), "run", null, err);
+										// Restore the interrupted status
+										Thread.currentThread().interrupt();
                                     }
                                     isSleeping=false;
                                 }
@@ -151,6 +157,8 @@ abstract public class BuilderThread implements TableListener {
                         wait();
                     } catch(InterruptedException err) {
                         LogFactory.getLogger(getClass()).log(Level.WARNING, null, err);
+						// Restore the interrupted status
+						Thread.currentThread().interrupt();
                     }
                 }
             } finally {

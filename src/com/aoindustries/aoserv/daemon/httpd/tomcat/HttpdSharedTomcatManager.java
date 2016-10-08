@@ -132,6 +132,8 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 									Thread.sleep(5000);
 								} catch(InterruptedException err) {
 									LogFactory.getLogger(HttpdSharedTomcatManager.class).log(Level.WARNING, null, err);
+									// Restore the interrupted status
+									Thread.currentThread().interrupt();
 								}
 							}
 							manager.start();
@@ -160,7 +162,11 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 			try {
 				Future<Object> commandFuture = AOServDaemon.executorService.submit(commandCallable);
 				commandFuture.get(60, TimeUnit.SECONDS);
-			} catch(InterruptedException | ExecutionException | TimeoutException err) {
+			} catch(InterruptedException err) {
+				LogFactory.getLogger(HttpdSharedTomcatManager.class).log(Level.WARNING, null, err);
+				// Restore the interrupted status
+				Thread.currentThread().interrupt();
+			} catch(ExecutionException | TimeoutException err) {
 				LogFactory.getLogger(HttpdSharedTomcatManager.class).log(Level.WARNING, null, err);
 			}
 		}

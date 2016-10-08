@@ -225,6 +225,8 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 						Thread.sleep(REFRESH_PERIOD);
 					} catch(InterruptedException err) {
 						LogFactory.getLogger(SmtpRelayManager.class).log(Level.WARNING, null, err);
+						// Restore the interrupted status
+						Thread.currentThread().interrupt();
 					}
 					long time=System.currentTimeMillis();
 					boolean needRebuild=false;
@@ -250,6 +252,8 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 					Thread.sleep(REFRESH_PERIOD);
 				} catch(InterruptedException err) {
 					LogFactory.getLogger(SmtpRelayManager.class).log(Level.WARNING, null, err);
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
 				}
 			}
 		}

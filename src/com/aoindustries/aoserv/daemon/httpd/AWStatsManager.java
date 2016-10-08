@@ -655,6 +655,8 @@ final public class AWStatsManager extends BuilderThread {
 						if(retCode!=0) throw new IOException("Non-zero return status: "+retCode);
 					} catch (InterruptedException err) {
 						LogFactory.getLogger(AWStatsManager.class).log(Level.WARNING, null, err);
+						// Restore the interrupted status
+						Thread.currentThread().interrupt();
 					}
 				}
 			} else {

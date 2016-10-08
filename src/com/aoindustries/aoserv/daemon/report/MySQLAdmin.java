@@ -56,6 +56,8 @@ final public class MySQLAdmin extends DBReportData {
                     int retCode=P.waitFor();
                     if(retCode!=0) throw new IOException("/usr/bin/mysqladmin returned with non-zero status: "+retCode);
                 } catch(InterruptedException err) {
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
                     InterruptedIOException ioErr=new InterruptedIOException();
                     ioErr.initCause(err);
                     throw ioErr;

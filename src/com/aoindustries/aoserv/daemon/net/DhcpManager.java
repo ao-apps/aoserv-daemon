@@ -94,6 +94,8 @@ final public class DhcpManager implements Runnable {
                         Thread.sleep(POLL_INTERVAL);
                     } catch(InterruptedException err) {
                         LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
+						// Restore the interrupted status
+						Thread.currentThread().interrupt();
                     }
                     for(NetDevice nd : AOServDaemon.getThisAOServer().getServer().getNetDevices()) {
                         IPAddress primaryIP=nd.getPrimaryIPAddress();
@@ -113,6 +115,8 @@ final public class DhcpManager implements Runnable {
                     Thread.sleep(POLL_INTERVAL);
                 } catch(InterruptedException err) {
                     LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
                 }
             }
         }

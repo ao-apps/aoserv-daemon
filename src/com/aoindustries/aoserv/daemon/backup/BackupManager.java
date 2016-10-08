@@ -266,6 +266,8 @@ final public class BackupManager {
                 int retCode=P.waitFor();
                 if(retCode!=0) throw new IOException(DF+" exited with non-zero return status: "+retCode);
             } catch(InterruptedException err) {
+				// Restore the interrupted status
+				Thread.currentThread().interrupt();
                 IOException ioErr = new InterruptedIOException();
                 ioErr.initCause(err);
                 throw ioErr;

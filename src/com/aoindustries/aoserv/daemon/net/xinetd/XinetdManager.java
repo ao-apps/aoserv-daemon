@@ -695,6 +695,8 @@ public final class XinetdManager extends BuilderThread {
 									Thread.sleep(1000);
 								} catch(InterruptedException err2) {
 									LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err2);
+									// Restore the interrupted status
+									Thread.currentThread().interrupt();
 								}
 								AOServDaemon.exec(
 									new String[] {

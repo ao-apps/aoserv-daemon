@@ -606,6 +606,8 @@ final public class NetworkMonitor {
 							sleep(controllingNullRoutes ? 1000 : 10000);
 						} catch (InterruptedException err) {
 							LogFactory.getLogger(NetworkMonitor.class).log(Level.WARNING, null, err);
+							// Restore the interrupted status
+							Thread.currentThread().interrupt();
 						}
 					}
 				}

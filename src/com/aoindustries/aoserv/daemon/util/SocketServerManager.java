@@ -50,6 +50,8 @@ abstract public class SocketServerManager {
                                 Thread.sleep(15000);
                             } catch(InterruptedException err) {
                                 LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
+								// Restore the interrupted status
+								Thread.currentThread().interrupt();
                             }
                         }
                     }

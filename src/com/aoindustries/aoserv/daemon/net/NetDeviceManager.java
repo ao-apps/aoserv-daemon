@@ -368,6 +368,8 @@ final public class NetDeviceManager extends BuilderThread {
 									P.getOutputStream().close();
 									downCode=P.waitFor();
 								} catch(InterruptedException err) {
+									// Restore the interrupted status
+									Thread.currentThread().interrupt();
 									downCode=-1;
 								}
 								P=Runtime.getRuntime().exec(new String[] {"/sbin/ifup", deviceName});
@@ -376,6 +378,8 @@ final public class NetDeviceManager extends BuilderThread {
 									P.getOutputStream().close();
 									upCode=P.waitFor();
 								} catch(InterruptedException err) {
+									// Restore the interrupted status
+									Thread.currentThread().interrupt();
 									upCode=-1;
 								}
 								if(downCode!=0) throw new IOException("Error calling /sbin/ifdown "+deviceName+", retCode="+(downCode==-1?"Interrupted":Integer.toString(downCode)));
@@ -402,6 +406,8 @@ final public class NetDeviceManager extends BuilderThread {
 									P.getOutputStream().close();
 									routeCode=P.waitFor();
 								} catch(InterruptedException err) {
+									// Restore the interrupted status
+									Thread.currentThread().interrupt();
 									routeCode=-1;
 								}
 								if(routeCode!=0) throw new IOException("Error calling "+command+" start, retCode="+(routeCode==-1?"Interrupted":Integer.toString(routeCode)));
@@ -707,6 +713,8 @@ final public class NetDeviceManager extends BuilderThread {
 							Thread.sleep(5000);
 						} catch(InterruptedException err) {
 							LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
+							// Restore the interrupted status
+							Thread.currentThread().interrupt();
 						}
 					}
 				}

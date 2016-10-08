@@ -42,6 +42,8 @@ final public class Uptime {
 				int retCode=P.waitFor();
 				if(retCode!=0) throw new IOException("/usr/bin/uptime exited with non-zero status: "+retCode);
 			} catch(InterruptedException err) {
+				// Restore the interrupted status
+				Thread.currentThread().interrupt();
 				InterruptedIOException ioErr=new InterruptedIOException();
 				ioErr.initCause(err);
 				throw ioErr;

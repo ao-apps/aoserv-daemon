@@ -67,6 +67,8 @@ abstract public class UnixProcess {
                 Thread.sleep(2000);
             } catch(InterruptedException err) {
                 LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
+				// Restore the interrupted status
+				Thread.currentThread().interrupt();
             }
         }
         if(isRunning()) {

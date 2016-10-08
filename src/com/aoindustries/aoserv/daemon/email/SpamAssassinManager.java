@@ -132,6 +132,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 							Thread.sleep(DELAY_INTERVAL);
 						} catch(InterruptedException err) {
 							LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, null, err);
+							// Restore the interrupted status
+							Thread.currentThread().interrupt();
 						}
 					}
 					lastStartTime=System.currentTimeMillis();
@@ -155,6 +157,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 					Thread.sleep(60000);
 				} catch(InterruptedException err) {
 					LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, null, err);
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
 				}
 			}
 		}

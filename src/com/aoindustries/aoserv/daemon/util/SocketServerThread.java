@@ -65,6 +65,8 @@ abstract public class SocketServerThread extends Thread {
                     Thread.sleep(60000);
                 } catch(InterruptedException err) {
                     LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
+					// Restore the interrupted status
+					Thread.currentThread().interrupt();
                 }
             }
         }
