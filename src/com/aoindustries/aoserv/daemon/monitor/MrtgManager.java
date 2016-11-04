@@ -120,7 +120,7 @@ final public class MrtgManager extends BuilderThread {
 						out.print("PageTop[^]: \n"
 								+ "  <div style='text-align:center'>\n"
 								+ "  <h1>\n"
-								+ "  <img src=\"https://www.aoindustries.com/images/clientarea/accounting/SendInvoices.jpg\" width=\"452\" height=\"127\" alt=\"\" /><br />\n"
+								+ "  <img src=\"https://aoindustries.com/images/clientarea/accounting/SendInvoices.jpg\" width=\"452\" height=\"127\" alt=\"\" /><br />\n"
 								+ "  <span style=\"color:#000000\">").encodeXhtml(thisAOServer.getHostname().toString());
 						if(failoverServer!=null) out.print(" on ").encodeXhtml(failoverServer.getHostname().toString());
 						out.print("</span>\n"
@@ -339,7 +339,7 @@ final public class MrtgManager extends BuilderThread {
 								+ "  <body style=\"background-color:#ffffff\">\n"
 								+ "      <div style=\"text-align:center\">\n"
 								+ "        <h1>\n"
-								+ "          <img src=\"https://www.aoindustries.com/images/clientarea/accounting/SendInvoices.jpg\" width=\"452\" height=\"127\" alt=\"\" /><br />\n"
+								+ "          <img src=\"https://aoindustries.com/images/clientarea/accounting/SendInvoices.jpg\" width=\"452\" height=\"127\" alt=\"\" /><br />\n"
 								+ "	  <span style=\"color:#000000\">").encodeXhtml(thisAOServer.getHostname().toString());
 						if(failoverServer!=null) out.print(" on ").encodeXhtml(failoverServer.getHostname().toString());
 						out.print("</span>\n"

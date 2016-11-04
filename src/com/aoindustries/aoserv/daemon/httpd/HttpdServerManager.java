@@ -824,6 +824,8 @@ public class HttpdServerManager {
         HttpdSiteURL primaryHSU = bind.getPrimaryHttpdSiteURL();
         String primaryHostname = primaryHSU.getHostname().toString();
 
+		// TODO: Robots NOINDEX, NOFOLLOW on test URL, when it is not the primary?
+		// TODO: Canonical URL header for non-primary, non-test: https://support.google.com/webmasters/answer/139066
         bout.reset();
         try (ChainWriter out = new ChainWriter(bout)) {
             out.print("<VirtualHost ").print(ipAddress.toBracketedString()).print(':').print(port).print(">\n"

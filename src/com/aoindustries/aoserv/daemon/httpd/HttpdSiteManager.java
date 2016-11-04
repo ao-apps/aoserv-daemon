@@ -299,6 +299,8 @@ public abstract class HttpdSiteManager {
 	 * Gets the auto-mode warning for this website for use in XML files.  This
 	 * may be used on any config files that a user would be tempted to change
 	 * directly.
+	 *
+	 * TODO: Change www.aoindustries.com to aoindustries.com
 	 */
 	public String getAutoWarningXmlOld() throws IOException, SQLException {
 		return
@@ -321,6 +323,8 @@ public abstract class HttpdSiteManager {
 	 * Gets the auto-mode warning for this website for use in XML files.  This
 	 * may be used on any config files that a user would be tempted to change
 	 * directly.
+	 *
+	 * TODO: Change www.aoindustries.com to aoindustries.com
 	 */
 	public String getAutoWarningXml() throws IOException, SQLException {
 		return
@@ -343,6 +347,8 @@ public abstract class HttpdSiteManager {
 	 * Gets the auto-mode warning using Unix-style comments (#).  This
 	 * may be used on any config files that a user would be tempted to change
 	 * directly.
+	 *
+	 * TODO: Change www.aoindustries.com to aoindustries.com
 	 */
 	/* Change to 2054542556 if re-enabled: public String getAutoWarningUnix() throws IOException, SQLException {
 		return

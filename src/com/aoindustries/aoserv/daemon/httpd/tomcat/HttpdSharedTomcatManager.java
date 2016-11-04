@@ -189,6 +189,8 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	 * Gets the auto-mode warning for this website for use in XML files.  This
 	 * may be used on any config files that a user would be tempted to change
 	 * directly.
+	 *
+	 * TODO: Change www.aoindustries.com to aoindustries.com
 	 */
 	String getAutoWarningXmlOld() throws IOException, SQLException {
 		return
@@ -219,7 +221,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 			+ "  to this file will be overwritten.  Please set the is_manual flag for this multi-site\n"
 			+ "  JVM to be able to make permanent changes to this file.\n"
 			+ "\n"
-			+ "  Control Panel: https://www.aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey="+sharedTomcat.getPkey()+"\n"
+			+ "  Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey="+sharedTomcat.getPkey()+"\n"
 			+ "\n"
 			+ "  AOSH: "+AOSHCommand.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+" "+sharedTomcat.getAOServer().getHostname()+" true\n"
 			+ "\n"
@@ -233,6 +235,8 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	 * Gets the auto-mode warning using Unix-style comments (#).  This
 	 * may be used on any config files that a user would be tempted to change
 	 * directly.
+	 *
+	 * TODO: Change www.aoindustries.com to aoindustries.com
 	 */
 	/*String getAutoWarningUnixOld() throws IOException, SQLException {
 		return
@@ -255,6 +259,8 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	 * Gets the auto-mode warning using Unix-style comments (#).  This
 	 * may be used on any config files that a user would be tempted to change
 	 * directly.
+	 *
+	 * TODO: Change www.aoindustries.com to aoindustries.com
 	 */
 	/*String getAutoWarningUnix() throws IOException, SQLException {
 		return
