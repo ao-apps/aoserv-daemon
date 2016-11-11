@@ -132,7 +132,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
         AOServer thisServer = AOServDaemon.getThisAOServer();
         short retention = ffr.getRetention().getDays();
         Map<String,FilesystemIteratorRule> filesystemRules=new HashMap<>();
-        filesystemRules.put("", FilesystemIteratorRule.OK); // Default to being included unless explicitely excluded
+        filesystemRules.put("", FilesystemIteratorRule.OK); // Default to being included unless explicitly excluded
         filesystemRules.put("/.journal", FilesystemIteratorRule.SKIP);
         filesystemRules.put("/aquota.user", FilesystemIteratorRule.SKIP);
         //filesystemRules.put("/backup", FilesystemIteratorRule.NO_RECURSE);
