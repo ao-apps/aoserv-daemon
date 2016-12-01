@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2014, 2015 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014, 2015, 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -19,12 +19,12 @@ import java.util.Set;
  */
 class TomcatCommon_3_1 extends TomcatCommon_3_X {
 
-    private static final TomcatCommon_3_1 instance = new TomcatCommon_3_1();
-    static TomcatCommon_3_1 getInstance() {
-        return instance;
-    }
+	private static final TomcatCommon_3_1 instance = new TomcatCommon_3_1();
+	static TomcatCommon_3_1 getInstance() {
+		return instance;
+	}
 
-    private TomcatCommon_3_1() {}
+	private TomcatCommon_3_1() {}
 
 	@Override
 	protected Set<PackageManager.PackageName> getRequiredPackages() {
@@ -32,28 +32,28 @@ class TomcatCommon_3_1 extends TomcatCommon_3_X {
 	}
 
 	@Override
-    public void createWebDtd(String confDirectory, int uid, int gid, int mode) throws IOException {
-        DaemonFileUtils.copyResource(TomcatCommon_3_1.class, "web.dtd-3.1", confDirectory+"/web.dtd", uid, gid, mode);
-    }
+	public void createWebDtd(String confDirectory, int uid, int gid, int mode, int uid_min, int gid_min) throws IOException {
+		DaemonFileUtils.copyResource(TomcatCommon_3_1.class, "web.dtd-3.1", confDirectory+"/web.dtd", uid, gid, mode, uid_min, gid_min);
+	}
 
 	@Override
-    public void createWebXml(String confDirectory, int uid, int gid, int mode) throws IOException {
-        DaemonFileUtils.copyResource(TomcatCommon_3_1.class, "web.xml-3.1", confDirectory+"/web.xml", uid, gid, mode);
-    }
+	public void createWebXml(String confDirectory, int uid, int gid, int mode, int uid_min, int gid_min) throws IOException {
+		DaemonFileUtils.copyResource(TomcatCommon_3_1.class, "web.xml-3.1", confDirectory+"/web.xml", uid, gid, mode, uid_min, gid_min);
+	}
 
 	@Override
-    public void printTomcatUsers(ChainWriter out) {
-            out.print("<tomcat-users>\n"
-                    + "  <user name=\"tomcat\" password=\"tomcat\" roles=\"tomcat\" />\n"
-                    + "</tomcat-users>\n");
-    }
+	public void printTomcatUsers(ChainWriter out) {
+			out.print("<tomcat-users>\n"
+					+ "  <user name=\"tomcat\" password=\"tomcat\" roles=\"tomcat\" />\n"
+					+ "</tomcat-users>\n");
+	}
 
-    //String getServletApiVersion() {
-    //    return "3.1";
-    //}
+	//String getServletApiVersion() {
+	//    return "3.1";
+	//}
 
 	@Override
-    String getTomcatApiVersion() {
-        return "3.1";
-    }
+	String getTomcatApiVersion() {
+		return "3.1";
+	}
 }

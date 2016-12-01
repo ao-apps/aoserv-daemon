@@ -136,13 +136,16 @@ final public class DNSManager extends BuilderThread {
 	protected boolean doRebuild() {
 		try {
 			AOServConnector connector=AOServDaemon.getConnector();
-			AOServer thisAOServer=AOServDaemon.getThisAOServer();
+			AOServer thisAoServer=AOServDaemon.getThisAOServer();
 
-			int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+			int osv=thisAoServer.getServer().getOperatingSystemVersion().getPkey();
 			if(
 				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
 				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+
+			int uid_min = thisAoServer.getUidMin().getID();
+			int gid_min = thisAoServer.getGidMin().getID();
 
 			synchronized(rebuildLock) {
 				// Only restart when needed
@@ -193,7 +196,7 @@ final public class DNSManager extends BuilderThread {
 
 							if(!realFileStat.exists() || !realFile.contentEquals(newContents)) {
 								UnixFile newFile=new UnixFile(namedZoneDir, file+".new", false);
-								OutputStream newOut = newFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true);
+								OutputStream newOut = newFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true, uid_min, gid_min);
 								try {
 									newOut.write(newContents);
 								} finally {
@@ -315,11 +318,11 @@ final public class DNSManager extends BuilderThread {
 					needsRestart=true;
 					OutputStream newOut;
 					if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-						newOut = newConfFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true);
+						newOut = newConfFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true, uid_min, gid_min);
 					} else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-						LinuxServerGroup lsg = thisAOServer.getLinuxServerGroup(LinuxGroup.NAMED);
-						if(lsg==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.NAMED+" on "+thisAOServer.getHostname());
-						newOut = newConfFile.getSecureOutputStream(UnixFile.ROOT_UID, lsg.getGid().getID(), 0640, true);
+						LinuxServerGroup lsg = thisAoServer.getLinuxServerGroup(LinuxGroup.NAMED);
+						if(lsg==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.NAMED+" on "+thisAoServer.getHostname());
+						newOut = newConfFile.getSecureOutputStream(UnixFile.ROOT_UID, lsg.getGid().getID(), 0640, true, uid_min, gid_min);
 					} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 					try {
 						newOut.write(newContents);
@@ -336,7 +339,7 @@ final public class DNSManager extends BuilderThread {
 					 */
 					UnixFile newRoot=new UnixFile(namedZoneDir, NEW_MANDRIVA_ROOT_CACHE, false);
 					out=new ChainWriter(
-						newRoot.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)
+						newRoot.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true, uid_min, gid_min)
 					);
 					try {
 						out.print("; Use \"dig @A.ROOT-SERVERS.NET . ns\" to update this file if it's outdated.\n"

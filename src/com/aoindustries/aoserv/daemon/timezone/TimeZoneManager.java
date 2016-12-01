@@ -61,16 +61,19 @@ public class TimeZoneManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer server=AOServDaemon.getThisAOServer();
+			AOServer thisAoServer = AOServDaemon.getThisAOServer();
 
-			int osv=server.getServer().getOperatingSystemVersion().getPkey();
+			int osv=thisAoServer.getServer().getOperatingSystemVersion().getPkey();
 			if(
 				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
 				&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
 				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
-			String timeZone = server.getTimeZone().getName();
+			int uid_min = thisAoServer.getUidMin().getID();
+			int gid_min = thisAoServer.getGidMin().getID();
+
+			String timeZone = thisAoServer.getTimeZone().getName();
 
 			synchronized(rebuildLock) {
 				/*
@@ -121,7 +124,7 @@ public class TimeZoneManager extends BuilderThread {
 				if(!clockConfig.getStat().exists() || !clockConfig.contentEquals(newBytes)) {
 					// Write to temp file
 					UnixFile newClockConfig = new UnixFile("/etc/sysconfig/clock.new");
-					try (OutputStream newClockOut = newClockConfig.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0755, true)) {
+					try (OutputStream newClockOut = newClockConfig.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0755, true, uid_min, gid_min)) {
 						newClockOut.write(newBytes);
 					}
 					// Atomically move into place

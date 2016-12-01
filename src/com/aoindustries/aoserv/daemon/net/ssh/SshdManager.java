@@ -45,9 +45,9 @@ final public class SshdManager extends BuilderThread {
 	protected boolean doRebuild() {
 		try {
 			AOServConnector connector=AOServDaemon.getConnector();
-			AOServer thisAOServer=AOServDaemon.getThisAOServer();
+			AOServer thisAoServer=AOServDaemon.getThisAOServer();
 
-			int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+			int osv=thisAoServer.getServer().getOperatingSystemVersion().getPkey();
 
 			// Nothing is done for these operating systems
 			if(
@@ -57,6 +57,9 @@ final public class SshdManager extends BuilderThread {
 			) {
 				throw new SQLException("Should not have been started");
 			}
+
+			int uid_min = thisAoServer.getUidMin().getID();
+			int gid_min = thisAoServer.getGidMin().getID();
 
 			// Otherwise, make sure it is a supported OS
 			if(
@@ -70,7 +73,7 @@ final public class SshdManager extends BuilderThread {
 				SortedSet<com.aoindustries.aoserv.client.validator.InetAddress> ips;
 				{
 					Protocol sshProtocol=connector.getProtocols().get(Protocol.SSH);
-					List<NetBind> nbs=thisAOServer.getServer().getNetBinds(sshProtocol);
+					List<NetBind> nbs=thisAoServer.getServer().getNetBinds(sshProtocol);
 					ips=new TreeSet<>();
 					for(int c=0;c<nbs.size();c++) {
 						NetBind nb = nbs.get(c);
@@ -137,7 +140,7 @@ final public class SshdManager extends BuilderThread {
 				) {
 					// Write to temp file
 					UnixFile newConfigFile = new UnixFile("/etc/ssh/sshd_config.new");
-					try (OutputStream newConfigOut = newConfigFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true)) {
+					try (OutputStream newConfigOut = newConfigFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true, uid_min, gid_min)) {
 						newConfigOut.write(newBytes);
 					}
 

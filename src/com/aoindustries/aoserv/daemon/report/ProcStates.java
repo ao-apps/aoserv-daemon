@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -7,7 +7,6 @@ package com.aoindustries.aoserv.daemon.report;
 
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.StringUtility;
 import java.io.BufferedReader;
@@ -25,144 +24,145 @@ import java.sql.SQLException;
  */
 final public class ProcStates {
 
-    private static final File proc=new File("/proc");
+	private static final File proc=new File("/proc");
 
-    public final int
-        total_sleep,
-        user_sleep,
-        total_run,
-        user_run,
-        total_zombie,
-        user_zombie,
-        total_trace,
-        user_trace,
-        total_uninterruptible,
-        user_uninterruptible,
-        total_unknown,
-        user_unknown
-    ;
+	public final int
+		total_sleep,
+		user_sleep,
+		total_run,
+		user_run,
+		total_zombie,
+		user_zombie,
+		total_trace,
+		user_trace,
+		total_uninterruptible,
+		user_uninterruptible,
+		total_unknown,
+		user_unknown
+	;
 
-    public ProcStates() throws IOException, SQLException {
-        int
-            total_sleep=0,
-            user_sleep=0,
-            total_run=0,
-            user_run=0,
-            total_zombie=0,
-            user_zombie=0,
-            total_trace=0,
-            user_trace=0,
-            total_uninterruptible=0,
-            user_uninterruptible=0,
-            total_unknown=0,
-            user_unknown=0
-        ;
+	public ProcStates() throws IOException, SQLException {
+		int
+			total_sleep=0,
+			user_sleep=0,
+			total_run=0,
+			user_run=0,
+			total_zombie=0,
+			user_zombie=0,
+			total_trace=0,
+			user_trace=0,
+			total_uninterruptible=0,
+			user_uninterruptible=0,
+			total_unknown=0,
+			user_unknown=0
+		;
 
-        AOServer aoServer= AOServDaemon.getThisAOServer();
-        boolean isOuterServer=aoServer.getFailoverServer()==null;
+		AOServer thisAoServer = AOServDaemon.getThisAOServer();
+		boolean isOuterServer = thisAoServer.getFailoverServer()==null;
+		int uid_min = thisAoServer.getUidMin().getID();
 
-        // Parse for the values
-        String[] list=proc.list();
-        int len=list.length;
-        for(int c=0;c<len;c++) {
-            String filename=list[c];
-            char ch=filename.charAt(0);
-            if(ch>='0' && ch<='9') {
-                File file=new File(proc, filename);
-                if(file.isDirectory()) {
-                    try {
-                        String state=null;
-                        int uid=-1;
-                        BufferedReader in=new BufferedReader(new InputStreamReader(new FileInputStream(new File(file, "status"))));
-                        String line;
-                        while((state==null || uid==-1) && (line=in.readLine())!=null) {
-                            if(line.startsWith("State:")) {
-                                String[] words=StringUtility.splitString(line);
-                                state=words[1];
-                            } else if(line.startsWith("Uid:")) {
-                                String[] words= StringUtility.splitString(line);
-                                uid=Integer.parseInt(words[1]);
-                            }
-                        }
-                        if(isOuterServer) {
-                            if(state==null) total_unknown++;
-                            else {
-                                ch=state.charAt(0);
-                                if(ch=='S') total_sleep++;
-                                else if(ch=='R') total_run++;
-                                else if(ch=='Z') total_zombie++;
-                                else if(ch=='T') total_trace++;
-                                else if(ch=='D') total_uninterruptible++;
-                                else total_unknown++;
-                            }
-                        }
-                        if(
-                            uid>= UnixFile.MINIMUM_USER_UID
-                            && aoServer.getLinuxServerAccount(uid)!=null
-                        ) {
-                            if(state==null) user_unknown++;
-                            else {
-                                ch=state.charAt(0);
-                                if(ch=='S') user_sleep++;
-                                else if(ch=='R') user_run++;
-                                else if(ch=='Z') user_zombie++;
-                                else if(ch=='T') user_trace++;
-                                else if(ch=='D') user_uninterruptible++;
-                                else user_unknown++;
-                            }
-                        }
-                        in.close();
-                    } catch(FileNotFoundException err) {
-                        // Normal if the process has terminated
-                    }
-                }
-            }
-        }
+		// Parse for the values
+		String[] list=proc.list();
+		int len=list.length;
+		for(int c=0;c<len;c++) {
+			String filename=list[c];
+			char ch=filename.charAt(0);
+			if(ch>='0' && ch<='9') {
+				File file=new File(proc, filename);
+				if(file.isDirectory()) {
+					try {
+						String state=null;
+						int uid=-1;
+						BufferedReader in=new BufferedReader(new InputStreamReader(new FileInputStream(new File(file, "status"))));
+						String line;
+						while((state==null || uid==-1) && (line=in.readLine())!=null) {
+							if(line.startsWith("State:")) {
+								String[] words=StringUtility.splitString(line);
+								state=words[1];
+							} else if(line.startsWith("Uid:")) {
+								String[] words= StringUtility.splitString(line);
+								uid=Integer.parseInt(words[1]);
+							}
+						}
+						if(isOuterServer) {
+							if(state==null) total_unknown++;
+							else {
+								ch=state.charAt(0);
+								if(ch=='S') total_sleep++;
+								else if(ch=='R') total_run++;
+								else if(ch=='Z') total_zombie++;
+								else if(ch=='T') total_trace++;
+								else if(ch=='D') total_uninterruptible++;
+								else total_unknown++;
+							}
+						}
+						if(
+							uid >= uid_min
+							&& thisAoServer.getLinuxServerAccount(uid)!=null
+						) {
+							if(state==null) user_unknown++;
+							else {
+								ch=state.charAt(0);
+								if(ch=='S') user_sleep++;
+								else if(ch=='R') user_run++;
+								else if(ch=='Z') user_zombie++;
+								else if(ch=='T') user_trace++;
+								else if(ch=='D') user_uninterruptible++;
+								else user_unknown++;
+							}
+						}
+						in.close();
+					} catch(FileNotFoundException err) {
+						// Normal if the process has terminated
+					}
+				}
+			}
+		}
 
-        // Copy into instance
-        this.total_sleep=total_sleep;
-        this.user_sleep=user_sleep;
-        this.total_run=total_run;
-        this.user_run=user_run;
-        this.total_zombie=total_zombie;
-        this.user_zombie=user_zombie;
-        this.total_trace=total_trace;
-        this.user_trace=user_trace;
-        this.total_uninterruptible=total_uninterruptible;
-        this.user_uninterruptible=user_uninterruptible;
-        this.total_unknown=total_unknown;
-        this.user_unknown=user_unknown;
-    }
+		// Copy into instance
+		this.total_sleep=total_sleep;
+		this.user_sleep=user_sleep;
+		this.total_run=total_run;
+		this.user_run=user_run;
+		this.total_zombie=total_zombie;
+		this.user_zombie=user_zombie;
+		this.total_trace=total_trace;
+		this.user_trace=user_trace;
+		this.total_uninterruptible=total_uninterruptible;
+		this.user_uninterruptible=user_uninterruptible;
+		this.total_unknown=total_unknown;
+		this.user_unknown=user_unknown;
+	}
 
-    public static void main(String[] args) {
-        try {
-            System.err.println(new ProcStates());
-            System.exit(0);
-        } catch(IOException err) {
-            ErrorPrinter.printStackTraces(err);
-            System.exit(1);
-        } catch(SQLException err) {
-            ErrorPrinter.printStackTraces(err);
-            System.exit(2);
-        }
-    }
+	public static void main(String[] args) {
+		try {
+			System.err.println(new ProcStates());
+			System.exit(0);
+		} catch(IOException err) {
+			ErrorPrinter.printStackTraces(err);
+			System.exit(1);
+		} catch(SQLException err) {
+			ErrorPrinter.printStackTraces(err);
+			System.exit(2);
+		}
+	}
 
 	@Override
-    public String toString() {
-        return
-            getClass().getName()
-            +"?total_sleep="+total_sleep
-            +"&user_sleep="+user_sleep
-            +"&total_run="+total_run
-            +"&user_run="+user_run
-            +"&total_zombie="+total_zombie
-            +"&user_zombie="+user_zombie
-            +"&total_trace="+total_trace
-            +"&user_trace="+user_trace
-            +"&total_uninterruptible="+total_uninterruptible
-            +"&user_uninterruptible="+user_uninterruptible
-            +"&total_unknown="+total_unknown
-            +"&user_unknown="+user_unknown
-        ;
-    }
+	public String toString() {
+		return
+			getClass().getName()
+			+"?total_sleep="+total_sleep
+			+"&user_sleep="+user_sleep
+			+"&total_run="+total_run
+			+"&user_run="+user_run
+			+"&total_zombie="+total_zombie
+			+"&user_zombie="+user_zombie
+			+"&total_trace="+total_trace
+			+"&user_trace="+user_trace
+			+"&total_uninterruptible="+total_uninterruptible
+			+"&user_uninterruptible="+user_uninterruptible
+			+"&total_unknown="+total_unknown
+			+"&user_unknown="+user_unknown
+		;
+	}
 }

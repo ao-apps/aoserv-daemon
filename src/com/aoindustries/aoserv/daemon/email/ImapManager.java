@@ -60,7 +60,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -1378,7 +1377,7 @@ final public class ImapManager extends BuilderThread {
 										if(isDebug) logger.fine(laUsername+": Creating backup directory: "+userBackupDirectory.getPath());
 										userBackupDirectory.mkdir(false, 0700);
 									}
-									
+
 									// Per-user logs
 									UnixFile logFile = new UnixFile(userBackupDirectory, "log", false);
 									if(isTrace) logger.finer(laUsername+": Using logfile: "+logFile.getPath());
@@ -1387,7 +1386,7 @@ final public class ImapManager extends BuilderThread {
 										// Password backup is delayed until immediately before the password is reset.
 										// This avoids unnecessary password resets.
 										UnixFile passwordBackup = new UnixFile(userBackupDirectory, "passwd", false);
-										
+
 										// Backup the mailboxlist
 										UnixFile homeDir = new UnixFile(homePath);
 										UnixFile mailBoxListFile = new UnixFile(homeDir, ".mailboxlist", false);
@@ -1402,7 +1401,7 @@ final public class ImapManager extends BuilderThread {
 												tempFile.chown(UnixFile.ROOT_UID, UnixFile.ROOT_GID).setMode(0600).renameTo(mailBoxListBackup);
 											}
 										}
-										
+
 										// The password will be reset to a random value upon first use, subsequent
 										// accesses will use the same password.
 										String[] tempPassword = new String[1];
@@ -1415,7 +1414,7 @@ final public class ImapManager extends BuilderThread {
 											if(!inboxFileStat.isRegularFile()) throw new IOException("Not a regular file: "+inboxFile.getPath());
 											convertImapFile(logOut, laUsername, junkRetention, trashRetention, inboxFile, new UnixFile(userBackupDirectory, "INBOX", false), "INBOX", tempPassword, passwordBackup);
 										}
-										
+
 										// Convert old folders from UW software
 										if(!"/home/a/acccorpapp".equals(homeDir.getPath())) {
 											UnixFile mailDir = new UnixFile(homeDir, "Mail", false);
@@ -1425,10 +1424,10 @@ final public class ImapManager extends BuilderThread {
 												convertImapDirectory(logOut, laUsername, junkRetention, trashRetention, mailDir, new UnixFile(userBackupDirectory, "Mail", false), "", tempPassword, passwordBackup);
 											}
 										}
-										
+
 										// Remove the mailboxlist file
 										if(mailBoxListFile.getStat().exists()) mailBoxListFile.delete();
-										
+
 										// Restore passwd, if needed
 										if(passwordBackup.getStat().exists()) {
 											String currentEncryptedPassword = LinuxAccountManager.getEncryptedPassword(laUsername);
@@ -1641,16 +1640,18 @@ final public class ImapManager extends BuilderThread {
 	}
 
 	public static void setImapFolderSubscribed(String username, String folderName, boolean subscribed) throws IOException, SQLException {
-		AOServer thisAOServer=AOServDaemon.getThisAOServer();
-		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
-		LinuxServerAccount lsa=thisAOServer.getLinuxServerAccount(username);
-		if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+username+" on "+thisAOServer);
+		AOServer thisAoServer=AOServDaemon.getThisAOServer();
+		int uid_min = thisAoServer.getUidMin().getID();
+		int gid_min = thisAoServer.getGidMin().getID();
+		int osv=thisAoServer.getServer().getOperatingSystemVersion().getPkey();
+		LinuxServerAccount lsa=thisAoServer.getLinuxServerAccount(username);
+		if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+username+" on "+thisAoServer);
 		if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 			UnixFile mailboxlist=new UnixFile(lsa.getHome(), ".mailboxlist");
 			List<String> lines=new ArrayList<>();
 			boolean currentlySubscribed=false;
 			if(mailboxlist.getStat().exists()) {
-				try (BufferedReader in = new BufferedReader(new InputStreamReader(mailboxlist.getSecureInputStream()))) {
+				try (BufferedReader in = new BufferedReader(new InputStreamReader(mailboxlist.getSecureInputStream(uid_min, gid_min)))) {
 					String line;
 					while((line=in.readLine())!=null) {
 						lines.add(line);
@@ -1659,7 +1660,7 @@ final public class ImapManager extends BuilderThread {
 				}
 			}
 			if(subscribed!=currentlySubscribed) {
-				try (PrintWriter out = new PrintWriter(mailboxlist.getSecureOutputStream(lsa.getUid().getID(), lsa.getPrimaryLinuxServerGroup().getGid().getID(), 0644, true))) {
+				try (PrintWriter out = new PrintWriter(mailboxlist.getSecureOutputStream(lsa.getUid().getID(), lsa.getPrimaryLinuxServerGroup().getGid().getID(), 0644, true, uid_min, gid_min))) {
 					for (String line : lines) {
 						if(subscribed || !line.equals(folderName)) {
 							// Only print if the folder still exists
@@ -1814,24 +1815,24 @@ final public class ImapManager extends BuilderThread {
 			list.writeQString(newValue);
 			list.writeQString("content-type.shared");
 			list.writeQString(newContentType);
-			
+
 			Argument args = new Argument();
 			args.writeString(mailboxName);
 			args.writeQString(entry);
 			args.writeArgument(list);
-			
+
 			Response[] r = p.command("SETANNOTATION", args);
 			Response response = r[r.length-1];
-			
+
 			// Grab response
 			if (!response.isOK()) {
 				throw new ProtocolException("Response is not OK: "+response);
 			}
-			
+
 			// dispatch remaining untagged responses
 			p.notifyResponseHandlers(r);
 			p.handleResult(response);
-			
+
 			return null;
 		});
 	}

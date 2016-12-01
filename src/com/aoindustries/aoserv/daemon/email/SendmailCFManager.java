@@ -59,17 +59,19 @@ final public class SendmailCFManager extends BuilderThread {
 		try {
 			// Used on inner processing
 			AOServConnector conn=AOServDaemon.getConnector();
-			AOServer aoServer=AOServDaemon.getThisAOServer();
-			Server server = aoServer.getServer();
-			int osv=server.getOperatingSystemVersion().getPkey();
-			ServerFarm serverFarm = server.getServerFarm();
-			IPAddress primaryIpAddress = aoServer.getPrimaryIPAddress();
+			AOServer thisAoServer=AOServDaemon.getThisAOServer();
+			int uid_min = thisAoServer.getUidMin().getID();
+			int gid_min = thisAoServer.getGidMin().getID();
+			Server thisServer = thisAoServer.getServer();
+			int osv=thisServer.getOperatingSystemVersion().getPkey();
+			ServerFarm serverFarm = thisServer.getServerFarm();
+			IPAddress primaryIpAddress = thisAoServer.getPrimaryIPAddress();
 			ByteArrayOutputStream bout = new ByteArrayOutputStream();
 			synchronized(rebuildLock) {
 				// Get the values used by different files once for internal consistency on dynamic data
-				List<NetBind> smtpNetBinds = server.getNetBinds(conn.getProtocols().get(Protocol.SMTP));
-				List<NetBind> smtpsNetBinds = server.getNetBinds(conn.getProtocols().get(Protocol.SMTPS));
-				List<NetBind> submissionNetBinds = server.getNetBinds(conn.getProtocols().get(Protocol.SUBMISSION));
+				List<NetBind> smtpNetBinds = thisServer.getNetBinds(conn.getProtocols().get(Protocol.SMTP));
+				List<NetBind> smtpsNetBinds = thisServer.getNetBinds(conn.getProtocols().get(Protocol.SMTPS));
+				List<NetBind> submissionNetBinds = thisServer.getNetBinds(conn.getProtocols().get(Protocol.SUBMISSION));
 
 				// Build the new version of /etc/mail/sendmail.mc in RAM
 				{
@@ -216,7 +218,7 @@ final public class SendmailCFManager extends BuilderThread {
 								+ "define(`confMAX_QUEUE_CHILDREN',`100')dnl\n"
 								+ "define(`confMIN_FREE_BLOCKS',`65536')dnl\n"
 								+ "define(`confNICE_QUEUE_RUN',`10')dnl\n"
-								+ "define(`confPROCESS_TITLE_PREFIX',`").print(aoServer.getHostname()).print("')dnl\n"
+								+ "define(`confPROCESS_TITLE_PREFIX',`").print(thisAoServer.getHostname()).print("')dnl\n"
 								+ "dnl\n");
 						// Look for the configured net bind for the jilter
 						NetBind jilterNetBind = JilterConfigurationWriter.getJilterNetBind();
@@ -254,7 +256,7 @@ final public class SendmailCFManager extends BuilderThread {
 									.print(", Port=")
 									.print(nb.getPort().getPort())
 									.print(", Name=")
-									.print(ip.isUnspecified()?aoServer.getHostname():ia.getHostname())
+									.print(ip.isUnspecified()?thisAoServer.getHostname():ia.getHostname())
 									.print("-MTA, Modifiers=")
 								;
 								if(ip.isUnspecified()) out.print("h");
@@ -279,7 +281,7 @@ final public class SendmailCFManager extends BuilderThread {
 									.print(", Port=")
 									.print(nb.getPort().getPort())
 									.print(", Name=")
-									.print(ip.isUnspecified()?aoServer.getHostname():ia.getHostname())
+									.print(ip.isUnspecified()?thisAoServer.getHostname():ia.getHostname())
 									.print("-TLSMSA, Modifiers=")
 								;
 								if(ip.isUnspecified()) out.print("hs");
@@ -304,7 +306,7 @@ final public class SendmailCFManager extends BuilderThread {
 									.print(", Port=")
 									.print(nb.getPort().getPort())
 									.print(", Name=")
-									.print(ip.isUnspecified()?aoServer.getHostname():ia.getHostname())
+									.print(ip.isUnspecified()?thisAoServer.getHostname():ia.getHostname())
 									.print("-MSA, Modifiers=")
 								;
 								if(ip.isUnspecified()) out.print("Eh");
@@ -333,7 +335,7 @@ final public class SendmailCFManager extends BuilderThread {
 								+ "O ClientSSLOptions=+SSL_OP_NO_SSLv2 +SSL_OP_NO_SSLv3\n"
 								// Add envelop header recipient
 								+ "H?m?X-RCPT-To: $u\n"
-								+ "Dj").print(aoServer.getHostname()).print("\n" // AO added
+								+ "Dj").print(thisAoServer.getHostname()).print("\n" // AO added
 								+ "\n"
 						);
 					}
@@ -341,7 +343,7 @@ final public class SendmailCFManager extends BuilderThread {
 
 					// Write the new file if it is different than the old
 					if(!sendmailMc.getStat().exists() || !sendmailMc.contentEquals(newBytes)) {
-						try (FileOutputStream fout = sendmailMcNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)) {
+						try (FileOutputStream fout = sendmailMcNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true, uid_min, gid_min)) {
 							fout.write(newBytes);
 						}
 						sendmailMcNew.renameTo(sendmailMc);
@@ -361,7 +363,7 @@ final public class SendmailCFManager extends BuilderThread {
 					String[] command = {"/usr/bin/m4", "/etc/mail/sendmail.mc"};
 					byte[] cfNewBytes = AOServDaemon.execAndCaptureBytes(command);
 					if(!sendmailCfStat.exists() || !sendmailCf.contentEquals(cfNewBytes)) {
-						try (FileOutputStream sendmailCfNewOut = sendmailCfNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)) {
+						try (FileOutputStream sendmailCfNewOut = sendmailCfNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true, uid_min, gid_min)) {
 							sendmailCfNewOut.write(cfNewBytes);
 						}
 						sendmailCfNew.renameTo(sendmailCf);
@@ -402,7 +404,7 @@ final public class SendmailCFManager extends BuilderThread {
 									+ "dnl define(`confDIRECT_SUBMISSION_MODIFIERS',`C')\n"
 									+ "dnl FEATURE(`use_ct_file')dnl\n"
 									+ "FEATURE(`msp', `[").print(primaryIpAddress.getInetAddress().toString()).print("]')dnl\n"
-									+ "define(`confPROCESS_TITLE_PREFIX',`").print(aoServer.getHostname()).print("')dnl\n");
+									+ "define(`confPROCESS_TITLE_PREFIX',`").print(thisAoServer.getHostname()).print("')dnl\n");
 						} else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 							out.print("divert(-1)\n"
 									+ "#\n"
@@ -420,7 +422,7 @@ final public class SendmailCFManager extends BuilderThread {
 									+ "dnl define(`confDIRECT_SUBMISSION_MODIFIERS',`C')dnl\n"
 									+ "FEATURE(`use_ct_file')dnl\n"
 									+ "FEATURE(`msp', `[").print(primaryIpAddress.getInetAddress().toString()).print("]')dnl\n"
-									+ "define(`confPROCESS_TITLE_PREFIX',`").print(aoServer.getHostname()).print("')dnl\n");
+									+ "define(`confPROCESS_TITLE_PREFIX',`").print(thisAoServer.getHostname()).print("')dnl\n");
 						} else {
 							throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 						}
@@ -429,7 +431,7 @@ final public class SendmailCFManager extends BuilderThread {
 
 					// Write the new file if it is different than the old
 					if(!submitMc.getStat().exists() || !submitMc.contentEquals(newBytes)) {
-						try (FileOutputStream fout = submitMcNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)) {
+						try (FileOutputStream fout = submitMcNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true, uid_min, gid_min)) {
 							fout.write(newBytes);
 						}
 						submitMcNew.renameTo(submitMc);
@@ -446,7 +448,7 @@ final public class SendmailCFManager extends BuilderThread {
 					String[] command = {"/usr/bin/m4", "/etc/mail/submit.mc"};
 					byte[] cfNewBytes = AOServDaemon.execAndCaptureBytes(command);
 					if(!submitCfStat.exists() || !submitCf.contentEquals(cfNewBytes)) {
-						try (FileOutputStream submitCfNewOut = submitCfNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)) {
+						try (FileOutputStream submitCfNewOut = submitCfNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true, uid_min, gid_min)) {
 							submitCfNewOut.write(cfNewBytes);
 						}
 						submitCfNew.renameTo(submitCf);

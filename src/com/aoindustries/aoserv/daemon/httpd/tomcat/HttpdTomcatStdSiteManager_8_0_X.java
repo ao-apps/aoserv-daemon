@@ -55,8 +55,10 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 		final int uid = lsa.getUid().getID();
 		final int gid = httpdSite.getLinuxServerGroup().getGid().getID();
 		final String tomcatDirectory=tomcatSite.getHttpdTomcatVersion().getInstallDirectory();
-		final AOServer thisAOServer = AOServDaemon.getThisAOServer();
-		final Server server = thisAOServer.getServer();
+		final AOServer thisAoServer = AOServDaemon.getThisAOServer();
+		int uid_min = thisAoServer.getUidMin().getID();
+		int gid_min = thisAoServer.getGidMin().getID();
+		final Server server = thisAoServer.getServer();
 		final int osv = server.getOperatingSystemVersion().getPkey();
 		//final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
 		//final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
@@ -96,7 +98,9 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 					uid,
 					gid,
 					0750,
-					false
+					false,
+					uid_min,
+					gid_min
 				)
 			)
 		);
@@ -136,7 +140,9 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 					uid,
 					gid,
 					0700,
-					false
+					false,
+					uid_min,
+					gid_min
 				)
 			)
 		);
@@ -188,7 +194,7 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 		}
 		DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/setclasspath.sh", siteDir+"/bin/setclasspath.sh", uid, gid);
 
-		out=new ChainWriter(new UnixFile(siteDir+"/bin/shutdown.sh").getSecureOutputStream(uid, gid, 0700, true));
+		out=new ChainWriter(new UnixFile(siteDir+"/bin/shutdown.sh").getSecureOutputStream(uid, gid, 0700, true, uid_min, gid_min));
 		try {
 			out.print("#!/bin/sh\n"
 					+ "exec \"").print(siteDir).print("/bin/tomcat\" stop\n");
@@ -196,7 +202,7 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 			out.close();
 		}
 
-		out=new ChainWriter(new UnixFile(siteDir+"/bin/startup.sh").getSecureOutputStream(uid, gid, 0700, true));
+		out=new ChainWriter(new UnixFile(siteDir+"/bin/startup.sh").getSecureOutputStream(uid, gid, 0700, true, uid_min, gid_min));
 		try {
 			out.print("#!/bin/sh\n"
 					+ "exec \"").print(siteDir).print("/bin/tomcat\" start\n");
@@ -266,7 +272,7 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 		String webXML=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/web.xml";
 		out=new ChainWriter(
 			new BufferedOutputStream(
-				new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false)
+				new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
 			)
 		);
 		try {

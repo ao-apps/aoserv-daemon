@@ -452,7 +452,10 @@ public abstract class HttpdSiteManager {
 		// TODO: If every server this site runs as uses mod_php, then don't make the script
 		// TODO: Make based on per-httpd_site setting
 		if(enableCgi() && enablePhp()) {
-			final int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
+			AOServer thisAoServer = AOServDaemon.getThisAOServer();
+			int uid_min = thisAoServer.getUidMin().getID();
+			int gid_min = thisAoServer.getGidMin().getID();
+			final int osv = thisAoServer.getServer().getOperatingSystemVersion().getPkey();
 			HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 			final String phpMinorVersion;
 			if(phpFile.getStat().exists()) {
@@ -570,7 +573,9 @@ public abstract class HttpdSiteManager {
 				phpFile,
 				uid,
 				gid,
-				mode
+				mode,
+				uid_min,
+				gid_min
 			);
 			// Make sure permissions correct
 			Stat phpStat = phpFile.getStat();

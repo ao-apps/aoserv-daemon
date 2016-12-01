@@ -41,7 +41,6 @@ import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -355,12 +354,14 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 			incomingStat = incomingDirectory.getStat();
 		}
 		// Make sure user cyrus and group mail
-		AOServer aoServer = AOServDaemon.getThisAOServer();
-		LinuxServerAccount cyrus = aoServer.getLinuxServerAccount(LinuxAccount.CYRUS);
-		if(cyrus==null) throw new SQLException("Unable to find LinuxServerAccount: "+LinuxAccount.CYRUS+" on "+aoServer);
+		AOServer thisAoServer = AOServDaemon.getThisAOServer();
+		int uid_min = thisAoServer.getUidMin().getID();
+		int gid_min = thisAoServer.getGidMin().getID();
+		LinuxServerAccount cyrus = thisAoServer.getLinuxServerAccount(LinuxAccount.CYRUS);
+		if(cyrus==null) throw new SQLException("Unable to find LinuxServerAccount: "+LinuxAccount.CYRUS+" on "+thisAoServer);
 		int cyrusUid = cyrus.getUid().getID();
-		LinuxServerGroup mail = aoServer.getLinuxServerGroup(LinuxGroup.MAIL);
-		if(mail==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxAccount.MAIL+" on "+aoServer);
+		LinuxServerGroup mail = thisAoServer.getLinuxServerGroup(LinuxGroup.MAIL);
+		if(mail==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxAccount.MAIL+" on "+thisAoServer);
 		int mailGid = mail.getGid().getID();
 		if(incomingStat.getUid()!=cyrusUid || incomingStat.getGid()!=mailGid) {
 			incomingDirectory.chown(cyrusUid, mailGid);
@@ -391,7 +392,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 				File userDirectoryFile = userDirectoryUf.getFile();
 
 				// Each filename should be a username
-				LinuxServerAccount lsa = aoServer.getLinuxServerAccount(incomingDirectoryFilename);
+				LinuxServerAccount lsa = thisAoServer.getLinuxServerAccount(incomingDirectoryFilename);
 				if(lsa==null) {
 					// user not found, backup and then remove
 					LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectoryFilename="+incomingDirectoryFilename, new IOException("User not found, deleting"));
@@ -482,7 +483,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 				BackupManager.backupFiles(deleteFileList, backupFile);
 
 				// Remove the files that have been backed up.
-				for(File file : deleteFileList) new UnixFile(file).secureDeleteRecursive();
+				for(File file : deleteFileList) new UnixFile(file).secureDeleteRecursive(uid_min, gid_min);
 			}
 
 			// Nothing to do, end loop to sleep
@@ -557,16 +558,18 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer aoServer=AOServDaemon.getThisAOServer();
-			Server server = aoServer.getServer();
+			AOServer thisAoServer=AOServDaemon.getThisAOServer();
+			Server thisServer = thisAoServer.getServer();
 
-			int osv=server.getOperatingSystemVersion().getPkey();
+			int osv=thisServer.getOperatingSystemVersion().getPkey();
 			if(
 				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
 				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
-			final InetAddress primaryIP = aoServer.getPrimaryIPAddress().getInetAddress();
+			int uid_min = thisAoServer.getUidMin().getID();
+			int gid_min = thisAoServer.getGidMin().getID();
+			final InetAddress primaryIP = thisAoServer.getPrimaryIPAddress().getInetAddress();
 
 			/**
 			 * Build the /etc/sysconfig/..... file.
@@ -583,7 +586,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 							   + "SPAMDOPTIONS=\"-d -c -m25 -H -i ").print(primaryIP.toString()).print(" -A ");
 					// Allow all IP addresses for this machine
 					Set<InetAddress> usedIps = new HashSet<>();
-					List<IPAddress> ips = server.getIPAddresses();
+					List<IPAddress> ips = thisServer.getIPAddresses();
 					for(IPAddress ip : ips) {
 						InetAddress addr = ip.getInetAddress();
 						if(!addr.isUnspecified() && !ip.getNetDevice().getNetDeviceID().isLoopback()) {
@@ -627,7 +630,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 			/**
 			 * Build the spamassassin files per account.
 			 */
-			List<LinuxServerAccount> lsas=aoServer.getLinuxServerAccounts();
+			List<LinuxServerAccount> lsas=thisAoServer.getLinuxServerAccounts();
 			synchronized(rebuildLock) {
 				for (LinuxServerAccount lsa : lsas) {
 					// Only build spamassassin for accounts under /home/
@@ -665,7 +668,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 							if(!userPrefs.getStat().exists() || !userPrefs.contentEquals(newBytes)) {
 								// Replace when changed
 								UnixFile userPrefsNew=new UnixFile(spamAssassinDir, "user_prefs.new", false);
-								try (FileOutputStream out = userPrefsNew.getSecureOutputStream(lsa.getUid().getID(), lsa.getPrimaryLinuxServerGroup().getGid().getID(), 0600, true)) {
+								try (FileOutputStream out = userPrefsNew.getSecureOutputStream(lsa.getUid().getID(), lsa.getPrimaryLinuxServerGroup().getGid().getID(), 0600, true, uid_min, gid_min)) {
 									out.write(newBytes);
 								}
 								userPrefsNew.renameTo(userPrefs);
@@ -723,8 +726,11 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 		@Override
 		public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
 			try {
+				AOServer thisAoServer = AOServDaemon.getThisAOServer();
+				int uid_min = thisAoServer.getUidMin().getID();
+				int gid_min = thisAoServer.getGidMin().getID();
 				Queue<String> queuedLines = new LinkedList<>();
-				for(LinuxServerAccount lsa : AOServDaemon.getThisAOServer().getLinuxServerAccounts()) {
+				for(LinuxServerAccount lsa : thisAoServer.getLinuxServerAccounts()) {
 					// Only clean razor for accounts under /home/
 					String homePath = lsa.getHome();
 					if(lsa.getLinuxAccount().getType().isEmail() && homePath.startsWith("/home/")) {
@@ -750,7 +756,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 									int gid = lsa.getPrimaryLinuxServerGroup().getGid().getID();
 									UnixFile tempFile = UnixFile.mktemp(razorAgentLog.getPath()+'.', false);
 									try {
-										try (PrintWriter out = new PrintWriter(new BufferedOutputStream(tempFile.getSecureOutputStream(uid, gid, 0644, true)))) {
+										try (PrintWriter out = new PrintWriter(new BufferedOutputStream(tempFile.getSecureOutputStream(uid, gid, 0644, true, uid_min, gid_min)))) {
 											while(!queuedLines.isEmpty()) out.println(queuedLines.remove());
 										}
 										tempFile.renameTo(razorAgentLog);

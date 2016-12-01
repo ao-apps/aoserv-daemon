@@ -45,9 +45,9 @@ final public class CvsManager extends BuilderThread {
 	protected boolean doRebuild() {
 		try {
 			//AOServConnector conn=AOServDaemon.getConnector();
-			AOServer thisAOServer=AOServDaemon.getThisAOServer();
+			AOServer thisAoServer=AOServDaemon.getThisAOServer();
 
-			int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+			int osv=thisAoServer.getServer().getOperatingSystemVersion().getPkey();
 			if(
 				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
 				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
@@ -64,7 +64,7 @@ final public class CvsManager extends BuilderThread {
 
 				// Add each directory that doesn't exist, fix permissions and ownerships, too
 				// while removing existing directories from existing
-				for(CvsRepository cvs : thisAOServer.getCvsRepositories()) {
+				for(CvsRepository cvs : thisAoServer.getCvsRepositories()) {
 					String path=cvs.getPath();
 					UnixFile cvsUF=new UnixFile(path);
 					Stat cvsStat = cvsUF.getStat();
@@ -115,9 +115,11 @@ final public class CvsManager extends BuilderThread {
 					/*
 					 * Remove the files that have been backed up.
 					 */
+					int uid_min = thisAoServer.getUidMin().getID();
+					int gid_min = thisAoServer.getGidMin().getID();
 					for(int c=0;c<svLen;c++) {
 						File file=deleteFileList.get(c);
-						new UnixFile(file.getPath()).secureDeleteRecursive();
+						new UnixFile(file.getPath()).secureDeleteRecursive(uid_min, gid_min);
 					}
 				}
 			}

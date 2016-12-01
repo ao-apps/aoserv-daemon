@@ -44,18 +44,21 @@ public final class EmailDomainManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer thisAOServer=AOServDaemon.getThisAOServer();
+			AOServer thisAoServer=AOServDaemon.getThisAOServer();
 
-			int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+			int osv=thisAoServer.getServer().getOperatingSystemVersion().getPkey();
 			if(
 				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
 				&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
 				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
+			int uid_min = thisAoServer.getUidMin().getID();
+			int gid_min = thisAoServer.getGidMin().getID();
+
 			synchronized(rebuildLock) {
 				// Grab the list of domains from the database
-				List<EmailDomain> domains = thisAOServer.getEmailDomains();
+				List<EmailDomain> domains = thisAoServer.getEmailDomains();
 
 				// Create the new file
 				ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -66,7 +69,7 @@ public final class EmailDomainManager extends BuilderThread {
 
 				// Write new file only when needed
 				if(!configFile.getStat().exists() || !configFile.contentEquals(newBytes)) {
-					try (FileOutputStream newOut = newFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, false)) {
+					try (FileOutputStream newOut = newFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, false, uid_min, gid_min)) {
 						newOut.write(newBytes);
 					}
 					newFile.renameTo(configFile);

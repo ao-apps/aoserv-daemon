@@ -1,10 +1,11 @@
 /*
- * Copyright 2000-2012, 2014 by AO Industries, Inc.,
+ * Copyright 2000-2012, 2014, 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.email;
 
+import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.MajordomoServer;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -24,100 +25,108 @@ import java.sql.SQLException;
  */
 final public class EmailListManager {
 
-    private EmailListManager() {
-    }
+	private EmailListManager() {
+	}
 
-    /**
-     * Reads the address list from the file system.
-     */
-    public static String getEmailListFile(String path) throws IOException, SQLException {
-        int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
-        if(
-            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-            && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+	/**
+	 * Reads the address list from the file system.
+	 */
+	public static String getEmailListFile(String path) throws IOException, SQLException {
+		AOServer thisAoServer = AOServDaemon.getThisAOServer();
+		int osv=thisAoServer.getServer().getOperatingSystemVersion().getPkey();
+		if(
+			osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+			&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+			&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+		) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
-        UnixFile file = new UnixFile(path);
-        Stat fileStat = file.getStat();
-        StringBuilder sb=new StringBuilder((int) fileStat.getSize());
-        InputStream fin=new BufferedInputStream(file.getSecureInputStream());
-        int ch;
-        while ((ch = fin.read()) != -1) sb.append((char) ch);
-        return sb.toString();
-    }
+		int uid_min = thisAoServer.getUidMin().getID();
+		int gid_min = thisAoServer.getGidMin().getID();
 
-    /**
-     * Constructs a <code>EmailList</code> providing all information.  The
-     * new <code>EmailList</code> is stored in the database.
-     */
-    public static void removeEmailListAddresses(String path) throws IOException, SQLException {
-        int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
-        if(
-            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-            && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+		UnixFile file = new UnixFile(path);
+		Stat fileStat = file.getStat();
+		StringBuilder sb=new StringBuilder((int) fileStat.getSize());
+		InputStream fin=new BufferedInputStream(file.getSecureInputStream(uid_min, gid_min));
+		int ch;
+		while ((ch = fin.read()) != -1) sb.append((char) ch);
+		return sb.toString();
+	}
 
-        File file = new File(path);
-        if(file.exists()) FileUtils.delete(file);
-    }
+	/**
+	 * Constructs a <code>EmailList</code> providing all information.  The
+	 * new <code>EmailList</code> is stored in the database.
+	 */
+	public static void removeEmailListAddresses(String path) throws IOException, SQLException {
+		int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
+		if(
+			osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+			&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+			&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+		) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
-    /**
-     * Writes the address list to the file system.
-     */
-    public synchronized static void setEmailListFile(
-        String path,
-        String file,
-        int uid,
-        int gid,
-        int mode
-    ) throws IOException, SQLException {
-        int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
-        if(
-            osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-            && osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-            && osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-        ) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+		File file = new File(path);
+		if(file.exists()) FileUtils.delete(file);
+	}
 
-        // Remove any '/r'
-        StringBuilder SB=new StringBuilder();
-        int len=file.length();
-        for(int c=0;c<len;c++) {
-            char ch=file.charAt(c);
-            if(ch!='\r') SB.append(ch);
-        }
-        // Make sure ends with '\n'
-        if(SB.length()>0 && SB.charAt(SB.length()-1)!='\n') SB.append('\n');
+	/**
+	 * Writes the address list to the file system.
+	 */
+	public synchronized static void setEmailListFile(
+		String path,
+		String file,
+		int uid,
+		int gid,
+		int mode
+	) throws IOException, SQLException {
+		AOServer thisAoServer = AOServDaemon.getThisAOServer();
+		int osv=thisAoServer.getServer().getOperatingSystemVersion().getPkey();
+		if(
+			osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+			&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+			&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+		) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
-        // If a majordomo list, add any new directories
-        boolean isMajordomo=path.startsWith(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY);
-        if(isMajordomo) {
-            UnixFile pathUF=new UnixFile(path);
-            UnixFile listDir=pathUF.getParent();
-            if(!listDir.getStat().exists()) {
-                UnixFile serverDir=listDir.getParent();
-                if(!serverDir.getStat().exists()) {
-                    serverDir.mkdir().setMode(0750);
-                }
-                listDir.mkdir().setMode(0750);
-            }
-        }
+		int uid_min = thisAoServer.getUidMin().getID();
+		int gid_min = thisAoServer.getGidMin().getID();
 
-        UnixFile tempUF=UnixFile.mktemp(path+".new.", false);
-        PrintWriter out=new PrintWriter(
-            new BufferedOutputStream(
-                tempUF.getSecureOutputStream(uid, gid, mode, true)
-            )
-        );
-        try {
-            out.print(SB.toString());
-        } finally {
-            out.flush();
-            out.close();
-        }
+		// Remove any '/r'
+		StringBuilder SB=new StringBuilder();
+		int len=file.length();
+		for(int c=0;c<len;c++) {
+			char ch=file.charAt(c);
+			if(ch!='\r') SB.append(ch);
+		}
+		// Make sure ends with '\n'
+		if(SB.length()>0 && SB.charAt(SB.length()-1)!='\n') SB.append('\n');
 
-        // Move the new file into place
-        tempUF.renameTo(new UnixFile(path));
-    }
+		// If a majordomo list, add any new directories
+		boolean isMajordomo=path.startsWith(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY);
+		if(isMajordomo) {
+			UnixFile pathUF=new UnixFile(path);
+			UnixFile listDir=pathUF.getParent();
+			if(!listDir.getStat().exists()) {
+				UnixFile serverDir=listDir.getParent();
+				if(!serverDir.getStat().exists()) {
+					serverDir.mkdir().setMode(0750);
+				}
+				listDir.mkdir().setMode(0750);
+			}
+		}
+
+		UnixFile tempUF=UnixFile.mktemp(path+".new.", false);
+		PrintWriter out=new PrintWriter(
+			new BufferedOutputStream(
+				tempUF.getSecureOutputStream(uid, gid, mode, true, uid_min, gid_min)
+			)
+		);
+		try {
+			out.print(SB.toString());
+		} finally {
+			out.flush();
+			out.close();
+		}
+
+		// Move the new file into place
+		tempUF.renameTo(new UnixFile(path));
+	}
 }

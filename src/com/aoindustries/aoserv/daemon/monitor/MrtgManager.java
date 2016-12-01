@@ -61,8 +61,8 @@ final public class MrtgManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer thisAOServer=AOServDaemon.getThisAOServer();
-			Server thisServer = thisAOServer.getServer();
+			AOServer thisAoServer=AOServDaemon.getThisAOServer();
+			Server thisServer = thisAoServer.getServer();
 
 			int osv=thisServer.getOperatingSystemVersion().getPkey();
 			if(
@@ -71,7 +71,10 @@ final public class MrtgManager extends BuilderThread {
 				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
-			AOServer failoverServer = thisAOServer.getFailoverServer();
+			int uid_min = thisAoServer.getUidMin().getID();
+			int gid_min = thisAoServer.getGidMin().getID();
+
+			AOServer failoverServer = thisAoServer.getFailoverServer();
 			String daemonBin;
 			UnixFile cfgFile;
 			UnixFile cfgFileNew;
@@ -121,7 +124,7 @@ final public class MrtgManager extends BuilderThread {
 								+ "  <div style='text-align:center'>\n"
 								+ "  <h1>\n"
 								+ "  <img src=\"https://aoindustries.com/images/clientarea/accounting/SendInvoices.jpg\" width=\"452\" height=\"127\" alt=\"\" /><br />\n"
-								+ "  <span style=\"color:#000000\">").encodeXhtml(thisAOServer.getHostname().toString());
+								+ "  <span style=\"color:#000000\">").encodeXhtml(thisAoServer.getHostname().toString());
 						if(failoverServer!=null) out.print(" on ").encodeXhtml(failoverServer.getHostname().toString());
 						out.print("</span>\n"
 								+ "  </h1>\n"
@@ -161,7 +164,7 @@ final public class MrtgManager extends BuilderThread {
 									+ "Legend4[").print(deviceId).print("]: Maximal 5 Minute Outgoing Traffic\n"
 									+ "LegendI[").print(deviceId).print("]:  In:\n"
 									+ "LegendO[").print(deviceId).print("]:  Out:\n"
-									+ "Timezone[").print(deviceId).print("]: ").print(thisAOServer.getTimeZone()).print("\n"
+									+ "Timezone[").print(deviceId).print("]: ").print(thisAoServer.getTimeZone()).print("\n"
 									+ "Title[").print(deviceId).print("]: ").print(netDevice.getDescription()).print(" traffic\n"
 									+ "PageFoot[").print(deviceId).print("]: <p>\n"
 									+ "PageTop[").print(deviceId).print("]: <h2>").print(netDevice.getDescription()).print(" traffic</h2>\n"
@@ -180,7 +183,7 @@ final public class MrtgManager extends BuilderThread {
 								+ "Legend4[load]: Load Average\n"
 								+ "LegendI[load]:  Load:\n"
 								+ "LegendO[load]:  Load:\n"
-								+ "Timezone[load]: ").print(thisAOServer.getTimeZone()).print("\n"
+								+ "Timezone[load]: ").print(thisAoServer.getTimeZone()).print("\n"
 								+ "Title[load]: Load Average (x 1000)\n"
 								+ "PageFoot[load]: <p>\n"
 								+ "PageTop[load]: <h2>Load Average (x 1000)</h2>\n"
@@ -224,7 +227,7 @@ final public class MrtgManager extends BuilderThread {
 									+ "LegendI[cpu]:  system:\n"
 									+ "LegendO[cpu]:  total:\n");
 						} else throw new IOException("Unsupported number of CPUs: "+numCPUs);
-						out.print("Timezone[cpu]: ").print(thisAOServer.getTimeZone()).print("\n"
+						out.print("Timezone[cpu]: ").print(thisAoServer.getTimeZone()).print("\n"
 								+ "Title[cpu]: Server CPU Utilization (%)\n"
 								+ "PageFoot[cpu]: <p>\n"
 								+ "PageTop[cpu]: <h2>Server CPU Utilization (%)</h2>\n"
@@ -242,7 +245,7 @@ final public class MrtgManager extends BuilderThread {
 								+ "Legend4[mem]: Maximal 5 Minute\n"
 								+ "LegendI[mem]:  Swp:\n"
 								+ "LegendO[mem]:  Mem:\n"
-								+ "Timezone[mem]: ").print(thisAOServer.getTimeZone()).print("\n"
+								+ "Timezone[mem]: ").print(thisAoServer.getTimeZone()).print("\n"
 								+ "Title[mem]: Server Memory and Swap space\n"
 								+ "PageFoot[mem]: <p>\n"
 								+ "PageTop[mem]: <h2>Server Memory and Swap space</h2>\n"
@@ -260,7 +263,7 @@ final public class MrtgManager extends BuilderThread {
 								+ "Legend4[diskio]: Maximal 5 Minute\n"
 								+ "LegendI[diskio]:  read:\n"
 								+ "LegendO[diskio]:  write:\n"
-								+ "Timezone[diskio]: ").print(thisAOServer.getTimeZone()).print("\n"
+								+ "Timezone[diskio]: ").print(thisAoServer.getTimeZone()).print("\n"
 								+ "Title[diskio]: Server Disk I/O (blocks per second)\n"
 								+ "PageFoot[diskio]: <p>\n"
 								+ "PageTop[diskio]: <h2>Server Disk I/O (blocks per second)</h2>\n"
@@ -281,7 +284,7 @@ final public class MrtgManager extends BuilderThread {
 									+ "Legend4[").print(safeName).print("]: Maximal 5 Minute\n"
 									+ "LegendI[").print(safeName).print("]:  Space:\n"
 									+ "LegendO[").print(safeName).print("]:  Inodes:\n"
-									+ "Timezone[").print(safeName).print("]: ").print(thisAOServer.getTimeZone()).print("\n"
+									+ "Timezone[").print(safeName).print("]: ").print(thisAoServer.getTimeZone()).print("\n"
 									+ "Title[").print(safeName).print("]: ").print(device).print(" Space and Inodes (%)\n"
 									+ "PageFoot[").print(safeName).print("]: <p>\n"
 									+ "PageTop[").print(safeName).print("]: <h2>").print(device).print(" Space and Inodes (%)</h2>\n"
@@ -300,7 +303,7 @@ final public class MrtgManager extends BuilderThread {
 								+ "Legend4[swap]: Maximal 5 Minute\n"
 								+ "LegendI[swap]:  swap:\n"
 								+ "LegendO[swap]:  page:\n"
-								+ "Timezone[swap]: ").print(thisAOServer.getTimeZone()).print("\n"
+								+ "Timezone[swap]: ").print(thisAoServer.getTimeZone()).print("\n"
 								+ "Title[swap]: Server Swap and Paging I/O (in+out blocks per second)\n"
 								+ "PageFoot[swap]: <p>\n"
 								+ "PageTop[swap]: <h2>Server Swap and Paging I/O (in+out blocks per second)</h2>\n"
@@ -310,7 +313,7 @@ final public class MrtgManager extends BuilderThread {
 					}
 					byte[] newFile=bout.toByteArray();
 					if(!cfgFile.getStat().exists() || !cfgFile.contentEquals(newFile)) {
-						try (OutputStream fileOut = cfgFileNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true)) {
+						try (OutputStream fileOut = cfgFileNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true, uid_min, gid_min)) {
 							fileOut.write(newFile);
 							fileOut.flush();
 						}
@@ -340,7 +343,7 @@ final public class MrtgManager extends BuilderThread {
 								+ "      <div style=\"text-align:center\">\n"
 								+ "        <h1>\n"
 								+ "          <img src=\"https://aoindustries.com/images/clientarea/accounting/SendInvoices.jpg\" width=\"452\" height=\"127\" alt=\"\" /><br />\n"
-								+ "	  <span style=\"color:#000000\">").encodeXhtml(thisAOServer.getHostname().toString());
+								+ "	  <span style=\"color:#000000\">").encodeXhtml(thisAoServer.getHostname().toString());
 						if(failoverServer!=null) out.print(" on ").encodeXhtml(failoverServer.getHostname().toString());
 						out.print("</span>\n"
 								+ "        </h1>\n"
@@ -466,7 +469,7 @@ final public class MrtgManager extends BuilderThread {
 					}
 					byte[] newFile=bout.toByteArray();
 					if(!statsFile.getStat().exists() || !statsFile.contentEquals(newFile)) {
-						try (OutputStream fileOut = statsFileNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)) {
+						try (OutputStream fileOut = statsFileNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true, uid_min, gid_min)) {
 							fileOut.write(newFile);
 							fileOut.flush();
 						}

@@ -6,6 +6,7 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.HttpdJKProtocol;
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
@@ -28,144 +29,154 @@ import java.util.Set;
  */
 abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdTomcatSiteManager<TC> {
 
-    /**
-     * Gets the specific manager for one type of web site.
-     */
-    static HttpdTomcatStdSiteManager<? extends TomcatCommon> getInstance(HttpdTomcatStdSite stdSite) throws IOException, SQLException {
-        AOServConnector connector=AOServDaemon.getConnector();
-        HttpdTomcatVersion htv=stdSite.getHttpdTomcatSite().getHttpdTomcatVersion();
-        if(htv.isTomcat3_1(connector)) return new HttpdTomcatStdSiteManager_3_1(stdSite);
-        if(htv.isTomcat3_2_4(connector)) return new HttpdTomcatStdSiteManager_3_2_4(stdSite);
-        if(htv.isTomcat4_1_X(connector)) return new HttpdTomcatStdSiteManager_4_1_X(stdSite);
-        if(htv.isTomcat5_5_X(connector)) return new HttpdTomcatStdSiteManager_5_5_X(stdSite);
-        if(htv.isTomcat6_0_X(connector)) return new HttpdTomcatStdSiteManager_6_0_X(stdSite);
-        if(htv.isTomcat7_0_X(connector)) return new HttpdTomcatStdSiteManager_7_0_X(stdSite);
-        if(htv.isTomcat8_0_X(connector)) return new HttpdTomcatStdSiteManager_8_0_X(stdSite);
-        throw new SQLException("Unsupported version of standard Tomcat: "+htv.getTechnologyVersion(connector).getVersion()+" on "+stdSite);
-    }
+	/**
+	 * Gets the specific manager for one type of web site.
+	 */
+	static HttpdTomcatStdSiteManager<? extends TomcatCommon> getInstance(HttpdTomcatStdSite stdSite) throws IOException, SQLException {
+		AOServConnector connector=AOServDaemon.getConnector();
+		HttpdTomcatVersion htv=stdSite.getHttpdTomcatSite().getHttpdTomcatVersion();
+		if(htv.isTomcat3_1(connector)) return new HttpdTomcatStdSiteManager_3_1(stdSite);
+		if(htv.isTomcat3_2_4(connector)) return new HttpdTomcatStdSiteManager_3_2_4(stdSite);
+		if(htv.isTomcat4_1_X(connector)) return new HttpdTomcatStdSiteManager_4_1_X(stdSite);
+		if(htv.isTomcat5_5_X(connector)) return new HttpdTomcatStdSiteManager_5_5_X(stdSite);
+		if(htv.isTomcat6_0_X(connector)) return new HttpdTomcatStdSiteManager_6_0_X(stdSite);
+		if(htv.isTomcat7_0_X(connector)) return new HttpdTomcatStdSiteManager_7_0_X(stdSite);
+		if(htv.isTomcat8_0_X(connector)) return new HttpdTomcatStdSiteManager_8_0_X(stdSite);
+		throw new SQLException("Unsupported version of standard Tomcat: "+htv.getTechnologyVersion(connector).getVersion()+" on "+stdSite);
+	}
 
-    final protected HttpdTomcatStdSite tomcatStdSite;
-    
-    HttpdTomcatStdSiteManager(HttpdTomcatStdSite tomcatStdSite) throws SQLException, IOException {
-        super(tomcatStdSite.getHttpdTomcatSite());
-        this.tomcatStdSite = tomcatStdSite;
-    }
+	final protected HttpdTomcatStdSite tomcatStdSite;
 
-    /**
-     * Standard sites always have worker directly attached.
-     */
+	HttpdTomcatStdSiteManager(HttpdTomcatStdSite tomcatStdSite) throws SQLException, IOException {
+		super(tomcatStdSite.getHttpdTomcatSite());
+		this.tomcatStdSite = tomcatStdSite;
+	}
+
+	/**
+	 * Standard sites always have worker directly attached.
+	 */
 	@Override
-    protected HttpdWorker getHttpdWorker() throws IOException, SQLException {
-        AOServConnector conn = AOServDaemon.getConnector();
-        List<HttpdWorker> workers = tomcatSite.getHttpdWorkers();
+	protected HttpdWorker getHttpdWorker() throws IOException, SQLException {
+		AOServConnector conn = AOServDaemon.getConnector();
+		List<HttpdWorker> workers = tomcatSite.getHttpdWorkers();
 
-        // Prefer ajp13
-        for(HttpdWorker hw : workers) {
-            if(hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol().equals(HttpdJKProtocol.AJP13)) return hw;
-        }
-        // Try ajp12 next
-        for(HttpdWorker hw : workers) {
-            if(hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol().equals(HttpdJKProtocol.AJP12)) return hw;
-        }
-        throw new SQLException("Couldn't find either ajp13 or ajp12");
-    }
-
-	@Override
-    public UnixFile getPidFile() throws IOException, SQLException {
-        return new UnixFile(
-            HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
-            + "/"
-            + httpdSite.getSiteName()
-            + "/var/run/tomcat.pid"
-        );
-    }
+		// Prefer ajp13
+		for(HttpdWorker hw : workers) {
+			if(hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol().equals(HttpdJKProtocol.AJP13)) return hw;
+		}
+		// Try ajp12 next
+		for(HttpdWorker hw : workers) {
+			if(hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol().equals(HttpdJKProtocol.AJP12)) return hw;
+		}
+		throw new SQLException("Couldn't find either ajp13 or ajp12");
+	}
 
 	@Override
-    public boolean isStartable() {
-        return !httpdSite.isDisabled();
-    }
+	public UnixFile getPidFile() throws IOException, SQLException {
+		return new UnixFile(
+			HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
+			+ "/"
+			+ httpdSite.getSiteName()
+			+ "/var/run/tomcat.pid"
+		);
+	}
 
 	@Override
-    public String getStartStopScriptPath() throws IOException, SQLException {
-        return
-            HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
-            + "/"
-            + httpdSite.getSiteName()
-            + "/bin/tomcat"
-        ;
-    }
+	public boolean isStartable() {
+		return !httpdSite.isDisabled();
+	}
 
 	@Override
-    public String getStartStopScriptUsername() throws IOException, SQLException {
-        return httpdSite.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername();
-    }
+	public String getStartStopScriptPath() throws IOException, SQLException {
+		return
+			HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
+			+ "/"
+			+ httpdSite.getSiteName()
+			+ "/bin/tomcat"
+		;
+	}
 
 	@Override
-    protected void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) {
-        sitesNeedingRestarted.add(httpdSite);
-    }
+	public String getStartStopScriptUsername() throws IOException, SQLException {
+		return httpdSite.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername();
+	}
 
 	@Override
-    protected void enableDisable(UnixFile siteDirectory) throws IOException, SQLException {
-        UnixFile daemonUF = new UnixFile(siteDirectory, "daemon", false);
-        UnixFile daemonSymlink = new UnixFile(daemonUF, "tomcat", false);
-        if(!httpdSite.isDisabled()) {
-            // Enabled
-            if(!daemonSymlink.getStat().exists()) {
-                daemonSymlink.symLink("../bin/tomcat").chown(
-                    httpdSite.getLinuxServerAccount().getUid().getID(),
-                    httpdSite.getLinuxServerGroup().getGid().getID()
-                );
-            }
-        } else {
-            // Disabled
-            if(daemonSymlink.getStat().exists()) daemonSymlink.delete();
-        }
-    }
-
-    /**
-     * Builds the server.xml file.
-     */
-    protected abstract byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException;
+	protected void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) {
+		sitesNeedingRestarted.add(httpdSite);
+	}
 
 	@Override
-    protected boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException {
-        final String siteDir = siteDirectory.getPath();
-        boolean needsRestart = false;
-        String autoWarning = getAutoWarningXml();
-        String autoWarningOld = getAutoWarningXmlOld();
+	protected void enableDisable(UnixFile siteDirectory) throws IOException, SQLException {
+		UnixFile daemonUF = new UnixFile(siteDirectory, "daemon", false);
+		UnixFile daemonSymlink = new UnixFile(daemonUF, "tomcat", false);
+		if(!httpdSite.isDisabled()) {
+			// Enabled
+			if(!daemonSymlink.getStat().exists()) {
+				daemonSymlink.symLink("../bin/tomcat").chown(
+					httpdSite.getLinuxServerAccount().getUid().getID(),
+					httpdSite.getLinuxServerGroup().getGid().getID()
+				);
+			}
+		} else {
+			// Disabled
+			if(daemonSymlink.getStat().exists()) daemonSymlink.delete();
+		}
+	}
 
-        String confServerXML=siteDir+"/conf/server.xml";
-        UnixFile confServerXMLFile=new UnixFile(confServerXML);
-        if(!httpdSite.isManual() || !confServerXMLFile.getStat().exists()) {
-            // Only write to the actual file when missing or changed
-            if(
-                DaemonFileUtils.writeIfNeeded(
-                    buildServerXml(siteDirectory, autoWarning),
-                    null,
-                    confServerXMLFile,
-                    httpdSite.getLinuxServerAccount().getUid().getID(),
-                    httpdSite.getLinuxServerGroup().getGid().getID(),
-                    0660
-                )
-            ) {
-                // Flag as needing restarted
-                needsRestart = true;
-            }
-        } else {
-            try {
-                DaemonFileUtils.stripFilePrefix(
-                    confServerXMLFile,
-                    autoWarningOld
-                );
-                DaemonFileUtils.stripFilePrefix(
-                    confServerXMLFile,
-                    autoWarning
-                );
-            } catch(IOException err) {
-                // Errors OK because this is done in manual mode and they might have symbolic linked stuff
-            }
-        }
-        return needsRestart;
-    }
+	/**
+	 * Builds the server.xml file.
+	 */
+	protected abstract byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException;
+
+	@Override
+	protected boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException {
+		final String siteDir = siteDirectory.getPath();
+		boolean needsRestart = false;
+		String autoWarning = getAutoWarningXml();
+		String autoWarningOld = getAutoWarningXmlOld();
+
+		AOServer thisAoServer = AOServDaemon.getThisAOServer();
+		int uid_min = thisAoServer.getUidMin().getID();
+		int gid_min = thisAoServer.getGidMin().getID();
+
+		String confServerXML=siteDir+"/conf/server.xml";
+		UnixFile confServerXMLFile=new UnixFile(confServerXML);
+		if(!httpdSite.isManual() || !confServerXMLFile.getStat().exists()) {
+			// Only write to the actual file when missing or changed
+			if(
+				DaemonFileUtils.writeIfNeeded(
+					buildServerXml(siteDirectory, autoWarning),
+					null,
+					confServerXMLFile,
+					httpdSite.getLinuxServerAccount().getUid().getID(),
+					httpdSite.getLinuxServerGroup().getGid().getID(),
+					0660,
+					uid_min,
+					gid_min
+				)
+			) {
+				// Flag as needing restarted
+				needsRestart = true;
+			}
+		} else {
+			try {
+				DaemonFileUtils.stripFilePrefix(
+					confServerXMLFile,
+					autoWarningOld,
+					uid_min,
+					gid_min
+				);
+				DaemonFileUtils.stripFilePrefix(
+					confServerXMLFile,
+					autoWarning,
+					uid_min,
+					gid_min
+				);
+			} catch(IOException err) {
+				// Errors OK because this is done in manual mode and they might have symbolic linked stuff
+			}
+		}
+		return needsRestart;
+	}
 }

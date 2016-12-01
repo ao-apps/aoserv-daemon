@@ -60,15 +60,18 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 	protected boolean doRebuild() {
 		try {
 			AOServConnector connector=AOServDaemon.getConnector();
-			AOServer aoServer=AOServDaemon.getThisAOServer();
-			Server server = aoServer.getServer();
+			AOServer thisAoServer=AOServDaemon.getThisAOServer();
+			Server thisServer = thisAoServer.getServer();
 
-			int osv=server.getOperatingSystemVersion().getPkey();
+			int osv=thisServer.getOperatingSystemVersion().getPkey();
 			if(
 				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
 				&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
 				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+
+			int uid_min = thisAoServer.getUidMin().getID();
+			int gid_min = thisAoServer.getGidMin().getID();
 
 			EmailSmtpRelayType allowRelay=connector.getEmailSmtpRelayTypes().get(EmailSmtpRelayType.ALLOW_RELAY);
 			//boolean isQmail=server.isQmail();
@@ -92,7 +95,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 					//}
 
 					// Allow all of the local IP addresses
-					for(NetDevice nd : server.getNetDevices()) {
+					for(NetDevice nd : thisServer.getNetDevices()) {
 						for(IPAddress ia : nd.getIPAddresses()) {
 							String ip=ia.getInetAddress().toString();
 							if(!usedHosts.contains(ip)) {
@@ -103,7 +106,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 					}
 
 					// Deny first
-					List<EmailSmtpRelay> relays = aoServer.getEmailSmtpRelays();
+					List<EmailSmtpRelay> relays = thisAoServer.getEmailSmtpRelays();
 					for(EmailSmtpRelay ssr : relays) {
 						if(!ssr.isDisabled()) {
 							EmailSmtpRelayType esrt=ssr.getType();
@@ -148,7 +151,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 				byte[] newBytes = bout.toByteArray();
 
 				if(!access.getStat().exists() || !access.contentEquals(newBytes)) {
-					try (FileOutputStream newOut = newFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)) {
+					try (FileOutputStream newOut = newFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true, uid_min, gid_min)) {
 						newOut.write(newBytes);
 					}
 					newFile.renameTo(access);

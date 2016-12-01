@@ -68,10 +68,12 @@ final public class AWStatsManager extends BuilderThread {
 			final File hostsDirectory   = new File(osConfig.getAwstatsHostsDirectory());
 
 			// Resolve the UID and GID before obtaining the lock
-			AOServer aoServer=AOServDaemon.getThisAOServer();
-			Server server = aoServer.getServer();
-			int awstatsUID=aoServer.getLinuxServerAccount(LinuxAccount.AWSTATS).getUid().getID();
-			int awstatsGID=aoServer.getLinuxServerGroup(LinuxGroup.AWSTATS).getGid().getID();
+			AOServer thisAoServer=AOServDaemon.getThisAOServer();
+			Server thisServer = thisAoServer.getServer();
+			int uid_min = thisAoServer.getUidMin().getID();
+			int gid_min = thisAoServer.getGidMin().getID();
+			int awstatsUID=thisAoServer.getLinuxServerAccount(LinuxAccount.AWSTATS).getUid().getID();
+			int awstatsGID=thisAoServer.getLinuxServerGroup(LinuxGroup.AWSTATS).getGid().getID();
 
 			// RAM is used to verify config files before committing to the filesystem
 			ByteArrayOutputStream byteBuff=new ByteArrayOutputStream();
@@ -96,7 +98,7 @@ final public class AWStatsManager extends BuilderThread {
 				Map<String,Object> usedLogs=new HashMap<>();
 
 				// Iterate through each website on this server
-				for(HttpdSite site : aoServer.getHttpdSites()) {
+				for(HttpdSite site : thisAoServer.getHttpdSites()) {
 					String siteName=site.getSiteName();
 					String configFilename="awstats."+siteName+".conf";
 					existingConfigFiles.remove(configFilename);
@@ -174,7 +176,7 @@ final public class AWStatsManager extends BuilderThread {
 							+ "DefaultFile=\"index.html\"\n"
 							+ "SkipHosts=\"");
 					Set<String> finishedIPs = new HashSet<>();
-					for(IPAddress ip : server.getIPAddresses()) {
+					for(IPAddress ip : thisServer.getIPAddresses()) {
 						InetAddress ia = ip.getInetAddress();
 						if(!ia.isUnspecified()) {
 							String addr = ia.toString();
@@ -330,8 +332,12 @@ final public class AWStatsManager extends BuilderThread {
 							UnixFile.ROOT_UID,
 							awstatsGID,
 							0640,
-							true
+							true,
+							uid_min,
+							gid_min
 						)) {
+							fileOut.write(newFileContent);
+							fileOut.write(newFileContent);
 							fileOut.write(newFileContent);
 						}
 					} else {
@@ -369,7 +375,7 @@ final public class AWStatsManager extends BuilderThread {
 					// dnscachelastupdate.txt
 					UnixFile dnscachelastupdate=new UnixFile(hostDirectory, "dnscachelastupdate.txt", false);
 					Stat dnscachelastupdateStat = dnscachelastupdate.getStat();
-					if(!dnscachelastupdateStat.exists()) dnscachelastupdate.getSecureOutputStream(awstatsUID, awstatsGID, 0640, false);
+					if(!dnscachelastupdateStat.exists()) dnscachelastupdate.getSecureOutputStream(awstatsUID, awstatsGID, 0640, false, uid_min, gid_min);
 					else {
 						if(dnscachelastupdateStat.getMode()==0640) dnscachelastupdate.setMode(0640);
 						if(
@@ -405,7 +411,9 @@ final public class AWStatsManager extends BuilderThread {
 							UnixFile.ROOT_UID,
 							awstatsGID,
 							0750,
-							true
+							true,
+							uid_min,
+							gid_min
 						)) {
 							fileOut.write(newFileContent);
 						}
@@ -463,7 +471,9 @@ final public class AWStatsManager extends BuilderThread {
 							UnixFile.ROOT_UID,
 							awstatsGID,
 							0750,
-							true
+							true,
+							uid_min,
+							gid_min
 						)) {
 							fileOut.write(newFileContent);
 						}
@@ -491,7 +501,9 @@ final public class AWStatsManager extends BuilderThread {
 							UnixFile.ROOT_UID,
 							awstatsGID,
 							0750,
-							true
+							true,
+							uid_min,
+							gid_min
 						)) {
 							fileOut.write(newFileContent);
 						}
@@ -524,7 +536,7 @@ final public class AWStatsManager extends BuilderThread {
 					 */
 					for(int c=0;c<deleteFileListLen;c++) {
 						File file=deleteFileList.get(c);
-						new UnixFile(file).secureDeleteRecursive();
+						new UnixFile(file).secureDeleteRecursive(uid_min, gid_min);
 					}
 				}
 			}

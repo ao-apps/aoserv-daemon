@@ -62,7 +62,9 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 		 */
 		final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
 		final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
-		final AOServer aoServer = AOServDaemon.getThisAOServer();
+		final AOServer thisAoServer = AOServDaemon.getThisAOServer();
+		int uid_min = thisAoServer.getUidMin().getID();
+		int gid_min = thisAoServer.getGidMin().getID();
 		final HttpdTomcatVersion htv=sharedTomcat.getHttpdTomcatVersion();
 		final String tomcatDirectory=htv.getInstallDirectory();
 		final TomcatCommon tomcatCommon = getTomcatCommon();
@@ -115,7 +117,7 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 			UnixFile profileUF = new UnixFile(profileFile);
 			ChainWriter out = new ChainWriter(
 				new BufferedOutputStream(
-					profileUF.getSecureOutputStream(lsaUID, lsgGID, 0750, false)
+					profileUF.getSecureOutputStream(lsaUID, lsgGID, 0750, false, uid_min, gid_min)
 				)
 			);
 			try {
@@ -153,7 +155,7 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 			UnixFile tomcatUF = new UnixFile(wwwGroupDir + "/bin/tomcat");
 			out=new ChainWriter(
 				new BufferedOutputStream(
-					tomcatUF.getSecureOutputStream(lsaUID, lsgGID, 0700, false)
+					tomcatUF.getSecureOutputStream(lsaUID, lsgGID, 0700, false, uid_min, gid_min)
 				)
 			);
 			try {
@@ -209,7 +211,7 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 			DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/setclasspath.sh", wwwGroupDir+"/bin/setclasspath.sh", lsaUID, lsgGID);
 
 			UnixFile shutdown=new UnixFile(wwwGroupDir+"/bin/shutdown.sh");
-			out=new ChainWriter(shutdown.getSecureOutputStream(lsaUID, lsgGID, 0700, true));
+			out=new ChainWriter(shutdown.getSecureOutputStream(lsaUID, lsgGID, 0700, true, uid_min, gid_min));
 			try {
 				out.print("#!/bin/sh\n"
 						  + "exec \"").print(wwwGroupDir).print("/bin/tomcat\" stop\n");
@@ -218,7 +220,7 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 			}
 
 			UnixFile startup=new UnixFile(wwwGroupDir+"/bin/startup.sh");
-			out=new ChainWriter(startup.getSecureOutputStream(lsaUID, lsgGID, 0700, true));
+			out=new ChainWriter(startup.getSecureOutputStream(lsaUID, lsgGID, 0700, true, uid_min, gid_min));
 			try {
 				out.print("#!/bin/sh\n"
 						  + "exec \"").print(wwwGroupDir).print("/bin/tomcat\" start\n");
@@ -285,7 +287,7 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 		UnixFile newSitesFileUF = new UnixFile(sharedTomcatDirectory, "bin/profile.sites.new", false);
 		ChainWriter out = new ChainWriter(
 			new BufferedOutputStream(
-				newSitesFileUF.getSecureOutputStream(lsaUID, lsgGID, 0750, true)
+				newSitesFileUF.getSecureOutputStream(lsaUID, lsgGID, 0750, true, uid_min, gid_min)
 			)
 		);
 		List<HttpdTomcatSharedSite> sites = sharedTomcat.getHttpdTomcatSharedSites();
@@ -359,7 +361,7 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 			UnixFile newConfServerXMLUF=new UnixFile(newConfServerXML);
 			out=new ChainWriter(
 				new BufferedOutputStream(
-					newConfServerXMLUF.getSecureOutputStream(lsaUID, lsgGID, 0660, true)
+					newConfServerXMLUF.getSecureOutputStream(lsaUID, lsgGID, 0660, true, uid_min, gid_min)
 				)
 			);
 			try {
@@ -484,11 +486,15 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 			try {
 				DaemonFileUtils.stripFilePrefix(
 					confServerXMLUF,
-					autoWarningOld
+					autoWarningOld,
+					uid_min,
+					gid_min
 				);
 				DaemonFileUtils.stripFilePrefix(
 					confServerXMLUF,
-					autoWarning
+					autoWarning,
+					uid_min,
+					gid_min
 				);
 			} catch(IOException err) {
 				// Errors OK because this is done in manual mode and they might have symbolic linked stuff

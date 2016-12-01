@@ -115,16 +115,19 @@ public class LinuxAccountManager extends BuilderThread {
 
 	private static void rebuildLinuxAccountSettings() throws IOException, SQLException {
 		AOServConnector connector=AOServDaemon.getConnector();
-		AOServer aoServer=AOServDaemon.getThisAOServer();
+		AOServer thisAoServer = AOServDaemon.getThisAOServer();
 		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		final String wwwDirectory = osConfig.getHttpdSitesDirectory();
 
-		int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
+		int osv=thisAoServer.getServer().getOperatingSystemVersion().getPkey();
 		if(
 			osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
 			&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
 			&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 		) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+
+		int uid_min = thisAoServer.getUidMin().getID();
+		int gid_min = thisAoServer.getGidMin().getID();
 
 		synchronized(rebuildLock) {
 			// A list of all files to delete is created so that all the data can
@@ -132,7 +135,7 @@ public class LinuxAccountManager extends BuilderThread {
 			List<File> deleteFileList=new ArrayList<>();
 
 			// Get the list of users from the database
-			List<LinuxServerAccount> accounts = aoServer.getLinuxServerAccounts();
+			List<LinuxServerAccount> accounts = thisAoServer.getLinuxServerAccounts();
 			int accountsLen = accounts.size();
 
 			// Build a sorted vector of all the usernames, user ids, and home directories
@@ -155,7 +158,7 @@ public class LinuxAccountManager extends BuilderThread {
 			 */
 			ChainWriter out = new ChainWriter(
 				new BufferedOutputStream(
-					new UnixFile(newPasswd).getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)
+					new UnixFile(newPasswd).getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true, uid_min, gid_min)
 				)
 			);
 			try {
@@ -184,11 +187,11 @@ public class LinuxAccountManager extends BuilderThread {
 			/*
 			 * Write the new /etc/group file.
 			 */
-			List<LinuxServerGroup> groups = aoServer.getLinuxServerGroups();
+			List<LinuxServerGroup> groups = thisAoServer.getLinuxServerGroups();
 			int groupsLen = groups.size();
 			out = new ChainWriter(
 				new BufferedOutputStream(
-					new UnixFile(newGroup).getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true)
+					new UnixFile(newGroup).getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true, uid_min, gid_min)
 				)
 			);
 			try {
@@ -221,7 +224,7 @@ public class LinuxAccountManager extends BuilderThread {
 			UnixFile newGShadowUF = new UnixFile(newGShadow);
 			out = new ChainWriter(
 				new BufferedOutputStream(
-					newGShadowUF.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true)
+					newGShadowUF.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true, uid_min, gid_min)
 				)
 			);
 			try {
@@ -280,8 +283,8 @@ public class LinuxAccountManager extends BuilderThread {
 				/*
 				 * Create any inboxes that need to exist.
 				 */
-				LinuxServerGroup mailGroup=connector.getLinuxGroups().get(LinuxGroup.MAIL).getLinuxServerGroup(aoServer);
-				if(mailGroup==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+aoServer.getHostname());
+				LinuxServerGroup mailGroup=connector.getLinuxGroups().get(LinuxGroup.MAIL).getLinuxServerGroup(thisAoServer);
+				if(mailGroup==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+thisAoServer.getHostname());
 				for (LinuxServerAccount account : accounts) {
 					LinuxAccount linuxAccount = account.getLinuxAccount();
 					if(linuxAccount.getType().isEmail()) {
@@ -293,7 +296,9 @@ public class LinuxAccountManager extends BuilderThread {
 								account.getUid().getID(),
 								mailGroup.getGid().getID(),
 								0660,
-								false
+								false,
+								uid_min,
+								gid_min
 							).close();
 						}
 					}
@@ -458,8 +463,8 @@ public class LinuxAccountManager extends BuilderThread {
 			}
 
 			// Only the top level server in a physical server gets to kill processes
-			if(!AOServDaemonConfiguration.isNested() && aoServer.getFailoverServer()==null) {
-				List<AOServer> nestedServers=aoServer.getNestedAOServers();
+			if(!AOServDaemonConfiguration.isNested() && thisAoServer.getFailoverServer()==null) {
+				List<AOServer> nestedServers=thisAoServer.getNestedAOServers();
 
 				/*
 				 * Kill any processes that are running as a UID that
@@ -490,7 +495,7 @@ public class LinuxAccountManager extends BuilderThread {
 									LinuxServerAccount lsa;
 									if(
 										!uids.contains(uid)
-										|| (lsa=aoServer.getLinuxServerAccount(uid))==null
+										|| (lsa=thisAoServer.getLinuxServerAccount(uid))==null
 										|| lsa.isDisabled()
 									) {
 										// Also must not be in a nested server
@@ -542,7 +547,7 @@ public class LinuxAccountManager extends BuilderThread {
 				 */
 				for(int c=0;c<deleteFileListLen;c++) {
 					File file=deleteFileList.get(c);
-					new UnixFile(file.getPath()).secureDeleteRecursive();
+					new UnixFile(file.getPath()).secureDeleteRecursive(uid_min, gid_min);
 				}
 			}
 		}
@@ -553,7 +558,10 @@ public class LinuxAccountManager extends BuilderThread {
 		String content;
 		if(file.getStat().exists()) {
 			StringBuilder SB=new StringBuilder();
-			try (InputStream in = new BufferedInputStream(file.getSecureInputStream())) {
+			AOServer thisAoServer = AOServDaemon.getThisAOServer();
+			int uid_min = thisAoServer.getUidMin().getID();
+			int gid_min = thisAoServer.getGidMin().getID();
+			try (InputStream in = new BufferedInputStream(file.getSecureInputStream(uid_min, gid_min))) {
 				int ch;
 				while((ch=in.read())!=-1) SB.append((char)ch);
 			}
@@ -690,16 +698,20 @@ public class LinuxAccountManager extends BuilderThread {
 		} else out.print(",,::\n");
 	}
 
-	public static void setBashProfile(LinuxServerAccount lsa, String profile) throws IOException {
+	public static void setBashProfile(LinuxServerAccount lsa, String profile) throws IOException, SQLException {
 		String profileLine=". "+profile;
 
 		UnixFile profileFile=new UnixFile(lsa.getHome(), BASHRC);
 
 		// Make sure the file exists
 		if(profileFile.getStat().exists()) {
+			AOServer thisAoServer = AOServDaemon.getThisAOServer();
+			int uid_min = thisAoServer.getUidMin().getID();
+			int gid_min = thisAoServer.getGidMin().getID();
+
 			boolean found=false;
 			// Read the old file, looking for the source in the file
-			try (BufferedReader in=new BufferedReader(new InputStreamReader(profileFile.getSecureInputStream()))) {
+			try (BufferedReader in=new BufferedReader(new InputStreamReader(profileFile.getSecureInputStream(uid_min, gid_min)))) {
 				String line;
 
 				while((line=in.readLine())!=null) {
@@ -710,7 +722,8 @@ public class LinuxAccountManager extends BuilderThread {
 				}
 			}
 			if(!found) {
-				try (RandomAccessFile out=profileFile.getSecureRandomAccessFile("rw")) {
+				try (RandomAccessFile out=profileFile.getSecureRandomAccessFile("rw", uid_min, gid_min)) {
+					out.seek(out.length());
 					out.seek(out.length());
 					out.write('\n');
 					out.writeBytes(profileLine);
@@ -721,6 +734,9 @@ public class LinuxAccountManager extends BuilderThread {
 	}
 
 	public static void setAutoresponderContent(String path, String content, int uid, int gid) throws IOException, SQLException {
+		AOServer thisAoServer = AOServDaemon.getThisAOServer();
+		int uid_min = thisAoServer.getUidMin().getID();
+		int gid_min = thisAoServer.getGidMin().getID();
 		File file=new File(path);
 		synchronized(rebuildLock) {
 			if(content==null) {
@@ -729,7 +745,7 @@ public class LinuxAccountManager extends BuilderThread {
 				try (
 					PrintWriter out = new PrintWriter(
 						new BufferedOutputStream(
-							new UnixFile(file).getSecureOutputStream(uid, gid, 0600, true)
+							new UnixFile(file).getSecureOutputStream(uid, gid, 0600, true, uid_min, gid_min)
 						)
 					)
 				) {
@@ -740,6 +756,9 @@ public class LinuxAccountManager extends BuilderThread {
 	}
 
 	public static void setCronTable(String username, String cronTable) throws IOException, SQLException {
+		AOServer thisAoServer = AOServDaemon.getThisAOServer();
+		int uid_min = thisAoServer.getUidMin().getID();
+		int gid_min = thisAoServer.getGidMin().getID();
 		File cronFile=new File(cronDirectory, username);
 		synchronized(rebuildLock) {
 			if(cronTable.isEmpty()) {
@@ -750,9 +769,11 @@ public class LinuxAccountManager extends BuilderThread {
 						new BufferedOutputStream(
 							new UnixFile(cronFile).getSecureOutputStream(
 								UnixFile.ROOT_UID,
-								AOServDaemon.getThisAOServer().getLinuxServerAccount(username).getPrimaryLinuxServerGroup().getGid().getID(),
+								thisAoServer.getLinuxServerAccount(username).getPrimaryLinuxServerGroup().getGid().getID(),
 								0600,
-								true
+								true,
+								uid_min,
+								gid_min
 							)
 						)
 					)
@@ -839,13 +860,16 @@ public class LinuxAccountManager extends BuilderThread {
 	}
 
 	public static void untarHomeDirectory(CompressedDataInputStream in, String username) throws IOException, SQLException {
+		AOServer thisAoServer = AOServDaemon.getThisAOServer();
+		int uid_min = thisAoServer.getUidMin().getID();
+		int gid_min = thisAoServer.getGidMin().getID();
 		synchronized(rebuildLock) {
-			LinuxServerAccount lsa=AOServDaemon.getThisAOServer().getLinuxServerAccount(username);
+			LinuxServerAccount lsa=thisAoServer.getLinuxServerAccount(username);
 			String home=lsa.getHome();
 			UnixFile tempUF=UnixFile.mktemp("/tmp/untar_home_directory.tar.", true);
 			try {
 				int code;
-				try (OutputStream out=tempUF.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true)) {
+				try (OutputStream out=tempUF.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true, uid_min, gid_min)) {
 					byte[] buff=BufferManager.getBytes();
 					try {
 						while((code=in.readByte())==AOServDaemonProtocol.NEXT) {

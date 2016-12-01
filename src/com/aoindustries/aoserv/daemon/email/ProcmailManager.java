@@ -77,18 +77,21 @@ public final class ProcmailManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer aoServer=AOServDaemon.getThisAOServer();
-			InetAddress primaryIP = aoServer.getPrimaryIPAddress().getInetAddress();
-			LinuxServerGroup mailLsg = aoServer.getLinuxServerGroup(LinuxGroup.MAIL);
-			if(mailLsg==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+aoServer.getHostname());
-			int mailGid = mailLsg.getGid().getID();
+			AOServer thisAoServer=AOServDaemon.getThisAOServer();
 
-			int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
+			int osv=thisAoServer.getServer().getOperatingSystemVersion().getPkey();
 			if(
 				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
 				&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
 				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+
+			int uid_min = thisAoServer.getUidMin().getID();
+			int gid_min = thisAoServer.getGidMin().getID();
+			InetAddress primaryIP = thisAoServer.getPrimaryIPAddress().getInetAddress();
+			LinuxServerGroup mailLsg = thisAoServer.getLinuxServerGroup(LinuxGroup.MAIL);
+			if(mailLsg==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+thisAoServer.getHostname());
+			int mailGid = mailLsg.getGid().getID();
 
 			synchronized(rebuildLock) {
 				// Control the permissions of the deliver program, needs to be SUID to
@@ -113,7 +116,7 @@ public final class ProcmailManager extends BuilderThread {
 					}
 				}
 
-				List<LinuxServerAccount> lsas=aoServer.getLinuxServerAccounts();
+				List<LinuxServerAccount> lsas=thisAoServer.getLinuxServerAccounts();
 				for(LinuxServerAccount lsa : lsas) {
 					if(lsa.getLinuxAccount().getType().isEmail()) {
 						String home = lsa.getHome();
@@ -414,7 +417,9 @@ public final class ProcmailManager extends BuilderThread {
 										lsa.getUid().getID(),
 										lsa.getPrimaryLinuxServerGroup().getGid().getID(),
 										0600,
-										true
+										true,
+										uid_min,
+										gid_min
 									)
 								) {
 									fout.write(newBytes);

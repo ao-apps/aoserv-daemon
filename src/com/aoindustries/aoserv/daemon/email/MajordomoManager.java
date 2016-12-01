@@ -48,20 +48,22 @@ final public class MajordomoManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer aoServer=AOServDaemon.getThisAOServer();
-			AOServConnector connector=AOServDaemon.getConnector();
+			AOServer thisAoServer=AOServDaemon.getThisAOServer();
 
-			int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
+			int osv=thisAoServer.getServer().getOperatingSystemVersion().getPkey();
 			if(
 				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
 				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
+			int uid_min = thisAoServer.getUidMin().getID();
+			int gid_min = thisAoServer.getGidMin().getID();
+
 			// Reused during processing below
 			final UnixFile serversUF=new UnixFile(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY);
 
 			synchronized(rebuildLock) {
-				final List<MajordomoServer> mss=aoServer.getMajordomoServers();
+				final List<MajordomoServer> mss=thisAoServer.getMajordomoServers();
 
 				if(!mss.isEmpty()) {
 					// Install package if needed
@@ -74,10 +76,10 @@ final public class MajordomoManager extends BuilderThread {
 				// Resolve the GID for "mail"
 				int mailGID;
 				{
-					LinuxGroup mailLG=connector.getLinuxGroups().get(LinuxGroup.MAIL);
+					LinuxGroup mailLG = AOServDaemon.getConnector().getLinuxGroups().get(LinuxGroup.MAIL);
 					if(mailLG==null) throw new SQLException("Unable to find LinuxGroup: "+LinuxGroup.MAIL);
-					LinuxServerGroup mailLSG=mailLG.getLinuxServerGroup(aoServer);
-					if(mailLSG==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+aoServer.getHostname());
+					LinuxServerGroup mailLSG=mailLG.getLinuxServerGroup(thisAoServer);
+					if(mailLSG==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+thisAoServer.getHostname());
 					mailGID=mailLSG.getGid().getID();
 				}
 
@@ -123,9 +125,9 @@ final public class MajordomoManager extends BuilderThread {
 						if(!listsUF.getStat().exists()) listsUF.mkdir();
 						listsUF.setMode(0750).chown(lsaUID, mailGID);
 						UnixFile LogUF=new UnixFile(msUF, "Log", false);
-						LogUF.getSecureOutputStream(lsaUID, lsgGID, 0600, false).close();
+						LogUF.getSecureOutputStream(lsaUID, lsgGID, 0600, false, uid_min, gid_min).close();
 						UnixFile majordomocfUF=new UnixFile(msUF, "majordomo.cf", false);
-						try (ChainWriter out = new ChainWriter(new BufferedOutputStream(majordomocfUF.getSecureOutputStream(lsaUID, lsgGID, 0600, false)))) {
+						try (ChainWriter out = new ChainWriter(new BufferedOutputStream(majordomocfUF.getSecureOutputStream(lsaUID, lsgGID, 0600, false, uid_min, gid_min)))) {
 							out.print("#\n"
 									+ "# A sample configuration file for majordomo.  The defaults are set by\n"
 									+ "# the AO Industries, Inc. scripts.  It may be edited, but beware that\n"
@@ -531,14 +533,14 @@ final public class MajordomoManager extends BuilderThread {
 						// Make the list file
 						UnixFile listUF=new UnixFile(listsUF, listName, false);
 						if(!listUF.getStat().exists()) {
-							listUF.getSecureOutputStream(lsaUID, lsgGID, 0644, false).close();
+							listUF.getSecureOutputStream(lsaUID, lsgGID, 0644, false, uid_min, gid_min).close();
 						} else listUF.setMode(0644).chown(lsaUID, lsgGID);
 						existingListFiles.remove(listName);
 
 						// Make the .config file
 						UnixFile configUF=new UnixFile(listsUF, listName+".config", false);
 						if(!configUF.getStat().exists()) {
-							try (ChainWriter out = new ChainWriter(configUF.getSecureOutputStream(lsaUID, lsgGID, 0660, false))) {
+							try (ChainWriter out = new ChainWriter(configUF.getSecureOutputStream(lsaUID, lsgGID, 0660, false, uid_min, gid_min))) {
 								out.print("# The configuration file for a majordomo mailing list.\n"
 										+ "# Comments start with the first # on a line, and continue to the end\n"
 										+ "# of the line. There is no way to escape the # character. The file\n"
@@ -933,12 +935,12 @@ final public class MajordomoManager extends BuilderThread {
 
 						// Make the .info file
 						UnixFile infoUF=new UnixFile(listsUF, listName+".info", false);
-						if(!infoUF.getStat().exists()) infoUF.getSecureOutputStream(lsaUID, lsgGID, 0664, false).close();
+						if(!infoUF.getStat().exists()) infoUF.getSecureOutputStream(lsaUID, lsgGID, 0664, false, uid_min, gid_min).close();
 						existingListFiles.remove(listName+".info");
 
 						// Allow the .intro file
 						UnixFile introUF=new UnixFile(listsUF, listName+".intro", false);
-						if(!introUF.getStat().exists()) introUF.getSecureOutputStream(lsaUID, lsgGID, 0664, false).close();
+						if(!introUF.getStat().exists()) introUF.getSecureOutputStream(lsaUID, lsgGID, 0664, false, uid_min, gid_min).close();
 						existingListFiles.remove(listName+".intro");
 
 						// Allow the -post file
@@ -971,7 +973,7 @@ final public class MajordomoManager extends BuilderThread {
 					 */
 					for(int c=0;c<deleteFileListLen;c++) {
 						File file=deleteFileList.get(c);
-						new UnixFile(file.getPath()).secureDeleteRecursive();
+						new UnixFile(file.getPath()).secureDeleteRecursive(uid_min, gid_min);
 					}
 				}
 				if(mss.isEmpty()) {

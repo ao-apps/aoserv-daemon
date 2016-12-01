@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2009, 2014, 2015 by AO Industries, Inc.,
+ * Copyright 2008-2009, 2014, 2015, 2016 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -43,8 +43,8 @@ public class DaemonFileUtils {
      * 
      * TODO: Copy to a temp file and rename into place.
      */
-    public static void copyResource(Class<?> clazz, String resource, String filename, int uid, int gid, int mode) throws IOException {
-        try (OutputStream out = new UnixFile(filename).getSecureOutputStream(uid, gid, mode, false)) {
+    public static void copyResource(Class<?> clazz, String resource, String filename, int uid, int gid, int mode, int uid_min, int gid_min) throws IOException {
+        try (OutputStream out = new UnixFile(filename).getSecureOutputStream(uid, gid, mode, false, uid_min, gid_min)) {
             copyResource(clazz, resource, out);
         }
     }
@@ -100,13 +100,13 @@ public class DaemonFileUtils {
      * If the file starts with the provided prefix, strips that prefix from the
      * file.  A new temp file is created and then renamed over the old.
      */
-    public static void stripFilePrefix(UnixFile uf, String prefix) throws IOException {
+    public static void stripFilePrefix(UnixFile uf, String prefix, int uid_min, int gid_min) throws IOException {
         // Remove the auto warning if the site has recently become manual
         int prefixLen=prefix.length();
         Stat ufStat = uf.getStat();
         if(ufStat.getSize()>=prefixLen) {
             UnixFile newUF=null;
-            try (InputStream in = new BufferedInputStream(uf.getSecureInputStream())) {
+            try (InputStream in = new BufferedInputStream(uf.getSecureInputStream(uid_min, gid_min))) {
                 StringBuilder SB=new StringBuilder(prefixLen);
                 int ch;
                 while(SB.length()<prefixLen && (ch=in.read())!=-1) {
@@ -119,7 +119,9 @@ public class DaemonFileUtils {
 							ufStat.getUid(),
 							ufStat.getGid(),
 							ufStat.getMode(),
-							true
+							true,
+							uid_min,
+							gid_min
 						)
 					)) {
 						IoUtils.copy(in, out);
@@ -150,7 +152,9 @@ public class DaemonFileUtils {
         UnixFile file,
         int uid,
         int gid,
-        int mode
+        int mode,
+		int uid_min,
+		int gid_min
     ) throws IOException {
         Stat fileStat = file.getStat();
         if(fileStat.exists() && fileStat.isSymLink()) {
@@ -169,7 +173,9 @@ public class DaemonFileUtils {
 						uid,
 						gid,
 						mode,
-						true
+						true,
+						uid_min,
+						gid_min
 					)
 				) {
                     newOut.write(newContents);

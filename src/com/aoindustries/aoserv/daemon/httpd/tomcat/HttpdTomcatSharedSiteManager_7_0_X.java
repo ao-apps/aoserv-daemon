@@ -5,8 +5,10 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
+import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.HttpdTomcatContext;
 import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
+import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
@@ -49,6 +51,10 @@ class HttpdTomcatSharedSiteManager_7_0_X extends HttpdTomcatSharedSiteManager<To
 		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);
 
+		AOServer thisAoServer = AOServDaemon.getThisAOServer();
+		int uid_min = thisAoServer.getUidMin().getID();
+		int gid_min = thisAoServer.getGidMin().getID();
+
 		/*
 		 * Write the ROOT/WEB-INF/web.xml file.
 		 */
@@ -56,7 +62,7 @@ class HttpdTomcatSharedSiteManager_7_0_X extends HttpdTomcatSharedSiteManager<To
 		try (
 			ChainWriter out = new ChainWriter(
 				new BufferedOutputStream(
-					new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false)
+					new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
 				)
 			)
 		) {
