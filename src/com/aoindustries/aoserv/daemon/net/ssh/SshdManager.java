@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -150,10 +150,8 @@ final public class SshdManager extends BuilderThread {
 					// Try reload config first
 					try {
 						AOServDaemon.exec(
-							new String[] {
-								"/etc/rc.d/init.d/sshd",
-								"reload"
-							}
+							"/etc/rc.d/init.d/sshd",
+							"reload"
 						);
 					} catch(IOException err) {
 						LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, err);
@@ -161,10 +159,8 @@ final public class SshdManager extends BuilderThread {
 						// Try more forceful stop/start
 						try {
 							AOServDaemon.exec(
-								new String[] {
-									"/etc/rc.d/init.d/sshd",
-									"stop"
-								}
+								"/etc/rc.d/init.d/sshd",
+								"stop"
 							);
 						} catch(IOException err2) {
 							LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, err2);
@@ -177,10 +173,8 @@ final public class SshdManager extends BuilderThread {
 							Thread.currentThread().interrupt();
 						}
 						AOServDaemon.exec(
-							new String[] {
-								"/etc/rc.d/init.d/sshd",
-								"start"
-							}
+							"/etc/rc.d/init.d/sshd",
+							"start"
 						);
 					}
 				}

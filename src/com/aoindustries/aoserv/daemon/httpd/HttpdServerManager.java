@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2014, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -902,11 +902,10 @@ public class HttpdServerManager {
 	private static final Object processControlLock = new Object();
 	private static void reloadConfigs(HttpdServer hs) throws IOException {
 		synchronized(processControlLock) {
-			String[] cmd={
+			AOServDaemon.exec(
 				"/etc/rc.d/init.d/httpd"+hs.getNumber(),
 				"reload" // Should this be restart for SSL changes?
-			};
-			AOServDaemon.exec(cmd);
+			);
 		}
 	}
 
@@ -916,11 +915,10 @@ public class HttpdServerManager {
 	private static void controlApache(String command) throws IOException, SQLException {
 		synchronized(processControlLock) {
 			for(HttpdServer hs : AOServDaemon.getThisAOServer().getHttpdServers()) {
-				String[] cmd={
+				AOServDaemon.exec(
 					"/etc/rc.d/init.d/httpd"+hs.getNumber(),
 					command
-				};
-				AOServDaemon.exec(cmd);
+				);
 			}
 		}
 	}
@@ -1108,18 +1106,14 @@ public class HttpdServerManager {
 			) {
 				// Make start at boot
 				AOServDaemon.exec(
-					new String[] {
-						"/sbin/chkconfig",
-						"--add",
-						filename
-					}
+					"/sbin/chkconfig",
+					"--add",
+					filename
 				);
 				AOServDaemon.exec(
-					new String[] {
-						"/sbin/chkconfig",
-						filename,
-						"on"
-					}
+					"/sbin/chkconfig",
+					filename,
+					"on"
 				);
 				// Make reload
 				serversNeedingReloaded.add(hs);
@@ -1134,19 +1128,15 @@ public class HttpdServerManager {
 					if(!dontDeleteFilenames.contains(filename)) {
 						// chkconfig off
 						AOServDaemon.exec(
-							new String[] {
-								"/sbin/chkconfig",
-								filename,
-								"off"
-							}
+							"/sbin/chkconfig",
+							filename,
+							"off"
 						);
 						// stop
 						String fullPath = INIT_DIRECTORY+"/"+filename;
 						AOServDaemon.exec(
-							new String[] {
-								fullPath,
-								"stop"
-							}
+							fullPath,
+							"stop"
 						);
 						deleteFileList.add(new File(fullPath));
 					}

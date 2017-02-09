@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2014, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -42,11 +42,6 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 final public class DNSManager extends BuilderThread {
-
-	private static final String[] restartCommand={
-		"/etc/rc.d/init.d/named",
-		"restart"
-	};
 
 	/**
 	 * The IPs allowed to query non-AO names.
@@ -464,7 +459,10 @@ final public class DNSManager extends BuilderThread {
 		if(dns==null) throw new SQLException("Unable to find Protocol: "+Protocol.DNS);
 		if(!AOServDaemon.getThisAOServer().getServer().getNetBinds(dns).isEmpty()) {
 			synchronized(restartLock) {
-				AOServDaemon.exec(restartCommand);
+				AOServDaemon.exec(
+					"/etc/rc.d/init.d/named",
+					"restart"
+				);
 			}
 		}
 	}

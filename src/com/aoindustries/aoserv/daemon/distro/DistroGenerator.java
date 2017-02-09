@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2014, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -477,14 +477,13 @@ final public class DistroGenerator extends Thread {
 									}
 								} catch(IOException err) {
 									System.err.println("Undoing prelink on \""+osFilename.filename+"\": "+err.toString());
-									String[] undoCommand = {
+									AOServDaemon.exec(
 										"/usr/sbin/chroot",
 										chroot,
 										"/usr/sbin/prelink",
 										"--undo",
 										osFilename.filename
-									};
-									AOServDaemon.exec(undoCommand);
+									);
 
 									// Try again after undo
 									Process P = Runtime.getRuntime().exec(command);

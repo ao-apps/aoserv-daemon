@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2016 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -237,14 +237,13 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 			} else {
 				throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 			}
-			String[] command={
+			AOServDaemon.exec(
 				commandPath,
 				minorVersion,
 				Integer.toString(port),
 				dbName,
 				tempFile.getPath()
-			};
-			AOServDaemon.exec(command);
+			);
 			try (InputStream dumpin = new FileInputStream(tempFile.getFile())) {
 				byte[] buff=BufferManager.getBytes();
 				try {

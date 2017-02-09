@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -156,14 +156,13 @@ final public class MySQLDatabaseManager extends BuilderThread {
 			) {
 				path="/opt/aoserv-daemon/bin/dump_mysql_database";
 			} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
-			String[] command={
+			AOServDaemon.exec(
 				path,
 				dbName,
 				ms.getMinorVersion(),
 				Integer.toString(ms.getNetBind().getPort().getPort()),
 				tempFile.getPath()
-			};
-			AOServDaemon.exec(command);
+			);
 			try (InputStream dumpin = new FileInputStream(tempFile.getFile())) {
 				byte[] buff=BufferManager.getBytes();
 				try {

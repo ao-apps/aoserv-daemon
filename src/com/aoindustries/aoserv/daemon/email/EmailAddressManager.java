@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -470,11 +470,10 @@ final public class EmailAddressManager extends BuilderThread {
 	}
 
 	private static final Object newAliasesLock=new Object();
-	private static final String[] newAliasesCommand={"/usr/bin/newaliases"};
 	private static void newAliases() throws IOException {
 		synchronized(newAliasesLock) {
 			// Run the command
-			AOServDaemon.exec(newAliasesCommand);
+			AOServDaemon.exec("/usr/bin/newaliases");
 		}
 	}
 

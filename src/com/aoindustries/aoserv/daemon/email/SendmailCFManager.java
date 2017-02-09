@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -499,15 +499,13 @@ final public class SendmailCFManager extends BuilderThread {
 		return "Rebuild sendmail.cf";
 	}
 
-	private static final String[] reloadCommand={
-		"/etc/rc.d/init.d/sendmail",
-		"reload"
-	};
-
 	private static final Object sendmailLock=new Object();
 	public static void reloadSendmail() throws IOException {
 		synchronized(sendmailLock) {
-			AOServDaemon.exec(reloadCommand);
+			AOServDaemon.exec(
+				"/etc/rc.d/init.d/sendmail",
+				"reload"
+			);
 		}
 	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -478,7 +478,7 @@ final public class MajordomoManager extends BuilderThread {
 						} else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 							source = "/opt/majordomo-"+version+"/src/majordomo-wrapper.c";
 						} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
-						String[] cc={
+						AOServDaemon.exec(
 							"/usr/bin/cc",
 							"-DBIN=\""+msPath+"\"",
 							"-DPATH=\"PATH=/bin:/usr/bin:/usr/ucb\"",
@@ -490,13 +490,11 @@ final public class MajordomoManager extends BuilderThread {
 							"-o",
 							msPath+"/wrapper",
 							source
-						};
-						AOServDaemon.exec(cc);
-						String[] strip={
+						);
+						AOServDaemon.exec(
 							"strip",
 							msPath+"/wrapper"
-						};
-						AOServDaemon.exec(strip);
+						);
 						new UnixFile(msPath, "wrapper").chown(UnixFile.ROOT_UID, mailGID).setMode(04750);
 
 						//  Make the symbolic links

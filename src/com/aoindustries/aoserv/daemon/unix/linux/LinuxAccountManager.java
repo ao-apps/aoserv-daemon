@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2014, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -831,7 +831,7 @@ public class LinuxAccountManager extends BuilderThread {
 		String home=lsa.getHome();
 		UnixFile tempUF=UnixFile.mktemp("/tmp/tar_home_directory.tar.", true);
 		try {
-			String[] cmd={
+			AOServDaemon.exec(
 				"/bin/tar",
 				"-c",
 				"-C",
@@ -839,8 +839,7 @@ public class LinuxAccountManager extends BuilderThread {
 				"-f",
 				tempUF.getPath(),
 				"."
-			};
-			AOServDaemon.exec(cmd);
+			);
 			try (InputStream in=new FileInputStream(tempUF.getFile())) {
 				byte[] buff=BufferManager.getBytes();
 				try {
@@ -886,15 +885,14 @@ public class LinuxAccountManager extends BuilderThread {
 					else if(code==AOServDaemonProtocol.SQL_EXCEPTION) throw new SQLException(in.readUTF());
 					else throw new IOException("Unknown result: " + code);
 				}
-				String[] cmd={
+				AOServDaemon.exec(
 					"/bin/tar",
 					"-x",
 					"-C",
 					home,
 					"-f",
 					tempUF.getPath()
-				};
-				AOServDaemon.exec(cmd);
+				);
 			} finally {
 				tempUF.delete();
 			}

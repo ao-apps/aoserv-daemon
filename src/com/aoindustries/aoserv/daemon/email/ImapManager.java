@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -395,14 +395,14 @@ final public class ImapManager extends BuilderThread {
 						// Stop service if running
 						if(subsysLockFile.exists()) {
 							if(isFine) logger.fine("Stopping cyrus-imapd service");
-							AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/cyrus-imapd", "stop"});
+							AOServDaemon.exec("/etc/rc.d/init.d/cyrus-imapd", "stop");
 							if(subsysLockFile.exists()) throw new IOException(subsysLockFile.getPath()+" still exists after service stop");
 						}
 
 						// chkconfig off if needed
 						if(cyrusRcFile.getStat().exists()) {
 							if(isFine) logger.fine("Disabling cyrus-imapd service");
-							AOServDaemon.exec(new String[] {"/sbin/chkconfig", "cyrus-imapd", "off"});
+							AOServDaemon.exec("/sbin/chkconfig", "cyrus-imapd", "off");
 							if(cyrusRcFile.getStat().exists()) throw new IOException(cyrusRcFile.getPath()+" still exists after chkconfig off");
 						}
 
@@ -709,19 +709,19 @@ final public class ImapManager extends BuilderThread {
 						// chkconfig on if needed
 						if(!cyrusRcFile.getStat().exists()) {
 							if(isFine) logger.fine("Enabling cyrus-imapd service");
-							AOServDaemon.exec(new String[] {"/sbin/chkconfig", "cyrus-imapd", "on"});
+							AOServDaemon.exec("/sbin/chkconfig", "cyrus-imapd", "on");
 							if(!cyrusRcFile.getStat().exists()) throw new IOException(cyrusRcFile.getPath()+" still does not exists after chkconfig on");
 						}
 
 						// Start service if not running
 						if(!subsysLockFile.exists()) {
 							if(isFine) logger.fine("Starting cyrus-imapd service");
-							AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/cyrus-imapd", "start"});
+							AOServDaemon.exec("/etc/rc.d/init.d/cyrus-imapd", "start");
 							if(!subsysLockFile.exists()) throw new IOException(subsysLockFile.getPath()+" still does not exists after service start");
 						} else {
 							if(needsReload) {
 								if(isFine) logger.fine("Reloading cyrus-imapd service");
-								AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/cyrus-imapd", "reload"});
+								AOServDaemon.exec("/etc/rc.d/init.d/cyrus-imapd", "reload");
 							}
 						}
 

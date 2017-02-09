@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -199,16 +199,16 @@ final public class FTPManager extends BuilderThread {
 			if(bindCount==0) {
 				// Turn off proftpd completely if not already off
 				if(rcFile.getStat().exists()) {
-					AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/proftpd", "stop"});
-					AOServDaemon.exec(new String[] {"/sbin/chkconfig", "--del", "proftpd"});
+					AOServDaemon.exec("/etc/rc.d/init.d/proftpd", "stop");
+					AOServDaemon.exec("/sbin/chkconfig", "--del", "proftpd");
 				}
 			} else {
 				// Turn on proftpd if not already on
 				if(!rcFile.getStat().exists()) {
-					AOServDaemon.exec(new String[] {"/sbin/chkconfig", "--add", "proftpd"});
-					AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/proftpd", "start"});
+					AOServDaemon.exec("/sbin/chkconfig", "--add", "proftpd");
+					AOServDaemon.exec("/etc/rc.d/init.d/proftpd", "start");
 				} else if(configChanged) {
-					AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/proftpd", "reload"});
+					AOServDaemon.exec("/etc/rc.d/init.d/proftpd", "reload");
 				}
 			}
 		} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);

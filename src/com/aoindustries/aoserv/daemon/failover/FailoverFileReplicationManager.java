@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013, 2015 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2015, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -2543,12 +2543,11 @@ final public class FailoverFileReplicationManager {
 									try {
 										if(directories.size()==1) {
 											// Single directory - no parallel benefits, use system rm command
-											String[] command = {
+											AOServDaemon.exec(
 												"/bin/rm",
 												"-rf",
 												directories.get(0).getPath()
-											};
-											AOServDaemon.exec(command);
+											);
 										} else {
 											ParallelDelete.parallelDelete(directories, null, false);
 										}

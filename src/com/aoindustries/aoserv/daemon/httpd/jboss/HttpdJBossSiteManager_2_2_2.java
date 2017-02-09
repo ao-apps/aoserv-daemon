@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -97,27 +97,25 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		for (int i = 0; i < contents.length; i++) command[i+2] = templateDir+"/"+contents[i];
 		AOServDaemon.exec(command);
 		// chown
-		String[] command2 = {
-			"/bin/chown", 
-			"-R", 
+		AOServDaemon.exec(
+			"/bin/chown",
+			"-R",
 			laUsername,
 			siteDir+"/jboss",
 			siteDir+"/bin",
 			siteDir+"/lib",
 			siteDir+"/daemon"
-		};
-		AOServDaemon.exec(command2);
+		);
 		// chgrp
-		String[] chgrpCommand = {
-			"/bin/chgrp", 
-			"-R", 
+		AOServDaemon.exec(
+			"/bin/chgrp",
+			"-R",
 			laGroupname,
 			siteDir+"/jboss",
 			siteDir+"/bin",
 			siteDir+"/lib",
 			siteDir+"/daemon"
-		};
-		AOServDaemon.exec(chgrpCommand);
+		);
 
 		String jbossConfDir = siteDir+"/jboss/conf/tomcat";
 		File f2 = new File(jbossConfDir);
@@ -139,7 +137,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 				AOServDaemon.exec(command3);
 			}
 		}
-		String[] command4 = {
+		AOServDaemon.exec(
 			replaceCommand,
 			"site_name",
 			siteName,
@@ -147,8 +145,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 			siteDir+"/bin/jboss",
 			siteDir+"/bin/profile.jboss",
 			siteDir+"/bin/profile.user"
-		};
-		AOServDaemon.exec(command4);
+		);
 		DaemonFileUtils.ln(".", siteDir+"/tomcat", uid, gid);
 
 		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, uid, gid);

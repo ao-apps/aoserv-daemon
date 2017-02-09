@@ -1,5 +1,5 @@
 /*
- * Copyright 2005-2013, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2005-2013, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -103,8 +103,6 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 	private static final UnixFile incomingDirectory=new UnixFile("/var/spool/aoserv/spamassassin");
 
 	private static SpamAssassinManager spamAssassinManager;
-
-	private static final String[] restartCommand = {"/etc/rc.d/init.d/spamassassin", "restart"};
 
 	private static final UnixFile
 		configUnixFile = new UnixFile("/etc/sysconfig/spamassassin"),
@@ -623,7 +621,10 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 					}
 					configUnixFileNew.setMode(0644);
 					configUnixFileNew.renameTo(configUnixFile);
-					AOServDaemon.exec(restartCommand);
+					AOServDaemon.exec(
+						"/etc/rc.d/init.d/spamassassin",
+						"restart"
+					);
 				}
 			}
 

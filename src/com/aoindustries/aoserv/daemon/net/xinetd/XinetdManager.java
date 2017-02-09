@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -646,12 +646,12 @@ public final class XinetdManager extends BuilderThread {
 					// Turn off xinetd completely if not already off
 					if(rcFile.getStat().exists()) {
 						// Stop service
-						AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/xinetd", "stop"});
+						AOServDaemon.exec("/etc/rc.d/init.d/xinetd", "stop");
 						// Disable with chkconfig
 						if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-							AOServDaemon.exec(new String[] {"/sbin/chkconfig", "--del", "xinetd"});
+							AOServDaemon.exec("/sbin/chkconfig", "--del", "xinetd");
 						} else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-							AOServDaemon.exec(new String[] {"/sbin/chkconfig", "xinetd", "off"});
+							AOServDaemon.exec("/sbin/chkconfig", "xinetd", "off");
 						} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 					}
 				} else {
@@ -659,12 +659,12 @@ public final class XinetdManager extends BuilderThread {
 					if(!rcFile.getStat().exists()) {
 						// Enable with chkconfig
 						if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-							AOServDaemon.exec(new String[] {"/sbin/chkconfig", "--add", "xinetd"});
+							AOServDaemon.exec("/sbin/chkconfig", "--add", "xinetd");
 						} else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-							AOServDaemon.exec(new String[] {"/sbin/chkconfig", "xinetd", "on"});
+							AOServDaemon.exec("/sbin/chkconfig", "xinetd", "on");
 						} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 						// Start service
-						AOServDaemon.exec(new String[] {"/etc/rc.d/init.d/xinetd", "start"});
+						AOServDaemon.exec("/etc/rc.d/init.d/xinetd", "start");
 					} else {
 						// Reload xinetd if modified
 						if(needsReloaded) {
@@ -683,10 +683,8 @@ public final class XinetdManager extends BuilderThread {
 								// Try more forceful stop/start
 								try {
 									AOServDaemon.exec(
-										new String[] {
-											"/etc/rc.d/init.d/xinetd",
-											"stop"
-										}
+										"/etc/rc.d/init.d/xinetd",
+										"stop"
 									);
 								} catch(IOException err2) {
 									LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, err2);
@@ -699,10 +697,8 @@ public final class XinetdManager extends BuilderThread {
 									Thread.currentThread().interrupt();
 								}
 								AOServDaemon.exec(
-									new String[] {
-										"/etc/rc.d/init.d/xinetd",
-										"start"
-									}
+									"/etc/rc.d/init.d/xinetd",
+									"start"
 								);
 							//}
 						}

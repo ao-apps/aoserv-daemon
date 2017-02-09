@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013, 2014, 2016 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2014, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -47,11 +47,10 @@ final public class ServerManager {
 			if(lock==null) processLocks.put(process, lock=new Object());
 		}
 		synchronized(lock) {
-			String[] cmd={
-				"/etc/rc.d/init.d/"+process,
+			AOServDaemon.exec(
+				"/etc/rc.d/init.d/" + process,
 				command
-			};
-			AOServDaemon.exec(cmd);
+			);
 		}
 	}
 
