@@ -1,5 +1,5 @@
 /*
- * Copyright 2013, 2016 by AO Industries, Inc.,
+ * Copyright 2013, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -38,6 +38,7 @@ public class PackageManager {
 		APACHE_TOMCAT_7_0("apache-tomcat_7_0"),
 		APACHE_TOMCAT_8_0("apache-tomcat_8_0"),
 		AOSERV_JILTER("aoserv-jilter"),
+		CVS("cvs"),
 		JBOSS_2_2_2("jboss_2_2_2"),
 		MAJORDOMO("majordomo"),
 		PHP_5_2("php_5_2-i686"),

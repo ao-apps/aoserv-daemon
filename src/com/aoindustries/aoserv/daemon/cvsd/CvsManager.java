@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -14,6 +14,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -33,7 +34,7 @@ import java.util.logging.Level;
  */
 final public class CvsManager extends BuilderThread {
 
-	public static final String CVS_DIRECTORY="/var/cvs";
+	public static final String CVS_DIRECTORY = "/var/cvs";
 
 	private static CvsManager cvsManager;
 
@@ -44,51 +45,66 @@ final public class CvsManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			//AOServConnector conn=AOServDaemon.getConnector();
-			AOServer thisAoServer=AOServDaemon.getThisAOServer();
+			AOServer thisAoServer = AOServDaemon.getThisAOServer();
 
-			int osv=thisAoServer.getServer().getOperatingSystemVersion().getPkey();
+			int osv = thisAoServer.getServer().getOperatingSystemVersion().getPkey();
 			if(
-				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osv != OperatingSystemVersion.MANDRIVA_2006_0_I586
+				&& osv != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				&& osv != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
 			synchronized(rebuildLock) {
+				List<CvsRepository> cvsRepositories = thisAoServer.getCvsRepositories();
+				// Install RPM when at least one CVS repository is configured
+				if(
+					!cvsRepositories.isEmpty()
+					&& (
+						osv == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+						|| osv == OperatingSystemVersion.CENTOS_7_X86_64
+					)
+				) {
+					// Install any required RPMs
+					PackageManager.installPackage(PackageManager.PackageName.CVS);
+				}
+
 				// Get a list of all the directories in /var/cvs
-				File cvsDir=new File(CVS_DIRECTORY);
+				File cvsDir = new File(CVS_DIRECTORY);
 				if(!cvsDir.exists()) new UnixFile(cvsDir).mkdir(false, 0755, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
-				String[] list=cvsDir.list();
-				int listLen=list.length;
+				String[] list = cvsDir.list();
+				int listLen = list.length;
 				Set<String> existing = new HashSet<>(listLen);
-				for(int c=0;c<listLen;c++) existing.add(CVS_DIRECTORY+'/'+list[c]);
+				for(int c = 0; c < listLen; c++) existing.add(CVS_DIRECTORY+'/'+list[c]);
 
 				// Add each directory that doesn't exist, fix permissions and ownerships, too
 				// while removing existing directories from existing
-				for(CvsRepository cvs : thisAoServer.getCvsRepositories()) {
-					String path=cvs.getPath();
-					UnixFile cvsUF=new UnixFile(path);
-					Stat cvsStat = cvsUF.getStat();
-					long cvsMode=cvs.getMode();
-					// Make the directory
-					if(!cvsStat.exists()) {
-						cvsUF.mkdir(true, cvsMode);
-						cvsStat = cvsUF.getStat();
-					}
-					// Set the mode
-					if(cvsStat.getMode()!=cvsMode) {
-						cvsUF.setMode(cvsMode);
-						cvsStat = cvsUF.getStat();
-					}
-					// Set the owner and group
-					LinuxServerAccount lsa=cvs.getLinuxServerAccount();
-					int uid=lsa.getUid().getID();
-					int gid=cvs.getLinuxServerGroup().getGid().getID();
-					if(uid!=cvsStat.getUid() || gid!=cvsStat.getGid()) {
-						cvsUF.chown(uid, gid);
-						cvsStat = cvsUF.getStat();
+				for(CvsRepository cvs : cvsRepositories) {
+					String path = cvs.getPath();
+					UnixFile cvsUF = new UnixFile(path);
+					LinuxServerAccount lsa = cvs.getLinuxServerAccount();
+					{
+						Stat cvsStat = cvsUF.getStat();
+						long cvsMode = cvs.getMode();
+						// Make the directory
+						if(!cvsStat.exists()) {
+							cvsUF.mkdir(true, cvsMode);
+							cvsStat = cvsUF.getStat();
+						}
+						// Set the mode
+						if(cvsStat.getMode() != cvsMode) {
+							cvsUF.setMode(cvsMode);
+							cvsStat = cvsUF.getStat();
+						}
+						// Set the owner and group
+						int uid = lsa.getUid().getID();
+						int gid = cvs.getLinuxServerGroup().getGid().getID();
+						if(uid != cvsStat.getUid() || gid != cvsStat.getGid()) {
+							cvsUF.chown(uid, gid);
+							// Unused here, no need to re-stat: cvsStat = cvsUF.getStat();
+						}
 					}
 					// Init if needed
-					UnixFile cvsRootUF=new UnixFile(cvsUF, "CVSROOT", false);
+					UnixFile cvsRootUF = new UnixFile(cvsUF, "CVSROOT", false);
 					if(!cvsRootUF.getStat().exists()) {
 						AOServDaemon.suexec(
 							lsa.getLinuxAccount().getUsername().getUsername(),
@@ -97,19 +113,19 @@ final public class CvsManager extends BuilderThread {
 						);
 					}
 					// Remove from list
-					if(existing.contains(path)) existing.remove(path);
+					existing.remove(path);
 				}
 
 				/*
 				 * Back up the files scheduled for removal.
 				 */
-				int svLen=existing.size();
-				if(svLen>0) {
-					List<File> deleteFileList=new ArrayList<>(svLen);
+				int svLen = existing.size();
+				if(svLen > 0) {
+					List<File> deleteFileList = new ArrayList<>(svLen);
 					for(String deleteFilename : existing) deleteFileList.add(new File(deleteFilename));
 
 					// Get the next backup filename
-					File backupFile=BackupManager.getNextBackupFile();
+					File backupFile = BackupManager.getNextBackupFile();
 					BackupManager.backupFiles(deleteFileList, backupFile);
 
 					/*
@@ -117,8 +133,8 @@ final public class CvsManager extends BuilderThread {
 					 */
 					int uid_min = thisAoServer.getUidMin().getID();
 					int gid_min = thisAoServer.getGidMin().getID();
-					for(int c=0;c<svLen;c++) {
-						File file=deleteFileList.get(c);
+					for(int c = 0; c < svLen; c++) {
+						File file = deleteFileList.get(c);
 						new UnixFile(file.getPath()).secureDeleteRecursive(uid_min, gid_min);
 					}
 				}
@@ -133,8 +149,8 @@ final public class CvsManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer=AOServDaemon.getThisAOServer();
-		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		int osv = thisAOServer.getServer().getOperatingSystemVersion().getPkey();
 
 		synchronized(System.out) {
 			if(
@@ -144,12 +160,14 @@ final public class CvsManager extends BuilderThread {
 				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(CvsManager.class)
-				&& cvsManager==null
+				&& cvsManager == null
 			) {
 				System.out.print("Starting CvsManager: ");
-				AOServConnector conn=AOServDaemon.getConnector();
-				cvsManager=new CvsManager();
+				AOServConnector conn = AOServDaemon.getConnector();
+				cvsManager = new CvsManager();
 				conn.getCvsRepositories().addTableListener(cvsManager, 0);
+				conn.getLinuxServerAccounts().addTableListener(cvsManager, 0);
+				conn.getLinuxServerGroups().addTableListener(cvsManager, 0);
 				System.out.println("Done");
 			}
 		}
