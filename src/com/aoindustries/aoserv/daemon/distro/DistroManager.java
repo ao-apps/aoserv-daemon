@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -22,13 +22,14 @@ import com.aoindustries.aoserv.client.SQLExpression;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
-import com.aoindustries.util.logging.ProcessTimer;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.SysExits;
 import com.aoindustries.md5.MD5;
 import com.aoindustries.md5.MD5Utils;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.StringUtility;
+import com.aoindustries.util.logging.ProcessTimer;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -45,6 +46,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.IntStream;
 
 /**
  * Verifies the server distribution.
@@ -56,24 +58,24 @@ final public class DistroManager implements Runnable {
 	/**
 	 * The number of entries in a directory that will be reported as a warning.
 	 */
-	private static final int DIRECTORY_LENGTH_WARNING=100000;
+	private static final int DIRECTORY_LENGTH_WARNING = 100000;
 
 	/**
-	 * The time between distro verifications.
+	 * The amount of time to sleep before running the distro scan.
 	 */
-	private static final int DISTRO_INTERVAL=2*24*60*60*1000;
+	private static final int PRERUN_DELAY = 10 * 60 * 1000; // 10 minutes
 
-	private static final int MAX_SLEEP_TIME=5*60*1000;
+	private static final int MAX_SLEEP_TIME = 5 * 60 * 1000; // 5 minutes
 
 	private static Thread thread;
 
 	private static final String EOL = System.getProperty("line.separator");
 
 	public static void startDistro(boolean includeUser) {
-		DistroManager.includeUser=includeUser;
+		DistroManager.includeUser = includeUser;
 		Thread t = thread;
-		if(isSleeping && t!=null) {
-			runNow=true;
+		if(isSleeping && t != null) {
+			runNow = true;
 			t.interrupt();
 		}
 	}
@@ -82,11 +84,14 @@ final public class DistroManager implements Runnable {
 	}
 
 	public static void start() throws IOException {
-		if(AOServDaemonConfiguration.isManagerEnabled(DistroManager.class) && thread==null) {
+		if(
+			AOServDaemonConfiguration.isManagerEnabled(DistroManager.class)
+			&& thread == null
+		) {
 			synchronized(System.out) {
-				if(thread==null) {
+				if(thread == null) {
 					System.out.print("Starting DistroManager: ");
-					thread=new Thread(new DistroManager());
+					thread = new Thread(new DistroManager());
 					thread.setDaemon(true);
 					thread.start();
 					System.out.println("Done");
@@ -95,58 +100,65 @@ final public class DistroManager implements Runnable {
 		}
 	}
 
-	private static volatile boolean isSleeping=false;
+	private static volatile boolean isSleeping = false;
 	private static volatile boolean includeUser;
-	private static volatile boolean runNow=false;
+	private static volatile boolean runNow = false;
 
 	@Override
 	public void run() {
 		while(true) {
 			try {
 				while(true) {
-					// Wait 10 minutes before checking again
-					includeUser=true;
-					isSleeping=true;
-					runNow=false;
+					// Wait before checking again
+					includeUser = true;
+					isSleeping = true;
+					runNow = false;
 					try {
-						Thread.sleep(10L*60*1000);
+						Thread.sleep(PRERUN_DELAY);
 					} catch(InterruptedException err) {
 						// Restore the interrupted status
 						Thread.currentThread().interrupt();
 						// Normal from startDistro method
 					}
-					isSleeping=false;
+					isSleeping = false;
 
 					// It is time to run if it is the backup hour and the backup has not been run for at least 12 hours
-					AOServer thisAOServer=AOServDaemon.getThisAOServer();
-					long distroStartTime=System.currentTimeMillis();
-					Timestamp lastDistroTime=thisAOServer.getLastDistroTime();
+					AOServer thisAOServer = AOServDaemon.getThisAOServer();
+					long distroStartTime = System.currentTimeMillis();
+					Timestamp lastDistroTime = thisAOServer.getLastDistroTime();
 					Logger logger = LogFactory.getLogger(DistroManager.class);
 					boolean isFiner = logger.isLoggable(Level.FINER);
 					if(isFiner) {
-						logger.finer("runNow="+runNow);
-						logger.finer("distroStartTime="+distroStartTime);
-						logger.finer("lastDistroTime="+lastDistroTime);
+						logger.finer("runNow=" + runNow);
+						logger.finer("distroStartTime=" + distroStartTime);
+						logger.finer("lastDistroTime=" + lastDistroTime);
 					}
-					if(runNow || lastDistroTime==null || lastDistroTime.getTime()>distroStartTime || (distroStartTime-lastDistroTime.getTime())>=12L*60*60*1000) {
-						int distroHour=thisAOServer.getDistroHour();
-						Calendar cal=Calendar.getInstance();
+					if(
+						runNow
+						|| lastDistroTime == null
+						// Last time in the future, assume system time changed and run now
+						|| lastDistroTime.getTime() > distroStartTime
+						// Has been at least 12 hours since the last run
+						|| (distroStartTime - lastDistroTime.getTime()) >= 12L*60*60*1000
+					) {
+						int distroHour = thisAOServer.getDistroHour();
+						Calendar cal = Calendar.getInstance();
 						cal.setTimeInMillis(distroStartTime);
 						int currentHour = cal.get(Calendar.HOUR_OF_DAY);
 						if(isFiner) {
-							logger.finer("distroHour="+distroHour);
-							logger.finer("currentHour="+currentHour);
+							logger.finer("distroHour=" + distroHour);
+							logger.finer("currentHour=" + currentHour);
 						}
-						if(runNow || currentHour==distroHour) {
-							ProcessTimer timer=new ProcessTimer(
+						if(runNow || currentHour == distroHour) {
+							ProcessTimer timer = new ProcessTimer(
 								LogFactory.getLogger(DistroManager.class),
 								AOServDaemon.getRandom(),
 								DistroManager.class.getName(),
 								"run",
 								"Distro verification taking too long",
 								"Distro Verification",
-								12*60*60*1000,
-								60*60*1000
+								12*60*60*1000, // 12 hours
+								60*60*1000 // 1 hour
 							);
 							try {
 								AOServDaemon.executorService.submit(timer);
@@ -161,11 +173,11 @@ final public class DistroManager implements Runnable {
 
 								// Compile the counters for each of the different codes
 								/*
-								HashMap codes=new HashMap();
-								for(int c=0;c<size;c++) {
-									String code=results.get(c).substring(0,2);
-									int[] count=(int[])codes.get(code);
-									if(count==null) codes.put(code, count=new int[1]);
+								HashMap codes = new HashMap();
+								for(int c = 0; c < size; c++) {
+									String code = results.get(c).substring(0, 2);
+									int[] count = (int[])codes.get(code);
+									if(count == null) codes.put(code, count  =new int[1]);
 									count[0]++;
 								}*/
 							} finally {
@@ -190,6 +202,7 @@ final public class DistroManager implements Runnable {
 	}
 
 	private static class DistroReportStats {
+
 		/**
 		 * The time the scan started.
 		 */
@@ -222,13 +235,11 @@ final public class DistroManager implements Runnable {
 
 		/**
 		 * Total number of files PRELINK verified.
-		 * TODO: Get stats
 		 */
 		private long prelinkFiles;
 
 		/**
 		 * Total number of bytes PRELINK verified.
-		 * TODO: Get stats
 		 */
 		private long prelinkBytes;
 
@@ -244,11 +255,13 @@ final public class DistroManager implements Runnable {
 	}
 
 	private static class DistroReportFile {
+
 		private final String type;
 		private final String path;
 		private final String actualValue;
 		private final String expectedValue;
 		private final String recommendedAction;
+
 		private DistroReportFile(String type, String path, String actualValue, String expectedValue, String recommendedAction) {
 			this.type = type;
 			this.path = path;
@@ -257,13 +270,14 @@ final public class DistroManager implements Runnable {
 			this.recommendedAction = recommendedAction;
 		}
 	}
+
 	/**
 	 * Writes a value, surrounding by quotes if it contains any spaces.
 	 *
 	 * @param value  the value to print, nothing is output when null
 	 */
 	private static void writeQuoteIfNeeded(String value, Appendable out) throws IOException {
-		if(value!=null) {
+		if(value != null) {
 			boolean hasSpace = value.indexOf(' ') != -1;
 			if(hasSpace) out.append('\'');
 			out.append(value);
@@ -277,18 +291,18 @@ final public class DistroManager implements Runnable {
 	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, String path, String actualValue, String expectedValue, String recommendedAction) throws IOException {
 		DistroReportFile report = new DistroReportFile(type, path, actualValue, expectedValue, recommendedAction);
 		results.add(report);
-		if(verboseOut!=null) {
-			if(recommendedAction!=null) {
+		if(verboseOut != null) {
+			if(recommendedAction != null) {
 				verboseOut.append(recommendedAction);
 			} else {
 				verboseOut.append(type);
 				verboseOut.append(' ');
 				writeQuoteIfNeeded(path, verboseOut);
 			}
-			if(actualValue!=null || expectedValue!=null) {
+			if(actualValue != null || expectedValue != null) {
 				verboseOut.append(" # ");
 				writeQuoteIfNeeded(actualValue, verboseOut);
-				if(expectedValue!=null) {
+				if(expectedValue != null) {
 					verboseOut.append(" != ");
 					writeQuoteIfNeeded(expectedValue, verboseOut);
 				}
@@ -324,7 +338,7 @@ final public class DistroManager implements Runnable {
 			boolean[] foundFiles=new boolean[distroFiles.size()];
 
 			// The comparator used for the searches
-			SQLComparator pathComparator=new SQLComparator(
+			SQLComparator<Object> pathComparator=new SQLComparator<>(
 				conn,
 				new SQLExpression[] {
 					new SQLColumnValue(conn, distroFileTable.getTableSchema().getSchemaColumn(conn, DistroFile.COLUMN_PATH)),
@@ -334,10 +348,10 @@ final public class DistroManager implements Runnable {
 			);
 
 			// Verify all the files, from the root to the lowest directory, accumulating the results in the results List
-			List<DistroReportFile> results=new ArrayList<>();
+			List<DistroReportFile> results = new ArrayList<>();
 			checkDistroFile(
 				AOServDaemon.getThisAOServer(),
-				Integer.valueOf(AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey()),
+				AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey(),
 				distroFiles,
 				foundFiles,
 				pathComparator,
@@ -348,16 +362,19 @@ final public class DistroManager implements Runnable {
 			);
 
 			// Add entries for all the missing files
-			String lastPath=null;
-			int size=foundFiles.length;
-			for(int c=0;c<size;c++) {
+			String lastPath = null;
+			int size = foundFiles.length;
+			for(int c = 0; c < size; c++) {
 				if(!foundFiles[c]) {
-					DistroFile distroFile=distroFiles.get(c);
+					DistroFile distroFile = distroFiles.get(c);
 					if(!distroFile.isOptional()) {
-						String path=distroFile.getPath();
-						if(lastPath==null || !path.startsWith(lastPath)) {
+						String path = distroFile.getPath();
+						if(
+							lastPath == null
+							|| !path.startsWith(lastPath)
+						) {
 							addResult(results, verboseOut, DistroReportType.MISSING, path);
-							lastPath=path;
+							lastPath = path;
 						}
 					}
 				}
@@ -385,13 +402,13 @@ final public class DistroManager implements Runnable {
 	 * SYMLINK Symlink
 	 * TYPE Type
 	 */
-	@SuppressWarnings({"unchecked"})
+	//@SuppressWarnings({"unchecked"})
 	private static void checkDistroFile(
 		AOServer aoServer,
 		Integer osVersionPKey,
 		List<DistroFile> distroFiles,
 		boolean[] foundFiles,
-		SQLComparator pathComparator,
+		SQLComparator<Object> pathComparator,
 		UnixFile file,
 		List<DistroReportFile> results,
 		DistroReportStats stats,
@@ -399,8 +416,8 @@ final public class DistroManager implements Runnable {
 	) throws IOException, SQLException {
 		stats.scanned++;
 		stats.systemCount++;
-		// Check for ...
-		String name=file.getFile().getName();
+		// Check for ... and other patterns baddies use to hide directories
+		String name = file.getFile().getName();
 		if(isHidden(name)) {
 			addResult(
 				results,
@@ -413,9 +430,9 @@ final public class DistroManager implements Runnable {
 		DistroFile distroFile;
 		{
 			// First look for exact match
-			String filename=file.getPath();
+			String filename = file.getPath();
 			int index = Collections.binarySearch(distroFiles, new Object[] {filename, osVersionPKey}, pathComparator);
-			if(index>=0) {
+			if(index >= 0) {
 				distroFile = distroFiles.get(index);
 				// Flag as found
 				foundFiles[index] = true;
@@ -423,10 +440,10 @@ final public class DistroManager implements Runnable {
 				// Check for hostname substitution
 				String hostname = aoServer.getHostname().toString();
 				int pos = filename.indexOf(hostname);
-				if(pos>=0) {
-					filename = filename.substring(0, pos)+"$h"+filename.substring(pos+hostname.length());
+				if(pos >= 0) {
+					filename = filename.substring(0, pos) + "$h" + filename.substring(pos+hostname.length());
 					index = Collections.binarySearch(distroFiles, new Object[] {filename, osVersionPKey}, pathComparator);
-					if(index>=0) {
+					if(index >= 0) {
 						distroFile = distroFiles.get(index);
 						// Flag as found
 						foundFiles[index] = true;
@@ -442,7 +459,7 @@ final public class DistroManager implements Runnable {
 		// Stat here for use below
 		Stat fileStat = file.getStat();
 
-		if(distroFile==null) {
+		if(distroFile == null) {
 			// Should not be here
 			addResult(
 				results,
@@ -455,12 +472,12 @@ final public class DistroManager implements Runnable {
 			);
 		} else {
 			// Check owner
-			int fileUID=fileStat.getUid();
-			LinuxAccount la=distroFile.getLinuxAccount();
-			LinuxServerAccount lsa=la.getLinuxServerAccount(aoServer);
-			if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount for "+la+" on "+aoServer+", path="+file);
-			int distroUID=lsa.getUid().getID();
-			if(fileUID!=distroUID) {
+			int fileUID = fileStat.getUid();
+			LinuxAccount la = distroFile.getLinuxAccount();
+			LinuxServerAccount lsa = la.getLinuxServerAccount(aoServer);
+			if(lsa == null) throw new SQLException("Unable to find LinuxServerAccount for " + la + " on " + aoServer + ", path=" + file);
+			int distroUID = lsa.getUid().getID();
+			if(fileUID != distroUID) {
 				addResult(
 					results,
 					verboseOut,
@@ -468,17 +485,17 @@ final public class DistroManager implements Runnable {
 					file,
 					Integer.toString(fileUID),
 					Integer.toString(distroUID),
-					"chown "+distroUID+" '"+file+'\''
+					"chown " + distroUID + " '" + file + '\''
 				);
 			}
 
 			// Check group
-			int fileGID=fileStat.getGid();
+			int fileGID = fileStat.getGid();
 			LinuxGroup lg = distroFile.getLinuxGroup();
 			LinuxServerGroup lsg = lg.getLinuxServerGroup(aoServer);
-			if(lsg==null) throw new SQLException("Unable to find LinuxServerGroup for "+lg+" on "+aoServer+", path="+file);
-			int distroGID=lsg.getGid().getID();
-			if(fileGID!=distroGID) {
+			if(lsg == null) throw new SQLException("Unable to find LinuxServerGroup for " + lg + " on " + aoServer + ", path=" + file);
+			int distroGID = lsg.getGid().getID();
+			if(fileGID != distroGID) {
 				addResult(
 					results,
 					verboseOut,
@@ -486,16 +503,16 @@ final public class DistroManager implements Runnable {
 					file,
 					Integer.toString(fileGID),
 					Integer.toString(distroGID),
-					"chgrp "+distroGID+" '"+file+'\''
+					"chgrp " + distroGID + " '" + file + '\''
 				);
 			}
 
 			// Type
-			long fileMode=fileStat.getRawMode();
-			long distroMode=distroFile.getMode();
-			long fileType=fileMode&UnixFile.TYPE_MASK;
-			long distroType=distroMode&UnixFile.TYPE_MASK;
-			if(fileType!=distroType) {
+			long fileMode = fileStat.getRawMode();
+			long distroMode = distroFile.getMode();
+			long fileType = fileMode & UnixFile.TYPE_MASK;
+			long distroType = distroMode & UnixFile.TYPE_MASK;
+			if(fileType != distroType) {
 				addResult(
 					results,
 					verboseOut,
@@ -506,9 +523,9 @@ final public class DistroManager implements Runnable {
 				);
 			} else {
 				// Permissions
-				long filePerms=fileMode&UnixFile.PERMISSION_MASK;
-				long distroPerms=distroMode&UnixFile.PERMISSION_MASK;
-				if(filePerms!=distroPerms) {
+				long filePerms = fileMode & UnixFile.PERMISSION_MASK;
+				long distroPerms = distroMode & UnixFile.PERMISSION_MASK;
+				if(filePerms != distroPerms) {
 					addResult(
 						results,
 						verboseOut,
@@ -516,16 +533,16 @@ final public class DistroManager implements Runnable {
 						file,
 						Long.toOctalString(filePerms),
 						Long.toOctalString(distroPerms),
-						"chmod "+Long.toOctalString(distroPerms)+" '"+file+'\''
+						"chmod " + Long.toOctalString(distroPerms) + " '" + file + '\''
 					);
 				}
 			}
 
 			// Symlinks
 			if(fileStat.isSymLink()) {
-				String distroLink=distroFile.getSymlinkTarget();
-				if(distroLink!=null) {
-					String fileLink=file.readLink();
+				String distroLink = distroFile.getSymlinkTarget();
+				if(distroLink != null) {
+					String fileLink = file.readLink();
 					// Allow multiple destinations separated by |
 					if(!StringUtility.splitString(distroLink, '|').contains(fileLink)) {
 						addResult(
@@ -535,7 +552,7 @@ final public class DistroManager implements Runnable {
 							file,
 							fileLink,
 							distroLink,
-							"rm -f '"+file+"'; ln -s '"+distroLink+"' '"+file+'\''
+							"rm -f '" + file + "'; ln -s '" + distroLink + "' '" + file + '\''
 						);
 					}
 				}
@@ -546,13 +563,17 @@ final public class DistroManager implements Runnable {
 					&& !fileStat.isFifo()
 					&& !fileStat.isSocket()
 				) {
-					String type=distroFile.getType().getType();
+					String type = distroFile.getType().getType();
 					if(!fileStat.isDirectory()) {
 						if(!type.equals(DistroFileType.CONFIG)) {
 							if(type.equals(DistroFileType.PRELINK)) {
-								// TODO: Also check length here
+								// TODO: Also check length here: This might require prelink --undo -o /tmp/..., then can MD5 and length check this file
+								long fileLen = file.getFile().length();
+
 								// Prelink MD5
-								long startTime=System.currentTimeMillis();
+								stats.prelinkFiles++;
+								stats.prelinkBytes += fileLen;
+								long startTime = System.currentTimeMillis();
 
 								String md5;
 								try {
@@ -560,17 +581,20 @@ final public class DistroManager implements Runnable {
 								} catch(IOException err) {
 									LogFactory.getLogger(DistroManager.class).log(Level.INFO, "IOException getting MD5 from prelink, will now re-prelink and retry getting MD5", err);
 									// Re-prelink
-									AOServDaemon.exec(new String[] {"/usr/sbin/prelink", file.getPath()});
+									AOServDaemon.exec(
+										"/usr/sbin/prelink",
+										file.getPath()
+									);
 									// Retry
 									md5 = getPrelinkMD5(file);
 								}
-								long file_md5_hi=MD5.getMD5Hi(md5);
-								long file_md5_lo=MD5.getMD5Lo(md5);
-								long distro_md5_hi=distroFile.getFileMD5Hi();
-								long distro_md5_lo=distroFile.getFileMD5Lo();
+								long file_md5_hi = MD5.getMD5Hi(md5);
+								long file_md5_lo = MD5.getMD5Lo(md5);
+								long distro_md5_hi = distroFile.getFileMD5Hi();
+								long distro_md5_lo = distroFile.getFileMD5Lo();
 								if(
-									file_md5_hi!=distro_md5_hi
-									|| file_md5_lo!=distro_md5_lo
+									file_md5_hi != distro_md5_hi
+									|| file_md5_lo != distro_md5_lo
 								) {
 									addResult(
 										results,
@@ -583,10 +607,10 @@ final public class DistroManager implements Runnable {
 								}
 
 								// Sleep for an amount of time equivilent to half the time it took to process this file
-								long timeSpan=(System.currentTimeMillis()-startTime)/2;
-								if(timeSpan<0) timeSpan=0;
-								else if(timeSpan>MAX_SLEEP_TIME) timeSpan=MAX_SLEEP_TIME;
-								if(timeSpan!=0) {
+								long timeSpan = (System.currentTimeMillis() - startTime) / 2;
+								if(timeSpan < 0) timeSpan = 0;
+								else if(timeSpan > MAX_SLEEP_TIME) timeSpan = MAX_SLEEP_TIME;
+								if(timeSpan != 0) {
 									try {
 										Thread.sleep(timeSpan);
 									} catch(InterruptedException err) {
@@ -597,9 +621,9 @@ final public class DistroManager implements Runnable {
 								}
 							} else if(type.equals(DistroFileType.SYSTEM)) {
 								// Length
-								long fileLen=file.getFile().length();
-								long distroLen=distroFile.getSize();
-								if(fileLen!=distroLen) {
+								long fileLen = file.getFile().length();
+								long distroLen = distroFile.getSize();
+								if(fileLen != distroLen) {
 									addResult(
 										results,
 										verboseOut,
@@ -613,16 +637,16 @@ final public class DistroManager implements Runnable {
 									stats.md5Files++;
 									stats.md5Bytes += fileLen;
 
-									long startTime=System.currentTimeMillis();
+									long startTime = System.currentTimeMillis();
 
-									byte[] fileHash=MD5Utils.md5(file.getFile());
-									long file_md5_hi=MD5.getMD5Hi(fileHash);
-									long file_md5_lo=MD5.getMD5Lo(fileHash);
-									long distro_md5_hi=distroFile.getFileMD5Hi();
-									long distro_md5_lo=distroFile.getFileMD5Lo();
+									byte[] fileHash = MD5Utils.md5(file.getFile());
+									long file_md5_hi = MD5.getMD5Hi(fileHash);
+									long file_md5_lo = MD5.getMD5Lo(fileHash);
+									long distro_md5_hi = distroFile.getFileMD5Hi();
+									long distro_md5_lo = distroFile.getFileMD5Lo();
 									if(
-										file_md5_hi!=distro_md5_hi
-										|| file_md5_lo!=distro_md5_lo
+										file_md5_hi != distro_md5_hi
+										|| file_md5_lo != distro_md5_lo
 									) {
 										addResult(
 											results,
@@ -635,10 +659,10 @@ final public class DistroManager implements Runnable {
 									}
 
 									// Sleep for an amount of time equivilent to half the time it took to process this file
-									long timeSpan=(System.currentTimeMillis()-startTime)/2;
-									if(timeSpan<0) timeSpan=0;
-									else if(timeSpan>MAX_SLEEP_TIME) timeSpan=MAX_SLEEP_TIME;
-									if(timeSpan!=0) {
+									long timeSpan = (System.currentTimeMillis() - startTime) / 2;
+									if(timeSpan < 0) timeSpan = 0;
+									else if(timeSpan > MAX_SLEEP_TIME) timeSpan = MAX_SLEEP_TIME;
+									if(timeSpan != 0) {
 										try {
 											Thread.sleep(timeSpan);
 										} catch(InterruptedException err) {
@@ -648,7 +672,7 @@ final public class DistroManager implements Runnable {
 										}
 									}
 								}
-							} else throw new RuntimeException("Unexpected value for type: "+type);
+							} else throw new RuntimeException("Unexpected value for type: " + type);
 						}
 					} else {
 						if(type.equals(DistroFileType.USER)) {
@@ -666,11 +690,11 @@ final public class DistroManager implements Runnable {
 								stats.noRecurseCount++;
 							} else {
 								// Recurse directory
-								String[] list=file.list();
-								if(list!=null) {
+								String[] list = file.list();
+								if(list != null) {
 									Arrays.sort(list);
-									int len=list.length;
-									if(len>=DIRECTORY_LENGTH_WARNING) {
+									int len = list.length;
+									if(len >= DIRECTORY_LENGTH_WARNING) {
 										addResult(
 											results,
 											verboseOut,
@@ -678,10 +702,10 @@ final public class DistroManager implements Runnable {
 											file,
 											null,
 											null,
-											len+" >= "+DIRECTORY_LENGTH_WARNING
+											len + " >= " + DIRECTORY_LENGTH_WARNING
 										);
 									}
-									for(int c=0;c<len;c++) {
+									for(int c = 0; c < len; c++) {
 										checkDistroFile(
 											aoServer,
 											osVersionPKey,
@@ -716,18 +740,15 @@ final public class DistroManager implements Runnable {
 		Process P = Runtime.getRuntime().exec(command);
 		try {
 			P.getOutputStream().close();
-			BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()));
-			try {
+			try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
 				String line = in.readLine();
-				if(line.length()<32) throw new IOException("Line too short, must be at least 32 characters: "+line);
+				if(line.length() < 32) throw new IOException("Line too short, must be at least 32 characters: " + line);
 				return line.substring(0, 32);
-			} finally {
-				in.close();
 			}
 		} finally {
 			try {
 				int retCode = P.waitFor();
-				if(retCode!=0) throw new IOException("Non-zero response from command: "+AOServDaemon.getCommandString(command));
+				if(retCode != 0) throw new IOException("Non-zero response from command: " + AOServDaemon.getCommandString(command));
 			} catch(InterruptedException err) {
 				// Restore the interrupted status
 				Thread.currentThread().interrupt();
@@ -745,11 +766,11 @@ final public class DistroManager implements Runnable {
 		DistroReportStats stats,
 		Appendable verboseOut
 	) throws IOException, SQLException {
-		String[] list=file.list();
-		if(list!=null) {
+		String[] list = file.list();
+		if(list != null) {
 			Arrays.sort(list);
-			int len=list.length;
-			if(len>=DIRECTORY_LENGTH_WARNING) {
+			int len = list.length;
+			if(len >= DIRECTORY_LENGTH_WARNING) {
 				addResult(
 					results,
 					verboseOut,
@@ -757,15 +778,15 @@ final public class DistroManager implements Runnable {
 					file,
 					null,
 					null,
-					len+" >= "+DIRECTORY_LENGTH_WARNING
+					len + " >= " + DIRECTORY_LENGTH_WARNING
 				);
 			}
-			for(int c=0;c<len;c++) {
+			for(int c = 0; c < len; c++) {
 				try {
 					stats.scanned++;
 					stats.userCount++;
-					String name=list[c];
-					UnixFile uf=new UnixFile(file, name, false);
+					String name = list[c];
+					UnixFile uf = new UnixFile(file, name, false);
 					try {
 						// Check for ...
 						if(isHidden(name)) {
@@ -781,8 +802,8 @@ final public class DistroManager implements Runnable {
 						Stat ufStat = uf.getStat();
 
 						// Make sure is a valid user
-						int uid=ufStat.getUid();
-						if(aoServer.getLinuxServerAccount(uid)==null) {
+						int uid = ufStat.getUid();
+						if(aoServer.getLinuxServerAccount(uid) == null) {
 							addResult(
 								results,
 								verboseOut,
@@ -794,8 +815,8 @@ final public class DistroManager implements Runnable {
 						}
 
 						// Make sure is a valid group
-						int gid=ufStat.getGid();
-						if(aoServer.getLinuxServerGroup(gid)==null) {
+						int gid = ufStat.getGid();
+						if(aoServer.getLinuxServerGroup(gid) == null) {
 							addResult(
 								results,
 								verboseOut,
@@ -807,30 +828,30 @@ final public class DistroManager implements Runnable {
 						}
 
 						// Make sure not setUID or setGID
-						long fileMode=ufStat.getMode();
+						long fileMode = ufStat.getMode();
 						if(
-							(fileMode&(UnixFile.SET_UID|UnixFile.SET_GID))!=0
+							(fileMode & (UnixFile.SET_UID | UnixFile.SET_GID)) != 0
 							&& (
 								uid < aoServer.getUidMin().getID()
 								|| gid < aoServer.getGidMin().getID()
 							)
 						) {
 							// Allow setUID for /etc/mail/majordomo/*/wrapper 4750 root.mail
-							boolean found=false;
-							String filename=uf.getPath();
-							if(
-								filename.length()>20
-								&& filename.substring(0, 20).equals("/etc/mail/majordomo/")
-							) {
-								int pos=filename.indexOf('/', 20);
-								if(pos!=-1) {
-									String fname=filename.substring(pos+1);
+							final String MAJORDOMO_PATH = "/etc/mail/majordomo/";
+							boolean found = false;
+							String filename = uf.getPath();
+							if(filename.startsWith(MAJORDOMO_PATH)) {
+								int pos = filename.indexOf('/', MAJORDOMO_PATH.length());
+								if(pos != -1) {
+									String fname = filename.substring(pos + 1);
 									if(
 										fname.equals("wrapper")
-										&& fileMode==04750
-										&& ufStat.getUid()==UnixFile.ROOT_UID
+										&& fileMode == 04750
+										&& ufStat.getUid() == UnixFile.ROOT_UID
 										&& aoServer.getLinuxServerGroup(ufStat.getGid()).getLinuxGroup().getName().equals(LinuxGroup.MAIL)
-									) found=true;
+									) {
+										found = true;
+									}
 								}
 							}
 							if(!found) {
@@ -864,7 +885,7 @@ final public class DistroManager implements Runnable {
 							}
 						}
 					} catch(RuntimeException err) {
-						LogFactory.getLogger(DistroManager.class).severe("RuntimeException while accessing: "+uf);
+						LogFactory.getLogger(DistroManager.class).severe("RuntimeException while accessing: " + uf);
 						throw err;
 					}
 				} catch(FileNotFoundException err) {
@@ -878,49 +899,66 @@ final public class DistroManager implements Runnable {
 	 * Checks if a filename is all spaces.
 	 */
 	private static boolean allSpace(String name) {
-		int len=name.length();
-		if(len==0) return false;
-		for(int c=0;c<len;c++) {
-			char ch=name.charAt(c);
-			if(ch>' ') return false;
+		if(name.isEmpty()) return false;
+		try (IntStream codePoints = name.codePoints()) {
+			for(int ch : codePoints.toArray()) {
+				if(
+					ch > ' '
+					&& !Character.isSpaceChar(ch)
+					&& !Character.isWhitespace(ch)
+				) {
+					return false;
+				}
+			}
+			return true;
 		}
-		return true;
 	}
 
 	/**
 	 * Determines if a filename possibly represents maliciously hidden content.
 	 */
 	private static boolean isHidden(String name) {
+		int ch;
 		return
 			name.startsWith("...")
-			|| name.startsWith(".. ")
-			|| allSpace(name)
+			|| (
+				name.startsWith("..")
+				&& (
+					(ch = name.codePointAt(2)) <= ' '
+					|| Character.isSpaceChar(ch)
+					|| Character.isWhitespace(ch)
+				)
+			) || allSpace(name)
 		;
 	}
 
 	/**
 	 * Runs a scan immediately and displays the output to <code>System.out</code>.
+	 * This calls System.exit to provide non-zero return value on exception.
 	 */
 	public static void main(String[] args) {
+		int retVal = SysExits.EX_OK;
 		DistroReportStats stats = new DistroReportStats();
 		PrintStream out = System.out;
 		try {
 			try {
-				List<DistroReportFile> results = checkFilesystem(stats, out);
+				/*List<DistroReportFile> results =*/ checkFilesystem(stats, out);
 			} finally {
 				out.flush();
 			}
 		} catch(IOException exc) {
 			ErrorPrinter.printStackTraces(exc, System.err);
 			System.err.flush();
+			retVal = SysExits.EX_IOERR;
 		} catch(SQLException exc) {
 			ErrorPrinter.printStackTraces(exc, System.err);
 			System.err.flush();
+			retVal = SysExits.EX_DATAERR;
 		} finally {
 			out.println("Time");
 			out.print("  Start.....: "); out.println(new Date(stats.startTime).toString());
 			out.print("  End.......: "); out.println(new Date(stats.endTime).toString());
-			out.print("  Duration..: "); out.println(StringUtility.getDecimalTimeLengthString(stats.endTime -stats.startTime));
+			out.print("  Duration..: "); out.println(StringUtility.getDecimalTimeLengthString(stats.endTime - stats.startTime));
 			out.println("Scan");
 			out.print("  Total.....: "); out.println(stats.scanned);
 			out.print("  System....: "); out.println(stats.systemCount);
@@ -933,5 +971,6 @@ final public class DistroManager implements Runnable {
 			out.print("  Files.....: "); out.println(stats.md5Files);
 			out.print("  Bytes.....: "); out.print(stats.md5Bytes); out.print(" ("); out.print(StringUtility.getApproximateSize(stats.md5Bytes)); out.println(')');
 		}
+		if(retVal != 0) System.exit(retVal);
 	}
 }

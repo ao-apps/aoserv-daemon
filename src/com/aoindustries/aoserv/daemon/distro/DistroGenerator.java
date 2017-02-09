@@ -13,6 +13,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.SysExits;
 import com.aoindustries.md5.MD5;
 import com.aoindustries.md5.MD5Utils;
 import com.aoindustries.sql.SQLUtility;
@@ -43,14 +44,14 @@ import java.util.Stack;
  */
 final public class DistroGenerator extends Thread {
 
-	private static final int NUM_THREADS=4;
+	private static final int NUM_THREADS = Math.min(4, Runtime.getRuntime().availableProcessors() * 2);
 
-	private static final int ROWS_PER_TRANSACTION=1000;
+	private static final int ROWS_PER_TRANSACTION = 1000;
 
-	private static final DistroGenerator[] generators=new DistroGenerator[NUM_THREADS];
-	private static int activeGeneratorCount=0;
+	private static final DistroGenerator[] generators = new DistroGenerator[NUM_THREADS];
+	private static int activeGeneratorCount = 0;
 
-	private static final ChainWriter out=new ChainWriter(System.out);
+	private static final ChainWriter out = new ChainWriter(System.out);
 
 	private static String root = "/distro";
 
@@ -60,7 +61,7 @@ final public class DistroGenerator extends Thread {
 	private static Map<Integer,Map<String,Boolean>>
 		sortedConfigs,
 		sortedNevers,
-		sortedNo_recurses,
+		sortedNoRecurses,
 		sortedOptionals,
 		sortedPrelinks,
 		sortedUsers
@@ -68,14 +69,14 @@ final public class DistroGenerator extends Thread {
 
 	private static boolean isConfig(OSFilename osFilename) throws IOException {
 		synchronized(DistroGenerator.class) {
-			if(sortedConfigs==null) sortedConfigs=loadFileList("configs");
+			if(sortedConfigs == null) sortedConfigs = loadFileList("configs");
 			return containsFile(sortedConfigs, osFilename);
 		}
 	}
 
 	private static Map<Integer,Map<String,Boolean>> getNevers() throws IOException {
 		synchronized(DistroGenerator.class) {
-			if(sortedNevers==null) sortedNevers=loadFileList("nevers");
+			if(sortedNevers == null) sortedNevers = loadFileList("nevers");
 			return sortedNevers;
 		}
 	}
@@ -85,56 +86,56 @@ final public class DistroGenerator extends Thread {
 	}
 
 	private static boolean isNoRecurse(OSFilename osFilename) throws IOException {
-		if(osFilename.operating_system_version==-1 || osFilename.filename==null) return false;
+		if(osFilename.operating_system_version == -1 || osFilename.filename == null) return false;
 		synchronized(DistroGenerator.class) {
-			if(sortedNo_recurses==null) sortedNo_recurses=loadFileList("no_recurses");
-			return containsFile(sortedNo_recurses, osFilename);
+			if(sortedNoRecurses == null) sortedNoRecurses = loadFileList("no_recurses");
+			return containsFile(sortedNoRecurses, osFilename);
 		}
 	}
 
 	private static boolean isOptional(OSFilename osFilename) throws IOException {
 		synchronized(DistroGenerator.class) {
-			if(sortedOptionals==null) sortedOptionals=loadFileList("optionals");
+			if(sortedOptionals == null) sortedOptionals = loadFileList("optionals");
 			return containsFile(sortedOptionals, osFilename);
 		}
 	}
 
 	private static boolean isPrelink(OSFilename osFilename) throws IOException {
 		synchronized(DistroGenerator.class) {
-			if(sortedPrelinks==null) sortedPrelinks=loadFileList("prelinks");
+			if(sortedPrelinks == null) sortedPrelinks = loadFileList("prelinks");
 			return containsFile(sortedPrelinks, osFilename);
 		}
 	}
 
 	private static boolean isUser(OSFilename osFilename) throws IOException {
-		if(osFilename.operating_system_version==-1 || osFilename.filename==null) return false;
+		if(osFilename.operating_system_version == -1 || osFilename.filename == null) return false;
 		synchronized(DistroGenerator.class) {
-			if(sortedUsers==null) sortedUsers=loadFileList("users");
+			if(sortedUsers == null) sortedUsers = loadFileList("users");
 			return containsFile(sortedUsers, osFilename);
 		}
 	}
 
 	private static Map<Integer,Map<String,Boolean>> loadFileList(String name) throws IOException {
-		Map<Integer,Map<String,Boolean>> osVersions=new HashMap<>();
+		Map<Integer,Map<String,Boolean>> osVersions = new HashMap<>();
 		try (BufferedReader in = new BufferedReader(new InputStreamReader(DistroGenerator.class.getResourceAsStream(name+".txt")))) {
 			String line;
-			while((line=in.readLine())!=null) {
-				if(line.length()>0 && line.charAt(0)!='#') {
-					int pos1=line.indexOf('/');
-					if(pos1==-1) throw new IOException("cannot find first slash (/) in distro file named "+name+", line="+line);
-					int pos2=line.indexOf('/', pos1+1);
-					if(pos2==-1) throw new IOException("cannot find second slash (/) in distro file named "+name+", line="+line);
-					int pos3=line.indexOf('/', pos2+1);
-					if(pos3==-1) throw new IOException("cannot find third slash (/) in distro file named "+name+", line="+line);
-					int osVersion=getOperatingSystemVersion(
+			while((line = in.readLine()) != null) {
+				if(line.length() > 0 && line.charAt(0) != '#') {
+					int pos1 = line.indexOf('/');
+					if(pos1 == -1) throw new IOException("cannot find first slash (/) in distro file named " + name + ", line=" + line);
+					int pos2 = line.indexOf('/', pos1 + 1);
+					if(pos2 == -1) throw new IOException("cannot find second slash (/) in distro file named " + name + ", line=" + line);
+					int pos3 = line.indexOf('/', pos2 + 1);
+					if(pos3 == -1) throw new IOException("cannot find third slash (/) in distro file named " + name + ", line=" + line);
+					int osVersion = getOperatingSystemVersion(
 						line.substring(0, pos1),
-						line.substring(pos1+1, pos2),
-						line.substring(pos2+1, pos3)
+						line.substring(pos1 + 1, pos2),
+						line.substring(pos2 + 1, pos3)
 					);
-					String filename=line.substring(pos3);
-					Integer I=osVersion;
-					Map<String,Boolean> filenames=osVersions.get(I);
-					if(filenames==null) osVersions.put(I, filenames=new HashMap<>());
+					String filename = line.substring(pos3);
+					Integer I = osVersion;
+					Map<String,Boolean> filenames = osVersions.get(I);
+					if(filenames == null) osVersions.put(I, filenames = new HashMap<>());
 					filenames.put(filename, Boolean.FALSE);
 				}
 			}
@@ -143,11 +144,11 @@ final public class DistroGenerator extends Thread {
 	}
 
 	private static boolean containsFile(Map<Integer,Map<String,Boolean>> osVersions, OSFilename osFilename) throws IOException {
-		Integer I=osFilename.operating_system_version;
-		Map<String,Boolean> filenames=osVersions.get(I);
-		if(filenames==null) return false;
-		Boolean B=filenames.get(osFilename.filename);
-		if(B==null) return false;
+		Integer I = osFilename.operating_system_version;
+		Map<String,Boolean> filenames = osVersions.get(I);
+		if(filenames == null) return false;
+		Boolean B = filenames.get(osFilename.filename);
+		if(B == null) return false;
 		if(B.equals(Boolean.FALSE)) filenames.put(osFilename.filename, Boolean.TRUE);
 		return true;
 	}
@@ -155,24 +156,24 @@ final public class DistroGenerator extends Thread {
 	private static Map<Integer,Map<Integer,String>> usernames;
 	private static String getUsername(OSFilename osFilename, int fileUID) throws IOException {
 		synchronized(DistroGenerator.class) {
-			if (usernames==null) usernames=new HashMap<>();
-			Integer I=osFilename.operating_system_version;
-			Map<Integer,String> realNames=usernames.get(I);
-			if(realNames==null) {
-				usernames.put(I, realNames=new HashMap<>());
+			if(usernames==null) usernames=new HashMap<>();
+			Integer I = osFilename.operating_system_version;
+			Map<Integer,String> realNames = usernames.get(I);
+			if(realNames == null) {
+				usernames.put(I, realNames = new HashMap<>());
 				try (BufferedReader in = new BufferedReader(
 					new InputStreamReader(
 						new BufferedInputStream(
 							new FileInputStream(
 								new UnixFile(
-									root+'/'+osFilename.getOSName()+'/'+osFilename.getOSVersion()+'/'+osFilename.getOSArchitecture()+"/etc/passwd"
+									root + '/' + osFilename.getOSName() + '/' + osFilename.getOSVersion() + '/' + osFilename.getOSArchitecture() + "/etc/passwd"
 								).getFile()
 							)
 						)
 					)
 				)) {
 					String line;
-					while ((line=in.readLine())!=null) {
+					while ((line = in.readLine()) != null) {
 						List<String> fields = StringUtility.splitString(line, ':');
 						String username = fields.get(0);
 						Integer userID = Integer.parseInt(fields.get(2));
@@ -180,8 +181,8 @@ final public class DistroGenerator extends Thread {
 					}
 				}
 			}
-			String username=realNames.get(Integer.valueOf(fileUID));
-			if(username==null) throw new IOException("Unable to find username: "+fileUID + " for file " + osFilename);
+			String username = realNames.get(Integer.valueOf(fileUID));
+			if(username == null) throw new IOException("Unable to find username: " + fileUID + " for file " + osFilename);
 			return username;
 		}
 	}
@@ -189,24 +190,24 @@ final public class DistroGenerator extends Thread {
 	private static Map<Integer,Map<Integer,String>> groupnames;
 	private static String getGroupname(OSFilename osFilename, int fileGID) throws IOException {
 		synchronized(DistroGenerator.class) {
-			if (groupnames==null) groupnames=new HashMap<>();
-			Integer I=osFilename.operating_system_version;
-			Map<Integer,String> realGroups=groupnames.get(I);
-			if(realGroups==null) {
-				groupnames.put(I, realGroups=new HashMap<>());
+			if(groupnames==null) groupnames = new HashMap<>();
+			Integer I = osFilename.operating_system_version;
+			Map<Integer,String> realGroups = groupnames.get(I);
+			if(realGroups == null) {
+				groupnames.put(I, realGroups = new HashMap<>());
 				try (BufferedReader in = new BufferedReader(
 					new InputStreamReader(
 						new BufferedInputStream(
 							new FileInputStream(
 								new UnixFile(
-									root+'/'+osFilename.getOSName()+'/'+osFilename.getOSVersion()+'/'+osFilename.getOSArchitecture()+"/etc/group"
+									root + '/' + osFilename.getOSName() + '/' + osFilename.getOSVersion() + '/' + osFilename.getOSArchitecture() + "/etc/group"
 								).getFile()
 							)
 						)
 					)
 				)) {
 					String line;
-					while ((line=in.readLine())!=null) {
+					while ((line = in.readLine()) != null) {
 						List<String> fields = StringUtility.splitString(line, ':');
 						String groupname = fields.get(0);
 						Integer groupID = Integer.parseInt(fields.get(2));
@@ -214,36 +215,36 @@ final public class DistroGenerator extends Thread {
 					}
 				}
 			}
-			String groupname=realGroups.get(Integer.valueOf(fileGID));
-			if(groupname==null) throw new IOException("Unable to find group name "+fileGID + " for file " + osFilename);
+			String groupname = realGroups.get(Integer.valueOf(fileGID));
+			if(groupname == null) throw new IOException("Unable to find group name " + fileGID + " for file " + osFilename);
 			return groupname;
 		}
 	}
 
 	public static void main(String[] args) {
 		try {
-			if (args.length>0) root = args[0];
+			if(args.length > 0) root = args[0];
 
 			// First do a quick scan for nevers
-			boolean foundNever=false;
-			Map<Integer,Map<String,Boolean>> nevers=getNevers();
-			Iterator<Integer> operatingSystems=nevers.keySet().iterator();
+			boolean foundNever = false;
+			Map<Integer,Map<String,Boolean>> nevers = getNevers();
+			Iterator<Integer> operatingSystems = nevers.keySet().iterator();
 			while(operatingSystems.hasNext()) {
-				Integer OSV=operatingSystems.next();
-				int osv=OSV;
-				Iterator<String> filenames=nevers.get(OSV).keySet().iterator();
+				Integer OSV = operatingSystems.next();
+				int osv = OSV;
+				Iterator<String> filenames = nevers.get(OSV).keySet().iterator();
 				while(filenames.hasNext()) {
-					String filename=getOperatingSystemPath(osv)+filenames.next();
-					UnixFile uf=new UnixFile(filename);
+					String filename = getOperatingSystemPath(osv) + filenames.next();
+					UnixFile uf = new UnixFile(filename);
 					if(uf.getStat().exists()) {
-						System.err.println("File exists but is listed in nevers: "+filename);
+						System.err.println("File exists but is listed in nevers: " + filename);
 						System.err.flush();
-						foundNever=true;
+						foundNever = true;
 					}
 				}
 			}
 			if(foundNever) {
-				System.exit(2);
+				System.exit(SysExits.EX_SOFTWARE);
 			} else {
 				out.print("create temp table distro_files_tmp (\n"
 						+ "  pkey integer\n"
@@ -270,64 +271,65 @@ final public class DistroGenerator extends Thread {
 						+ "begin;\n");
 				out.flush();
 				synchronized(DistroGenerator.class) {
-					for(int c=0;c<NUM_THREADS;c++) generators[c]=new DistroGenerator(c);
-					activeGeneratorCount=NUM_THREADS;
-					for(int c=0;c<NUM_THREADS;c++) generators[c].start();
+					for(int c = 0; c < NUM_THREADS; c++) generators[c] = new DistroGenerator(c);
+					activeGeneratorCount = NUM_THREADS;
+					for(int c = 0; c < NUM_THREADS; c++) generators[c].start();
 				}
 			}
 		} catch(IOException err) {
 			ErrorPrinter.printStackTraces(err);
-			System.exit(1);
+			System.exit(SysExits.EX_IOERR);
 		}
 	}
 
-	private static final Object nextFilenameLock=new Object();
+	private static final Object nextFilenameLock = new Object();
 
 	private static Stack<String> currentDirectories;
 	private static Stack<String[]> currentLists;
 	private static Stack<Integer> currentIndexes;
 
-	private static boolean done=false;
+	private static boolean done = false;
 	private String getNextFilename(OSFilename temp) throws IOException {
 		synchronized(nextFilenameLock) {
 			String filename;
 
-			if(done) filename=null;
-			else {
+			if(done) {
+				filename = null;
+			} else {
 				// Initialize the stacks, if needed
-				if(currentDirectories==null) {
-					(currentDirectories=new Stack<>()).push("");
+				if(currentDirectories == null) {
+					(currentDirectories = new Stack<>()).push("");
 					(currentLists=new Stack<>()).push(new String[] {""});
 					(currentIndexes=new Stack<>()).push(0);
 				}
 			}
-			String currentDirectory=null;
-			String[] currentList=null;
-			int currentIndex=-1;
+			String currentDirectory = null;
+			String[] currentList = null;
+			int currentIndex = -1;
 			try {
-				currentDirectory=currentDirectories.peek();
-				currentList=currentLists.peek();
-				currentIndex=currentIndexes.peek();
+				currentDirectory = currentDirectories.peek();
+				currentList = currentLists.peek();
+				currentIndex = currentIndexes.peek();
 
 				// Undo the stack as far as needed
-				while(currentDirectory!=null && currentIndex>=currentList.length) {
+				while(currentDirectory != null && currentIndex >= currentList.length) {
 					currentDirectories.pop();
-					currentDirectory=currentDirectories.peek();
+					currentDirectory = currentDirectories.peek();
 					currentLists.pop();
-					currentList=currentLists.peek();
+					currentList = currentLists.peek();
 					currentIndexes.pop();
-					currentIndex=currentIndexes.peek();
+					currentIndex = currentIndexes.peek();
 				}
 			} catch(EmptyStackException err) {
-				currentDirectory=null;
+				currentDirectory = null;
 			}
-			if(currentDirectory==null) {
-				filename=null;
-				done=true;
+			if(currentDirectory == null) {
+				filename = null;
+				done = true;
 			} else {
 				// Get the current filename
-				if(currentDirectory.equals("/")) filename="/"+currentList[currentIndex++];
-				else filename=currentDirectory+'/'+currentList[currentIndex++];
+				if(currentDirectory.equals("/")) filename = "/" + currentList[currentIndex++];
+				else filename = currentDirectory + '/' + currentList[currentIndex++];
 
 				// Set to the next file
 				currentIndexes.pop();
@@ -335,8 +337,8 @@ final public class DistroGenerator extends Thread {
 
 				// Recurse for directories
 				try {
-					UnixFile unixFile=new UnixFile(root+filename);
-					long statMode=unixFile.getStat().getRawMode();
+					UnixFile unixFile = new UnixFile(root+filename);
+					long statMode = unixFile.getStat().getRawMode();
 					temp.parseValues(filename);
 					if(
 						!UnixFile.isSymLink(statMode)
@@ -346,14 +348,14 @@ final public class DistroGenerator extends Thread {
 					) {
 						// Push on stacks for next level
 						currentDirectories.push(filename);
-						String[] list=unixFile.list();
-						if(list==null) list = AoArrays.EMPTY_STRING_ARRAY;
+						String[] list = unixFile.list();
+						if(list == null) list = AoArrays.EMPTY_STRING_ARRAY;
 						Arrays.sort(list);
 						currentLists.push(list);
 						currentIndexes.push(0);
 					}
 				} catch(FileNotFoundException err) {
-					System.err.println("Error trying to access file: "+root+filename);
+					System.err.println("Error trying to access file: " + root + filename);
 					System.err.flush();
 					throw err;
 				}
@@ -362,19 +364,19 @@ final public class DistroGenerator extends Thread {
 		}
 	}
 
-	private static final Object outputLock=new Object();
-	private static int outputCount=0;
-	private static boolean isFirstOutput=true;
+	private static final Object outputLock = new Object();
+	private static int outputCount = 0;
+	private static boolean isFirstOutput = true;
 	private void print(String line1) {
 		synchronized(outputLock) {
-			if(outputCount==0) {
-				if(isFirstOutput) isFirstOutput=false;
+			if(outputCount == 0) {
+				if(isFirstOutput) isFirstOutput = false;
 				else out.print("begin;\n");
 			}
 			out.print(line1).print('\n');
-			if(++outputCount>=ROWS_PER_TRANSACTION) {
+			if(++outputCount >= ROWS_PER_TRANSACTION) {
 				out.print("commit;\n");
-				outputCount=0;
+				outputCount = 0;
 			}
 			out.flush();
 		}
@@ -383,50 +385,50 @@ final public class DistroGenerator extends Thread {
 	final private int threadNum;
 
 	private DistroGenerator(int threadNum) {
-		this.threadNum=threadNum;
+		this.threadNum = threadNum;
 	}
 
 	@Override
 	public void run() {
 		try {
-			final OSFilename osFilename=new OSFilename();
+			final OSFilename osFilename = new OSFilename();
 			while(true) {
-				String filename=getNextFilename(osFilename);
-				if(filename==null) break;
+				String filename = getNextFilename(osFilename);
+				if(filename == null) break;
 				osFilename.parseValues(filename);
-				if(osFilename.operating_system_version!=-1 && osFilename.filename!=null) {
+				if(osFilename.operating_system_version != -1 && osFilename.filename != null) {
 					if(isNever(osFilename)) {
-						System.err.println("Found a file in the distribution template that should never exist: "+osFilename);
+						System.err.println("Found a file in the distribution template that should never exist: " + osFilename);
 						System.err.flush();
-						System.exit(1);
+						System.exit(SysExits.EX_SOFTWARE);
 					}
 					// Determine the type
-					String type=isUser(osFilename)?DistroFileType.USER
-						:isConfig(osFilename)?DistroFileType.CONFIG
-						:isNoRecurse(osFilename)?DistroFileType.NO_RECURSE
-						:isPrelink(osFilename)?DistroFileType.PRELINK
-						:DistroFileType.SYSTEM
+					String type = isUser(osFilename) ? DistroFileType.USER
+						: isConfig(osFilename) ? DistroFileType.CONFIG
+						: isNoRecurse(osFilename) ? DistroFileType.NO_RECURSE
+						: isPrelink(osFilename) ? DistroFileType.PRELINK
+						: DistroFileType.SYSTEM
 					;
 
 					// Decide if the size should be stored
 					UnixFile file = new UnixFile(osFilename.getFullPath(root));
 					Stat fileStat = file.getStat();
-					long statMode=fileStat.getRawMode();
-					boolean isRegularFile=UnixFile.isRegularFile(statMode);
-					boolean storeSize=isRegularFile && !isConfig(osFilename);
+					long statMode = fileStat.getRawMode();
+					boolean isRegularFile = UnixFile.isRegularFile(statMode);
+					boolean storeSize = isRegularFile && !isConfig(osFilename);
 
 					// Only hash system regular files
-					boolean doHash=isRegularFile && (type.equals(DistroFileType.SYSTEM) || type.equals(DistroFileType.PRELINK));
+					boolean doHash = isRegularFile && (type.equals(DistroFileType.SYSTEM) || type.equals(DistroFileType.PRELINK));
 
 					try {
-						StringBuilder SB=new StringBuilder();
+						StringBuilder SB = new StringBuilder();
 						SB
 							.append("insert into distro_files_tmp values (nextval('distro_files_pkey_seq'), ")
 							.append(osFilename.operating_system_version)
 							.append(", E'")
-							.append(SQLUtility.escapeSQL(osFilename.filename.length()==0?"/":osFilename.filename))
+							.append(SQLUtility.escapeSQL(osFilename.filename.length() == 0 ? "/" : osFilename.filename))
 							.append("', ")
-							.append(isOptional(osFilename)?"true":"false")
+							.append(isOptional(osFilename) ? "true" : "false")
 							.append(", '")
 							.append(type)
 							.append("', ")
@@ -436,16 +438,19 @@ final public class DistroGenerator extends Thread {
 							.append("', E'")
 							.append(SQLUtility.escapeSQL(getGroupname(osFilename, fileStat.getGid())))
 							.append("', ");
-						if(storeSize) SB.append(fileStat.getSize()).append("::int8");
-						else SB.append("null");
+						if(storeSize) {
+							SB.append(fileStat.getSize()).append("::int8");
+						} else {
+							SB.append("null");
+						}
 						SB.append(", ");
 						if(doHash) {
 							if(type.equals(DistroFileType.SYSTEM)) {
-								byte[] md5=MD5Utils.md5(osFilename.getFullPath(root));
+								byte[] md5 = MD5Utils.md5(osFilename.getFullPath(root));
 								SB.append(MD5.getMD5Hi(md5)).append("::int8, ").append(MD5.getMD5Lo(md5)).append("::int8");
 							} else if(type.equals(DistroFileType.PRELINK)) {
-								String chroot = root+'/'+osFilename.getOSName()+'/'+osFilename.getOSVersion()+'/'+osFilename.getOSArchitecture();
-								String[] command = {
+								String chroot = root + '/' + osFilename.getOSName() + '/' + osFilename.getOSVersion() + '/' + osFilename.getOSArchitecture();
+								String[] prelinkMd5Command = {
 									"/usr/sbin/chroot",
 									chroot,
 									"/usr/sbin/prelink",
@@ -454,19 +459,19 @@ final public class DistroGenerator extends Thread {
 									osFilename.filename
 								};
 								try {
-									Process P = Runtime.getRuntime().exec(command);
+									Process P = Runtime.getRuntime().exec(prelinkMd5Command);
 									try {
 										P.getOutputStream().close();
 										try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
 											String line = in.readLine();
-											if(line.length()<32) throw new IOException("Line too short, must be at least 32 characters: "+line);
+											if(line.length() < 32) throw new IOException("Line too short, must be at least 32 characters: " + line);
 											String md5 = line.substring(0, 32);
 											SB.append(MD5.getMD5Hi(md5)).append("::int8, ").append(MD5.getMD5Lo(md5)).append("::int8");
 										}
 									} finally {
 										try {
 											int retCode = P.waitFor();
-											if(retCode!=0) throw new IOException("Non-zero response from command: "+AOServDaemon.getCommandString(command));
+											if(retCode != 0) throw new IOException("Non-zero response from command: " + AOServDaemon.getCommandString(prelinkMd5Command));
 										} catch(InterruptedException err) {
 											// Restore the interrupted status
 											Thread.currentThread().interrupt();
@@ -476,7 +481,7 @@ final public class DistroGenerator extends Thread {
 										}
 									}
 								} catch(IOException err) {
-									System.err.println("Undoing prelink on \""+osFilename.filename+"\": "+err.toString());
+									System.err.println("Undoing prelink on \"" + osFilename.filename + "\": " + err.toString());
 									AOServDaemon.exec(
 										"/usr/sbin/chroot",
 										chroot,
@@ -486,22 +491,19 @@ final public class DistroGenerator extends Thread {
 									);
 
 									// Try again after undo
-									Process P = Runtime.getRuntime().exec(command);
+									Process P = Runtime.getRuntime().exec(prelinkMd5Command);
 									try {
 										P.getOutputStream().close();
-										BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()));
-										try {
+										try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
 											String line = in.readLine();
-											if(line.length()<32) throw new IOException("Line too short, must be at least 32 characters: "+line);
+											if(line.length() < 32) throw new IOException("Line too short, must be at least 32 characters: " + line);
 											String md5 = line.substring(0, 32);
 											SB.append(MD5.getMD5Hi(md5)).append("::int8, ").append(MD5.getMD5Lo(md5)).append("::int8");
-										} finally {
-											in.close();
 										}
 									} finally {
 										try {
 											int retCode = P.waitFor();
-											if(retCode!=0) throw new IOException("Non-zero response from command: "+AOServDaemon.getCommandString(command));
+											if(retCode != 0) throw new IOException("Non-zero response from command: " + AOServDaemon.getCommandString(prelinkMd5Command));
 										} catch(InterruptedException err2) {
 											// Restore the interrupted status
 											Thread.currentThread().interrupt();
@@ -511,15 +513,20 @@ final public class DistroGenerator extends Thread {
 										}
 									}
 								}
-							} else throw new RuntimeException("Unexpected value for type: "+type);
-						} else SB.append("null, null");
+							} else throw new RuntimeException("Unexpected value for type: " + type);
+						} else {
+							SB.append("null, null");
+						}
 						SB.append(", ");
-						if(UnixFile.isSymLink(statMode)) SB.append("E'").append(SQLUtility.escapeSQL(file.readLink())).append('\'');
-						else SB.append("null");
+						if(UnixFile.isSymLink(statMode)) {
+							SB.append("E'").append(SQLUtility.escapeSQL(file.readLink())).append('\'');
+						} else {
+							SB.append("null");
+						}
 						SB.append(");");
 						print(SB.toString());
 					} catch(IOException err) {
-						System.err.println("Error on file: "+osFilename.getFullPath(root));
+						System.err.println("Error on file: " + osFilename.getFullPath(root));
 						System.err.flush();
 						throw err;
 					}
@@ -528,11 +535,11 @@ final public class DistroGenerator extends Thread {
 
 			// Thread done
 			synchronized(DistroGenerator.class) {
-				generators[threadNum]=null;
+				generators[threadNum] = null;
 				activeGeneratorCount--;
-				if(activeGeneratorCount<=0) {
+				if(activeGeneratorCount <= 0) {
 					// Finish the program
-					if(outputCount>0) out.print("commit;\n");
+					if(outputCount > 0) out.print("commit;\n");
 					out.print("select\n"
 							+ "  dft.*\n"
 							+ "from\n"
@@ -556,7 +563,7 @@ final public class DistroGenerator extends Thread {
 
 					// Report files that in are configs but not found in template
 					reportMissingTemplateFiles("configs.txt", sortedConfigs);
-					reportMissingTemplateFiles("no_recurses.txt", sortedNo_recurses);
+					reportMissingTemplateFiles("no_recurses.txt", sortedNoRecurses);
 					reportMissingTemplateFiles("optionals.txt", sortedOptionals);
 					reportMissingTemplateFiles("prelinks.txt", sortedPrelinks);
 					reportMissingTemplateFiles("users.txt", sortedUsers);
@@ -564,51 +571,59 @@ final public class DistroGenerator extends Thread {
 			}
 		} catch(IOException err) {
 			ErrorPrinter.printStackTraces(err);
-			System.exit(1);
+			System.exit(SysExits.EX_IOERR);
 		}
 	}
 
 	public static int getOperatingSystemVersion(String name, String version, String architecture) {
-		if(
-			name.equals(OperatingSystem.REDHAT)
-			&& version.equals(OperatingSystemVersion.VERSION_ES_4)
-			&& architecture.equals(Architecture.X86_64)
-		) return OperatingSystemVersion.REDHAT_ES_4_X86_64;
-		if(
-			name.equals(OperatingSystem.CENTOS)
-			&& version.equals(OperatingSystemVersion.VERSION_5)
-			&& architecture.equals(Architecture.I686_AND_X86_64)
-		) return OperatingSystemVersion.CENTOS_5_I686_AND_X86_64;
-		if(
-			name.equals(OperatingSystem.CENTOS)
-			&& version.equals(OperatingSystemVersion.VERSION_5_DOM0)
-			&& architecture.equals(Architecture.X86_64)
-		) return OperatingSystemVersion.CENTOS_5_DOM0_X86_64;
-		if(
-			name.equals(OperatingSystem.CENTOS)
-			&& version.equals(OperatingSystemVersion.VERSION_7)
-			&& architecture.equals(Architecture.X86_64)
-		) return OperatingSystemVersion.CENTOS_7_X86_64;
-		if(
-			name.equals(OperatingSystem.CENTOS)
-			&& version.equals(OperatingSystemVersion.VERSION_7_DOM0)
-			&& architecture.equals(Architecture.X86_64)
-		) return OperatingSystemVersion.CENTOS_7_DOM0_X86_64;
-		throw new RuntimeException("Unsupported operating system: name="+name+", version="+version+", architecture="+architecture);
+		if(name.equals(OperatingSystem.CENTOS)) {
+			if(
+				version.equals(OperatingSystemVersion.VERSION_5)
+				&& architecture.equals(Architecture.I686_AND_X86_64)
+			) {
+				return OperatingSystemVersion.CENTOS_5_I686_AND_X86_64;
+			}
+			if(
+				version.equals(OperatingSystemVersion.VERSION_5_DOM0)
+				&& architecture.equals(Architecture.X86_64)
+			) {
+				return OperatingSystemVersion.CENTOS_5_DOM0_X86_64;
+			}
+			if(
+				version.equals(OperatingSystemVersion.VERSION_7)
+				&& architecture.equals(Architecture.X86_64)
+			) {
+				return OperatingSystemVersion.CENTOS_7_X86_64;
+			}
+			if(
+				version.equals(OperatingSystemVersion.VERSION_7_DOM0)
+				&& architecture.equals(Architecture.X86_64)
+			) {
+				return OperatingSystemVersion.CENTOS_7_DOM0_X86_64;
+			}
+		} else if(name.equals(OperatingSystem.REDHAT)) {
+			if(
+				version.equals(OperatingSystemVersion.VERSION_ES_4)
+				&& architecture.equals(Architecture.X86_64)
+			) {
+				return OperatingSystemVersion.REDHAT_ES_4_X86_64;
+			}
+		}
+		throw new RuntimeException("Unsupported operating system: name=" + name + ", version=" + version+", architecture=" + architecture);
 	}
 
 	public static void reportMissingTemplateFiles(String filename, Map<Integer,Map<String,Boolean>> lists) {
-		boolean reportedOne=false;
-		List<Integer> osvs=sort(lists.keySet().iterator());
+		boolean reportedOne = false;
+		List<Integer> osvs = sort(lists.keySet().iterator());
 		for (Integer OSV : osvs) {
-			int osv=OSV;
-			Map<String,Boolean> filenameMap=lists.get(OSV);
-			List<String> filenames=sort(filenameMap.keySet().iterator());
+			int osv = OSV;
+			Map<String,Boolean> filenameMap = lists.get(OSV);
+			List<String> filenames = sort(filenameMap.keySet().iterator());
 			for (String path : filenames) {
-				boolean found=filenameMap.get(path);
+				boolean found = filenameMap.get(path);
 				if(!found) {
 					if(!reportedOne) {
-						reportedOne=true;
+						reportedOne = true;
 						System.err.println();
 						System.err.println("*************************************************************************");
 						System.err.print("* WARNING: These files are listed in ");
@@ -621,7 +636,7 @@ final public class DistroGenerator extends Thread {
 					else if(osv == OperatingSystemVersion.CENTOS_7_X86_64) System.err.print("centos/7/x86_64");
 					else if(osv == OperatingSystemVersion.CENTOS_7_DOM0_X86_64) System.err.print("centos/7.dom0/86_64");
 					else if(osv == OperatingSystemVersion.REDHAT_ES_4_X86_64) System.err.print("redhat/ES 4/x86_64");
-					else throw new RuntimeException("Unknown value for osv: "+osv);
+					else throw new RuntimeException("Unknown value for osv: " + osv);
 					System.err.println(path);
 					System.err.flush();
 				}
@@ -630,16 +645,16 @@ final public class DistroGenerator extends Thread {
 	}
 
 	private static String getOperatingSystemPath(int osv) {
-		if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) return root+"/centos/5/i686,x86_64";
-		if(osv==OperatingSystemVersion.CENTOS_5_DOM0_X86_64) return root+"/centos/5.dom0/x86_64";
-		if(osv==OperatingSystemVersion.CENTOS_7_X86_64) return root+"/centos/7/x86_64";
-		if(osv==OperatingSystemVersion.CENTOS_7_DOM0_X86_64) return root+"/centos/7.dom0/x86_64";
-		if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) return root+"/redhat/ES 4/x86_64";
-		else throw new RuntimeException("Unknown value for osv: "+osv);
+		if(osv == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) return root + "/centos/5/i686,x86_64";
+		if(osv == OperatingSystemVersion.CENTOS_5_DOM0_X86_64) return root + "/centos/5.dom0/x86_64";
+		if(osv == OperatingSystemVersion.CENTOS_7_X86_64) return root + "/centos/7/x86_64";
+		if(osv == OperatingSystemVersion.CENTOS_7_DOM0_X86_64) return root + "/centos/7.dom0/x86_64";
+		if(osv == OperatingSystemVersion.REDHAT_ES_4_X86_64) return root + "/redhat/ES 4/x86_64";
+		else throw new RuntimeException("Unknown value for osv: " + osv);
 	}
 
 	private static <T extends Comparable<? super T>> List<T> sort(Iterator<T> I) {
-		List<T> list=new ArrayList<>();
+		List<T> list = new ArrayList<>();
 		while(I.hasNext()) list.add(I.next());
 		Collections.sort(list);
 		return list;
