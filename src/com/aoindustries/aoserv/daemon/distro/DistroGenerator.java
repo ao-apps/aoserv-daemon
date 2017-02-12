@@ -38,7 +38,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EmptyStackException;
@@ -46,8 +45,11 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.Stack;
+import java.util.TreeSet;
 
 /**
  * Creates the server distribution database contents.
@@ -158,7 +160,7 @@ final public class DistroGenerator {
 		this(DEFAULT_ROOT);
 	}
 
-	private class OSFilename {
+	private class OSFilename implements Comparable<OSFilename> {
 
 		/**
 		 * The OperatingSystemVersion ID, or {@code -1} when not in a template directory
@@ -169,6 +171,11 @@ final public class DistroGenerator {
 		 * The path within the template directory, or {@code null} when not in a template directory
 		 */
 		private final String filename;
+
+		private OSFilename(int osv, String filename) {
+			this.osv = osv;
+			this.filename = filename;
+		}
 
 		/**
 		 * Parses the path within the distro directory.
@@ -223,6 +230,35 @@ final public class DistroGenerator {
 		@Override
 		public String toString() {
 			return getOSName() + '/' + getOSVersion() + '/' + getOSArchitecture() + '/' + filename;
+		}
+
+		@Override
+		public int hashCode() {
+			return osv * 31 + Objects.hashCode(filename);
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if(!(obj instanceof OSFilename)) return false;
+			OSFilename other = (OSFilename)obj;
+			return
+				osv == other.osv
+				&& Objects.equals(filename, other.filename)
+			;
+		}
+
+		@Override
+		public int compareTo(OSFilename o) {
+			int diff = Integer.compare(osv, o.osv);
+			if(diff != 0) return diff;
+			// nulls before non-nulls
+			if(filename == null) {
+				if(o.filename == null) return 0;
+				return -1;
+			} else {
+				if(o.filename == null) return 1;
+				return filename.compareTo(o.filename);
+			}
 		}
 
 		public String getOSName() {
@@ -368,7 +404,7 @@ final public class DistroGenerator {
 		/**
 		 * Track which filenames exist and have been seen.
 		 */
-		private final Map<Integer,Map<String,Boolean>>
+		private final Map<OSFilename,Boolean>
 			configs = new HashMap<>(),
 			nevers = new HashMap<>(),
 			noRecurses = new HashMap<>(),
@@ -400,27 +436,28 @@ final public class DistroGenerator {
 		 * Lines containing a path are not trimmed.
 		 * </p>
 		 */
-		private Map<String,Boolean> readFileList(int osv, ConfigFile configFile) throws IOException {
-			String path = getOperatingSystemPath(osv) + configFile.fileExtension;
-			Map<String,Boolean> filenames = new HashMap<>();
-			try (
-				BufferedReader in = new BufferedReader(
-					new InputStreamReader(
-						new FileInputStream(path)
+		private void readFileLists(ConfigFile configFile, Map<OSFilename,Boolean> map, int ... osvs) throws IOException {
+			for(int osv : osvs) {
+				String path = getOperatingSystemPath(osv) + configFile.fileExtension;
+				try (
+					BufferedReader in = new BufferedReader(
+						new InputStreamReader(
+							new FileInputStream(path)
+						)
 					)
-				)
-			) {
-				String filename;
-				while((filename = in.readLine()) != null) {
-					String trimmed = filename.trim();
-					if(trimmed.length() > 0 && trimmed.charAt(0) != '#') {
-						if(filenames.put(filename, Boolean.FALSE) != null) {
-							throw new AssertionError("Duplicate filename in " + path + ": " + filename);
+				) {
+					String filename;
+					while((filename = in.readLine()) != null) {
+						String trimmed = filename.trim();
+						if(trimmed.length() > 0 && trimmed.charAt(0) != '#') {
+							OSFilename osFilename = new OSFilename(osv, filename);
+							if(map.put(osFilename, Boolean.FALSE) != null) {
+								throw new AssertionError("Duplicate filename in " + path + ": " + filename);
+							}
 						}
 					}
 				}
 			}
-			return filenames;
 		}
 
 		private RunState(
@@ -433,41 +470,57 @@ final public class DistroGenerator {
 			/*
 			 * Load the config files
 			 */
-			// CentOS 5, i686 and x86_64
-			configs   .put(CENTOS_5_I686_AND_X86_64, readFileList(CENTOS_5_I686_AND_X86_64, ConfigFile.CONFIGS_TXT));
-			nevers    .put(CENTOS_5_I686_AND_X86_64, readFileList(CENTOS_5_I686_AND_X86_64, ConfigFile.NEVERS_TXT));
-			noRecurses.put(CENTOS_5_I686_AND_X86_64, readFileList(CENTOS_5_I686_AND_X86_64, ConfigFile.NO_RECURSES_TXT));
-			optionals .put(CENTOS_5_I686_AND_X86_64, readFileList(CENTOS_5_I686_AND_X86_64, ConfigFile.OPTIONALS_TXT));
-			prelinks  .put(CENTOS_5_I686_AND_X86_64, readFileList(CENTOS_5_I686_AND_X86_64, ConfigFile.PRELINKS_TXT));
-			users     .put(CENTOS_5_I686_AND_X86_64, readFileList(CENTOS_5_I686_AND_X86_64, ConfigFile.USERS_TXT));
-			// CentOS 5 Dom0, x86_64
-			configs   .put(CENTOS_5_DOM0_X86_64,     readFileList(CENTOS_5_DOM0_X86_64, ConfigFile.CONFIGS_TXT));
-			nevers    .put(CENTOS_5_DOM0_X86_64,     readFileList(CENTOS_5_DOM0_X86_64, ConfigFile.NEVERS_TXT));
-			noRecurses.put(CENTOS_5_DOM0_X86_64,     readFileList(CENTOS_5_DOM0_X86_64, ConfigFile.NO_RECURSES_TXT));
-			optionals .put(CENTOS_5_DOM0_X86_64,     readFileList(CENTOS_5_DOM0_X86_64, ConfigFile.OPTIONALS_TXT));
-			prelinks  .put(CENTOS_5_DOM0_X86_64,     Collections.emptyMap());
-			users     .put(CENTOS_5_DOM0_X86_64,     readFileList(CENTOS_5_DOM0_X86_64, ConfigFile.USERS_TXT));
-			// CentOS 7, x86_64
-			configs   .put(CENTOS_7_X86_64,          readFileList(CENTOS_7_X86_64, ConfigFile.CONFIGS_TXT));
-			nevers    .put(CENTOS_7_X86_64,          readFileList(CENTOS_7_X86_64, ConfigFile.NEVERS_TXT));
-			noRecurses.put(CENTOS_7_X86_64,          readFileList(CENTOS_7_X86_64, ConfigFile.NO_RECURSES_TXT));
-			optionals .put(CENTOS_7_X86_64,          readFileList(CENTOS_7_X86_64, ConfigFile.OPTIONALS_TXT));
-			prelinks  .put(CENTOS_7_X86_64,          Collections.emptyMap());
-			users     .put(CENTOS_7_X86_64,          readFileList(CENTOS_7_X86_64, ConfigFile.USERS_TXT));
-			// CentOS 7 Dom0, x86_64
-			configs   .put(CENTOS_7_DOM0_X86_64,     readFileList(CENTOS_7_DOM0_X86_64, ConfigFile.CONFIGS_TXT));
-			nevers    .put(CENTOS_7_DOM0_X86_64,     readFileList(CENTOS_7_DOM0_X86_64, ConfigFile.NEVERS_TXT));
-			noRecurses.put(CENTOS_7_DOM0_X86_64,     readFileList(CENTOS_7_DOM0_X86_64, ConfigFile.NO_RECURSES_TXT));
-			optionals .put(CENTOS_7_DOM0_X86_64,     readFileList(CENTOS_7_DOM0_X86_64, ConfigFile.OPTIONALS_TXT));
-			prelinks  .put(CENTOS_7_DOM0_X86_64,     Collections.emptyMap());
-			users     .put(CENTOS_7_DOM0_X86_64,     readFileList(CENTOS_7_DOM0_X86_64, ConfigFile.USERS_TXT));
-			// RedHat ES 4, x86_64
-			configs   .put(REDHAT_ES_4_X86_64,       readFileList(REDHAT_ES_4_X86_64, ConfigFile.CONFIGS_TXT));
-			nevers    .put(REDHAT_ES_4_X86_64,       readFileList(REDHAT_ES_4_X86_64, ConfigFile.NEVERS_TXT));
-			noRecurses.put(REDHAT_ES_4_X86_64,       readFileList(REDHAT_ES_4_X86_64, ConfigFile.NO_RECURSES_TXT));
-			optionals .put(REDHAT_ES_4_X86_64,       readFileList(REDHAT_ES_4_X86_64, ConfigFile.OPTIONALS_TXT));
-			prelinks  .put(REDHAT_ES_4_X86_64,       Collections.emptyMap());
-			users     .put(REDHAT_ES_4_X86_64,       readFileList(REDHAT_ES_4_X86_64, ConfigFile.USERS_TXT));
+			readFileLists(
+				ConfigFile.CONFIGS_TXT,
+				configs,
+				CENTOS_5_I686_AND_X86_64,
+				CENTOS_5_DOM0_X86_64,
+				CENTOS_7_X86_64,
+				CENTOS_7_DOM0_X86_64,
+				REDHAT_ES_4_X86_64
+			);
+			readFileLists(
+				ConfigFile.NEVERS_TXT,
+				nevers,
+				CENTOS_5_I686_AND_X86_64,
+				CENTOS_5_DOM0_X86_64,
+				CENTOS_7_X86_64,
+				CENTOS_7_DOM0_X86_64,
+				REDHAT_ES_4_X86_64
+			);
+			readFileLists(
+				ConfigFile.NO_RECURSES_TXT,
+				noRecurses,
+				CENTOS_5_I686_AND_X86_64,
+				CENTOS_5_DOM0_X86_64,
+				CENTOS_7_X86_64,
+				CENTOS_7_DOM0_X86_64,
+				REDHAT_ES_4_X86_64
+			);
+			readFileLists(
+				ConfigFile.OPTIONALS_TXT,
+				optionals,
+				CENTOS_5_I686_AND_X86_64,
+				CENTOS_5_DOM0_X86_64,
+				CENTOS_7_X86_64,
+				CENTOS_7_DOM0_X86_64,
+				REDHAT_ES_4_X86_64
+			);
+			readFileLists(
+				ConfigFile.PRELINKS_TXT,
+				prelinks,
+				CENTOS_5_I686_AND_X86_64
+				// Others not prelinked
+			);
+			readFileLists(
+				ConfigFile.USERS_TXT,
+				users,
+				CENTOS_5_I686_AND_X86_64,
+				CENTOS_5_DOM0_X86_64,
+				CENTOS_7_X86_64,
+				CENTOS_7_DOM0_X86_64,
+				REDHAT_ES_4_X86_64
+			);
 		}
 
 		private OSFilename getNextFilename() throws IOException {
@@ -555,18 +608,14 @@ final public class DistroGenerator {
 		 * Also flags the path as seen.
 		 */
 		private boolean containsFile(
-			Map<Integer,Map<String,Boolean>> osVersions,
+			Map<OSFilename,Boolean> osVersions,
 			OSFilename osFilename
 		) {
-			Integer osv = osFilename.osv;
 			synchronized(osVersions) {
-				// TODO: Convert maps to be keyed by OSFilename, instead of nested maps
-				Map<String,Boolean> filenames = osVersions.get(osv);
-				if(filenames == null) return false;
-				Boolean seen = filenames.get(osFilename.filename);
+				Boolean seen = osVersions.get(osFilename);
 				if(seen == null) return false;
 				// Flag as seen
-				if(!seen) filenames.put(osFilename.filename, Boolean.TRUE);
+				if(!seen) osVersions.put(osFilename, Boolean.TRUE);
 				// Return is in list
 				return true;
 			}
@@ -623,14 +672,12 @@ final public class DistroGenerator {
 
 		// First do a quick scan for nevers
 		Set<String> foundNevers = new LinkedHashSet<>();
-		for(Map.Entry<Integer,Map<String,Boolean>> entry : runState.nevers.entrySet()) {
-			Integer osv = entry.getKey();
-			for(String filename : entry.getValue().keySet()) {
-				String path = getOperatingSystemPath(osv) + filename;
-				UnixFile uf = new UnixFile(path);
-				if(uf.getStat().exists()) {
-					foundNevers.add(path);
-				}
+		for(Map.Entry<OSFilename,Boolean> entry : runState.nevers.entrySet()) {
+			OSFilename osFilename = entry.getKey();
+			String path = osFilename.getFullPath();
+			UnixFile uf = new UnixFile(path);
+			if(uf.getStat().exists()) {
+				foundNevers.add(path);
 			}
 		}
 		if(!foundNevers.isEmpty()) {
@@ -909,30 +956,29 @@ final public class DistroGenerator {
 		throw new RuntimeException("Unsupported operating system: name=" + name + ", version=" + version+", architecture=" + architecture);
 	}
 
-	private void reportMissingTemplateFiles(ConfigFile configFile, Map<Integer,Map<String,Boolean>> lists, PrintWriter err) {
-		List<Integer> osvs = new ArrayList<>(lists.keySet());
-		Collections.sort(osvs);
-		for(Integer osv : osvs) {
-			List<String> unseenFilenames = new ArrayList<>();
-			{
-				for(Map.Entry<String,Boolean> entry : lists.get(osv).entrySet()) {
-					if(!entry.getValue()) unseenFilenames.add(entry.getKey());
+	private void reportMissingTemplateFiles(ConfigFile configFile, Map<OSFilename,Boolean> map, PrintWriter err) {
+		// Filter all not seen
+		SortedSet<OSFilename> notSeen = new TreeSet<>();
+		for(Map.Entry<OSFilename,Boolean> entry : map.entrySet()) {
+			if(!entry.getValue()) notSeen.add(entry.getKey());
+		}
+		if(!notSeen.isEmpty()) {
+			int lastOsv = Integer.MIN_VALUE;
+			for(OSFilename osFilename : notSeen) {
+				int osv = osFilename.osv;
+				if(osv != lastOsv) {
+					lastOsv = osv;
+					err.println();
+					err.println("*************************************************************************");
+					err.print("* WARNING: These files are listed in ");
+					err.print(getOperatingSystemPath(osv));
+					err.println(configFile.fileExtension);
+					err.println("* but not found in the distribution template.");
+					err.println("*************************************************************************");
 				}
+				err.println(osFilename.filename);
 			}
-			if(!unseenFilenames.isEmpty()) {
-				err.println();
-				err.println("*************************************************************************");
-				err.print("* WARNING: These files are listed in ");
-				err.print(getOperatingSystemPath(osv));
-				err.println(configFile.fileExtension);
-				err.println("* but not found in the distribution template.");
-				err.println("*************************************************************************");
-				Collections.sort(unseenFilenames);
-				for(String path : unseenFilenames) {
-					err.println(path);
-				}
-				err.flush();
-			}
+			err.flush();
 		}
 	}
 }
