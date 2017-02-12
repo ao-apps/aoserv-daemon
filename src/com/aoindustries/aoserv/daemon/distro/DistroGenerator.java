@@ -5,10 +5,21 @@
  */
 package com.aoindustries.aoserv.daemon.distro;
 
-import com.aoindustries.aoserv.client.Architecture;
+import static com.aoindustries.aoserv.client.Architecture.I686_AND_X86_64;
+import static com.aoindustries.aoserv.client.Architecture.X86_64;
 import com.aoindustries.aoserv.client.DistroFileType;
-import com.aoindustries.aoserv.client.OperatingSystem;
-import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import static com.aoindustries.aoserv.client.OperatingSystem.CENTOS;
+import static com.aoindustries.aoserv.client.OperatingSystem.REDHAT;
+import static com.aoindustries.aoserv.client.OperatingSystemVersion.CENTOS_5_DOM0_X86_64;
+import static com.aoindustries.aoserv.client.OperatingSystemVersion.CENTOS_5_I686_AND_X86_64;
+import static com.aoindustries.aoserv.client.OperatingSystemVersion.CENTOS_7_DOM0_X86_64;
+import static com.aoindustries.aoserv.client.OperatingSystemVersion.CENTOS_7_X86_64;
+import static com.aoindustries.aoserv.client.OperatingSystemVersion.REDHAT_ES_4_X86_64;
+import static com.aoindustries.aoserv.client.OperatingSystemVersion.VERSION_5;
+import static com.aoindustries.aoserv.client.OperatingSystemVersion.VERSION_5_DOM0;
+import static com.aoindustries.aoserv.client.OperatingSystemVersion.VERSION_7;
+import static com.aoindustries.aoserv.client.OperatingSystemVersion.VERSION_7_DOM0;
+import static com.aoindustries.aoserv.client.OperatingSystemVersion.VERSION_ES_4;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -24,7 +35,6 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
 import java.io.PrintWriter;
@@ -33,8 +43,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.EmptyStackException;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -48,84 +56,50 @@ import java.util.Stack;
  */
 final public class DistroGenerator {
 
+	/**
+	 * The number of rows between commits to the temp table.
+	 */
 	private static final int ROWS_PER_TRANSACTION = 1000;
 
 	private static final String DEFAULT_ROOT = "/distro";
 
-	private static Set<String> readFileList(String name) throws IOException {
-		Set<String> filenames = new HashSet<>();
-		InputStream resourceIn = DistroGenerator.class.getResourceAsStream(name);
-		if(resourceIn == null) throw new IOException("Resource not found: " + name);
-		try {
-			try (BufferedReader in = new BufferedReader(new InputStreamReader(resourceIn))) {
-				String filename;
-				while((filename = in.readLine()) != null) {
-					String trimmed = filename.trim();
-					if(trimmed.length() > 0 && trimmed.charAt(0) != '#') {
-						if(!filenames.add(filename)) {
-							throw new AssertionError("Duplicate filename in " + name + ": " + filename);
-						}
-					}
-				}
-			}
-		} finally {
-			resourceIn.close();
+	/**
+	 * Config file extensions.
+	 */
+	private enum ConfigFile {
+		CONFIGS_TXT(".configs.txt"),
+		NEVERS_TXT(".nevers.txt"),
+		NO_RECURSES_TXT(".no_recurses.txt"),
+		OPTIONALS_TXT(".optionals.txt"),
+		PRELINKS_TXT(".prelinks.txt"),
+		USERS_TXT(".users.txt");
+
+		private final String fileExtension;
+
+		private ConfigFile(String fileExtension) {
+			this.fileExtension = fileExtension;
 		}
-		return filenames;
+
+		/**
+		 * Avoid creating arrays each use.
+		 */
+		private static final ConfigFile[] values = values();
 	}
 
-	private static final Map<Integer,Set<String>>
-		configs = new HashMap<>(),
-		nevers = new HashMap<>(),
-		noRecurses = new HashMap<>(),
-		optionals = new HashMap<>(),
-		prelinks = new HashMap<>(),
-		users = new HashMap<>()
-	;
+	public static class FoundNeversException extends Exception {
 
-	/*
-	 * Load the unchanging resources on class initialization
-	*/
-	static {
-		try {
-			// configs.txt
-			configs.put(OperatingSystemVersion.CENTOS_5_I686_AND_X86_64, readFileList("configs-centos-5.txt"));
-			configs.put(OperatingSystemVersion.CENTOS_5_DOM0_X86_64,     readFileList("configs-centos-5.dom0.txt"));
-			configs.put(OperatingSystemVersion.CENTOS_7_X86_64,          readFileList("configs-centos-7.txt"));
-			configs.put(OperatingSystemVersion.CENTOS_7_DOM0_X86_64,     readFileList("configs-centos-7.dom0.txt"));
-			configs.put(OperatingSystemVersion.REDHAT_ES_4_X86_64,       readFileList("configs-redhat-es_4.txt"));
-			// nevers.txt
-			nevers.put(OperatingSystemVersion.CENTOS_5_I686_AND_X86_64, readFileList("nevers-centos-5.txt"));
-			nevers.put(OperatingSystemVersion.CENTOS_5_DOM0_X86_64,     readFileList("nevers-centos-5.dom0.txt"));
-			nevers.put(OperatingSystemVersion.CENTOS_7_X86_64,          readFileList("nevers-centos-7.txt"));
-			nevers.put(OperatingSystemVersion.CENTOS_7_DOM0_X86_64,     readFileList("nevers-centos-7.dom0.txt"));
-			nevers.put(OperatingSystemVersion.REDHAT_ES_4_X86_64,       readFileList("nevers-redhat-es_4.txt"));
-			// no_recurses.txt
-			noRecurses.put(OperatingSystemVersion.CENTOS_5_I686_AND_X86_64, readFileList("no_recurses-centos-5.txt"));
-			noRecurses.put(OperatingSystemVersion.CENTOS_5_DOM0_X86_64,     readFileList("no_recurses-centos-5.dom0.txt"));
-			noRecurses.put(OperatingSystemVersion.CENTOS_7_X86_64,          readFileList("no_recurses-centos-7.txt"));
-			noRecurses.put(OperatingSystemVersion.CENTOS_7_DOM0_X86_64,     readFileList("no_recurses-centos-7.dom0.txt"));
-			noRecurses.put(OperatingSystemVersion.REDHAT_ES_4_X86_64,       readFileList("no_recurses-redhat-es_4.txt"));
-			// optionals.txt
-			optionals.put(OperatingSystemVersion.CENTOS_5_I686_AND_X86_64, readFileList("optionals-centos-5.txt"));
-			optionals.put(OperatingSystemVersion.CENTOS_5_DOM0_X86_64,     readFileList("optionals-centos-5.dom0.txt"));
-			optionals.put(OperatingSystemVersion.CENTOS_7_X86_64,          readFileList("optionals-centos-7.txt"));
-			optionals.put(OperatingSystemVersion.CENTOS_7_DOM0_X86_64,     readFileList("optionals-centos-7.dom0.txt"));
-			optionals.put(OperatingSystemVersion.REDHAT_ES_4_X86_64,       readFileList("optionals-redhat-es_4.txt"));
-			// prelinks.txt
-			optionals.put(OperatingSystemVersion.CENTOS_5_I686_AND_X86_64, readFileList("prelinks-centos-5.txt"));
-			optionals.put(OperatingSystemVersion.CENTOS_5_DOM0_X86_64,     Collections.emptySet());
-			optionals.put(OperatingSystemVersion.CENTOS_7_X86_64,          Collections.emptySet());
-			optionals.put(OperatingSystemVersion.CENTOS_7_DOM0_X86_64,     Collections.emptySet());
-			optionals.put(OperatingSystemVersion.REDHAT_ES_4_X86_64,       Collections.emptySet());
-			// users.txt
-			users.put(OperatingSystemVersion.CENTOS_5_I686_AND_X86_64, readFileList("users-centos-5.txt"));
-			users.put(OperatingSystemVersion.CENTOS_5_DOM0_X86_64,     readFileList("users-centos-5.dom0.txt"));
-			users.put(OperatingSystemVersion.CENTOS_7_X86_64,          readFileList("users-centos-7.txt"));
-			users.put(OperatingSystemVersion.CENTOS_7_DOM0_X86_64,     readFileList("users-centos-7.dom0.txt"));
-			users.put(OperatingSystemVersion.REDHAT_ES_4_X86_64,       readFileList("users-redhat-es_4.txt"));
-		} catch(IOException e) {
-			throw new ExceptionInInitializerError(e);
+		private static final long serialVersionUID = 1L;
+
+		private final Set<String> foundNevers;
+
+		private FoundNeversException(Set<String> foundNevers) {
+			super("One or more files exist that are listed in nevers");
+			assert !foundNevers.isEmpty();
+			this.foundNevers = foundNevers;
+		}
+
+		public Set<String> getFoundNevers() {
+			return foundNevers;
 		}
 	}
 
@@ -184,11 +158,143 @@ final public class DistroGenerator {
 		this(DEFAULT_ROOT);
 	}
 
+	private class OSFilename {
+
+		/**
+		 * The OperatingSystemVersion ID, or {@code -1} when not in a template directory
+		 */
+		private final int osv;
+
+		/**
+		 * The path within the template directory, or {@code null} when not in a template directory
+		 */
+		private final String filename;
+
+		/**
+		 * Parses the path within the distro directory.
+		 */
+		private OSFilename(String path) {
+			// Skip leading '/'
+			if(path.length() > 0 && path.charAt(0) == '/') path = path.substring(1);
+			// Find first '/'
+			int pos1 = path.indexOf('/');
+			if(pos1 == -1) {
+				osv = -1;
+				filename = null;
+			} else {
+				// Find second '/'
+				String osName = path.substring(0, pos1);
+				int pos2 = path.indexOf('/', pos1 + 1);
+				if(pos2 == -1) {
+					osv = -1;
+					filename = null;
+				} else {
+					// Find third '/'
+					String osVersion = path.substring(pos1 + 1, pos2);
+					int pos3 = path.indexOf('/', pos2 + 1);
+					if(pos3 == -1) {
+						String osArchitecture = path.substring(pos2 + 1);
+						// Determine if is a config file
+						boolean isConfigFile = false;
+						for(ConfigFile configFile : ConfigFile.values) {
+							if(osArchitecture.endsWith(configFile.fileExtension)) {
+								isConfigFile = true;
+								break;
+							}
+						}
+						if(isConfigFile) {
+							// Skip config files
+							osv = -1;
+							filename = null;
+						} else {
+							// Is root for one operation system version
+							osv = getOperatingSystemVersion(osName, osVersion, osArchitecture);
+							filename = "/";
+						}
+					} else {
+						String osArchitecture = path.substring(pos2 + 1, pos3);
+						osv = getOperatingSystemVersion(osName, osVersion, osArchitecture);
+						filename = path.substring(pos3);
+					}
+				}
+			}
+		}
+
+		@Override
+		public String toString() {
+			return getOSName() + '/' + getOSVersion() + '/' + getOSArchitecture() + '/' + filename;
+		}
+
+		public String getOSName() {
+			switch(osv) {
+				case CENTOS_5_I686_AND_X86_64 :
+				case CENTOS_5_DOM0_X86_64 :
+				case CENTOS_7_X86_64 :
+				case CENTOS_7_DOM0_X86_64 :
+					return CENTOS;
+				case REDHAT_ES_4_X86_64 :
+					return REDHAT;
+				default:
+					throw new RuntimeException("Unsupported operating_system_version: " + osv);
+			}
+		}
+
+		public String getOSVersion() {
+			switch(osv) {
+				case CENTOS_5_I686_AND_X86_64 : return VERSION_5;
+				case CENTOS_5_DOM0_X86_64 :     return VERSION_5_DOM0;
+				case CENTOS_7_X86_64 :          return VERSION_7;
+				case CENTOS_7_DOM0_X86_64 :     return VERSION_7_DOM0;
+				case REDHAT_ES_4_X86_64 :       return VERSION_ES_4;
+				default: throw new RuntimeException("Unsupported operating_system_version: "+osv);
+			}
+		}
+
+		public String getOSArchitecture() {
+			switch(osv) {
+				case CENTOS_5_I686_AND_X86_64 :
+					return I686_AND_X86_64;
+				case CENTOS_5_DOM0_X86_64 :
+				case CENTOS_7_X86_64 :
+				case CENTOS_7_DOM0_X86_64 :
+				case REDHAT_ES_4_X86_64 :
+					return X86_64;
+				default:
+					throw new RuntimeException("Unexpected value for osv: "+osv);
+			}
+		}
+
+		public String getFullPath() {
+			return root + '/' + getOSName() + '/' + getOSVersion() + '/' + getOSArchitecture() + filename;
+		}
+	}
+
+	/**
+	 * Gets the path containing the distribution template, without any trailing
+	 * slash.
+	 */
+	private String getOperatingSystemPath(int osv) {
+		switch(osv) {
+			case CENTOS_5_I686_AND_X86_64 :
+				return root + '/' + CENTOS + '/' + VERSION_5      + '/' + I686_AND_X86_64;
+			case CENTOS_5_DOM0_X86_64 :
+				return root + '/' + CENTOS + '/' + VERSION_5_DOM0 + '/' + X86_64;
+			case CENTOS_7_X86_64 :
+				return root + '/' + CENTOS + '/' + VERSION_7      + '/' + X86_64;
+			case CENTOS_7_DOM0_X86_64 :
+				return root + '/' + CENTOS + '/' + VERSION_7_DOM0 + '/' + X86_64;
+			case REDHAT_ES_4_X86_64 :
+				return root + '/' + REDHAT + '/' + VERSION_ES_4   + '/' + X86_64;
+			default :
+				throw new RuntimeException("Unexpected value for osv: " + osv);
+		}
+	}
+
 	private final Map<Integer,Map<Integer,String>> usernames = new HashMap<>();
 	private String getUsername(OSFilename osFilename, int fileUID) throws IOException {
-		Integer I = osFilename.operating_system_version;
+		Integer osv = osFilename.osv;
 		synchronized(usernames) {
-			Map<Integer,String> realNames = usernames.get(I);
+			Map<Integer,String> realNames = usernames.get(osv);
 			if(realNames == null) {
 				realNames = new HashMap<>();
 				try (BufferedReader in = new BufferedReader(
@@ -210,7 +316,7 @@ final public class DistroGenerator {
 						if(!realNames.containsKey(userID)) realNames.put(userID, username);
 					}
 				}
-				usernames.put(I, realNames);
+				usernames.put(osv, realNames);
 			}
 			String username = realNames.get(Integer.valueOf(fileUID));
 			if(username == null) throw new IOException("Unable to find username: " + fileUID + " for file " + osFilename);
@@ -220,7 +326,7 @@ final public class DistroGenerator {
 
 	private final Map<Integer,Map<Integer,String>> groupnames = new HashMap<>();
 	private String getGroupname(OSFilename osFilename, int fileGID) throws IOException {
-		Integer I = osFilename.operating_system_version;
+		Integer I = osFilename.osv;
 		synchronized(groupnames) {
 			Map<Integer,String> realGroups = groupnames.get(I);
 			if(realGroups == null) {
@@ -254,33 +360,22 @@ final public class DistroGenerator {
 
 	private class RunState {
 
-		private Map<Integer,Set<String>> copy(Map<Integer,Set<String>> map) {
-			Map<Integer,Set<String>> newMap = new HashMap<>();
-			for(Map.Entry<Integer,Set<String>> entry : map.entrySet()) {
-				newMap.put(
-					entry.getKey(),
-					new HashSet<>(entry.getValue())
-				);
-			}
-			return newMap;
-		}
-
-		/**
-		 * Track which filenames have not been seen.
-		 */
-		private final Map<Integer,Set<String>>
-			unseenConfigs = copy(configs),
-			unseenNevers = copy(nevers),
-			unseenNoRecurses = copy(noRecurses),
-			unseenOptionals = copy(optionals),
-			unseenPrelinks = copy(prelinks),
-			unseenUsers = copy(users)
-		;
-
 		private final PrintWriter out;
 		private final PrintWriter err;
 
 		private final DistroGeneratorThread[] generators;
+
+		/**
+		 * Track which filenames exist and have been seen.
+		 */
+		private final Map<Integer,Map<String,Boolean>>
+			configs = new HashMap<>(),
+			nevers = new HashMap<>(),
+			noRecurses = new HashMap<>(),
+			optionals = new HashMap<>(),
+			prelinks = new HashMap<>(),
+			users = new HashMap<>()
+		;
 
 		private final Object nextFilenameLock = new Object();
 
@@ -290,54 +385,130 @@ final public class DistroGenerator {
 
 		private boolean done = false;
 
+		/**
+		 * <p>
+		 * Reads the config file from the distro directory.
+		 * The filename is based on the distro directory, but with the type added.
+		 * For example, the file for "prelinks" on CentOS 7, x86_64 is
+		 * <code>/distro/centos/7/x86_64.prelinks</code>.
+		 * </p>
+		 * <p>
+		 * The file contains one path per line.
+		 * Any line beginning with <code>#</code>,
+		 * after trimming, is considered a comment.
+		 * Empty lines, after trimming, are ignored.
+		 * Lines containing a path are not trimmed.
+		 * </p>
+		 */
+		private Map<String,Boolean> readFileList(int osv, ConfigFile configFile) throws IOException {
+			String path = getOperatingSystemPath(osv) + configFile.fileExtension;
+			Map<String,Boolean> filenames = new HashMap<>();
+			try (
+				BufferedReader in = new BufferedReader(
+					new InputStreamReader(
+						new FileInputStream(path)
+					)
+				)
+			) {
+				String filename;
+				while((filename = in.readLine()) != null) {
+					String trimmed = filename.trim();
+					if(trimmed.length() > 0 && trimmed.charAt(0) != '#') {
+						if(filenames.put(filename, Boolean.FALSE) != null) {
+							throw new AssertionError("Duplicate filename in " + path + ": " + filename);
+						}
+					}
+				}
+			}
+			return filenames;
+		}
+
 		private RunState(
 			PrintWriter out,
 			PrintWriter err
-		) {
+		) throws IOException {
 			this.out = out;
 			this.err = err;
 			this.generators = new DistroGeneratorThread[numThreads];
+			/*
+			 * Load the config files
+			 */
+			// CentOS 5, i686 and x86_64
+			configs   .put(CENTOS_5_I686_AND_X86_64, readFileList(CENTOS_5_I686_AND_X86_64, ConfigFile.CONFIGS_TXT));
+			nevers    .put(CENTOS_5_I686_AND_X86_64, readFileList(CENTOS_5_I686_AND_X86_64, ConfigFile.NEVERS_TXT));
+			noRecurses.put(CENTOS_5_I686_AND_X86_64, readFileList(CENTOS_5_I686_AND_X86_64, ConfigFile.NO_RECURSES_TXT));
+			optionals .put(CENTOS_5_I686_AND_X86_64, readFileList(CENTOS_5_I686_AND_X86_64, ConfigFile.OPTIONALS_TXT));
+			prelinks  .put(CENTOS_5_I686_AND_X86_64, readFileList(CENTOS_5_I686_AND_X86_64, ConfigFile.PRELINKS_TXT));
+			users     .put(CENTOS_5_I686_AND_X86_64, readFileList(CENTOS_5_I686_AND_X86_64, ConfigFile.USERS_TXT));
+			// CentOS 5 Dom0, x86_64
+			configs   .put(CENTOS_5_DOM0_X86_64,     readFileList(CENTOS_5_DOM0_X86_64, ConfigFile.CONFIGS_TXT));
+			nevers    .put(CENTOS_5_DOM0_X86_64,     readFileList(CENTOS_5_DOM0_X86_64, ConfigFile.NEVERS_TXT));
+			noRecurses.put(CENTOS_5_DOM0_X86_64,     readFileList(CENTOS_5_DOM0_X86_64, ConfigFile.NO_RECURSES_TXT));
+			optionals .put(CENTOS_5_DOM0_X86_64,     readFileList(CENTOS_5_DOM0_X86_64, ConfigFile.OPTIONALS_TXT));
+			prelinks  .put(CENTOS_5_DOM0_X86_64,     Collections.emptyMap());
+			users     .put(CENTOS_5_DOM0_X86_64,     readFileList(CENTOS_5_DOM0_X86_64, ConfigFile.USERS_TXT));
+			// CentOS 7, x86_64
+			configs   .put(CENTOS_7_X86_64,          readFileList(CENTOS_7_X86_64, ConfigFile.CONFIGS_TXT));
+			nevers    .put(CENTOS_7_X86_64,          readFileList(CENTOS_7_X86_64, ConfigFile.NEVERS_TXT));
+			noRecurses.put(CENTOS_7_X86_64,          readFileList(CENTOS_7_X86_64, ConfigFile.NO_RECURSES_TXT));
+			optionals .put(CENTOS_7_X86_64,          readFileList(CENTOS_7_X86_64, ConfigFile.OPTIONALS_TXT));
+			prelinks  .put(CENTOS_7_X86_64,          Collections.emptyMap());
+			users     .put(CENTOS_7_X86_64,          readFileList(CENTOS_7_X86_64, ConfigFile.USERS_TXT));
+			// CentOS 7 Dom0, x86_64
+			configs   .put(CENTOS_7_DOM0_X86_64,     readFileList(CENTOS_7_DOM0_X86_64, ConfigFile.CONFIGS_TXT));
+			nevers    .put(CENTOS_7_DOM0_X86_64,     readFileList(CENTOS_7_DOM0_X86_64, ConfigFile.NEVERS_TXT));
+			noRecurses.put(CENTOS_7_DOM0_X86_64,     readFileList(CENTOS_7_DOM0_X86_64, ConfigFile.NO_RECURSES_TXT));
+			optionals .put(CENTOS_7_DOM0_X86_64,     readFileList(CENTOS_7_DOM0_X86_64, ConfigFile.OPTIONALS_TXT));
+			prelinks  .put(CENTOS_7_DOM0_X86_64,     Collections.emptyMap());
+			users     .put(CENTOS_7_DOM0_X86_64,     readFileList(CENTOS_7_DOM0_X86_64, ConfigFile.USERS_TXT));
+			// RedHat ES 4, x86_64
+			configs   .put(REDHAT_ES_4_X86_64,       readFileList(REDHAT_ES_4_X86_64, ConfigFile.CONFIGS_TXT));
+			nevers    .put(REDHAT_ES_4_X86_64,       readFileList(REDHAT_ES_4_X86_64, ConfigFile.NEVERS_TXT));
+			noRecurses.put(REDHAT_ES_4_X86_64,       readFileList(REDHAT_ES_4_X86_64, ConfigFile.NO_RECURSES_TXT));
+			optionals .put(REDHAT_ES_4_X86_64,       readFileList(REDHAT_ES_4_X86_64, ConfigFile.OPTIONALS_TXT));
+			prelinks  .put(REDHAT_ES_4_X86_64,       Collections.emptyMap());
+			users     .put(REDHAT_ES_4_X86_64,       readFileList(REDHAT_ES_4_X86_64, ConfigFile.USERS_TXT));
 		}
 
-		private String getNextFilename(OSFilename temp) throws IOException {
+		private OSFilename getNextFilename() throws IOException {
 			synchronized(nextFilenameLock) {
-				String filename;
-
-				if(done) {
-					filename = null;
-				} else {
+				// Loop until end or found within a template directory
+				while(true) {
+					if(done) {
+						return null;
+					}
 					// Initialize the stacks, if needed
 					if(currentDirectories == null) {
 						(currentDirectories = new Stack<>()).push("");
-						(currentLists=new Stack<>()).push(new String[] {""});
-						(currentIndexes=new Stack<>()).push(0);
+						(currentLists = new Stack<>()).push(new String[] {""});
+						(currentIndexes = new Stack<>()).push(0);
 					}
-				}
-				String currentDirectory = null;
-				String[] currentList = null;
-				int currentIndex = -1;
-				try {
-					currentDirectory = currentDirectories.peek();
-					currentList = currentLists.peek();
-					currentIndex = currentIndexes.peek();
-
-					// Undo the stack as far as needed
-					while(currentDirectory != null && currentIndex >= currentList.length) {
-						currentDirectories.pop();
+					String currentDirectory = null;
+					String[] currentList = null;
+					int currentIndex = -1;
+					try {
 						currentDirectory = currentDirectories.peek();
-						currentLists.pop();
 						currentList = currentLists.peek();
-						currentIndexes.pop();
 						currentIndex = currentIndexes.peek();
+
+						// Undo the stack as far as needed
+						while(currentDirectory != null && currentIndex >= currentList.length) {
+							currentDirectories.pop();
+							currentDirectory = currentDirectories.peek();
+							currentLists.pop();
+							currentList = currentLists.peek();
+							currentIndexes.pop();
+							currentIndex = currentIndexes.peek();
+						}
+					} catch(EmptyStackException err) {
+						currentDirectory = null;
 					}
-				} catch(EmptyStackException err) {
-					currentDirectory = null;
-				}
-				if(currentDirectory == null) {
-					filename = null;
-					done = true;
-				} else {
+					if(currentDirectory == null) {
+						done = true;
+						return null;
+					}
 					// Get the current filename
+					String filename;
 					if(currentDirectory.equals("/")) filename = "/" + currentList[currentIndex++];
 					else filename = currentDirectory + '/' + currentList[currentIndex++];
 
@@ -346,15 +517,20 @@ final public class DistroGenerator {
 					currentIndexes.push(currentIndex);
 
 					// Recurse for directories
+					OSFilename osFilename = new OSFilename(filename);
 					try {
 						UnixFile unixFile = new UnixFile(root + filename);
 						long statMode = unixFile.getStat().getRawMode();
-						temp.parseValues(filename);
 						if(
 							!UnixFile.isSymLink(statMode)
 							&& UnixFile.isDirectory(statMode)
-							&& !isUser(temp)
-							&& !isNoRecurse(temp)
+							&& (
+								osFilename.filename == null
+								|| (
+									!isUser(osFilename)
+									&& !isNoRecurse(osFilename)
+								)
+							)
 						) {
 							// Push on stacks for next level
 							currentDirectories.push(filename);
@@ -369,54 +545,55 @@ final public class DistroGenerator {
 						err.flush();
 						throw e;
 					}
+					if(osFilename.osv != -1 && osFilename.filename != null) return osFilename;
 				}
-				return filename;
 			}
 		}
 
+		/**
+		 * Checks if a path is in the provided configuration list.
+		 * Also flags the path as seen.
+		 */
 		private boolean containsFile(
-			Map<Integer,Set<String>> osVersions,
-			Map<Integer,Set<String>> unseenOsVersions,
+			Map<Integer,Map<String,Boolean>> osVersions,
 			OSFilename osFilename
 		) {
-			Integer I = osFilename.operating_system_version;
-			// Flag as found
-			synchronized(unseenOsVersions) {
-				Set<String> unseenFilenames = unseenOsVersions.get(I);
-				if(unseenFilenames != null) unseenFilenames.remove(osFilename.filename);
+			Integer osv = osFilename.osv;
+			synchronized(osVersions) {
+				// TODO: Convert maps to be keyed by OSFilename, instead of nested maps
+				Map<String,Boolean> filenames = osVersions.get(osv);
+				if(filenames == null) return false;
+				Boolean seen = filenames.get(osFilename.filename);
+				if(seen == null) return false;
+				// Flag as seen
+				if(!seen) filenames.put(osFilename.filename, Boolean.TRUE);
+				// Return is in list
+				return true;
 			}
-			// Check if is in list
-			Set<String> filenames = osVersions.get(I);
-			return
-				filenames != null
-				&& filenames.contains(osFilename.filename)
-			;
 		}
 
 		private boolean isConfig(OSFilename osFilename) {
-			return containsFile(configs, unseenConfigs, osFilename);
+			return containsFile(configs, osFilename);
 		}
 
 		private boolean isNever(OSFilename osFilename) {
-			return containsFile(nevers, unseenNevers, osFilename);
+			return containsFile(nevers, osFilename);
 		}
 
 		private boolean isNoRecurse(OSFilename osFilename) {
-			if(osFilename.operating_system_version == -1 || osFilename.filename == null) return false;
-			return containsFile(noRecurses, unseenNoRecurses, osFilename);
+			return containsFile(noRecurses, osFilename);
 		}
 
 		private boolean isOptional(OSFilename osFilename) {
-			return containsFile(optionals, unseenOptionals, osFilename);
+			return containsFile(optionals, osFilename);
 		}
 
 		private boolean isPrelink(OSFilename osFilename) {
-			return containsFile(prelinks, unseenPrelinks, osFilename);
+			return containsFile(prelinks, osFilename);
 		}
 
 		private boolean isUser(OSFilename osFilename) {
-			if(osFilename.operating_system_version == -1 || osFilename.filename == null) return false;
-			return containsFile(users, unseenUsers, osFilename);
+			return containsFile(users, osFilename);
 		}
 
 		private final Object outputLock = new Object();
@@ -439,32 +616,16 @@ final public class DistroGenerator {
 		}
 	}
 
-	public static class FoundNeversException extends Exception {
-
-		private static final long serialVersionUID = 1L;
-
-		private final Set<String> foundNevers;
-
-		private FoundNeversException(Set<String> foundNevers) {
-			super("One or more files exist that are listed in nevers");
-			assert !foundNevers.isEmpty();
-			this.foundNevers = foundNevers;
-		}
-
-		public Set<String> getFoundNevers() {
-			return foundNevers;
-		}
-	}
-
 	public void run(PrintWriter out, PrintWriter err) throws IOException, FoundNeversException, InterruptedException {
+		// Initialize the run state.  This is shared between threads to make
+		// this generator completely thread-safe.
 		RunState runState = new RunState(out, err);
+
 		// First do a quick scan for nevers
 		Set<String> foundNevers = new LinkedHashSet<>();
-		Iterator<Integer> operatingSystems = nevers.keySet().iterator();
-		while(operatingSystems.hasNext()) {
-			Integer OSV = operatingSystems.next();
-			int osv = OSV;
-			for(String filename : nevers.get(OSV)) {
+		for(Map.Entry<Integer,Map<String,Boolean>> entry : runState.nevers.entrySet()) {
+			Integer osv = entry.getKey();
+			for(String filename : entry.getValue().keySet()) {
 				String path = getOperatingSystemPath(osv) + filename;
 				UnixFile uf = new UnixFile(path);
 				if(uf.getStat().exists()) {
@@ -474,83 +635,80 @@ final public class DistroGenerator {
 		}
 		if(!foundNevers.isEmpty()) {
 			throw new FoundNeversException(foundNevers);
-		} else {
-			out.print("create temp table distro_files_tmp (\n"
-					+ "  pkey integer\n"
-					+ "    not null,\n"
-					+ "  operating_system_version integer\n"
-					+ "    not null,\n"
-					+ "  path text\n"
-					+ "    not null,\n"
-					+ "  optional bool\n"
-					+ "    not null,\n"
-					+ "  type text\n"
-					+ "    not null,\n"
-					+ "  mode int8\n"
-					+ "    not null,\n"
-					+ "  linux_account text\n"
-					+ "    not null,\n"
-					+ "  linux_group text\n"
-					+ "    not null,\n"
-					+ "  size int8,\n"
-					+ "  file_md5_hi int8,\n"
-					+ "  file_md5_lo int8,\n"
-					+ "  symlink_target text\n"
-					+ ") without oids;\n"
-					+ "begin;\n");
-			out.flush();
-			DistroGeneratorThread[] generators;
-			synchronized(runState.generators) {
-				for(int c = 0; c < numThreads; c++) runState.generators[c] = new DistroGeneratorThread(runState, c);
-				for(int c = 0; c < numThreads; c++) runState.generators[c].start();
-				generators = runState.generators;
-			}
-			// Join each thread and throw exceptions from them
-			for(DistroGeneratorThread generator : generators) {
-				generator.join();
-				// Throw any exception from the worker thread
-				synchronized(generator) {
-					if(generator.ioException != null) throw generator.ioException;
-					if(generator.foundNeversException != null) throw generator.foundNeversException;
-					Throwable t = generator.throwable;
-					if(t != null) {
-						if(t instanceof RuntimeException) throw (RuntimeException)t;
-						throw new RuntimeException(t);
-					}
+		}
+
+		out.print("create temp table distro_files_tmp (\n"
+				+ "  pkey integer\n"
+				+ "    not null,\n"
+				+ "  operating_system_version integer\n"
+				+ "    not null,\n"
+				+ "  path text\n"
+				+ "    not null,\n"
+				+ "  optional bool\n"
+				+ "    not null,\n"
+				+ "  type text\n"
+				+ "    not null,\n"
+				+ "  mode int8\n"
+				+ "    not null,\n"
+				+ "  linux_account text\n"
+				+ "    not null,\n"
+				+ "  linux_group text\n"
+				+ "    not null,\n"
+				+ "  size int8,\n"
+				+ "  file_md5_hi int8,\n"
+				+ "  file_md5_lo int8,\n"
+				+ "  symlink_target text\n"
+				+ ") without oids;\n"
+				+ "begin;\n");
+		out.flush();
+		for(int c = 0; c < numThreads; c++) runState.generators[c] = new DistroGeneratorThread(runState, c);
+		for(int c = 0; c < numThreads; c++) runState.generators[c].start();
+		// Join each thread and throw exceptions from them
+		for(DistroGeneratorThread generator : runState.generators) {
+			generator.join();
+			// Throw any exception from the worker thread
+			synchronized(generator) {
+				if(generator.ioException != null) throw generator.ioException;
+				if(generator.foundNeversException != null) throw generator.foundNeversException;
+				Throwable t = generator.throwable;
+				if(t != null) {
+					if(t instanceof RuntimeException) throw (RuntimeException)t;
+					throw new RuntimeException(t);
 				}
 			}
-			// Finish the program
-			synchronized(runState.outputLock) {
-				if(runState.outputCount > 0) runState.out.print("commit;\n");
-				runState.out.print("select\n"
-						+ "  dft.*\n"
-						+ "from\n"
-						+ "  distro_files_tmp dft\n"
-						+ "  left outer join linux_accounts la on dft.linux_account=la.username\n"
-						+ "  left outer join linux_groups lg on dft.linux_group=lg.name\n"
-						+ "where\n"
-						+ "  la.username is null\n"
-						+ "  or lg.name is null\n"
-						+ "order by\n"
-						+ "  dft.operating_system_version,\n"
-						+ "  dft.path\n"
-						+ ";\n"
-						+ "begin;\n"
-						+ "delete from distro_files;\n"
-						+ "insert into distro_files select * from distro_files_tmp;\n"
-						+ "commit;\n"
-						+ "drop table distro_files_tmp;\n"
-						+ "vacuum full analyze distro_files;\n");
-				runState.out.flush();
-			}
-
-			// Report files that in are configs but not found in template
-			reportMissingTemplateFiles("configs.txt", runState.unseenConfigs, err);
-			reportMissingTemplateFiles("no_recurses.txt", runState.unseenNoRecurses, err);
-			reportMissingTemplateFiles("optionals.txt", runState.unseenOptionals, err);
-			reportMissingTemplateFiles("prelinks.txt", runState.unseenPrelinks, err);
-			reportMissingTemplateFiles("users.txt", runState.unseenUsers, err);
 		}
+		// Finish the program
+		synchronized(runState.outputLock) {
+			if(runState.outputCount > 0) runState.out.print("commit;\n");
+			runState.out.print("select\n"
+					+ "  dft.*\n"
+					+ "from\n"
+					+ "  distro_files_tmp dft\n"
+					+ "  left outer join linux_accounts la on dft.linux_account=la.username\n"
+					+ "  left outer join linux_groups lg on dft.linux_group=lg.name\n"
+					+ "where\n"
+					+ "  la.username is null\n"
+					+ "  or lg.name is null\n"
+					+ "order by\n"
+					+ "  dft.operating_system_version,\n"
+					+ "  dft.path\n"
+					+ ";\n"
+					+ "begin;\n"
+					+ "delete from distro_files;\n"
+					+ "insert into distro_files select * from distro_files_tmp;\n"
+					+ "commit;\n"
+					+ "drop table distro_files_tmp;\n"
+					+ "vacuum full analyze distro_files;\n");
+			runState.out.flush();
+		}
+
+		// Report files that in are configs but not found in template
+		reportMissingTemplateFiles(ConfigFile.CONFIGS_TXT, runState.configs, err);
+		// ConfigFile.NEVERS_TXT: These are expected to not exist
+		reportMissingTemplateFiles(ConfigFile.NO_RECURSES_TXT, runState.noRecurses, err);
+		reportMissingTemplateFiles(ConfigFile.OPTIONALS_TXT, runState.optionals, err);
+		reportMissingTemplateFiles(ConfigFile.PRELINKS_TXT, runState.prelinks, err);
+		reportMissingTemplateFiles(ConfigFile.USERS_TXT, runState.users, err);
 	}
 
 	private class DistroGeneratorThread extends Thread {
@@ -571,144 +729,142 @@ final public class DistroGenerator {
 		@Override
 		public void run() {
 			try {
-				final OSFilename osFilename = new OSFilename();
 				while(true) {
-					String filename = runState.getNextFilename(osFilename);
-					if(filename == null) break;
-					osFilename.parseValues(filename);
-					if(osFilename.operating_system_version != -1 && osFilename.filename != null) {
-						if(runState.isNever(osFilename)) {
-							throw new FoundNeversException(Collections.singleton(filename));
+					OSFilename osFilename = runState.getNextFilename();
+					if(osFilename == null) break;
+					assert osFilename.osv != -1 && osFilename.filename != null;
+					String fullPath = osFilename.getFullPath();
+					if(runState.isNever(osFilename)) {
+						throw new FoundNeversException(Collections.singleton(fullPath));
+					}
+					// Determine the type
+					String type = runState.isUser(osFilename) ? DistroFileType.USER
+						: runState.isConfig(osFilename) ? DistroFileType.CONFIG
+						: runState.isNoRecurse(osFilename) ? DistroFileType.NO_RECURSE
+						: runState.isPrelink(osFilename) ? DistroFileType.PRELINK
+						: DistroFileType.SYSTEM
+					;
+
+					// Decide if the size should be stored
+					UnixFile file = new UnixFile(fullPath);
+					Stat fileStat = file.getStat();
+					long statMode = fileStat.getRawMode();
+					boolean isRegularFile = UnixFile.isRegularFile(statMode);
+					boolean storeSize = isRegularFile && !runState.isConfig(osFilename);
+
+					// Only hash system regular files
+					boolean doHash = isRegularFile && (type.equals(DistroFileType.SYSTEM) || type.equals(DistroFileType.PRELINK));
+
+					try {
+						StringBuilder SB = new StringBuilder();
+						SB
+							.append("insert into distro_files_tmp values (nextval('distro_files_pkey_seq'), ")
+							.append(osFilename.osv)
+							.append(", E'")
+							.append(SQLUtility.escapeSQL(osFilename.filename.length() == 0 ? "/" : osFilename.filename))
+							.append("', ")
+							.append(runState.isOptional(osFilename) ? "true" : "false")
+							.append(", '")
+							.append(type)
+							.append("', ")
+							.append(statMode)
+							.append("::int8, E'")
+							.append(SQLUtility.escapeSQL(getUsername(osFilename, fileStat.getUid())))
+							.append("', E'")
+							.append(SQLUtility.escapeSQL(getGroupname(osFilename, fileStat.getGid())))
+							.append("', ");
+						if(storeSize) {
+							SB.append(fileStat.getSize()).append("::int8");
+						} else {
+							SB.append("null");
 						}
-						// Determine the type
-						String type = runState.isUser(osFilename) ? DistroFileType.USER
-							: runState.isConfig(osFilename) ? DistroFileType.CONFIG
-							: runState.isNoRecurse(osFilename) ? DistroFileType.NO_RECURSE
-							: runState.isPrelink(osFilename) ? DistroFileType.PRELINK
-							: DistroFileType.SYSTEM
-						;
-
-						// Decide if the size should be stored
-						UnixFile file = new UnixFile(osFilename.getFullPath(root));
-						Stat fileStat = file.getStat();
-						long statMode = fileStat.getRawMode();
-						boolean isRegularFile = UnixFile.isRegularFile(statMode);
-						boolean storeSize = isRegularFile && !runState.isConfig(osFilename);
-
-						// Only hash system regular files
-						boolean doHash = isRegularFile && (type.equals(DistroFileType.SYSTEM) || type.equals(DistroFileType.PRELINK));
-
-						try {
-							StringBuilder SB = new StringBuilder();
-							SB
-								.append("insert into distro_files_tmp values (nextval('distro_files_pkey_seq'), ")
-								.append(osFilename.operating_system_version)
-								.append(", E'")
-								.append(SQLUtility.escapeSQL(osFilename.filename.length() == 0 ? "/" : osFilename.filename))
-								.append("', ")
-								.append(runState.isOptional(osFilename) ? "true" : "false")
-								.append(", '")
-								.append(type)
-								.append("', ")
-								.append(statMode)
-								.append("::int8, E'")
-								.append(SQLUtility.escapeSQL(getUsername(osFilename, fileStat.getUid())))
-								.append("', E'")
-								.append(SQLUtility.escapeSQL(getGroupname(osFilename, fileStat.getGid())))
-								.append("', ");
-							if(storeSize) {
-								SB.append(fileStat.getSize()).append("::int8");
-							} else {
-								SB.append("null");
-							}
-							SB.append(", ");
-							if(doHash) {
-								if(type.equals(DistroFileType.SYSTEM)) {
-									byte[] md5 = MD5Utils.md5(osFilename.getFullPath(root));
-									SB.append(MD5.getMD5Hi(md5)).append("::int8, ").append(MD5.getMD5Lo(md5)).append("::int8");
-								} else if(type.equals(DistroFileType.PRELINK)) {
-									String chroot = root + '/' + osFilename.getOSName() + '/' + osFilename.getOSVersion() + '/' + osFilename.getOSArchitecture();
-									String[] prelinkMd5Command = {
+						SB.append(", ");
+						if(doHash) {
+							if(type.equals(DistroFileType.SYSTEM)) {
+								byte[] md5 = MD5Utils.md5(fullPath);
+								SB.append(MD5.getMD5Hi(md5)).append("::int8, ").append(MD5.getMD5Lo(md5)).append("::int8");
+							} else if(type.equals(DistroFileType.PRELINK)) {
+								String chroot = root + '/' + osFilename.getOSName() + '/' + osFilename.getOSVersion() + '/' + osFilename.getOSArchitecture();
+								String[] prelinkMd5Command = {
+									"/usr/sbin/chroot",
+									chroot,
+									"/usr/sbin/prelink",
+									"--verify",
+									"--md5",
+									osFilename.filename
+								};
+								try {
+									Process P = Runtime.getRuntime().exec(prelinkMd5Command);
+									try {
+										P.getOutputStream().close();
+										try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
+											String line = in.readLine();
+											if(line.length() < 32) throw new IOException("Line too short, must be at least 32 characters: " + line);
+											String md5 = line.substring(0, 32);
+											SB.append(MD5.getMD5Hi(md5)).append("::int8, ").append(MD5.getMD5Lo(md5)).append("::int8");
+										}
+									} finally {
+										try {
+											int retCode = P.waitFor();
+											if(retCode != 0) throw new IOException("Non-zero response from command: " + AOServDaemon.getCommandString(prelinkMd5Command));
+										} catch(InterruptedException err) {
+											// Restore the interrupted status
+											Thread.currentThread().interrupt();
+											IOException ioErr = new InterruptedIOException();
+											ioErr.initCause(err);
+											throw ioErr;
+										}
+									}
+								} catch(IOException e) {
+									runState.err.println("Undoing prelink on \"" + osFilename.filename + "\": " + e.toString());
+									runState.err.flush();
+									AOServDaemon.exec(
 										"/usr/sbin/chroot",
 										chroot,
 										"/usr/sbin/prelink",
-										"--verify",
-										"--md5",
+										"--undo",
 										osFilename.filename
-									};
-									try {
-										Process P = Runtime.getRuntime().exec(prelinkMd5Command);
-										try {
-											P.getOutputStream().close();
-											try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
-												String line = in.readLine();
-												if(line.length() < 32) throw new IOException("Line too short, must be at least 32 characters: " + line);
-												String md5 = line.substring(0, 32);
-												SB.append(MD5.getMD5Hi(md5)).append("::int8, ").append(MD5.getMD5Lo(md5)).append("::int8");
-											}
-										} finally {
-											try {
-												int retCode = P.waitFor();
-												if(retCode != 0) throw new IOException("Non-zero response from command: " + AOServDaemon.getCommandString(prelinkMd5Command));
-											} catch(InterruptedException err) {
-												// Restore the interrupted status
-												Thread.currentThread().interrupt();
-												IOException ioErr = new InterruptedIOException();
-												ioErr.initCause(err);
-												throw ioErr;
-											}
-										}
-									} catch(IOException e) {
-										runState.err.println("Undoing prelink on \"" + osFilename.filename + "\": " + e.toString());
-										runState.err.flush();
-										AOServDaemon.exec(
-											"/usr/sbin/chroot",
-											chroot,
-											"/usr/sbin/prelink",
-											"--undo",
-											osFilename.filename
-										);
+									);
 
-										// Try again after undo
-										Process P = Runtime.getRuntime().exec(prelinkMd5Command);
+									// Try again after undo
+									Process P = Runtime.getRuntime().exec(prelinkMd5Command);
+									try {
+										P.getOutputStream().close();
+										try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
+											String line = in.readLine();
+											if(line.length() < 32) throw new IOException("Line too short, must be at least 32 characters: " + line);
+											String md5 = line.substring(0, 32);
+											SB.append(MD5.getMD5Hi(md5)).append("::int8, ").append(MD5.getMD5Lo(md5)).append("::int8");
+										}
+									} finally {
 										try {
-											P.getOutputStream().close();
-											try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
-												String line = in.readLine();
-												if(line.length() < 32) throw new IOException("Line too short, must be at least 32 characters: " + line);
-												String md5 = line.substring(0, 32);
-												SB.append(MD5.getMD5Hi(md5)).append("::int8, ").append(MD5.getMD5Lo(md5)).append("::int8");
-											}
-										} finally {
-											try {
-												int retCode = P.waitFor();
-												if(retCode != 0) throw new IOException("Non-zero response from command: " + AOServDaemon.getCommandString(prelinkMd5Command));
-											} catch(InterruptedException err2) {
-												// Restore the interrupted status
-												Thread.currentThread().interrupt();
-												IOException ioErr = new InterruptedIOException();
-												ioErr.initCause(err2);
-												throw ioErr;
-											}
+											int retCode = P.waitFor();
+											if(retCode != 0) throw new IOException("Non-zero response from command: " + AOServDaemon.getCommandString(prelinkMd5Command));
+										} catch(InterruptedException err2) {
+											// Restore the interrupted status
+											Thread.currentThread().interrupt();
+											IOException ioErr = new InterruptedIOException();
+											ioErr.initCause(err2);
+											throw ioErr;
 										}
 									}
-								} else throw new RuntimeException("Unexpected value for type: " + type);
-							} else {
-								SB.append("null, null");
-							}
-							SB.append(", ");
-							if(UnixFile.isSymLink(statMode)) {
-								SB.append("E'").append(SQLUtility.escapeSQL(file.readLink())).append('\'');
-							} else {
-								SB.append("null");
-							}
-							SB.append(");");
-							runState.print(SB.toString());
-						} catch(IOException e) {
-							runState.err.println("Error on file: " + osFilename.getFullPath(root));
-							runState.err.flush();
-							throw e;
+								}
+							} else throw new RuntimeException("Unexpected value for type: " + type);
+						} else {
+							SB.append("null, null");
 						}
+						SB.append(", ");
+						if(UnixFile.isSymLink(statMode)) {
+							SB.append("E'").append(SQLUtility.escapeSQL(file.readLink())).append('\'');
+						} else {
+							SB.append("null");
+						}
+						SB.append(");");
+						runState.print(SB.toString());
+					} catch(IOException e) {
+						runState.err.println("Error on file: " + fullPath);
+						runState.err.flush();
+						throw e;
 					}
 				}
 			} catch(IOException e) {
@@ -730,83 +886,53 @@ final public class DistroGenerator {
 	}
 
 	public static int getOperatingSystemVersion(String name, String version, String architecture) {
-		if(name.equals(OperatingSystem.CENTOS)) {
-			if(
-				version.equals(OperatingSystemVersion.VERSION_5)
-				&& architecture.equals(Architecture.I686_AND_X86_64)
-			) {
-				return OperatingSystemVersion.CENTOS_5_I686_AND_X86_64;
+		if(name.equals(CENTOS)) {
+			if(version.equals(VERSION_5) && architecture.equals(I686_AND_X86_64)) {
+				return CENTOS_5_I686_AND_X86_64;
 			}
-			if(
-				version.equals(OperatingSystemVersion.VERSION_5_DOM0)
-				&& architecture.equals(Architecture.X86_64)
-			) {
-				return OperatingSystemVersion.CENTOS_5_DOM0_X86_64;
+			if(version.equals(VERSION_5_DOM0) && architecture.equals(X86_64)) {
+				return CENTOS_5_DOM0_X86_64;
 			}
-			if(
-				version.equals(OperatingSystemVersion.VERSION_7)
-				&& architecture.equals(Architecture.X86_64)
-			) {
-				return OperatingSystemVersion.CENTOS_7_X86_64;
+			if(version.equals(VERSION_7) && architecture.equals(X86_64)) {
+				return CENTOS_7_X86_64;
 			}
-			if(
-				version.equals(OperatingSystemVersion.VERSION_7_DOM0)
-				&& architecture.equals(Architecture.X86_64)
-			) {
-				return OperatingSystemVersion.CENTOS_7_DOM0_X86_64;
+			if(version.equals(VERSION_7_DOM0) && architecture.equals(X86_64)) {
+				return CENTOS_7_DOM0_X86_64;
 			}
-		} else if(name.equals(OperatingSystem.REDHAT)) {
-			if(
-				version.equals(OperatingSystemVersion.VERSION_ES_4)
-				&& architecture.equals(Architecture.X86_64)
-			) {
-				return OperatingSystemVersion.REDHAT_ES_4_X86_64;
-			}
+		} else if(
+			name.equals(REDHAT)
+			&& version.equals(VERSION_ES_4)
+			&& architecture.equals(X86_64)
+		) {
+			return REDHAT_ES_4_X86_64;
 		}
 		throw new RuntimeException("Unsupported operating system: name=" + name + ", version=" + version+", architecture=" + architecture);
 	}
 
-	private static void reportMissingTemplateFiles(String filename, Map<Integer,Set<String>> lists, PrintWriter err) {
-		boolean reportedOne = false;
-		List<Integer> osvs = sort(lists.keySet().iterator());
-		for(Integer OSV : osvs) {
-			int osv = OSV;
-			List<String> filenames = sort(lists.get(OSV).iterator());
-			for(String path : filenames) {
-				if(!reportedOne) {
-					reportedOne = true;
-					err.println();
-					err.println("*************************************************************************");
-					err.print("* WARNING: These files are listed in ");
-					err.println(filename);
-					err.println("* but not found in the distribution template");
-					err.println("*************************************************************************");
+	private void reportMissingTemplateFiles(ConfigFile configFile, Map<Integer,Map<String,Boolean>> lists, PrintWriter err) {
+		List<Integer> osvs = new ArrayList<>(lists.keySet());
+		Collections.sort(osvs);
+		for(Integer osv : osvs) {
+			List<String> unseenFilenames = new ArrayList<>();
+			{
+				for(Map.Entry<String,Boolean> entry : lists.get(osv).entrySet()) {
+					if(!entry.getValue()) unseenFilenames.add(entry.getKey());
 				}
-				if(osv == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) err.print("centos/5/i686,x86_64");
-				else if(osv == OperatingSystemVersion.CENTOS_5_DOM0_X86_64) err.print("centos/5.dom0/86_64");
-				else if(osv == OperatingSystemVersion.CENTOS_7_X86_64) err.print("centos/7/x86_64");
-				else if(osv == OperatingSystemVersion.CENTOS_7_DOM0_X86_64) err.print("centos/7.dom0/86_64");
-				else if(osv == OperatingSystemVersion.REDHAT_ES_4_X86_64) err.print("redhat/ES 4/x86_64");
-				else throw new RuntimeException("Unknown value for osv: " + osv);
-				err.println(path);
+			}
+			if(!unseenFilenames.isEmpty()) {
+				err.println();
+				err.println("*************************************************************************");
+				err.print("* WARNING: These files are listed in ");
+				err.print(getOperatingSystemPath(osv));
+				err.println(configFile.fileExtension);
+				err.println("* but not found in the distribution template.");
+				err.println("*************************************************************************");
+				Collections.sort(unseenFilenames);
+				for(String path : unseenFilenames) {
+					err.println(path);
+				}
 				err.flush();
 			}
 		}
-	}
-
-	private String getOperatingSystemPath(int osv) {
-		if(osv == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) return root + "/centos/5/i686,x86_64";
-		if(osv == OperatingSystemVersion.CENTOS_5_DOM0_X86_64) return root + "/centos/5.dom0/x86_64";
-		if(osv == OperatingSystemVersion.CENTOS_7_X86_64) return root + "/centos/7/x86_64";
-		if(osv == OperatingSystemVersion.CENTOS_7_DOM0_X86_64) return root + "/centos/7.dom0/x86_64";
-		if(osv == OperatingSystemVersion.REDHAT_ES_4_X86_64) return root + "/redhat/ES 4/x86_64";
-		else throw new RuntimeException("Unknown value for osv: " + osv);
-	}
-
-	private static <T extends Comparable<? super T>> List<T> sort(Iterator<T> I) {
-		List<T> list = new ArrayList<>();
-		while(I.hasNext()) list.add(I.next());
-		Collections.sort(list);
-		return list;
 	}
 }
