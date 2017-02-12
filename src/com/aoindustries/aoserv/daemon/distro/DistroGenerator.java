@@ -483,7 +483,7 @@ final public class DistroGenerator {
 						(currentLists = new Stack<>()).push(new String[] {""});
 						(currentIndexes = new Stack<>()).push(0);
 					}
-					String currentDirectory = null;
+					String currentDirectory;
 					String[] currentList = null;
 					int currentIndex = -1;
 					try {
@@ -500,7 +500,7 @@ final public class DistroGenerator {
 							currentIndexes.pop();
 							currentIndex = currentIndexes.peek();
 						}
-					} catch(EmptyStackException err) {
+					} catch(EmptyStackException empty) {
 						currentDirectory = null;
 					}
 					if(currentDirectory == null) {
