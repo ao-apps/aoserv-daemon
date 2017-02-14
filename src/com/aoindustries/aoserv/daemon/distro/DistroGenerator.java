@@ -229,7 +229,7 @@ final public class DistroGenerator {
 
 		@Override
 		public String toString() {
-			return getOSName() + '/' + getOSVersion() + '/' + getOSArchitecture() + '/' + filename;
+			return getFullPath();
 		}
 
 		@Override
