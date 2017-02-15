@@ -36,7 +36,6 @@ import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
 import java.io.PrintWriter;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EmptyStackException;
@@ -56,11 +55,6 @@ import java.util.TreeSet;
  * @author  AO Industries, Inc.
  */
 final public class DistroGenerator {
-
-	/**
-	 * The number of rows between commits to the temp table.
-	 */
-	private static final int ROWS_PER_TRANSACTION = 1000;
 
 	private static final String DEFAULT_ROOT = "/distro";
 
@@ -656,20 +650,10 @@ final public class DistroGenerator {
 		}
 
 		private final Object outputLock = new Object();
-		private int outputCount = 0;
-		private boolean isFirstOutput = true;
 
 		private void print(String line) {
 			synchronized(outputLock) {
-				if(outputCount == 0) {
-					if(isFirstOutput) isFirstOutput = false;
-					else out.print("begin;\n");
-				}
 				out.print(line); out.print('\n');
-				if(++outputCount >= ROWS_PER_TRANSACTION) {
-					out.print("commit;\n");
-					outputCount = 0;
-				}
 				out.flush();
 			}
 		}
@@ -693,33 +677,34 @@ final public class DistroGenerator {
 		if(!foundNevers.isEmpty()) {
 			throw new FoundNeversException(foundNevers);
 		}
-
-		out.print("create temp table distro_files_tmp (\n"
-				+ "  pkey integer\n"
-				+ "    not null,\n"
-				+ "  operating_system_version integer\n"
-				+ "    not null,\n"
-				+ "  path text\n"
-				+ "    not null,\n"
-				+ "  optional bool\n"
-				+ "    not null,\n"
-				+ "  type text\n"
-				+ "    not null,\n"
-				+ "  mode int8\n"
-				+ "    not null,\n"
-				+ "  linux_account text\n"
-				+ "    not null,\n"
-				+ "  linux_group text\n"
-				+ "    not null,\n"
-				+ "  size int8,\n"
-				+ "  file_sha256_0 int8,\n"
-				+ "  file_sha256_1 int8,\n"
-				+ "  file_sha256_2 int8,\n"
-				+ "  file_sha256_3 int8,\n"
-				+ "  symlink_target text\n"
-				+ ");\n"
-				+ "begin;\n");
-		out.flush();
+		synchronized(runState.outputLock) {
+			runState.out.print("begin;\n"
+					+ "create temp table distro_files_tmp (\n"
+					+ "  pkey integer\n"
+					+ "    not null,\n"
+					+ "  operating_system_version integer\n"
+					+ "    not null,\n"
+					+ "  path text\n"
+					+ "    not null,\n"
+					+ "  optional bool\n"
+					+ "    not null,\n"
+					+ "  type text\n"
+					+ "    not null,\n"
+					+ "  mode int8\n"
+					+ "    not null,\n"
+					+ "  linux_account text\n"
+					+ "    not null,\n"
+					+ "  linux_group text\n"
+					+ "    not null,\n"
+					+ "  size int8,\n"
+					+ "  file_sha256_0 int8,\n"
+					+ "  file_sha256_1 int8,\n"
+					+ "  file_sha256_2 int8,\n"
+					+ "  file_sha256_3 int8,\n"
+					+ "  symlink_target text\n"
+					+ ");\n");
+			runState.out.flush();
+		}
 		// TODO: We could/should use the Executors API here?  This is old style direct thread manipulation, but works so not changing at this time.
 		// Create and start the threads
 		for(int c = 0; c < numThreads; c++) {
@@ -742,7 +727,6 @@ final public class DistroGenerator {
 		}
 		// Finish the program
 		synchronized(runState.outputLock) {
-			if(runState.outputCount > 0) runState.out.print("commit;\n");
 			runState.out.print("select\n"
 					+ "  dft.*\n"
 					+ "from\n"
@@ -756,11 +740,10 @@ final public class DistroGenerator {
 					+ "  dft.operating_system_version,\n"
 					+ "  dft.path\n"
 					+ ";\n"
-					+ "begin;\n"
 					+ "delete from distro_files;\n"
 					+ "insert into distro_files select * from distro_files_tmp;\n"
-					+ "commit;\n"
 					+ "drop table distro_files_tmp;\n"
+					+ "commit;\n"
 					+ "vacuum full analyze distro_files;\n");
 			runState.out.flush();
 		}
