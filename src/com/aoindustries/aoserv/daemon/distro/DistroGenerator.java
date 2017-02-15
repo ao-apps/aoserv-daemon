@@ -679,6 +679,7 @@ final public class DistroGenerator {
 		}
 		synchronized(runState.outputLock) {
 			runState.out.print("begin;\n"
+					+ "select setval('distro_files_pkey_seq', 1, false);\n"
 					+ "create temp table distro_files_tmp (\n"
 					+ "  pkey integer\n"
 					+ "    not null,\n"
