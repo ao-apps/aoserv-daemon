@@ -66,6 +66,17 @@ final public class DistroGenerator {
 	private static final String DEFAULT_ROOT = "/distro";
 
 	/**
+	 * The default number of threads to run per processor core.
+	 */
+	private static final int DEFAULT_THREADS_PER_PROCESSOR = 2;
+
+	/**
+	 * The default minimum number of threads.  This is a lower bound
+	 * on I/O concurrency even when a system has few processor cores.
+	 */
+	private static final int DEFAULT_MIN_THREADS = 4;
+
+	/**
 	 * Config file extensions.
 	 */
 	private enum ConfigFile {
@@ -152,7 +163,7 @@ final public class DistroGenerator {
 	public DistroGenerator(String root) {
 		this(
 			root,
-			Math.min(4, Runtime.getRuntime().availableProcessors() * 2)
+			Math.min(DEFAULT_MIN_THREADS, Runtime.getRuntime().availableProcessors() * DEFAULT_THREADS_PER_PROCESSOR)
 		);
 	}
 
@@ -708,13 +719,17 @@ final public class DistroGenerator {
 				+ ") without oids;\n"
 				+ "begin;\n");
 		out.flush();
-		for(int c = 0; c < numThreads; c++) runState.generators[c] = new DistroGeneratorThread(runState, c);
-		for(int c = 0; c < numThreads; c++) runState.generators[c].start();
-		// Join each thread and throw exceptions from them
+		// TODO: We could/should use the Executors API here?  This is old style direct thread manipulation, but works so not changing at this time.
+		// Create and start the threads
+		for(int c = 0; c < numThreads; c++) {
+			runState.generators[c] = new DistroGeneratorThread(runState, c);
+			runState.generators[c].start();
+		}
+		// Join each thread and throw any exceptions from them
 		for(DistroGeneratorThread generator : runState.generators) {
 			generator.join();
 			// Throw any exception from the worker thread
-			synchronized(generator) {
+			synchronized(generator.exceptionLock) {
 				if(generator.ioException != null) throw generator.ioException;
 				if(generator.foundNeversException != null) throw generator.foundNeversException;
 				Throwable t = generator.throwable;
@@ -764,6 +779,8 @@ final public class DistroGenerator {
 
 		final private int threadNum;
 
+		// synchronizing on threads may conflict with join method, using explicit lock for exceptions
+		private final Object exceptionLock = new Object();
 		private IOException ioException;
 		private FoundNeversException foundNeversException;
 		private Throwable throwable;
@@ -915,17 +932,17 @@ final public class DistroGenerator {
 					}
 				}
 			} catch(IOException e) {
-				synchronized(this) {
+				synchronized(exceptionLock) {
 					this.ioException = e;
 				}
 			} catch(FoundNeversException e) {
-				synchronized(this) {
+				synchronized(exceptionLock) {
 					this.foundNeversException = e;
 				}
 			} catch(ThreadDeath TD) {
 				throw TD;
 			} catch(Throwable t) {
-				synchronized(this) {
+				synchronized(exceptionLock) {
 					this.throwable = t;
 				}
 			}
