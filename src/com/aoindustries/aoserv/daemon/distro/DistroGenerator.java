@@ -932,7 +932,7 @@ final public class DistroGenerator {
 							} else {
 								SB.append("null");
 							}
-							SB.append(", null, null");
+							SB.append(", null, null, null, null");
 						}
 						SB.append(", ");
 						if(UnixFile.isSymLink(statMode)) {
