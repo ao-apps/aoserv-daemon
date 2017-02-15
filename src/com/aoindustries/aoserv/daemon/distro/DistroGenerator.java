@@ -21,20 +21,24 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.SysExits;
-import com.aoindustries.md5.MD5;
-import com.aoindustries.md5.MD5Utils;
 import com.aoindustries.sql.SQLUtility;
 import com.aoindustries.util.AoArrays;
+import com.aoindustries.util.BufferManager;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.StringUtility;
+import com.aoindustries.util.persistent.PersistentBuffer;
+import com.aoindustries.util.persistent.PersistentCollections;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
 import java.io.PrintWriter;
+import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EmptyStackException;
@@ -50,9 +54,6 @@ import java.util.TreeSet;
 
 /**
  * Creates the server distribution database contents.
- *
- * TODO: Switch to SHA-256.  MD5 probably broken enough now that a rootkit sshd could even
- *       be crafted to match both MD5 and length of original.
  *
  * @author  AO Industries, Inc.
  */
@@ -713,8 +714,10 @@ final public class DistroGenerator {
 				+ "  linux_group text\n"
 				+ "    not null,\n"
 				+ "  size int8,\n"
-				+ "  file_md5_hi int8,\n"
-				+ "  file_md5_lo int8,\n"
+				+ "  file_sha256_0 int8,\n"
+				+ "  file_sha256_1 int8,\n"
+				+ "  file_sha256_2 int8,\n"
+				+ "  file_sha256_3 int8,\n"
 				+ "  symlink_target text\n"
 				+ ") without oids;\n"
 				+ "begin;\n");
@@ -790,9 +793,31 @@ final public class DistroGenerator {
 			this.threadNum = threadNum;
 		}
 
+		private byte[] hashInput(MessageDigest digest, InputStream in) throws IOException {
+			digest.reset();
+			byte[] buff = BufferManager.getBytes();
+			try {
+				int numBytes;
+				while((numBytes = in.read(buff)) != -1) {
+					digest.update(buff, 0, numBytes);
+				}
+			} finally {
+				BufferManager.release(buff, false);
+			}
+			return digest.digest();
+		}
+
+		private byte[] hashFile(MessageDigest digest, File file) throws IOException {
+			// Note: Not using MappedByteBuffer to avoid tons of memory mapped short-lived files
+			try (InputStream in = new FileInputStream(file)) {
+				return hashInput(digest, in);
+			}
+		}
+
 		@Override
 		public void run() {
 			try {
+				MessageDigest digest = MessageDigest.getInstance("SHA-256");
 				while(true) {
 					OSFilename osFilename = runState.getNextFilename();
 					if(osFilename == null) break;
@@ -845,32 +870,41 @@ final public class DistroGenerator {
 						SB.append(", ");
 						if(doHash) {
 							if(type.equals(DistroFileType.SYSTEM)) {
-								byte[] md5 = MD5Utils.md5(fullPath);
-								SB.append(MD5.getMD5Hi(md5)).append("::int8, ").append(MD5.getMD5Lo(md5)).append("::int8");
+								byte[] sha256 = hashFile(digest, new File(fullPath));
+								if(sha256.length != 32) throw new AssertionError();
+								SB
+									.append(PersistentCollections.bufferToLong(sha256)).append("::int8, ")
+									.append(PersistentCollections.bufferToLong(sha256, 8)).append("::int8, ")
+									.append(PersistentCollections.bufferToLong(sha256, 16)).append("::int8, ")
+									.append(PersistentCollections.bufferToLong(sha256, 24)).append("::int8");
 							} else if(type.equals(DistroFileType.PRELINK)) {
 								String chroot = root + '/' + osFilename.getOSName() + '/' + osFilename.getOSVersion() + '/' + osFilename.getOSArchitecture();
-								String[] prelinkMd5Command = {
+								// Need to do SHA-256 digest in Java since prelink command doesn't support it directly
+								String[] prelinkVerifyCommand = {
 									"/usr/sbin/chroot",
 									chroot,
 									"/usr/sbin/prelink",
 									"--verify",
-									"--md5",
 									osFilename.filename
 								};
 								try {
-									Process P = Runtime.getRuntime().exec(prelinkMd5Command);
+									Process P = Runtime.getRuntime().exec(prelinkVerifyCommand);
 									try {
 										P.getOutputStream().close();
-										try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
-											String line = in.readLine();
-											if(line.length() < 32) throw new IOException("Line too short, must be at least 32 characters: " + line);
-											String md5 = line.substring(0, 32);
-											SB.append(MD5.getMD5Hi(md5)).append("::int8, ").append(MD5.getMD5Lo(md5)).append("::int8");
+										byte[] sha256;
+										try (InputStream in = P.getInputStream()) {
+											sha256 = hashInput(digest, in);
 										}
+										if(sha256.length != 32) throw new AssertionError();
+										SB
+											.append(PersistentCollections.bufferToLong(sha256)).append("::int8, ")
+											.append(PersistentCollections.bufferToLong(sha256, 8)).append("::int8, ")
+											.append(PersistentCollections.bufferToLong(sha256, 16)).append("::int8, ")
+											.append(PersistentCollections.bufferToLong(sha256, 24)).append("::int8");
 									} finally {
 										try {
 											int retCode = P.waitFor();
-											if(retCode != 0) throw new IOException("Non-zero response from command: " + AOServDaemon.getCommandString(prelinkMd5Command));
+											if(retCode != 0) throw new IOException("Non-zero response from command: " + AOServDaemon.getCommandString(prelinkVerifyCommand));
 										} catch(InterruptedException err) {
 											// Restore the interrupted status
 											Thread.currentThread().interrupt();
@@ -891,19 +925,23 @@ final public class DistroGenerator {
 									);
 
 									// Try again after undo
-									Process P = Runtime.getRuntime().exec(prelinkMd5Command);
+									Process P = Runtime.getRuntime().exec(prelinkVerifyCommand);
 									try {
 										P.getOutputStream().close();
-										try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
-											String line = in.readLine();
-											if(line.length() < 32) throw new IOException("Line too short, must be at least 32 characters: " + line);
-											String md5 = line.substring(0, 32);
-											SB.append(MD5.getMD5Hi(md5)).append("::int8, ").append(MD5.getMD5Lo(md5)).append("::int8");
+										byte[] sha256;
+										try (InputStream in = P.getInputStream()) {
+											sha256 = hashInput(digest, in);
 										}
+										if(sha256.length != 32) throw new AssertionError();
+										SB
+											.append(PersistentCollections.bufferToLong(sha256)).append("::int8, ")
+											.append(PersistentCollections.bufferToLong(sha256, 8)).append("::int8, ")
+											.append(PersistentCollections.bufferToLong(sha256, 16)).append("::int8, ")
+											.append(PersistentCollections.bufferToLong(sha256, 24)).append("::int8");
 									} finally {
 										try {
 											int retCode = P.waitFor();
-											if(retCode != 0) throw new IOException("Non-zero response from command: " + AOServDaemon.getCommandString(prelinkMd5Command));
+											if(retCode != 0) throw new IOException("Non-zero response from command: " + AOServDaemon.getCommandString(prelinkVerifyCommand));
 										} catch(InterruptedException err2) {
 											// Restore the interrupted status
 											Thread.currentThread().interrupt();

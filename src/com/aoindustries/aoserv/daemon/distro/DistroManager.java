@@ -22,20 +22,20 @@ import com.aoindustries.aoserv.client.SQLExpression;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
+import com.aoindustries.io.ByteCountInputStream;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.SysExits;
-import com.aoindustries.md5.MD5;
-import com.aoindustries.md5.MD5Utils;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.StringUtility;
 import com.aoindustries.util.logging.ProcessTimer;
-import java.io.BufferedReader;
+import com.aoindustries.util.persistent.PersistentCollections;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
 import java.io.PrintStream;
+import java.security.MessageDigest;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -244,14 +244,14 @@ final public class DistroManager implements Runnable {
 		private long prelinkBytes;
 
 		/**
-		 * Total number of files MD5 verified.
+		 * Total number of files SHA-256 verified.
 		 */
-		private long md5Files;
+		private long sha256Files;
 
 		/**
-		 * Total number of bytes MD5 hashed.
+		 * Total number of bytes SHA-256 verified.
 		 */
-		private long md5Bytes;
+		private long sha256Bytes;
 	}
 
 	private static class DistroReportFile {
@@ -352,6 +352,7 @@ final public class DistroManager implements Runnable {
 			checkDistroFile(
 				AOServDaemon.getThisAOServer(),
 				AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey(),
+				MessageDigestUtils.getSha256(),
 				distroFiles,
 				foundFiles,
 				pathComparator,
@@ -388,11 +389,11 @@ final public class DistroManager implements Runnable {
 
 	/**
 	 * BIG_DIRECTORY Big Directory
+	 * DIGEST_MISMATCH DIGEST
 	 * EX Extra
 	 * GROUP_MISMATCH Group Mismatch
 	 * HIDDEN Hidden "..." or " " directory
 	 * LENGTH Length
-	 * MD5_MISMATCH MD5
 	 * MISSING Missing
 	 * OWNER_MISMATCH Owner Mismatch
 	 * NO_OWNER No Owner
@@ -406,6 +407,7 @@ final public class DistroManager implements Runnable {
 	private static void checkDistroFile(
 		AOServer aoServer,
 		Integer osVersionPKey,
+		MessageDigest digest,
 		List<DistroFile> distroFiles,
 		boolean[] foundFiles,
 		SQLComparator<Object> pathComparator,
@@ -567,43 +569,81 @@ final public class DistroManager implements Runnable {
 					if(!fileStat.isDirectory()) {
 						if(!type.equals(DistroFileType.CONFIG)) {
 							if(type.equals(DistroFileType.PRELINK)) {
-								// TODO: Also check length here: This might require prelink --undo -o /tmp/..., then can MD5 and length check this file
-								long fileLen = file.getFile().length();
+								long startTime = System.currentTimeMillis();
+
+								// Use prelink --verify to get original file length and digest
+								byte[] sha256;
+								long fileLen;
+								{
+									String[] prelinkVerifyCommand = {
+										"/usr/sbin/prelink",
+										"--verify",
+										file.getPath()
+									};
+									Process P = Runtime.getRuntime().exec(prelinkVerifyCommand);
+									try {
+										P.getOutputStream().close();
+										try (ByteCountInputStream in = new ByteCountInputStream(P.getInputStream())) {
+											sha256 = MessageDigestUtils.hashInput(digest, in);
+											// Use length of unprelinked file
+											fileLen = in.getCount();
+										}
+										if(sha256.length != 32) throw new AssertionError();
+									} finally {
+										try {
+											int retCode = P.waitFor();
+											if(retCode != 0) throw new IOException("Non-zero response from command: " + AOServDaemon.getCommandString(prelinkVerifyCommand));
+										} catch(InterruptedException err) {
+											// Restore the interrupted status
+											Thread.currentThread().interrupt();
+											IOException ioErr = new InterruptedIOException();
+											ioErr.initCause(err);
+											throw ioErr;
+										}
+									}
+								}
 
 								// Prelink MD5
 								stats.prelinkFiles++;
-								stats.prelinkBytes += fileLen;
-								long startTime = System.currentTimeMillis();
+								stats.prelinkBytes += file.getFile().length();
+								stats.sha256Files++;
+								stats.sha256Bytes += fileLen;
 
-								String md5;
-								try {
-									md5 = getPrelinkMD5(file);
-								} catch(IOException err) {
-									LogFactory.getLogger(DistroManager.class).log(Level.INFO, "IOException getting MD5 from prelink, will now re-prelink and retry getting MD5", err);
-									// Re-prelink
-									AOServDaemon.exec(
-										"/usr/sbin/prelink",
-										file.getPath()
-									);
-									// Retry
-									md5 = getPrelinkMD5(file);
-								}
-								long file_md5_hi = MD5.getMD5Hi(md5);
-								long file_md5_lo = MD5.getMD5Lo(md5);
-								long distro_md5_hi = distroFile.getFileMD5Hi();
-								long distro_md5_lo = distroFile.getFileMD5Lo();
-								if(
-									file_md5_hi != distro_md5_hi
-									|| file_md5_lo != distro_md5_lo
-								) {
+								// Length
+								long distroLen = distroFile.getSize();
+								if(fileLen != distroLen) {
 									addResult(
 										results,
 										verboseOut,
-										DistroReportType.MD5,
+										DistroReportType.LENGTH,
 										file,
-										MD5.getMD5String(file_md5_hi, file_md5_lo),
-										MD5.getMD5String(distro_md5_hi, distro_md5_lo)
+										Long.toString(fileLen),
+										Long.toString(distroLen)
 									);
+								} else {
+									long file_sha256_0 = PersistentCollections.bufferToLong(sha256);
+									long file_sha256_1 = PersistentCollections.bufferToLong(sha256, 8);
+									long file_sha256_2 = PersistentCollections.bufferToLong(sha256, 16);
+									long file_sha256_3 = PersistentCollections.bufferToLong(sha256, 24);
+									long distro_sha256_0 = distroFile.getFileSha256_0();
+									long distro_sha256_1 = distroFile.getFileSha256_1();
+									long distro_sha256_2 = distroFile.getFileSha256_2();
+									long distro_sha256_3 = distroFile.getFileSha256_3();
+									if(
+										file_sha256_0 != distro_sha256_0
+										|| file_sha256_1 != distro_sha256_1
+										|| file_sha256_2 != distro_sha256_2
+										|| file_sha256_3 != distro_sha256_3
+									) {
+										addResult(
+											results,
+											verboseOut,
+											DistroReportType.DIGEST,
+											file,
+											MessageDigestUtils.getHexChars(file_sha256_0, file_sha256_1, file_sha256_2, file_sha256_3),
+											MessageDigestUtils.getHexChars(distro_sha256_0,distro_sha256_1, distro_sha256_2, distro_sha256_3)
+										);
+									}
 								}
 
 								// Sleep for an amount of time equivilent to half the time it took to process this file
@@ -633,28 +673,42 @@ final public class DistroManager implements Runnable {
 										Long.toString(distroLen)
 									);
 								} else {
-									// MD5
-									stats.md5Files++;
-									stats.md5Bytes += fileLen;
-
+									// SHA-256
 									long startTime = System.currentTimeMillis();
 
-									byte[] fileHash = MD5Utils.md5(file.getFile());
-									long file_md5_hi = MD5.getMD5Hi(fileHash);
-									long file_md5_lo = MD5.getMD5Lo(fileHash);
-									long distro_md5_hi = distroFile.getFileMD5Hi();
-									long distro_md5_lo = distroFile.getFileMD5Lo();
+									byte[] sha256;
+									try (ByteCountInputStream in = new ByteCountInputStream(new FileInputStream(file.getFile()))) {
+										sha256 = MessageDigestUtils.hashInput(digest, in);
+										// Make sure expected number of bytes read
+										long readLen = in.getCount();
+										if(readLen != fileLen) throw new IOException("readLen != fileLen: " + readLen + " != " + fileLen);
+									}
+									if(sha256.length != 32) throw new AssertionError();
+
+									stats.sha256Files++;
+									stats.sha256Bytes += fileLen;
+
+									long file_sha256_0 = PersistentCollections.bufferToLong(sha256);
+									long file_sha256_1 = PersistentCollections.bufferToLong(sha256, 8);
+									long file_sha256_2 = PersistentCollections.bufferToLong(sha256, 16);
+									long file_sha256_3 = PersistentCollections.bufferToLong(sha256, 24);
+									long distro_sha256_0 = distroFile.getFileSha256_0();
+									long distro_sha256_1 = distroFile.getFileSha256_1();
+									long distro_sha256_2 = distroFile.getFileSha256_2();
+									long distro_sha256_3 = distroFile.getFileSha256_3();
 									if(
-										file_md5_hi != distro_md5_hi
-										|| file_md5_lo != distro_md5_lo
+										file_sha256_0 != distro_sha256_0
+										|| file_sha256_1 != distro_sha256_1
+										|| file_sha256_2 != distro_sha256_2
+										|| file_sha256_3 != distro_sha256_3
 									) {
 										addResult(
 											results,
 											verboseOut,
-											DistroReportType.MD5,
+											DistroReportType.DIGEST,
 											file,
-											MD5.getMD5String(file_md5_hi, file_md5_lo),
-											MD5.getMD5String(distro_md5_hi, distro_md5_lo)
+											MessageDigestUtils.getHexChars(file_sha256_0, file_sha256_1, file_sha256_2, file_sha256_3),
+											MessageDigestUtils.getHexChars(distro_sha256_0,distro_sha256_1, distro_sha256_2, distro_sha256_3)
 										);
 									}
 
@@ -709,6 +763,7 @@ final public class DistroManager implements Runnable {
 										checkDistroFile(
 											aoServer,
 											osVersionPKey,
+											digest,
 											distroFiles,
 											foundFiles,
 											pathComparator,
@@ -723,38 +778,6 @@ final public class DistroManager implements Runnable {
 						}
 					}
 				}
-			}
-		}
-	}
-
-	/**
-	 * Gets the original filename MD5 using <code>/usr/sbin/prelink --verify --md5</code>
-	 */
-	private static String getPrelinkMD5(UnixFile file) throws IOException {
-		String[] command = {
-			"/usr/sbin/prelink",
-			"--verify",
-			"--md5",
-			file.getPath()
-		};
-		Process P = Runtime.getRuntime().exec(command);
-		try {
-			P.getOutputStream().close();
-			try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
-				String line = in.readLine();
-				if(line.length() < 32) throw new IOException("Line too short, must be at least 32 characters: " + line);
-				return line.substring(0, 32);
-			}
-		} finally {
-			try {
-				int retCode = P.waitFor();
-				if(retCode != 0) throw new IOException("Non-zero response from command: " + AOServDaemon.getCommandString(command));
-			} catch(InterruptedException err) {
-				// Restore the interrupted status
-				Thread.currentThread().interrupt();
-				IOException ioErr = new InterruptedIOException();
-				ioErr.initCause(err);
-				throw ioErr;
 			}
 		}
 	}
@@ -964,12 +987,12 @@ final public class DistroManager implements Runnable {
 			out.print("  System....: "); out.println(stats.systemCount);
 			out.print("  User......: "); out.println(stats.userCount);
 			out.print("  No Recurse: "); out.println(stats.noRecurseCount);
-			out.println("Prelink");
+			out.println("Prelink Verify");
 			out.print("  Files.....: "); out.println(stats.prelinkFiles);
 			out.print("  Bytes.....: "); out.print(stats.prelinkBytes); out.print(" ("); out.print(StringUtility.getApproximateSize(stats.prelinkBytes)); out.println(')');
-			out.println("MD5");
-			out.print("  Files.....: "); out.println(stats.md5Files);
-			out.print("  Bytes.....: "); out.print(stats.md5Bytes); out.print(" ("); out.print(StringUtility.getApproximateSize(stats.md5Bytes)); out.println(')');
+			out.println("SHA-256");
+			out.print("  Files.....: "); out.println(stats.sha256Files);
+			out.print("  Bytes.....: "); out.print(stats.sha256Bytes); out.print(" ("); out.print(StringUtility.getApproximateSize(stats.sha256Bytes)); out.println(')');
 		}
 		if(retVal != 0) System.exit(retVal);
 	}
