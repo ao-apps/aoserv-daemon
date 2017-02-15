@@ -18,23 +18,20 @@ import static com.aoindustries.aoserv.client.OperatingSystemVersion.VERSION_5_DO
 import static com.aoindustries.aoserv.client.OperatingSystemVersion.VERSION_7;
 import static com.aoindustries.aoserv.client.OperatingSystemVersion.VERSION_7_DOM0;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.io.ByteCountInputStream;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.SysExits;
 import com.aoindustries.sql.SQLUtility;
 import com.aoindustries.util.AoArrays;
-import com.aoindustries.util.BufferManager;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.StringUtility;
-import com.aoindustries.util.persistent.PersistentBuffer;
 import com.aoindustries.util.persistent.PersistentCollections;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
 import java.io.PrintWriter;
@@ -793,27 +790,6 @@ final public class DistroGenerator {
 			this.threadNum = threadNum;
 		}
 
-		private byte[] hashInput(MessageDigest digest, InputStream in) throws IOException {
-			digest.reset();
-			byte[] buff = BufferManager.getBytes();
-			try {
-				int numBytes;
-				while((numBytes = in.read(buff)) != -1) {
-					digest.update(buff, 0, numBytes);
-				}
-			} finally {
-				BufferManager.release(buff, false);
-			}
-			return digest.digest();
-		}
-
-		private byte[] hashFile(MessageDigest digest, File file) throws IOException {
-			// Note: Not using MappedByteBuffer to avoid tons of memory mapped short-lived files
-			try (InputStream in = new FileInputStream(file)) {
-				return hashInput(digest, in);
-			}
-		}
-
 		@Override
 		public void run() {
 			try {
@@ -862,17 +838,20 @@ final public class DistroGenerator {
 							.append("', E'")
 							.append(SQLUtility.escapeSQL(getGroupname(osFilename, fileStat.getGid())))
 							.append("', ");
-						if(storeSize) {
-							SB.append(fileStat.getSize()).append("::int8");
-						} else {
-							SB.append("null");
-						}
-						SB.append(", ");
 						if(doHash) {
+							assert storeSize;
 							if(type.equals(DistroFileType.SYSTEM)) {
-								byte[] sha256 = hashFile(digest, new File(fullPath));
+								long fileLen = fileStat.getSize();
+								byte[] sha256;
+								try (ByteCountInputStream in = new ByteCountInputStream(new FileInputStream(fullPath))) {
+									sha256 = MessageDigestUtils.hashInput(digest, in);
+									// Make sure expected number of bytes read
+									long readLen = in.getCount();
+									if(readLen != fileLen) throw new IOException("readLen != fileLen: " + readLen + " != " + fileLen);
+								}
 								if(sha256.length != 32) throw new AssertionError();
 								SB
+									.append(fileLen).append("::int8, ")
 									.append(PersistentCollections.bufferToLong(sha256)).append("::int8, ")
 									.append(PersistentCollections.bufferToLong(sha256, 8)).append("::int8, ")
 									.append(PersistentCollections.bufferToLong(sha256, 16)).append("::int8, ")
@@ -892,11 +871,15 @@ final public class DistroGenerator {
 									try {
 										P.getOutputStream().close();
 										byte[] sha256;
-										try (InputStream in = P.getInputStream()) {
-											sha256 = hashInput(digest, in);
+										long fileLen;
+										try (ByteCountInputStream in = new ByteCountInputStream(P.getInputStream())) {
+											sha256 = MessageDigestUtils.hashInput(digest, in);
+											// Use length of unprelinked file
+											fileLen = in.getCount();
 										}
 										if(sha256.length != 32) throw new AssertionError();
 										SB
+											.append(fileLen).append("::int8, ")
 											.append(PersistentCollections.bufferToLong(sha256)).append("::int8, ")
 											.append(PersistentCollections.bufferToLong(sha256, 8)).append("::int8, ")
 											.append(PersistentCollections.bufferToLong(sha256, 16)).append("::int8, ")
@@ -929,11 +912,15 @@ final public class DistroGenerator {
 									try {
 										P.getOutputStream().close();
 										byte[] sha256;
-										try (InputStream in = P.getInputStream()) {
-											sha256 = hashInput(digest, in);
+										long fileLen;
+										try (ByteCountInputStream in = new ByteCountInputStream(P.getInputStream())) {
+											sha256 = MessageDigestUtils.hashInput(digest, in);
+											// Use length of unprelinked file
+											fileLen = in.getCount();
 										}
 										if(sha256.length != 32) throw new AssertionError();
 										SB
+											.append(fileLen).append("::int8, ")
 											.append(PersistentCollections.bufferToLong(sha256)).append("::int8, ")
 											.append(PersistentCollections.bufferToLong(sha256, 8)).append("::int8, ")
 											.append(PersistentCollections.bufferToLong(sha256, 16)).append("::int8, ")
@@ -953,7 +940,12 @@ final public class DistroGenerator {
 								}
 							} else throw new RuntimeException("Unexpected value for type: " + type);
 						} else {
-							SB.append("null, null");
+							if(storeSize) {
+								SB.append(fileStat.getSize()).append("::int8");
+							} else {
+								SB.append("null");
+							}
+							SB.append(", null, null");
 						}
 						SB.append(", ");
 						if(UnixFile.isSymLink(statMode)) {
