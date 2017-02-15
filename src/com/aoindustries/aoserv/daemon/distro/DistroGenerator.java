@@ -717,7 +717,7 @@ final public class DistroGenerator {
 				+ "  file_sha256_2 int8,\n"
 				+ "  file_sha256_3 int8,\n"
 				+ "  symlink_target text\n"
-				+ ") without oids;\n"
+				+ ");\n"
 				+ "begin;\n");
 		out.flush();
 		// TODO: We could/should use the Executors API here?  This is old style direct thread manipulation, but works so not changing at this time.
