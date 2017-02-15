@@ -305,7 +305,7 @@ final public class DistroGenerator {
 				case CENTOS_7_X86_64 :
 				case CENTOS_7_DOM0_X86_64 :
 				//case REDHAT_ES_4_X86_64 :
-				//	return X86_64;
+					return X86_64;
 				default:
 					throw new RuntimeException("Unexpected value for osv: "+osv);
 			}
