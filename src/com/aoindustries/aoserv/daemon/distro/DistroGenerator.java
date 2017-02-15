@@ -867,7 +867,7 @@ final public class DistroGenerator {
 									"--verify",
 									osFilename.filename
 								};
-								try {
+								//try {
 									Process P = Runtime.getRuntime().exec(prelinkVerifyCommand);
 									try {
 										P.getOutputStream().close();
@@ -897,6 +897,7 @@ final public class DistroGenerator {
 											throw ioErr;
 										}
 									}
+								/* No longer doing undo, trying one-shot only
 								} catch(IOException e) {
 									runState.err.println("Undoing prelink on \"" + osFilename.filename + "\": " + e.toString());
 									runState.err.flush();
@@ -939,6 +940,7 @@ final public class DistroGenerator {
 										}
 									}
 								}
+								 */
 							} else throw new RuntimeException("Unexpected value for type: " + type);
 						} else {
 							if(storeSize) {

@@ -605,9 +605,9 @@ final public class DistroManager implements Runnable {
 
 								// Prelink MD5
 								stats.prelinkFiles++;
-								stats.prelinkBytes += file.getFile().length();
+								stats.prelinkBytes += file.getFile().length(); // Raw file length
 								stats.sha256Files++;
-								stats.sha256Bytes += fileLen;
+								stats.sha256Bytes += fileLen; // Prelink verified length
 
 								// Length
 								long distroLen = distroFile.getSize();
