@@ -9,6 +9,7 @@ import com.aoindustries.util.BufferManager;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * Creates the server distribution database contents.
@@ -29,6 +30,14 @@ class MessageDigestUtils {
 			BufferManager.release(buff, false);
 		}
 		return digest.digest();
+	}
+
+	static MessageDigest getSha256() {
+		try {
+			return MessageDigest.getInstance("SHA-256");
+		} catch(NoSuchAlgorithmException e) {
+			throw new AssertionError("SHA-256 should exist on all Java runtimes", e);
+		}
 	}
 
 	private MessageDigestUtils() {

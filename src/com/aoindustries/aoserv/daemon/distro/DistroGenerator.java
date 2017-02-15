@@ -36,6 +36,7 @@ import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
 import java.io.PrintWriter;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EmptyStackException;
@@ -793,7 +794,7 @@ final public class DistroGenerator {
 		@Override
 		public void run() {
 			try {
-				MessageDigest digest = MessageDigest.getInstance("SHA-256");
+				MessageDigest digest = MessageDigestUtils.getSha256();
 				while(true) {
 					OSFilename osFilename = runState.getNextFilename();
 					if(osFilename == null) break;
