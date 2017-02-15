@@ -162,7 +162,7 @@ final public class DistroGenerator {
 	public DistroGenerator(String root) {
 		this(
 			root,
-			Math.min(DEFAULT_MIN_THREADS, Runtime.getRuntime().availableProcessors() * DEFAULT_THREADS_PER_PROCESSOR)
+			Math.max(DEFAULT_MIN_THREADS, Runtime.getRuntime().availableProcessors() * DEFAULT_THREADS_PER_PROCESSOR)
 		);
 	}
 
