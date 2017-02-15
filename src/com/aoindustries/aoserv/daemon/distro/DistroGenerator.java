@@ -54,6 +54,9 @@ import java.util.TreeSet;
 /**
  * Creates the server distribution database contents.
  *
+ * TODO: Switch to SHA-256.  MD5 probably broken enough now that a rootkit sshd could even
+ *       be crafted to match both MD5 and length of original.
+ *
  * @author  AO Industries, Inc.
  */
 final public class DistroGenerator {
