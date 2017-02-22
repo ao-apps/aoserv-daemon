@@ -194,8 +194,7 @@ public class PackageManager {
 		/**
 		 * Compares two versions in segment order.
 		 * Implement same logic as RPM:
-		 * @{link http://linux.derkeiler.com/Newsgroups/comp.os.linux.development.system/2005-12/msg00397.html}
-		 * 
+		 * <a href="http://linux.derkeiler.com/Newsgroups/comp.os.linux.development.system/2005-12/msg00397.html">http://linux.derkeiler.com/Newsgroups/comp.os.linux.development.system/2005-12/msg00397.html</a>
 		 */
 		@Override
 		public int compareTo(Version other) {
