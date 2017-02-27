@@ -1,5 +1,5 @@
 /*
- * Copyright 2013, 2014 by AO Industries, Inc.,
+ * Copyright 2013, 2014, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -9,6 +9,7 @@ import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.net.NullRouteManager;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.math.SafeMath;
 import java.io.BufferedInputStream;
@@ -334,6 +335,8 @@ final public class NetworkMonitor {
 							for(String networkRange : networkRanges) cmd[index++] = networkRange;
 							assert index == cmd.length;
 
+							// Make sure libpcap is installed as required by ip_counts
+							PackageManager.installPackage(PackageManager.PackageName.LIBPCAP);
 							final Process process = Runtime.getRuntime().exec(cmd);
 							try {
 								// Log all warnings from ip_counts to stderr

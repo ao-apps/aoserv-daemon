@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2016 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -50,6 +50,10 @@ public enum OperatingSystemConfiguration {
 		public String getOpensslDefaultCaFile() {
 			return "/etc/pki/tls/certs/ca-bundle.crt";
 		}
+		/**
+		 * This replace command is copied from /opt/mysql-5.7[-i686]/bin/replace
+		 * TODO: Just use sed instead.
+		 */
 		@Override
 		public String getReplaceCommand() {
 			return "/opt/aoserv-daemon/bin/replace";
@@ -73,11 +77,11 @@ public enum OperatingSystemConfiguration {
 		}
 		@Override
 		public String getOpensslDefaultCaFile() {
-			return "/etc/pki/tls/certs/ca-bundle.crt";
+			return CENTOS_5_I686_AND_X86_64.getOpensslDefaultCaFile();
 		}
 		@Override
 		public String getReplaceCommand() {
-			return null;
+			return CENTOS_5_I686_AND_X86_64.getReplaceCommand();
 		}
 		//public String getAOServClientScriptInclude() {
 		//	return "/opt/aoserv-client/scripts/aoserv-client.sh";
@@ -97,11 +101,11 @@ public enum OperatingSystemConfiguration {
 		}
 		@Override
 		public String getOpensslDefaultCaFile() {
-			return "/etc/pki/tls/certs/ca-bundle.crt";
+			return CENTOS_5_I686_AND_X86_64.getOpensslDefaultCaFile();
 		}
 		@Override
 		public String getReplaceCommand() {
-			return null;
+			return CENTOS_5_I686_AND_X86_64.getReplaceCommand();
 		}
 		//public String getAOServClientScriptInclude() {
 		//	return "/opt/aoserv-client/scripts/aoserv-client.sh";
@@ -112,6 +116,60 @@ public enum OperatingSystemConfiguration {
 		}
 		//public String getMySQLConnectorJavaJarPath() {
 		//	return null;
+		//}
+	},
+	CENTOS_7_X86_64 {
+		@Override
+		public HttpdOperatingSystemConfiguration getHttpdOperatingSystemConfiguration() {
+			return HttpdOperatingSystemConfiguration.CENTOS_7_X86_64;
+		}
+		@Override
+		public String getOpensslDefaultCaFile() {
+			return "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem";
+		}
+		/**
+		 * This replace command is copied from /opt/mysql-5.7/bin/replace
+		 * TODO: Just use sed instead.
+		 */
+		@Override
+		public String getReplaceCommand() {
+			return "/opt/aoserv-daemon/bin/replace";
+		}
+		//@Override
+		//public String getAOServClientScriptInclude() {
+		//	return "/opt/aoserv-client/scripts/aoserv-client.sh";
+		//}
+		@Override
+		public String getPostgresPath(String minorVersion) {
+			return "/opt/postgresql-" + minorVersion;
+		}
+		//public String getMySQLConnectorJavaJarPath() {
+		//	return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
+		//}
+	},
+	CENTOS_7DOM0_X86_64 {
+		@Override
+		public HttpdOperatingSystemConfiguration getHttpdOperatingSystemConfiguration() {
+			return null;
+		}
+		@Override
+		public String getOpensslDefaultCaFile() {
+			return CENTOS_7_X86_64.getOpensslDefaultCaFile();
+		}
+		@Override
+		public String getReplaceCommand() {
+			return CENTOS_7_X86_64.getReplaceCommand();
+		}
+		//@Override
+		//public String getAOServClientScriptInclude() {
+		//	return "/opt/aoserv-client/scripts/aoserv-client.sh";
+		//}
+		@Override
+		public String getPostgresPath(String minorVersion) {
+			return null;
+		}
+		//public String getMySQLConnectorJavaJarPath() {
+		//	return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
 		//}
 	};
 
@@ -133,12 +191,10 @@ public enum OperatingSystemConfiguration {
 				return CENTOS_5DOM0_I686;
 			case OperatingSystemVersion.CENTOS_5_DOM0_X86_64 :
 				return CENTOS_5DOM0_X86_64;
-			/* TODO: CentOS 7:
 			case OperatingSystemVersion.CENTOS_7_X86_64 :
 				return CENTOS_7_X86_64;
 			case OperatingSystemVersion.CENTOS_7_DOM0_X86_64 :
 				return CENTOS_7DOM0_X86_64;
-			 */
 			default :
 				throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 		}

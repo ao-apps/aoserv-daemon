@@ -14,6 +14,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.io.unix.UnixFile;
@@ -156,6 +157,8 @@ final public class MySQLDatabaseManager extends BuilderThread {
 			) {
 				path="/opt/aoserv-daemon/bin/dump_mysql_database";
 			} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+			// Make sure perl is installed as required by dump_mysql_database
+			PackageManager.installPackage(PackageManager.PackageName.PERL);
 			AOServDaemon.exec(
 				path,
 				dbName,

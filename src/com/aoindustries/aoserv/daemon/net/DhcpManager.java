@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2013 by AO Industries, Inc.,
+ * Copyright 2006-2013, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -12,6 +12,7 @@ import com.aoindustries.aoserv.client.validator.ValidationException;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -38,20 +39,24 @@ final public class DhcpManager implements Runnable {
                 GET_DHCP_ADDRESS,
                 device
             };
+			// Make sure /sbin/ifconfig is installed as required by get_dhcp_address
+			PackageManager.installPackage(PackageManager.PackageName.NET_TOOLS);
             String ip;
-            Process P=Runtime.getRuntime().exec(cmd);
-            try {
-                P.getOutputStream().close();
-                BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
-                try {
-                    ip=in.readLine();
-                } finally {
-                    in.close();
-                }
-            } finally {
-                AOServDaemon.waitFor(P, cmd);
-            }
-            if(ip==null || (ip=ip.trim()).length()==0) throw new IOException("Unable to find IP address for device: "+device);
+			{
+				Process P=Runtime.getRuntime().exec(cmd);
+				try {
+					P.getOutputStream().close();
+					BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
+					try {
+						ip=in.readLine();
+					} finally {
+						in.close();
+					}
+				} finally {
+					AOServDaemon.waitFor(P, cmd);
+				}
+	            if(ip==null || (ip=ip.trim()).length()==0) throw new IOException("Unable to find IP address for device: "+device);
+			}
             return InetAddress.valueOf(ip);
         } catch(ValidationException e) {
             IOException exc = new IOException(e.getLocalizedMessage());

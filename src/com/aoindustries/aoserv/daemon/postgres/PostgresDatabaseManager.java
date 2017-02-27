@@ -19,6 +19,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
@@ -237,6 +238,8 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 			} else {
 				throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 			}
+			// Make sure perl is installed as required by dump_postgres_database
+			PackageManager.installPackage(PackageManager.PackageName.PERL);
 			AOServDaemon.exec(
 				commandPath,
 				minorVersion,

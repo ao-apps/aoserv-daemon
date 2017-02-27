@@ -7,6 +7,7 @@ package com.aoindustries.aoserv.daemon.server;
 
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.util.AoArrays;
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -118,6 +119,8 @@ final public class ServerManager {
 	}
 
 	public static String getDrbdReport() throws IOException {
+		// Make sure perl is installed as required by drbdcstate
+		PackageManager.installPackage(PackageManager.PackageName.PERL);
 		return AOServDaemon.execAndCapture(
 			"/opt/aoserv-daemon/bin/drbdcstate"
 		);
@@ -152,6 +155,12 @@ final public class ServerManager {
 	}
 
 	public static String getHddTempReport() throws IOException {
+		PackageManager.installPackages(
+			// Make sure /usr/sbin/hddtemp is installed as required by hddtemp
+			PackageManager.PackageName.HDDTEMP,
+			// Make sure /usr/sbin/smartctl is installed as required by hddtemp
+			PackageManager.PackageName.SMARTMONTOOLS
+		);
 		return AOServDaemon.execAndCapture(
 			"/opt/aoserv-daemon/bin/hddtemp"
 		);
@@ -176,6 +185,8 @@ final public class ServerManager {
 				|| osv==OperatingSystemVersion.CENTOS_7_X86_64
 				|| osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
 			) {
+				// Make sure perl is installed as required by filesystemscsv
+				PackageManager.installPackage(PackageManager.PackageName.PERL);
 				return AOServDaemon.execAndCapture(
 					"/opt/aoserv-daemon/bin/filesystemscsv"
 				);

@@ -37,15 +37,23 @@ public class PackageManager {
 		APACHE_TOMCAT_6_0("apache-tomcat_6_0"),
 		APACHE_TOMCAT_7_0("apache-tomcat_7_0"),
 		APACHE_TOMCAT_8_0("apache-tomcat_8_0"),
+		AOSERV_FTP_SHELLS("aoserv-ftp-shells"),
 		AOSERV_JILTER("aoserv-jilter"),
+		AOSERV_MRTG("aoserv-mrtg"),
 		CVS("cvs"),
+		HDDTEMP("hddtemp"),
+		LIBPCAP("libpcap"),
 		JBOSS_2_2_2("jboss_2_2_2"),
 		MAJORDOMO("majordomo"),
+		NET_TOOLS("net-tools"),
+		PERL("perl"),
 		PHP_5_2("php_5_2-i686"),
 		PHP_5_3("php_5_3-i686"),
 		PHP_5_4("php_5_4-i686"),
 		PHP_5_5("php_5_5-i686"),
-		PHP_5_6("php_5_6-i686");
+		PHP_5_6("php_5_6-i686"),
+		SENDMAIL("sendmail"),
+		SMARTMONTOOLS("smartmontools");
 
 		private final String rpmName;
 		// Only needed when trying to automatically remove packages: private final PackageName[] requires;
@@ -482,6 +490,18 @@ public class PackageManager {
 	 * @see  #installPackage(com.aoindustries.aoserv.daemon.unix.linux.PackageManager.PackageName) 
 	 */
 	public static void installPackages(Iterable<PackageName> packageNames) throws IOException {
+		synchronized(packagesLock) {
+			for(PackageName packageName : packageNames) installPackage(packageName);
+		}
+	}
+
+	/**
+	 * Installs all of the packages that are not currently installed.
+	 * If a package is already installed, no action is taken for that package.
+	 *
+	 * @see  #installPackage(com.aoindustries.aoserv.daemon.unix.linux.PackageManager.PackageName) 
+	 */
+	public static void installPackages(PackageName ... packageNames) throws IOException {
 		synchronized(packagesLock) {
 			for(PackageName packageName : packageNames) installPackage(packageName);
 		}
