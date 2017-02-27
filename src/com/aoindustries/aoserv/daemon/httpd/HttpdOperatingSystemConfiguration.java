@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2016 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -77,6 +77,42 @@ public enum HttpdOperatingSystemConfiguration {
 		@Override
 		public String getHttpdSharedTomcatsDirectory() {
 			return OperatingSystemVersion.getHttpdSharedTomcatsDirectory(OperatingSystemVersion.CENTOS_5_I686_AND_X86_64);
+		}
+		@Override
+		public String getAwstatsDirectory() {
+			return "/var/opt/awstats-6";
+		}
+		@Override
+		public String getAwstatsBinDirectory() {
+			return "/opt/awstats-6";
+		}
+	},
+	CENTOS_7_X86_64 {
+		@Override
+		public OperatingSystemConfiguration getOperatingSystemConfiguration() {
+			return OperatingSystemConfiguration.CENTOS_7_X86_64;
+		}
+		// TODO: Set to 5.5 - or better put in control panels and make be user selectable and changeable
+		@Override
+		public String getDefaultPhpMinorVersion() {
+			return "5.6";
+		}
+		//public String getDefaultPhpPostgresMinorVersion() {
+		//    return "9.2";
+		//}
+		@Override
+		public String getPhpCgiPath(String minorVersion) {
+			if(minorVersion.startsWith("4.")) return "/opt/php-4/bin/php-cgi";
+			else if(minorVersion.startsWith("5.")) return "/opt/php-" + minorVersion + "/bin/php-cgi";
+			else throw new AssertionError("Unexpected PHP version: "+minorVersion);
+		}
+		@Override
+		public String getHttpdSitesDirectory() {
+			return OperatingSystemVersion.getHttpdSitesDirectory(OperatingSystemVersion.CENTOS_7_X86_64);
+		}
+		@Override
+		public String getHttpdSharedTomcatsDirectory() {
+			return OperatingSystemVersion.getHttpdSharedTomcatsDirectory(OperatingSystemVersion.CENTOS_7_X86_64);
 		}
 		@Override
 		public String getAwstatsDirectory() {

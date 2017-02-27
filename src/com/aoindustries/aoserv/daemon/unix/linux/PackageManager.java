@@ -37,9 +37,7 @@ public class PackageManager {
 		APACHE_TOMCAT_6_0("apache-tomcat_6_0"),
 		APACHE_TOMCAT_7_0("apache-tomcat_7_0"),
 		APACHE_TOMCAT_8_0("apache-tomcat_8_0"),
-		AOSERV_FTP_SHELLS("aoserv-ftp-shells"),
 		AOSERV_JILTER("aoserv-jilter"),
-		AOSERV_MRTG("aoserv-mrtg"),
 		CVS("cvs"),
 		HDDTEMP("hddtemp"),
 		LIBPCAP("libpcap"),
@@ -53,7 +51,8 @@ public class PackageManager {
 		PHP_5_5("php_5_5-i686"),
 		PHP_5_6("php_5_6-i686"),
 		SENDMAIL("sendmail"),
-		SMARTMONTOOLS("smartmontools");
+		SMARTMONTOOLS("smartmontools"),
+		SYSSTAT("sysstat");
 
 		private final String rpmName;
 		// Only needed when trying to automatically remove packages: private final PackageName[] requires;

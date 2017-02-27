@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -16,6 +16,7 @@ import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
@@ -212,6 +213,8 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 			) command = centosSendmailMakemapCommand;
 			else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 		//}
+		// Make sure /usr/sbin/makemap is installed as required by make_sendmail_access_map
+		PackageManager.installPackage(PackageManager.PackageName.SENDMAIL);
 		AOServDaemon.exec(command);
 	}
 

@@ -33,14 +33,6 @@ import java.util.regex.Pattern;
 class HttpdLogManager {
 
 	/**
-	 * The directory that logs are stored in.
-	 *
-	 * TODO: CentOS 7: This goes somewhere else... and make symlinks from /var/www/... directories.
-	 *                 Maybe /var/log/www/site-name?
-	 */
-	static final String LOG_DIR = "/logs";
-
-	/**
 	 * The directory that contains the log rotation scripts.
 	 */
 	private static final String LOG_ROTATION_DIR_REDHAT = HttpdServerManager.CONF_DIRECTORY + "/logrotate.d";
@@ -136,77 +128,86 @@ class HttpdLogManager {
 		final int awstatsUID = aoServer.getLinuxServerAccount(LinuxAccount.AWSTATS).getUid().getID();
 
 		// The log directories that exist but are not used will be removed
-		String[] list = new File(LOG_DIR).list();
-		Set<String> logDirectories = new HashSet<>(list.length*4/3+1);
-		for(String dirname : list) {
-			if(!dirname.equals("lost+found")) logDirectories.add(dirname);
-		}
-
-		for(HttpdSite httpdSite : aoServer.getHttpdSites()) {
-			int lsgGID = httpdSite.getLinuxServerGroup().getGid().getID();
-
-			// Create the /logs/<site_name> directory
-			String siteName = httpdSite.getSiteName();
-			UnixFile logDirectory = new UnixFile(LOG_DIR, siteName);
-			Stat logStat = logDirectory.getStat();
-			if(!logStat.exists()) {
-				logDirectory.mkdir();
-				logStat = logDirectory.getStat();
+		String logDir = aoServer.getServer().getOperatingSystemVersion().getHttpdSiteLogsDirectory();
+		if(logDir != null) {
+			UnixFile logDirUF = new UnixFile(logDir);
+			// Create the logs directory if missing
+			if(!logDirUF.getStat().exists()) {
+				logDirUF.mkdir(true, 0755, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
 			}
-			if(logStat.getUid()!=awstatsUID || logStat.getGid()!=lsgGID) logDirectory.chown(awstatsUID, lsgGID);
-			if(logStat.getMode()!=0750) logDirectory.setMode(0750);
 
-			// Remove from list so it will not be deleted
-			logDirectories.remove(siteName);
+			String[] list = logDirUF.list();
+			Set<String> logDirectories = new HashSet<>(list.length*4/3+1);
+			for(String dirname : list) {
+				if(!dirname.equals("lost+found")) logDirectories.add(dirname);
+			}
 
-			// Make sure each log file referenced under HttpdSiteBinds exists
-			List<HttpdSiteBind> hsbs = httpdSite.getHttpdSiteBinds();
-			for(HttpdSiteBind hsb : hsbs) {
-				// access_log
-				String accessLog = hsb.getAccessLog();
-				UnixFile accessLogFile = new UnixFile(hsb.getAccessLog());
-				Stat accessLogStat = accessLogFile.getStat();
-				if(!accessLogStat.exists()) {
-					// Make sure the parent directory exists
-					UnixFile accessLogParent=accessLogFile.getParent();
-					if(!accessLogParent.getStat().exists()) accessLogParent.mkdir(true, 0750, awstatsUID, lsgGID);
-					// Create the empty logfile
-					new FileOutputStream(accessLogFile.getFile(), true).close();
-					accessLogStat = accessLogFile.getStat();
-					// Need to restart servers if log file created
-					for(HttpdSiteBind hsb2 : hsbs) {
-						if(hsb2.getAccessLog().equals(accessLog)) {
-							serversNeedingReloaded.add(hsb2.getHttpdBind().getHttpdServer());
+			for(HttpdSite httpdSite : aoServer.getHttpdSites()) {
+				int lsgGID = httpdSite.getLinuxServerGroup().getGid().getID();
+
+				// Create the /logs/<site_name> directory
+				String siteName = httpdSite.getSiteName();
+				UnixFile logDirectory = new UnixFile(logDirUF, siteName, true);
+				Stat logStat = logDirectory.getStat();
+				if(!logStat.exists()) {
+					logDirectory.mkdir();
+					logStat = logDirectory.getStat();
+				}
+				if(logStat.getUid()!=awstatsUID || logStat.getGid()!=lsgGID) logDirectory.chown(awstatsUID, lsgGID);
+				if(logStat.getMode()!=0750) logDirectory.setMode(0750);
+
+				// Remove from list so it will not be deleted
+				logDirectories.remove(siteName);
+
+				// Make sure each log file referenced under HttpdSiteBinds exists
+				List<HttpdSiteBind> hsbs = httpdSite.getHttpdSiteBinds();
+				for(HttpdSiteBind hsb : hsbs) {
+					// access_log
+					String accessLog = hsb.getAccessLog();
+					UnixFile accessLogFile = new UnixFile(hsb.getAccessLog());
+					Stat accessLogStat = accessLogFile.getStat();
+					if(!accessLogStat.exists()) {
+						// Make sure the parent directory exists
+						UnixFile accessLogParent=accessLogFile.getParent();
+						if(!accessLogParent.getStat().exists()) accessLogParent.mkdir(true, 0750, awstatsUID, lsgGID);
+						// Create the empty logfile
+						new FileOutputStream(accessLogFile.getFile(), true).close();
+						accessLogStat = accessLogFile.getStat();
+						// Need to restart servers if log file created
+						for(HttpdSiteBind hsb2 : hsbs) {
+							if(hsb2.getAccessLog().equals(accessLog)) {
+								serversNeedingReloaded.add(hsb2.getHttpdBind().getHttpdServer());
+							}
 						}
 					}
-				}
-				if(accessLogStat.getMode()!=0640) accessLogFile.setMode(0640);
-				if(accessLogStat.getUid()!=awstatsUID || accessLogStat.getGid()!=lsgGID) accessLogFile.chown(awstatsUID, lsgGID);
+					if(accessLogStat.getMode()!=0640) accessLogFile.setMode(0640);
+					if(accessLogStat.getUid()!=awstatsUID || accessLogStat.getGid()!=lsgGID) accessLogFile.chown(awstatsUID, lsgGID);
 
-				// error_log
-				String errorLog = hsb.getErrorLog();
-				UnixFile errorLogFile = new UnixFile(hsb.getErrorLog());
-				Stat errorLogStat = errorLogFile.getStat();
-				if(!errorLogStat.exists()) {
-					// Make sure the parent directory exists
-					UnixFile errorLogParent=errorLogFile.getParent();
-					if(!errorLogParent.getStat().exists()) errorLogParent.mkdir(true, 0750, awstatsUID, lsgGID);
-					// Create the empty logfile
-					new FileOutputStream(errorLogFile.getFile(), true).close();
-					errorLogStat = errorLogFile.getStat();
-					// Need to restart servers if log file created
-					for(HttpdSiteBind hsb2 : hsbs) {
-						if(hsb2.getErrorLog().equals(errorLog)) {
-							serversNeedingReloaded.add(hsb2.getHttpdBind().getHttpdServer());
+					// error_log
+					String errorLog = hsb.getErrorLog();
+					UnixFile errorLogFile = new UnixFile(hsb.getErrorLog());
+					Stat errorLogStat = errorLogFile.getStat();
+					if(!errorLogStat.exists()) {
+						// Make sure the parent directory exists
+						UnixFile errorLogParent=errorLogFile.getParent();
+						if(!errorLogParent.getStat().exists()) errorLogParent.mkdir(true, 0750, awstatsUID, lsgGID);
+						// Create the empty logfile
+						new FileOutputStream(errorLogFile.getFile(), true).close();
+						errorLogStat = errorLogFile.getStat();
+						// Need to restart servers if log file created
+						for(HttpdSiteBind hsb2 : hsbs) {
+							if(hsb2.getErrorLog().equals(errorLog)) {
+								serversNeedingReloaded.add(hsb2.getHttpdBind().getHttpdServer());
+							}
 						}
 					}
+					if(errorLogStat.getMode()!=0640) errorLogFile.setMode(0640);
+					if(errorLogStat.getUid()!=awstatsUID || errorLogStat.getGid()!=lsgGID) errorLogFile.chown(awstatsUID, lsgGID);
 				}
-				if(errorLogStat.getMode()!=0640) errorLogFile.setMode(0640);
-				if(errorLogStat.getUid()!=awstatsUID || errorLogStat.getGid()!=lsgGID) errorLogFile.chown(awstatsUID, lsgGID);
 			}
-		}
 
-		for(String filename : logDirectories) deleteFileList.add(new File(LOG_DIR, filename));
+			for(String filename : logDirectories) deleteFileList.add(new File(logDirUF.getFile(), filename));
+		}
 	}
 
 	/**

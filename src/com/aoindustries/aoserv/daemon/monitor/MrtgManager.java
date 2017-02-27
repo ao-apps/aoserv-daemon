@@ -40,18 +40,18 @@ import java.util.logging.Level;
  */
 final public class MrtgManager extends BuilderThread {
 
-	public static final int GRAPH_WIDTH = 600;
-	public static final int GRAPH_HEIGHT = 150;
+	public static final int GRAPH_WIDTH=600;
+	public static final int GRAPH_HEIGHT=150;
 
-	private static final UnixFile mandrivaCfgFile = new UnixFile("/var/www/html/mrtg/mrtg.cfg");
-	private static final UnixFile mandrivaCfgFileNew = new UnixFile("/var/www/html/mrtg/mrtg.cfg.new");
-	private static final UnixFile mandrivaStatsFile = new UnixFile("/var/www/html/mrtg/stats.html");
-	private static final UnixFile mandrivaStatsFileNew = new UnixFile("/var/www/html/mrtg/stats.html.new");
+	private static final UnixFile mandrivaCfgFile=new UnixFile("/var/www/html/mrtg/mrtg.cfg");
+	private static final UnixFile mandrivaCfgFileNew=new UnixFile("/var/www/html/mrtg/mrtg.cfg.new");
+	private static final UnixFile mandrivaStatsFile=new UnixFile("/var/www/html/mrtg/stats.html");
+	private static final UnixFile mandrivaStatsFileNew=new UnixFile("/var/www/html/mrtg/stats.html.new");
 
-	private static final UnixFile centosCfgFile = new UnixFile("/etc/mrtg/mrtg.cfg");
-	private static final UnixFile centosCfgFileNew = new UnixFile("/etc/mrtg/mrtg.cfg.new");
-	private static final UnixFile centosStatsFile = new UnixFile("/var/www/mrtg/stats.html");
-	private static final UnixFile centosStatsFileNew = new UnixFile("/var/www/mrtg/stats.html.new");
+	private static final UnixFile centosCfgFile=new UnixFile("/etc/mrtg/mrtg.cfg");
+	private static final UnixFile centosCfgFileNew=new UnixFile("/etc/mrtg/mrtg.cfg.new");
+	private static final UnixFile centosStatsFile=new UnixFile("/var/www/mrtg/stats.html");
+	private static final UnixFile centosStatsFileNew=new UnixFile("/var/www/mrtg/stats.html.new");
 
 	private static MrtgManager mrtgManager;
 
@@ -62,38 +62,36 @@ final public class MrtgManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer thisAoServer = AOServDaemon.getThisAOServer();
+			AOServer thisAoServer=AOServDaemon.getThisAOServer();
 			Server thisServer = thisAoServer.getServer();
 
-			int osv = thisServer.getOperatingSystemVersion().getPkey();
+			int osv=thisServer.getOperatingSystemVersion().getPkey();
 			if(
-				osv != OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osv != OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_7_X86_64
-			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
+				&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
+				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
 			int uid_min = thisAoServer.getUidMin().getID();
 			int gid_min = thisAoServer.getGidMin().getID();
 
 			AOServer failoverServer = thisAoServer.getFailoverServer();
-			String aoservMrtgBin;
+			String daemonBin;
 			UnixFile cfgFile;
 			UnixFile cfgFileNew;
 			UnixFile statsFile;
 			UnixFile statsFileNew;
-			if(osv == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-				aoservMrtgBin = "/usr/aoserv/daemon/bin";
+			if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+				daemonBin = "/usr/aoserv/daemon/bin";
 				cfgFile = mandrivaCfgFile;
 				cfgFileNew = mandrivaCfgFileNew;
 				statsFile = mandrivaStatsFile;
 				statsFileNew = mandrivaStatsFileNew;
 			} else if(
-				osv == OperatingSystemVersion.REDHAT_ES_4_X86_64
-				|| osv == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-				|| osv == OperatingSystemVersion.CENTOS_7_X86_64
+				osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+				|| osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			) {
-				aoservMrtgBin = "/opt/aoserv-mrtg/bin";
+				daemonBin = "/opt/aoserv-daemon/bin";
 				cfgFile = centosCfgFile;
 				cfgFileNew = centosCfgFileNew;
 				statsFile = centosStatsFile;
@@ -101,9 +99,23 @@ final public class MrtgManager extends BuilderThread {
 			} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 
 			synchronized(rebuildLock) {
-				// Make sure aoserv-mrtg package is installed
-				PackageManager.installPackage(PackageManager.PackageName.AOSERV_MRTG);
-
+				PackageManager.installPackages(
+					// Make sure perl is installed as required by:
+					// mrtg_cpu
+					// mrtg_df
+					// mrtg_diskio
+					// mrtg_load
+					// mrtg_mem
+					// mrtg_net_device
+					// mrtg_swap
+					PackageManager.PackageName.PERL,
+					// Make sure /usr/bin/sar is installed as required by:
+					// mrtg_cpu
+					// mrtg_diskio
+					// mrtg_load
+					// mrtg_swap
+					PackageManager.PackageName.SYSSTAT
+				);
 				List<String> dfDevices = getDFDevices();
 				List<String> dfSafeNames = getSafeNames(dfDevices);
 				{
@@ -115,12 +127,11 @@ final public class MrtgManager extends BuilderThread {
 						out.print("#\n"
 								+ "# Automatically generated by ").print(MrtgManager.class.getName()).print("\n"
 								+ "#\n");
-						if(osv == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+						if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 							out.print("WorkDir: /var/www/html/mrtg\n");
 						} else if(
-							osv == OperatingSystemVersion.REDHAT_ES_4_X86_64
-							|| osv == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-							|| osv == OperatingSystemVersion.CENTOS_7_X86_64
+							osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+							|| osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 						) {
 							out.print("HtmlDir: /var/www/mrtg\n"
 									+ "ImageDir: /var/www/mrtg\n"
@@ -131,8 +142,8 @@ final public class MrtgManager extends BuilderThread {
 								+ "  <div style='text-align:center'>\n"
 								+ "  <h1>\n"
 								+ "  <img src=\"https://aoindustries.com/images/clientarea/accounting/SendInvoices.jpg\" width=\"452\" height=\"127\" alt=\"\" /><br />\n"
-								+ "  <span style=\"color:#000000\">").encodeXhtml(thisAoServer.getHostname());
-						if(failoverServer != null) out.print(" on ").encodeXhtml(failoverServer.getHostname());
+								+ "  <span style=\"color:#000000\">").encodeXhtml(thisAoServer.getHostname().toString());
+						if(failoverServer!=null) out.print(" on ").encodeXhtml(failoverServer.getHostname().toString());
 						out.print("</span>\n"
 								+ "  </h1>\n"
 								+ "  <hr /><span style=\"font-size:large\">\n"
@@ -141,12 +152,12 @@ final public class MrtgManager extends BuilderThread {
 								+ "  <a href=\"load.html\">Load</a> |\n"
 								+ "  <a href=\"cpu.html\">CPU</a> |\n"
 								+ "  <a href=\"diskio.html\">DiskIO</a> |\n");
-						for(int c = 0;c < dfDevices.size(); c++) {
+						for(int c=0;c<dfDevices.size();c++) {
 							out.print("  <a href=\"").encodeXmlAttribute(dfSafeNames.get(c)).print(".html\">").encodeXhtml(dfDevices.get(c)).print("</a> |\n");
 						}
 						out.print("  <a href=\"mem.html\"> Memory</a> |\n");
 						// Add the network devices
-						List<NetDevice> netDevices = thisServer.getNetDevices();
+						List<NetDevice> netDevices=thisServer.getNetDevices();
 						for(NetDevice netDevice : netDevices) {
 							out.print("  <a href=\"").encodeXmlAttribute(netDevice.getNetDeviceID().getName()).print(".html\"> ").encodeXhtml(netDevice.getDescription()).print("</a> |\n");
 						}
@@ -157,11 +168,11 @@ final public class MrtgManager extends BuilderThread {
 								+ "\n"
 								+ "Interval: 5\n");
 						for(NetDevice netDevice : netDevices) {
-							String deviceId = netDevice.getNetDeviceID().getName();
+							String deviceId=netDevice.getNetDeviceID().getName();
 							out.print("\n"
-									+ "Target[").print(deviceId).print("]: `").print(aoservMrtgBin).print("/mrtg_net_device ").print(deviceId).print("`\n"
+									+ "Target[").print(deviceId).print("]: `").print(daemonBin).print("/mrtg_net_device ").print(deviceId).print("`\n"
 									+ "Options[").print(deviceId).print("]: noinfo, growright, transparent\n"
-									+ "MaxBytes[").print(deviceId).print("]: ").print(netDevice.getMaxBitRate() == -1 ? 100000000 : netDevice.getMaxBitRate()).print("\n"
+									+ "MaxBytes[").print(deviceId).print("]: ").print(netDevice.getMaxBitRate()==-1 ? 100000000 : netDevice.getMaxBitRate()).print("\n"
 									+ "kilo[").print(deviceId).print("]: 1024\n"
 									+ "YLegend[").print(deviceId).print("]: Bits per second\n"
 									+ "ShortLegend[").print(deviceId).print("]: b/s\n"
@@ -179,7 +190,7 @@ final public class MrtgManager extends BuilderThread {
 									+ "YSize[").print(deviceId).print("]: ").print(GRAPH_HEIGHT).print("\n");
 						}
 						out.print("\n"
-								+ "Target[load]: `").print(aoservMrtgBin).print("/mrtg_load`\n"
+								+ "Target[load]: `").print(daemonBin).print("/mrtg_load`\n"
 								+ "Options[load]: gauge, noinfo, growright, transparent, nopercent\n"
 								+ "MaxBytes[load]: 100000\n"
 								+ "YLegend[load]: Load Average (x 1000)\n"
@@ -197,45 +208,43 @@ final public class MrtgManager extends BuilderThread {
 								+ "XSize[load]: ").print(GRAPH_WIDTH).print("\n"
 								+ "YSize[load]: ").print(GRAPH_HEIGHT).print("\n");
 						// Figure out the number of CPUs
-						int numCPUs = getNumberOfCPUs();
+						int numCPUs=getNumberOfCPUs();
 						out.print("\n"
-								+ "Target[cpu]: `").print(aoservMrtgBin).print("/mrtg_cpu`\n"
+								+ "Target[cpu]: `").print(daemonBin).print("/mrtg_cpu`\n"
 								+ "Options[cpu]: gauge, noinfo, growright, transparent, nopercent\n"
 								+ "MaxBytes[cpu]: 100\n"
 								+ "YLegend[cpu]: CPU Utilization\n"
 								+ "ShortLegend[cpu]: %\n");
 						// Handle any even number of CPU
-						if(numCPUs >= 6 && (numCPUs & 1) == 0) {
-							out.print("Legend1[cpu]: CPU 0 - ").print((numCPUs / 2) - 1).print("\n"
-									+ "Legend2[cpu]: CPU ").print(numCPUs / 2).print(" - ").print(numCPUs - 1).print("\n"
+						if(numCPUs>=6 && (numCPUs&1)==0) {
+							out.print("Legend1[cpu]: CPU 0 - ").print((numCPUs/2)-1).print("\n"
+									+ "Legend2[cpu]: CPU ").print(numCPUs/2).print(" - ").print(numCPUs-1).print("\n"
 									+ "Legend3[cpu]: Maximal 5 Minute\n"
 									+ "Legend4[cpu]: Maximal 5 Minute\n"
-									+ "LegendI[cpu]:  cpu0-").print((numCPUs / 2) - 1).print(":\n"
-									+ "LegendO[cpu]:  cpu").print(numCPUs / 2).print('-').print(numCPUs - 1).print(":\n");
-						} else if(numCPUs == 4) {
+									+ "LegendI[cpu]:  cpu0-").print((numCPUs/2)-1).print(":\n"
+									+ "LegendO[cpu]:  cpu").print(numCPUs/2).print('-').print(numCPUs-1).print(":\n");
+						} else if(numCPUs==4) {
 							out.print("Legend1[cpu]: CPU 0 and 1\n"
 									+ "Legend2[cpu]: CPU 2 and 3\n"
 									+ "Legend3[cpu]: Maximal 5 Minute\n"
 									+ "Legend4[cpu]: Maximal 5 Minute\n"
 									+ "LegendI[cpu]:  cpu0+1:\n"
 									+ "LegendO[cpu]:  cpu2+3:\n");
-						} else if(numCPUs == 2) {
+						} else if(numCPUs==2) {
 							out.print("Legend1[cpu]: CPU 0\n"
 									+ "Legend2[cpu]: CPU 1\n"
 									+ "Legend3[cpu]: Maximal 5 Minute\n"
 									+ "Legend4[cpu]: Maximal 5 Minute\n"
 									+ "LegendI[cpu]:  cpu0:\n"
 									+ "LegendO[cpu]:  cpu1:\n");
-						} else if(numCPUs == 1) {
+						} else if(numCPUs==1) {
 							out.print("Legend1[cpu]: System\n"
 									+ "Legend2[cpu]: Total\n"
 									+ "Legend3[cpu]: Maximal 5 Minute\n"
 									+ "Legend4[cpu]: Maximal 5 Minute\n"
 									+ "LegendI[cpu]:  system:\n"
 									+ "LegendO[cpu]:  total:\n");
-						} else {
-							throw new IOException("Unsupported number of CPUs: " + numCPUs);
-						}
+						} else throw new IOException("Unsupported number of CPUs: "+numCPUs);
 						out.print("Timezone[cpu]: ").print(thisAoServer.getTimeZone()).print("\n"
 								+ "Title[cpu]: Server CPU Utilization (%)\n"
 								+ "PageFoot[cpu]: <p>\n"
@@ -243,7 +252,7 @@ final public class MrtgManager extends BuilderThread {
 								+ "XSize[cpu]: ").print(GRAPH_WIDTH).print("\n"
 								+ "YSize[cpu]: ").print(GRAPH_HEIGHT).print("\n"
 								+ "\n"
-								+ "Target[mem]: `").print(aoservMrtgBin).print("/mrtg_mem`\n"
+								+ "Target[mem]: `").print(daemonBin).print("/mrtg_mem`\n"
 								+ "Options[mem]: gauge, noinfo, growright, transparent\n"
 								+ "MaxBytes[mem]: 100\n"
 								+ "YLegend[mem]: % Free memory and swap space\n"
@@ -261,7 +270,7 @@ final public class MrtgManager extends BuilderThread {
 								+ "XSize[mem]: ").print(GRAPH_WIDTH).print("\n"
 								+ "YSize[mem]: ").print(GRAPH_HEIGHT).print("\n"
 								+ "\n"
-								+ "Target[diskio]: `").print(aoservMrtgBin).print("/mrtg_diskio`\n"
+								+ "Target[diskio]: `").print(daemonBin).print("/mrtg_diskio`\n"
 								+ "Options[diskio]: gauge, noinfo, growright, transparent, nopercent\n"
 								+ "MaxBytes[diskio]: 100000000\n"
 								+ "YLegend[diskio]: Disk I/O blocks/sec\n"
@@ -278,11 +287,11 @@ final public class MrtgManager extends BuilderThread {
 								+ "PageTop[diskio]: <h2>Server Disk I/O (blocks per second)</h2>\n"
 								+ "XSize[diskio]: ").print(GRAPH_WIDTH).print("\n"
 								+ "YSize[diskio]: ").print(GRAPH_HEIGHT).print("\n");
-						for(int c = 0; c < dfDevices.size(); c++) {
+						for(int c=0;c<dfDevices.size();c++) {
 							String device = dfDevices.get(c);
 							String safeName = dfSafeNames.get(c);
 							out.print("\n"
-									+ "Target[").print(safeName).print("]: `").print(aoservMrtgBin).print("/mrtg_df ").print(device).print("`\n"
+									+ "Target[").print(safeName).print("]: `").print(daemonBin).print("/mrtg_df ").print(device).print("`\n"
 									+ "Options[").print(safeName).print("]: gauge, noinfo, growright, transparent\n"
 									+ "MaxBytes[").print(safeName).print("]: 100\n"
 									+ "YLegend[").print(safeName).print("]: % Used space and inodes\n"
@@ -301,7 +310,7 @@ final public class MrtgManager extends BuilderThread {
 									+ "YSize[").print(safeName).print("]: ").print(GRAPH_HEIGHT).print("\n");
 						}
 						out.print("\n"
-								+ "Target[swap]: `").print(aoservMrtgBin).print("/mrtg_swap`\n"
+								+ "Target[swap]: `").print(daemonBin).print("/mrtg_swap`\n"
 								+ "Options[swap]: gauge, noinfo, growright, transparent, nopercent\n"
 								+ "MaxBytes[swap]: 100000000\n"
 								+ "YLegend[swap]: In+Out blocks per second\n"
@@ -320,7 +329,7 @@ final public class MrtgManager extends BuilderThread {
 								+ "YSize[swap]: ").print(GRAPH_HEIGHT).print("\n");
 						out.flush();
 					}
-					byte[] newFile = bout.toByteArray();
+					byte[] newFile=bout.toByteArray();
 					if(!cfgFile.getStat().exists() || !cfgFile.contentEquals(newFile)) {
 						try (OutputStream fileOut = cfgFileNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true, uid_min, gid_min)) {
 							fileOut.write(newFile);
@@ -352,8 +361,8 @@ final public class MrtgManager extends BuilderThread {
 								+ "      <div style=\"text-align:center\">\n"
 								+ "        <h1>\n"
 								+ "          <img src=\"https://aoindustries.com/images/clientarea/accounting/SendInvoices.jpg\" width=\"452\" height=\"127\" alt=\"\" /><br />\n"
-								+ "	  <span style=\"color:#000000\">").encodeXhtml(thisAoServer.getHostname());
-						if(failoverServer != null) out.print(" on ").encodeXhtml(failoverServer.getHostname());
+								+ "	  <span style=\"color:#000000\">").encodeXhtml(thisAoServer.getHostname().toString());
+						if(failoverServer!=null) out.print(" on ").encodeXhtml(failoverServer.getHostname().toString());
 						out.print("</span>\n"
 								+ "        </h1>\n"
 								+ "        <hr />\n"
@@ -364,12 +373,12 @@ final public class MrtgManager extends BuilderThread {
 								+ "          <a href=\"load.html\">Load</a> |\n"
 								+ "          <a href=\"cpu.html\">CPU</a> |\n"
 								+ "          <a href=\"diskio.html\">DiskIO</a> |\n");
-						for(int c = 0; c < dfDevices.size(); c++) {
+						for(int c=0;c<dfDevices.size();c++) {
 							out.print("          <a href=\"").encodeXmlAttribute(dfSafeNames.get(c)).print(".html\">").encodeXhtml(dfDevices.get(c)).print("</a> |\n");
 						}
 						out.print("          <a href=\"mem.html\"> Memory</a> |\n");
 						// Add the network devices
-						List<NetDevice> netDevices = thisServer.getNetDevices();
+						List<NetDevice> netDevices=thisServer.getNetDevices();
 						for(NetDevice netDevice : netDevices) {
 							out.print("          <a href=\"").encodeXmlAttribute(netDevice.getNetDeviceID().getName()).print(".html\"> ").encodeXhtml(netDevice.getDescription()).print("</a> |\n");
 						}
@@ -392,7 +401,7 @@ final public class MrtgManager extends BuilderThread {
 								+ "      <p>\n"
 								+ "        <a href=\"diskio.html\"><img style=\"border:0px; display:block;\" width=\"700\" height=\"185\" src=\"diskio-day.png\" alt=\"diskio\" /></a>\n"
 								+ "      </p>\n");
-						for(int c = 0; c < dfDevices.size(); c++) {
+						for(int c=0;c<dfDevices.size();c++) {
 							out.print("      <hr />\n"
 									+ "      <h2>").encodeXhtml(dfDevices.get(c)).print(" Space and Inodes (%)</h2>\n"
 									+ "      <p>\n"
@@ -405,7 +414,7 @@ final public class MrtgManager extends BuilderThread {
 								+ "        <a href=\"mem.html\"><img style=\"border:0px; display:block;\" width=\"700\" height=\"185\" src=\"mem-day.png\" alt=\"mem\" /></a>\n"
 								+ "      </p>\n");
 						for(NetDevice netDevice : netDevices) {
-							String deviceId = netDevice.getNetDeviceID().getName();
+							String deviceId=netDevice.getNetDeviceID().getName();
 							out.print("      <hr />\n"
 									+ "      <h2>").encodeXhtml(netDevice.getDescription()).print(" traffic</h2>\n"
 									+ "      <p>\n"
@@ -419,7 +428,7 @@ final public class MrtgManager extends BuilderThread {
 								+ "      </p>\n"
 								+ "<!-- Begin MRTG Block -->\n"
 								+ "<hr />\n");
-						if(osv == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+						if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 							out.print("<table cellspacing=\"0\" cellpadding=\"0\">\n"
 									+ "  <tr>\n"
 									+ "    <td style=\"width:63px;\"><a\n"
@@ -447,39 +456,36 @@ final public class MrtgManager extends BuilderThread {
 						} else if(
 							osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
 							|| osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-							|| osv==OperatingSystemVersion.CENTOS_7_X86_64
 						) {
 							out.print("<table style=\"border:0px;\" cellspacing=\"0\" cellpadding=\"0\" summary=\"\">\n"
 									+ "  <tr>\n"
 									+ "    <td style=\"width:63px;\"><a\n"
-									+ "    href=\"http://oss.oetiker.ch/mrtg/doc/mrtg.en.html\"><img\n"
+									+ "    href=\"mrtg.html\"><img\n"
 									+ "    alt=\"\" style=\"border:0px; display:block;\" src=\"mrtg-l.png\" width=\"63\" height=\"25\" /></a></td>\n"
 									+ "    <td style=\"width:25px;\"><a\n"
-									+ "    href=\"http://oss.oetiker.ch/mrtg/doc/mrtg.en.html\"><img\n"
+									+ "    href=\"mrtg.html\"><img\n"
 									+ "    alt=\"MRTG\" style=\"border:0px; display:block;\" src=\"mrtg-m.png\" width=\"25\" height=\"25\" /></a></td>\n"
 									+ "    <td style=\"width:388px;\"><a\n"
-									+ "    href=\"http://oss.oetiker.ch/mrtg/doc/mrtg.en.html\"><img\n"
+									+ "    href=\"mrtg.html\"><img\n"
 									+ "    alt=\"\" style=\"border:0px; display:block;\" src=\"mrtg-r.png\" width=\"388\" height=\"25\" /></a></td>\n"
 									+ "  </tr>\n"
 									+ "</table>\n"
 									+ "<table style=\"margin-top:4px; border:0px;\" cellspacing=\"0\" cellpadding=\"0\" summary=\"\">\n"
 									+ "  <tr valign=\"top\">\n"
 									+ "  <td><span style=\"font-size:x-large\">\n"
-									+ "  <a href=\"https://tobi.oetiker.ch/hp/\">Tobias Oetiker</a>\n"
+									+ "  <a href=\"http://people.ee.ethz.ch/~oetiker\">Tobias Oetiker</a>\n"
 									+ "  <a href=\"mailto:oetiker@ee.ethz.ch\">&lt;oetiker@ee.ethz.ch&gt;</a>\n"
 									+ "  and&#160;<a href=\"http://www.bungi.com\">Dave&#160;Rand</a>&#160;<a href=\"mailto:dlr@bungi.com\">&lt;dlr@bungi.com&gt;</a></span>\n"
 									+ "  </td>\n"
 									+ "</tr>\n"
 									+ "</table>\n");
-						} else {
-							throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
-						}
+						} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
 						out.print("<!-- End MRTG Block -->\n"
 								+ "  </body>\n"
 								+ "</html>\n");
 						out.flush();
 					}
-					byte[] newFile = bout.toByteArray();
+					byte[] newFile=bout.toByteArray();
 					if(!statsFile.getStat().exists() || !statsFile.contentEquals(newFile)) {
 						try (OutputStream fileOut = statsFileNew.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true, uid_min, gid_min)) {
 							fileOut.write(newFile);
@@ -499,8 +505,8 @@ final public class MrtgManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
-		int osv = thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+		AOServer thisAOServer=AOServDaemon.getThisAOServer();
+		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
 
 		synchronized(System.out) {
 			if(
@@ -510,11 +516,11 @@ final public class MrtgManager extends BuilderThread {
 				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(MrtgManager.class)
-				&& mrtgManager == null
+				&& mrtgManager==null
 			) {
 				System.out.print("Starting MrtgManager: ");
-				AOServConnector conn = AOServDaemon.getConnector();
-				mrtgManager = new MrtgManager();
+				AOServConnector conn=AOServDaemon.getConnector();
+				mrtgManager=new MrtgManager();
 				conn.getAoServers().addTableListener(mrtgManager, 0);
 				conn.getNetDevices().addTableListener(mrtgManager, 0);
 				conn.getNetDeviceIDs().addTableListener(mrtgManager, 0);
@@ -537,9 +543,9 @@ final public class MrtgManager extends BuilderThread {
 	 */
 	public static int getNumberOfCPUs() throws IOException {
 		try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream("/proc/cpuinfo")))) {
-			int count = 0;
+			int count=0;
 			String line;
-			while((line = in.readLine())!=null) {
+			while((line=in.readLine())!=null) {
 				if(line.startsWith("processor\t: ")) count++;
 			}
 			return count;
@@ -552,16 +558,15 @@ final public class MrtgManager extends BuilderThread {
 	 * @throws IOException
 	 * @throws SQLException
 	 */
-	private static List<String> getDFDevices() throws IOException, SQLException {
+	public static List<String> getDFDevices() throws IOException, SQLException {
 		AOServer thisAOServer = AOServDaemon.getThisAOServer();
-		if(thisAOServer.getFailoverServer() != null) return Collections.emptyList();
+		if(thisAOServer.getFailoverServer()!=null) return Collections.emptyList();
 		int osv = thisAOServer.getServer().getOperatingSystemVersion().getPkey();
 		List<String> devices = new ArrayList<>();
 		String listPartitionsCommand;
 		if(
-			osv == OperatingSystemVersion.REDHAT_ES_4_X86_64
-			|| osv == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-			|| osv == OperatingSystemVersion.CENTOS_7_X86_64
+			osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+			|| osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 		) {
 			listPartitionsCommand = "/opt/aoserv-daemon/bin/list_partitions";
 		} else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
@@ -573,9 +578,9 @@ final public class MrtgManager extends BuilderThread {
 			P.getOutputStream().close();
 			try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
 				String line;
-				while((line = in.readLine()) != null) {
+				while((line=in.readLine())!=null) {
 					if(devices.contains(line)) {
-						LogFactory.getLogger(MrtgManager.class).log(Level.WARNING, null, new Throwable("Warning: duplicate device from list_partitions: " + line));
+						LogFactory.getLogger(MrtgManager.class).log(Level.WARNING, null, new Throwable("Warning: duplicate device from list_partitions: "+line));
 					} else {
 						devices.add(line);
 					}
@@ -584,7 +589,7 @@ final public class MrtgManager extends BuilderThread {
 		} finally {
 			try {
 				int retCode = P.waitFor();
-				if(retCode != 0) throw new IOException("Non-zero return value from list_partitions: " + retCode);
+				if(retCode!=0) throw new IOException("Non-zero return value from list_partitions: "+retCode);
 			} catch(InterruptedException err) {
 				LogFactory.getLogger(MrtgManager.class).log(Level.WARNING, null, err);
 				// Restore the interrupted status
@@ -596,7 +601,7 @@ final public class MrtgManager extends BuilderThread {
 		return devices;
 	}
 
-	private static List<String> getSafeNames(List<String> devices) throws IOException {
+	public static List<String> getSafeNames(List<String> devices) throws IOException {
 		if(devices.isEmpty()) return Collections.emptyList();
 		List<String> safeNames = new ArrayList<>(devices.size());
 		for(String device : devices) {
@@ -623,15 +628,15 @@ final public class MrtgManager extends BuilderThread {
 					} else if(device.startsWith("/dev/")) {
 						device = device.substring(5);
 					}	// All characters should now be a-z, A-Z, 0-9 or _
-					if(device.isEmpty()) throw new IOException("Empty device name: " + device);
+					if(device.isEmpty()) throw new IOException("Empty device name: "+device);
 					for(int c = 0; c < device.length(); c++) {
-						char ch = device.charAt(c);
+						char ch=device.charAt(c);
 						if(
-							(ch < 'a' || ch > 'z')
-							&& (ch < 'A' || ch > 'Z')
-							&& (ch < '0' || ch > '9')
+							(ch<'a' || ch>'z')
+							&& (ch<'A' || ch>'Z')
+							&& (ch<'0' || ch>'9')
 							&& ch != '_'
-						) throw new IOException("Invalid character in device.  ch=" + ch + ", device=" + device);
+						) throw new IOException("Invalid character in device.  ch="+ch+", device="+device);
 					}
 					safeName = device;
 				}
@@ -641,30 +646,29 @@ final public class MrtgManager extends BuilderThread {
 		return safeNames;
 	}
 
-	public static final File mandrivaMrtgDirectory = new File("/var/www/html/mrtg");
-	public static final File centosMrtgDirectory = new File("/var/www/mrtg");
+	public static final File mandrivaMrtgDirectory=new File("/var/www/html/mrtg");
+	public static final File centosMrtgDirectory=new File("/var/www/mrtg");
 
 	public static void getMrtgFile(String filename, CompressedDataOutputStream out) throws IOException, SQLException {
-		int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
+		int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
 		File mrtgDirectory;
-		if(osv == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+		if(
+			osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+		) {
 			mrtgDirectory = mandrivaMrtgDirectory;
 		} else if(
-			osv == OperatingSystemVersion.REDHAT_ES_4_X86_64
-			|| osv == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-			|| osv == OperatingSystemVersion.CENTOS_7_X86_64
+			osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+			|| osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 		) {
 			mrtgDirectory = centosMrtgDirectory;
-		} else {
-			throw new SQLException("Unsupport OperatingSystemVersion: "+osv);
-		}
+		} else throw new SQLException("Unsupport OperatingSystemVersion: "+osv);
 
-		File file = new File(mrtgDirectory, filename);
+		File file=new File(mrtgDirectory, filename);
 		try (FileInputStream in = new FileInputStream(file)) {
-			byte[] buff = BufferManager.getBytes();
+			byte[] buff=BufferManager.getBytes();
 			try {
 				int ret;
-				while((ret = in.read(buff, 0, BufferManager.BUFFER_SIZE)) != -1) {
+				while((ret=in.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
 					out.write(AOServDaemonProtocol.NEXT);
 					out.writeShort(ret);
 					out.write(buff, 0, ret);
