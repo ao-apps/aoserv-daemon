@@ -14,6 +14,7 @@ import com.aoindustries.aoserv.client.LinuxGroup;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.Shell;
 import com.aoindustries.aoserv.client.validator.Gecos;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -136,9 +137,21 @@ public class LinuxAccountManager extends BuilderThread {
 
 			// Get the list of users from the database
 			List<LinuxServerAccount> accounts = thisAoServer.getLinuxServerAccounts();
-			int accountsLen = accounts.size();
+
+			// Install /usr/bin/ftppasswd and /usr/bin/ftponly if required by any LinuxServerAccount
+			for(LinuxServerAccount lsa : accounts) {
+				String shellPath = lsa.getLinuxAccount().getShell().getPath();
+				if(
+					shellPath.equals(Shell.FTPONLY)
+					|| shellPath.equals(Shell.FTPPASSWD)
+				) {
+					PackageManager.installPackage(PackageManager.PackageName.AOSERV_FTP_SHELLS);
+					break;
+				}
+			}
 
 			// Build a sorted vector of all the usernames, user ids, and home directories
+			int accountsLen = accounts.size();
 			final List<String> usernames=new SortedArrayList<>(accountsLen);
 			final IntList uids=new SortedIntArrayList(accountsLen);
 			final List<String> homeDirs=new SortedArrayList<>(accountsLen);

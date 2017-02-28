@@ -37,6 +37,7 @@ public class PackageManager {
 		APACHE_TOMCAT_6_0("apache-tomcat_6_0"),
 		APACHE_TOMCAT_7_0("apache-tomcat_7_0"),
 		APACHE_TOMCAT_8_0("apache-tomcat_8_0"),
+		AOSERV_FTP_SHELLS("aoserv-ftp-shells"),
 		AOSERV_JILTER("aoserv-jilter"),
 		CVS("cvs"),
 		HDDTEMP("hddtemp"),
