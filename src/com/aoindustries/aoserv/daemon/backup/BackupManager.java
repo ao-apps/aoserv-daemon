@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2009, 2016 by AO Industries, Inc.,
+ * Copyright 2001-2009, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -23,7 +23,7 @@ import java.util.logging.Level;
 
 /**
  * The BackupManager handles the storing and retrieval of backup data from
- * the backup partitions.  It also keeps the <code>/var/oldaccounts</code>
+ * the backup partitions.  It also keeps the <code>/var/opt/aoserv-daemon/oldaccounts</code>
  * directory clean.
  *
  * @author  AO Industries, Inc.
@@ -34,7 +34,7 @@ final public class BackupManager {
 	 * The directory that old files are backed-up to.  This thread cleans up
 	 * the old backups.
 	 */
-	private static final String OLDACCOUNTS_DIR = "/var/oldaccounts";
+	private static final String OLDACCOUNTS_DIR = "/var/opt/aoserv-daemon/oldaccounts";
 
 	/**
 	 * Gets the oldaccounts directory, creating if necessary.
@@ -46,7 +46,7 @@ final public class BackupManager {
 	}
 
 	/**
-	 * The maximum age of files in the /var/oldaccounts directory.
+	 * The maximum age of files in the /var/opt/aoserv-daemon/oldaccounts directory.
 	 */
 	private static final long MAX_OLDACCOUNTS_AGE=7L*24*60*60*1000;
 

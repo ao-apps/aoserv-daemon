@@ -347,7 +347,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		for(HttpdServer hs : httpdServers) {
 			filesystemRules.put("/var/log/httpd"+hs.getNumber()+"/ssl_scache.sem", FilesystemIteratorRule.SKIP);
 		}
-		filesystemRules.put("/var/oldaccounts/", FilesystemIteratorRule.SKIP);
+		filesystemRules.put("/var/opt/aoserv-daemon/oldaccounts/", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/run/aoserv-daemon-java.pid", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/run/aoserv-daemon.pid", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/run/auditd.pid", FilesystemIteratorRule.SKIP);
