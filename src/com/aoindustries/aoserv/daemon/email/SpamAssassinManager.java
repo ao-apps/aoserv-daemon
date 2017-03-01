@@ -106,7 +106,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 
 	private static final UnixFile
 		configUnixFile = new UnixFile("/etc/sysconfig/spamassassin"),
-		configUnixFileNew = new UnixFile("/etc/sysconfig/spamassassin")
+		configUnixFileNew = new UnixFile("/etc/sysconfig/spamassassin.new")
 	;
 
 	private SpamAssassinManager() {
