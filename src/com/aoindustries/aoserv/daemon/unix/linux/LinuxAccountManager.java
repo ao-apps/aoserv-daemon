@@ -139,15 +139,19 @@ public class LinuxAccountManager extends BuilderThread {
 			List<LinuxServerAccount> accounts = thisAoServer.getLinuxServerAccounts();
 
 			// Install /usr/bin/ftppasswd and /usr/bin/ftponly if required by any LinuxServerAccount
+			boolean hasFtpShell = false;
 			for(LinuxServerAccount lsa : accounts) {
 				String shellPath = lsa.getLinuxAccount().getShell().getPath();
 				if(
 					shellPath.equals(Shell.FTPONLY)
 					|| shellPath.equals(Shell.FTPPASSWD)
 				) {
-					PackageManager.installPackage(PackageManager.PackageName.AOSERV_FTP_SHELLS);
+					hasFtpShell = true;
 					break;
 				}
+			}
+			if(hasFtpShell) {
+				PackageManager.installPackage(PackageManager.PackageName.AOSERV_FTP_SHELLS);
 			}
 
 			// Build a sorted vector of all the usernames, user ids, and home directories
@@ -395,8 +399,8 @@ public class LinuxAccountManager extends BuilderThread {
 							unixFileStat.getUid()==UnixFile.ROOT_UID
 							|| unixFileStat.getGid()==UnixFile.ROOT_GID
 						)
-			// Do not set permissions for encrypted home directories
-			&& !(new UnixFile(th+".aes256.img").getStat().exists())
+						// Do not set permissions for encrypted home directories
+						&& !(new UnixFile(th+".aes256.img").getStat().exists())
 					) {
 						unixFile.chown(uid, gid);
 						unixFile.setMode(0700);
@@ -437,8 +441,8 @@ public class LinuxAccountManager extends BuilderThread {
 						String dirName=homeList[c];
 						File dir=new File(homeDir, dirName);
 						String dirPath=dir.getPath();
-			// Allow encrypted form of home directory
-			if(dirPath.endsWith(".aes256.img")) dirPath = dirPath.substring(0, dirPath.length()-11);
+						// Allow encrypted form of home directory
+						if(dirPath.endsWith(".aes256.img")) dirPath = dirPath.substring(0, dirPath.length()-11);
 						if(!homeDirs.contains(dirPath)) deleteFileList.add(dir);
 					}
 				}
@@ -562,6 +566,10 @@ public class LinuxAccountManager extends BuilderThread {
 					File file=deleteFileList.get(c);
 					new UnixFile(file.getPath()).secureDeleteRecursive(uid_min, gid_min);
 				}
+			}
+
+			if(!hasFtpShell) {
+				PackageManager.removePackage(PackageManager.PackageName.AOSERV_FTP_SHELLS);
 			}
 		}
 	}
