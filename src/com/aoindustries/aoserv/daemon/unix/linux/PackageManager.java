@@ -39,6 +39,7 @@ public class PackageManager {
 		APACHE_TOMCAT_8_0("apache-tomcat_8_0"),
 		AOSERV_FTP_SHELLS("aoserv-ftp-shells"),
 		AOSERV_JILTER("aoserv-jilter"),
+		AOSERV_MRTG("aoserv-mrtg"),
 		CVS("cvs"),
 		HDDTEMP("hddtemp"),
 		LIBPCAP("libpcap"),
@@ -52,8 +53,7 @@ public class PackageManager {
 		PHP_5_5("php_5_5-i686"),
 		PHP_5_6("php_5_6-i686"),
 		SENDMAIL("sendmail"),
-		SMARTMONTOOLS("smartmontools"),
-		SYSSTAT("sysstat");
+		SMARTMONTOOLS("smartmontools");
 
 		private final String rpmName;
 		// Only needed when trying to automatically remove packages: private final PackageName[] requires;
@@ -456,6 +456,20 @@ public class PackageManager {
 	 * @return  the highest version of RPM that is installed
 	 */
 	public static RPM installPackage(PackageName name) throws IOException {
+		return installPackage(null, name);
+	}
+
+	/**
+	 * Installs a package if it is not currently installed.
+	 * If the package is already installed, no action is taken.
+	 * The package is installed with "yum -q -y install $NAME".
+	 * If multiple packages are already installed, the highest version is returned.
+	 *
+	 * @param onInstall  Called when the RPM is actually installed.  Not called if already installed.
+	 *
+	 * @return  the highest version of RPM that is installed
+	 */
+	public static RPM installPackage(Runnable onInstall, PackageName name) throws IOException {
 		synchronized(packagesLock) {
 			// Check if exists by looking through all to find highest version
 			RPM highestVersionFound = getInstalledPackage(name);
@@ -475,6 +489,7 @@ public class PackageManager {
 				"install",
 				name.rpmName
 			);
+			if(onInstall != null) onInstall.run();
 			// Must exist now
 			for(RPM rpm : getAllRpms()) {
 				if(rpm.getName().equals(name.rpmName)) return rpm;
