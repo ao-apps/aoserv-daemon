@@ -45,6 +45,7 @@ public class PackageManager {
 		LIBPCAP("libpcap"),
 		JBOSS_2_2_2("jboss_2_2_2"),
 		MAJORDOMO("majordomo"),
+		MRTG("mrtg"),
 		NET_TOOLS("net-tools"),
 		PERL("perl"),
 		PHP_5_2("php_5_2-i686"),
