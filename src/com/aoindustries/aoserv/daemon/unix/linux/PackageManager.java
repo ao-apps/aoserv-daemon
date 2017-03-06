@@ -40,6 +40,7 @@ public class PackageManager {
 		AOSERV_FTP_SHELLS("aoserv-ftp-shells"),
 		AOSERV_JILTER("aoserv-jilter"),
 		AOSERV_MRTG("aoserv-mrtg"),
+		AOSERV_PASSWD_SHELL("aoserv-passwd-shell"),
 		BIND("bind"),
 		CACHING_NAMESERVER("caching-nameserver"), // This is a distinct package in CentOS 5, but provided by "bind" in CentOS 7
 		CVS("cvs"),

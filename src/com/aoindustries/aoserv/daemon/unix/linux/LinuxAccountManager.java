@@ -154,6 +154,18 @@ public class LinuxAccountManager extends BuilderThread {
 				PackageManager.installPackage(PackageManager.PackageName.AOSERV_FTP_SHELLS);
 			}
 
+			// Add /usr/bin/passwd to /etc/shells if required by any LinuxServerAccount
+			boolean hasPasswdShell = false;
+			for(LinuxServerAccount lsa : accounts) {
+				if(lsa.getLinuxAccount().getShell().getPath().equals(Shell.PASSWD)) {
+					hasPasswdShell = true;
+					break;
+				}
+			}
+			if(hasPasswdShell) {
+				PackageManager.installPackage(PackageManager.PackageName.AOSERV_PASSWD_SHELL);
+			}
+
 			// Build a sorted vector of all the usernames, user ids, and home directories
 			int accountsLen = accounts.size();
 			final List<String> usernames=new SortedArrayList<>(accountsLen);
@@ -568,6 +580,9 @@ public class LinuxAccountManager extends BuilderThread {
 				}
 			}
 
+			if(!hasPasswdShell) {
+				PackageManager.removePackage(PackageManager.PackageName.AOSERV_PASSWD_SHELL);
+			}
 			if(!hasFtpShell) {
 				PackageManager.removePackage(PackageManager.PackageName.AOSERV_FTP_SHELLS);
 			}
