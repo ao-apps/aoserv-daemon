@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2014, 2015 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2014, 2015, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -234,32 +234,37 @@ final public class AOServDaemonConfiguration {
 	 * Gets the set of network monitors that should be enabled on this server.
 	 */
 	public static Map<String, NetworkMonitorConfiguration> getNetworkMonitors() throws IOException {
-		List<String> networkNames = StringUtility.splitStringCommaSpace(getProperty("monitor.NetworkMonitor.networkNames", true));
-		Map<String,NetworkMonitorConfiguration> networkMonitors = new LinkedHashMap<>(networkNames.size()*4/3+1);
-		for(String name : networkNames) {
-			String nullRouteFifoErrorRate = getProperty("monitor.NetworkMonitor.network."+name+".nullRoute.fifoErrorRate");
-			String nullRouteFifoErrorRateMinPps = getProperty("monitor.NetworkMonitor.network."+name+".nullRoute.fifoErrorRateMinPps");
-			String nullRoutePacketRate = getProperty("monitor.NetworkMonitor.network."+name+".nullRoute.packetRate");
-			String nullRouteBitRate = getProperty("monitor.NetworkMonitor.network."+name+".nullRoute.bitRate");
-			if(
-				networkMonitors.put(
-					name,
-					new NetworkMonitorConfiguration(
+		String networkNamesProp = getProperty("monitor.NetworkMonitor.networkNames");
+		if(networkNamesProp == null || networkNamesProp.isEmpty()) {
+			return Collections.emptyMap();
+		} else {
+			List<String> networkNames = StringUtility.splitStringCommaSpace(networkNamesProp);
+			Map<String,NetworkMonitorConfiguration> networkMonitors = new LinkedHashMap<>(networkNames.size()*4/3+1);
+			for(String name : networkNames) {
+				String nullRouteFifoErrorRate = getProperty("monitor.NetworkMonitor.network."+name+".nullRoute.fifoErrorRate");
+				String nullRouteFifoErrorRateMinPps = getProperty("monitor.NetworkMonitor.network."+name+".nullRoute.fifoErrorRateMinPps");
+				String nullRoutePacketRate = getProperty("monitor.NetworkMonitor.network."+name+".nullRoute.packetRate");
+				String nullRouteBitRate = getProperty("monitor.NetworkMonitor.network."+name+".nullRoute.bitRate");
+				if(
+					networkMonitors.put(
 						name,
-						getProperty("monitor.NetworkMonitor.network."+name+".device", true),
-						Collections.unmodifiableList(StringUtility.splitStringCommaSpace(getProperty("monitor.NetworkMonitor.network."+name+".networkRanges", true))),
-						NetworkMonitorConfiguration.NetworkDirection.valueOf(getProperty("monitor.NetworkMonitor.network."+name+".in.networkDirection", true)),
-						NetworkMonitorConfiguration.CountDirection.valueOf(getProperty("monitor.NetworkMonitor.network."+name+".in.countDirection", true)),
-						NetworkMonitorConfiguration.NetworkDirection.valueOf(getProperty("monitor.NetworkMonitor.network."+name+".out.networkDirection", true)),
-						NetworkMonitorConfiguration.CountDirection.valueOf(getProperty("monitor.NetworkMonitor.network."+name+".out.countDirection", true)),
-						nullRouteFifoErrorRate==null || nullRouteFifoErrorRate.length()==0 ? null : Long.valueOf(nullRouteFifoErrorRate),
-						nullRouteFifoErrorRateMinPps==null || nullRouteFifoErrorRateMinPps.length()==0 ? null : Long.valueOf(nullRouteFifoErrorRateMinPps),
-						nullRoutePacketRate==null || nullRoutePacketRate.length()==0 ? null : Long.valueOf(nullRoutePacketRate),
-						nullRouteBitRate==null || nullRouteBitRate.length()==0 ? null : Long.valueOf(nullRouteBitRate)
-					)
-				) != null
-			) throw new IOException("Duplicate network name: " + name);
+						new NetworkMonitorConfiguration(
+							name,
+							getProperty("monitor.NetworkMonitor.network."+name+".device", true),
+							Collections.unmodifiableList(StringUtility.splitStringCommaSpace(getProperty("monitor.NetworkMonitor.network."+name+".networkRanges", true))),
+							NetworkMonitorConfiguration.NetworkDirection.valueOf(getProperty("monitor.NetworkMonitor.network."+name+".in.networkDirection", true)),
+							NetworkMonitorConfiguration.CountDirection.valueOf(getProperty("monitor.NetworkMonitor.network."+name+".in.countDirection", true)),
+							NetworkMonitorConfiguration.NetworkDirection.valueOf(getProperty("monitor.NetworkMonitor.network."+name+".out.networkDirection", true)),
+							NetworkMonitorConfiguration.CountDirection.valueOf(getProperty("monitor.NetworkMonitor.network."+name+".out.countDirection", true)),
+							nullRouteFifoErrorRate==null || nullRouteFifoErrorRate.length()==0 ? null : Long.valueOf(nullRouteFifoErrorRate),
+							nullRouteFifoErrorRateMinPps==null || nullRouteFifoErrorRateMinPps.length()==0 ? null : Long.valueOf(nullRouteFifoErrorRateMinPps),
+							nullRoutePacketRate==null || nullRoutePacketRate.length()==0 ? null : Long.valueOf(nullRoutePacketRate),
+							nullRouteBitRate==null || nullRouteBitRate.length()==0 ? null : Long.valueOf(nullRouteBitRate)
+						)
+					) != null
+				) throw new IOException("Duplicate network name: " + name);
+			}
+			return Collections.unmodifiableMap(networkMonitors);
 		}
-		return Collections.unmodifiableMap(networkMonitors);
 	}
 }

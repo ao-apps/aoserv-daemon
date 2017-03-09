@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2013, 2016 by AO Industries, Inc.,
+ * Copyright 2012-2013, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -69,29 +69,43 @@ final public class IpReputationManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServConnector conn = AOServDaemon.getConnector();
-		BusinessAdministrator ba = conn.getThisBusinessAdministrator();
-		MasterUser mu = ba.getMasterUser();
-		if(mu==null) throw new AssertionError("BusinessAdministrator is not a MasterUser");
-		if(mu.isRouter()) {
-			AOServer thisAOServer=AOServDaemon.getThisAOServer();
-			int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
-			synchronized(System.out) {
+		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
+
+		synchronized(System.out) {
+			if(
+				// Nothing is done for these operating systems
+				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
+				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
+				// Check config after OS check so config entry not needed
+				&& AOServDaemonConfiguration.isManagerEnabled(IpReputationManager.class)
+				&& ipReputationManager == null
+			) {
+				System.out.print("Starting IpReputationManager: ");
+				// Must be a supported operating system
 				if(
 					// Only runs on Xen dom0 (firewalling done outside virtual servers)
-					osv == OperatingSystemVersion.CENTOS_5_DOM0_I686
-					|| osv == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-					|| osv == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-					// Check config after OS check so config entry not needed
-					&& AOServDaemonConfiguration.isManagerEnabled(IpReputationManager.class)
-					&& ipReputationManager==null
+					osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
+					|| osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
 				) {
-					System.out.print("Starting IpReputationManager: ");
-					ipReputationManager=new IpReputationManager();
-					conn.getIpReputationSets().addTableListener(ipReputationManager, 0);
-					conn.getIpReputationSetHosts().addTableListener(ipReputationManager, 0);
-					conn.getIpReputationSetNetworks().addTableListener(ipReputationManager, 0);
-					System.out.println("Done");
+					AOServConnector conn = AOServDaemon.getConnector();
+					BusinessAdministrator ba = conn.getThisBusinessAdministrator();
+					MasterUser mu = ba.getMasterUser();
+					if(mu == null) throw new AssertionError("BusinessAdministrator is not a MasterUser");
+					if(mu.isRouter()) {
+						ipReputationManager = new IpReputationManager();
+						conn.getIpReputationSets().addTableListener(ipReputationManager, 0);
+						conn.getIpReputationSetHosts().addTableListener(ipReputationManager, 0);
+						conn.getIpReputationSetNetworks().addTableListener(ipReputationManager, 0);
+						System.out.println("Done");
+					} else {
+						System.out.println("Disabled: This is not a router");
+					}
+				} else {
+					System.out.println("Unsupported OperatingSystemVersion: " + osv);
 				}
 			}
 		}
@@ -206,16 +220,16 @@ final public class IpReputationManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServConnector conn=AOServDaemon.getConnector();
-			AOServer thisAOServer=AOServDaemon.getThisAOServer();
-
-			int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+			AOServConnector conn = AOServDaemon.getConnector();
+			AOServer thisAOServer = AOServDaemon.getThisAOServer();
+			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+			int osvId = osv.getPkey();
 			if(
 				// Only runs on Xen dom0 (firewalling done outside virtual servers)
-				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+				osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 			synchronized(rebuildLock) {
 				final UnixFile ipreputationDir = getIpreputationDir();

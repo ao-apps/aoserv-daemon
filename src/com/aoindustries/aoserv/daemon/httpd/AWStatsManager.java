@@ -1,5 +1,5 @@
 /*
- * Copyright 2005-2013, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2005-2013, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -550,28 +550,38 @@ final public class AWStatsManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer=AOServDaemon.getThisAOServer();
-		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(AWStatsManager.class)
-				&& awstatsManager==null
+				&& awstatsManager == null
 			) {
 				System.out.print("Starting AWStatsManager: ");
-				AOServConnector connector=AOServDaemon.getConnector();
-				awstatsManager=new AWStatsManager();
-				connector.getHttpdSites().addTableListener(awstatsManager, 0);
-				connector.getHttpdSiteBinds().addTableListener(awstatsManager, 0);
-				connector.getHttpdSiteURLs().addTableListener(awstatsManager, 0);
-				connector.getIpAddresses().addTableListener(awstatsManager, 0);
-				connector.getNetBinds().addTableListener(awstatsManager, 0);
-				System.out.println("Done");
+				// Must be a supported operating system
+				if(
+					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				) {
+					AOServConnector conn = AOServDaemon.getConnector();
+					awstatsManager = new AWStatsManager();
+					conn.getHttpdSites().addTableListener(awstatsManager, 0);
+					conn.getHttpdSiteBinds().addTableListener(awstatsManager, 0);
+					conn.getHttpdSiteURLs().addTableListener(awstatsManager, 0);
+					conn.getIpAddresses().addTableListener(awstatsManager, 0);
+					conn.getNetBinds().addTableListener(awstatsManager, 0);
+					System.out.println("Done");
+				} else {
+					System.out.println("Unsupported OperatingSystemVersion: " + osv);
+				}
 			}
 		}
 	}
@@ -588,12 +598,13 @@ final public class AWStatsManager extends BuilderThread {
 
 	public static void getAWStatsFile(String siteName, String path, String queryString, CompressedDataOutputStream out) throws IOException, SQLException {
 		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
-		int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
+		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 		if(
-			osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-			&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-			&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-		) throw new SQLException("Unsupport OperatingSystemVersion: "+osv);
+			osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
+			&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
+			&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 		if("awstats.pl".equals(path)) {
 			// Check the queryStrings
@@ -613,14 +624,14 @@ final public class AWStatsManager extends BuilderThread {
 				|| queryString.matches("^month=\\d*&year=\\d*&output=\\w*&config="+escapedSiteName+"&framename=\\w*$")
 			) {
 				String runascgi;
-				if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-					runascgi = "/var/lib/awstats/hosts/"+siteName+"/runascgi.sh";
+				if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+					runascgi = "/var/lib/awstats/hosts/" + siteName + "/runascgi.sh";
 				} else if(
-					osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
-					|| osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 				) {
-					runascgi = "/var/opt/awstats-6/hosts/"+siteName+"/runascgi.sh";
-				} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+					runascgi = "/var/opt/awstats-6/hosts/" + siteName + "/runascgi.sh";
+				} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 				String[] cmd={
 					"/bin/su",
 					"-s",

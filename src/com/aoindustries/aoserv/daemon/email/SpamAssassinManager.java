@@ -136,14 +136,15 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 					lastStartTime=System.currentTimeMillis();
 
 					// Process incoming messages
-					AOServer thisAOServer=AOServDaemon.getThisAOServer();
-					int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
-					if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+					AOServer thisAOServer = AOServDaemon.getThisAOServer();
+					OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+					int osvId = osv.getPkey();
+					if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 						processIncomingMessagesMandriva();
-					} else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+					} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 						processIncomingMessagesCentOs();
 					} else {
-						throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+						throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 					}
 				}
 			} catch(ThreadDeath TD) {
@@ -162,28 +163,37 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer=AOServDaemon.getThisAOServer();
-		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(SpamAssassinManager.class)
-				&& spamAssassinManager==null
+				&& spamAssassinManager == null
 			) {
 				System.out.print("Starting SpamAssassinManager: ");
-				AOServConnector connector=AOServDaemon.getConnector();
-				spamAssassinManager=new SpamAssassinManager();
-				connector.getLinuxServerAccounts().addTableListener(spamAssassinManager, 0);
-				connector.getIpAddresses().addTableListener(spamAssassinManager, 0);
-				new Thread(spamAssassinManager, "SpamAssassinManager").start();
-				// Once per day, the razor logs will be trimmed to only include the last 1000 lines
-				CronDaemon.addCronJob(new RazorLogTrimmer(), LogFactory.getLogger(SpamAssassinManager.class));
-				System.out.println("Done");
+				// Must be a supported operating system
+				if(
+					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				) {
+					AOServConnector conn = AOServDaemon.getConnector();
+					spamAssassinManager = new SpamAssassinManager();
+					conn.getLinuxServerAccounts().addTableListener(spamAssassinManager, 0);
+					conn.getIpAddresses().addTableListener(spamAssassinManager, 0);
+					new Thread(spamAssassinManager, "SpamAssassinManager").start();
+					// Once per day, the razor logs will be trimmed to only include the last 1000 lines
+					CronDaemon.addCronJob(new RazorLogTrimmer(), LogFactory.getLogger(SpamAssassinManager.class));
+					System.out.println("Done");
+				} else {
+					System.out.println("Unsupported OperatingSystemVersion: " + osv);
+				}
 			}
 		}
 	}
@@ -558,12 +568,12 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 		try {
 			AOServer thisAoServer=AOServDaemon.getThisAOServer();
 			Server thisServer = thisAoServer.getServer();
-
-			int osv=thisServer.getOperatingSystemVersion().getPkey();
+			OperatingSystemVersion osv = thisServer.getOperatingSystemVersion();
+			int osvId = osv.getPkey();
 			if(
-				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
+				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 			int uid_min = thisAoServer.getUidMin().getID();
 			int gid_min = thisAoServer.getGidMin().getID();

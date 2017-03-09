@@ -63,13 +63,13 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 			AOServConnector connector=AOServDaemon.getConnector();
 			AOServer thisAoServer=AOServDaemon.getThisAOServer();
 			Server thisServer = thisAoServer.getServer();
-
-			int osv=thisServer.getOperatingSystemVersion().getPkey();
+			OperatingSystemVersion osv = thisServer.getOperatingSystemVersion();
+			int osvId = osv.getPkey();
 			if(
-				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
+				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 			int uid_min = thisAoServer.getUidMin().getID();
 			int gid_min = thisAoServer.getGidMin().getID();
@@ -205,13 +205,16 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 		String[] command;
 		/*if(AOServDaemon.getThisAOServer().isQmail()) command = qmailctlCdbCommand;
 		else {*/
-			int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
-			if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) command = mandrivaSendmailMakemapCommand;
-			else if(
-				osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
-				|| osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-			) command = centosSendmailMakemapCommand;
-			else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+			int osvId = osv.getPkey();
+			if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+				command = mandrivaSendmailMakemapCommand;
+			} else if(
+				osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+				|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			) {
+				command = centosSendmailMakemapCommand;
+			} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 		//}
 		// Make sure /usr/sbin/makemap is installed as required by make_sendmail_access_map
 		PackageManager.installPackage(PackageManager.PackageName.SENDMAIL);
@@ -266,27 +269,37 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer=AOServDaemon.getThisAOServer();
-		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(SmtpRelayManager.class)
-				&& smtpRelayManager==null
+				&& smtpRelayManager == null
 			) {
 				System.out.print("Starting SmtpRelayManager: ");
-				AOServConnector connector=AOServDaemon.getConnector();
-				smtpRelayManager=new SmtpRelayManager();
-				connector.getEmailSmtpRelays().addTableListener(smtpRelayManager, 0);
-				connector.getIpAddresses().addTableListener(smtpRelayManager, 0);
-				connector.getNetDevices().addTableListener(smtpRelayManager, 0);
-				new Thread(smtpRelayManager, "SmtpRelayManaged").start();
-				System.out.println("Done");
+				// Must be a supported operating system
+				if(
+					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				) {
+					AOServConnector conn = AOServDaemon.getConnector();
+					smtpRelayManager = new SmtpRelayManager();
+					conn.getEmailSmtpRelays().addTableListener(smtpRelayManager, 0);
+					conn.getIpAddresses().addTableListener(smtpRelayManager, 0);
+					conn.getNetDevices().addTableListener(smtpRelayManager, 0);
+					new Thread(smtpRelayManager, "SmtpRelayManager").start();
+					System.out.println("Done");
+				} else {
+					System.out.println("Unsupported OperatingSystemVersion: " + osv);
+				}
 			}
 		}
 	}

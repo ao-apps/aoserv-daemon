@@ -35,12 +35,13 @@ final public class ServerManager {
 	/** One lock per process name */
 	private static final Map<String,Object> processLocks=new HashMap<>();
 	public static void controlProcess(String process, String command) throws IOException, SQLException {
-		int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
+		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 		if(
-			osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-			&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-			&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-		) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+			osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
+			&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
+			&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 		Object lock;
 		synchronized(processLocks) {
@@ -173,32 +174,27 @@ final public class ServerManager {
 	}
 
 	public static String getFilesystemsCsvReport() throws IOException, SQLException {
-		OperatingSystemVersion osvObj = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
-		if(osvObj==null) return "";
-		else {
-			int osv = osvObj.getPkey();
-			if(
-				osv==OperatingSystemVersion.CENTOS_5_DOM0_I686
-				|| osv==OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-				|| osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-				|| osv==OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-				|| osv==OperatingSystemVersion.CENTOS_7_X86_64
-				|| osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
-			) {
-				// Make sure perl is installed as required by filesystemscsv
-				PackageManager.installPackage(PackageManager.PackageName.PERL);
-				return AOServDaemon.execAndCapture(
-					"/opt/aoserv-daemon/bin/filesystemscsv"
-				);
-			} else if(
-				osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-			) {
-				return AOServDaemon.execAndCapture(
-					"/usr/aoserv/daemon/bin/filesystemscsv"
-				);
-			} else {
-				throw new IOException("Unexpected operating system version: "+osv);
-			}
+		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
+		if(
+			osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+			|| osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
+			|| osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+			|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			|| osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+			|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
+		) {
+			// Make sure perl is installed as required by filesystemscsv
+			PackageManager.installPackage(PackageManager.PackageName.PERL);
+			return AOServDaemon.execAndCapture(
+				"/opt/aoserv-daemon/bin/filesystemscsv"
+			);
+		} else if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+			return AOServDaemon.execAndCapture(
+				"/usr/aoserv/daemon/bin/filesystemscsv"
+			);
+		} else {
+			throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 		}
 	}
 

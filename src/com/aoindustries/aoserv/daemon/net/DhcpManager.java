@@ -24,24 +24,24 @@ import java.util.logging.Level;
  */
 final public class DhcpManager implements Runnable {
 
-    public static final int POLL_INTERVAL=5*60*1000;
+	public static final int POLL_INTERVAL=5*60*1000;
 
-    private static final String GET_DHCP_ADDRESS="/opt/aoserv-daemon/bin/get_dhcp_address";
+	private static final String GET_DHCP_ADDRESS="/opt/aoserv-daemon/bin/get_dhcp_address";
 
-    private static Thread thread;
+	private static Thread thread;
 
-    private DhcpManager() {
-    }
+	private DhcpManager() {
+	}
 
-    public static InetAddress getDhcpAddress(String device) throws IOException {
-        try {
-            String[] cmd={
-                GET_DHCP_ADDRESS,
-                device
-            };
+	public static InetAddress getDhcpAddress(String device) throws IOException {
+		try {
+			String[] cmd={
+				GET_DHCP_ADDRESS,
+				device
+			};
 			// Make sure /sbin/ifconfig is installed as required by get_dhcp_address
 			PackageManager.installPackage(PackageManager.PackageName.NET_TOOLS);
-            String ip;
+			String ip;
 			{
 				Process P=Runtime.getRuntime().exec(cmd);
 				try {
@@ -55,75 +55,75 @@ final public class DhcpManager implements Runnable {
 				} finally {
 					AOServDaemon.waitFor(P, cmd);
 				}
-	            if(ip==null || (ip=ip.trim()).length()==0) throw new IOException("Unable to find IP address for device: "+device);
+				if(ip==null || (ip=ip.trim()).length()==0) throw new IOException("Unable to find IP address for device: "+device);
 			}
-            return InetAddress.valueOf(ip);
-        } catch(ValidationException e) {
-            IOException exc = new IOException(e.getLocalizedMessage());
-            exc.initCause(e);
-            throw exc;
-        }
-    }
+			return InetAddress.valueOf(ip);
+		} catch(ValidationException e) {
+			IOException exc = new IOException(e.getLocalizedMessage());
+			exc.initCause(e);
+			throw exc;
+		}
+	}
 
-    public static void start() throws IOException, SQLException {
-        if(AOServDaemonConfiguration.isManagerEnabled(DhcpManager.class) && thread==null) {
-            synchronized(System.out) {
-                if(thread==null) {
-                    // Only start if at least one IP Address on the server is DHCP-enabled
-                    boolean found=false;
-                    for(IPAddress ia : AOServDaemon.getThisAOServer().getServer().getIPAddresses()) {
-                        if(ia.isDHCP()) {
-                            found=true;
-                            break;
-                        }
-                    }
-                    if(found) {
-                        System.out.print("Starting DhcpManager: ");
-                        thread=new Thread(new DhcpManager());
-                        thread.setDaemon(true);
-                        thread.setName("DhcpManager");
-                        thread.start();
-                        System.out.println("Done");
-                    }
-                }
-            }
-        }
-    }
-    
+	public static void start() throws IOException, SQLException {
+		if(AOServDaemonConfiguration.isManagerEnabled(DhcpManager.class)) {
+			synchronized(System.out) {
+				if(thread == null) {
+					// Only start if at least one IP Address on the server is DHCP-enabled
+					boolean hasDhcp = false;
+					for(IPAddress ia : AOServDaemon.getThisAOServer().getServer().getIPAddresses()) {
+						if(ia.isDHCP()) {
+							hasDhcp = true;
+							break;
+						}
+					}
+					if(hasDhcp) {
+						System.out.print("Starting DhcpManager: ");
+						thread = new Thread(new DhcpManager());
+						thread.setDaemon(true);
+						thread.setName("DhcpManager");
+						thread.start();
+						System.out.println("Done");
+					}
+				}
+			}
+		}
+	}
+
 	@Override
-    public void run() {
-        while(true) {
-            try {
-                while(true) {
-                    try {
-                        Thread.sleep(POLL_INTERVAL);
-                    } catch(InterruptedException err) {
-                        LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
+	public void run() {
+		while(true) {
+			try {
+				while(true) {
+					try {
+						Thread.sleep(POLL_INTERVAL);
+					} catch(InterruptedException err) {
+						LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
 						// Restore the interrupted status
 						Thread.currentThread().interrupt();
-                    }
-                    for(NetDevice nd : AOServDaemon.getThisAOServer().getServer().getNetDevices()) {
-                        IPAddress primaryIP=nd.getPrimaryIPAddress();
-                        if(primaryIP.isDHCP()) {
-                            InetAddress dhcpAddress=getDhcpAddress(nd.getNetDeviceID().getName());
-                            if(!primaryIP.getInetAddress().equals(dhcpAddress)) {
-                                primaryIP.setDHCPAddress(dhcpAddress);
-                            }
-                        }
-                    }
-                }
-            } catch(ThreadDeath TD) {
-                throw TD;
-            } catch(Throwable T) {
-                LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, T);
-                try {
-                    Thread.sleep(POLL_INTERVAL);
-                } catch(InterruptedException err) {
-                    LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
+					}
+					for(NetDevice nd : AOServDaemon.getThisAOServer().getServer().getNetDevices()) {
+						IPAddress primaryIP=nd.getPrimaryIPAddress();
+						if(primaryIP.isDHCP()) {
+							InetAddress dhcpAddress=getDhcpAddress(nd.getNetDeviceID().getName());
+							if(!primaryIP.getInetAddress().equals(dhcpAddress)) {
+								primaryIP.setDHCPAddress(dhcpAddress);
+							}
+						}
+					}
+				}
+			} catch(ThreadDeath TD) {
+				throw TD;
+			} catch(Throwable T) {
+				LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, T);
+				try {
+					Thread.sleep(POLL_INTERVAL);
+				} catch(InterruptedException err) {
+					LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
 					// Restore the interrupted status
 					Thread.currentThread().interrupt();
-                }
-            }
-        }
-    }
+				}
+			}
+		}
+	}
 }

@@ -120,12 +120,13 @@ public class LinuxAccountManager extends BuilderThread {
 		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		final String wwwDirectory = osConfig.getHttpdSitesDirectory();
 
-		int osv=thisAoServer.getServer().getOperatingSystemVersion().getPkey();
+		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 		if(
-			osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-			&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-			&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-		) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+			osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
+			&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
+			&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 		int uid_min = thisAoServer.getUidMin().getID();
 		int gid_min = thisAoServer.getGidMin().getID();
@@ -295,19 +296,19 @@ public class LinuxAccountManager extends BuilderThread {
 			} else throw new IOException(newGroup.getPath()+" is zero or unknown length");
 
 			if(newGShadow.length()>0) {
-				if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+				if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 					// Do nothing
-				} else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+				} else if(osvId==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
 					// Do nothing
-				} else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+				} else if(osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 					newGShadowUF.setMode(0400);
-				} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+				} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 				FileUtils.rename(gshadow, backupGShadow);
 				FileUtils.rename(newGShadow, gshadow);
 			} else throw new IOException(newGShadow.getPath()+" is zero or unknown length");
 
 			if(
-				osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+				osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586
 			) {
 				/*
 				 * Create any inboxes that need to exist.
@@ -353,12 +354,12 @@ public class LinuxAccountManager extends BuilderThread {
 					}
 				}
 			} else if(
-				osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
-				|| osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osvId==OperatingSystemVersion.REDHAT_ES_4_X86_64
+				|| osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			) {
 				// Nothing done, user management put in ImapManager
 			} else {
-				throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 			}
 
 			/*
@@ -661,16 +662,17 @@ public class LinuxAccountManager extends BuilderThread {
 			}
 			if(groupName.equals(LinuxGroup.PROFTPD_JAILED)) {
 				AOServer aoServer=group.getAOServer();
-				int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
+				OperatingSystemVersion osv = aoServer.getServer().getOperatingSystemVersion();
+				int osvId = osv.getPkey();
 				boolean addJailed;
 				if(
-					osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-					|| osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+					osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586
+					|| osvId==OperatingSystemVersion.REDHAT_ES_4_X86_64
 				) {
 					addJailed = true;
-				} else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+				} else if(osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 					addJailed = false;
-				} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+				} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 				if(addJailed) {
 					for(FTPGuestUser guestUser : aoServer.getFTPGuestUsers()) {
 						String username=guestUser.getLinuxAccount().getUsername().getUsername();
@@ -836,28 +838,38 @@ public class LinuxAccountManager extends BuilderThread {
 
 	private static LinuxAccountManager linuxAccountManager;
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer=AOServDaemon.getThisAOServer();
-		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(LinuxAccountManager.class)
-				&& linuxAccountManager==null
+				&& linuxAccountManager == null
 			) {
 				System.out.print("Starting LinuxAccountManager: ");
-				AOServConnector conn=AOServDaemon.getConnector();
-				linuxAccountManager=new LinuxAccountManager();
-				conn.getFtpGuestUsers().addTableListener(linuxAccountManager, 0);
-				conn.getLinuxAccounts().addTableListener(linuxAccountManager, 0);
-				conn.getLinuxGroupAccounts().addTableListener(linuxAccountManager, 0);
-				conn.getLinuxServerAccounts().addTableListener(linuxAccountManager, 0);
-				conn.getLinuxServerGroups().addTableListener(linuxAccountManager, 0);
-				System.out.println("Done");
+				// Must be a supported operating system
+				if(
+					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				) {
+					AOServConnector conn = AOServDaemon.getConnector();
+					linuxAccountManager = new LinuxAccountManager();
+					conn.getFtpGuestUsers().addTableListener(linuxAccountManager, 0);
+					conn.getLinuxAccounts().addTableListener(linuxAccountManager, 0);
+					conn.getLinuxGroupAccounts().addTableListener(linuxAccountManager, 0);
+					conn.getLinuxServerAccounts().addTableListener(linuxAccountManager, 0);
+					conn.getLinuxServerGroups().addTableListener(linuxAccountManager, 0);
+					System.out.println("Done");
+				} else {
+					System.out.println("Unsupported OperatingSystemVersion: " + osv);
+				}
 			}
 		}
 	}

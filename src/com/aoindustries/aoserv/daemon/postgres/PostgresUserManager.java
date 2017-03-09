@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2014, 2016 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2014, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -52,17 +52,17 @@ final public class PostgresUserManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServConnector connector = AOServDaemon.getConnector();
 			AOServer thisAOServer=AOServDaemon.getThisAOServer();
-
-			int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+			int osvId = osv.getPkey();
 			if(
-				osv != OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osv != OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_7_X86_64
-			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
+				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
+			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
+			AOServConnector connector = AOServDaemon.getConnector();
 			synchronized (rebuildLock) {
 				for (PostgresServer ps : thisAOServer.getPostgresServers()) {
 					String version=ps.getPostgresVersion().getTechnologyVersion(connector).getVersion();
@@ -453,24 +453,35 @@ final public class PostgresUserManager extends BuilderThread {
 
 	private static PostgresUserManager postgresUserManager;
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer=AOServDaemon.getThisAOServer();
-		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(PostgresUserManager.class)
-				&& postgresUserManager==null
+				&& postgresUserManager == null
 			) {
 				System.out.print("Starting PostgresUserManager: ");
-				AOServConnector conn=AOServDaemon.getConnector();
-				postgresUserManager=new PostgresUserManager();
-				conn.getPostgresServerUsers().addTableListener(postgresUserManager, 0);
-				System.out.println("Done");
+				// Must be a supported operating system
+				if(
+					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
+				) {
+					AOServConnector conn = AOServDaemon.getConnector();
+					postgresUserManager = new PostgresUserManager();
+					conn.getPostgresServerUsers().addTableListener(postgresUserManager, 0);
+					System.out.println("Done");
+				} else {
+					System.out.println("Unsupported OperatingSystemVersion: " + osv);
+				}
 			}
 		}
 	}

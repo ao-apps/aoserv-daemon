@@ -58,26 +58,26 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	protected boolean doRebuild() {
 		try {
 			//AOServConnector connector=AOServDaemon.getConnector();
-			AOServer thisAOServer=AOServDaemon.getThisAOServer();
-
-			int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+			AOServer thisAOServer = AOServDaemon.getThisAOServer();
+			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+			int osvId = osv.getPkey();
 			if(
-				osv != OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osv != OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_7_X86_64
-			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
+				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
+			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 			synchronized(rebuildLock) {
 				for(MySQLServer mysqlServer : thisAOServer.getMySQLServers()) {
-					String version=mysqlServer.getVersion().getVersion();
-					boolean modified=false;
+					String version = mysqlServer.getVersion().getVersion();
+					boolean modified = false;
 					// Get the connection to work through
-					AOConnectionPool pool=MySQLServerManager.getPool(mysqlServer);
-					Connection conn=pool.getConnection(false);
+					AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
+					Connection conn = pool.getConnection(false);
 					try {
 						// Get the list of all existing databases
-						Set<String> existing=new HashSet<>();
+						Set<String> existing = new HashSet<>();
 						try (Statement stmt = conn.createStatement()) {
 							try (ResultSet results = stmt.executeQuery("show databases")) {
 								while(results.next()) existing.add(results.getString(1));
@@ -85,12 +85,11 @@ final public class MySQLDatabaseManager extends BuilderThread {
 
 							// Create the databases that do not exist and should
 							for(MySQLDatabase database : mysqlServer.getMySQLDatabases()) {
-								String name=database.getName();
+								String name = database.getName();
 								if(existing.contains(name)) existing.remove(name);
 								else {
 									// Create the database
-									stmt.executeUpdate("create database "+name);
-
+									stmt.executeUpdate("create database " + name);
 									modified=true;
 								}
 							}
@@ -113,11 +112,14 @@ final public class MySQLDatabaseManager extends BuilderThread {
 										)
 									)
 								) {
-									LogFactory.getLogger(MySQLDatabaseManager.class).log(Level.WARNING, null, new SQLException("Refusing to drop critical MySQL Database: "+dbName+" on "+mysqlServer));
+									LogFactory.getLogger(MySQLDatabaseManager.class).log(
+										Level.WARNING,
+										null,
+										new SQLException("Refusing to drop critical MySQL Database: " + dbName + " on " + mysqlServer)
+									);
 								} else {
 									// Remove the extra database
-									stmt.executeUpdate("drop database "+dbName);
-
+									stmt.executeUpdate("drop database " + dbName);
 									modified=true;
 								}
 							}
@@ -140,23 +142,22 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	private static MySQLDatabaseManager mysqlDatabaseManager;
 
 	public static void dumpDatabase(MySQLDatabase md, CompressedDataOutputStream masterOut) throws IOException, SQLException {
-		int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
-		UnixFile tempFile=UnixFile.mktemp("/tmp/dump_mysql_database.sql.", true);
+		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
+		UnixFile tempFile = UnixFile.mktemp("/tmp/dump_mysql_database.sql.", true);
 		try {
-			String dbName=md.getName();
-			MySQLServer ms=md.getMySQLServer();
+			String dbName = md.getName();
+			MySQLServer ms = md.getMySQLServer();
 			String path;
-			if(
-				osv == OperatingSystemVersion.MANDRIVA_2006_0_I586
-			) {
-				path="/usr/aoserv/daemon/bin/dump_mysql_database";
+			if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+				path = "/usr/aoserv/daemon/bin/dump_mysql_database";
 			} else if(
-				osv == OperatingSystemVersion.REDHAT_ES_4_X86_64
-				|| osv == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-				|| osv == OperatingSystemVersion.CENTOS_7_X86_64
+				osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+				|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 			) {
-				path="/opt/aoserv-daemon/bin/dump_mysql_database";
-			} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+				path = "/opt/aoserv-daemon/bin/dump_mysql_database";
+			} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 			// Make sure perl is installed as required by dump_mysql_database
 			PackageManager.installPackage(PackageManager.PackageName.PERL);
 			AOServDaemon.exec(
@@ -167,10 +168,10 @@ final public class MySQLDatabaseManager extends BuilderThread {
 				tempFile.getPath()
 			);
 			try (InputStream dumpin = new FileInputStream(tempFile.getFile())) {
-				byte[] buff=BufferManager.getBytes();
+				byte[] buff = BufferManager.getBytes();
 				try {
 					int ret;
-					while((ret=dumpin.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
+					while((ret = dumpin.read(buff, 0, BufferManager.BUFFER_SIZE)) != -1) {
 						masterOut.writeByte(AOServDaemonProtocol.NEXT);
 						masterOut.writeShort(ret);
 						masterOut.write(buff, 0, ret);
@@ -185,30 +186,41 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer=AOServDaemon.getThisAOServer();
-		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(MySQLDatabaseManager.class)
-				&& mysqlDatabaseManager==null
+				&& mysqlDatabaseManager == null
 			) {
 				System.out.print("Starting MySQLDatabaseManager: ");
-				AOServConnector conn=AOServDaemon.getConnector();
-				mysqlDatabaseManager=new MySQLDatabaseManager();
-				conn.getMysqlDatabases().addTableListener(mysqlDatabaseManager, 0);
-				System.out.println("Done");
+				// Must be a supported operating system
+				if(
+					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
+				) {
+					AOServConnector conn = AOServDaemon.getConnector();
+					mysqlDatabaseManager = new MySQLDatabaseManager();
+					conn.getMysqlDatabases().addTableListener(mysqlDatabaseManager, 0);
+					System.out.println("Done");
+				} else {
+					System.out.println("Unsupported OperatingSystemVersion: " + osv);
+				}
 			}
 		}
 	}
 
 	public static void waitForRebuild() {
-		if(mysqlDatabaseManager!=null) mysqlDatabaseManager.waitForBuild();
+		if(mysqlDatabaseManager != null) mysqlDatabaseManager.waitForBuild();
 	}
 
 	@Override
@@ -219,10 +231,10 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	public static void getMasterStatus(int mysqlServer, CompressedDataOutputStream out) throws IOException, SQLException {
 		// Use the existing pools
 		MySQLServer ms = AOServDaemon.getConnector().getMysqlServers().get(mysqlServer);
-		if(ms==null) throw new SQLException("Unable to find MySQLServer: "+mysqlServer);
+		if(ms == null) throw new SQLException("Unable to find MySQLServer: " + mysqlServer);
 
-		AOConnectionPool pool=MySQLServerManager.getPool(ms);
-		Connection conn=pool.getConnection(true);
+		AOConnectionPool pool = MySQLServerManager.getPool(ms);
+		Connection conn = pool.getConnection(true);
 		try {
 			try (
 				Statement stmt = conn.createStatement();
@@ -248,15 +260,17 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		// Load the properties from the failover image
 		File file;
 		if(nestedOperatingSystemVersion == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-			file = new File(failoverRoot+"/etc/aoserv/daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
+			file = new File(failoverRoot + "/etc/aoserv/daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
 		} else if(
 			nestedOperatingSystemVersion == OperatingSystemVersion.REDHAT_ES_4_X86_64
 			|| nestedOperatingSystemVersion == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			|| nestedOperatingSystemVersion == OperatingSystemVersion.CENTOS_7_X86_64
 		) {
-			file = new File(failoverRoot+"/etc/opt/aoserv-daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
-		} else throw new SQLException("Unsupport OperatingSystemVersion: "+nestedOperatingSystemVersion);
-		if(!file.exists()) throw new SQLException("Properties file doesn't exist: "+file.getPath());
+			file = new File(failoverRoot + "/etc/opt/aoserv-daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
+		} else {
+			throw new AssertionError("Unsupported nested OperatingSystemVersion: #" + nestedOperatingSystemVersion);
+		}
+		if(!file.exists()) throw new SQLException("Properties file doesn't exist: " + file.getPath());
 		Properties nestedProps = PropertiesUtils.loadFromFile(file);
 		String user = nestedProps.getProperty("aoserv.daemon.mysql.user");
 		String password = nestedProps.getProperty("aoserv.daemon.mysql.password");
@@ -267,7 +281,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		} catch(ClassNotFoundException|InstantiationException|IllegalAccessException err) {
 			throw new SQLException(err);
 		}
-		final String jdbcUrl = "jdbc:mysql://127.0.0.1:"+port+"/mysql";
+		final String jdbcUrl = "jdbc:mysql://127.0.0.1:" + port + "/mysql";
 		try {
 			return DriverManager.getConnection(
 				jdbcUrl,
@@ -323,8 +337,9 @@ final public class MySQLDatabaseManager extends BuilderThread {
 				while(results.next()) {
 					String engine = results.getString(isMySQL40 ? "Type" : "Engine");
 					Integer version;
-					if(isMySQL40) version = null;
-					else {
+					if(isMySQL40) {
+						version = null;
+					} else {
 						version = results.getInt("Version");
 						if(results.wasNull()) version = null;
 					}
@@ -381,7 +396,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		out.write(AOServDaemonProtocol.NEXT);
 		int size = tableStatuses.size();
 		out.writeCompressedInt(size);
-		for(int c=0;c<size;c++) {
+		for(int c = 0; c < size; c++) {
 			MySQLDatabase.TableStatus tableStatus = tableStatuses.get(c);
 			out.writeUTF(tableStatus.getName());
 			out.writeNullEnum(tableStatus.getEngine());

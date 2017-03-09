@@ -133,16 +133,17 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 	protected Map<String,FilesystemIteratorRule> getFilesystemIteratorRules(FailoverFileReplication ffr) throws IOException, SQLException {
 		final AOServer thisServer = AOServDaemon.getThisAOServer();
 		final short retention = ffr.getRetention().getDays();
-		final int osv = thisServer.getServer().getOperatingSystemVersion().getPkey();
+		final OperatingSystemVersion osv = thisServer.getServer().getOperatingSystemVersion();
+		final int osvId = osv.getPkey();
 		final Map<String,FilesystemIteratorRule> filesystemRules=new HashMap<>();
 		if(
-			osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
-			&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-			&& osv != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-			&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-			&& osv != OperatingSystemVersion.CENTOS_7_X86_64
+			osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+			&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+			&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+			&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 		) {
-			throw new IOException("Unexpected operating system version: "+osv);
+			throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 		}
 		filesystemRules.put("", FilesystemIteratorRule.OK); // Default to being included unless explicitly excluded
 		filesystemRules.put("/.journal", FilesystemIteratorRule.SKIP);
@@ -151,21 +152,21 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		filesystemRules.put("/boot/.journal", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/boot/lost+found", FilesystemIteratorRule.SKIP);
 		if(
-			osv == OperatingSystemVersion.CENTOS_5_DOM0_I686
-			|| osv == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-			|| osv == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
+			|| osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+			|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 		) {
 			filesystemRules.put("/dev/log", FilesystemIteratorRule.SKIP);
 			filesystemRules.put("/dev/pts/", FilesystemIteratorRule.SKIP);
 			filesystemRules.put("/dev/shm/", FilesystemIteratorRule.SKIP);
 		} else if(
-			osv == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-			|| osv == OperatingSystemVersion.CENTOS_7_X86_64
+			osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+			|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 		) {
 			// /dev is mounted devtmpfs now
 			filesystemRules.put("/dev/", FilesystemIteratorRule.SKIP);
 		} else {
-			throw new IOException("Unexpected operating system version: "+osv);
+			throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 		}
 		filesystemRules.put("/etc/mail/statistics", FilesystemIteratorRule.SKIP);
 
@@ -217,8 +218,8 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		filesystemRules.put("/mnt/floppy", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/proc/", FilesystemIteratorRule.SKIP);
 		if(
-			osv == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-			|| osv == OperatingSystemVersion.CENTOS_7_X86_64
+			osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+			|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 		) {
 			// /run is mounted tmpfs
 			filesystemRules.put("/run/", FilesystemIteratorRule.SKIP);
@@ -273,8 +274,8 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 			}
 		}
 		if(
-			osv == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-			|| osv == OperatingSystemVersion.CENTOS_7_X86_64
+			osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+			|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 		) {
 			// /var/lib/nfs/rpc_pipefs is mounted sunrpc
 			filesystemRules.put("/var/lib/nfs/rpc_pipefs", FilesystemIteratorRule.SKIP);

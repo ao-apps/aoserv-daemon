@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -78,13 +78,13 @@ public final class ProcmailManager extends BuilderThread {
 	protected boolean doRebuild() {
 		try {
 			AOServer thisAoServer=AOServDaemon.getThisAOServer();
-
-			int osv=thisAoServer.getServer().getOperatingSystemVersion().getPkey();
+			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+			int osvId = osv.getPkey();
 			if(
-				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
+				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 			int uid_min = thisAoServer.getUidMin().getID();
 			int gid_min = thisAoServer.getGidMin().getID();
@@ -96,7 +96,7 @@ public final class ProcmailManager extends BuilderThread {
 			synchronized(rebuildLock) {
 				// Control the permissions of the deliver program, needs to be SUID to
 				// Setting here because RPM updates will change permissions
-				if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+				if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 					Stat deliverStat = cyrusDeliverCentOs.getStat();
 					if(deliverStat.getUid()!=UnixFile.ROOT_UID || deliverStat.getGid()!=mailGid) {
 						cyrusDeliverCentOs.chown(UnixFile.ROOT_UID, mailGid);
@@ -105,7 +105,7 @@ public final class ProcmailManager extends BuilderThread {
 					if(deliverStat.getMode()!=02755) {
 						cyrusDeliverCentOs.setMode(02755);
 					}
-				} else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+				} else if(osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64) {
 					Stat deliverStat = cyrusDeliverRedHat.getStat();
 					if(deliverStat.getUid()!=UnixFile.ROOT_UID || deliverStat.getGid()!=mailGid) {
 						cyrusDeliverRedHat.chown(UnixFile.ROOT_UID, mailGid);
@@ -331,27 +331,27 @@ public final class ProcmailManager extends BuilderThread {
 
 								if(lsa.useInbox()) {
 									// Capture return-path header if needed
-									if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+									if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 										// Nothing special needed
 									} else if(
-										osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-										|| osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
+										osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+										|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
 									) {
 										out.print("\n"
 												+ "# Capture the current Return-path to pass to deliver\n"
 												+ ":0 h\n"
 												+ "RETURN_PATH=| /bin/sed -n 's/^Return-Path: <\\(.*\\)>.*$/\\1/p' | /usr/bin/head -n 1\n");
-									} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 									// Only move to Junk folder when the inbox is enabled and in IMAP mode
 									if(spamAssassinMode.equals(EmailSpamAssassinIntegrationMode.IMAP)) {
 										out.print("\n"
 												+ "# Place any flagged spam in the Junk folder\n");
-										if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+										if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 											out.print(":0:\n"
 													+ "* ^X-Spam-Status: Yes\n"
 													+ "Mail/Junk\n");
-										} else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+										} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 											out.print(":0\n"
 													+ "* ^X-Spam-Status: Yes\n"
 													+ "{\n"
@@ -362,7 +362,7 @@ public final class ProcmailManager extends BuilderThread {
 													+ "  EXITCODE=75\n"
 													+ "  HOST\n"
 													+ "}\n");
-										} else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+										} else if(osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64) {
 											out.print(":0\n"
 													+ "* ^X-Spam-Status: Yes\n"
 													+ "{\n"
@@ -373,13 +373,13 @@ public final class ProcmailManager extends BuilderThread {
 													+ "  EXITCODE=75\n"
 													+ "  HOST\n"
 													+ "}\n");
-										} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+										} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									}
 
 									// Deliver to INBOX
-									if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+									if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 										// Nothing special needed
-									} else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+									} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 										out.print("\n"
 												+ ":0 w\n"
 												//+ "| /usr/bin/formail -I\"From \" | /usr/lib/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
@@ -388,7 +388,7 @@ public final class ProcmailManager extends BuilderThread {
 												+ "# Delivery failed, return EX_TEMPFAIL to have sendmail retry delivery\n"
 												+ "EXITCODE=75\n"
 												+ "HOST\n");
-									} else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+									} else if(osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64) {
 										out.print("\n"
 												+ ":0 w\n"
 												//+ "| /usr/bin/formail -I\"From \" | /usr/lib64/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
@@ -397,7 +397,7 @@ public final class ProcmailManager extends BuilderThread {
 												+ "# Delivery failed, return EX_TEMPFAIL to have sendmail retry delivery\n"
 												+ "EXITCODE=75\n"
 												+ "HOST\n");
-									} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 								} else {
 									// Discard the email if configured to not use the inbox or Junk folders
 									out.print("\n"
@@ -482,26 +482,36 @@ public final class ProcmailManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer=AOServDaemon.getThisAOServer();
-		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(ProcmailManager.class)
-				&& procmailManager==null
+				&& procmailManager == null
 			) {
 				System.out.print("Starting ProcmailManager: ");
-				AOServConnector connector=AOServDaemon.getConnector();
-				procmailManager=new ProcmailManager();
-				if(EMAIL_ATTACHMENT_TYPES_ENABLED) connector.getEmailAttachmentBlocks().addTableListener(procmailManager, 0);
-				connector.getIpAddresses().addTableListener(procmailManager, 0);
-				connector.getLinuxServerAccounts().addTableListener(procmailManager, 0);
-				System.out.println("Done");
+				// Must be a supported operating system
+				if(
+					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				) {
+					AOServConnector conn = AOServDaemon.getConnector();
+					procmailManager = new ProcmailManager();
+					if(EMAIL_ATTACHMENT_TYPES_ENABLED) conn.getEmailAttachmentBlocks().addTableListener(procmailManager, 0);
+					conn.getIpAddresses().addTableListener(procmailManager, 0);
+					conn.getLinuxServerAccounts().addTableListener(procmailManager, 0);
+					System.out.println("Done");
+				} else {
+					System.out.println("Unsupported OperatingSystemVersion: " + osv);
+				}
 			}
 		}
 	}

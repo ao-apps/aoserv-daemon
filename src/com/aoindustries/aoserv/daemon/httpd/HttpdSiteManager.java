@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -455,7 +455,8 @@ public abstract class HttpdSiteManager {
 			AOServer thisAoServer = AOServDaemon.getThisAOServer();
 			int uid_min = thisAoServer.getUidMin().getID();
 			int gid_min = thisAoServer.getGidMin().getID();
-			final int osv = thisAoServer.getServer().getOperatingSystemVersion().getPkey();
+			final OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+			final int osvId = osv.getPkey();
 			HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 			final String phpMinorVersion;
 			if(phpFile.getStat().exists()) {
@@ -465,7 +466,7 @@ public abstract class HttpdSiteManager {
 					contents.contains("/opt/php-5/bin/php")
 					|| contents.contains("/opt/php-5-i686/bin/php")
 				) {
-					switch(osv) {
+					switch(osvId) {
 						case OperatingSystemVersion.REDHAT_ES_4_X86_64 :
 							phpMinorVersion = "5.2";
 							break;
@@ -473,7 +474,7 @@ public abstract class HttpdSiteManager {
 							phpMinorVersion = "5.3";
 							break;
 						default :
-							throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+							throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 					}
 				} else if(
 					contents.contains("/opt/php-5.2/bin/php")

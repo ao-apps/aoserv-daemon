@@ -77,11 +77,11 @@ public enum OperatingSystemConfiguration {
 		}
 		@Override
 		public String getOpensslDefaultCaFile() {
-			return "/etc/pki/tls/certs/ca-bundle.crt";
+			return CENTOS_5_I686_AND_X86_64.getOpensslDefaultCaFile();
 		}
 		@Override
 		public String getReplaceCommand() {
-			return null;
+			return CENTOS_5_I686_AND_X86_64.getReplaceCommand();
 		}
 		//public String getAOServClientScriptInclude() {
 		//	return "/opt/aoserv-client/scripts/aoserv-client.sh";
@@ -101,11 +101,11 @@ public enum OperatingSystemConfiguration {
 		}
 		@Override
 		public String getOpensslDefaultCaFile() {
-			return "/etc/pki/tls/certs/ca-bundle.crt";
+			return CENTOS_5_I686_AND_X86_64.getOpensslDefaultCaFile();
 		}
 		@Override
 		public String getReplaceCommand() {
-			return null;
+			return CENTOS_5_I686_AND_X86_64.getReplaceCommand();
 		}
 		//public String getAOServClientScriptInclude() {
 		//	return "/opt/aoserv-client/scripts/aoserv-client.sh";
@@ -146,6 +146,31 @@ public enum OperatingSystemConfiguration {
 		//public String getMySQLConnectorJavaJarPath() {
 		//	return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
 		//}
+	},
+	CENTOS_7DOM0_X86_64 {
+		@Override
+		public HttpdOperatingSystemConfiguration getHttpdOperatingSystemConfiguration() {
+			return null;
+		}
+		@Override
+		public String getOpensslDefaultCaFile() {
+			return CENTOS_7_X86_64.getOpensslDefaultCaFile();
+		}
+		@Override
+		public String getReplaceCommand() {
+			return CENTOS_7_X86_64.getReplaceCommand();
+		}
+		//@Override
+		//public String getAOServClientScriptInclude() {
+		//	return "/opt/aoserv-client/scripts/aoserv-client.sh";
+		//}
+		@Override
+		public String getPostgresPath(String minorVersion) {
+			return null;
+		}
+		//public String getMySQLConnectorJavaJarPath() {
+		//	return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
+		//}
 	};
 
 	/**
@@ -156,8 +181,9 @@ public enum OperatingSystemConfiguration {
 	 * @see  AOServDaemon#getThisServer()
 	 */
 	public static OperatingSystemConfiguration getOperatingSystemConfiguration() throws IOException, SQLException {
-		int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
-		switch(osv) {
+		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
+		switch(osvId) {
 			case OperatingSystemVersion.REDHAT_ES_4_X86_64 :
 				return REDHAT_ES_4_X86_64;
 			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
@@ -166,14 +192,12 @@ public enum OperatingSystemConfiguration {
 				return CENTOS_5DOM0_I686;
 			case OperatingSystemVersion.CENTOS_5_DOM0_X86_64 :
 				return CENTOS_5DOM0_X86_64;
-			/* TODO: CentOS 7:
 			case OperatingSystemVersion.CENTOS_7_X86_64 :
 				return CENTOS_7_X86_64;
 			case OperatingSystemVersion.CENTOS_7_DOM0_X86_64 :
 				return CENTOS_7DOM0_X86_64;
-			 */
 			default :
-				throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 		}
 	}
 

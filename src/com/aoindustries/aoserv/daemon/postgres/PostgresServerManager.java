@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013, 2016 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -80,25 +80,34 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 	private static PostgresServerManager postgresServerManager;
 	public static void start() throws IOException, SQLException {
 		AOServer thisAOServer = AOServDaemon.getThisAOServer();
-		int osv = thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(PostgresServerManager.class)
 				&& postgresServerManager == null
 			) {
 				System.out.print("Starting PostgresServerManager: ");
-				AOServConnector conn = AOServDaemon.getConnector();
-				postgresServerManager = new PostgresServerManager();
-				conn.getPostgresServers().addTableListener(postgresServerManager, 0);
-				// Register in CronDaemon
-				CronDaemon.addCronJob(postgresServerManager, LogFactory.getLogger(PostgresServerManager.class));
-				System.out.println("Done");
+				// Must be a supported operating system
+				if(
+					osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
+				) {
+					AOServConnector conn = AOServDaemon.getConnector();
+					postgresServerManager = new PostgresServerManager();
+					conn.getPostgresServers().addTableListener(postgresServerManager, 0);
+					// Register in CronDaemon
+					CronDaemon.addCronJob(postgresServerManager, LogFactory.getLogger(PostgresServerManager.class));
+					System.out.println("Done");
+				} else {
+					System.out.println("Unsupported OperatingSystemVersion: " + osv);
+				}
 			}
 		}
 	}

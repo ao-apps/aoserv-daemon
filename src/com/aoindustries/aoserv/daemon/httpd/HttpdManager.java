@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2016 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -75,42 +75,51 @@ final public class HttpdManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer=AOServDaemon.getThisAOServer();
-		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(HttpdManager.class)
-				&& httpdManager==null
+				&& httpdManager == null
 			) {
 				System.out.print("Starting HttpdManager: ");
-				AOServConnector connector=AOServDaemon.getConnector();
-				httpdManager=new HttpdManager();
-				connector.getHttpdBinds().addTableListener(httpdManager, 0);
-				connector.getHttpdServers().addTableListener(httpdManager, 0);
-				connector.getHttpdJBossSites().addTableListener(httpdManager, 0);
-				connector.getHttpdSharedTomcats().addTableListener(httpdManager, 0);
-				connector.getHttpdSites().addTableListener(httpdManager, 0);
-				connector.getHttpdSiteAuthenticatedLocationTable().addTableListener(httpdManager, 0);
-				connector.getHttpdSiteBinds().addTableListener(httpdManager, 0);
-				connector.getHttpdSiteURLs().addTableListener(httpdManager, 0);
-				connector.getHttpdStaticSites().addTableListener(httpdManager, 0);
-				connector.getHttpdTomcatContexts().addTableListener(httpdManager, 0);
-				connector.getHttpdTomcatDataSources().addTableListener(httpdManager, 0);
-				connector.getHttpdTomcatParameters().addTableListener(httpdManager, 0);
-				connector.getHttpdTomcatSites().addTableListener(httpdManager, 0);
-				connector.getHttpdTomcatSharedSites().addTableListener(httpdManager, 0);
-				connector.getHttpdTomcatStdSites().addTableListener(httpdManager, 0);
-				connector.getHttpdWorkers().addTableListener(httpdManager, 0);
-				connector.getIpAddresses().addTableListener(httpdManager, 0);
-				connector.getLinuxServerAccounts().addTableListener(httpdManager, 0);
-				connector.getNetBinds().addTableListener(httpdManager, 0);
-				System.out.println("Done");
+				// Must be a supported operating system
+				if(
+					osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				) {
+					AOServConnector connector = AOServDaemon.getConnector();
+					httpdManager = new HttpdManager();
+					connector.getHttpdBinds().addTableListener(httpdManager, 0);
+					connector.getHttpdServers().addTableListener(httpdManager, 0);
+					connector.getHttpdJBossSites().addTableListener(httpdManager, 0);
+					connector.getHttpdSharedTomcats().addTableListener(httpdManager, 0);
+					connector.getHttpdSites().addTableListener(httpdManager, 0);
+					connector.getHttpdSiteAuthenticatedLocationTable().addTableListener(httpdManager, 0);
+					connector.getHttpdSiteBinds().addTableListener(httpdManager, 0);
+					connector.getHttpdSiteURLs().addTableListener(httpdManager, 0);
+					connector.getHttpdStaticSites().addTableListener(httpdManager, 0);
+					connector.getHttpdTomcatContexts().addTableListener(httpdManager, 0);
+					connector.getHttpdTomcatDataSources().addTableListener(httpdManager, 0);
+					connector.getHttpdTomcatParameters().addTableListener(httpdManager, 0);
+					connector.getHttpdTomcatSites().addTableListener(httpdManager, 0);
+					connector.getHttpdTomcatSharedSites().addTableListener(httpdManager, 0);
+					connector.getHttpdTomcatStdSites().addTableListener(httpdManager, 0);
+					connector.getHttpdWorkers().addTableListener(httpdManager, 0);
+					connector.getIpAddresses().addTableListener(httpdManager, 0);
+					connector.getLinuxServerAccounts().addTableListener(httpdManager, 0);
+					connector.getNetBinds().addTableListener(httpdManager, 0);
+					System.out.println("Done");
+				} else {
+					System.out.println("Unsupported OperatingSystemVersion: " + osv);
+				}
 			}
 		}
 	}

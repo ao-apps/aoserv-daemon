@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2012, 2014, 2016 by AO Industries, Inc.,
+ * Copyright 2000-2012, 2014, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -33,12 +33,13 @@ final public class EmailListManager {
 	 */
 	public static String getEmailListFile(String path) throws IOException, SQLException {
 		AOServer thisAoServer = AOServDaemon.getThisAOServer();
-		int osv=thisAoServer.getServer().getOperatingSystemVersion().getPkey();
+		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 		if(
-			osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-			&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-			&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-		) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+			osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
+			&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
+			&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 		int uid_min = thisAoServer.getUidMin().getID();
 		int gid_min = thisAoServer.getGidMin().getID();
@@ -57,12 +58,13 @@ final public class EmailListManager {
 	 * new <code>EmailList</code> is stored in the database.
 	 */
 	public static void removeEmailListAddresses(String path) throws IOException, SQLException {
-		int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
+		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 		if(
-			osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-			&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-			&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-		) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+			osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
+			&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
+			&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 		File file = new File(path);
 		if(file.exists()) FileUtils.delete(file);
@@ -79,12 +81,13 @@ final public class EmailListManager {
 		int mode
 	) throws IOException, SQLException {
 		AOServer thisAoServer = AOServDaemon.getThisAOServer();
-		int osv=thisAoServer.getServer().getOperatingSystemVersion().getPkey();
+		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 		if(
-			osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-			&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-			&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-		) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+			osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
+			&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
+			&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 		int uid_min = thisAoServer.getUidMin().getID();
 		int gid_min = thisAoServer.getGidMin().getID();

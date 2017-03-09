@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -51,12 +51,13 @@ final public class ShadowFile {
 	 * passwords are never lost during updates.
 	 */
 	public static String getEncryptedPassword(String username) throws IOException, SQLException {
-		int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
+		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 		if(
-			osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-			&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-			&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-		) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+			osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
+			&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
+			&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 		synchronized(shadowLock) {
 			BufferedReader in = new BufferedReader(new InputStreamReader(new BufferedInputStream(new FileInputStream(shadowFile.getFile()))));
@@ -81,12 +82,13 @@ final public class ShadowFile {
 
 	public static void rebuildShadowFile(List<LinuxServerAccount> accounts) throws IOException, SQLException {
 		AOServer thisAoServer = AOServDaemon.getThisAOServer();
-		int osv = thisAoServer.getServer().getOperatingSystemVersion().getPkey();
+		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 		if(
-			osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-			&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-			&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-		) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+			osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
+			&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
+			&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 		int uid_min = thisAoServer.getUidMin().getID();
 		int gid_min = thisAoServer.getGidMin().getID();
@@ -150,13 +152,13 @@ final public class ShadowFile {
 			}
 
 			if(newShadowFile.getStat().getSize()>0) {
-				if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+				if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 					// Do nothing
-				} else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+				} else if(osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64) {
 					// Do nothing
-				} else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+				} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 					newShadowFile.setMode(0400);
-				} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+				} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 				shadowFile.renameTo(backupShadowFile);
 				newShadowFile.renameTo(shadowFile);
 			} else throw new IOException(newShadowFile.getPath()+" has zero or unknown length");
@@ -172,12 +174,13 @@ final public class ShadowFile {
 	 */
 	public static void setEncryptedPassword(String username, String encryptedPassword) throws IOException, SQLException {
 		AOServer thisAoServer = AOServDaemon.getThisAOServer();
-		int osv = thisAoServer.getServer().getOperatingSystemVersion().getPkey();
+		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 		if(
-			osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-			&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-			&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-		) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+			osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
+			&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
+			&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 		int uid_min = thisAoServer.getUidMin().getID();
 		int gid_min = thisAoServer.getGidMin().getID();

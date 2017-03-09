@@ -132,14 +132,15 @@ public enum HttpdOperatingSystemConfiguration {
 	 * @see  AOServDaemon#getThisServer()
 	 */
 	public static HttpdOperatingSystemConfiguration getHttpOperatingSystemConfiguration() throws IOException, SQLException {
-		int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
-		switch(osv) {
+		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
+		switch(osvId) {
 			case OperatingSystemVersion.REDHAT_ES_4_X86_64 :
 				return REDHAT_ES_4_X86_64;
 			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
 				return CENTOS_5_I686_AND_X86_64;
 			default :
-				throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 		}
 	}
 

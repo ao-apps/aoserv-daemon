@@ -72,13 +72,14 @@ final public class FTPManager extends BuilderThread {
 	protected boolean doRebuild() {
 		try {
 			AOServer thisAOServer=AOServDaemon.getThisAOServer();
-			int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+			int osvId = osv.getPkey();
 			synchronized(rebuildLock) {
-				if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+				if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 					doRebuildProFtpd();
-				} else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+				} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 					doRebuildVsFtpd();
-				} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+				} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 				doRebuildSharedFtpDirectory();
 			}
@@ -99,8 +100,9 @@ final public class FTPManager extends BuilderThread {
 		AOServer thisAoServer=AOServDaemon.getThisAOServer();
 		int uid_min = thisAoServer.getUidMin().getID();
 		int gid_min = thisAoServer.getGidMin().getID();
-		int osv=thisAoServer.getServer().getOperatingSystemVersion().getPkey();
-		if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
+		if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 			// Rebuild the /etc/proftpd.conf file
 			int bindCount=0;
 			ChainWriter out=new ChainWriter(new BufferedOutputStream(newProFtpdConf.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true, uid_min, gid_min)));
@@ -211,7 +213,7 @@ final public class FTPManager extends BuilderThread {
 					AOServDaemon.exec("/etc/rc.d/init.d/proftpd", "reload");
 				}
 			}
-		} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+		} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 	}
 
 	/**
@@ -222,8 +224,9 @@ final public class FTPManager extends BuilderThread {
 		AOServer thisAoServer=AOServDaemon.getThisAOServer();
 		int uid_min = thisAoServer.getUidMin().getID();
 		int gid_min = thisAoServer.getGidMin().getID();
-		int osv=thisAoServer.getServer().getOperatingSystemVersion().getPkey();
-		if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
+		if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 			// Reused below
 			final ByteArrayOutputStream bout = new ByteArrayOutputStream();
 
@@ -385,7 +388,7 @@ final public class FTPManager extends BuilderThread {
 					}
 				}
 			}
-		} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+		} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 	}
 
 	/**
@@ -420,31 +423,40 @@ final public class FTPManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer=AOServDaemon.getThisAOServer();
-		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(FTPManager.class)
-				&& ftpManager==null
+				&& ftpManager == null
 			) {
 				System.out.print("Starting FTPManager: ");
-				AOServConnector conn=AOServDaemon.getConnector();
-				ftpManager=new FTPManager();
-				conn.getFtpGuestUsers().addTableListener(ftpManager, 0);
-				conn.getHttpdSites().addTableListener(ftpManager, 0);
-				conn.getIpAddresses().addTableListener(ftpManager, 0);
-				conn.getLinuxAccounts().addTableListener(ftpManager, 0);
-				conn.getLinuxServerAccounts().addTableListener(ftpManager, 0);
-				conn.getNetBinds().addTableListener(ftpManager, 0);
-				conn.getPrivateFTPServers().addTableListener(ftpManager, 0);
-				conn.getUsernames().addTableListener(ftpManager, 0);
-				System.out.println("Done");
+				// Must be a supported operating system
+				if(
+					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				) {
+					AOServConnector conn = AOServDaemon.getConnector();
+					ftpManager = new FTPManager();
+					conn.getFtpGuestUsers().addTableListener(ftpManager, 0);
+					conn.getHttpdSites().addTableListener(ftpManager, 0);
+					conn.getIpAddresses().addTableListener(ftpManager, 0);
+					conn.getLinuxAccounts().addTableListener(ftpManager, 0);
+					conn.getLinuxServerAccounts().addTableListener(ftpManager, 0);
+					conn.getNetBinds().addTableListener(ftpManager, 0);
+					conn.getPrivateFTPServers().addTableListener(ftpManager, 0);
+					conn.getUsernames().addTableListener(ftpManager, 0);
+					System.out.println("Done");
+				} else {
+					System.out.println("Unsupported OperatingSystemVersion: " + osv);
+				}
 			}
 		}
 	}

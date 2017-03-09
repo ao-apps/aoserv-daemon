@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -49,31 +49,42 @@ public class JilterConfigurationWriter extends BuilderThread {
 	private static JilterConfigurationWriter configurationWriter;
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer=AOServDaemon.getThisAOServer();
-		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(JilterConfigurationWriter.class)
-				&& configurationWriter==null
+				&& configurationWriter == null
 			) {
 				System.out.print("Starting JilterConfigurationWriter: ");
-				AOServConnector connector=AOServDaemon.getConnector();
-				configurationWriter=new JilterConfigurationWriter();
-				connector.getAoServers().addTableListener(configurationWriter, 0);
-				connector.getNetBinds().addTableListener(configurationWriter, 0);
-				connector.getNetDevices().addTableListener(configurationWriter, 0);
-				connector.getIpAddresses().addTableListener(configurationWriter, 0);
-				connector.getEmailDomains().addTableListener(configurationWriter, 0);
-				connector.getEmailAddresses().addTableListener(configurationWriter, 0);
-				connector.getEmailSmtpRelays().addTableListener(configurationWriter, 0);
-				connector.getPackages().addTableListener(configurationWriter, 0);
-				System.out.println("Done");
+				// Must be a supported operating system
+				if(
+					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
+				) {
+					AOServConnector conn = AOServDaemon.getConnector();
+					configurationWriter = new JilterConfigurationWriter();
+					conn.getAoServers().addTableListener(configurationWriter, 0);
+					conn.getNetBinds().addTableListener(configurationWriter, 0);
+					conn.getNetDevices().addTableListener(configurationWriter, 0);
+					conn.getIpAddresses().addTableListener(configurationWriter, 0);
+					conn.getEmailDomains().addTableListener(configurationWriter, 0);
+					conn.getEmailAddresses().addTableListener(configurationWriter, 0);
+					conn.getEmailSmtpRelays().addTableListener(configurationWriter, 0);
+					conn.getPackages().addTableListener(configurationWriter, 0);
+					System.out.println("Done");
+				} else {
+					System.out.println("Unsupported OperatingSystemVersion: " + osv);
+				}
 			}
 		}
 	}

@@ -60,12 +60,12 @@ public final class XinetdManager extends BuilderThread {
 		try {
 			AOServConnector connector=AOServDaemon.getConnector();
 			AOServer aoServer=AOServDaemon.getThisAOServer();
-
-			int osv=aoServer.getServer().getOperatingSystemVersion().getPkey();
+			OperatingSystemVersion osv = aoServer.getServer().getOperatingSystemVersion();
+			int osvId = osv.getPkey();
 			if(
-				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
+				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 			// Reused on inner loops
 			final ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -123,7 +123,7 @@ public final class XinetdManager extends BuilderThread {
 						|| protocol.equals(Protocol.TELNET)
 						|| (
 						// POP and IMAP is handled through xinetd on Mandriva 2006.0
-						osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
+						osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586
 						&& (
 						//protocol.equals(Protocol.POP2)
 						protocol.equals(Protocol.POP3)
@@ -133,7 +133,7 @@ public final class XinetdManager extends BuilderThread {
 						)
 						) || (
 						// FTP is handled through xinetd on CentOS 5
-						osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+						osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 						&& protocol.equals(Protocol.FTP)
 						)
 						) {
@@ -192,7 +192,7 @@ public final class XinetdManager extends BuilderThread {
 							switch (protocol) {
 								case Protocol.CVSPSERVER:
 									List<CvsRepository> repos=aoServer.getCvsRepositories();
-									if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 										StringBuilder server_args=new StringBuilder();
 										for(int d=0;d<repos.size();d++) {
 											CvsRepository repo=repos.get(d);
@@ -224,7 +224,7 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											null
 										);
-									} else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+									} else if(osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 										StringBuilder server_args=new StringBuilder();
 										server_args.append("-f");
 										for(CvsRepository repo : repos) {
@@ -254,10 +254,10 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											null
 										);
-									} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									break;
 								case Protocol.FTP:
-									if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+									if(osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 										service=new Service(
 											portMatches?null:UNLISTED,
 											100,
@@ -281,10 +281,10 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											null
 										);
-									} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									break;
 								case Protocol.IMAP2:
-									if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 										service=new Service(
 											portMatches?null:UNLISTED,
 											-1,
@@ -308,10 +308,10 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											null
 										);
-									} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									break;
 								case Protocol.NTALK:
-									if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 										service=new Service(
 											portMatches?null:UNLISTED,
 											-1,
@@ -335,7 +335,7 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											null
 										);
-									} else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+									} else if(osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 										service=new Service(
 											portMatches?null:UNLISTED,
 											-1, // instances
@@ -359,7 +359,7 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											null
 										);
-									} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									/*} else if(protocol.equals(Protocol.POP2)) {
 									if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 									service=new Service(
@@ -388,7 +388,7 @@ public final class XinetdManager extends BuilderThread {
 									} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);*/
 									break;
 								case Protocol.POP3:
-									if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 										service=new Service(
 											portMatches?null:UNLISTED,
 											-1,
@@ -412,10 +412,10 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											null
 										);
-									} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									break;
 								case Protocol.SIMAP:
-									if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 										service=new Service(
 											portMatches?null:UNLISTED,
 											-1,
@@ -439,10 +439,10 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											null
 										);
-									} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									break;
 								case Protocol.SPOP3:
-									if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 										service=new Service(
 											portMatches?null:UNLISTED,
 											-1,
@@ -466,10 +466,10 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											null
 										);
-									} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									break;
 								case Protocol.TALK:
-									if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 										service=new Service(
 											portMatches?null:UNLISTED,
 											-1,
@@ -493,7 +493,7 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											null
 										);
-									} else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+									} else if(osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 										service=new Service(
 											portMatches?null:UNLISTED,
 											-1, // instances
@@ -517,10 +517,10 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											null
 										);
-									} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									break;
 								case Protocol.TELNET:
-									if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 										service=new Service(
 											portMatches?null:UNLISTED,
 											-1,
@@ -544,7 +544,7 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											null
 										);
-									} else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+									} else if(osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 										service=new Service(
 											portMatches?null:UNLISTED,
 											-1,
@@ -568,7 +568,7 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											null
 										);
-									} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									break;
 								default:
 									throw new RuntimeException("Unexpected protocol: "+protocol);
@@ -648,21 +648,21 @@ public final class XinetdManager extends BuilderThread {
 						// Stop service
 						AOServDaemon.exec("/etc/rc.d/init.d/xinetd", "stop");
 						// Disable with chkconfig
-						if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+						if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 							AOServDaemon.exec("/sbin/chkconfig", "--del", "xinetd");
-						} else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+						} else if(osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 							AOServDaemon.exec("/sbin/chkconfig", "xinetd", "off");
-						} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+						} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 					}
 				} else {
 					// Turn on xinetd if not already on
 					if(!rcFile.getStat().exists()) {
 						// Enable with chkconfig
-						if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+						if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 							AOServDaemon.exec("/sbin/chkconfig", "--add", "xinetd");
-						} else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+						} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 							AOServDaemon.exec("/sbin/chkconfig", "xinetd", "on");
-						} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+						} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 						// Start service
 						AOServDaemon.exec("/etc/rc.d/init.d/xinetd", "start");
 					} else {
@@ -715,26 +715,35 @@ public final class XinetdManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer=AOServDaemon.getThisAOServer();
-		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(XinetdManager.class)
-				&& xinetdManager==null
+				&& xinetdManager == null
 			) {
 				System.out.print("Starting XinetdManager: ");
-				AOServConnector conn=AOServDaemon.getConnector();
-				xinetdManager=new XinetdManager();
-				conn.getCvsRepositories().addTableListener(xinetdManager, 0);
-				conn.getNetBinds().addTableListener(xinetdManager, 0);
-				conn.getNetTcpRedirects().addTableListener(xinetdManager, 0);
-				System.out.println("Done");
+				// Must be a supported operating system
+				if(
+					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				) {
+					AOServConnector conn = AOServDaemon.getConnector();
+					xinetdManager = new XinetdManager();
+					conn.getCvsRepositories().addTableListener(xinetdManager, 0);
+					conn.getNetBinds().addTableListener(xinetdManager, 0);
+					conn.getNetTcpRedirects().addTableListener(xinetdManager, 0);
+					System.out.println("Done");
+				} else {
+					System.out.println("Unsupported OperatingSystemVersion: " + osv);
+				}
 			}
 		}
 	}

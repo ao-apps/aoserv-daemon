@@ -60,14 +60,14 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 		try {
 			AOServConnector connector=AOServDaemon.getConnector();
 			AOServer thisAOServer=AOServDaemon.getThisAOServer();
-
-			int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+			int osvId = osv.getPkey();
 			if(
-				osv != OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osv != OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_7_X86_64
-			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
+				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
+			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 			synchronized(rebuildLock) {
 				for(PostgresServer ps : thisAOServer.getPostgresServers()) {
@@ -125,7 +125,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 										final String psql;
 										final String lib;
 										final String share;
-										switch(osv) {
+										switch(osvId) {
 											case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64:
 												createlang = "/opt/postgresql-"+minorVersion+"-i686/bin/createlang";
 												psql = "/opt/postgresql-"+minorVersion+"-i686/bin/psql";
@@ -146,7 +146,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 												share = "/usr/postgresql/"+minorVersion+"/share";
 												break;
 											default:
-												throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+												throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 										}
 										// Automatically add plpgsql support for PostgreSQL 7 and 8
 										// PostgreSQL 9 is already installed:
@@ -224,19 +224,19 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 			String minorVersion=ps.getPostgresVersion().getMinorVersion();
 			int port=ps.getNetBind().getPort().getPort();
 			String dbName=pd.getName();
-
-			int osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
+			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+			int osvId = osv.getPkey();
 			String commandPath;
 			if(
-				osv == OperatingSystemVersion.REDHAT_ES_4_X86_64
-				|| osv == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-				|| osv == OperatingSystemVersion.CENTOS_7_X86_64
+				osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+				|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 			) {
 				commandPath = "/opt/aoserv-daemon/bin/dump_postgres_database";
-			} else if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+			} else if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 				commandPath = "/usr/aoserv/daemon/bin/dump_postgres_database";
 			} else {
-				throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 			}
 			// Make sure perl is installed as required by dump_postgres_database
 			PackageManager.installPackage(PackageManager.PackageName.PERL);
@@ -268,30 +268,44 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 	private static PostgresDatabaseManager postgresDatabaseManager;
 	private static boolean cronStarted = false;
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer=AOServDaemon.getThisAOServer();
-		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(PostgresDatabaseManager.class)
-				&& (postgresDatabaseManager==null || !cronStarted)
+				&& (
+					postgresDatabaseManager == null
+					|| !cronStarted
+				)
 			) {
 				System.out.print("Starting PostgresDatabaseManager: ");
-				if(postgresDatabaseManager==null) {
-					AOServConnector conn=AOServDaemon.getConnector();
-					postgresDatabaseManager=new PostgresDatabaseManager();
-					conn.getPostgresDatabases().addTableListener(postgresDatabaseManager, 0);
+				// Must be a supported operating system
+				if(
+					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
+				) {
+					if(postgresDatabaseManager == null) {
+						AOServConnector conn = AOServDaemon.getConnector();
+						postgresDatabaseManager = new PostgresDatabaseManager();
+						conn.getPostgresDatabases().addTableListener(postgresDatabaseManager, 0);
+					}
+					if(!cronStarted) {
+						CronDaemon.addCronJob(postgresDatabaseManager, LogFactory.getLogger(PostgresDatabaseManager.class));
+						cronStarted = true;
+					}
+					System.out.println("Done");
+				} else {
+					System.out.println("Unsupported OperatingSystemVersion: " + osv);
 				}
-				if(!cronStarted) {
-					CronDaemon.addCronJob(postgresDatabaseManager, LogFactory.getLogger(PostgresDatabaseManager.class));
-					cronStarted=true;
-				}
-				System.out.println("Done");
 			}
 		}
 	}

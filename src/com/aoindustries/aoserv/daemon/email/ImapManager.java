@@ -359,8 +359,9 @@ final public class ImapManager extends BuilderThread {
 		boolean isFine = logger.isLoggable(Level.FINE);
 		try {
 			AOServer thisAOServer=AOServDaemon.getThisAOServer();
-			int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
-			if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+			int osvId = osv.getPkey();
+			if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 				// Used inside synchronized block
 				ByteArrayOutputStream bout = new ByteArrayOutputStream();
 				AOServConnector conn = AOServDaemon.getConnector();
@@ -1574,29 +1575,35 @@ final public class ImapManager extends BuilderThread {
 	}*/
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer=AOServDaemon.getThisAOServer();
-		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(ImapManager.class)
-				&& imapManager==null
+				&& imapManager == null
 			) {
 				System.out.print("Starting ImapManager: ");
-				AOServConnector connector=AOServDaemon.getConnector();
-				imapManager=new ImapManager();
-				connector.getAoServers().addTableListener(imapManager, 0);
-				connector.getIpAddresses().addTableListener(imapManager, 0);
-				connector.getLinuxAccounts().addTableListener(imapManager, 0);
-				connector.getLinuxServerAccounts().addTableListener(imapManager, 0);
-				connector.getNetBinds().addTableListener(imapManager, 0);
-				connector.getServers().addTableListener(imapManager, 0);
-				System.out.println("Done");
+				// Must be a supported operating system
+				if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+					AOServConnector conn = AOServDaemon.getConnector();
+					imapManager = new ImapManager();
+					conn.getAoServers().addTableListener(imapManager, 0);
+					conn.getIpAddresses().addTableListener(imapManager, 0);
+					conn.getLinuxAccounts().addTableListener(imapManager, 0);
+					conn.getLinuxServerAccounts().addTableListener(imapManager, 0);
+					conn.getNetBinds().addTableListener(imapManager, 0);
+					conn.getServers().addTableListener(imapManager, 0);
+					System.out.println("Done");
+				} else {
+					System.out.println("Unsupported OperatingSystemVersion: " + osv);
+				}
 			}
 		}
 	}
@@ -1607,12 +1614,13 @@ final public class ImapManager extends BuilderThread {
 	}
 
 	public static long[] getImapFolderSizes(String username, String[] folderNames) throws IOException, SQLException, MessagingException {
-		AOServer thisAOServer=AOServDaemon.getThisAOServer();
-		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 		LinuxServerAccount lsa=thisAOServer.getLinuxServerAccount(username);
 		if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+username+" on "+thisAOServer);
 		long[] sizes=new long[folderNames.length];
-		if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+		if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 			for(int c=0;c<folderNames.length;c++) {
 				String folderName = folderNames[c];
 				if(folderName.contains("..")) sizes[c]=-1;
@@ -1624,7 +1632,7 @@ final public class ImapManager extends BuilderThread {
 					else sizes[c]=-1;
 				}
 			}
-		} else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+		} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 			String user = getUser(username);
 			String domain = getDomain(username);
 			for(int c=0;c<folderNames.length;c++) {
@@ -1635,18 +1643,19 @@ final public class ImapManager extends BuilderThread {
 					sizes[c] = getCyrusFolderSize(user, isInbox ? "" : folderName, domain, !isInbox);
 				}
 			}
-		} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+		} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 		return sizes;
 	}
 
 	public static void setImapFolderSubscribed(String username, String folderName, boolean subscribed) throws IOException, SQLException {
-		AOServer thisAoServer=AOServDaemon.getThisAOServer();
+		AOServer thisAoServer = AOServDaemon.getThisAOServer();
 		int uid_min = thisAoServer.getUidMin().getID();
 		int gid_min = thisAoServer.getGidMin().getID();
-		int osv=thisAoServer.getServer().getOperatingSystemVersion().getPkey();
+		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 		LinuxServerAccount lsa=thisAoServer.getLinuxServerAccount(username);
 		if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+username+" on "+thisAoServer);
-		if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+		if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 			UnixFile mailboxlist=new UnixFile(lsa.getHome(), ".mailboxlist");
 			List<String> lines=new ArrayList<>();
 			boolean currentlySubscribed=false;
@@ -1680,9 +1689,9 @@ final public class ImapManager extends BuilderThread {
 					if(subscribed) out.println(folderName);
 				}
 			}
-		} else if(osv == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+		} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 			throw new SQLException("Cyrus folders should be subscribed/unsubscribed from IMAP directly because subscribe list is stored per user basis.");
-		} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+		} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 	}
 
 	static class Annotation {
@@ -1888,10 +1897,11 @@ final public class ImapManager extends BuilderThread {
 
 	public static long getInboxSize(String username) throws IOException, SQLException, MessagingException {
 		AOServer thisAOServer=AOServDaemon.getThisAOServer();
-		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
-		if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
+		if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 			return new File(mailSpool, username).length();
-		} else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+		} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 			return getCyrusFolderSize(username, "", true);
 			/*
 ad GETANNOTATION user/cyrus.test/Junk@suspendo.aoindustries.com "*" "value.shared"
@@ -1903,17 +1913,18 @@ ad GETANNOTATION user/cyrus.test/Junk@suspendo.aoindustries.com "*" "value.share
 * ANNOTATION "user/cyrus.test/Junk@suspendo.aoindustries.com" "/vendor/cmu/cyrus-imapd/partition" ("value.shared" "default")
 ad OK Completed
 */
-		} else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+		} else if(osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64) {
 			return 0;
-		} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+		} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 	}
 
 	public static long getInboxModified(String username) throws IOException, SQLException, MessagingException, ParseException {
-		AOServer thisAOServer=AOServDaemon.getThisAOServer();
-		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
-		if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
+		if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 			return new File(mailSpool, username).lastModified();
-		} else if(osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+		} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 			try {
 				// Connect to the store
 				IMAPStore store = getStore();
@@ -2020,9 +2031,9 @@ ad OK Completed
 				closeStore();
 				throw err;
 			}
-		} else if(osv==OperatingSystemVersion.REDHAT_ES_4_X86_64) {
+		} else if(osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64) {
 			// Not an IMAP server, consistent with File.lastModified() above
 			return 0L;
-		} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+		} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -16,10 +16,7 @@ import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.NetBind;
-import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
-import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
@@ -47,9 +44,9 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
 	@Override
 	protected void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
 		// Resolve and allocate stuff used throughout the method
-		final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
-		final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
-		final TomcatCommon tomcatCommon = getTomcatCommon();
+		//final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
+		//final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
+		//final TomcatCommon tomcatCommon = getTomcatCommon();
 		final String siteDir = siteDirectory.getPath();
 		final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
 		final int uid = lsa.getUid().getID();
@@ -58,8 +55,6 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
 		final AOServer thisAoServer = AOServDaemon.getThisAOServer();
 		int uid_min = thisAoServer.getUidMin().getID();
 		int gid_min = thisAoServer.getGidMin().getID();
-		final Server server = thisAoServer.getServer();
-		final int osv = server.getOperatingSystemVersion().getPkey();
 		//final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
 		//final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
 

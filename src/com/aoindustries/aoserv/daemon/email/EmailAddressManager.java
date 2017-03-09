@@ -67,14 +67,14 @@ final public class EmailAddressManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer thisAoServer=AOServDaemon.getThisAOServer();
-
-			int osv=thisAoServer.getServer().getOperatingSystemVersion().getPkey();
+			AOServer thisAoServer = AOServDaemon.getThisAOServer();
+			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+			int osvId = osv.getPkey();
 			if(
-				osv!=OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osv!=OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-			) throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
+				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 			int uid_min = thisAoServer.getUidMin().getID();
 			int gid_min = thisAoServer.getGidMin().getID();
@@ -113,12 +113,12 @@ final public class EmailAddressManager extends BuilderThread {
 					}
 					String ex_nouser;
 					if(
-						osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
-						|| osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+						osvId==OperatingSystemVersion.REDHAT_ES_4_X86_64
+						|| osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 						) {
 						//ex_nouser="/opt/aoserv-client/sbin/ex_nouser";
 						ex_nouser="\"/bin/sh -c 'exit 67'\""; // Code for EX_NOUSER in /usr/include/sysexits.h
-					} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+					} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 					for(LinuxServerAccount lsa : thisAoServer.getLinuxServerAccounts()) {
 						String username=lsa.getLinuxAccount().getUsername().getUsername();
 						if(!usernamesUsed.contains(username)) {
@@ -399,13 +399,15 @@ final public class EmailAddressManager extends BuilderThread {
 		synchronized(makeMapLock) {
 			// Run the command
 			String makemap;
-			int osv=AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey();
+			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+			int osvId = osv.getPkey();
 			if(
-				osv==OperatingSystemVersion.MANDRIVA_2006_0_I586
-				|| osv==OperatingSystemVersion.REDHAT_ES_4_X86_64
-				|| osv==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-			) makemap="/usr/sbin/makemap";
-			else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);
+				osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+				|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+				|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			) {
+				makemap="/usr/sbin/makemap";
+			} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 			String[] cmd = { makemap, "hash", userTable.getPath() };
 			Process P = Runtime.getRuntime().exec(cmd);
@@ -436,35 +438,45 @@ final public class EmailAddressManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer=AOServDaemon.getThisAOServer();
-		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
+		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osv != OperatingSystemVersion.CENTOS_5_DOM0_I686
-				&& osv != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-				&& osv != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+				&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(EmailAddressManager.class)
-				&& emailAddressManager==null
+				&& emailAddressManager == null
 			) {
 				System.out.print("Starting EmailAddressManager: ");
-				AOServConnector connector=AOServDaemon.getConnector();
-				emailAddressManager=new EmailAddressManager();
-				connector.getEmailDomains().addTableListener(emailAddressManager, 0);
-				connector.getBlackholeEmailAddresses().addTableListener(emailAddressManager, 0);
-				connector.getEmailAddresses().addTableListener(emailAddressManager, 0);
-				connector.getEmailForwardings().addTableListener(emailAddressManager, 0);
-				connector.getEmailLists().addTableListener(emailAddressManager, 0);
-				connector.getEmailListAddresses().addTableListener(emailAddressManager, 0);
-				connector.getEmailPipes().addTableListener(emailAddressManager, 0);
-				connector.getEmailPipeAddresses().addTableListener(emailAddressManager, 0);
-				connector.getLinuxServerAccounts().addTableListener(emailAddressManager, 0);
-				connector.getLinuxAccAddresses().addTableListener(emailAddressManager, 0);
-				connector.getPackages().addTableListener(emailAddressManager, 0);
-				connector.getSystemEmailAliases().addTableListener(emailAddressManager, 0);
-				System.out.println("Done");
+				// Must be a supported operating system
+				if(
+					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				) {
+					AOServConnector conn = AOServDaemon.getConnector();
+					emailAddressManager = new EmailAddressManager();
+					conn.getEmailDomains().addTableListener(emailAddressManager, 0);
+					conn.getBlackholeEmailAddresses().addTableListener(emailAddressManager, 0);
+					conn.getEmailAddresses().addTableListener(emailAddressManager, 0);
+					conn.getEmailForwardings().addTableListener(emailAddressManager, 0);
+					conn.getEmailLists().addTableListener(emailAddressManager, 0);
+					conn.getEmailListAddresses().addTableListener(emailAddressManager, 0);
+					conn.getEmailPipes().addTableListener(emailAddressManager, 0);
+					conn.getEmailPipeAddresses().addTableListener(emailAddressManager, 0);
+					conn.getLinuxServerAccounts().addTableListener(emailAddressManager, 0);
+					conn.getLinuxAccAddresses().addTableListener(emailAddressManager, 0);
+					conn.getPackages().addTableListener(emailAddressManager, 0);
+					conn.getSystemEmailAliases().addTableListener(emailAddressManager, 0);
+					System.out.println("Done");
+				} else {
+					System.out.println("Unsupported OperatingSystemVersion: " + osv);
+				}
 			}
 		}
 	}

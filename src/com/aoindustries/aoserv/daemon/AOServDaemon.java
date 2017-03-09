@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2015 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -232,12 +232,16 @@ final public class AOServDaemon {
 				LinuxAccountManager.start();
 
 				// Start up the AOServDaemonServers
-				NetBind bind=getThisAOServer().getDaemonBind();
-				if(bind!=null) {
-					AOServDaemonServer server = new AOServDaemonServer(bind.getIPAddress().getInetAddress(), bind.getPort().getPort(), bind.getAppProtocol().getProtocol());
+				NetBind bind = getThisAOServer().getDaemonBind();
+				if(bind != null) {
+					AOServDaemonServer server = new AOServDaemonServer(
+						bind.getIPAddress().getInetAddress(),
+						bind.getPort().getPort(),
+						bind.getAppProtocol().getProtocol()
+					);
 					server.start();
 				}
-				done=true;
+				done = true;
 			} catch (ThreadDeath TD) {
 				throw TD;
 			} catch (Throwable T) {

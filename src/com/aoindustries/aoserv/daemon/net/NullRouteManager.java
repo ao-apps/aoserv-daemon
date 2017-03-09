@@ -1,12 +1,15 @@
 /*
- * Copyright 2013, 2016 by AO Industries, Inc.,
+ * Copyright 2013, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.net;
 
+import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.BusinessAdministrator;
 import com.aoindustries.aoserv.client.IPAddress;
+import com.aoindustries.aoserv.client.MasterUser;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -63,24 +66,41 @@ final public class NullRouteManager {
 	volatile private static NullRouteManager instance;
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer=AOServDaemon.getThisAOServer();
-		int osv=thisAOServer.getServer().getOperatingSystemVersion().getPkey();
-		if(
-			// Only done for these operating systems
-			(
-				osv == OperatingSystemVersion.CENTOS_5_DOM0_I686
-				|| osv == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-				|| osv == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-			)
-			// Check config after OS check so config entry not needed
-			&& AOServDaemonConfiguration.isManagerEnabled(NullRouteManager.class)
-		) {
-			synchronized(System.out) {
-				if(instance==null) {
-					System.out.print("Starting NullRouteManager: ");
-					instance = new NullRouteManager();
-					instance.startThread();
-					System.out.println("Done");
+		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
+
+		synchronized(System.out) {
+			if(
+				// Nothing is done for these operating systems
+				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
+				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
+				// Check config after OS check so config entry not needed
+				&& AOServDaemonConfiguration.isManagerEnabled(NullRouteManager.class)
+				&& instance == null
+			) {
+				System.out.print("Starting NullRouteManager: ");
+				// Must be a supported operating system
+				if(
+					// Only runs on Xen dom0 (firewalling done outside virtual servers)
+					osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
+					|| osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+				) {
+					AOServConnector conn = AOServDaemon.getConnector();
+					BusinessAdministrator ba = conn.getThisBusinessAdministrator();
+					MasterUser mu = ba.getMasterUser();
+					if(mu == null) throw new AssertionError("BusinessAdministrator is not a MasterUser");
+					if(mu.isRouter()) {
+						instance = new NullRouteManager();
+						instance.startThread();
+						System.out.println("Done");
+					} else {
+						System.out.println("Disabled: This is not a router");
+					}
+				} else {
+					System.out.println("Unsupported OperatingSystemVersion: " + osv);
 				}
 			}
 		}
