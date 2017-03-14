@@ -50,12 +50,14 @@ public class PackageManager {
 		MAJORDOMO("majordomo"),
 		MRTG("mrtg"),
 		NET_TOOLS("net-tools"),
+		OPENSSH_SERVER("openssh-server"),
 		PERL("perl"),
 		PHP_5_2("php_5_2-i686"),
 		PHP_5_3("php_5_3-i686"),
 		PHP_5_4("php_5_4-i686"),
 		PHP_5_5("php_5_5-i686"),
 		PHP_5_6("php_5_6-i686"),
+		POLICYCOREUTILS_PYTHON("policycoreutils-python"),
 		SENDMAIL("sendmail"),
 		SMARTMONTOOLS("smartmontools");
 
@@ -64,6 +66,15 @@ public class PackageManager {
 		private PackageName(String rpmName /* Only needed when trying to automatically remove packages: , PackageName... requires */) {
 			this.rpmName = rpmName;
 			// Only needed when trying to automatically remove packages: this.requires = requires;
+		}
+
+		@Override
+		public String toString() {
+			return rpmName;
+		}
+
+		public String getRpmName() {
+			return rpmName;
 		}
 	}
 
@@ -460,7 +471,7 @@ public class PackageManager {
 	 * @return  the highest version of RPM that is installed
 	 */
 	public static RPM installPackage(PackageName name) throws IOException {
-		return installPackage(null, name);
+		return installPackage(name, null);
 	}
 
 	/**
@@ -473,7 +484,7 @@ public class PackageManager {
 	 *
 	 * @return  the highest version of RPM that is installed
 	 */
-	public static RPM installPackage(Runnable onInstall, PackageName name) throws IOException {
+	public static RPM installPackage(PackageName name, Runnable onInstall) throws IOException {
 		synchronized(packagesLock) {
 			// Check if exists by looking through all to find highest version
 			RPM highestVersionFound = getInstalledPackage(name);

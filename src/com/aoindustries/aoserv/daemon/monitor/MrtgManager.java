@@ -104,6 +104,7 @@ final public class MrtgManager extends BuilderThread {
 			synchronized(rebuildLock) {
 				// Make sure mrtg package is installed and enabled
 				PackageManager.installPackage(
+					PackageManager.PackageName.MRTG,
 					() -> {
 						if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 							try {
@@ -113,8 +114,7 @@ final public class MrtgManager extends BuilderThread {
 								throw new WrappedException(e);
 							}
 						}
-					},
-					PackageManager.PackageName.MRTG
+					}
 				);
 
 				// Make sure aoserv-mrtg package is installed
