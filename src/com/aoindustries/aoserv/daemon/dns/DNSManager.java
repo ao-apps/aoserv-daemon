@@ -172,6 +172,7 @@ final public class DNSManager extends BuilderThread {
 						);
 					} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 						PackageManager.installPackage(
+							PackageManager.PackageName.BIND,
 							() -> {
 								try {
 									AOServDaemon.exec("/usr/bin/systemctl", "enable", "named");
@@ -179,8 +180,7 @@ final public class DNSManager extends BuilderThread {
 									throw new WrappedException(e);
 								}
 								needsRestart[0] = true;
-							},
-							PackageManager.PackageName.BIND
+							}
 						);
 					} else {
 						throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
