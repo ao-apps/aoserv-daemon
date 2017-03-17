@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2013, 2015 by AO Industries, Inc.,
+ * Copyright 2012-2013, 2015, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -34,7 +34,7 @@ final public class AOServDaemonServer extends Thread {
 	/**
 	 * The address that this server will bind to.
 	 */
-	private final com.aoindustries.aoserv.client.validator.InetAddress serverBind;
+	private final com.aoindustries.net.InetAddress serverBind;
 
 	/**
 	 * The port that this server will listen on.
@@ -49,7 +49,7 @@ final public class AOServDaemonServer extends Thread {
 	/**
 	 * Creates a new, running <code>AOServServer</code>.
 	 */
-	public AOServDaemonServer(com.aoindustries.aoserv.client.validator.InetAddress serverBind, int serverPort, String protocol) {
+	public AOServDaemonServer(com.aoindustries.net.InetAddress serverBind, int serverPort, String protocol) {
 	super(AOServDaemonServer.class.getName()+"?address="+serverBind+"&port="+serverPort+"&protocol="+protocol);
 		this.serverBind = serverBind;
 		this.serverPort = serverPort;

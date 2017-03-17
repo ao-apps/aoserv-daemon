@@ -11,7 +11,6 @@ import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.NetProtocol;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Protocol;
-import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -19,6 +18,7 @@ import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.net.InetAddress;
 import com.aoindustries.selinux.Port;
 import com.aoindustries.util.WrappedException;
 import java.io.ByteArrayOutputStream;
@@ -284,6 +284,7 @@ final public class SshdManager extends BuilderThread {
 				+ "\n"
 				+ "#AllowAgentForwarding yes\n"
 				+ "#AllowTcpForwarding yes\n"
+				// We had on suspendo.aoindustries.com: GatewayPorts clientspecified
 				+ "#GatewayPorts no\n"
 				+ "X11Forwarding yes\n"
 				+ "#X11DisplayOffset 10\n"
@@ -498,6 +499,10 @@ final public class SshdManager extends BuilderThread {
 					}
 				}
 				// TODO: Manage firewalld
+				// TODO: Include rate-limiting from public zone, as well as a zone for monitoring
+				// TODO: List AOServDaemon at http://www.firewalld.org/
+				// TODO: AOServDaemon verify operating system version is correct on start-up to protect against config mistakes.
+				// TODO: AOServDaemon also configure firewall during start-up as it binds to ports in a kicked-off background thread.
 			}
 			return true;
 		} catch(ThreadDeath TD) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2014, 2015 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2014, 2015, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -406,7 +406,7 @@ final public class AOServDaemonServerThread extends Thread {
 							{
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing CHECK_PORT, Thread="+toString());
 								if(daemonKey==null) throw new IOException("Only the master server may CHECK_PORT");
-								com.aoindustries.aoserv.client.validator.InetAddress ipAddress = com.aoindustries.aoserv.client.validator.InetAddress.valueOf(in.readUTF());
+								com.aoindustries.net.InetAddress ipAddress = com.aoindustries.net.InetAddress.valueOf(in.readUTF());
 								int port = in.readCompressedInt();
 								String netProtocol = in.readUTF();
 								String appProtocol = in.readUTF();

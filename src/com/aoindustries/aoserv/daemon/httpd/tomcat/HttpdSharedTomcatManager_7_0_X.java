@@ -1,5 +1,5 @@
 /*
- * Copyright 2013, 2014, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -21,7 +21,6 @@ import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.NetBind;
-import com.aoindustries.aoserv.client.validator.DomainName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
@@ -30,6 +29,7 @@ import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.net.DomainName;
 import com.aoindustries.util.SortedArrayList;
 import java.io.BufferedOutputStream;
 import java.io.File;

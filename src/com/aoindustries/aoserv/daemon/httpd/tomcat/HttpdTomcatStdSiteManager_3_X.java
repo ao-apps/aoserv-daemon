@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -12,7 +12,6 @@ import com.aoindustries.aoserv.client.HttpdTomcatContext;
 import com.aoindustries.aoserv.client.HttpdTomcatStdSite;
 import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
-import com.aoindustries.aoserv.client.validator.DomainName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
@@ -20,6 +19,7 @@ import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.net.DomainName;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;

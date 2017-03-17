@@ -7,12 +7,12 @@ package com.aoindustries.aoserv.daemon.net;
 
 import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.NetDevice;
-import com.aoindustries.aoserv.client.validator.InetAddress;
-import com.aoindustries.aoserv.client.validator.ValidationException;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.net.InetAddress;
+import com.aoindustries.validation.ValidationException;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2015 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2015, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -12,11 +12,11 @@ import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
 import com.aoindustries.aoserv.client.HttpdTomcatVersion;
 import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.client.NetBind;
-import com.aoindustries.aoserv.client.validator.InetAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.net.InetAddress;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
