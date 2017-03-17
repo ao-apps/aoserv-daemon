@@ -23,6 +23,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.io.ByteCountInputStream;
+import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.SysExits;
@@ -621,10 +622,10 @@ final public class DistroManager implements Runnable {
 										Long.toString(distroLen)
 									);
 								} else {
-									long file_sha256_0 = PersistentCollections.bufferToLong(sha256);
-									long file_sha256_1 = PersistentCollections.bufferToLong(sha256, 8);
-									long file_sha256_2 = PersistentCollections.bufferToLong(sha256, 16);
-									long file_sha256_3 = PersistentCollections.bufferToLong(sha256, 24);
+									long file_sha256_0 = IoUtils.bufferToLong(sha256);
+									long file_sha256_1 = IoUtils.bufferToLong(sha256, 8);
+									long file_sha256_2 = IoUtils.bufferToLong(sha256, 16);
+									long file_sha256_3 = IoUtils.bufferToLong(sha256, 24);
 									long distro_sha256_0 = distroFile.getFileSha256_0();
 									long distro_sha256_1 = distroFile.getFileSha256_1();
 									long distro_sha256_2 = distroFile.getFileSha256_2();
@@ -688,10 +689,10 @@ final public class DistroManager implements Runnable {
 									stats.sha256Files++;
 									stats.sha256Bytes += fileLen;
 
-									long file_sha256_0 = PersistentCollections.bufferToLong(sha256);
-									long file_sha256_1 = PersistentCollections.bufferToLong(sha256, 8);
-									long file_sha256_2 = PersistentCollections.bufferToLong(sha256, 16);
-									long file_sha256_3 = PersistentCollections.bufferToLong(sha256, 24);
+									long file_sha256_0 = IoUtils.bufferToLong(sha256);
+									long file_sha256_1 = IoUtils.bufferToLong(sha256, 8);
+									long file_sha256_2 = IoUtils.bufferToLong(sha256, 16);
+									long file_sha256_3 = IoUtils.bufferToLong(sha256, 24);
 									long distro_sha256_0 = distroFile.getFileSha256_0();
 									long distro_sha256_1 = distroFile.getFileSha256_1();
 									long distro_sha256_2 = distroFile.getFileSha256_2();

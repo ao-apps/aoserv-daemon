@@ -19,6 +19,7 @@ import static com.aoindustries.aoserv.client.OperatingSystemVersion.VERSION_7;
 import static com.aoindustries.aoserv.client.OperatingSystemVersion.VERSION_7_DOM0;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.io.ByteCountInputStream;
+import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.SysExits;
@@ -26,7 +27,6 @@ import com.aoindustries.sql.SQLUtility;
 import com.aoindustries.util.AoArrays;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.StringUtility;
-import com.aoindustries.util.persistent.PersistentCollections;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -837,10 +837,10 @@ final public class DistroGenerator {
 								if(sha256.length != 32) throw new AssertionError();
 								SB
 									.append(fileLen).append("::int8, ")
-									.append(PersistentCollections.bufferToLong(sha256)).append("::int8, ")
-									.append(PersistentCollections.bufferToLong(sha256, 8)).append("::int8, ")
-									.append(PersistentCollections.bufferToLong(sha256, 16)).append("::int8, ")
-									.append(PersistentCollections.bufferToLong(sha256, 24)).append("::int8");
+									.append(IoUtils.bufferToLong(sha256)).append("::int8, ")
+									.append(IoUtils.bufferToLong(sha256, 8)).append("::int8, ")
+									.append(IoUtils.bufferToLong(sha256, 16)).append("::int8, ")
+									.append(IoUtils.bufferToLong(sha256, 24)).append("::int8");
 							} else if(type.equals(DistroFileType.PRELINK)) {
 								String chroot = root + '/' + osFilename.getOSName() + '/' + osFilename.getOSVersion() + '/' + osFilename.getOSArchitecture();
 								// Need to do SHA-256 digest in Java since prelink command doesn't support it directly
@@ -865,10 +865,10 @@ final public class DistroGenerator {
 										if(sha256.length != 32) throw new AssertionError();
 										SB
 											.append(fileLen).append("::int8, ")
-											.append(PersistentCollections.bufferToLong(sha256)).append("::int8, ")
-											.append(PersistentCollections.bufferToLong(sha256, 8)).append("::int8, ")
-											.append(PersistentCollections.bufferToLong(sha256, 16)).append("::int8, ")
-											.append(PersistentCollections.bufferToLong(sha256, 24)).append("::int8");
+											.append(IoUtils.bufferToLong(sha256)).append("::int8, ")
+											.append(IoUtils.bufferToLong(sha256, 8)).append("::int8, ")
+											.append(IoUtils.bufferToLong(sha256, 16)).append("::int8, ")
+											.append(IoUtils.bufferToLong(sha256, 24)).append("::int8");
 									} finally {
 										try {
 											int retCode = P.waitFor();
