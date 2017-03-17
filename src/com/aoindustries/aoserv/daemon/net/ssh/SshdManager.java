@@ -20,7 +20,6 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.selinux.Port;
-import com.aoindustries.selinux.PortRange;
 import com.aoindustries.util.WrappedException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -386,6 +385,7 @@ final public class SshdManager extends BuilderThread {
 				}
 				boolean isSshInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.OPENSSH_SERVER) != null;
 				if(!nbs.isEmpty() && !isSshInstalled) throw new AssertionError(PackageManager.PackageName.OPENSSH_SERVER + " not installed");
+				// Write/rewrite config when ssh server installed
 				if(isSshInstalled) {
 					// If there are not SSH ports, this will still build the config if the SSH daemon is installed.
 					// In this case, the SSH daemon will be configured with no ListenAddress, which will default to
@@ -424,6 +424,31 @@ final public class SshdManager extends BuilderThread {
 
 						needsRestart[0] = true;
 					}
+				}
+				// Manage SELinux:
+				if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+					// SELinux left in Permissive state, not configured here
+				} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+					// Note: SELinux configuration exists even without the openssh-server package installed.
+					//       SELinux policies are provided independent of specific packages.
+					//       Thus, we manage this even when the server not installed.
+
+					// See https://bugzilla.redhat.com/show_bug.cgi?id=653579
+					// Install /usr/bin/semanage if missing
+					PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
+					// Find the set of distinct ports used by SSH server
+					SortedSet<Port> sshPorts = new TreeSet<>();
+					for(NetBind nb : nbs) {
+						sshPorts.add(new Port(com.aoindustries.selinux.Protocol.tcp, nb.getPort().getPort()));
+					}
+					// Reconfigure SELinux ports
+					if(Port.configure(sshPorts, SELINUX_TYPE)) {
+						needsRestart[0] = true;
+					}
+				} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+
+				// Stop / restart after SELinux changes so ports may be opened
+				if(isSshInstalled) {
 					if(nbs.isEmpty()) {
 						// Disable and shutdown service since there are no net_binds
 						// openssh-server RPM is left installed
@@ -467,32 +492,11 @@ final public class SshdManager extends BuilderThread {
 								);
 							}
 						} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-							AOServDaemon.exec("/usr/bin/systemctl", "reload-or-restart", "sshd");
+							// TODO: Should this be reload-or-restart?
+							AOServDaemon.exec("/usr/bin/systemctl", "restart", "sshd");
 						} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 					}
 				}
-				// Manage SELinux:
-				if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-					// SELinux left in Permissive state, not configured here
-				} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-					// Note: SELinux configuration exists even without the openssh-server package installed.
-					//       SELinux policies are provided independent of specific packages.
-					//       Thus, we manage this even when the server not installed.
-
-					// See https://bugzilla.redhat.com/show_bug.cgi?id=653579
-					// Install /usr/bin/semanage if missing
-					PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
-					// Find the set of distinct ports used by SSH server
-					SortedSet<PortRange> sshPorts = new TreeSet<>();
-					// Always include the default port in the SELinux policy, even when not currently listening on it.
-					// This makes manual recovery more predictable.
-					sshPorts.add(new PortRange(DEFAULT_PORT));
-					for(NetBind nb : nbs) {
-						sshPorts.add(new PortRange(nb.getPort().getPort()));
-					}
-					// Reconfigure SELinux ports
-					Port.configureTypeAndProtocol(SELINUX_TYPE, com.aoindustries.selinux.Protocol.tcp, sshPorts);
-				} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 				// TODO: Manage firewalld
 			}
 			return true;
