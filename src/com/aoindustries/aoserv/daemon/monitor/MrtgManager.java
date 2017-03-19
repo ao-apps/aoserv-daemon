@@ -74,8 +74,8 @@ final public class MrtgManager extends BuilderThread {
 				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
-			int uid_min = thisAoServer.getUidMin().getID();
-			int gid_min = thisAoServer.getGidMin().getID();
+			int uid_min = thisAoServer.getUidMin().getId();
+			int gid_min = thisAoServer.getGidMin().getId();
 
 			AOServer failoverServer = thisAoServer.getFailoverServer();
 			String aoservMrtgBin;

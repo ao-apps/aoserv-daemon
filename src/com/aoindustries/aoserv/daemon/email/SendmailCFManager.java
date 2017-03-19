@@ -60,8 +60,8 @@ final public class SendmailCFManager extends BuilderThread {
 			// Used on inner processing
 			AOServConnector conn = AOServDaemon.getConnector();
 			AOServer thisAoServer = AOServDaemon.getThisAOServer();
-			int uid_min = thisAoServer.getUidMin().getID();
-			int gid_min = thisAoServer.getGidMin().getID();
+			int uid_min = thisAoServer.getUidMin().getId();
+			int gid_min = thisAoServer.getGidMin().getId();
 			Server thisServer = thisAoServer.getServer();
 			OperatingSystemVersion osv = thisServer.getOperatingSystemVersion();
 			int osvId = osv.getPkey();

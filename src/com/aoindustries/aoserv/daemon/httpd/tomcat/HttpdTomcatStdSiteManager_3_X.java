@@ -63,11 +63,11 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 		final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
 		final String siteDir = siteDirectory.getPath();
 		final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
-		final int uid = lsa.getUid().getID();
-		final int gid = httpdSite.getLinuxServerGroup().getGid().getID();
+		final int uid = lsa.getUid().getId();
+		final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
 		final AOServer thisAoServer = AOServDaemon.getThisAOServer();
-		int uid_min = thisAoServer.getUidMin().getID();
-		int gid_min = thisAoServer.getGidMin().getID();
+		int uid_min = thisAoServer.getUidMin().getId();
+		int gid_min = thisAoServer.getGidMin().getId();
 		final DomainName hostname = thisAoServer.getHostname();
 		//final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
 		//final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();

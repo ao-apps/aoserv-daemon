@@ -66,8 +66,8 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		final String siteDir = siteDirectory.getPath();
 		final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
 		final LinuxServerGroup lsg = httpdSite.getLinuxServerGroup();
-		final int uid = lsa.getUid().getID();
-		final int gid = lsg.getGid().getID();
+		final int uid = lsa.getUid().getId();
+		final int gid = lsg.getGid().getId();
 		final String laUsername=lsa.getLinuxAccount().getUsername().getUsername();
 		final String laGroupname = lsg.getLinuxGroup().getName();
 		final String siteName=httpdSite.getSiteName();
@@ -169,8 +169,8 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		DaemonFileUtils.mkdir(siteDir+"/classes", 0770, uid, gid);
 
 		AOServer thisAoServer = AOServDaemon.getThisAOServer();
-		int uid_min = thisAoServer.getUidMin().getID();
-		int gid_min = thisAoServer.getGidMin().getID();
+		int uid_min = thisAoServer.getUidMin().getId();
+		int gid_min = thisAoServer.getGidMin().getId();
 		/*
 		 * Write the manifest.servlet file.
 		 */
@@ -395,8 +395,8 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 			// Enabled
 			if(!daemonSymlink.getStat().exists()) {
 				daemonSymlink.symLink("../bin/jboss").chown(
-					httpdSite.getLinuxServerAccount().getUid().getID(),
-					httpdSite.getLinuxServerGroup().getGid().getID()
+					httpdSite.getLinuxServerAccount().getUid().getId(),
+					httpdSite.getLinuxServerGroup().getGid().getId()
 				);
 			}
 		} else {
@@ -455,7 +455,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 						throw new IllegalArgumentException("Unknown AJP version: "+htv);
 				}
 				out.print("\"/>\n"
-						+ "      <Parameter name=\"port\" value=\"").print(netBind.getPort()).print("\"/>\n");
+						+ "      <Parameter name=\"port\" value=\"").print(netBind.getPort().getPort()).print("\"/>\n");
 				InetAddress ip=netBind.getIPAddress().getInetAddress();
 				if(!ip.isUnspecified()) out.print("      <Parameter name=\"inet\" value=\"").encodeXmlAttribute(ip.toString()).print("\"/>\n");
 				out.print("      <Parameter name=\"max_threads\" value=\"30\"/>\n"
@@ -481,8 +481,8 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		String autoWarningOld = getAutoWarningXmlOld();
 
 		AOServer thisAoServer = AOServDaemon.getThisAOServer();
-		int uid_min = thisAoServer.getUidMin().getID();
-		int gid_min = thisAoServer.getGidMin().getID();
+		int uid_min = thisAoServer.getUidMin().getId();
+		int gid_min = thisAoServer.getGidMin().getId();
 
 		String confServerXML=siteDir+"/conf/server.xml";
 		UnixFile confServerXMLFile=new UnixFile(confServerXML);
@@ -493,8 +493,8 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 					buildServerXml(siteDirectory, autoWarning),
 					null,
 					confServerXMLFile,
-					httpdSite.getLinuxServerAccount().getUid().getID(),
-					httpdSite.getLinuxServerGroup().getGid().getID(),
+					httpdSite.getLinuxServerAccount().getUid().getId(),
+					httpdSite.getLinuxServerGroup().getGid().getId(),
 					0660,
 					uid_min,
 					gid_min

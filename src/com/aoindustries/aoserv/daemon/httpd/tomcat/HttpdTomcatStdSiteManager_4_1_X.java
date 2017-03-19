@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -50,12 +50,12 @@ class HttpdTomcatStdSiteManager_4_1_X extends HttpdTomcatStdSiteManager<TomcatCo
 		final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
 		final String siteDir = siteDirectory.getPath();
 		final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
-		final int uid = lsa.getUid().getID();
-		final int gid = httpdSite.getLinuxServerGroup().getGid().getID();
+		final int uid = lsa.getUid().getId();
+		final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
 		final String tomcatDirectory=tomcatSite.getHttpdTomcatVersion().getInstallDirectory();
 		final AOServer thisAoServer = AOServDaemon.getThisAOServer();
-		int uid_min = thisAoServer.getUidMin().getID();
-		int gid_min = thisAoServer.getGidMin().getID();
+		int uid_min = thisAoServer.getUidMin().getId();
+		int gid_min = thisAoServer.getGidMin().getId();
 		//final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
 		//final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
 
@@ -400,8 +400,8 @@ class HttpdTomcatStdSiteManager_4_1_X extends HttpdTomcatStdSiteManager<TomcatCo
 		// The only thing that needs to be modified is the included Tomcat
 		return getTomcatCommon().upgradeTomcatDirectory(
 			siteDirectory,
-			httpdSite.getLinuxServerAccount().getUid().getID(),
-			httpdSite.getLinuxServerGroup().getGid().getID()
+			httpdSite.getLinuxServerAccount().getUid().getId(),
+			httpdSite.getLinuxServerGroup().getGid().getId()
 		);
 	}
 }

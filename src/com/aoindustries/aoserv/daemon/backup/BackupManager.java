@@ -63,8 +63,8 @@ final public class BackupManager {
 			backupFiles(deleteFileList, backupFile);
 			// Remove the files that have been backed up.
 			AOServer thisAoServer = AOServDaemon.getThisAOServer();
-			int uid_min = thisAoServer.getUidMin().getID();
-			int gid_min = thisAoServer.getGidMin().getID();
+			int uid_min = thisAoServer.getUidMin().getId();
+			int gid_min = thisAoServer.getGidMin().getId();
 			for(File file : deleteFileList) {
 				new UnixFile(file).secureDeleteRecursive(uid_min, gid_min);
 			}

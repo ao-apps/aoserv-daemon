@@ -137,8 +137,8 @@ public class HttpdServerManager {
 		Set<String> extraFiles = new HashSet<>(list.length*4/3+1);
 		extraFiles.addAll(Arrays.asList(list));
 
-		int uid_min = thisAoServer.getUidMin().getID();
-		int gid_min = thisAoServer.getGidMin().getID();
+		int uid_min = thisAoServer.getUidMin().getId();
+		int gid_min = thisAoServer.getGidMin().getId();
 
 		// Iterate through each site
 		for(HttpdSite httpdSite : thisAoServer.getHttpdSites()) {
@@ -147,7 +147,7 @@ public class HttpdServerManager {
 			final HttpdSiteManager manager = HttpdSiteManager.getInstance(httpdSite);
 			final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
 			final LinuxServerGroup lsg = httpdSite.getLinuxServerGroup();
-			final int lsgGID = lsg.getGid().getID();
+			final int lsgGID = lsg.getGid().getId();
 			final List<HttpdSiteBind> binds = httpdSite.getHttpdSiteBinds();
 
 			// Remove from delete list
@@ -430,8 +430,8 @@ public class HttpdServerManager {
 	 * </ul>
 	 */
 	private static void doRebuildConf(AOServer thisAoServer, ByteArrayOutputStream bout, Set<HttpdServer> serversNeedingReloaded) throws IOException, SQLException {
-		int uid_min = thisAoServer.getUidMin().getID();
-		int gid_min = thisAoServer.getGidMin().getID();
+		int uid_min = thisAoServer.getUidMin().getId();
+		int gid_min = thisAoServer.getGidMin().getId();
 		// Rebuild per-server files
 		for(HttpdServer hs : thisAoServer.getHttpdServers()) {
 			// Rebuild the httpd.conf file
@@ -1018,8 +1018,8 @@ public class HttpdServerManager {
 	 * Rebuilds /etc/rc.d/init.d/httpd* init scripts.
 	 */
 	private static void doRebuildInitScripts(AOServer thisAoServer, ByteArrayOutputStream bout, List<File> deleteFileList, Set<HttpdServer> serversNeedingReloaded) throws IOException, SQLException {
-		int uid_min = thisAoServer.getUidMin().getID();
-		int gid_min = thisAoServer.getGidMin().getID();
+		int uid_min = thisAoServer.getUidMin().getId();
+		int gid_min = thisAoServer.getGidMin().getId();
 		List<HttpdServer> hss = thisAoServer.getHttpdServers();
 		Set<String> dontDeleteFilenames = new HashSet<>(hss.size()*4/3+1);
 		for(HttpdServer hs : hss) {

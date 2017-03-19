@@ -75,8 +75,8 @@ final public class NetDeviceManager extends BuilderThread {
 				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
-			int uid_min = thisAoServer.getUidMin().getID();
-			int gid_min = thisAoServer.getGidMin().getID();
+			int uid_min = thisAoServer.getUidMin().getId();
+			int gid_min = thisAoServer.getGidMin().getId();
 
 			// Used on inner loop
 			final ByteArrayOutputStream bout = new ByteArrayOutputStream();

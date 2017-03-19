@@ -146,8 +146,8 @@ final public class DNSManager extends BuilderThread {
 				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
-			int uid_min = thisAoServer.getUidMin().getID();
-			int gid_min = thisAoServer.getGidMin().getID();
+			int uid_min = thisAoServer.getUidMin().getId();
+			int gid_min = thisAoServer.getGidMin().getId();
 
 			synchronized(rebuildLock) {
 				Protocol dns = AOServDaemon.getConnector().getProtocols().get(Protocol.DNS);
@@ -158,7 +158,7 @@ final public class DNSManager extends BuilderThread {
 					{
 						LinuxServerGroup lsg = thisAoServer.getLinuxServerGroup(LinuxGroup.NAMED);
 						if(lsg == null) throw new SQLException("Unable to find LinuxServerGroup: " + LinuxGroup.NAMED + " on " + thisAoServer.getHostname());
-						namedGid = lsg.getGid().getID();
+						namedGid = lsg.getGid().getId();
 					}
 
 					// Only restart when needed

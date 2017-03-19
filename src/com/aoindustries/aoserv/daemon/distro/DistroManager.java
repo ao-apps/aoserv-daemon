@@ -19,6 +19,7 @@ import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.SQLColumnValue;
 import com.aoindustries.aoserv.client.SQLComparator;
 import com.aoindustries.aoserv.client.SQLExpression;
+import com.aoindustries.aoserv.client.validator.LinuxId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -31,6 +32,7 @@ import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.StringUtility;
 import com.aoindustries.util.logging.ProcessTimer;
 import com.aoindustries.util.persistent.PersistentCollections;
+import com.aoindustries.validation.ValidationException;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -479,7 +481,7 @@ final public class DistroManager implements Runnable {
 			LinuxAccount la = distroFile.getLinuxAccount();
 			LinuxServerAccount lsa = la.getLinuxServerAccount(aoServer);
 			if(lsa == null) throw new SQLException("Unable to find LinuxServerAccount for " + la + " on " + aoServer + ", path=" + file);
-			int distroUID = lsa.getUid().getID();
+			int distroUID = lsa.getUid().getId();
 			if(fileUID != distroUID) {
 				addResult(
 					results,
@@ -497,7 +499,7 @@ final public class DistroManager implements Runnable {
 			LinuxGroup lg = distroFile.getLinuxGroup();
 			LinuxServerGroup lsg = lg.getLinuxServerGroup(aoServer);
 			if(lsg == null) throw new SQLException("Unable to find LinuxServerGroup for " + lg + " on " + aoServer + ", path=" + file);
-			int distroGID = lsg.getGid().getID();
+			int distroGID = lsg.getGid().getId();
 			if(fileGID != distroGID) {
 				addResult(
 					results,
@@ -827,7 +829,7 @@ final public class DistroManager implements Runnable {
 
 						// Make sure is a valid user
 						int uid = ufStat.getUid();
-						if(aoServer.getLinuxServerAccount(uid) == null) {
+						if(aoServer.getLinuxServerAccount(LinuxId.valueOf(uid)) == null) {
 							addResult(
 								results,
 								verboseOut,
@@ -840,7 +842,7 @@ final public class DistroManager implements Runnable {
 
 						// Make sure is a valid group
 						int gid = ufStat.getGid();
-						if(aoServer.getLinuxServerGroup(gid) == null) {
+						if(aoServer.getLinuxServerGroup(LinuxId.valueOf(gid)) == null) {
 							addResult(
 								results,
 								verboseOut,
@@ -856,8 +858,8 @@ final public class DistroManager implements Runnable {
 						if(
 							(fileMode & (UnixFile.SET_UID | UnixFile.SET_GID)) != 0
 							&& (
-								uid < aoServer.getUidMin().getID()
-								|| gid < aoServer.getGidMin().getID()
+								uid < aoServer.getUidMin().getId()
+								|| gid < aoServer.getGidMin().getId()
 							)
 						) {
 							// Allow setUID for /etc/mail/majordomo/*/wrapper 4750 root.mail
@@ -872,7 +874,7 @@ final public class DistroManager implements Runnable {
 										fname.equals("wrapper")
 										&& fileMode == 04750
 										&& ufStat.getUid() == UnixFile.ROOT_UID
-										&& aoServer.getLinuxServerGroup(ufStat.getGid()).getLinuxGroup().getName().equals(LinuxGroup.MAIL)
+										&& aoServer.getLinuxServerGroup(LinuxId.valueOf(ufStat.getGid())).getLinuxGroup().getName().equals(LinuxGroup.MAIL)
 									) {
 										found = true;
 									}
@@ -908,6 +910,8 @@ final public class DistroManager implements Runnable {
 								stats.noRecurseCount++;
 							}
 						}
+					} catch(ValidationException e) {
+						throw new IOException(e);
 					} catch(RuntimeException err) {
 						LogFactory.getLogger(DistroManager.class).severe("RuntimeException while accessing: " + uf);
 						throw err;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2014, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -51,15 +51,15 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 		final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
 		final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
 		final AOServer thisAoServer = AOServDaemon.getThisAOServer();
-		int uid_min = thisAoServer.getUidMin().getID();
-		int gid_min = thisAoServer.getGidMin().getID();
+		int uid_min = thisAoServer.getUidMin().getId();
+		int gid_min = thisAoServer.getGidMin().getId();
 		final HttpdTomcatVersion htv=sharedTomcat.getHttpdTomcatVersion();
 		final String tomcatDirectory=htv.getInstallDirectory();
 		final TC tomcatCommon = getTomcatCommon();
 		final LinuxServerAccount lsa = sharedTomcat.getLinuxServerAccount();
-		final int lsaUID = lsa.getUid().getID();
+		final int lsaUID = lsa.getUid().getId();
 		final LinuxServerGroup lsg = sharedTomcat.getLinuxServerGroup();
-		final int lsgGID = lsg.getGid().getID();
+		final int lsgGID = lsg.getGid().getId();
 		final String wwwGroupDir = sharedTomcatDirectory.getPath();
 		final String wwwDirectory = httpdConfig.getHttpdSitesDirectory();
 		final UnixFile daemonUF = new UnixFile(sharedTomcatDirectory, "daemon", false);
@@ -312,7 +312,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 								.getHttpdSite()
 								.getLinuxServerGroup()
 								.getGid()
-								.getID()
+								.getId()
 						)
 						.setMode(0750)
 					;

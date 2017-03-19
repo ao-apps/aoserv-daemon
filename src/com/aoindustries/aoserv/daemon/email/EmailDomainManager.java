@@ -53,8 +53,8 @@ public final class EmailDomainManager extends BuilderThread {
 				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
-			int uid_min = thisAoServer.getUidMin().getID();
-			int gid_min = thisAoServer.getGidMin().getID();
+			int uid_min = thisAoServer.getUidMin().getId();
+			int gid_min = thisAoServer.getGidMin().getId();
 
 			synchronized(rebuildLock) {
 				// Grab the list of domains from the database

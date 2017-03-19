@@ -125,7 +125,7 @@ class HttpdLogManager {
 		Set<HttpdServer> serversNeedingReloaded
 	) throws IOException, SQLException {
 		// Values used below
-		final int awstatsUID = aoServer.getLinuxServerAccount(LinuxAccount.AWSTATS).getUid().getID();
+		final int awstatsUID = aoServer.getLinuxServerAccount(LinuxAccount.AWSTATS).getUid().getId();
 
 		// The log directories that exist but are not used will be removed
 		String logDir = aoServer.getServer().getOperatingSystemVersion().getHttpdSiteLogsDirectory();
@@ -143,7 +143,7 @@ class HttpdLogManager {
 			}
 
 			for(HttpdSite httpdSite : aoServer.getHttpdSites()) {
-				int lsgGID = httpdSite.getLinuxServerGroup().getGid().getID();
+				int lsgGID = httpdSite.getLinuxServerGroup().getGid().getId();
 
 				// Create the /logs/<site_name> directory
 				String siteName = httpdSite.getSiteName();
@@ -242,8 +242,8 @@ class HttpdLogManager {
 				throw new AssertionError("Unexpected value for osConfig: "+osConfig);
 		}
 
-		int uid_min = thisAoServer.getUidMin().getID();
-		int gid_min = thisAoServer.getGidMin().getID();
+		int uid_min = thisAoServer.getUidMin().getId();
+		int gid_min = thisAoServer.getGidMin().getId();
 
 		// Create directory if missing
 		if(!isGlobalLogrotateDir) {
@@ -304,7 +304,7 @@ class HttpdLogManager {
 					null,
 					new UnixFile(siteLogRotationDir, site.getSiteName()),
 					UnixFile.ROOT_UID,
-					site.getLinuxServerGroup().getGid().getID(),
+					site.getLinuxServerGroup().getGid().getId(),
 					0640,
 					uid_min,
 					gid_min

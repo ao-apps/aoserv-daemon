@@ -11,7 +11,6 @@ import com.aoindustries.aoserv.client.EmailSpamAssassinIntegrationMode;
 import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.NetBind;
-import com.aoindustries.aoserv.client.NetProtocol;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.PasswordGenerator;
 import com.aoindustries.aoserv.client.Protocol;
@@ -26,6 +25,7 @@ import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.ObjectUtils;
 import com.aoindustries.net.InetAddress;
+import com.aoindustries.net.Port;
 import com.aoindustries.sql.SQLUtility;
 import com.aoindustries.util.StringUtility;
 import com.sun.mail.iap.Argument;
@@ -206,13 +206,13 @@ final public class ImapManager extends BuilderThread {
 		AOServConnector conn = AOServDaemon.getConnector();
 		Protocol imapProtocol = conn.getProtocols().get(Protocol.IMAP2);
 		if(imapProtocol==null) throw new SQLException("Protocol not found: "+Protocol.IMAP2);
-		int imapPort = imapProtocol.getPort(conn).getPort();
+		Port imapPort = imapProtocol.getPort();
 		List<NetBind> netBinds = aoServer.getServer().getNetBinds(imapProtocol);
 		// Look for primary IP match
 		InetAddress primaryIp = aoServer.getPrimaryIPAddress().getInetAddress();
 		NetBind firstImap = null;
 		for(NetBind nb : netBinds) {
-			if(nb.getPort().getPort()==imapPort) {
+			if(nb.getPort() == imapPort) {
 				if(nb.getIPAddress().getInetAddress().equals(primaryIp)) return primaryIp;
 				if(firstImap==null) firstImap = nb;
 			}
@@ -429,15 +429,17 @@ final public class ImapManager extends BuilderThread {
 						if(sieveBinds.isEmpty()) throw new SQLException("sieve is required with any of imap, imaps, pop3, and pop3s");
 
 						// Required IMAP at least once on any default port
-						int defaultImapPort = imapProtocol.getPort(conn).getPort();
-						boolean foundOnDefault = false;
-						for(NetBind nb : imapBinds) {
-							if(nb.getPort().getPort()==defaultImapPort) {
-								foundOnDefault = true;
-								break;
+						{
+							Port defaultImapPort = imapProtocol.getPort();
+							boolean foundOnDefault = false;
+							for(NetBind nb : imapBinds) {
+								if(nb.getPort() == defaultImapPort) {
+									foundOnDefault = true;
+									break;
+								}
 							}
+							if(!foundOnDefault) throw new SQLException("imap is required on a default port with any of imap, imaps, pop3, and pop3s");
 						}
-						if(!foundOnDefault) throw new SQLException("imap is required on a default port with any of imap, imaps, pop3, and pop3s");
 
 						// The worst-case number of services, used to initialize storage to avoid rehash/resize
 						int maxServices =
@@ -471,7 +473,7 @@ final public class ImapManager extends BuilderThread {
 								// imap
 								int counter = 1;
 								for(NetBind imapBind : imapBinds) {
-									if(!imapBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("imap requires TCP protocol");
+									if(imapBind.getPort().getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("imap requires TCP protocol");
 									String serviceName = "imap"+(counter++);
 									out.print("  ").print(serviceName).print(" cmd=\"imapd\" listen=\"[").print(imapBind.getIPAddress().getInetAddress().toString()).print("]:").print(imapBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=5\n");
 									tlsServices.put(serviceName, imapBind);
@@ -479,7 +481,7 @@ final public class ImapManager extends BuilderThread {
 								// imaps
 								counter = 1;
 								for(NetBind imapsBind : imapsBinds) {
-									if(!imapsBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("imaps requires TCP protocol");
+									if(imapsBind.getPort().getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("imaps requires TCP protocol");
 									String serviceName = "imaps"+(counter++);
 									out.print("  ").print(serviceName).print(" cmd=\"imapd -s\" listen=\"[").print(imapsBind.getIPAddress().getInetAddress().toString()).print("]:").print(imapsBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=1\n");
 									tlsServices.put(serviceName, imapsBind);
@@ -487,7 +489,7 @@ final public class ImapManager extends BuilderThread {
 								// pop3
 								counter = 1;
 								for(NetBind pop3Bind : pop3Binds) {
-									if(!pop3Bind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("pop3 requires TCP protocol");
+									if(pop3Bind.getPort().getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("pop3 requires TCP protocol");
 									String serviceName = "pop3"+(counter++);
 									out.print("  ").print(serviceName).print(" cmd=\"pop3d\" listen=\"[").print(pop3Bind.getIPAddress().getInetAddress().toString()).print("]:").print(pop3Bind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=3\n");
 									tlsServices.put(serviceName, pop3Bind);
@@ -495,7 +497,7 @@ final public class ImapManager extends BuilderThread {
 								// pop3s
 								counter = 1;
 								for(NetBind pop3sBind : pop3sBinds) {
-									if(!pop3sBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("pop3s requires TCP protocol");
+									if(pop3sBind.getPort().getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("pop3s requires TCP protocol");
 									String serviceName = "pop3s"+(counter++);
 									out.print("  ").print(serviceName).print(" cmd=\"pop3d -s\" listen=\"[").print(pop3sBind.getIPAddress().getInetAddress().toString()).print("]:").print(pop3sBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=1\n");
 									tlsServices.put(serviceName, pop3sBind);
@@ -503,7 +505,7 @@ final public class ImapManager extends BuilderThread {
 								// sieve
 								counter = 1;
 								for(NetBind sieveBind : sieveBinds) {
-									if(!sieveBind.getNetProtocol().getProtocol().equals(NetProtocol.TCP)) throw new SQLException("sieve requires TCP protocol");
+									if(sieveBind.getPort().getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("sieve requires TCP protocol");
 									out.print("  sieve").print(counter++).print(" cmd=\"timsieved\" listen=\"[").print(sieveBind.getIPAddress().getInetAddress().toString()).print("]:").print(sieveBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=0\n");
 								}
 										//+ "  # these are only necessary if receiving/exporting usenet via NNTP\n"
@@ -1649,8 +1651,8 @@ final public class ImapManager extends BuilderThread {
 
 	public static void setImapFolderSubscribed(String username, String folderName, boolean subscribed) throws IOException, SQLException {
 		AOServer thisAoServer = AOServDaemon.getThisAOServer();
-		int uid_min = thisAoServer.getUidMin().getID();
-		int gid_min = thisAoServer.getGidMin().getID();
+		int uid_min = thisAoServer.getUidMin().getId();
+		int gid_min = thisAoServer.getGidMin().getId();
 		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		LinuxServerAccount lsa=thisAoServer.getLinuxServerAccount(username);
@@ -1669,7 +1671,7 @@ final public class ImapManager extends BuilderThread {
 				}
 			}
 			if(subscribed!=currentlySubscribed) {
-				try (PrintWriter out = new PrintWriter(mailboxlist.getSecureOutputStream(lsa.getUid().getID(), lsa.getPrimaryLinuxServerGroup().getGid().getID(), 0644, true, uid_min, gid_min))) {
+				try (PrintWriter out = new PrintWriter(mailboxlist.getSecureOutputStream(lsa.getUid().getId(), lsa.getPrimaryLinuxServerGroup().getGid().getId(), 0644, true, uid_min, gid_min))) {
 					for (String line : lines) {
 						if(subscribed || !line.equals(folderName)) {
 							// Only print if the folder still exists

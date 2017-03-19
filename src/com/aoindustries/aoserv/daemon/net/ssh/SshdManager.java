@@ -8,7 +8,6 @@ package com.aoindustries.aoserv.daemon.net.ssh;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.NetBind;
-import com.aoindustries.aoserv.client.NetProtocol;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Protocol;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -18,6 +17,7 @@ import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.net.AddressFamily;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.Port;
 import com.aoindustries.selinux.SEManagePort;
@@ -87,12 +87,16 @@ final public class SshdManager extends BuilderThread {
 			for(NetBind nb : nbs) {
 				out.print("ListenAddress ");
 				InetAddress ip = nb.getIPAddress().getInetAddress();
-				if(ip.isIPv4()) {
-					out.print(ip.toString());
-				} else if(ip.isIPv6()) {
-					out.print('[').print(ip.toString()).print(']');
-				} else {
-					throw new AssertionError("Neither IPv4 nor IPv6: " + ip);
+				AddressFamily addressFamily = ip.getAddressFamily();
+				switch(addressFamily) {
+					case INET :
+						out.print(ip.toString());
+						break;
+					case INET6 :
+						out.print('[').print(ip.toString()).print(']');
+						break;
+					default :
+						throw new AssertionError("Unexpected address family: " + addressFamily);
 				}
 				int port = nb.getPort().getPort();
 				if(port != DEFAULT_PORT) {
@@ -167,16 +171,21 @@ final public class SshdManager extends BuilderThread {
 			// Determine address family
 			boolean hasIPv4 = false;
 			boolean hasIPv6 = false;
+			LOOP :
 			for(NetBind nb : nbs) {
 				InetAddress ip = nb.getIPAddress().getInetAddress();
-				if(ip.isIPv4()) {
-					hasIPv4 = true;
-					if(hasIPv6) break;
-				} else if(ip.isIPv6()) {
-					hasIPv6 = true;
-					if(hasIPv4) break;
-				} else {
-					throw new AssertionError("Neither IPv4 nor IPv6: " + ip);
+				AddressFamily addressFamily = ip.getAddressFamily();
+				switch(addressFamily) {
+					case INET :
+						hasIPv4 = true;
+						if(hasIPv6) break LOOP;
+						break;
+					case INET6 :
+						hasIPv6 = true;
+						if(hasIPv4) break LOOP;
+						break;
+					default :
+						throw new AssertionError("Unexpected address family: " + addressFamily);
 				}
 			}
 			out.print("AddressFamily ");
@@ -340,8 +349,8 @@ final public class SshdManager extends BuilderThread {
 			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 
-			int uid_min = thisAoServer.getUidMin().getID();
-			int gid_min = thisAoServer.getGidMin().getID();
+			int uid_min = thisAoServer.getUidMin().getId();
+			int gid_min = thisAoServer.getGidMin().getId();
 
 
 			AOServConnector conn = AOServDaemon.getConnector();
@@ -353,8 +362,8 @@ final public class SshdManager extends BuilderThread {
 					if(sshProtocol == null) throw new SQLException("Protocol not found: " + Protocol.SSH);
 					for(NetBind nb : thisAoServer.getServer().getNetBinds(sshProtocol)) {
 						if(nb.getNetTcpRedirect() == null) {
-							NetProtocol netProtocol = nb.getNetProtocol();
-							if(!netProtocol.getProtocol().equals(NetProtocol.TCP)) {
+							com.aoindustries.net.Protocol netProtocol = nb.getPort().getProtocol();
+							if(netProtocol != com.aoindustries.net.Protocol.TCP) {
 								throw new IOException("Unsupported protocol for SSH: " + netProtocol);
 							}
 							nbs.add(nb);
@@ -441,7 +450,7 @@ final public class SshdManager extends BuilderThread {
 					// Find the set of distinct ports used by SSH server
 					SortedSet<Port> sshPorts = new TreeSet<>();
 					for(NetBind nb : nbs) {
-						sshPorts.add(Port.valueOf(nb.getPort().getPort(), com.aoindustries.net.Protocol.TCP));
+						sshPorts.add(nb.getPort());
 					}
 					// Reconfigure SELinux ports
 					if(SEManagePort.configure(sshPorts, SELINUX_TYPE)) {

@@ -81,7 +81,7 @@ class HttpdTomcatStdSiteManager_3_1 extends HttpdTomcatStdSiteManager_3_X<Tomcat
                 else if(protocol.equals(HttpdJKProtocol.AJP13)) throw new IllegalArgumentException("Tomcat Version "+htv+" does not support AJP version: "+protocol);
                 else throw new IllegalArgumentException("Unknown AJP version: "+htv);
                 out.print("\"/>\n"
-                        + "            <Parameter name=\"port\" value=\"").print(netBind.getPort()).print("\"/>\n");
+                        + "            <Parameter name=\"port\" value=\"").print(netBind.getPort().getPort()).print("\"/>\n");
                 InetAddress ip=netBind.getIPAddress().getInetAddress();
                 if(!ip.isUnspecified()) out.print("            <Parameter name=\"inet\" value=\"").encodeXmlAttribute(ip.toString()).print("\"/>\n");
                 out.print("            <Parameter name=\"max_threads\" value=\"30\"/>\n"

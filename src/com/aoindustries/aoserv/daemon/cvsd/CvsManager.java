@@ -96,8 +96,8 @@ final public class CvsManager extends BuilderThread {
 							cvsStat = cvsUF.getStat();
 						}
 						// Set the owner and group
-						int uid = lsa.getUid().getID();
-						int gid = cvs.getLinuxServerGroup().getGid().getID();
+						int uid = lsa.getUid().getId();
+						int gid = cvs.getLinuxServerGroup().getGid().getId();
 						if(uid != cvsStat.getUid() || gid != cvsStat.getGid()) {
 							cvsUF.chown(uid, gid);
 							// Unused here, no need to re-stat: cvsStat = cvsUF.getStat();
@@ -131,8 +131,8 @@ final public class CvsManager extends BuilderThread {
 					/*
 					 * Remove the files that have been backed up.
 					 */
-					int uid_min = thisAoServer.getUidMin().getID();
-					int gid_min = thisAoServer.getGidMin().getID();
+					int uid_min = thisAoServer.getUidMin().getId();
+					int gid_min = thisAoServer.getGidMin().getId();
 					for(int c = 0; c < svLen; c++) {
 						File file = deleteFileList.get(c);
 						new UnixFile(file.getPath()).secureDeleteRecursive(uid_min, gid_min);

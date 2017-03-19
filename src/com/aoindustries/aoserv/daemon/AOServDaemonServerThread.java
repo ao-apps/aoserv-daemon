@@ -44,6 +44,8 @@ import com.aoindustries.aoserv.daemon.server.VirtualServerManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
+import com.aoindustries.net.Port;
+import com.aoindustries.net.Protocol;
 import com.aoindustries.noc.monitor.portmon.PortMonitor;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -56,6 +58,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.logging.Level;
 import javax.net.ssl.SSLHandshakeException;
 
@@ -407,11 +410,18 @@ final public class AOServDaemonServerThread extends Thread {
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing CHECK_PORT, Thread="+toString());
 								if(daemonKey==null) throw new IOException("Only the master server may CHECK_PORT");
 								com.aoindustries.net.InetAddress ipAddress = com.aoindustries.net.InetAddress.valueOf(in.readUTF());
-								int port = in.readCompressedInt();
-								String netProtocol = in.readUTF();
+								Port port = Port.valueOf(
+									in.readCompressedInt(),
+									Protocol.valueOf(in.readUTF().toUpperCase(Locale.ROOT))
+								);
 								String appProtocol = in.readUTF();
 								String monitoringParameters = in.readUTF();
-								PortMonitor portMonitor = PortMonitor.getPortMonitor(ipAddress, port, netProtocol, appProtocol, NetBind.decodeParameters(monitoringParameters));
+								PortMonitor portMonitor = PortMonitor.getPortMonitor(
+									ipAddress,
+									port,
+									appProtocol,
+									NetBind.decodeParameters(monitoringParameters)
+								);
 								logIOException = false;
 								String result = portMonitor.checkPort();
 								logIOException = true;

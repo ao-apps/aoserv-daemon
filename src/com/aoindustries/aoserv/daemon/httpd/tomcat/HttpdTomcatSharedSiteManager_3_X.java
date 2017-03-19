@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -57,8 +57,8 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
 		// Resolve and allocate stuff used throughout the method
 		final TomcatCommon_3_X tomcatCommon = getTomcatCommon();
 		final String siteDir = siteDirectory.getPath();
-		final int uid = httpdSite.getLinuxServerAccount().getUid().getID();
-		final int gid = httpdSite.getLinuxServerGroup().getGid().getID();
+		final int uid = httpdSite.getLinuxServerAccount().getUid().getId();
+		final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
 
 		/*
 		 * Create the skeleton of the site, the directories and links.
@@ -81,8 +81,8 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
 		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);
 
 		AOServer thisAoServer = AOServDaemon.getThisAOServer();
-		int uid_min = thisAoServer.getUidMin().getID();
-		int gid_min = thisAoServer.getGidMin().getID();
+		int uid_min = thisAoServer.getUidMin().getId();
+		int gid_min = thisAoServer.getGidMin().getId();
 
 		/*
 		 * Write the manifest.servlet file.
@@ -291,8 +291,8 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
 		String autoWarningOld = getAutoWarningXmlOld();
 
 		AOServer thisAoServer = AOServDaemon.getThisAOServer();
-		int uid_min = thisAoServer.getUidMin().getID();
-		int gid_min = thisAoServer.getGidMin().getID();
+		int uid_min = thisAoServer.getUidMin().getId();
+		int gid_min = thisAoServer.getGidMin().getId();
 
 		String confServerXML=siteDir+"/conf/server.xml";
 		UnixFile confServerXMLFile=new UnixFile(confServerXML);
@@ -303,8 +303,8 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
 					buildServerXml(siteDirectory, autoWarning),
 					null,
 					confServerXMLFile,
-					httpdSite.getLinuxServerAccount().getUid().getID(),
-					httpdSite.getLinuxServerGroup().getGid().getID(),
+					httpdSite.getLinuxServerAccount().getUid().getId(),
+					httpdSite.getLinuxServerGroup().getGid().getId(),
 					0660,
 					uid_min,
 					gid_min

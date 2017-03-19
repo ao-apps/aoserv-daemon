@@ -89,7 +89,7 @@ class HttpdTomcatSharedSiteManager_3_2_4 extends HttpdTomcatSharedSiteManager_3_
                 else if(protocol.equals(HttpdJKProtocol.AJP13)) out.print("org.apache.tomcat.service.connector.Ajp13ConnectionHandler");
                 else throw new IllegalArgumentException("Unknown AJP version: "+htv);
                 out.print("\"/>\n"
-                        + "      <Parameter name=\"port\" value=\"").print(netBind.getPort()).print("\"/>\n");
+                        + "      <Parameter name=\"port\" value=\"").print(netBind.getPort().getPort()).print("\"/>\n");
                 InetAddress ip=netBind.getIPAddress().getInetAddress();
                 if(!ip.isUnspecified()) out.print("      <Parameter name=\"inet\" value=\"").encodeXmlAttribute(ip.toString()).print("\"/>\n");
                 out.print("      <Parameter name=\"max_threads\" value=\"30\"/>\n"

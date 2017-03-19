@@ -61,8 +61,8 @@ public final class PgHbaManager extends BuilderThread {
 			synchronized(rebuildLock) {
 				for(PostgresServer ps : thisAOServer.getPostgresServers()) {
 					String version=ps.getPostgresVersion().getTechnologyVersion(connector).getVersion();
-					int postgresUID=thisAOServer.getLinuxServerAccount(LinuxAccount.POSTGRES).getUid().getID();
-					int postgresGID=thisAOServer.getLinuxServerGroup(LinuxGroup.POSTGRES).getGid().getID();
+					int postgresUID=thisAOServer.getLinuxServerAccount(LinuxAccount.POSTGRES).getUid().getId();
+					int postgresGID=thisAOServer.getLinuxServerGroup(LinuxGroup.POSTGRES).getGid().getId();
 					String serverName=ps.getName();
 					File serverDir=new File(PostgresServerManager.pgsqlDirectory, serverName);
 					UnixFile newHbaUF=new UnixFile(serverDir, "pg_hba.conf.new");

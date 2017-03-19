@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -114,8 +114,8 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 			// Enabled
 			if(!daemonSymlink.getStat().exists()) {
 				daemonSymlink.symLink("../bin/tomcat").chown(
-					httpdSite.getLinuxServerAccount().getUid().getID(),
-					httpdSite.getLinuxServerGroup().getGid().getID()
+					httpdSite.getLinuxServerAccount().getUid().getId(),
+					httpdSite.getLinuxServerGroup().getGid().getId()
 				);
 			}
 		} else {
@@ -137,8 +137,8 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 		String autoWarningOld = getAutoWarningXmlOld();
 
 		AOServer thisAoServer = AOServDaemon.getThisAOServer();
-		int uid_min = thisAoServer.getUidMin().getID();
-		int gid_min = thisAoServer.getGidMin().getID();
+		int uid_min = thisAoServer.getUidMin().getId();
+		int gid_min = thisAoServer.getGidMin().getId();
 
 		String confServerXML=siteDir+"/conf/server.xml";
 		UnixFile confServerXMLFile=new UnixFile(confServerXML);
@@ -149,8 +149,8 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 					buildServerXml(siteDirectory, autoWarning),
 					null,
 					confServerXMLFile,
-					httpdSite.getLinuxServerAccount().getUid().getID(),
-					httpdSite.getLinuxServerGroup().getGid().getID(),
+					httpdSite.getLinuxServerAccount().getUid().getId(),
+					httpdSite.getLinuxServerGroup().getGid().getId(),
 					0660,
 					uid_min,
 					gid_min

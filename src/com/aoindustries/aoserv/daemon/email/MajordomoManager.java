@@ -56,8 +56,8 @@ final public class MajordomoManager extends BuilderThread {
 				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
-			int uid_min = thisAoServer.getUidMin().getID();
-			int gid_min = thisAoServer.getGidMin().getID();
+			int uid_min = thisAoServer.getUidMin().getId();
+			int gid_min = thisAoServer.getGidMin().getId();
 
 			// Reused during processing below
 			final UnixFile serversUF=new UnixFile(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY);
@@ -80,7 +80,7 @@ final public class MajordomoManager extends BuilderThread {
 					if(mailLG==null) throw new SQLException("Unable to find LinuxGroup: "+LinuxGroup.MAIL);
 					LinuxServerGroup mailLSG=mailLG.getLinuxServerGroup(thisAoServer);
 					if(mailLSG==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+thisAoServer.getHostname());
-					mailGID=mailLSG.getGid().getID();
+					mailGID=mailLSG.getGid().getId();
 				}
 
 				// A list of things to be deleted is maintained
@@ -100,9 +100,9 @@ final public class MajordomoManager extends BuilderThread {
 					existingServers.remove(domain);
 					String msPath=MajordomoServer.MAJORDOMO_SERVER_DIRECTORY+'/'+domain;
 					LinuxServerAccount lsa=ms.getLinuxServerAccount();
-					int lsaUID=lsa.getUid().getID();
+					int lsaUID=lsa.getUid().getId();
 					LinuxServerGroup lsg=ms.getLinuxServerGroup();
-					int lsgGID=lsg.getGid().getID();
+					int lsgGID=lsg.getGid().getId();
 					UnixFile msUF=new UnixFile(msPath);
 					Stat msUFStat = msUF.getStat();
 					UnixFile listsUF=new UnixFile(msUF, "lists", false);

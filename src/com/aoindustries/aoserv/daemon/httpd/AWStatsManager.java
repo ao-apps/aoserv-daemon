@@ -70,10 +70,10 @@ final public class AWStatsManager extends BuilderThread {
 			// Resolve the UID and GID before obtaining the lock
 			AOServer thisAoServer=AOServDaemon.getThisAOServer();
 			Server thisServer = thisAoServer.getServer();
-			int uid_min = thisAoServer.getUidMin().getID();
-			int gid_min = thisAoServer.getGidMin().getID();
-			int awstatsUID=thisAoServer.getLinuxServerAccount(LinuxAccount.AWSTATS).getUid().getID();
-			int awstatsGID=thisAoServer.getLinuxServerGroup(LinuxGroup.AWSTATS).getGid().getID();
+			int uid_min = thisAoServer.getUidMin().getId();
+			int gid_min = thisAoServer.getGidMin().getId();
+			int awstatsUID=thisAoServer.getLinuxServerAccount(LinuxAccount.AWSTATS).getUid().getId();
+			int awstatsGID=thisAoServer.getLinuxServerGroup(LinuxGroup.AWSTATS).getGid().getId();
 
 			// RAM is used to verify config files before committing to the filesystem
 			ByteArrayOutputStream byteBuff=new ByteArrayOutputStream();

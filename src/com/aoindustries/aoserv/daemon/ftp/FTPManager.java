@@ -13,7 +13,6 @@ import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.client.LinuxGroup;
 import com.aoindustries.aoserv.client.NetBind;
-import com.aoindustries.aoserv.client.NetProtocol;
 import com.aoindustries.aoserv.client.NetTcpRedirect;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.PrivateFTPServer;
@@ -98,8 +97,8 @@ final public class FTPManager extends BuilderThread {
 	private static void doRebuildProFtpd() throws IOException, SQLException {
 		AOServConnector conn=AOServDaemon.getConnector();
 		AOServer thisAoServer=AOServDaemon.getThisAOServer();
-		int uid_min = thisAoServer.getUidMin().getID();
-		int gid_min = thisAoServer.getGidMin().getID();
+		int uid_min = thisAoServer.getUidMin().getId();
+		int gid_min = thisAoServer.getGidMin().getId();
 		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
@@ -143,8 +142,8 @@ final public class FTPManager extends BuilderThread {
 					if(redirect!=null) {
 						if(privateServer!=null) throw new SQLException("NetBind allocated as both NetTcpRedirect and PrivateFTPServer: "+bind.getPkey());
 					} else {
-						String netProtocol=bind.getNetProtocol().getProtocol();
-						if(!netProtocol.equals(NetProtocol.TCP)) throw new SQLException("ProFTPD may only be configured for TCP service:  (net_binds.pkey="+bind.getPkey()+").net_protocol="+netProtocol);
+						com.aoindustries.net.Protocol netProtocol = bind.getPort().getProtocol();
+						if(netProtocol != com.aoindustries.net.Protocol.TCP) throw new SQLException("ProFTPD may only be configured for TCP service:  (net_binds.pkey="+bind.getPkey()+").protocol="+netProtocol);
 
 						IPAddress ia=bind.getIPAddress();
 						bindCount++;
@@ -222,8 +221,8 @@ final public class FTPManager extends BuilderThread {
 	private static void doRebuildVsFtpd() throws IOException, SQLException {
 		AOServConnector conn=AOServDaemon.getConnector();
 		AOServer thisAoServer=AOServDaemon.getThisAOServer();
-		int uid_min = thisAoServer.getUidMin().getID();
-		int gid_min = thisAoServer.getGidMin().getID();
+		int uid_min = thisAoServer.getUidMin().getId();
+		int gid_min = thisAoServer.getGidMin().getId();
 		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
@@ -314,8 +313,8 @@ final public class FTPManager extends BuilderThread {
 					if(redirect!=null) {
 						if(privateServer!=null) throw new SQLException("NetBind allocated as both NetTcpRedirect and PrivateFTPServer: "+bind.getPkey());
 					} else {
-						String netProtocol=bind.getNetProtocol().getProtocol();
-						if(!netProtocol.equals(NetProtocol.TCP)) throw new SQLException("vsftpd may only be configured for TCP service:  (net_binds.pkey="+bind.getPkey()+").net_protocol="+netProtocol);
+						com.aoindustries.net.Protocol netProtocol=bind.getPort().getProtocol();
+						if(netProtocol != com.aoindustries.net.Protocol.TCP) throw new SQLException("vsftpd may only be configured for TCP service:  (net_binds.pkey="+bind.getPkey()+").net_protocol="+netProtocol);
 						IPAddress ia=bind.getIPAddress();
 
 						// Write to buffer

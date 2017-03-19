@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -44,8 +44,8 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 	protected void buildSiteDirectory(UnixFile siteDirectory, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
 		final boolean isAuto = !httpdSite.isManual();
 		final int apacheUid = getApacheUid();
-		final int uid = httpdSite.getLinuxServerAccount().getUid().getID();
-		final int gid = httpdSite.getLinuxServerGroup().getGid().getID();
+		final int uid = httpdSite.getLinuxServerAccount().getUid().getId();
+		final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
 
 		// Create wwwDirectory if needed
 		Stat siteDirectoryStat = siteDirectory.getStat();

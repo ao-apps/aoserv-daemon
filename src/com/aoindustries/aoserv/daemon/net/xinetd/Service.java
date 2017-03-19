@@ -8,11 +8,10 @@ package com.aoindustries.aoserv.daemon.net.xinetd;
 import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
-import com.aoindustries.aoserv.client.NetPort;
-import com.aoindustries.aoserv.client.NetProtocol;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.lang.ObjectUtils;
 import com.aoindustries.net.InetAddress;
+import com.aoindustries.net.Port;
 import java.io.IOException;
 import java.sql.SQLException;
 
@@ -28,9 +27,9 @@ public final class Service {
 	final private String banner_fail;
 	final private String flags;
 	final private String service;
-	final private NetProtocol socket_type;
+	final private com.aoindustries.net.Protocol socket_type;
 	final private IPAddress bind;
-	final private NetPort port;
+	final private Port port;
 	final private boolean wait;
 	final private LinuxServerAccount user;
 	final private LinuxServerGroup group;
@@ -51,9 +50,9 @@ public final class Service {
 		String banner_fail,
 		String flags,
 		String service,
-		NetProtocol socket_type,
+		com.aoindustries.net.Protocol socket_type,
 		IPAddress bind,
-		NetPort port,
+		Port port,
 		boolean wait,
 		LinuxServerAccount user,
 		LinuxServerGroup group,
@@ -121,10 +120,9 @@ public final class Service {
 		if(flags!=null) out.print("\tflags = ").print(flags).print('\n');
 
 		out.print("\tsocket_type = ");
-		String protocol=socket_type.getProtocol();
-		if(protocol.equals(NetProtocol.TCP)) out.print("stream");
-		else if(protocol.equals(NetProtocol.UDP)) out.print("dgram");
-		else throw new SQLException("Unknown value for socket_type: "+protocol);
+		if(socket_type == com.aoindustries.net.Protocol.TCP) out.print("stream");
+		else if(socket_type == com.aoindustries.net.Protocol.UDP) out.print("dgram");
+		else throw new SQLException("Unknown value for socket_type: "+socket_type);
 		out.print('\n');
 
 		if(bind!=null) {
@@ -133,7 +131,10 @@ public final class Service {
 				out.print("\tbind = ").print(ip.toString()).print('\n');
 			}
 		}
-		if(port!=null) out.print("\tport = ").print(port.getPort()).print('\n');
+		if(port!=null) {
+			if(port.getProtocol() != socket_type) throw new SQLException("port and socket_type mismatch: " + port + " and " + socket_type);
+			out.print("\tport = ").print(port.getPort()).print('\n');
+		}
 
 		out.print("\twait = ").print(wait?"yes":"no").print('\n');
 

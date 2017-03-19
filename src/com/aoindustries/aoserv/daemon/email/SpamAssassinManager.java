@@ -15,6 +15,7 @@ import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Server;
+import com.aoindustries.aoserv.client.validator.LinuxId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -29,6 +30,7 @@ import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.util.WrappedException;
+import com.aoindustries.validation.ValidationException;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -309,7 +311,12 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 					}
 
 					// Find the account based on UID
-					LinuxServerAccount lsa=aoServer.getLinuxServerAccount(currentUID);
+					LinuxServerAccount lsa;
+					try {
+						lsa = aoServer.getLinuxServerAccount(LinuxId.valueOf(currentUID));
+					} catch(ValidationException e) {
+						throw new IOException(e);
+					}
 					if(lsa==null) {
 						LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "aoServer="+aoServer.getHostname()+", currentUID="+currentUID, new SQLException("Unable to find LinuxServerAccount"));
 					} else {
@@ -363,14 +370,14 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 		}
 		// Make sure user cyrus and group mail
 		AOServer thisAoServer = AOServDaemon.getThisAOServer();
-		int uid_min = thisAoServer.getUidMin().getID();
-		int gid_min = thisAoServer.getGidMin().getID();
+		int uid_min = thisAoServer.getUidMin().getId();
+		int gid_min = thisAoServer.getGidMin().getId();
 		LinuxServerAccount cyrus = thisAoServer.getLinuxServerAccount(LinuxAccount.CYRUS);
 		if(cyrus==null) throw new SQLException("Unable to find LinuxServerAccount: "+LinuxAccount.CYRUS+" on "+thisAoServer);
-		int cyrusUid = cyrus.getUid().getID();
+		int cyrusUid = cyrus.getUid().getId();
 		LinuxServerGroup mail = thisAoServer.getLinuxServerGroup(LinuxGroup.MAIL);
 		if(mail==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxAccount.MAIL+" on "+thisAoServer);
-		int mailGid = mail.getGid().getID();
+		int mailGid = mail.getGid().getId();
 		if(incomingStat.getUid()!=cyrusUid || incomingStat.getGid()!=mailGid) {
 			incomingDirectory.chown(cyrusUid, mailGid);
 			incomingStat = incomingDirectory.getStat();
@@ -421,7 +428,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 						userDirectoryUfStat = userDirectoryUf.getStat();
 					}
 					// Set ownership, should by username and group mail
-					int lsaUid = lsa.getUid().getID();
+					int lsaUid = lsa.getUid().getId();
 					if(userDirectoryUfStat.getUid()!=lsaUid || userDirectoryUfStat.getGid()!=mailGid) {
 						userDirectoryUf.chown(lsaUid, mailGid);
 						userDirectoryUfStat = userDirectoryUf.getStat();
@@ -575,8 +582,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
-			int uid_min = thisAoServer.getUidMin().getID();
-			int gid_min = thisAoServer.getGidMin().getID();
+			int uid_min = thisAoServer.getUidMin().getId();
+			int gid_min = thisAoServer.getGidMin().getId();
 			final InetAddress primaryIP = thisAoServer.getPrimaryIPAddress().getInetAddress();
 
 			/**
@@ -657,8 +664,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 								spamAssassinDir.mkdir(
 									false,
 									0700,
-									lsa.getUid().getID(),
-									lsa.getPrimaryLinuxServerGroup().getGid().getID()
+									lsa.getUid().getId(),
+									lsa.getPrimaryLinuxServerGroup().getGid().getId()
 								);
 							}
 							UnixFile userPrefs=new UnixFile(spamAssassinDir, "user_prefs", false);
@@ -679,7 +686,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 							if(!userPrefs.getStat().exists() || !userPrefs.contentEquals(newBytes)) {
 								// Replace when changed
 								UnixFile userPrefsNew=new UnixFile(spamAssassinDir, "user_prefs.new", false);
-								try (FileOutputStream out = userPrefsNew.getSecureOutputStream(lsa.getUid().getID(), lsa.getPrimaryLinuxServerGroup().getGid().getID(), 0600, true, uid_min, gid_min)) {
+								try (FileOutputStream out = userPrefsNew.getSecureOutputStream(lsa.getUid().getId(), lsa.getPrimaryLinuxServerGroup().getGid().getId(), 0600, true, uid_min, gid_min)) {
 									out.write(newBytes);
 								}
 								userPrefsNew.renameTo(userPrefs);
@@ -738,8 +745,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 		public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
 			try {
 				AOServer thisAoServer = AOServDaemon.getThisAOServer();
-				int uid_min = thisAoServer.getUidMin().getID();
-				int gid_min = thisAoServer.getGidMin().getID();
+				int uid_min = thisAoServer.getUidMin().getId();
+				int gid_min = thisAoServer.getGidMin().getId();
 				Queue<String> queuedLines = new LinkedList<>();
 				for(LinuxServerAccount lsa : thisAoServer.getLinuxServerAccounts()) {
 					// Only clean razor for accounts under /home/
@@ -763,8 +770,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 									}
 								}
 								if(removed) {
-									int uid = lsa.getUid().getID();
-									int gid = lsa.getPrimaryLinuxServerGroup().getGid().getID();
+									int uid = lsa.getUid().getId();
+									int gid = lsa.getPrimaryLinuxServerGroup().getGid().getId();
 									UnixFile tempFile = UnixFile.mktemp(razorAgentLog.getPath()+'.', false);
 									try {
 										try (PrintWriter out = new PrintWriter(new BufferedOutputStream(tempFile.getSecureOutputStream(uid, gid, 0644, true, uid_min, gid_min)))) {

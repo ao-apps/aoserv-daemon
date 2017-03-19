@@ -86,12 +86,12 @@ public final class ProcmailManager extends BuilderThread {
 				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
-			int uid_min = thisAoServer.getUidMin().getID();
-			int gid_min = thisAoServer.getGidMin().getID();
+			int uid_min = thisAoServer.getUidMin().getId();
+			int gid_min = thisAoServer.getGidMin().getId();
 			InetAddress primaryIP = thisAoServer.getPrimaryIPAddress().getInetAddress();
 			LinuxServerGroup mailLsg = thisAoServer.getLinuxServerGroup(LinuxGroup.MAIL);
 			if(mailLsg==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+thisAoServer.getHostname());
-			int mailGid = mailLsg.getGid().getID();
+			int mailGid = mailLsg.getGid().getId();
 
 			synchronized(rebuildLock) {
 				// Control the permissions of the deliver program, needs to be SUID to
@@ -414,8 +414,8 @@ public final class ProcmailManager extends BuilderThread {
 								UnixFile tempUF=UnixFile.mktemp(home+"/.procmailrc.", false);
 								try (
 									FileOutputStream fout = tempUF.getSecureOutputStream(
-										lsa.getUid().getID(),
-										lsa.getPrimaryLinuxServerGroup().getGid().getID(),
+										lsa.getUid().getId(),
+										lsa.getPrimaryLinuxServerGroup().getGid().getId(),
 										0600,
 										true,
 										uid_min,

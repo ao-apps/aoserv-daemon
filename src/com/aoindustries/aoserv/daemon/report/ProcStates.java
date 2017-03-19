@@ -1,14 +1,16 @@
 /*
- * Copyright 2000-2013, 2016 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.report;
 
 import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.validator.LinuxId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.StringUtility;
+import com.aoindustries.validation.ValidationException;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -59,7 +61,7 @@ final public class ProcStates {
 
 		AOServer thisAoServer = AOServDaemon.getThisAOServer();
 		boolean isOuterServer = thisAoServer.getFailoverServer()==null;
-		int uid_min = thisAoServer.getUidMin().getID();
+		int uid_min = thisAoServer.getUidMin().getId();
 
 		// Parse for the values
 		String[] list=proc.list();
@@ -98,7 +100,7 @@ final public class ProcStates {
 						}
 						if(
 							uid >= uid_min
-							&& thisAoServer.getLinuxServerAccount(uid)!=null
+							&& thisAoServer.getLinuxServerAccount(LinuxId.valueOf(uid))!=null
 						) {
 							if(state==null) user_unknown++;
 							else {
@@ -114,6 +116,8 @@ final public class ProcStates {
 						in.close();
 					} catch(FileNotFoundException err) {
 						// Normal if the process has terminated
+					} catch(ValidationException e) {
+						throw new IOException(e);
 					}
 				}
 			}

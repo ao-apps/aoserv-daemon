@@ -13,8 +13,6 @@ import com.aoindustries.aoserv.client.LinuxGroup;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.NetBind;
-import com.aoindustries.aoserv.client.NetPort;
-import com.aoindustries.aoserv.client.NetProtocol;
 import com.aoindustries.aoserv.client.NetTcpRedirect;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Protocol;
@@ -25,6 +23,7 @@ import com.aoindustries.aoserv.daemon.email.ImapManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.net.Port;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -91,9 +90,9 @@ public final class XinetdManager extends BuilderThread {
 							null,
 							null,
 							"wuimap",
-							connector.getNetProtocols().get(NetProtocol.TCP),
+							com.aoindustries.net.Protocol.TCP,
 							aoServer.getPrimaryIPAddress(),
-							connector.getNetPorts().get(8143),
+							Port.valueOf(8143, com.aoindustries.net.Protocol.TCP),
 							false,
 							rootUser,
 							null,
@@ -110,7 +109,7 @@ public final class XinetdManager extends BuilderThread {
 				}
 
 				for (NetBind bind : binds) {
-					NetPort port=bind.getPort();
+					Port port=bind.getPort();
 					NetTcpRedirect redirect=bind.getNetTcpRedirect();
 					Protocol protocolObj=bind.getAppProtocol();
 					String protocol=protocolObj.getProtocol();
@@ -122,25 +121,25 @@ public final class XinetdManager extends BuilderThread {
 						|| protocol.equals(Protocol.TALK)
 						|| protocol.equals(Protocol.TELNET)
 						|| (
-						// POP and IMAP is handled through xinetd on Mandriva 2006.0
-						osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586
-						&& (
-						//protocol.equals(Protocol.POP2)
-						protocol.equals(Protocol.POP3)
-						|| protocol.equals(Protocol.SIMAP)
-						|| protocol.equals(Protocol.SPOP3)
-						|| protocol.equals(Protocol.IMAP2)
-						)
+							// POP and IMAP is handled through xinetd on Mandriva 2006.0
+							osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586
+							&& (
+								//protocol.equals(Protocol.POP2)
+								protocol.equals(Protocol.POP3)
+								|| protocol.equals(Protocol.SIMAP)
+								|| protocol.equals(Protocol.SPOP3)
+								|| protocol.equals(Protocol.IMAP2)
+							)
 						) || (
-						// FTP is handled through xinetd on CentOS 5
-						osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-						&& protocol.equals(Protocol.FTP)
+							// FTP is handled through xinetd on CentOS 5
+							osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+							&& protocol.equals(Protocol.FTP)
 						)
-						) {
+					) {
 						Service service;
 						if(redirect!=null) {
-							NetProtocol netProtocol=bind.getNetProtocol();
-							if(!netProtocol.getProtocol().equals(NetProtocol.TCP)) throw new SQLException("Only TCP ports may be redirected: (net_binds.pkey="+bind.getPkey()+").net_protocol="+netProtocol.getProtocol());
+							com.aoindustries.net.Protocol netProtocol=port.getProtocol();
+							if(netProtocol != com.aoindustries.net.Protocol.TCP) throw new SQLException("Only TCP ports may be redirected: (net_binds.pkey="+bind.getPkey()+").protocol="+netProtocol);
 
 							service=new Service(
 								UNLISTED,
@@ -166,7 +165,7 @@ public final class XinetdManager extends BuilderThread {
 								redirect.getDestinationHost().toString()+" "+redirect.getDestinationPort()
 							);
 						} else {
-							boolean portMatches=protocolObj.getPort(connector).equals(port);
+							boolean portMatches=protocolObj.getPort().equals(port);
 							/*if(protocol.equals(Protocol.AUTH)) {
 							service=new Service(
 							portMatches?null:UNLISTED,
@@ -209,7 +208,7 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											"REUSE",
 											portMatches?"cvspserver":"cvspserver-unlisted",
-											bind.getNetProtocol(),
+											port.getProtocol(),
 											bind.getIPAddress(),
 											portMatches?null:port,
 											false,
@@ -239,7 +238,7 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											"REUSE",
 											portMatches?"cvspserver":"cvspserver-unlisted",
-											bind.getNetProtocol(),
+											port.getProtocol(),
 											bind.getIPAddress(),
 											portMatches?null:port,
 											false,
@@ -266,7 +265,7 @@ public final class XinetdManager extends BuilderThread {
 											"/etc/vsftpd/busy_banner",
 											"IPv4",
 											portMatches?"ftp":"ftp-unlisted",
-											bind.getNetProtocol(),
+											port.getProtocol(),
 											bind.getIPAddress(),
 											portMatches?null:port,
 											false,
@@ -293,7 +292,7 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											null,
 											portMatches?"imap":"imap-unlisted",
-											bind.getNetProtocol(),
+											port.getProtocol(),
 											bind.getIPAddress(),
 											portMatches?null:port,
 											false,
@@ -320,7 +319,7 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											null,
 											portMatches?"ntalk":"ntalk-unlisted",
-											bind.getNetProtocol(),
+											port.getProtocol(),
 											bind.getIPAddress(),
 											portMatches?null:port,
 											true,
@@ -344,7 +343,7 @@ public final class XinetdManager extends BuilderThread {
 											null, // banner_fail
 											"IPv4", // flags
 											portMatches?"ntalk":"ntalk-unlisted",
-											bind.getNetProtocol(),
+											port.getProtocol(),
 											bind.getIPAddress(),
 											portMatches?null:port,
 											true,
@@ -397,7 +396,7 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											null,
 											portMatches?"pop3":"pop3-unlisted",
-											bind.getNetProtocol(),
+											port.getProtocol(),
 											bind.getIPAddress(),
 											portMatches?null:port,
 											false,
@@ -424,7 +423,7 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											null,
 											portMatches?"imaps":"imaps-unlisted",
-											bind.getNetProtocol(),
+											port.getProtocol(),
 											bind.getIPAddress(),
 											portMatches?null:port,
 											false,
@@ -451,7 +450,7 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											null,
 											portMatches?"pop3s":"pop3s-unlisted",
-											bind.getNetProtocol(),
+											port.getProtocol(),
 											bind.getIPAddress(),
 											portMatches?null:port,
 											false,
@@ -478,7 +477,7 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											null,
 											portMatches?"talk":"talk-unlisted",
-											bind.getNetProtocol(),
+											port.getProtocol(),
 											bind.getIPAddress(),
 											portMatches?null:port,
 											true,
@@ -502,7 +501,7 @@ public final class XinetdManager extends BuilderThread {
 											null, // banner_fail
 											"IPv4", // flags
 											portMatches?"talk":"talk-unlisted",
-											bind.getNetProtocol(),
+											port.getProtocol(),
 											bind.getIPAddress(),
 											portMatches?null:port,
 											true,
@@ -529,7 +528,7 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											"REUSE",
 											portMatches?"telnet":"telnet-unlisted",
-											bind.getNetProtocol(),
+											port.getProtocol(),
 											bind.getIPAddress(),
 											portMatches?null:port,
 											false,
@@ -553,7 +552,7 @@ public final class XinetdManager extends BuilderThread {
 											null,
 											"REUSE",
 											portMatches?"telnet":"telnet-unlisted",
-											bind.getNetProtocol(),
+											port.getProtocol(),
 											bind.getIPAddress(),
 											portMatches?null:port,
 											false,

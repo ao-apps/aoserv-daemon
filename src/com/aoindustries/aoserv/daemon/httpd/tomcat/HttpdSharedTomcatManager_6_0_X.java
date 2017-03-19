@@ -63,15 +63,15 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
 		final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
 		final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
 		final AOServer thisAoServer = AOServDaemon.getThisAOServer();
-		int uid_min = thisAoServer.getUidMin().getID();
-		int gid_min = thisAoServer.getGidMin().getID();
+		int uid_min = thisAoServer.getUidMin().getId();
+		int gid_min = thisAoServer.getGidMin().getId();
 		final HttpdTomcatVersion htv=sharedTomcat.getHttpdTomcatVersion();
 		final String tomcatDirectory=htv.getInstallDirectory();
 		final TomcatCommon tomcatCommon = getTomcatCommon();
 		final LinuxServerAccount lsa = sharedTomcat.getLinuxServerAccount();
-		final int lsaUID = lsa.getUid().getID();
+		final int lsaUID = lsa.getUid().getId();
 		final LinuxServerGroup lsg = sharedTomcat.getLinuxServerGroup();
-		final int lsgGID = lsg.getGid().getID();
+		final int lsgGID = lsg.getGid().getId();
 		final String wwwGroupDir = sharedTomcatDirectory.getPath();
 		final String wwwDirectory = httpdConfig.getHttpdSitesDirectory();
 		final UnixFile daemonUF = new UnixFile(sharedTomcatDirectory, "daemon", false);
@@ -340,7 +340,7 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
 								.getHttpdSite()
 								.getLinuxServerGroup()
 								.getGid()
-								.getID()
+								.getId()
 						)
 						.setMode(0750)
 					;
@@ -521,8 +521,8 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
 		// Upgrade Tomcat
 		boolean needsRestart = getTomcatCommon().upgradeTomcatDirectory(
 			siteDirectory,
-			sharedTomcat.getLinuxServerAccount().getUid().getID(),
-			sharedTomcat.getLinuxServerGroup().getGid().getID()
+			sharedTomcat.getLinuxServerAccount().getUid().getId(),
+			sharedTomcat.getLinuxServerGroup().getGid().getId()
 		);
 
 		// Update bin/tomcat script

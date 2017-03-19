@@ -17,6 +17,7 @@ import com.aoindustries.aoserv.client.HttpdTomcatSite;
 import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.validator.LinuxId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
@@ -26,6 +27,7 @@ import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.validation.ValidationException;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -190,7 +192,12 @@ public abstract class HttpdSiteManager {
 		Stat daemonDirectoryStat = daemonDirectory.getStat();
 		if(daemonDirectoryStat.exists()) {
 			int daemonUid=daemonDirectoryStat.getUid();
-			LinuxServerAccount daemonLsa = AOServDaemon.getThisAOServer().getLinuxServerAccount(daemonUid);
+			LinuxServerAccount daemonLsa;
+			try {
+				daemonLsa = AOServDaemon.getThisAOServer().getLinuxServerAccount(LinuxId.valueOf(daemonUid));
+			} catch(ValidationException e) {
+				throw new IOException(e);
+			}
 			// If the account doesn't exist or is disabled, the process killer will kill any processes
 			if(daemonLsa!=null && !daemonLsa.isDisabled()) {
 				String[] list = daemonDirectory.list();
@@ -423,8 +430,8 @@ public abstract class HttpdSiteManager {
 			DaemonFileUtils.mkdir(
 				ftpDirectory,
 				0775,
-				httpdSite.getLinuxServerAccount().getUid().getID(),
-				httpdSite.getLinuxServerGroup().getGid().getID()
+				httpdSite.getLinuxServerAccount().getUid().getId(),
+				httpdSite.getLinuxServerGroup().getGid().getId()
 			);
 		}
 	}
@@ -453,8 +460,8 @@ public abstract class HttpdSiteManager {
 		// TODO: Make based on per-httpd_site setting
 		if(enableCgi() && enablePhp()) {
 			AOServer thisAoServer = AOServDaemon.getThisAOServer();
-			int uid_min = thisAoServer.getUidMin().getID();
-			int gid_min = thisAoServer.getGidMin().getID();
+			int uid_min = thisAoServer.getUidMin().getId();
+			int gid_min = thisAoServer.getGidMin().getId();
 			final OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 			final int osvId = osv.getPkey();
 			HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
@@ -560,8 +567,8 @@ public abstract class HttpdSiteManager {
 			if(requiredPackage != null) PackageManager.installPackage(requiredPackage);
 
 			// Only rewrite when needed
-			int uid = httpdSite.getLinuxServerAccount().getUid().getID();
-			int gid = httpdSite.getLinuxServerGroup().getGid().getID();
+			int uid = httpdSite.getLinuxServerAccount().getUid().getId();
+			int gid = httpdSite.getLinuxServerGroup().getGid().getId();
 			int mode = 0755;
 			// Create parent if missing
 			UnixFile parent = cgibinDirectory.getParent();
@@ -619,7 +626,7 @@ public abstract class HttpdSiteManager {
 					}
 					// Set permissions and ownership
 					tempFile.setMode(0755);
-					tempFile.chown(httpdSite.getLinuxServerAccount().getUid().getID(), httpdSite.getLinuxServerGroup().getGid().getID());
+					tempFile.chown(httpdSite.getLinuxServerAccount().getUid().getId(), httpdSite.getLinuxServerGroup().getGid().getId());
 					// Move into place
 					tempFile.renameTo(testFile);
 				} finally {
@@ -653,7 +660,7 @@ public abstract class HttpdSiteManager {
 				}
 				// Set permissions and ownership
 				tempFile.setMode(0664);
-				tempFile.chown(httpdSite.getLinuxServerAccount().getUid().getID(), httpdSite.getLinuxServerGroup().getGid().getID());
+				tempFile.chown(httpdSite.getLinuxServerAccount().getUid().getId(), httpdSite.getLinuxServerGroup().getGid().getId());
 				// Move into place
 				tempFile.renameTo(indexFile);
 			} finally {
@@ -690,7 +697,7 @@ public abstract class HttpdSiteManager {
 					}
 					// Set permissions and ownership
 					tempFile.setMode(0664);
-					tempFile.chown(httpdSite.getLinuxServerAccount().getUid().getID(), httpdSite.getLinuxServerGroup().getGid().getID());
+					tempFile.chown(httpdSite.getLinuxServerAccount().getUid().getId(), httpdSite.getLinuxServerGroup().getGid().getId());
 					// Move into place
 					tempFile.renameTo(testFile);
 				} finally {
@@ -712,7 +719,7 @@ public abstract class HttpdSiteManager {
 		int uid = -1;
 		if(!HttpdSite.DISABLED.equals(httpdSite.getSiteName())) {
 			for(HttpdSiteBind hsb : httpdSite.getHttpdSiteBinds()) {
-				int hsUid = hsb.getHttpdBind().getHttpdServer().getLinuxServerAccount().getUid().getID();
+				int hsUid = hsb.getHttpdBind().getHttpdServer().getLinuxServerAccount().getUid().getId();
 				if(uid==-1) {
 					uid = hsUid;
 				} else if(uid!=hsUid) {
@@ -726,7 +733,7 @@ public abstract class HttpdSiteManager {
 			AOServer aoServer = AOServDaemon.getThisAOServer();
 			LinuxServerAccount apacheLsa = aoServer.getLinuxServerAccount(LinuxAccount.APACHE);
 			if(apacheLsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+LinuxAccount.APACHE+" on "+aoServer.getHostname());
-			uid = apacheLsa.getUid().getID();
+			uid = apacheLsa.getUid().getId();
 		}
 		return uid;
 	}
