@@ -440,7 +440,7 @@ final public class SshdManager extends BuilderThread {
 					// Find the set of distinct ports used by SSH server
 					SortedSet<Port> sshPorts = new TreeSet<>();
 					for(NetBind nb : nbs) {
-						sshPorts.add(new Port(com.aoindustries.selinux.Protocol.tcp, nb.getPort().getPort()));
+						sshPorts.add(new Port(com.aoindustries.net.Protocol.TCP, nb.getPort().getPort()));
 					}
 					// Reconfigure SELinux ports
 					if(Port.configure(sshPorts, SELINUX_TYPE)) {
