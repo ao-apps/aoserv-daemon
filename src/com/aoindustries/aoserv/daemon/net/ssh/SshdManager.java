@@ -19,7 +19,8 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.InetAddress;
-import com.aoindustries.selinux.Port;
+import com.aoindustries.net.Port;
+import com.aoindustries.selinux.SEManagePort;
 import com.aoindustries.util.WrappedException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -440,10 +441,10 @@ final public class SshdManager extends BuilderThread {
 					// Find the set of distinct ports used by SSH server
 					SortedSet<Port> sshPorts = new TreeSet<>();
 					for(NetBind nb : nbs) {
-						sshPorts.add(new Port(com.aoindustries.net.Protocol.TCP, nb.getPort().getPort()));
+						sshPorts.add(Port.valueOf(nb.getPort().getPort(), com.aoindustries.net.Protocol.TCP));
 					}
 					// Reconfigure SELinux ports
-					if(Port.configure(sshPorts, SELINUX_TYPE)) {
+					if(SEManagePort.configure(sshPorts, SELINUX_TYPE)) {
 						needsRestart[0] = true;
 					}
 				} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
