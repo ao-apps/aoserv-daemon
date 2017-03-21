@@ -101,7 +101,7 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 		webapps.put(
 			"",
 			new WebAppSettings(
-				HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()+'/'+httpdSite.getSiteName()+"/htdocs",
+				HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory().toString()+'/'+httpdSite.getSiteName()+"/htdocs",
 				"AuthConfig Indexes Limit",
 				"Indexes IncludesNOEXEC",
 				enableCgi()

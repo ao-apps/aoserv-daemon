@@ -20,6 +20,7 @@ import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.TechnologyVersion;
+import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
@@ -329,10 +330,10 @@ public class HttpdServerManager {
 						+ "    # Authenticated Locations\n");
 				for(HttpdSiteAuthenticatedLocation hsal : hsals) {
 					out.print("    <").print(hsal.getIsRegularExpression()?"LocationMatch":"Location").print(" \"").print(hsal.getPath()).print("\">\n");
-					if(hsal.getAuthUserFile().length()>0 || hsal.getAuthGroupFile().length()>0) out.print("        AuthType Basic\n");
+					if(hsal.getAuthUserFile() != null || hsal.getAuthGroupFile() != null) out.print("        AuthType Basic\n");
 					if(hsal.getAuthName().length()>0) out.print("        AuthName \"").print(hsal.getAuthName()).print("\"\n");
-					if(hsal.getAuthUserFile().length()>0) out.print("        AuthUserFile \"").print(hsal.getAuthUserFile()).print("\"\n");
-					if(hsal.getAuthGroupFile().length()>0) out.print("        AuthGroupFile \"").print(hsal.getAuthGroupFile()).print("\"\n");
+					if(hsal.getAuthUserFile() != null) out.print("        AuthUserFile \"").print(hsal.getAuthUserFile()).print("\"\n");
+					if(hsal.getAuthGroupFile() != null) out.print("        AuthGroupFile \"").print(hsal.getAuthGroupFile()).print("\"\n");
 					if(hsal.getRequire().length()>0) out.print("        require ").print(hsal.getRequire()).print('\n');
 					out.print("    </").print(hsal.getIsRegularExpression()?"LocationMatch":"Location").print(">\n");
 				}
@@ -856,12 +857,13 @@ public class HttpdServerManager {
 					+ "    CustomLog ").print(bind.getAccessLog()).print(" combined\n"
 					+ "    ErrorLog ").print(bind.getErrorLog()).print("\n"
 					+ "\n");
-			String sslCert=bind.getSSLCertFile();
+			UnixPath sslCert=bind.getSSLCertFile();
 			if(sslCert!=null) {
+				String sslCertStr = sslCert.toString();
 				// If a .ca file exists with the same name as the certificate, use it instead of the OS default
-				String sslCa = osConfig.getOpensslDefaultCaFile();
-				if(sslCert.endsWith(".cert")) {
-					String possibleCa = sslCert.substring(0, sslCert.length()-5) + ".ca";
+				String sslCa = osConfig.getOpensslDefaultCaFile().toString();
+				if(sslCertStr.endsWith(".cert")) {
+					String possibleCa = sslCertStr.substring(0, sslCertStr.length()-5) + ".ca";
 					if(new File(possibleCa).exists()) sslCa = possibleCa;
 				}
 

@@ -18,6 +18,8 @@ import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.validator.LinuxId;
+import com.aoindustries.aoserv.client.validator.UnixPath;
+import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
@@ -78,44 +80,48 @@ public abstract class HttpdSiteManager {
 		Set<HttpdSite> sitesNeedingRestarted,
 		Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted
 	) throws IOException, SQLException {
-		// Get values used in the rest of the method.
-		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
-		AOServer aoServer = AOServDaemon.getThisAOServer();
+		try {
+			// Get values used in the rest of the method.
+			HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
+			AOServer aoServer = AOServDaemon.getThisAOServer();
 
-		// The www directories that exist but are not used will be removed
-		UnixFile wwwDirectory = new UnixFile(osConfig.getHttpdSitesDirectory());
-		String[] list = wwwDirectory.list();
-		Set<String> wwwRemoveList = new HashSet<>(list.length*4/3+1);
-		for (String dirname : list) {
-			if(
-				!dirname.equals("lost+found")
-				&& !dirname.equals("aquota.user")
-			) {
-				wwwRemoveList.add(dirname);
+			// The www directories that exist but are not used will be removed
+			UnixFile wwwDirectory = new UnixFile(osConfig.getHttpdSitesDirectory().toString());
+			String[] list = wwwDirectory.list();
+			Set<String> wwwRemoveList = new HashSet<>(list.length*4/3+1);
+			for (String dirname : list) {
+				if(
+					!dirname.equals("lost+found")
+					&& !dirname.equals("aquota.user")
+				) {
+					wwwRemoveList.add(dirname);
+				}
 			}
-		}
 
-		// Iterate through each site
-		for(HttpdSite httpdSite : aoServer.getHttpdSites()) {
-			final HttpdSiteManager manager = getInstance(httpdSite);
+			// Iterate through each site
+			for(HttpdSite httpdSite : aoServer.getHttpdSites()) {
+				final HttpdSiteManager manager = getInstance(httpdSite);
 
-			// Install any required RPMs
-			PackageManager.installPackages(manager.getRequiredPackages());
+				// Install any required RPMs
+				PackageManager.installPackages(manager.getRequiredPackages());
 
-			// Create and fill in any incomplete installations.
-			final String siteName = httpdSite.getSiteName();
-			UnixFile siteDirectory = new UnixFile(wwwDirectory, siteName, false);
-			manager.buildSiteDirectory(siteDirectory, sitesNeedingRestarted, sharedTomcatsNeedingRestarted);
-			wwwRemoveList.remove(siteName);
-		}
+				// Create and fill in any incomplete installations.
+				final String siteName = httpdSite.getSiteName();
+				UnixFile siteDirectory = new UnixFile(wwwDirectory, siteName, false);
+				manager.buildSiteDirectory(siteDirectory, sitesNeedingRestarted, sharedTomcatsNeedingRestarted);
+				wwwRemoveList.remove(siteName);
+			}
 
-		// Stop, disable, and mark files for deletion
-		for(String siteName : wwwRemoveList) {
-			UnixFile removeFile = new UnixFile(wwwDirectory, siteName, false);
-			// Stop and disable any daemons
-			stopAndDisableDaemons(removeFile);
-			// Only remove the directory when not used by a home directory
-			if(!aoServer.isHomeUsed(removeFile.getPath())) deleteFileList.add(removeFile.getFile());
+			// Stop, disable, and mark files for deletion
+			for(String siteName : wwwRemoveList) {
+				UnixFile removeFile = new UnixFile(wwwDirectory, siteName, false);
+				// Stop and disable any daemons
+				stopAndDisableDaemons(removeFile);
+				// Only remove the directory when not used by a home directory
+				if(!aoServer.isHomeUsed(UnixPath.valueOf(removeFile.getPath()))) deleteFileList.add(removeFile.getFile());
+			}
+		} catch(ValidationException e) {
+			throw new IOException(e);
 		}
 	}
 
@@ -206,7 +212,7 @@ public abstract class HttpdSiteManager {
 						final UnixFile scriptFile = new UnixFile(daemonDirectory, scriptName, false);
 						// Call stop with a one-minute time-out if not owned by root
 						if(daemonUid!=UnixFile.ROOT_UID) {
-							final String username = daemonLsa.getLinuxAccount().getUsername().getUsername();
+							final UserId username = daemonLsa.getLinuxAccount().getUsername().getUsername();
 							try {
 								Future<Object> stopFuture = AOServDaemon.executorService.submit(() -> {
 									AOServDaemon.suexec(
@@ -519,7 +525,7 @@ public abstract class HttpdSiteManager {
 			} else {
 				phpMinorVersion = osConfig.getDefaultPhpMinorVersion();
 			}
-			String phpCgiPath = osConfig.getPhpCgiPath(phpMinorVersion);
+			UnixPath phpCgiPath = osConfig.getPhpCgiPath(phpMinorVersion);
 
 			PackageManager.PackageName requiredPackage;
 
