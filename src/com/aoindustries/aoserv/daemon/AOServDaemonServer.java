@@ -79,8 +79,8 @@ final public class AOServDaemonServer extends Thread {
 					}
 
 					// Remove the keys
-					for(int c=0;c<removeKeys.size();c++) {
-						accessKeys.remove(removeKeys.get(c));
+					for (Long removeKey : removeKeys) {
+						accessKeys.remove(removeKey);
 					}
 
 					// Reset the clean time
@@ -89,7 +89,7 @@ final public class AOServDaemonServer extends Thread {
 			}
 
 			// Add to the table
-			accessKeys.put(Long.valueOf(key), new DaemonAccessEntry(key, command, param1, param2, param3, param4));
+			accessKeys.put(key, new DaemonAccessEntry(key, command, param1, param2, param3, param4));
 		}
 	}
 

@@ -28,6 +28,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Locale;
 import java.util.logging.Level;
 
 /**
@@ -229,14 +230,12 @@ final public class SendmailCFManager extends BuilderThread {
 									+ "dnl\n");
 							InetAddress ip = jilterNetBind.getIPAddress().getInetAddress();
 							if(ip.isUnspecified()) ip = primaryIpAddress.getInetAddress();
-							if(ip.isIPv6()) {
-								// IPv6
-								out.print("INPUT_MAIL_FILTER(`jilter',`S=inet6:").print(jilterNetBind.getPort().getPort()).print('@').print(ip).print(", F=R, T=S:60s;R:60s')\n");
-							} else {
-								// IPv4
-								out.print("INPUT_MAIL_FILTER(`jilter',`S=inet:").print(jilterNetBind.getPort().getPort()).print('@').print(ip).print(", F=R, T=S:60s;R:60s')\n");
-							}
-							out.print("dnl\n");
+							out
+								.print("INPUT_MAIL_FILTER(`jilter',`S=")
+								.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
+								.print(':')
+								.print(jilterNetBind.getPort().getPort()).print('@').print(ip).print(", F=R, T=S:60s;R:60s')\n"
+									+ "dnl\n");
 						}
 						out.print("dnl Only listen to the IP addresses of this logical server\n"
 								+ "dnl\n"
@@ -253,7 +252,7 @@ final public class SendmailCFManager extends BuilderThread {
 									.print("DAEMON_OPTIONS(`Addr=")
 									.print(ip.toString())
 									.print(", Family=")
-									.print(ip.isIPv6() ? "inet6" : "inet")
+									.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
 									.print(", Port=")
 									.print(nb.getPort().getPort())
 									.print(", Name=")
@@ -278,7 +277,7 @@ final public class SendmailCFManager extends BuilderThread {
 									.print("DAEMON_OPTIONS(`Addr=")
 									.print(ip.toString())
 									.print(", Family=")
-									.print(ip.isIPv6() ? "inet6" : "inet")
+									.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
 									.print(", Port=")
 									.print(nb.getPort().getPort())
 									.print(", Name=")
@@ -303,7 +302,7 @@ final public class SendmailCFManager extends BuilderThread {
 									.print("DAEMON_OPTIONS(`Addr=")
 									.print(ip.toString())
 									.print(", Family=")
-									.print(ip.isIPv6() ? "inet6" : "inet")
+									.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
 									.print(", Port=")
 									.print(nb.getPort().getPort())
 									.print(", Name=")

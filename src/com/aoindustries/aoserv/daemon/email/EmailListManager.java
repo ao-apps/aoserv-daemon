@@ -8,6 +8,7 @@ package com.aoindustries.aoserv.daemon.email;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.MajordomoServer;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
@@ -31,7 +32,7 @@ final public class EmailListManager {
 	/**
 	 * Reads the address list from the file system.
 	 */
-	public static String getEmailListFile(String path) throws IOException, SQLException {
+	public static String getEmailListFile(UnixPath path) throws IOException, SQLException {
 		AOServer thisAoServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
@@ -44,7 +45,7 @@ final public class EmailListManager {
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
 
-		UnixFile file = new UnixFile(path);
+		UnixFile file = new UnixFile(path.toString());
 		Stat fileStat = file.getStat();
 		StringBuilder sb=new StringBuilder((int) fileStat.getSize());
 		InputStream fin=new BufferedInputStream(file.getSecureInputStream(uid_min, gid_min));
@@ -57,7 +58,7 @@ final public class EmailListManager {
 	 * Constructs a <code>EmailList</code> providing all information.  The
 	 * new <code>EmailList</code> is stored in the database.
 	 */
-	public static void removeEmailListAddresses(String path) throws IOException, SQLException {
+	public static void removeEmailListAddresses(UnixPath path) throws IOException, SQLException {
 		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
@@ -66,7 +67,7 @@ final public class EmailListManager {
 			&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
-		File file = new File(path);
+		File file = new File(path.toString());
 		if(file.exists()) FileUtils.delete(file);
 	}
 
@@ -74,7 +75,7 @@ final public class EmailListManager {
 	 * Writes the address list to the file system.
 	 */
 	public synchronized static void setEmailListFile(
-		String path,
+		UnixPath path,
 		String file,
 		int uid,
 		int gid,
@@ -103,9 +104,9 @@ final public class EmailListManager {
 		if(SB.length()>0 && SB.charAt(SB.length()-1)!='\n') SB.append('\n');
 
 		// If a majordomo list, add any new directories
-		boolean isMajordomo=path.startsWith(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY);
+		boolean isMajordomo=path.toString().startsWith(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY.toString() + '/');
 		if(isMajordomo) {
-			UnixFile pathUF=new UnixFile(path);
+			UnixFile pathUF=new UnixFile(path.toString());
 			UnixFile listDir=pathUF.getParent();
 			if(!listDir.getStat().exists()) {
 				UnixFile serverDir=listDir.getParent();
@@ -130,6 +131,6 @@ final public class EmailListManager {
 		}
 
 		// Move the new file into place
-		tempUF.renameTo(new UnixFile(path));
+		tempUF.renameTo(new UnixFile(path.toString()));
 	}
 }

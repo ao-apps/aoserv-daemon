@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -128,7 +128,7 @@ class TomcatCommon_6_0_X extends TomcatCommon {
 				// Switch from Java 1.7 to Java 1.* now that compatible with Java 1.8
 				String results = AOServDaemon.execAndCapture(
 					new String[] {
-						osConfig.getReplaceCommand(),
+						osConfig.getReplaceCommand().toString(),
 						"/opt/jdk1.7-i686/setenv.sh",
 						"/opt/jdk1-i686/setenv.sh",
 						"--",

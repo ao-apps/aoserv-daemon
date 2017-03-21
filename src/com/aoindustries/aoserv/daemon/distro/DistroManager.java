@@ -20,6 +20,7 @@ import com.aoindustries.aoserv.client.SQLColumnValue;
 import com.aoindustries.aoserv.client.SQLComparator;
 import com.aoindustries.aoserv.client.SQLExpression;
 import com.aoindustries.aoserv.client.validator.LinuxId;
+import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -31,7 +32,6 @@ import com.aoindustries.lang.SysExits;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.StringUtility;
 import com.aoindustries.util.logging.ProcessTimer;
-import com.aoindustries.util.persistent.PersistentCollections;
 import com.aoindustries.validation.ValidationException;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -260,12 +260,12 @@ final public class DistroManager implements Runnable {
 	private static class DistroReportFile {
 
 		private final String type;
-		private final String path;
+		private final UnixPath path;
 		private final String actualValue;
 		private final String expectedValue;
 		private final String recommendedAction;
 
-		private DistroReportFile(String type, String path, String actualValue, String expectedValue, String recommendedAction) {
+		private DistroReportFile(String type, UnixPath path, String actualValue, String expectedValue, String recommendedAction) {
 			this.type = type;
 			this.path = path;
 			this.actualValue = actualValue;
@@ -291,7 +291,7 @@ final public class DistroManager implements Runnable {
 	/**
 	 * Adds a report line, displaying to provided error printer if non-null.
 	 */
-	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, String path, String actualValue, String expectedValue, String recommendedAction) throws IOException {
+	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, UnixPath path, String actualValue, String expectedValue, String recommendedAction) throws IOException {
 		DistroReportFile report = new DistroReportFile(type, path, actualValue, expectedValue, recommendedAction);
 		results.add(report);
 		if(verboseOut != null) {
@@ -300,7 +300,7 @@ final public class DistroManager implements Runnable {
 			} else {
 				verboseOut.append(type);
 				verboseOut.append(' ');
-				writeQuoteIfNeeded(path, verboseOut);
+				writeQuoteIfNeeded(path.toString(), verboseOut);
 			}
 			if(actualValue != null || expectedValue != null) {
 				verboseOut.append(" # ");
@@ -314,20 +314,32 @@ final public class DistroManager implements Runnable {
 			//verboseOut.flush();
 		}
 	}
-	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, String path, String actualValue, String expectedValue) throws IOException {
+	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, UnixPath path, String actualValue, String expectedValue) throws IOException {
 		addResult(results, verboseOut, type, path, actualValue, expectedValue, null);
 	}
-	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, String path) throws IOException {
+	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, UnixPath path) throws IOException {
 		addResult(results, verboseOut, type, path, null, null, null);
 	}
 	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, UnixFile file, String actualValue, String expectedValue, String recommendedAction) throws IOException {
-		addResult(results, verboseOut, type, file.getPath(), actualValue, expectedValue, recommendedAction);
+		try {
+			addResult(results, verboseOut, type, UnixPath.valueOf(file.getPath()), actualValue, expectedValue, recommendedAction);
+		} catch(ValidationException e) {
+			throw new IOException(e);
+		}
 	}
 	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, UnixFile file, String actualValue, String expectedValue) throws IOException {
-		addResult(results, verboseOut, type, file.getPath(), actualValue, expectedValue, null);
+		try {
+			addResult(results, verboseOut, type, UnixPath.valueOf(file.getPath()), actualValue, expectedValue, null);
+		} catch(ValidationException e) {
+			throw new IOException(e);
+		}
 	}
 	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, UnixFile file) throws IOException {
-		addResult(results, verboseOut, type, file.getPath(), null, null, null);
+		try {
+			addResult(results, verboseOut, type, UnixPath.valueOf(file.getPath()), null, null, null);
+		} catch(ValidationException e) {
+			throw new IOException(e);
+		}
 	}
 
 	private static List<DistroReportFile> checkFilesystem(DistroReportStats stats, Appendable verboseOut) throws IOException, SQLException {
@@ -366,16 +378,16 @@ final public class DistroManager implements Runnable {
 			);
 
 			// Add entries for all the missing files
-			String lastPath = null;
+			UnixPath lastPath = null;
 			int size = foundFiles.length;
 			for(int c = 0; c < size; c++) {
 				if(!foundFiles[c]) {
 					DistroFile distroFile = distroFiles.get(c);
 					if(!distroFile.isOptional()) {
-						String path = distroFile.getPath();
+						UnixPath path = distroFile.getPath();
 						if(
 							lastPath == null
-							|| !path.startsWith(lastPath)
+							|| !path.toString().startsWith(lastPath.toString()+'/') // TODO: Why startsWith here, why did not add '/' before?
 						) {
 							addResult(results, verboseOut, DistroReportType.MISSING, path);
 							lastPath = path;

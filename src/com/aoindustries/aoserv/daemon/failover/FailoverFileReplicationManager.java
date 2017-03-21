@@ -7,6 +7,7 @@ package com.aoindustries.aoserv.daemon.failover;
 
 import com.aoindustries.aoserv.backup.BackupDaemon;
 import com.aoindustries.aoserv.client.BackupRetention;
+import com.aoindustries.aoserv.client.validator.MySQLServerName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -648,7 +649,7 @@ final public class FailoverFileReplicationManager {
 		final short fromServerYear,
 		final short fromServerMonth,
 		final short fromServerDay,
-		final List<String> replicatedMySQLServers,
+		final List<MySQLServerName> replicatedMySQLServers,
 		final List<String> replicatedMySQLMinorVersions,
 		final int quota_gid
 	) throws IOException, SQLException {
@@ -682,14 +683,15 @@ final public class FailoverFileReplicationManager {
 				if(fromServerMonth<1 || fromServerMonth>12) throw new IOException("Invalid fromServerMonth (1-12): "+fromServerMonth);
 				if(fromServerDay<1 || fromServerDay>31) throw new IOException("Invalid fromServerDay (1-31): "+fromServerDay);
 
-				// Make sure no / or .. in these names, so calls as root to the chroot /etc/rc.d/init.d/mysql-... restart aren't exploitable
-				for(String replicatedMySQLServer : replicatedMySQLServers) {
+				for(MySQLServerName replicatedMySQLServer : replicatedMySQLServers) {
 					if(isFine) logger.fine("failoverServer from \""+fromServer+"\", replicatedMySQLServer: "+replicatedMySQLServer);
-					if(replicatedMySQLServer.indexOf('/')!=-1 || replicatedMySQLServer.indexOf("..")!=-1) throw new IOException("Invalid replicatedMySQLServer: "+replicatedMySQLServer);
 				}
 				for(String replicatedMySQLMinorVersion : replicatedMySQLMinorVersions) {
 					if(isFine) logger.fine("failoverServer from \""+fromServer+"\", replicatedMySQLMinorVersion: "+replicatedMySQLMinorVersion);
-					if(replicatedMySQLMinorVersion.indexOf('/')!=-1 || replicatedMySQLMinorVersion.indexOf("..")!=-1) throw new IOException("Invalid replicatedMySQLMinorVersion: "+replicatedMySQLMinorVersion);
+					if(
+						replicatedMySQLMinorVersion.indexOf('/')!=-1
+						|| replicatedMySQLMinorVersion.contains("..")
+					) throw new IOException("Invalid replicatedMySQLMinorVersion: "+replicatedMySQLMinorVersion);
 				}
 
 				// Create the server root if it doesn't exist
@@ -992,17 +994,17 @@ final public class FailoverFileReplicationManager {
 							UnixFile uf = new UnixFile(path);
 							Stat ufStat = stat(activity, uf);
 							UnixFile ufParent = uf.getParent();
-							String linkToPath;
+							//String linkToPath;
 							UnixFile linkToUF;
 							Stat linkToUFStat;
 							UnixFile linkToParent;
 							if(linkToRoot != null) {
-								linkToPath = linkToRoot+relativePath;
+								String linkToPath = linkToRoot+relativePath;
 								linkToUF = new UnixFile(linkToPath);
 								linkToUFStat = stat(activity, linkToUF);
 								linkToParent = linkToUF.getParent();
 							} else {
-								linkToPath = null;
+								//linkToPath = null;
 								linkToUF = null;
 								linkToUFStat = null;
 								linkToParent = null;
@@ -1054,7 +1056,7 @@ final public class FailoverFileReplicationManager {
 							while(!directoryUFs.isEmpty()) {
 								UnixFile dirUF = directoryUFs.peek();
 								String dirPath = dirUF.getPath();
-								if(!dirPath.endsWith("/")) dirPath = dirPath+'/';
+								if(!dirPath.endsWith("/")) dirPath += '/';
 
 								// If the current file starts with the current directory, continue
 								if(path.startsWith(dirPath)) break;
@@ -1062,7 +1064,10 @@ final public class FailoverFileReplicationManager {
 								// Otherwise, schedule to clean and complete the directory at the end of this batch
 								directoryUFs.pop();
 								directoryFinalizeUFs.add(dirUF);
-								if(directoryFinalizeLinkToUFs!=null) directoryFinalizeLinkToUFs.add(directoryLinkToUFs.pop());
+								if(directoryFinalizeLinkToUFs!=null) {
+									assert directoryLinkToUFs != null;
+									directoryFinalizeLinkToUFs.add(directoryLinkToUFs.pop());
+								}
 								directoryFinalizeUFRelativePaths.add(directoryUFRelativePaths.pop());
 								directoryFinalizeModifyTimes.add(directoryModifyTimes.pop());
 								directoryFinalizeContents.add(directoryContents.pop());
@@ -1904,8 +1909,7 @@ final public class FailoverFileReplicationManager {
 						if(!dirPath.endsWith("/")) dirPath += '/';
 						String[] list = list(activity, dirUF);
 						if(list != null) {
-							for(int d=0;d<list.length;d++) {
-								String filename = list[d];
+							for (String filename : list) {
 								String fullpath = dirPath + filename;
 								if(!dirContents.contains(fullpath)) {
 									if(deleteOnCleanup(fromServer, retention, relativePath+'/'+filename, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
@@ -1947,8 +1951,7 @@ final public class FailoverFileReplicationManager {
 					Set<String> dirContents=directoryContents.pop();
 					String[] list = list(activity, dirUF);
 					if(list != null) {
-						for(int c=0;c<list.length;c++) {
-							String filename = list[c];
+						for (String filename : list) {
 							String fullpath = dirPath + filename;
 							if(!dirContents.contains(fullpath)) {
 								if(deleteOnCleanup(fromServer, retention, relativePath+'/'+filename, replicatedMySQLServers, replicatedMySQLMinorVersions)) {
@@ -1998,7 +2001,7 @@ final public class FailoverFileReplicationManager {
 				throw err;
 			} finally {
 				if(postPassChecklist.restartMySQLs && retention==1) {
-					for(String mysqlServer : replicatedMySQLServers) {
+					for(MySQLServerName mysqlServer : replicatedMySQLServers) {
 						String message = "Restarting MySQL "+mysqlServer+" in \""+toPath+'"';
 						activity.update("logic: ", message);
 						if(isFine) logger.fine(message);
@@ -2041,7 +2044,7 @@ final public class FailoverFileReplicationManager {
 
 				// Remove any items that are this or are children of this
 				String prefix = uf.getPath();
-				if(!prefix.endsWith("/")) prefix = prefix+'/';
+				if(!prefix.endsWith("/")) prefix += '/';
 				Iterator<Map.Entry<UnixFile,ModifyTimeAndSizeCache>> iter = modifyTimeAndSizeCaches.entrySet().iterator();
 				while(iter.hasNext()) {
 					Map.Entry<UnixFile,ModifyTimeAndSizeCache> entry = iter.next();
@@ -2237,7 +2240,7 @@ final public class FailoverFileReplicationManager {
 	 * Determines if a specific file may be deleted on clean-up.
 	 * Don't delete anything in /proc/*, /sys/*, /selinux/*, /dev/pts/*, or MySQL replication-related files
 	 */
-	private static boolean deleteOnCleanup(String fromServer, int retention, String relativePath, List<String> replicatedMySQLServers, List<String> replicatedMySQLMinorVersions) {
+	private static boolean deleteOnCleanup(String fromServer, int retention, String relativePath, List<MySQLServerName> replicatedMySQLServers, List<String> replicatedMySQLMinorVersions) {
 		Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
 		boolean isDebug = logger.isLoggable(Level.FINE);
 		if(
@@ -2254,7 +2257,7 @@ final public class FailoverFileReplicationManager {
 			return false;
 		}
 		if(retention==1) {
-			for(String name : replicatedMySQLServers) {
+			for(MySQLServerName name : replicatedMySQLServers) {
 				if(
 					(
 						relativePath.startsWith("/var/lib/mysql/")
@@ -2525,8 +2528,7 @@ final public class FailoverFileReplicationManager {
 				if(list != null && list.length > 0) {
 					Arrays.sort(list);
 					final List<File> directories = new ArrayList<>(list.length);
-					for(int c=0;c<list.length;c++) {
-						String directory = list[c];
+					for (String directory : list) {
 						if(directory.endsWith(SAFE_DELETE_EXTENSION)) {
 							//found=true;
 							UnixFile deleteUf = new UnixFile(serverRootUF, directory, false);
@@ -2536,33 +2538,26 @@ final public class FailoverFileReplicationManager {
 					}
 					if(!directories.isEmpty()) {
 						// Delete in the background
-						AOServDaemon.executorService.submit(
-							new Runnable() {
-								@Override
-								public void run() {
-									try {
-										if(directories.size()==1) {
-											// Single directory - no parallel benefits, use system rm command
-											AOServDaemon.exec(
-												"/bin/rm",
-												"-rf",
-												directories.get(0).getPath()
-											);
-										} else {
-											ParallelDelete.parallelDelete(directories, null, false);
-										}
-									} catch(IOException err) {
-										logger.log(Level.SEVERE, null, err);
-									}
+						AOServDaemon.executorService.submit(() -> {
+							try {
+								if(directories.size()==1) {
+									// Single directory - no parallel benefits, use system rm command
+									AOServDaemon.exec(
+										"/bin/rm",
+										"-rf",
+										directories.get(0).getPath()
+									);
+								} else {
+									ParallelDelete.parallelDelete(directories, null, false);
 								}
+							} catch(IOException err) {
+								logger.log(Level.SEVERE, null, err);
 							}
-						);
+						});
 					}
 				}
 			}
-		} catch(RuntimeException err) {
-			logger.log(Level.SEVERE, null, err);
-		} catch(IOException err) {
+		} catch(RuntimeException | IOException err) {
 			logger.log(Level.SEVERE, null, err);
 		}
 	}

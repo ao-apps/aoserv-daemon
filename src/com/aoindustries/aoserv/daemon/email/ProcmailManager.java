@@ -16,6 +16,8 @@ import com.aoindustries.aoserv.client.LinuxGroup;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.validator.UnixPath;
+import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -119,8 +121,8 @@ public final class ProcmailManager extends BuilderThread {
 				List<LinuxServerAccount> lsas=thisAoServer.getLinuxServerAccounts();
 				for(LinuxServerAccount lsa : lsas) {
 					if(lsa.getLinuxAccount().getType().isEmail()) {
-						String home = lsa.getHome();
-						UnixFile procmailrc = new UnixFile(home, PROCMAILRC);
+						UnixPath home = lsa.getHome();
+						UnixFile procmailrc = new UnixFile(home.toString(), PROCMAILRC);
 
 						if(!isManual(lsa)) {
 							// Stat for use below
@@ -145,7 +147,7 @@ public final class ProcmailManager extends BuilderThread {
 										  // Default locking time is fine since not locking for spamassassin now: + "LOCKSLEEP=15\n");
 
 								LinuxAccount la = lsa.getLinuxAccount();
-								String username = la.getUsername().getUsername();
+								UserId username = la.getUsername().getUsername();
 								LinuxAccAddress laa = lsa.getAutoresponderFrom();
 								List<LinuxAccAddress> addresses = lsa.getLinuxAccAddresses();
 
@@ -155,13 +157,14 @@ public final class ProcmailManager extends BuilderThread {
 								// Split the username in to user and domain (used by Cyrus)
 								String user, domain;
 								{
-									int atPos = username.indexOf('@');
+									String usernameStr = username.toString();
+									int atPos = usernameStr.indexOf('@');
 									if(atPos==-1) {
-										user = username;
+										user = usernameStr;
 										domain = "default";
 									} else {
-										user = username.substring(0, atPos);
-										domain = username.substring(atPos+1);
+										user = usernameStr.substring(0, atPos);
+										domain = usernameStr.substring(atPos+1);
 									}
 								}
 
@@ -448,11 +451,11 @@ public final class ProcmailManager extends BuilderThread {
 		// Must be an email type
 		if(!lsa.getLinuxAccount().getType().isEmail()) throw new SQLException("Not an email inbox: "+lsa.toString());
 
-		String home=lsa.getHome();
+		UnixPath home=lsa.getHome();
 		// If the home directory is outside /home/, it is manually maintained (not maintained by this code)
-		if(!home.startsWith("/home/")) return true;
+		if(!home.toString().startsWith("/home/")) return true;
 
-		UnixFile procmailrc=new UnixFile(home, PROCMAILRC);
+		UnixFile procmailrc=new UnixFile(home.toString(), PROCMAILRC);
 		Stat procmailrcStat = procmailrc.getStat();
 
 		boolean isManual;

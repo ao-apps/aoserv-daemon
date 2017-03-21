@@ -60,7 +60,7 @@ final public class MajordomoManager extends BuilderThread {
 			int gid_min = thisAoServer.getGidMin().getId();
 
 			// Reused during processing below
-			final UnixFile serversUF=new UnixFile(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY);
+			final UnixFile serversUF=new UnixFile(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY.toString());
 
 			synchronized(rebuildLock) {
 				final List<MajordomoServer> mss=thisAoServer.getMajordomoServers();
@@ -98,7 +98,7 @@ final public class MajordomoManager extends BuilderThread {
 					DomainName domain=ms.getDomain().getDomain();
 					// Make sure it won't be deleted
 					existingServers.remove(domain);
-					String msPath=MajordomoServer.MAJORDOMO_SERVER_DIRECTORY+'/'+domain;
+					String msPath=MajordomoServer.MAJORDOMO_SERVER_DIRECTORY.toString()+'/'+domain;
 					LinuxServerAccount lsa=ms.getLinuxServerAccount();
 					int lsaUID=lsa.getUid().getId();
 					LinuxServerGroup lsg=ms.getLinuxServerGroup();
@@ -954,7 +954,7 @@ final public class MajordomoManager extends BuilderThread {
 
 				// Delete the extra directories
 				for(DomainName filename : existingServers) {
-					deleteFileList.add(new File(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY, filename.toString()));
+					deleteFileList.add(new File(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY.toString(), filename.toString()));
 				}
 
 				/*

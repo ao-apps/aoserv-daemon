@@ -59,9 +59,7 @@ final public class DhcpManager implements Runnable {
 			}
 			return InetAddress.valueOf(ip);
 		} catch(ValidationException e) {
-			IOException exc = new IOException(e.getLocalizedMessage());
-			exc.initCause(e);
-			throw exc;
+			throw new IOException(e.getLocalizedMessage(), e);
 		}
 	}
 

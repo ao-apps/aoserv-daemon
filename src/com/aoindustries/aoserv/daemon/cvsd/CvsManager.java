@@ -10,6 +10,7 @@ import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.CvsRepository;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -79,8 +80,8 @@ final public class CvsManager extends BuilderThread {
 				// Add each directory that doesn't exist, fix permissions and ownerships, too
 				// while removing existing directories from existing
 				for(CvsRepository cvs : cvsRepositories) {
-					String path = cvs.getPath();
-					UnixFile cvsUF = new UnixFile(path);
+					UnixPath path = cvs.getPath();
+					UnixFile cvsUF = new UnixFile(path.toString());
 					LinuxServerAccount lsa = cvs.getLinuxServerAccount();
 					{
 						Stat cvsStat = cvsUF.getStat();
@@ -113,7 +114,7 @@ final public class CvsManager extends BuilderThread {
 						);
 					}
 					// Remove from list
-					existing.remove(path);
+					existing.remove(path.toString());
 				}
 
 				/*

@@ -16,6 +16,7 @@ import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.NetBind;
+import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
@@ -53,7 +54,7 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 		final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
 		final int uid = lsa.getUid().getId();
 		final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
-		final String tomcatDirectory=tomcatSite.getHttpdTomcatVersion().getInstallDirectory();
+		final UnixPath tomcatDirectory=tomcatSite.getHttpdTomcatVersion().getInstallDirectory();
 		final AOServer thisAoServer = AOServDaemon.getThisAOServer();
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();

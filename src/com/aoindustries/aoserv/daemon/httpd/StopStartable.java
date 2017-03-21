@@ -1,10 +1,10 @@
-package com.aoindustries.aoserv.daemon.httpd;
-
 /*
- * Copyright 2008-2009 by AO Industries, Inc.,
+ * Copyright 2008-2009, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
+package com.aoindustries.aoserv.daemon.httpd;
+
 import java.io.IOException;
 import java.sql.SQLException;
 
@@ -15,22 +15,22 @@ import java.sql.SQLException;
  */
 public interface StopStartable {
 
-    /**
-     * Determines if the persistent processes for this site should be running.
-     */
-    boolean isStartable() throws IOException, SQLException;
+	/**
+	 * Determines if the persistent processes for this site should be running.
+	 */
+	boolean isStartable() throws IOException, SQLException;
 
-    /**
-     * Stops all processes for this website if it is running.
-     * 
-     * @return  <code>true</code> if actually stopped or <code>false</code> if was already stopped
-     */
-    boolean stop() throws IOException, SQLException;
+	/**
+	 * Stops all processes for this website if it is running.
+	 * 
+	 * @return  <code>true</code> if actually stopped or <code>false</code> if was already stopped
+	 */
+	boolean stop() throws IOException, SQLException;
 
-    /**
-     * Starts all processes for this website if it is not running.
-     * 
-     * @return  <code>true</code> if actually started or <code>false</code> if was already started
-     */
-    boolean start() throws IOException, SQLException;
+	/**
+	 * Starts all processes for this website if it is not running.
+	 * 
+	 * @return  <code>true</code> if actually started or <code>false</code> if was already started
+	 */
+	boolean start() throws IOException, SQLException;
 }

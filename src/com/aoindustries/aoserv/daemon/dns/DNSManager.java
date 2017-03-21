@@ -23,6 +23,7 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.net.AddressFamily;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.util.WrappedException;
 import java.io.ByteArrayOutputStream;
@@ -271,15 +272,17 @@ final public class DNSManager extends BuilderThread {
 									InetAddress ip = nb.getIPAddress().getInetAddress();
 									Set<InetAddress> ips = alreadyAddedIPs.get(port);
 									if(ips==null) alreadyAddedIPs.put(port, ips = new HashSet<>());
-									if(!ips.contains(ip)) {
-										if(ip.isIPv6()) {
-											// IPv6
-											out.print("\tlisten-on-v6 port ").print(port).print(" { ").print(ip.toString()).print("; };\n");
-										} else {
-											// IPv4
-											out.print("\tlisten-on port ").print(port).print(" { ").print(ip.toString()).print("; };\n");
+									if(ips.add(ip)) {
+										switch(ip.getAddressFamily()) {
+											case INET :
+												out.print("\tlisten-on port ").print(port).print(" { ").print(ip.toString()).print("; };\n");
+												break;
+											case INET6 :
+												out.print("\tlisten-on-v6 port ").print(port).print(" { ").print(ip.toString()).print("; };\n");
+												break;
+											default :
+												throw new AssertionError();
 										}
-										ips.add(ip);
 									}
 								}
 								out.print("};\n"
@@ -316,12 +319,15 @@ final public class DNSManager extends BuilderThread {
 									int port = nb.getPort().getPort();
 									InetAddress ip = nb.getIPAddress().getInetAddress();
 									Map<Integer,Set<InetAddress>> ipsPerPort;
-									if(ip.isIPv4()) {
-										ipsPerPort = ipsPerPortV4;
-									} else if(ip.isIPv6()) {
-										ipsPerPort = ipsPerPortV6;
-									} else {
-										throw new AssertionError("Neither IPv4 nor IPv6: " + ip);
+									switch(ip.getAddressFamily()) {
+										case INET :
+											ipsPerPort = ipsPerPortV4;
+											break;
+										case INET6 :
+											ipsPerPort = ipsPerPortV6;
+											break;
+										default :
+											throw new AssertionError();
 									}
 									Set<InetAddress> ips = ipsPerPort.get(port);
 									if(ips == null) ipsPerPort.put(port, ips = new LinkedHashSet<>());
@@ -330,7 +336,7 @@ final public class DNSManager extends BuilderThread {
 								for(Map.Entry<Integer,Set<InetAddress>> entry : ipsPerPortV4.entrySet()) {
 									out.print("\tlisten-on port ").print(entry.getKey()).print(" {");
 									for(InetAddress ip : entry.getValue()) {
-										assert ip.isIPv4();
+										assert ip.getAddressFamily() == AddressFamily.INET;
 										out.print(' ').print(ip.toString()).print(';');
 									}
 									out.print(" };\n");
@@ -338,7 +344,7 @@ final public class DNSManager extends BuilderThread {
 								for(Map.Entry<Integer,Set<InetAddress>> entry : ipsPerPortV6.entrySet()) {
 									out.print("\tlisten-on-v6 port ").print(entry.getKey()).print(" {");
 									for(InetAddress ip : entry.getValue()) {
-										assert ip.isIPv6();
+										assert ip.getAddressFamily() == AddressFamily.INET6;
 										out.print(' ').print(ip.toString()).print(';');
 									}
 									out.print(" };\n");

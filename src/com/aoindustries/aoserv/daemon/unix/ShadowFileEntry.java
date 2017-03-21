@@ -1,12 +1,14 @@
 /*
- * Copyright 2000-2013 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.unix;
 
 import com.aoindustries.aoserv.client.LinuxAccount;
+import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.util.StringUtility;
+import com.aoindustries.validation.ValidationException;
 import java.util.List;
 
 /**
@@ -18,7 +20,7 @@ import java.util.List;
 final public class ShadowFileEntry {
 
 	/** The username the entry is for */
-	public String username;
+	public UserId username;
 
 	/** The encrypted password */
 	public String password;
@@ -49,12 +51,12 @@ final public class ShadowFileEntry {
 	 * the trailing newline (<code>'\n'</code>).  This may also be called providing only the username,
 	 * in which case the default values are used and the password is set to <code>"!!"</code> (disabled).
 	 */
-	public ShadowFileEntry(String line) {
+	public ShadowFileEntry(String line) throws ValidationException {
 		List<String> values=StringUtility.splitString(line, ':');
 		int len=values.size();
 		if(len<1) throw new IllegalArgumentException("At least the first field of shadow file required: "+line);
 
-		username = values.get(0);
+		username = UserId.valueOf(values.get(0));
 
 		String S;
 
@@ -90,7 +92,7 @@ final public class ShadowFileEntry {
 	 * Constructs a shadow file entry given all the values.
 	 */
 	public ShadowFileEntry(
-		String username,
+		UserId username,
 		String password,
 		int changedDate,
 		int minPasswordAge,

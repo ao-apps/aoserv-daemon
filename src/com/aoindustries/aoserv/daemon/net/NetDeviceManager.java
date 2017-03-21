@@ -19,6 +19,7 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.AOPool;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.net.AddressFamily;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.util.ErrorPrinter;
 import java.io.BufferedInputStream;
@@ -137,16 +138,20 @@ final public class NetDeviceManager extends BuilderThread {
 									if(broadcast==null) throw new SQLException("(net_devices.pkey="+device.getPkey()+").broadcast may not be null");
 									out.print("BOOTPROTO=static\n");
 									InetAddress ip = primaryIP.getInetAddress();
-									if(ip.isIPv6()) {
-										out.print("IPV6INIT=yes\n"
-												+ "IPV6ADDR=").print(ip.toString()).print("\n"
-												+ "IPV6PREFIX=\n");
-
-									} else {
-										out.print("IPADDR=").print(ip.toString()).print("\n"
-												+ "NETMASK=").print(primaryIP.getNetMask()).print("\n"
-												+ "NETWORK=").print(network.toString()).print("\n"
-												+ "BROADCAST=").print(broadcast.toString()).print("\n");
+									switch(ip.getAddressFamily()) {
+										case INET :
+											out.print("IPADDR=").print(ip.toString()).print("\n"
+													+ "NETMASK=").print(primaryIP.getNetMask()).print("\n"
+													+ "NETWORK=").print(network.toString()).print("\n"
+													+ "BROADCAST=").print(broadcast.toString()).print("\n");
+											break;
+										case INET6 :
+											out.print("IPV6INIT=yes\n"
+													+ "IPV6ADDR=").print(ip.toString()).print("\n"
+													+ "IPV6PREFIX=\n");
+											break;
+										default :
+											throw new AssertionError();
 									}
 									out.print("ONBOOT=yes\n");
 								}
@@ -212,12 +217,17 @@ final public class NetDeviceManager extends BuilderThread {
 												osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586
 												|| osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 											) {
-												if(ip.getInetAddress().isIPv6()) {
-													out.print("IPV6ADDR=").print(ip.getInetAddress().toString()).print("\n"
-															+ "IPV6PREFIX=\n");
-												} else {
-													out.print("IPADDR=").print(ip.getInetAddress().toString()).print("\n"
-															+ "NETMASK=").print(ip.getNetMask()).print("\n");
+												switch(ip.getInetAddress().getAddressFamily()) {
+													case INET :
+														out.print("IPADDR=").print(ip.getInetAddress().toString()).print("\n"
+																+ "NETMASK=").print(ip.getNetMask()).print("\n");
+														break;
+													case INET6 :
+														out.print("IPV6ADDR=").print(ip.getInetAddress().toString()).print("\n"
+																+ "IPV6PREFIX=\n");
+														break;
+													default :
+														throw new AssertionError();
 												}
 											} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 										} finally {
@@ -785,7 +795,7 @@ final public class NetDeviceManager extends BuilderThread {
 		}
 	}
 
-	public static String checkSmtpBlacklist(String sourceIp, String connectIp) throws IOException, SQLException {
+	public static String checkSmtpBlacklist(InetAddress sourceIp, InetAddress connectIp) throws IOException, SQLException {
 		Charset charset = Charset.forName("US-ASCII");
 		// Try 100 times maximum
 		final int numAttempts = 100;
@@ -797,8 +807,8 @@ final public class NetDeviceManager extends BuilderThread {
 					socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
 					//socket.setTcpNoDelay(true);
 					socket.setSoTimeout(60000);
-					socket.bind(new InetSocketAddress(sourceIp, sourcePort));
-					socket.connect(new InetSocketAddress(connectIp, 25), 60*1000);
+					socket.bind(new InetSocketAddress(sourceIp.toString(), sourcePort));
+					socket.connect(new InetSocketAddress(connectIp.toString(), 25), 60*1000);
 
 					try (
 						PrintWriter out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), charset));

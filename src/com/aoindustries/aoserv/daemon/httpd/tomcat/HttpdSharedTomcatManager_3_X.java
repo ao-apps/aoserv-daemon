@@ -12,6 +12,7 @@ import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
 import com.aoindustries.aoserv.client.HttpdTomcatVersion;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
+import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
@@ -54,14 +55,14 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
 		final HttpdTomcatVersion htv=sharedTomcat.getHttpdTomcatVersion();
-		final String tomcatDirectory=htv.getInstallDirectory();
+		final UnixPath tomcatDirectory=htv.getInstallDirectory();
 		final TC tomcatCommon = getTomcatCommon();
 		final LinuxServerAccount lsa = sharedTomcat.getLinuxServerAccount();
 		final int lsaUID = lsa.getUid().getId();
 		final LinuxServerGroup lsg = sharedTomcat.getLinuxServerGroup();
 		final int lsgGID = lsg.getGid().getId();
 		final String wwwGroupDir = sharedTomcatDirectory.getPath();
-		final String wwwDirectory = httpdConfig.getHttpdSitesDirectory();
+		final UnixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();
 		final UnixFile daemonUF = new UnixFile(sharedTomcatDirectory, "daemon", false);
 		// Create and fill in the directory if it does not exist or is owned by root.
 		final UnixFile workUF = new UnixFile(sharedTomcatDirectory, "work", false);
@@ -268,8 +269,8 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 		try {
 			out.print("export SITES=\"");
 			boolean didOne=false;
-			for(int j = 0; j< sites.size(); j++) {
-				HttpdSite hs=sites.get(j).getHttpdTomcatSite().getHttpdSite();
+			for (HttpdTomcatSharedSite site : sites) {
+				HttpdSite hs = site.getHttpdTomcatSite().getHttpdSite();
 				if(!hs.isDisabled()) {
 					if (didOne) out.print(' ');
 					else didOne=true;
@@ -296,8 +297,8 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 		List<String> workFiles = new SortedArrayList<>();
 		String[] wlist = workUF.getFile().list();
 		if(wlist!=null) workFiles.addAll(Arrays.asList(wlist));
-		for (int j = 0; j< sites.size(); j++) {
-			HttpdSite hs=sites.get(j).getHttpdTomcatSite().getHttpdSite();
+		for (HttpdTomcatSharedSite site : sites) {
+			HttpdSite hs = site.getHttpdTomcatSite().getHttpdSite();
 			if(!hs.isDisabled()) {
 				String subwork = hs.getSiteName();
 				workFiles.remove(subwork);
@@ -307,20 +308,15 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 						.mkdir()
 						.chown(
 							lsaUID, 
-							sites.get(j)
-								.getHttpdTomcatSite()
-								.getHttpdSite()
-								.getLinuxServerGroup()
-								.getGid()
-								.getId()
+							hs.getLinuxServerGroup().getGid().getId()
 						)
 						.setMode(0750)
 					;
 				}
 			}
 		}
-		for (int c = 0; c < workFiles.size(); c++) {
-			deleteFileList.add(new File(workUF.getFile(), workFiles.get(c)));
+		for (String workFile : workFiles) {
+			deleteFileList.add(new File(workUF.getFile(), workFile));
 		}
 
 		// Enable/Disable

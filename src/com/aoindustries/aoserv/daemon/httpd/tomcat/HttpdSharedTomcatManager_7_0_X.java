@@ -21,6 +21,7 @@ import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.NetBind;
+import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
@@ -66,14 +67,14 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
 		final HttpdTomcatVersion htv=sharedTomcat.getHttpdTomcatVersion();
-		final String tomcatDirectory=htv.getInstallDirectory();
+		final UnixPath tomcatDirectory=htv.getInstallDirectory();
 		final TomcatCommon tomcatCommon = getTomcatCommon();
 		final LinuxServerAccount lsa = sharedTomcat.getLinuxServerAccount();
 		final int lsaUID = lsa.getUid().getId();
 		final LinuxServerGroup lsg = sharedTomcat.getLinuxServerGroup();
 		final int lsgGID = lsg.getGid().getId();
 		final String wwwGroupDir = sharedTomcatDirectory.getPath();
-		final String wwwDirectory = httpdConfig.getHttpdSitesDirectory();
+		final UnixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();
 		final UnixFile daemonUF = new UnixFile(sharedTomcatDirectory, "daemon", false);
 		final UnixFile confUF = new UnixFile(sharedTomcatDirectory, "conf", false);
 
@@ -294,8 +295,8 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 		try {
 			out.print("export SITES=\"");
 			boolean didOne=false;
-			for(int j = 0; j< sites.size(); j++) {
-				HttpdSite hs=sites.get(j).getHttpdTomcatSite().getHttpdSite();
+			for (HttpdTomcatSharedSite site : sites) {
+				HttpdSite hs = site.getHttpdTomcatSite().getHttpdSite();
 				if(!hs.isDisabled()) {
 					if (didOne) out.print(' ');
 					else didOne=true;
@@ -324,8 +325,8 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 		if(wlist!=null) {
 			workFiles.addAll(Arrays.asList(wlist));
 		}
-		for (int j = 0; j< sites.size(); j++) {
-			HttpdSite hs=sites.get(j).getHttpdTomcatSite().getHttpdSite();
+		for (HttpdTomcatSharedSite site : sites) {
+			HttpdSite hs = site.getHttpdTomcatSite().getHttpdSite();
 			if(!hs.isDisabled()) {
 				String subwork = hs.getPrimaryHttpdSiteURL().getHostname().toString();
 				workFiles.remove(subwork);
@@ -335,20 +336,15 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 						.mkdir()
 						.chown(
 							lsaUID,
-							sites.get(j)
-								.getHttpdTomcatSite()
-								.getHttpdSite()
-								.getLinuxServerGroup()
-								.getGid()
-								.getId()
+							hs.getLinuxServerGroup().getGid().getId()
 						)
 						.setMode(0750)
 					;
 				}
 			}
 		}
-		for (int c = 0; c < workFiles.size(); c++) {
-			deleteFileList.add(new File(innerWorkUF.getFile(), workFiles.get(c)));
+		for (String workFile : workFiles) {
+			deleteFileList.add(new File(innerWorkUF.getFile(), workFile));
 		}
 
 		// Rebuild the server.xml
@@ -398,8 +394,8 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 						+ "    />\n"
 						+ "    <Engine name=\"Catalina\" defaultHost=\"localhost\">\n"
 						+ "      <Realm className=\"org.apache.catalina.realm.UserDatabaseRealm\" resourceName=\"UserDatabase\" />\"\n");
-				for(int c=0;c<sites.size();c++) {
-					HttpdSite hs=sites.get(c).getHttpdTomcatSite().getHttpdSite();
+				for (HttpdTomcatSharedSite site : sites) {
+					HttpdSite hs = site.getHttpdTomcatSite().getHttpdSite();
 					if(!hs.isDisabled()) {
 						DomainName primaryHostname=hs.getPrimaryHttpdSiteURL().getHostname();
 						out.print("      <Host\n"
@@ -413,11 +409,10 @@ class HttpdSharedTomcatManager_7_0_X extends HttpdSharedTomcatManager<TomcatComm
 						List<String> usedHostnames=new SortedArrayList<>();
 						usedHostnames.add(primaryHostname.toString());
 						List<HttpdSiteBind> binds=hs.getHttpdSiteBinds();
-						for(int d=0;d<binds.size();d++) {
-							HttpdSiteBind bind=binds.get(d);
+						for (HttpdSiteBind bind : binds) {
 							List<HttpdSiteURL> urls=bind.getHttpdSiteURLs();
-							for(int e=0;e<urls.size();e++) {
-								DomainName hostname=urls.get(e).getHostname();
+							for (HttpdSiteURL url : urls) {
+								DomainName hostname = url.getHostname();
 								if(!usedHostnames.contains(hostname.toString())) {
 									out.print("        <Alias>").print(hostname.toString()).print("</Alias>\n");
 									usedHostnames.add(hostname.toString());

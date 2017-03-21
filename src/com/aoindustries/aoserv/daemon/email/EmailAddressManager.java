@@ -18,6 +18,8 @@ import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.SystemEmailAlias;
 import com.aoindustries.aoserv.client.Username;
+import com.aoindustries.aoserv.client.validator.UnixPath;
+import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -120,7 +122,7 @@ final public class EmailAddressManager extends BuilderThread {
 						ex_nouser="\"/bin/sh -c 'exit 67'\""; // Code for EX_NOUSER in /usr/include/sysexits.h
 					} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 					for(LinuxServerAccount lsa : thisAoServer.getLinuxServerAccounts()) {
-						String username=lsa.getLinuxAccount().getUsername().getUsername();
+						String username=lsa.getLinuxAccount().getUsername().getUsername().toString();
 						if(!usernamesUsed.contains(username)) {
 							if(username.indexOf('@')==-1) {
 								aliasesOut.print(username).print(": |").println(ex_nouser);
@@ -130,9 +132,9 @@ final public class EmailAddressManager extends BuilderThread {
 					}
 					String[] devNullUsername=new String[1];
 					Map<String,String> singleForwardingTies=new HashMap<>();
-					Map<String,String> singleListTies=new HashMap<>();
-					Map<String,String> singlePipeTies=new HashMap<>();
-					Map<String,String> singleInboxTies=new HashMap<>();
+					Map<UnixPath,String> singleListTies=new HashMap<>();
+					Map<UnixPath,String> singlePipeTies=new HashMap<>();
+					Map<UserId,String> singleInboxTies=new HashMap<>();
 					for(EmailAddress ea : eas) {
 						String address=ea.getAddress();
 						if(address.length()>0) {
@@ -229,9 +231,9 @@ final public class EmailAddressManager extends BuilderThread {
 		Set<String> usernamesUsed,
 		String[] devNullUsername,
 		Map<String,String> singleForwardingTies,
-		Map<String,String> singleListTies,
-		Map<String,String> singlePipeTies,
-		Map<String,String> singleInboxTies,
+		Map<UnixPath,String> singleListTies,
+		Map<UnixPath,String> singlePipeTies,
+		Map<UserId,String> singleInboxTies,
 		ChainWriter aliasesOut,
 		ChainWriter usersOut
 	) throws IOException, SQLException {
@@ -294,7 +296,7 @@ final public class EmailAddressManager extends BuilderThread {
 			&& epas.isEmpty()
 			&& laas.isEmpty()
 		) {
-			String path=elas.get(0).getEmailList().getPath();
+			UnixPath path=elas.get(0).getEmailList().getPath();
 			tieUsername=singleListTies.get(path);
 			if(tieUsername==null) {
 				singleListTies.put(path, tieUsername=getTieUsername(usernamesUsed));
@@ -308,7 +310,7 @@ final public class EmailAddressManager extends BuilderThread {
 			&& epas.size()==1
 			&& laas.isEmpty()
 		) {
-			String path=epas.get(0).getEmailPipe().getPath();
+			UnixPath path=epas.get(0).getEmailPipe().getPath();
 			tieUsername=singlePipeTies.get(path);
 			if(tieUsername==null) {
 				singlePipeTies.put(path, tieUsername=getTieUsername(usernamesUsed));
@@ -326,11 +328,11 @@ final public class EmailAddressManager extends BuilderThread {
 			if(lsa!=null) {
 				Username un=lsa.getLinuxAccount().getUsername();
 				if(un!=null) {
-					String username=un.getUsername();
+					UserId username=un.getUsername();
 					tieUsername=singleInboxTies.get(username);
 					if(tieUsername==null) {
 						singleInboxTies.put(username, tieUsername=getTieUsername(usernamesUsed));
-						aliasesOut.print(tieUsername).print(": \\").println(StringUtility.replace(username, '@', "\\@"));
+						aliasesOut.print(tieUsername).print(": \\").println(StringUtility.replace(username.toString(), '@', "\\@"));
 					}
 				} else tieUsername=null;
 			} else tieUsername=null;
@@ -363,7 +365,7 @@ final public class EmailAddressManager extends BuilderThread {
 			for(LinuxAccAddress laa : laas) {
 				if(done) aliasesOut.print(",\n\t");
 				else done=true;
-				aliasesOut.print('\\').print(StringUtility.replace(laa.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername(),'@',"\\@"));
+				aliasesOut.print('\\').print(StringUtility.replace(laa.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername().toString(),'@',"\\@"));
 			}
 			aliasesOut.println();
 

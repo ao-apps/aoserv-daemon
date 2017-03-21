@@ -12,6 +12,7 @@ import com.aoindustries.aoserv.client.PostgresServer;
 import com.aoindustries.aoserv.client.PostgresServerUser;
 import com.aoindustries.aoserv.client.PostgresUser;
 import com.aoindustries.aoserv.client.PostgresVersion;
+import com.aoindustries.aoserv.client.validator.PostgresUserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -20,6 +21,7 @@ import com.aoindustries.lang.ObjectUtils;
 import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.sql.WrappedSQLException;
 import com.aoindustries.util.SortedArrayList;
+import com.aoindustries.validation.ValidationException;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -75,7 +77,7 @@ final public class PostgresUserManager extends BuilderThread {
 					boolean disableEnableDone = false;
 					try {
 						// Get the list of all existing users
-						List<String> existing=new SortedArrayList<>();
+						List<PostgresUserId> existing=new SortedArrayList<>();
 						try (Statement stmt = conn.createStatement()) {
 							String sqlString =
 								version.startsWith(PostgresVersion.VERSION_7_1+'.')
@@ -90,7 +92,11 @@ final public class PostgresUserManager extends BuilderThread {
 									while (results.next()) {
 										String username = results.getString(1);
 										if(DEBUG) debug("Found user " + username);
-										existing.add(username);
+										try {
+											existing.add(PostgresUserId.valueOf(username));
+										} catch(ValidationException e) {
+											throw new SQLException(e);
+										}
 									}
 								}
 							} catch(SQLException err) {
@@ -101,13 +107,13 @@ final public class PostgresUserManager extends BuilderThread {
 							List<PostgresServerUser> needAdded=new ArrayList<>();
 							for (PostgresServerUser psu : users) {
 								PostgresUser pu=psu.getPostgresUser();
-								String username=pu.getUsername().getUsername();
+								PostgresUserId username=pu.getKey();
 								if (existing.contains(username)) existing.remove(username);
 								else needAdded.add(psu);
 							}
 
 							// Remove the extra users before adding to avoid usesysid or usename conflicts
-							for (String username : existing) {
+							for (PostgresUserId username : existing) {
 								if(
 									username.equals(PostgresUser.POSTGRES)
 									|| username.equals(PostgresUser.AOADMIN)
@@ -127,7 +133,7 @@ final public class PostgresUserManager extends BuilderThread {
 							// Add the new users
 							for(PostgresServerUser psu : needAdded) {
 								PostgresUser pu = psu.getPostgresUser();
-								String username=pu.getUsername().getUsername();
+								PostgresUserId username=pu.getKey();
 
 								// Add the user
 								StringBuilder sql=new StringBuilder();
@@ -195,7 +201,7 @@ final public class PostgresUserManager extends BuilderThread {
 								) {
 								// Enable/disable using rolcanlogin
 								for (PostgresServerUser psu : users) {
-									String username=psu.getPostgresUser().getUsername().getUsername();
+									PostgresUserId username=psu.getPostgresUser().getKey();
 									// Get the current login state
 									boolean rolcanlogin;
 									sqlString = "select rolcanlogin from pg_authid where rolname='"+username+"'";
@@ -284,7 +290,7 @@ final public class PostgresUserManager extends BuilderThread {
 				: "select rolpassword from pg_authid where rolname=?"
 			)) {
 				try {
-					pstmt.setString(1, psu.getPostgresUser().getUsername().getUsername());
+					pstmt.setString(1, psu.getPostgresUser().toString());
 					try (ResultSet result = pstmt.executeQuery()) {
 						if(result.next()) {
 							return result.getString(1);
@@ -303,7 +309,7 @@ final public class PostgresUserManager extends BuilderThread {
 		// Get the connection to work through
 		AOServConnector aoservConn=AOServDaemon.getConnector();
 		PostgresServer ps=psu.getPostgresServer();
-		String username=psu.getPostgresUser().getUsername().getUsername();
+		PostgresUserId username=psu.getPostgresUser().getKey();
 		AOConnectionPool pool=PostgresServerManager.getPool(ps);
 		Connection conn = pool.getConnection(false);
 		try {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2014, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -10,6 +10,7 @@ import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdTomcatVersion;
+import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
@@ -18,6 +19,7 @@ import com.aoindustries.aoserv.daemon.httpd.StopStartable;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.validation.ValidationException;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -64,45 +66,49 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 		List<File> deleteFileList,
 		Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted
 	) throws IOException, SQLException {
-		// Get values used in the rest of the method.
-		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
-		AOServer aoServer = AOServDaemon.getThisAOServer();
+		try {
+			// Get values used in the rest of the method.
+			HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
+			AOServer aoServer = AOServDaemon.getThisAOServer();
 
-		// The www group directories that exist but are not used will be removed
-		UnixFile wwwgroupDirectory = new UnixFile(osConfig.getHttpdSharedTomcatsDirectory());
-		String[] list = wwwgroupDirectory.list();
-		Set<String> wwwgroupRemoveList = new HashSet<>(list.length*4/3+1);
-		for (String dirname : list) {
-			if(
-				!dirname.equals("lost+found")
-				&& !dirname.equals("aquota.user")
-			) {
-				wwwgroupRemoveList.add(dirname);
+			// The www group directories that exist but are not used will be removed
+			UnixFile wwwgroupDirectory = new UnixFile(osConfig.getHttpdSharedTomcatsDirectory().toString());
+			String[] list = wwwgroupDirectory.list();
+			Set<String> wwwgroupRemoveList = new HashSet<>(list.length*4/3+1);
+			for (String dirname : list) {
+				if(
+					!dirname.equals("lost+found")
+					&& !dirname.equals("aquota.user")
+				) {
+					wwwgroupRemoveList.add(dirname);
+				}
 			}
-		}
 
-		// Iterate through each shared Tomcat
-		for(HttpdSharedTomcat sharedTomcat : aoServer.getHttpdSharedTomcats()) {
-			final HttpdSharedTomcatManager<?> manager = getInstance(sharedTomcat);
+			// Iterate through each shared Tomcat
+			for(HttpdSharedTomcat sharedTomcat : aoServer.getHttpdSharedTomcats()) {
+				final HttpdSharedTomcatManager<?> manager = getInstance(sharedTomcat);
 
-			// Install any required RPMs
-			PackageManager.installPackages(manager.getRequiredPackages());
+				// Install any required RPMs
+				PackageManager.installPackages(manager.getRequiredPackages());
 
-			// Create and fill in any incomplete installations.
-			final String tomcatName = sharedTomcat.getName();
-			UnixFile sharedTomcatDirectory = new UnixFile(wwwgroupDirectory, tomcatName, false);
-			manager.buildSharedTomcatDirectory(sharedTomcatDirectory, deleteFileList, sharedTomcatsNeedingRestarted);
-			if(manager.upgradeSharedTomcatDirectory(sharedTomcatDirectory)) sharedTomcatsNeedingRestarted.add(sharedTomcat);
-			wwwgroupRemoveList.remove(tomcatName);
-		}
+				// Create and fill in any incomplete installations.
+				final String tomcatName = sharedTomcat.getName();
+				UnixFile sharedTomcatDirectory = new UnixFile(wwwgroupDirectory, tomcatName, false);
+				manager.buildSharedTomcatDirectory(sharedTomcatDirectory, deleteFileList, sharedTomcatsNeedingRestarted);
+				if(manager.upgradeSharedTomcatDirectory(sharedTomcatDirectory)) sharedTomcatsNeedingRestarted.add(sharedTomcat);
+				wwwgroupRemoveList.remove(tomcatName);
+			}
 
-		// Stop, disable, and mark files for deletion
-		for (String tomcatName : wwwgroupRemoveList) {
-			UnixFile removeFile = new UnixFile(wwwgroupDirectory, tomcatName, false);
-			// Stop and disable any daemons
-			stopAndDisableDaemons(removeFile);
-			// Only remove the directory when not used by a home directory
-			if(!aoServer.isHomeUsed(removeFile.getPath())) deleteFileList.add(removeFile.getFile());
+			// Stop, disable, and mark files for deletion
+			for (String tomcatName : wwwgroupRemoveList) {
+				UnixFile removeFile = new UnixFile(wwwgroupDirectory, tomcatName, false);
+				// Stop and disable any daemons
+				stopAndDisableDaemons(removeFile);
+				// Only remove the directory when not used by a home directory
+				if(!aoServer.isHomeUsed(UnixPath.valueOf(removeFile.getPath()))) deleteFileList.add(removeFile.getFile());
+			}
+		} catch(ValidationException e) {
+			throw new IOException(e);
 		}
 	}
 
@@ -124,39 +130,30 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 			if(!sharedTomcat.isDisabled() && !sharedTomcat.getHttpdTomcatSharedSites().isEmpty()) {
 				// Enabled and has sites, start or restart
 				if(sharedTomcatsNeedingRestarted.contains(sharedTomcat)) {
-					commandCallable = new Callable<Object>() {
-						@Override
-						public Object call() throws IOException, SQLException {
-							if(manager.stop()) {
-								try {
-									Thread.sleep(5000);
-								} catch(InterruptedException err) {
-									LogFactory.getLogger(HttpdSharedTomcatManager.class).log(Level.WARNING, null, err);
-									// Restore the interrupted status
-									Thread.currentThread().interrupt();
-								}
+					commandCallable = () -> {
+						if(manager.stop()) {
+							try {
+								Thread.sleep(5000);
+							} catch(InterruptedException err) {
+								LogFactory.getLogger(HttpdSharedTomcatManager.class).log(Level.WARNING, null, err);
+								// Restore the interrupted status
+								Thread.currentThread().interrupt();
 							}
-							manager.start();
-							return null;
 						}
+						manager.start();
+						return null;
 					};
 				} else {
-					commandCallable = new Callable<Object>() {
-						@Override
-						public Object call() throws IOException, SQLException {
-							manager.start();
-							return null;
-						}
+					commandCallable = () -> {
+						manager.start();
+						return null;
 					};
 				}
 			} else {
 				// Disabled or has no sites, can only stop if needed
-				commandCallable = new Callable<Object>() {
-					@Override
-					public Object call() throws IOException, SQLException {
-						manager.stop();
-						return null;
-					}
+				commandCallable = () -> {
+					manager.stop();
+					return null;
 				};
 			}
 			try {

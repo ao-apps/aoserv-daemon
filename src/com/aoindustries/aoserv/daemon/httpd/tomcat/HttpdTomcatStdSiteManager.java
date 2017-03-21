@@ -13,10 +13,13 @@ import com.aoindustries.aoserv.client.HttpdSite;
 import com.aoindustries.aoserv.client.HttpdTomcatStdSite;
 import com.aoindustries.aoserv.client.HttpdTomcatVersion;
 import com.aoindustries.aoserv.client.HttpdWorker;
+import com.aoindustries.aoserv.client.validator.UnixPath;
+import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.validation.ValidationException;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
@@ -87,17 +90,21 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 	}
 
 	@Override
-	public String getStartStopScriptPath() throws IOException, SQLException {
-		return
-			HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
-			+ "/"
-			+ httpdSite.getSiteName()
-			+ "/bin/tomcat"
-		;
+	public UnixPath getStartStopScriptPath() throws IOException, SQLException {
+		try {
+			return UnixPath.valueOf(
+				HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
+				+ "/"
+				+ httpdSite.getSiteName()
+				+ "/bin/tomcat"
+			);
+		} catch(ValidationException e) {
+			throw new IOException(e);
+		}
 	}
 
 	@Override
-	public String getStartStopScriptUsername() throws IOException, SQLException {
+	public UserId getStartStopScriptUsername() throws IOException, SQLException {
 		return httpdSite.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername();
 	}
 

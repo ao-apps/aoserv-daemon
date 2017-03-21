@@ -15,6 +15,9 @@ import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.NetBind;
+import com.aoindustries.aoserv.client.validator.GroupId;
+import com.aoindustries.aoserv.client.validator.UnixPath;
+import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.TomcatCommon_3_2_4;
@@ -60,7 +63,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		 * Resolve and allocate stuff used throughout the method
 		 */
 		final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
-		final String replaceCommand = osConfig.getReplaceCommand();
+		final UnixPath replaceCommand = osConfig.getReplaceCommand();
 		if(replaceCommand==null) throw new IOException("OperatingSystem doesn't have replace command");
 		final TomcatCommon_3_2_4 tomcatCommon = getTomcatCommon();
 		final String siteDir = siteDirectory.getPath();
@@ -68,8 +71,8 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		final LinuxServerGroup lsg = httpdSite.getLinuxServerGroup();
 		final int uid = lsa.getUid().getId();
 		final int gid = lsg.getGid().getId();
-		final String laUsername=lsa.getLinuxAccount().getUsername().getUsername();
-		final String laGroupname = lsg.getLinuxGroup().getName();
+		final UserId laUsername=lsa.getLinuxAccount().getUsername().getUsername();
+		final GroupId laGroupname = lsg.getLinuxGroup().getName();
 		final String siteName=httpdSite.getSiteName();
 
 		/*
@@ -100,7 +103,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		AOServDaemon.exec(
 			"/bin/chown",
 			"-R",
-			laUsername,
+			laUsername.toString(),
 			siteDir+"/jboss",
 			siteDir+"/bin",
 			siteDir+"/lib",
@@ -110,7 +113,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		AOServDaemon.exec(
 			"/bin/chgrp",
 			"-R",
-			laGroupname,
+			laGroupname.toString(),
 			siteDir+"/jboss",
 			siteDir+"/bin",
 			siteDir+"/lib",
@@ -122,10 +125,10 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		String[] f2contents = f2.list();
 
 		String[] command3 = new String[5];
-		command3[0] = replaceCommand;
+		command3[0] = replaceCommand.toString();
 		command3[3] = "--";
 		for (int i = 0; i < 5; i++) {
-			for (int j = 0; j < f2contents.length; j++) {
+			for (String f2content : f2contents) {
 				switch (i) {
 					case 0: command3[1] = "2222"; command3[2] = String.valueOf(jbossSite.getJnpBind().getPort().getPort()); break;
 					case 1: command3[1] = "3333"; command3[2] = String.valueOf(jbossSite.getWebserverBind().getPort().getPort()); break;
@@ -133,12 +136,12 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 					case 3: command3[1] = "5555"; command3[2] = String.valueOf(jbossSite.getHypersonicBind().getPort().getPort()); break;
 					case 4: command3[1] = "6666"; command3[2] = String.valueOf(jbossSite.getJmxBind().getPort().getPort()); break;
 				}
-				command3[4] = jbossConfDir+"/"+f2contents[j];
+				command3[4] = jbossConfDir+"/"+f2content;
 				AOServDaemon.exec(command3);
 			}
 		}
 		AOServDaemon.exec(
-			replaceCommand,
+			replaceCommand.toString(),
 			"site_name",
 			siteName,
 			"--",
@@ -288,8 +291,8 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		/*
 		 * Create the empty log files.
 		 */
-		for(int c=0;c<TomcatCommon_3_X.tomcatLogFiles.length;c++) {
-			String filename=siteDir+"/var/log/"+TomcatCommon_3_X.tomcatLogFiles[c];
+		for (String tomcatLogFile : TomcatCommon_3_X.tomcatLogFiles) {
+			String filename = siteDir+"/var/log/" + tomcatLogFile;
 			new UnixFile(filename).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min).close();
 		}
 

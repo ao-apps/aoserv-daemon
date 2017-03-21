@@ -1,19 +1,22 @@
 /*
- * Copyright 2007-2013 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.httpd.jboss;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
 import com.aoindustries.aoserv.client.HttpdJBossSite;
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
+import com.aoindustries.aoserv.client.validator.UnixPath;
+import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
+import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.TomcatCommon;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.validation.ValidationException;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Set;
@@ -58,17 +61,21 @@ public abstract class HttpdJBossSiteManager<TC extends TomcatCommon> extends Htt
     }
     
 	@Override
-    public String getStartStopScriptPath() throws IOException, SQLException {
-        return
-            HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
-            + "/"
-            + httpdSite.getSiteName()
-            + "/bin/jboss"
-        ;
+    public UnixPath getStartStopScriptPath() throws IOException, SQLException {
+		try {
+			return UnixPath.valueOf(
+				HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
+				+ "/"
+				+ httpdSite.getSiteName()
+				+ "/bin/jboss"
+			);
+		} catch(ValidationException e) {
+			throw new IOException(e);
+		}
     }
 
 	@Override
-    public String getStartStopScriptUsername() throws IOException, SQLException {
+    public UserId getStartStopScriptUsername() throws IOException, SQLException {
         return httpdSite.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername();
     }
 

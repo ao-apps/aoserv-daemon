@@ -13,6 +13,8 @@ import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
 import com.aoindustries.aoserv.client.HttpdTomcatSite;
 import com.aoindustries.aoserv.client.HttpdTomcatStdSite;
 import com.aoindustries.aoserv.client.HttpdWorker;
+import com.aoindustries.aoserv.client.validator.UnixPath;
+import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.httpd.HttpdSiteManager;
@@ -214,12 +216,12 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
     /**
      * Gets the path to the start/stop script.
      */
-    public abstract String getStartStopScriptPath() throws IOException, SQLException;
+    public abstract UnixPath getStartStopScriptPath() throws IOException, SQLException;
 
     /**
      * Gets the username to run the start/stop script as.
      */
-    public abstract String getStartStopScriptUsername() throws IOException, SQLException;
+    public abstract UserId getStartStopScriptUsername() throws IOException, SQLException;
 
 	@Override
 	protected Set<PackageManager.PackageName> getRequiredPackages() {

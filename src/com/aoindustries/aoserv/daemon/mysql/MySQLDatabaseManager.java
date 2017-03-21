@@ -10,6 +10,9 @@ import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.MySQLDatabase;
 import com.aoindustries.aoserv.client.MySQLServer;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.validator.MySQLDatabaseName;
+import com.aoindustries.aoserv.client.validator.MySQLTableName;
+import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -18,10 +21,13 @@ import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.ObjectUtils;
+import com.aoindustries.net.Port;
 import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.util.BufferManager;
 import com.aoindustries.util.PropertiesUtils;
 import com.aoindustries.util.concurrent.ConcurrencyLimiter;
+import com.aoindustries.validation.ValidationException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -77,15 +83,21 @@ final public class MySQLDatabaseManager extends BuilderThread {
 					Connection conn = pool.getConnection(false);
 					try {
 						// Get the list of all existing databases
-						Set<String> existing = new HashSet<>();
+						Set<MySQLDatabaseName> existing = new HashSet<>();
 						try (Statement stmt = conn.createStatement()) {
 							try (ResultSet results = stmt.executeQuery("show databases")) {
-								while(results.next()) existing.add(results.getString(1));
+								while(results.next()) {
+									try {
+										existing.add(MySQLDatabaseName.valueOf(results.getString(1)));
+									} catch(ValidationException e) {
+										throw new SQLException(e);
+									}
+								}
 							}
 
 							// Create the databases that do not exist and should
 							for(MySQLDatabase database : mysqlServer.getMySQLDatabases()) {
-								String name = database.getName();
+								MySQLDatabaseName name = database.getName();
 								if(existing.contains(name)) existing.remove(name);
 								else {
 									// Create the database
@@ -95,7 +107,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 							}
 
 							// Remove the extra databases
-							for(String dbName : existing) {
+							for(MySQLDatabaseName dbName : existing) {
 								if(
 									dbName.equals(MySQLDatabase.MYSQL)
 									|| (
@@ -146,7 +158,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		int osvId = osv.getPkey();
 		UnixFile tempFile = UnixFile.mktemp("/tmp/dump_mysql_database.sql.", true);
 		try {
-			String dbName = md.getName();
+			MySQLDatabaseName dbName = md.getName();
 			MySQLServer ms = md.getMySQLServer();
 			String path;
 			if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
@@ -162,7 +174,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 			PackageManager.installPackage(PackageManager.PackageName.PERL);
 			AOServDaemon.exec(
 				path,
-				dbName,
+				dbName.toString(),
 				ms.getMinorVersion(),
 				Integer.toString(ms.getNetBind().getPort().getPort()),
 				tempFile.getPath()
@@ -256,17 +268,18 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	/**
 	 * Gets a connection to the MySQL server, this handles both master and slave scenarios.
 	 */
-	public static Connection getMySQLConnection(String failoverRoot, int nestedOperatingSystemVersion, int port) throws IOException, SQLException {
+	public static Connection getMySQLConnection(UnixPath failoverRoot, int nestedOperatingSystemVersion, Port port) throws IOException, SQLException {
+		if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new IllegalArgumentException("Only TCP supported: " + port);
 		// Load the properties from the failover image
 		File file;
 		if(nestedOperatingSystemVersion == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-			file = new File(failoverRoot + "/etc/aoserv/daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
+			file = new File((failoverRoot==null ? "" : failoverRoot.toString()) + "/etc/aoserv/daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
 		} else if(
 			nestedOperatingSystemVersion == OperatingSystemVersion.REDHAT_ES_4_X86_64
 			|| nestedOperatingSystemVersion == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			|| nestedOperatingSystemVersion == OperatingSystemVersion.CENTOS_7_X86_64
 		) {
-			file = new File(failoverRoot + "/etc/opt/aoserv-daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
+			file = new File((failoverRoot==null ? "" : failoverRoot.toString()) + "/etc/opt/aoserv-daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
 		} else {
 			throw new AssertionError("Unsupported nested OperatingSystemVersion: #" + nestedOperatingSystemVersion);
 		}
@@ -281,7 +294,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		} catch(ClassNotFoundException|InstantiationException|IllegalAccessException err) {
 			throw new SQLException(err);
 		}
-		final String jdbcUrl = "jdbc:mysql://127.0.0.1:" + port + "/mysql";
+		final String jdbcUrl = "jdbc:mysql://127.0.0.1:" + port.getPort() + "/mysql";
 		try {
 			return DriverManager.getConnection(
 				jdbcUrl,
@@ -294,7 +307,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		}
 	}
 
-	public static void getSlaveStatus(String failoverRoot, int nestedOperatingSystemVersion, int port, CompressedDataOutputStream out) throws IOException, SQLException {
+	public static void getSlaveStatus(UnixPath failoverRoot, int nestedOperatingSystemVersion, Port port, CompressedDataOutputStream out) throws IOException, SQLException {
 		try (
 			Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, port);
 			Statement stmt = conn.createStatement();
@@ -322,7 +335,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		}
 	}
 
-	public static void getTableStatus(String failoverRoot, int nestedOperatingSystemVersion, int port, String databaseName, CompressedDataOutputStream out) throws IOException, SQLException {
+	public static void getTableStatus(UnixPath failoverRoot, int nestedOperatingSystemVersion, Port port, MySQLDatabaseName databaseName, CompressedDataOutputStream out) throws IOException, SQLException {
 		List<MySQLDatabase.TableStatus> tableStatuses = new ArrayList<>();
 		try (
 			Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, port);
@@ -367,7 +380,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 					try {
 						tableStatuses.add(
 							new MySQLDatabase.TableStatus(
-								results.getString("Name"),
+								MySQLTableName.valueOf(results.getString("Name")),
 								engine==null ? null : MySQLDatabase.Engine.valueOf(engine),
 								version,
 								rowFormat==null ? null : MySQLDatabase.TableStatus.RowFormat.valueOf(rowFormat),
@@ -387,6 +400,8 @@ final public class MySQLDatabaseManager extends BuilderThread {
 								results.getString("Comment")
 							)
 						);
+					} catch(ValidationException e) {
+						throw new SQLException(e);
 					} catch(IllegalArgumentException err) {
 						throw new IOException(err);
 					}
@@ -398,7 +413,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		out.writeCompressedInt(size);
 		for(int c = 0; c < size; c++) {
 			MySQLDatabase.TableStatus tableStatus = tableStatuses.get(c);
-			out.writeUTF(tableStatus.getName());
+			out.writeUTF(tableStatus.getName().toString());
 			out.writeNullEnum(tableStatus.getEngine());
 			out.writeNullInteger(tableStatus.getVersion());
 			out.writeNullEnum(tableStatus.getRowFormat());
@@ -421,24 +436,24 @@ final public class MySQLDatabaseManager extends BuilderThread {
 
 	private static class CheckTableConcurrencyKey {
 
-		private final String failoverRoot;
-		private final int port;
-		private final String databaseName;
-		private final String tableName;
+		private final UnixPath failoverRoot;
+		private final Port port;
+		private final MySQLDatabaseName databaseName;
+		private final MySQLTableName tableName;
 		private final int hash;
 
 		private CheckTableConcurrencyKey(
-			String failoverRoot,
-			int port,
-			String databaseName,
-			String tableName
+			UnixPath failoverRoot,
+			Port port,
+			MySQLDatabaseName databaseName,
+			MySQLTableName tableName
 		) {
 			this.failoverRoot = failoverRoot;
 			this.port = port;
 			this.databaseName = databaseName;
 			this.tableName = tableName;
-			int newHash = failoverRoot.hashCode();
-			newHash = newHash * 31 + port;
+			int newHash = ObjectUtils.hashCode(failoverRoot);
+			newHash = newHash * 31 + port.hashCode();
 			newHash = newHash * 31 + databaseName.hashCode();
 			newHash = newHash * 31 + tableName.hashCode();
 			this.hash = newHash;
@@ -459,7 +474,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 				// == fields
 				&& port==other.port
 				// .equals fields
-				&& failoverRoot.equals(other.failoverRoot)
+				&& ObjectUtils.equals(failoverRoot, other.failoverRoot)
 				&& databaseName.equals(other.databaseName)
 				&& tableName.equals(other.tableName)
 			;
@@ -472,17 +487,17 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	 * Checks all tables, times-out in one minute.
 	 */
 	public static void checkTables(
-		final String failoverRoot,
+		final UnixPath failoverRoot,
 		final int nestedOperatingSystemVersion,
-		final int port,
-		final String databaseName,
-		final List<String> tableNames,
+		final Port port,
+		final MySQLDatabaseName databaseName,
+		final List<MySQLTableName> tableNames,
 		CompressedDataOutputStream out
 	) throws IOException, SQLException {
 		Future<List<MySQLDatabase.CheckTableResult>> future = AOServDaemon.executorService.submit(() -> {
 			List<MySQLDatabase.CheckTableResult> allTableResults = new ArrayList<>();
-			for(final String tableName : tableNames) {
-				if(!MySQLDatabase.isSafeName(tableName)) {
+			for(final MySQLTableName tableName : tableNames) {
+				if(!MySQLDatabase.isSafeName(tableName.toString())) {
 					allTableResults.add(
 						new MySQLDatabase.CheckTableResult(
 							tableName,
@@ -501,13 +516,13 @@ final public class MySQLDatabaseManager extends BuilderThread {
 									tableName
 								),
 								() -> {
-									final String dbNamePrefix = databaseName+'.';
+									final String dbNamePrefix = databaseName.toString()+'.';
 									final long startTime = System.currentTimeMillis();
 									try (
 										Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, port);
 										Statement stmt = conn.createStatement();
 										ResultSet results = stmt.executeQuery("CHECK TABLE `"+databaseName+"`.`"+tableName+"` FAST QUICK")
-										) {
+									) {
 										long duration = System.currentTimeMillis() - startTime;
 										if(duration<0) duration = 0; // System time possibly reset
 										final List<MySQLDatabase.CheckTableResult> tableResults = new ArrayList<>();
@@ -518,12 +533,14 @@ final public class MySQLDatabaseManager extends BuilderThread {
 												final String msgType = results.getString("Msg_type");
 												tableResults.add(
 													new MySQLDatabase.CheckTableResult(
-														table,
+														MySQLTableName.valueOf(table),
 														duration,
 														msgType==null ? null : MySQLDatabase.CheckTableResult.MsgType.valueOf(msgType),
 														results.getString("Msg_text")
 													)
 												);
+											} catch(ValidationException e) {
+												throw new SQLException(e);
 											} catch(IllegalArgumentException err) {
 												throw new IOException(err);
 											}
@@ -551,7 +568,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 			out.writeCompressedInt(size);
 			for(int c=0;c<size;c++) {
 				MySQLDatabase.CheckTableResult checkTableResult = allTableResults.get(c);
-				out.writeUTF(checkTableResult.getTable());
+				out.writeUTF(checkTableResult.getTable().toString());
 				out.writeLong(checkTableResult.getDuration());
 				out.writeNullEnum(checkTableResult.getMsgType());
 				out.writeNullUTF(checkTableResult.getMsgText());

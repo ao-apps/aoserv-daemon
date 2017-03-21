@@ -12,11 +12,15 @@ import com.aoindustries.aoserv.client.MySQLDatabase;
 import com.aoindustries.aoserv.client.MySQLServer;
 import com.aoindustries.aoserv.client.MySQLServerUser;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.validator.MySQLDatabaseName;
+import com.aoindustries.aoserv.client.validator.MySQLUserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.sql.AOConnectionPool;
+import com.aoindustries.util.Tuple2;
+import com.aoindustries.validation.ValidationException;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -63,12 +67,23 @@ final public class MySQLDBUserManager extends BuilderThread {
 					Connection conn = pool.getConnection();
 					try {
 						// Get the list of all existing db entries
-						Set<String> existing = new HashSet<>();
+						Set<Tuple2<MySQLDatabaseName,MySQLUserId>> existing = new HashSet<>();
 						try (
 							Statement stmt = conn.createStatement();
 							ResultSet results = stmt.executeQuery("select db, user from db")
 						) {
-							while (results.next()) existing.add(results.getString(1) + '|' + results.getString(2));
+							while (results.next()) {
+								try {
+									existing.add(
+										new Tuple2<>(
+											MySQLDatabaseName.valueOf(results.getString(1)),
+											MySQLUserId.valueOf(results.getString(2))
+										)
+									);
+								} catch(ValidationException e) {
+									throw new SQLException(e);
+								}
+							}
 						}
 
 						// Get the list of all db entries that should exist
@@ -87,9 +102,9 @@ final public class MySQLDBUserManager extends BuilderThread {
 						try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
 							for(MySQLDBUser mdu : dbUsers) {
 								MySQLDatabase md = mdu.getMySQLDatabase();
-								String db=md.getName();
+								MySQLDatabaseName db=md.getName();
 								MySQLServerUser msu=mdu.getMySQLServerUser();
-								String user=msu.getMySQLUser().getUsername().getUsername();
+								MySQLUserId user=msu.getMySQLUser().getKey();
 
 								// These must both be on the same server !!!
 								if(!md.getMySQLServer().equals(msu.getMySQLServer())) throw new SQLException(
@@ -105,15 +120,14 @@ final public class MySQLDBUserManager extends BuilderThread {
 									+msu.getMySQLServer().getPkey()
 									+')'
 								);
-
-								String key=db+'|'+user;
+								Tuple2<MySQLDatabaseName,MySQLUserId> key = new Tuple2<>(db, user);
 								if (existing.contains(key)) existing.remove(key);
 								else {
 									// Add the db entry
 									String host=MySQLServerUser.ANY_HOST;
 									pstmt.setString(1, host);
-									pstmt.setString(2, db);
-									pstmt.setString(3, user);
+									pstmt.setString(2, db.toString());
+									pstmt.setString(3, user.toString());
 									pstmt.setString(4, mdu.canSelect()?"Y":"N");
 									pstmt.setString(5, mdu.canInsert()?"Y":"N");
 									pstmt.setString(6, mdu.canUpdate()?"Y":"N");
@@ -154,11 +168,10 @@ final public class MySQLDBUserManager extends BuilderThread {
 						// Remove the extra db entries
 						if (!existing.isEmpty()) {
 							try (PreparedStatement pstmt = conn.prepareStatement("delete from db where db=? and user=?")) {
-								for (String key : existing) {
+								for (Tuple2<MySQLDatabaseName,MySQLUserId> key : existing) {
 									// Remove the extra db entry
-									int pos=key.indexOf('|');
-									pstmt.setString(1, key.substring(0, pos));
-									pstmt.setString(2, key.substring(pos+1));
+									pstmt.setString(1, key.getElement1().toString());
+									pstmt.setString(2, key.getElement2().toString());
 									pstmt.executeUpdate();
 
 									modified = true;

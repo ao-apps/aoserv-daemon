@@ -15,6 +15,7 @@ import com.aoindustries.aoserv.client.PostgresServer;
 import com.aoindustries.aoserv.client.PostgresServerUser;
 import com.aoindustries.aoserv.client.PostgresUser;
 import com.aoindustries.aoserv.client.PostgresVersion;
+import com.aoindustries.aoserv.client.validator.PostgresDatabaseName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -30,6 +31,7 @@ import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.util.BufferManager;
 import com.aoindustries.util.SortedArrayList;
+import com.aoindustries.validation.ValidationException;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -82,15 +84,23 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 					try {
 						conn.setAutoCommit(true);
 						// Get the list of all existing databases
-						List<String> existing=new SortedArrayList<>();
+						List<PostgresDatabaseName> existing=new SortedArrayList<>();
 						try (Statement stmt = conn.createStatement()) {
 							try (ResultSet results = stmt.executeQuery("select datname from pg_database")) {
-								while(results.next()) existing.add(results.getString(1));
+								try {
+									while(results.next()) {
+										existing.add(
+											PostgresDatabaseName.valueOf(results.getString(1))
+										);
+									}
+								} catch(ValidationException e) {
+									throw new SQLException(e);
+								}
 							}
 
 							// Create the databases that do not exist and should
 							for(PostgresDatabase database : ps.getPostgresDatabases()) {
-								String name=database.getName();
+								PostgresDatabaseName name=database.getName();
 								if(existing.contains(name)) existing.remove(name);
 								else {
 									PostgresServerUser datdba=database.getDatDBA();
@@ -187,7 +197,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 							}
 
 							// Remove the extra databases
-							for (String dbName : existing) {
+							for (PostgresDatabaseName dbName : existing) {
 								// Remove the extra database
 								if(
 									dbName.equals(PostgresDatabase.TEMPLATE0)
@@ -223,7 +233,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 			PostgresServer ps=pd.getPostgresServer();
 			String minorVersion=ps.getPostgresVersion().getMinorVersion();
 			int port=ps.getNetBind().getPort().getPort();
-			String dbName=pd.getName();
+			PostgresDatabaseName dbName=pd.getName();
 			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			String commandPath;
@@ -244,7 +254,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 				commandPath,
 				minorVersion,
 				Integer.toString(port),
-				dbName,
+				dbName.toString(),
 				tempFile.getPath()
 			);
 			try (InputStream dumpin = new FileInputStream(tempFile.getFile())) {
@@ -387,7 +397,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 							Class.forName(postgresDatabase.getJdbcDriver()).newInstance();
 							conn=DriverManager.getConnection(
 								postgresDatabase.getJdbcUrl(true),
-								PostgresUser.POSTGRES,
+								PostgresUser.POSTGRES.toString(),
 								AOServDaemonConfiguration.getPostgresPassword()
 							);
 						}
@@ -411,13 +421,14 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 								for(int c=0;c<tableNames.size();c++) {
 									String tableName=tableNames.get(c);
 									String schema=postgresServerHasSchemas ? schemas.get(c) : null;
-									if(
-										postgresDatabaseTable.isValidDatabaseName(tableName.toLowerCase())
-									) {
+									if(PostgresDatabaseName.validate(tableName.toLowerCase()).isValid()) {
 										if(
 											!postgresServerHasSchemas
 											|| "public".equals(schema)
-											|| (schema!=null && postgresDatabaseTable.isValidDatabaseName(schema.toLowerCase()))
+											|| (
+												schema!=null
+												&& PostgresDatabaseName.validate(schema.toLowerCase()).isValid()
+											)
 										) {
 											// VACUUM the table
 											stmt.executeUpdate(

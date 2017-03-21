@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2013, 2015 by AO Industries, Inc.,
+ * Copyright 2006-2013, 2015, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -318,11 +318,11 @@ final public class HardLinkVarBackup {
     }
 
     private static class LinkKey {
-        private long fromDevice;
-        private long fromInode;
-        private long toDevice;
-        private long toInode;
-        private int hashCode;
+        private final long fromDevice;
+        private final long fromInode;
+        private final long toDevice;
+        private final long toInode;
+        private final int hashCode;
 
         private LinkKey(long fromDevice, long fromInode, long toDevice, long toInode) {
             this.fromDevice=fromDevice;

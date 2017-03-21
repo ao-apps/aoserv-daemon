@@ -6,8 +6,11 @@
 package com.aoindustries.aoserv.daemon.httpd;
 
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
+import com.aoindustries.util.WrappedException;
+import com.aoindustries.validation.ValidationException;
 import java.io.IOException;
 import java.sql.SQLException;
 
@@ -30,25 +33,37 @@ public enum HttpdOperatingSystemConfiguration {
 		//    return "8.1";
 		//}
 		@Override
-		public String getPhpCgiPath(String minorVersion) {
-			if(minorVersion.startsWith("5.")) return "/opt/php-5/bin/php-cgi";
-			else throw new AssertionError("Unexpected PHP version: "+minorVersion);
+		public UnixPath getPhpCgiPath(String minorVersion) {
+			try {
+				if(minorVersion.startsWith("5.")) return UnixPath.valueOf("/opt/php-5/bin/php-cgi");
+				else throw new AssertionError("Unexpected PHP version: "+minorVersion);
+			} catch(ValidationException e) {
+				throw new WrappedException(e);
+			}
 		}
 		@Override
-		public String getHttpdSitesDirectory() {
+		public UnixPath getHttpdSitesDirectory() {
 			return OperatingSystemVersion.getHttpdSitesDirectory(OperatingSystemVersion.REDHAT_ES_4_X86_64);
 		}
 		@Override
-		public String getHttpdSharedTomcatsDirectory() {
+		public UnixPath getHttpdSharedTomcatsDirectory() {
 			return OperatingSystemVersion.getHttpdSharedTomcatsDirectory(OperatingSystemVersion.REDHAT_ES_4_X86_64);
 		}
 		@Override
-		public String getAwstatsDirectory() {
-			return "/var/opt/awstats-6";
+		public UnixPath getAwstatsDirectory() {
+			try {
+				return UnixPath.valueOf("/var/opt/awstats-6");
+			} catch(ValidationException e) {
+				throw new WrappedException(e);
+			}
 		}
 		@Override
-		public String getAwstatsBinDirectory() {
-			return "/opt/awstats-6";
+		public UnixPath getAwstatsBinDirectory() {
+			try {
+				return UnixPath.valueOf("/opt/awstats-6");
+			} catch(ValidationException e) {
+				throw new WrappedException(e);
+			}
 		}
 	},
 	CENTOS_5_I686_AND_X86_64 {
@@ -65,26 +80,38 @@ public enum HttpdOperatingSystemConfiguration {
 		//    return "9.2";
 		//}
 		@Override
-		public String getPhpCgiPath(String minorVersion) {
-			if(minorVersion.startsWith("4.")) return "/opt/php-4-i686/bin/php-cgi";
-			else if(minorVersion.startsWith("5.")) return "/opt/php-" + minorVersion + "-i686/bin/php-cgi";
-			else throw new AssertionError("Unexpected PHP version: "+minorVersion);
+		public UnixPath getPhpCgiPath(String minorVersion) {
+			try {
+				if(minorVersion.startsWith("4.")) return UnixPath.valueOf("/opt/php-4-i686/bin/php-cgi");
+				else if(minorVersion.startsWith("5.")) return UnixPath.valueOf("/opt/php-" + minorVersion + "-i686/bin/php-cgi");
+				else throw new AssertionError("Unexpected PHP version: "+minorVersion);
+			} catch(ValidationException e) {
+				throw new WrappedException(e);
+			}
 		}
 		@Override
-		public String getHttpdSitesDirectory() {
+		public UnixPath getHttpdSitesDirectory() {
 			return OperatingSystemVersion.getHttpdSitesDirectory(OperatingSystemVersion.CENTOS_5_I686_AND_X86_64);
 		}
 		@Override
-		public String getHttpdSharedTomcatsDirectory() {
+		public UnixPath getHttpdSharedTomcatsDirectory() {
 			return OperatingSystemVersion.getHttpdSharedTomcatsDirectory(OperatingSystemVersion.CENTOS_5_I686_AND_X86_64);
 		}
 		@Override
-		public String getAwstatsDirectory() {
-			return "/var/opt/awstats-6";
+		public UnixPath getAwstatsDirectory() {
+			try {
+				return UnixPath.valueOf("/var/opt/awstats-6");
+			} catch(ValidationException e) {
+				throw new WrappedException(e);
+			}
 		}
 		@Override
-		public String getAwstatsBinDirectory() {
-			return "/opt/awstats-6";
+		public UnixPath getAwstatsBinDirectory() {
+			try {
+				return UnixPath.valueOf("/opt/awstats-6");
+			} catch(ValidationException e) {
+				throw new WrappedException(e);
+			}
 		}
 	},
 	CENTOS_7_X86_64 {
@@ -101,26 +128,38 @@ public enum HttpdOperatingSystemConfiguration {
 		//    return "9.2";
 		//}
 		@Override
-		public String getPhpCgiPath(String minorVersion) {
-			if(minorVersion.startsWith("4.")) return "/opt/php-4/bin/php-cgi";
-			else if(minorVersion.startsWith("5.")) return "/opt/php-" + minorVersion + "/bin/php-cgi";
-			else throw new AssertionError("Unexpected PHP version: "+minorVersion);
+		public UnixPath getPhpCgiPath(String minorVersion) {
+			try {
+				if(minorVersion.startsWith("4.")) return UnixPath.valueOf("/opt/php-4/bin/php-cgi");
+				else if(minorVersion.startsWith("5.")) return UnixPath.valueOf("/opt/php-" + minorVersion + "/bin/php-cgi");
+				else throw new AssertionError("Unexpected PHP version: "+minorVersion);
+			} catch(ValidationException e) {
+				throw new WrappedException(e);
+			}
 		}
 		@Override
-		public String getHttpdSitesDirectory() {
+		public UnixPath getHttpdSitesDirectory() {
 			return OperatingSystemVersion.getHttpdSitesDirectory(OperatingSystemVersion.CENTOS_7_X86_64);
 		}
 		@Override
-		public String getHttpdSharedTomcatsDirectory() {
+		public UnixPath getHttpdSharedTomcatsDirectory() {
 			return OperatingSystemVersion.getHttpdSharedTomcatsDirectory(OperatingSystemVersion.CENTOS_7_X86_64);
 		}
 		@Override
-		public String getAwstatsDirectory() {
-			return "/var/opt/awstats-6";
+		public UnixPath getAwstatsDirectory() {
+			try {
+				return UnixPath.valueOf("/var/opt/awstats-6");
+			} catch(ValidationException e) {
+				throw new WrappedException(e);
+			}
 		}
 		@Override
-		public String getAwstatsBinDirectory() {
-			return "/opt/awstats-6";
+		public UnixPath getAwstatsBinDirectory() {
+			try {
+				return UnixPath.valueOf("/opt/awstats-6");
+			} catch(ValidationException e) {
+				throw new WrappedException(e);
+			}
 		}
 	};
 
@@ -162,46 +201,58 @@ public enum HttpdOperatingSystemConfiguration {
 	/**
 	 * Gets the full path to the PHP CGI script for the provided PHP minor version.
 	 */
-	public abstract String getPhpCgiPath(String minorVersion);
+	public abstract UnixPath getPhpCgiPath(String minorVersion);
 
 	/**
 	 * Gets the directory that contains the website directories.
 	 */
-	public abstract String getHttpdSitesDirectory();
+	public abstract UnixPath getHttpdSitesDirectory();
 
 	/**
 	 * Gets the directory that contains the shared tomcat directories.
 	 */
-	public abstract String getHttpdSharedTomcatsDirectory();
+	public abstract UnixPath getHttpdSharedTomcatsDirectory();
 
 	/**
 	 * Gets the configuration directory used by AWStats
 	 */
-	public String getAwstatsConfigDirectory() {
-		return "/etc/awstats";
+	public UnixPath getAwstatsConfigDirectory() {
+		try {
+			return UnixPath.valueOf("/etc/awstats");
+		} catch(ValidationException e) {
+			throw new WrappedException(e);
+		}
 	}
 
 	/**
 	 * Gets the main AWStats directory.
 	 */
-	public abstract String getAwstatsDirectory();
+	public abstract UnixPath getAwstatsDirectory();
 
 	/**
 	 * Gets the AWStats hosts directory.
 	 */
-	public String getAwstatsHostsDirectory() {
-		return getAwstatsDirectory()+"/hosts";
+	public UnixPath getAwstatsHostsDirectory() {
+		try {
+			return UnixPath.valueOf(getAwstatsDirectory()+"/hosts");
+		} catch(ValidationException e) {
+			throw new WrappedException(e);
+		}
 	}
 
 	/**
 	 * Gets the AWStats bin directory.
 	 */
-	public abstract String getAwstatsBinDirectory();
+	public abstract UnixPath getAwstatsBinDirectory();
 
 	/**
 	 * Gets the AWStats icon directory.
 	 */
-	public String getAwstatsIconDirectory() {
-		return getAwstatsBinDirectory()+"/wwwroot/icon";
+	public UnixPath getAwstatsIconDirectory() {
+		try {
+			return UnixPath.valueOf(getAwstatsBinDirectory()+"/wwwroot/icon");
+		} catch(ValidationException e) {
+			throw new WrappedException(e);
+		}
 	}
 }

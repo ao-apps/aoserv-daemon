@@ -12,6 +12,7 @@ import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
 import com.aoindustries.aoserv.client.HttpdTomcatVersion;
 import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.client.NetBind;
+import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.encoding.ChainWriter;
@@ -44,7 +45,7 @@ class HttpdTomcatSharedSiteManager_3_1 extends HttpdTomcatSharedSiteManager_3_X<
         AOServConnector conn = AOServDaemon.getConnector();
         final HttpdTomcatVersion htv = tomcatSite.getHttpdTomcatVersion();
         final HttpdOperatingSystemConfiguration httpdConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
-        final String wwwgroupDirectory = httpdConfig.getHttpdSharedTomcatsDirectory();
+        final UnixPath wwwgroupDirectory = httpdConfig.getHttpdSharedTomcatsDirectory();
         HttpdTomcatSharedSite shrSite=tomcatSite.getHttpdTomcatSharedSite();
 
         // Build to RAM first

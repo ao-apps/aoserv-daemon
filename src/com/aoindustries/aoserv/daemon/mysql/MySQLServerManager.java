@@ -29,7 +29,7 @@ import java.util.Map;
  */
 final public class MySQLServerManager extends BuilderThread {
 
-	public static final File mysqlDirectory=new File(MySQLServer.DATA_BASE_DIR);
+	public static final File mysqlDirectory=new File(MySQLServer.DATA_BASE_DIR.toString());
 
 	private MySQLServerManager() {
 	}

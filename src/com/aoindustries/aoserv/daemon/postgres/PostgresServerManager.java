@@ -38,7 +38,7 @@ import java.util.logging.Level;
  */
 final public class PostgresServerManager extends BuilderThread implements CronJob {
 
-	public static final File pgsqlDirectory = new File(PostgresServer.DATA_BASE_DIR);
+	public static final File pgsqlDirectory = new File(PostgresServer.DATA_BASE_DIR.toString());
 
 	private PostgresServerManager() {
 	}
@@ -65,7 +65,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 				pool = new AOConnectionPool(
 					pd.getJdbcDriver(),
 					pd.getJdbcUrl(true),
-					PostgresUser.POSTGRES,
+					PostgresUser.POSTGRES.toString(),
 					AOServDaemonConfiguration.getPostgresPassword(),
 					AOServDaemonConfiguration.getPostgresConnections(),
 					AOServDaemonConfiguration.getPostgresMaxConnectionAge(),
@@ -175,7 +175,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 					&& !version.startsWith(PostgresVersion.VERSION_8_0+'.')
 				) {
 					// Is 8.1 or newer, need to compress and rotate logs
-					File logDirectory=new File("/var/log/postgresql", postgresServer.getName());
+					File logDirectory=new File("/var/log/postgresql", postgresServer.getName().toString());
 					String[] list=logDirectory.list();
 					if(list!=null) {
 						for(String filename : list) {

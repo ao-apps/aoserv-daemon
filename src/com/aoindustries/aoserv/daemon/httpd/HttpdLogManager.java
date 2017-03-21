@@ -10,6 +10,7 @@ import com.aoindustries.aoserv.client.HttpdServer;
 import com.aoindustries.aoserv.client.HttpdSite;
 import com.aoindustries.aoserv.client.HttpdSiteBind;
 import com.aoindustries.aoserv.client.LinuxAccount;
+import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
@@ -128,9 +129,9 @@ class HttpdLogManager {
 		final int awstatsUID = aoServer.getLinuxServerAccount(LinuxAccount.AWSTATS).getUid().getId();
 
 		// The log directories that exist but are not used will be removed
-		String logDir = aoServer.getServer().getOperatingSystemVersion().getHttpdSiteLogsDirectory();
+		UnixPath logDir = aoServer.getServer().getOperatingSystemVersion().getHttpdSiteLogsDirectory();
 		if(logDir != null) {
-			UnixFile logDirUF = new UnixFile(logDir);
+			UnixFile logDirUF = new UnixFile(logDir.toString());
 			// Create the logs directory if missing
 			if(!logDirUF.getStat().exists()) {
 				logDirUF.mkdir(true, 0755, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
@@ -163,8 +164,8 @@ class HttpdLogManager {
 				List<HttpdSiteBind> hsbs = httpdSite.getHttpdSiteBinds();
 				for(HttpdSiteBind hsb : hsbs) {
 					// access_log
-					String accessLog = hsb.getAccessLog();
-					UnixFile accessLogFile = new UnixFile(hsb.getAccessLog());
+					UnixPath accessLog = hsb.getAccessLog();
+					UnixFile accessLogFile = new UnixFile(accessLog.toString());
 					Stat accessLogStat = accessLogFile.getStat();
 					if(!accessLogStat.exists()) {
 						// Make sure the parent directory exists
@@ -184,8 +185,8 @@ class HttpdLogManager {
 					if(accessLogStat.getUid()!=awstatsUID || accessLogStat.getGid()!=lsgGID) accessLogFile.chown(awstatsUID, lsgGID);
 
 					// error_log
-					String errorLog = hsb.getErrorLog();
-					UnixFile errorLogFile = new UnixFile(hsb.getErrorLog());
+					UnixPath errorLog = hsb.getErrorLog();
+					UnixFile errorLogFile = new UnixFile(errorLog.toString());
 					Stat errorLogStat = errorLogFile.getStat();
 					if(!errorLogStat.exists()) {
 						// Make sure the parent directory exists
@@ -263,7 +264,7 @@ class HttpdLogManager {
 		}
 
 		// Each log file will be only rotated at most once
-		Set<String> completedPaths = new HashSet<>(list.length*4/3+1);
+		Set<UnixPath> completedPaths = new HashSet<>(list.length*4/3+1);
 
 		// For each site, build/rebuild the logrotate.d file as necessary and create any necessary log files
 		ChainWriter chainOut=new ChainWriter(byteOut);
@@ -272,7 +273,7 @@ class HttpdLogManager {
 			byteOut.reset();
 			boolean wroteOne = false;
 			for(HttpdSiteBind bind : site.getHttpdSiteBinds()) {
-				String access_log = bind.getAccessLog();
+				UnixPath access_log = bind.getAccessLog();
 				// Each unique path is only rotated once
 				if(completedPaths.add(access_log)) {
 					// Add to the site log rotation
@@ -280,7 +281,7 @@ class HttpdLogManager {
 					else wroteOne = true;
 					chainOut.print(access_log);
 				}
-				String error_log = bind.getErrorLog();
+				UnixPath error_log = bind.getErrorLog();
 				if(completedPaths.add(error_log)) {
 					// Add to the site log rotation
 					if(wroteOne) chainOut.print(' ');

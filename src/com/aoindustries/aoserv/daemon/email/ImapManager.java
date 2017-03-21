@@ -15,6 +15,8 @@ import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.PasswordGenerator;
 import com.aoindustries.aoserv.client.Protocol;
 import com.aoindustries.aoserv.client.Server;
+import com.aoindustries.aoserv.client.validator.UnixPath;
+import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -266,7 +268,7 @@ final public class ImapManager extends BuilderThread {
 	 */
 	private static IMAPStore getOldUserStore(
 		PrintWriter logOut,
-		String username,
+		UserId username,
 		String[] tempPassword,
 		UnixFile passwordBackup
 	) throws IOException, SQLException, MessagingException {
@@ -275,7 +277,7 @@ final public class ImapManager extends BuilderThread {
 			AOServDaemon.getThisAOServer().getPrimaryIPAddress().getInetAddress().toString(),
 			8143,
 			username,
-			username,
+			username.toString(),
 			tempPassword,
 			passwordBackup
 		);
@@ -286,18 +288,19 @@ final public class ImapManager extends BuilderThread {
 	 */
 	private static IMAPStore getNewUserStore(
 		PrintWriter logOut,
-		String username,
+		UserId username,
 		String[] tempPassword,
 		UnixFile passwordBackup
 	) throws IOException, SQLException, MessagingException {
 		InetAddress host = getImapServerIPAddress();
 		if(host==null) throw new IOException("Not an IMAP server");
+		String usernameStr = username.toString();
 		return getUserStore(
 			logOut,
 			host.toString(),
 			143,
 			username,
-			username.indexOf('@')==-1 ? (username+"@default") : username,
+			usernameStr.indexOf('@')==-1 ? (usernameStr+"@default") : usernameStr,
 			tempPassword,
 			passwordBackup
 		);
@@ -310,7 +313,7 @@ final public class ImapManager extends BuilderThread {
 		PrintWriter logOut,
 		String host,
 		int port,
-		String username,
+		UserId username,
 		String imapUsername,
 		String[] tempPassword,
 		UnixFile passwordBackup
@@ -820,9 +823,10 @@ final public class ImapManager extends BuilderThread {
 	 * 
 	 * @see  #getDomain
 	 */
-	private static String getUser(String username) {
-		int atPos = username.lastIndexOf('@');
-		return (atPos==-1) ? username : username.substring(0, atPos);
+	private static String getUser(UserId username) {
+		String usernameStr = username.toString();
+		int atPos = usernameStr.lastIndexOf('@');
+		return (atPos==-1) ? usernameStr : usernameStr.substring(0, atPos);
 	}
 
 	/**
@@ -830,9 +834,10 @@ final public class ImapManager extends BuilderThread {
 	 * 
 	 * @see  #getUser
 	 */
-	private static String getDomain(String username) {
-		int atPos = username.lastIndexOf('@');
-		return (atPos==-1) ? "default" : username.substring(atPos+1);
+	private static String getDomain(UserId username) {
+		String usernameStr = username.toString();
+		int atPos = usernameStr.lastIndexOf('@');
+		return (atPos==-1) ? "default" : usernameStr.substring(atPos+1);
 	}
 
 	/**
@@ -883,7 +888,7 @@ final public class ImapManager extends BuilderThread {
 
 	private static void convertImapDirectory(
 		final PrintWriter logOut,
-		final String username,
+		final UserId username,
 		final int junkRetention,
 		final int trashRetention,
 		final UnixFile directory,
@@ -1035,7 +1040,7 @@ final public class ImapManager extends BuilderThread {
 
 	private static void convertImapFile(
 		final PrintWriter logOut,
-		final String username,
+		final UserId username,
 		final int junkRetention,
 		final int trashRetention,
 		final UnixFile file,
@@ -1256,7 +1261,7 @@ final public class ImapManager extends BuilderThread {
 	/**
 	 * Logs a message as trace on commons-logging and on the per-user log.
 	 */
-	private static void log(PrintWriter userLogOut, Level level, String username, String message) {
+	private static void log(PrintWriter userLogOut, Level level, UserId username, String message) {
 		Logger logger = LogFactory.getLogger(ImapManager.class);
 		if(logger.isLoggable(level)) logger.log(level, username+" - "+message);
 		synchronized(userLogOut) {
@@ -1282,13 +1287,13 @@ final public class ImapManager extends BuilderThread {
 			try {
 				for(final LinuxServerAccount lsa : lsas) {
 					LinuxAccount la = lsa.getLinuxAccount();
-					final String homePath = lsa.getHome();
-					if(la.getType().isEmail() && homePath.startsWith("/home/")) {
+					final UnixPath homePath = lsa.getHome();
+					if(la.getType().isEmail() && homePath.toString().startsWith("/home/")) {
 						// Split into user and domain
-						final String laUsername = la.getUsername().getUsername();
+						final UserId laUsername = la.getUsername().getUsername();
 						String user = getUser(laUsername);
 						String domain = getDomain(laUsername);
-						validEmailUsernames.add(laUsername);
+						validEmailUsernames.add(laUsername.toString());
 
 						// INBOX
 						String inboxFolderName = getFolderName(user, domain, "");
@@ -1300,7 +1305,7 @@ final public class ImapManager extends BuilderThread {
 									throw new MessagingException("Unable to create folder: "+inboxFolder.getFullName());
 								}
 							}
-							rebuildAcl(inboxFolder, LinuxAccount.CYRUS, "default", new Rights("ackrx"));
+							rebuildAcl(inboxFolder, LinuxAccount.CYRUS.toString(), "default", new Rights("ackrx"));
 							rebuildAcl(inboxFolder, user, domain, new Rights("acdeiklprstwx"));
 						} finally {
 							if(inboxFolder.isOpen()) inboxFolder.close(false);
@@ -1317,7 +1322,7 @@ final public class ImapManager extends BuilderThread {
 									throw new MessagingException("Unable to create folder: "+trashFolder.getFullName());
 								}
 							}
-							rebuildAcl(trashFolder, LinuxAccount.CYRUS, "default", new Rights("ackrx"));
+							rebuildAcl(trashFolder, LinuxAccount.CYRUS.toString(), "default", new Rights("ackrx"));
 							rebuildAcl(trashFolder, user, domain, new Rights("acdeiklprstwx"));
 
 							// Set/update expire annotation
@@ -1347,7 +1352,7 @@ final public class ImapManager extends BuilderThread {
 								}
 							}
 							if(junkFolder.exists()) {
-								rebuildAcl(junkFolder, LinuxAccount.CYRUS, "default", new Rights("ackrx"));
+								rebuildAcl(junkFolder, LinuxAccount.CYRUS.toString(), "default", new Rights("ackrx"));
 								rebuildAcl(junkFolder, user, domain, new Rights("acdeiklprstwx"));
 
 								// Set/update expire annotation
@@ -1375,7 +1380,7 @@ final public class ImapManager extends BuilderThread {
 										if(isDebug) logger.fine("Creating directory: "+wuBackupDirectory.getPath());
 										wuBackupDirectory.mkdir(true, 0700);
 									}
-									UnixFile userBackupDirectory = new UnixFile(wuBackupDirectory, laUsername, false);
+									UnixFile userBackupDirectory = new UnixFile(wuBackupDirectory, laUsername.toString(), false);
 									if(!userBackupDirectory.getStat().exists()) {
 										if(isDebug) logger.fine(laUsername+": Creating backup directory: "+userBackupDirectory.getPath());
 										userBackupDirectory.mkdir(false, 0700);
@@ -1391,7 +1396,7 @@ final public class ImapManager extends BuilderThread {
 										UnixFile passwordBackup = new UnixFile(userBackupDirectory, "passwd", false);
 
 										// Backup the mailboxlist
-										UnixFile homeDir = new UnixFile(homePath);
+										UnixFile homeDir = new UnixFile(homePath.toString());
 										UnixFile mailBoxListFile = new UnixFile(homeDir, ".mailboxlist", false);
 										Stat mailBoxListFileStat = mailBoxListFile.getStat();
 										if(mailBoxListFileStat.exists()) {
@@ -1411,7 +1416,7 @@ final public class ImapManager extends BuilderThread {
 										int junkRetention = lsa.getJunkEmailRetention();
 										int trashRetention = lsa.getTrashEmailRetention();
 										// Convert old INBOX
-										UnixFile inboxFile = new UnixFile(mailSpool, laUsername);
+										UnixFile inboxFile = new UnixFile(mailSpool, laUsername.toString());
 										Stat inboxFileStat = inboxFile.getStat();
 										if(inboxFileStat.exists()) {
 											if(!inboxFileStat.isRegularFile()) throw new IOException("Not a regular file: "+inboxFile.getPath());
@@ -1533,7 +1538,7 @@ final public class ImapManager extends BuilderThread {
 						try {
 							if(!userFolder.exists()) throw new MessagingException("Folder doesn't exist: "+cyrusFolder);
 							// TODO: Backup mailbox to /var/opt/aoserv-daemon/oldaccounts
-							rebuildAcl(userFolder, LinuxAccount.CYRUS, "default", new Rights("acdkrx")); // Adds the d permission
+							rebuildAcl(userFolder, LinuxAccount.CYRUS.toString(), "default", new Rights("acdkrx")); // Adds the d permission
 							if(isDebug) logger.fine("Deleting mailbox: "+cyrusFolder);
 							if(!userFolder.delete(true)) throw new IOException("Unable to delete mailbox: "+cyrusFolder);
 						} finally {
@@ -1615,7 +1620,7 @@ final public class ImapManager extends BuilderThread {
 		return "Rebuild IMAP and Cyrus configurations";
 	}
 
-	public static long[] getImapFolderSizes(String username, String[] folderNames) throws IOException, SQLException, MessagingException {
+	public static long[] getImapFolderSizes(UserId username, String[] folderNames) throws IOException, SQLException, MessagingException {
 		AOServer thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
@@ -1628,8 +1633,8 @@ final public class ImapManager extends BuilderThread {
 				if(folderName.contains("..")) sizes[c]=-1;
 				else {
 					File folderFile;
-					if(folderName.equals("INBOX")) folderFile=new File(mailSpool, username);
-					else folderFile=new File(new File(lsa.getHome(), "Mail"), folderName);
+					if(folderName.equals("INBOX")) folderFile=new File(mailSpool, username.toString());
+					else folderFile=new File(new File(lsa.getHome().toString(), "Mail"), folderName);
 					if(folderFile.exists()) sizes[c]=folderFile.length();
 					else sizes[c]=-1;
 				}
@@ -1649,7 +1654,7 @@ final public class ImapManager extends BuilderThread {
 		return sizes;
 	}
 
-	public static void setImapFolderSubscribed(String username, String folderName, boolean subscribed) throws IOException, SQLException {
+	public static void setImapFolderSubscribed(UserId username, String folderName, boolean subscribed) throws IOException, SQLException {
 		AOServer thisAoServer = AOServDaemon.getThisAOServer();
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
@@ -1658,7 +1663,7 @@ final public class ImapManager extends BuilderThread {
 		LinuxServerAccount lsa=thisAoServer.getLinuxServerAccount(username);
 		if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+username+" on "+thisAoServer);
 		if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-			UnixFile mailboxlist=new UnixFile(lsa.getHome(), ".mailboxlist");
+			UnixFile mailboxlist=new UnixFile(lsa.getHome().toString(), ".mailboxlist");
 			List<String> lines=new ArrayList<>();
 			boolean currentlySubscribed=false;
 			if(mailboxlist.getStat().exists()) {
@@ -1683,7 +1688,7 @@ final public class ImapManager extends BuilderThread {
 							) {
 								out.println(line);
 							} else {
-								File folderFile=new File(new File(lsa.getHome(), "Mail"), line);
+								File folderFile=new File(new File(lsa.getHome().toString(), "Mail"), line);
 								if(folderFile.exists()) out.println(line);
 							}
 						}
@@ -1848,7 +1853,7 @@ final public class ImapManager extends BuilderThread {
 		});
 	}
 
-	private static long getCyrusFolderSize(String username, String folder, boolean notFoundOK) throws IOException, SQLException, MessagingException {
+	private static long getCyrusFolderSize(UserId username, String folder, boolean notFoundOK) throws IOException, SQLException, MessagingException {
 		return getCyrusFolderSize(getUser(username), folder, getDomain(username), notFoundOK);
 	}
 
@@ -1897,12 +1902,12 @@ final public class ImapManager extends BuilderThread {
 		}
 	}
 
-	public static long getInboxSize(String username) throws IOException, SQLException, MessagingException {
+	public static long getInboxSize(UserId username) throws IOException, SQLException, MessagingException {
 		AOServer thisAOServer=AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-			return new File(mailSpool, username).length();
+			return new File(mailSpool, username.toString()).length();
 		} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 			return getCyrusFolderSize(username, "", true);
 			/*
@@ -1920,12 +1925,12 @@ ad OK Completed
 		} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 	}
 
-	public static long getInboxModified(String username) throws IOException, SQLException, MessagingException, ParseException {
+	public static long getInboxModified(UserId username) throws IOException, SQLException, MessagingException, ParseException {
 		AOServer thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-			return new File(mailSpool, username).lastModified();
+			return new File(mailSpool, username.toString()).lastModified();
 		} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 			try {
 				// Connect to the store

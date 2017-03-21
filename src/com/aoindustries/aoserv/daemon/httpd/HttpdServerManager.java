@@ -345,7 +345,7 @@ public class HttpdServerManager {
 			for(Map.Entry<String,HttpdSiteManager.WebAppSettings> entry : webapps.entrySet()) {
 				String path = entry.getKey();
 				HttpdSiteManager.WebAppSettings settings = entry.getValue();
-				String docBase = settings.getDocBase();
+				UnixPath docBase = settings.getDocBase();
 
 				if(path.length()==0) {
 					foundRoot = true;

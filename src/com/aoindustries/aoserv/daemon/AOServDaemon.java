@@ -11,6 +11,7 @@ import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.client.Shell;
+import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.cvsd.CvsManager;
 import com.aoindustries.aoserv.daemon.distro.DistroManager;
 import com.aoindustries.aoserv.daemon.dns.DNSManager;
@@ -275,6 +276,9 @@ final public class AOServDaemon {
 		return SB.toString();
 	}
 
+	/**
+	 * TODO: First parameter as UnixPath object?
+	 */
 	public static void exec(String... command) throws IOException {
 		if(DEBUG) {
 			System.out.print("DEBUG: AOServDaemon.exec(): ");
@@ -313,6 +317,8 @@ final public class AOServDaemon {
 
 	/**
 	 * Executes a command and captures the output.
+	 *
+	 * TODO: First parameter as UnixPath object?
 	 */
 	public static String execAndCapture(String... command) throws IOException {
 		Process P = Runtime.getRuntime().exec(command);
@@ -378,7 +384,7 @@ final public class AOServDaemon {
 	 * 
 	 * @param  nice  a nice level passed to /bin/nice, a value of zero (0) will cause nice to not be called
 	 */
-	public static void suexec(String username, String command, int nice) throws IOException {
+	public static void suexec(UserId username, String command, int nice) throws IOException {
 		/*
 		 * Not needed because command is passed as String[] and any funny stuff will
 		 * be executed as the proper user.
@@ -409,19 +415,19 @@ final public class AOServDaemon {
 				Integer.toString(nice),
 				"/bin/su",
 				"-s",
-				Shell.BASH,
+				Shell.BASH.toString(),
 				"-c",
 				command,
-				username
+				username.toString()
 			};
 		} else {
 			cmd = new String[] {
 				"/bin/su",
 				"-s",
-				Shell.BASH,
+				Shell.BASH.toString(),
 				"-c",
 				command,
-				username
+				username.toString()
 			};
 		}
 		exec(cmd);

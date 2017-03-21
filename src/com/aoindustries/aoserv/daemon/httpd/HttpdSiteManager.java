@@ -940,19 +940,19 @@ public abstract class HttpdSiteManager {
 
 	public static class WebAppSettings {
 
-		private final String docBase;
+		private final UnixPath docBase;
 		private final String allowOverride;
 		private final String options;
 		private final boolean enableCgi;
 
-		public WebAppSettings(String docBase, String allowOverride, String options, boolean enableCgi) {
+		public WebAppSettings(UnixPath docBase, String allowOverride, String options, boolean enableCgi) {
 			this.docBase = docBase;
 			this.allowOverride = allowOverride;
 			this.options = options;
 			this.enableCgi = enableCgi;
 		}
 
-		public String getDocBase() {
+		public UnixPath getDocBase() {
 			return docBase;
 		}
 

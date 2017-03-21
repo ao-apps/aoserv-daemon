@@ -17,6 +17,7 @@ import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.server.VirtualServerManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxProcess;
 import com.aoindustries.io.FileUtils;
+import com.aoindustries.net.AddressFamily;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.nio.charset.Charsets;
 import java.io.File;
@@ -217,7 +218,7 @@ final public class NullRouteManager {
 											if(currentTime >= nullRoute.startTime && currentTime < nullRoute.endTime) {
 												String ipString = IPAddress.getIPAddressForInt(nullRoute.ip);
 												InetAddress inetAddress = InetAddress.valueOf(ipString);
-												assert inetAddress.isIPv4();
+												assert inetAddress.getAddressFamily() == AddressFamily.INET;
 												// Never null-route private IP addresses, such as those used for communication between routers for BGP sessions
 												if(!inetAddress.isUniqueLocal()) {
 													newContents

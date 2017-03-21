@@ -12,6 +12,7 @@ import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
 import com.aoindustries.aoserv.client.HttpdTomcatVersion;
 import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.client.NetBind;
+import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.encoding.ChainWriter;
@@ -44,12 +45,11 @@ class HttpdTomcatSharedSiteManager_3_2_4 extends HttpdTomcatSharedSiteManager_3_
         AOServConnector conn = AOServDaemon.getConnector();
         final HttpdTomcatVersion htv = tomcatSite.getHttpdTomcatVersion();
         final HttpdOperatingSystemConfiguration httpdConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
-        final String wwwgroupDirectory = httpdConfig.getHttpdSharedTomcatsDirectory();
+        final UnixPath wwwgroupDirectory = httpdConfig.getHttpdSharedTomcatsDirectory();
 
         // Build to RAM first
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
-        ChainWriter out = new ChainWriter(bout);
-        try {
+        try (ChainWriter out = new ChainWriter(bout)) {
             out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n");
             if(!httpdSite.isManual()) out.print(autoWarning);
             out.print("<Server>\n"
@@ -85,9 +85,16 @@ class HttpdTomcatSharedSiteManager_3_2_4 extends HttpdTomcatSharedSiteManager_3_
 
                 out.print("    <Connector className=\"org.apache.tomcat.service.PoolTcpConnector\">\n"
                         + "      <Parameter name=\"handler\" value=\"");
-                if(protocol.equals(HttpdJKProtocol.AJP12)) out.print("org.apache.tomcat.service.connector.Ajp12ConnectionHandler");
-                else if(protocol.equals(HttpdJKProtocol.AJP13)) out.print("org.apache.tomcat.service.connector.Ajp13ConnectionHandler");
-                else throw new IllegalArgumentException("Unknown AJP version: "+htv);
+                switch(protocol) {
+					case HttpdJKProtocol.AJP12 :
+						out.print("org.apache.tomcat.service.connector.Ajp12ConnectionHandler");
+						break;
+					case HttpdJKProtocol.AJP13 :
+						out.print("org.apache.tomcat.service.connector.Ajp13ConnectionHandler");
+						break;
+					default :
+						throw new IllegalArgumentException("Unknown AJP version: " + htv);
+				}
                 out.print("\"/>\n"
                         + "      <Parameter name=\"port\" value=\"").print(netBind.getPort().getPort()).print("\"/>\n");
                 InetAddress ip=netBind.getIPAddress().getInetAddress();
@@ -103,8 +110,6 @@ class HttpdTomcatSharedSiteManager_3_2_4 extends HttpdTomcatSharedSiteManager_3_
             }
             out.print("  </ContextManager>\n"
                     + "</Server>\n");
-        } finally {
-            out.close();
         }
         return bout.toByteArray();
     }

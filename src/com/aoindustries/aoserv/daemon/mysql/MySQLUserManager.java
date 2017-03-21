@@ -11,12 +11,15 @@ import com.aoindustries.aoserv.client.MySQLServer;
 import com.aoindustries.aoserv.client.MySQLServerUser;
 import com.aoindustries.aoserv.client.MySQLUser;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.validator.MySQLUserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.lang.ObjectUtils;
 import com.aoindustries.sql.AOConnectionPool;
+import com.aoindustries.util.Tuple2;
+import com.aoindustries.validation.ValidationException;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -66,12 +69,23 @@ final public class MySQLUserManager extends BuilderThread {
 					Connection conn = pool.getConnection();
 					try {
 						// Get the list of all existing users
-						Set<String> existing = new HashSet<>();
+						Set<Tuple2<String,MySQLUserId>> existing = new HashSet<>();
 						try (
 							Statement stmt = conn.createStatement();
 							ResultSet results = stmt.executeQuery("select host, user from user")
 						) {
-							while (results.next()) existing.add(results.getString(1) + '|' + results.getString(2));
+							try {
+								while (results.next()) {
+									existing.add(
+										new Tuple2<>(
+											results.getString(1),
+											MySQLUserId.valueOf(results.getString(2))
+										)
+									);
+								}
+							} catch(ValidationException e) {
+								throw new SQLException(e);
+							}
 						}
 
 						// Update existing users to proper values
@@ -334,8 +348,8 @@ final public class MySQLUserManager extends BuilderThread {
 								MySQLUser mu = msu.getMySQLUser();
 								String host=msu.getHost();
 								if(host==null) host="";
-								String username=mu.getUsername().getUsername();
-								String key=host+'|'+username;
+								MySQLUserId username=mu.getKey();
+								Tuple2<String,MySQLUserId> key = new Tuple2<>(host, username);
 								if(existing.contains(key)) {
 									int pos=1;
 									// set
@@ -388,7 +402,7 @@ final public class MySQLUserManager extends BuilderThread {
 									) pstmt.setInt(pos++, msu.getMaxUserConnections());
 									// where
 									pstmt.setString(pos++, host);
-									pstmt.setString(pos++, username);
+									pstmt.setString(pos++, username.toString());
 									pstmt.setString(pos++, mu.canSelect()?"Y":"N");
 									pstmt.setString(pos++, mu.canInsert()?"Y":"N");
 									pstmt.setString(pos++, mu.canUpdate()?"Y":"N");
@@ -456,13 +470,13 @@ final public class MySQLUserManager extends BuilderThread {
 								MySQLUser mu = msu.getMySQLUser();
 								String host=msu.getHost();
 								if(host==null) host="";
-								String username=mu.getUsername().getUsername();
-								String key=host+'|'+username;
+								MySQLUserId username=mu.getKey();
+								Tuple2<String,MySQLUserId> key = new Tuple2<>(host, username);
 								if (!existing.remove(key)) {
 									// Add the user
 									int pos=1;
 									pstmt.setString(pos++, host);
-									pstmt.setString(pos++, username);
+									pstmt.setString(pos++, username.toString());
 									pstmt.setString(pos++, mu.canSelect()?"Y":"N");
 									pstmt.setString(pos++, mu.canInsert()?"Y":"N");
 									pstmt.setString(pos++, mu.canUpdate()?"Y":"N");
@@ -520,16 +534,15 @@ final public class MySQLUserManager extends BuilderThread {
 						// Remove the extra users
 						if (!existing.isEmpty()) {
 							try (PreparedStatement pstmt = conn.prepareStatement("delete from user where host=? and user=?")) {
-								for (String key : existing) {
+								for (Tuple2<String,MySQLUserId> key : existing) {
 									// Remove the extra host entry
-									int pos=key.indexOf('|');
-									String host=key.substring(0, pos);
-									String user=key.substring(pos+1);
+									String host=key.getElement1();
+									MySQLUserId user=key.getElement2();
 									if(user.equals(MySQLUser.ROOT)) {
 										LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, new SQLException("Refusing to remove the "+MySQLUser.ROOT+" user for host "+host+", please remove manually."));
 									} else {
 										pstmt.setString(1, host);
-										pstmt.setString(2, user);
+										pstmt.setString(2, user.toString());
 										pstmt.executeUpdate();
 
 										modified = true;
@@ -546,13 +559,13 @@ final public class MySQLUserManager extends BuilderThread {
 						String prePassword=msu.getPredisablePassword();
 						if(!msu.isDisabled()) {
 							if(prePassword!=null) {
-								setEncryptedPassword(mysqlServer, msu.getMySQLUser().getUsername().getUsername(), prePassword);
+								setEncryptedPassword(mysqlServer, msu.getMySQLUser().getKey(), prePassword);
 								modified=true;
 								msu.setPredisablePassword(null);
 							}
 						} else {
 							if(prePassword==null) {
-								String username=msu.getMySQLUser().getUsername().getUsername();
+								MySQLUserId username=msu.getMySQLUser().getKey();
 								msu.setPredisablePassword(getEncryptedPassword(mysqlServer, username));
 								setPassword(mysqlServer, username, MySQLUser.NO_PASSWORD);
 								modified=true;
@@ -571,13 +584,13 @@ final public class MySQLUserManager extends BuilderThread {
 		}
 	}
 
-	public static String getEncryptedPassword(MySQLServer mysqlServer, String username) throws IOException, SQLException {
+	public static String getEncryptedPassword(MySQLServer mysqlServer, MySQLUserId username) throws IOException, SQLException {
 		AOConnectionPool pool=MySQLServerManager.getPool(mysqlServer);
 		Connection conn=pool.getConnection(true);
 		try {
 			try (PreparedStatement pstmt = conn.prepareStatement("select password from user where user=?")) {
 				try {
-					pstmt.setString(1, username);
+					pstmt.setString(1, username.toString());
 					try (ResultSet result = pstmt.executeQuery()) {
 						if(result.next()) {
 							return result.getString(1);
@@ -595,7 +608,7 @@ final public class MySQLUserManager extends BuilderThread {
 		}
 	}
 
-	public static void setPassword(MySQLServer mysqlServer, String username, String password) throws IOException, SQLException {
+	public static void setPassword(MySQLServer mysqlServer, MySQLUserId username, String password) throws IOException, SQLException {
 		// Get the connection to work through
 		AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
 		Connection conn = pool.getConnection();
@@ -603,14 +616,14 @@ final public class MySQLUserManager extends BuilderThread {
 			if(ObjectUtils.equals(password, MySQLUser.NO_PASSWORD)) {
 				// Disable the account
 				try (PreparedStatement pstmt = conn.prepareStatement("update user set password='"+MySQLUser.NO_PASSWORD_DB_VALUE+"' where user=?")) {
-					pstmt.setString(1, username);
+					pstmt.setString(1, username.toString());
 					pstmt.executeUpdate();
 				}
 			} else {
 				// Reset the password
 				try (PreparedStatement pstmt = conn.prepareStatement("update user set password=password(?) where user=?")) {
 					pstmt.setString(1, password);
-					pstmt.setString(2, username);
+					pstmt.setString(2, username.toString());
 					pstmt.executeUpdate();
 				}
 			}
@@ -620,7 +633,7 @@ final public class MySQLUserManager extends BuilderThread {
 		MySQLServerManager.flushPrivileges(mysqlServer);
 	}
 
-	public static void setEncryptedPassword(MySQLServer mysqlServer, String username, String password) throws IOException, SQLException {
+	public static void setEncryptedPassword(MySQLServer mysqlServer, MySQLUserId username, String password) throws IOException, SQLException {
 		// Get the connection to work through
 		AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
 		Connection conn = pool.getConnection();
@@ -628,14 +641,14 @@ final public class MySQLUserManager extends BuilderThread {
 			if(ObjectUtils.equals(password, MySQLUser.NO_PASSWORD)) {
 				// Disable the account
 				try (PreparedStatement pstmt = conn.prepareStatement("update user set password='"+MySQLUser.NO_PASSWORD_DB_VALUE+"' where user=?")) {
-					pstmt.setString(1, username);
+					pstmt.setString(1, username.toString());
 					pstmt.executeUpdate();
 				}
 			} else {
 				// Reset the password
 				try (PreparedStatement pstmt = conn.prepareStatement("update user set password=? where user=?")) {
 					pstmt.setString(1, password);
-					pstmt.setString(2, username);
+					pstmt.setString(2, username.toString());
 					pstmt.executeUpdate();
 				}
 			}

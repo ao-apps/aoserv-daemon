@@ -15,6 +15,7 @@ import com.aoindustries.aoserv.client.HttpdServer;
 import com.aoindustries.aoserv.client.MySQLServer;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Server;
+import com.aoindustries.aoserv.client.validator.MySQLServerName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.io.FileExistsRule;
@@ -72,7 +73,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		// TODO: BackupManager.backupPostgresDatabases();
 	}
 
-	private final Map<FailoverFileReplication,List<String>> replicatedMySQLServerses = new HashMap<>();
+	private final Map<FailoverFileReplication,List<MySQLServerName>> replicatedMySQLServerses = new HashMap<>();
 	private final Map<FailoverFileReplication,List<String>> replicatedMySQLMinorVersionses = new HashMap<>();
 
 	@Override
@@ -83,13 +84,13 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		if(retention==1) {
 			AOServer toServer = ffr.getBackupPartition().getAOServer();
 			List<FailoverMySQLReplication> fmrs = ffr.getFailoverMySQLReplications();
-			List<String> replicatedMySQLServers = new ArrayList<>(fmrs.size());
+			List<MySQLServerName> replicatedMySQLServers = new ArrayList<>(fmrs.size());
 			List<String> replicatedMySQLMinorVersions = new ArrayList<>(fmrs.size());
 			Logger logger = getLogger();
 			boolean isDebug = logger.isLoggable(Level.FINE);
 			for(FailoverMySQLReplication fmr : fmrs) {
 				MySQLServer mysqlServer = fmr.getMySQLServer();
-				String name = mysqlServer.getName();
+				MySQLServerName name = mysqlServer.getName();
 				String minorVersion = mysqlServer.getMinorVersion();
 				replicatedMySQLServers.add(name);
 				replicatedMySQLMinorVersions.add(minorVersion);
@@ -263,12 +264,12 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		filesystemRules.put("/var/lib/mysql/5.6/"+hostname+".pid", FilesystemIteratorRule.SKIP);
 		if(retention==1) {
 			// Skip files for any MySQL Server that is being replicated through MySQL replication
-			List<String> replicatedMySQLServers;
+			List<MySQLServerName> replicatedMySQLServers;
 			synchronized(replicatedMySQLServerses) {
 				replicatedMySQLServers = replicatedMySQLServerses.get(ffr);
 			}
-			for(String name : replicatedMySQLServers) {
-				String path = "/var/lib/mysql/"+name;
+			for(MySQLServerName name : replicatedMySQLServers) {
+				String path = "/var/lib/mysql/"+name.toString();
 				filesystemRules.put(path, FilesystemIteratorRule.SKIP);
 				//if(log.isDebugEnabled()) log.debug("runFailoverCopy to "+toServer+", added skip rule for "+path);
 			}
@@ -405,7 +406,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		filesystemRules.put("/www/lost+found", FilesystemIteratorRule.SKIP);
 		// Do not replicate the backup directories
 		for(BackupPartition bp : thisServer.getBackupPartitions()) {
-			filesystemRules.put(bp.getPath()+'/', FilesystemIteratorRule.SKIP);
+			filesystemRules.put(bp.getPath().toString()+'/', FilesystemIteratorRule.SKIP);
 		}
 		return filesystemRules;
 	}
@@ -433,7 +434,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 	}
 
 	@Override
-	public List<String> getReplicatedMySQLServers(FailoverFileReplication ffr) throws IOException, SQLException {
+	public List<MySQLServerName> getReplicatedMySQLServers(FailoverFileReplication ffr) throws IOException, SQLException {
 		synchronized(replicatedMySQLServerses) {
 			return replicatedMySQLServerses.get(ffr);
 		}

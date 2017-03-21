@@ -17,6 +17,7 @@ import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Package;
 import com.aoindustries.aoserv.client.Protocol;
 import com.aoindustries.aoserv.client.Server;
+import com.aoindustries.aoserv.client.validator.AccountingCode;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -132,7 +133,7 @@ public class JilterConfigurationWriter extends BuilderThread {
 				for(EmailDomain ed : aoServer.getEmailDomains()) {
 					DomainName domain = ed.getDomain();
 					// domainPackages
-					domainPackages.put(domain.toString(), ed.getPackage().getName());
+					domainPackages.put(domain.toString(), ed.getPackage().getName().toString());
 					// domainAddresses
 					List<EmailAddress> eas = ed.getEmailAddresses();
 					Set<String> addresses = new HashSet<>(eas.size()*4/3+1);
@@ -178,7 +179,7 @@ public class JilterConfigurationWriter extends BuilderThread {
 				Map<String,EmailLimit> emailOutLimits = new HashMap<>(noGrowSize);
 				Map<String,EmailLimit> emailRelayLimits = new HashMap<>(noGrowSize);
 				for(String packageName : domainPackages.values()) {
-					Package pk = AOServDaemon.getConnector().getPackages().get(packageName);
+					Package pk = AOServDaemon.getConnector().getPackages().get(AccountingCode.valueOf(packageName));
 					if(pk==null) throw new SQLException("Unable to find Package: "+packageName);
 					int emailInBurst = pk.getEmailInBurst();
 					float emailInRate = pk.getEmailInRate();

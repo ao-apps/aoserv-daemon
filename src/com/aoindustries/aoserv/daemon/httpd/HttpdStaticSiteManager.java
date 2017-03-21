@@ -8,9 +8,11 @@ package com.aoindustries.aoserv.daemon.httpd;
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
 import com.aoindustries.aoserv.client.HttpdStaticSite;
+import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.validation.ValidationException;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Set;
@@ -97,16 +99,25 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 
 	@Override
 	public SortedMap<String,WebAppSettings> getWebapps() throws IOException, SQLException {
-		SortedMap<String,WebAppSettings> webapps = new TreeMap<>();
-		webapps.put(
-			"",
-			new WebAppSettings(
-				HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory().toString()+'/'+httpdSite.getSiteName()+"/htdocs",
-				"AuthConfig Indexes Limit",
-				"Indexes IncludesNOEXEC",
-				enableCgi()
-			)
-		);
-		return webapps;
+		try {
+			SortedMap<String,WebAppSettings> webapps = new TreeMap<>();
+			webapps.put(
+				"",
+				new WebAppSettings(
+					UnixPath.valueOf(
+						HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory().toString()
+							+'/'
+							+httpdSite.getSiteName()
+							+"/htdocs"
+					),
+					"AuthConfig Indexes Limit",
+					"Indexes IncludesNOEXEC",
+					enableCgi()
+				)
+			);
+			return webapps;
+		} catch(ValidationException e) {
+			throw new IOException(e);
+		}
 	}
 }

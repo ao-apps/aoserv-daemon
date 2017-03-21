@@ -16,6 +16,7 @@ import com.aoindustries.aoserv.client.LinuxGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.client.Shell;
+import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -62,10 +63,10 @@ final public class AWStatsManager extends BuilderThread {
 	protected boolean doRebuild() {
 		try {
 			HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
-			final File awstatsDirectory = new File(osConfig.getAwstatsDirectory());
-			final File binDirectory     = new File(osConfig.getAwstatsBinDirectory());
-			final File configDirectory  = new File(osConfig.getAwstatsConfigDirectory());
-			final File hostsDirectory   = new File(osConfig.getAwstatsHostsDirectory());
+			final File awstatsDirectory = new File(osConfig.getAwstatsDirectory().toString());
+			final File binDirectory     = new File(osConfig.getAwstatsBinDirectory().toString());
+			final File configDirectory  = new File(osConfig.getAwstatsConfigDirectory().toString());
+			final File hostsDirectory   = new File(osConfig.getAwstatsHostsDirectory().toString());
 
 			// Resolve the UID and GID before obtaining the lock
 			AOServer thisAoServer=AOServDaemon.getThisAOServer();
@@ -95,7 +96,7 @@ final public class AWStatsManager extends BuilderThread {
 
 				// These are cleared and reused for each iteration of the loop
 				Map<String,Object> usedHostnames=new HashMap<>();
-				Map<String,Object> usedLogs=new HashMap<>();
+				Map<UnixPath,Object> usedLogs=new HashMap<>();
 
 				// Iterate through each website on this server
 				for(HttpdSite site : thisAoServer.getHttpdSites()) {
@@ -390,7 +391,7 @@ final public class AWStatsManager extends BuilderThread {
 					out.print(binDirectory.getPath()).print("/tools/logresolvemerge.pl");
 					usedLogs.clear();
 					for(HttpdSiteBind bind : binds) {
-						String access_log=bind.getAccessLog();
+						UnixPath access_log=bind.getAccessLog();
 						if(!usedLogs.containsKey(access_log)) {
 							usedLogs.put(access_log, null);
 							out.print(" \\\n"
@@ -635,10 +636,10 @@ final public class AWStatsManager extends BuilderThread {
 				String[] cmd={
 					"/bin/su",
 					"-s",
-					Shell.BASH,
+					Shell.BASH.toString(),
 					"-c",
 					runascgi+" '"+queryString+"'",
-					LinuxAccount.AWSTATS
+					LinuxAccount.AWSTATS.toString()
 				};
 				Process P = Runtime.getRuntime().exec(cmd);
 				try {
@@ -687,7 +688,7 @@ final public class AWStatsManager extends BuilderThread {
 			}
 		} else {
 			if(path.startsWith("icon/") && !path.contains("..")) {
-				final File iconDirectory = new File(osConfig.getAwstatsIconDirectory());
+				final File iconDirectory = new File(osConfig.getAwstatsIconDirectory().toString());
 				File file=new File(iconDirectory, path.substring(5));
 				try (FileInputStream in = new FileInputStream(file)) {
 					byte[] buff=BufferManager.getBytes();
