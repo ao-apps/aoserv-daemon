@@ -19,8 +19,8 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.AOPool;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.AddressFamily;
 import com.aoindustries.net.InetAddress;
+import com.aoindustries.net.MacAddress;
 import com.aoindustries.util.ErrorPrinter;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -155,7 +155,7 @@ final public class NetDeviceManager extends BuilderThread {
 									}
 									out.print("ONBOOT=yes\n");
 								}
-								String macAddr=device.getMacAddress();
+								MacAddress macAddr=device.getMacAddress();
 								if(macAddr==null) throw new SQLException("(net_devices.pkey="+device.getPkey()+").macaddr may not be null for CentOS 5");
 								out.print("HWADDR=").print(macAddr).print('\n');
 							} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
