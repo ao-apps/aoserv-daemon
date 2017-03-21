@@ -133,7 +133,7 @@ final public class EmailAddressManager extends BuilderThread {
 					String[] devNullUsername=new String[1];
 					Map<String,String> singleForwardingTies=new HashMap<>();
 					Map<UnixPath,String> singleListTies=new HashMap<>();
-					Map<UnixPath,String> singlePipeTies=new HashMap<>();
+					Map<String,String> singlePipeTies=new HashMap<>();
 					Map<UserId,String> singleInboxTies=new HashMap<>();
 					for(EmailAddress ea : eas) {
 						String address=ea.getAddress();
@@ -232,7 +232,7 @@ final public class EmailAddressManager extends BuilderThread {
 		String[] devNullUsername,
 		Map<String,String> singleForwardingTies,
 		Map<UnixPath,String> singleListTies,
-		Map<UnixPath,String> singlePipeTies,
+		Map<String,String> singlePipeTies,
 		Map<UserId,String> singleInboxTies,
 		ChainWriter aliasesOut,
 		ChainWriter usersOut
@@ -310,11 +310,11 @@ final public class EmailAddressManager extends BuilderThread {
 			&& epas.size()==1
 			&& laas.isEmpty()
 		) {
-			UnixPath path=epas.get(0).getEmailPipe().getPath();
-			tieUsername=singlePipeTies.get(path);
+			String command = epas.get(0).getEmailPipe().getCommand();
+			tieUsername=singlePipeTies.get(command);
 			if(tieUsername==null) {
-				singlePipeTies.put(path, tieUsername=getTieUsername(usernamesUsed));
-				aliasesOut.print(tieUsername).print(": \"| ").print(path).println('"');
+				singlePipeTies.put(command, tieUsername=getTieUsername(usernamesUsed));
+				aliasesOut.print(tieUsername).print(": \"| ").print(command).println('"');
 			}
 
 		// 5) One Inbox only, BEA ignored (use singleInboxTies)
@@ -360,7 +360,7 @@ final public class EmailAddressManager extends BuilderThread {
 			for(EmailPipeAddress epa : epas) {
 				if(done) aliasesOut.print(",\n\t");
 				else done=true;
-				aliasesOut.print("\"| ").print(epa.getEmailPipe().getPath()).print('"');
+				aliasesOut.print("\"| ").print(epa.getEmailPipe().getCommand()).print('"');
 			}
 			for(LinuxAccAddress laa : laas) {
 				if(done) aliasesOut.print(",\n\t");
