@@ -9,6 +9,7 @@ import com.aoindustries.aoserv.backup.UnixFileEnvironment;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.BackupPartition;
+import com.aoindustries.aoserv.client.CvsRepository;
 import com.aoindustries.aoserv.client.FailoverFileReplication;
 import com.aoindustries.aoserv.client.FailoverMySQLReplication;
 import com.aoindustries.aoserv.client.HttpdServer;
@@ -240,9 +241,12 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		filesystemRules.put("/var/backup4/", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/failover/", FilesystemIteratorRule.SKIP);
 		filesystemRules.put(
-			"/var/cvs/",
+			CvsRepository.DEFAULT_CVS_DIRECTORY + "/",
 			new FileExistsRule(
-				new String[] {"/var/cvs.aes128.img", "/var/cvs.aes256.img"},
+				new String[] {
+					CvsRepository.DEFAULT_CVS_DIRECTORY + ".aes128.img",
+					CvsRepository.DEFAULT_CVS_DIRECTORY + ".aes256.img"
+				},
 				FilesystemIteratorRule.SKIP,
 				FilesystemIteratorRule.OK
 			)

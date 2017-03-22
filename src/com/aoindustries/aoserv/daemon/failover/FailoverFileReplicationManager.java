@@ -7,6 +7,7 @@ package com.aoindustries.aoserv.daemon.failover;
 
 import com.aoindustries.aoserv.backup.BackupDaemon;
 import com.aoindustries.aoserv.client.BackupRetention;
+import com.aoindustries.aoserv.client.CvsRepository;
 import com.aoindustries.aoserv.client.validator.MySQLServerName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -210,8 +211,8 @@ final public class FailoverFileReplicationManager {
 		encryptedLoopFilePaths.add("/home.aes256.img");
 		encryptedLoopFilePaths.add("/logs.aes128.img");
 		encryptedLoopFilePaths.add("/logs.aes256.img");
-		encryptedLoopFilePaths.add("/var/cvs.aes128.img");
-		encryptedLoopFilePaths.add("/var/cvs.aes256.img");
+		encryptedLoopFilePaths.add(CvsRepository.DEFAULT_CVS_DIRECTORY + ".aes128.img");
+		encryptedLoopFilePaths.add(CvsRepository.DEFAULT_CVS_DIRECTORY + ".aes256.img");
 		encryptedLoopFilePaths.add("/var/lib/pgsql.aes128.img");
 		encryptedLoopFilePaths.add("/var/lib/pgsql.aes256.img");
 		encryptedLoopFilePaths.add("/var/spool.aes128.img");

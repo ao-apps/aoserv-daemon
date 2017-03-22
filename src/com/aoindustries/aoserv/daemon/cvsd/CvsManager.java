@@ -35,8 +35,6 @@ import java.util.logging.Level;
  */
 final public class CvsManager extends BuilderThread {
 
-	public static final String CVS_DIRECTORY = "/var/cvs";
-
 	private static CvsManager cvsManager;
 
 	private CvsManager() {
@@ -70,12 +68,12 @@ final public class CvsManager extends BuilderThread {
 				}
 
 				// Get a list of all the directories in /var/cvs
-				File cvsDir = new File(CVS_DIRECTORY);
+				File cvsDir = new File(CvsRepository.DEFAULT_CVS_DIRECTORY.toString());
 				if(!cvsDir.exists()) new UnixFile(cvsDir).mkdir(false, 0755, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
 				String[] list = cvsDir.list();
 				int listLen = list.length;
 				Set<String> existing = new HashSet<>(listLen);
-				for(int c = 0; c < listLen; c++) existing.add(CVS_DIRECTORY + '/' + list[c]);
+				for(int c = 0; c < listLen; c++) existing.add(CvsRepository.DEFAULT_CVS_DIRECTORY + "/" + list[c]);
 
 				// Add each directory that doesn't exist, fix permissions and ownerships, too
 				// while removing existing directories from existing

@@ -245,7 +245,7 @@ public final class XinetdManager extends BuilderThread {
 											rootUser,
 											null,
 											"/usr/bin/cvs",
-											"HOME=/var/cvs",
+											"HOME=" + CvsRepository.DEFAULT_CVS_DIRECTORY,
 											server_args.toString(),
 											"HOST DURATION",
 											"HOST USERID",
