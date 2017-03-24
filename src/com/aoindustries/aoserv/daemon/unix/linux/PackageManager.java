@@ -44,6 +44,7 @@ public class PackageManager {
 		BIND("bind"),
 		CACHING_NAMESERVER("caching-nameserver"), // This is a distinct package in CentOS 5, but provided by "bind" in CentOS 7
 		CVS("cvs"),
+		GZIP("gzip"),
 		HDDTEMP("hddtemp"),
 		LIBPCAP("libpcap"),
 		JBOSS_2_2_2("jboss_2_2_2"),
