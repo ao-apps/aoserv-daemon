@@ -76,6 +76,11 @@ import javax.net.ssl.SSLHandshakeException;
 final public class AOServDaemonServerThread extends Thread {
 
 	/**
+	 * The minimum supported protocol version.
+	 */
+	private static final AOServDaemonProtocol.Version MINIMUM_VERSION = AOServDaemonProtocol.Version.VERSION_1_77;
+
+	/**
 	 * The <code>AOServServer</code> that created this <code>AOServServerThread</code>.
 	 */
 	private final AOServDaemonServer server;
@@ -113,19 +118,36 @@ final public class AOServDaemonServerThread extends Thread {
 	@Override
 	public void run() {
 		try {
-			AOServConnector connector=AOServDaemon.getConnector();
-			AOServer thisAOServer=AOServDaemon.getThisAOServer();
+			final AOServConnector connector = AOServDaemon.getConnector();
+			final AOServer thisAOServer = AOServDaemon.getThisAOServer();
 
-			// Read the key first so that any failed connection looks the same from the outside,
-			// regardless of reason
-			String protocolVersion=in.readUTF();
-			String daemonKey=in.readBoolean()?in.readUTF():null;
-			if(!protocolVersion.equals(AOServDaemonProtocol.CURRENT_VERSION)) {
-				out.writeBoolean(false);
-				out.writeUTF(AOServDaemonProtocol.CURRENT_VERSION);
-				out.flush();
-				return;
-			} else {
+			final AOServDaemonProtocol.Version clientVersion;
+			final String daemonKey;
+			{
+				String protocolVersion = in.readUTF();
+				// Read the key first so that any failed connection looks the same from the outside,
+				// regardless of reason
+				daemonKey=in.readBoolean()?in.readUTF():null;
+				// Get the version
+				try {
+					clientVersion = AOServDaemonProtocol.Version.valueOf(protocolVersion);
+				} catch(IllegalArgumentException e) {
+					out.writeBoolean(false);
+					out.writeUTF(MINIMUM_VERSION.getVersion());
+					out.flush();
+					return;
+				}
+				// Check if client too old
+				if(clientVersion.compareTo(MINIMUM_VERSION) < 0) {
+					out.writeBoolean(false);
+					out.writeUTF(MINIMUM_VERSION.getVersion());
+					out.flush();
+					return;
+				}
+				// Check if client too new (this should really not happen, since current_version is always the highest)
+				if(clientVersion.compareTo(AOServDaemonProtocol.Version.CURRENT_VERSION) > 0) {
+					throw new IOException("Client is too new of version: " + clientVersion.getVersion() + " > " + AOServDaemonProtocol.Version.CURRENT_VERSION.getVersion());
+				}
 				out.writeBoolean(true);
 			}
 			if(daemonKey!=null) {
@@ -179,10 +201,16 @@ final public class AOServDaemonServerThread extends Thread {
 							{
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing DUMP_MYSQL_DATABASE, Thread="+toString());
 								int pkey=in.readCompressedInt();
+								boolean gzip;
+								if(clientVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT) >= 0) {
+									gzip = in.readBoolean();
+								} else {
+									gzip = false;
+								}
 								if(daemonKey==null) throw new IOException("Only the master server may DUMP_MYSQL_DATABASE");
 								MySQLDatabase md=connector.getMysqlDatabases().get(pkey);
 								if(md==null) throw new SQLException("Unable to find MySQLDatabase: "+pkey);
-								MySQLDatabaseManager.dumpDatabase(md, out);
+								MySQLDatabaseManager.dumpDatabase(md, clientVersion, out, gzip);
 								out.write(AOServDaemonProtocol.DONE);
 							}
 							break;
@@ -190,10 +218,16 @@ final public class AOServDaemonServerThread extends Thread {
 							{
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing DUMP_POSTGRES_DATABASE, Thread="+toString());
 								int pkey=in.readCompressedInt();
+								boolean gzip;
+								if(clientVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT) >= 0) {
+									gzip = in.readBoolean();
+								} else {
+									gzip = false;
+								}
 								if(daemonKey==null) throw new IOException("Only the master server may DUMP_POSTGRES_DATABASE");
 								PostgresDatabase pd=connector.getPostgresDatabases().get(pkey);
 								if(pd==null) throw new SQLException("Unable to find PostgresDatabase: "+pkey);
-								PostgresDatabaseManager.dumpDatabase(pd, out);
+								PostgresDatabaseManager.dumpDatabase(pd, clientVersion, out, gzip);
 								out.write(AOServDaemonProtocol.DONE);
 							}
 							break;
