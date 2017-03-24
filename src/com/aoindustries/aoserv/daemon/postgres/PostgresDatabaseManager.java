@@ -211,6 +211,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 									) {
 										throw new SQLException("AOServ Daemon will not automatically drop database, please drop manually: "+dbName);
 									}
+									// TODO: Dump database before dropping
 									stmt.executeUpdate("drop database "+dbName);
 									//conn.commit();
 								}

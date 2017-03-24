@@ -135,6 +135,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 										);
 									} else {
 										// Remove the extra database
+										// TODO: Dump database before dropping
 										stmt.executeUpdate("drop database " + dbName);
 										modified=true;
 									}
