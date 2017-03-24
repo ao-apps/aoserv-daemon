@@ -124,8 +124,8 @@ final public class CvsManager extends BuilderThread {
 					for(String deleteFilename : existing) deleteFileList.add(new File(deleteFilename));
 
 					// Get the next backup filename
-					File backupFile = BackupManager.getNextBackupFile();
-					BackupManager.backupFiles(deleteFileList, backupFile);
+					File backupFile = BackupManager.getNextTarballBackupFile();
+					BackupManager.createTarball(deleteFileList, backupFile);
 
 					/*
 					 * Remove the files that have been backed up.

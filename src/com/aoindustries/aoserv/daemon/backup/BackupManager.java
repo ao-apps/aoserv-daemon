@@ -49,7 +49,7 @@ final public class BackupManager {
 	/**
 	 * The maximum age of files in the /var/opt/aoserv-daemon/oldaccounts directory.
 	 */
-	private static final long MAX_OLDACCOUNTS_AGE=7L*24*60*60*1000;
+	private static final long MAX_OLDACCOUNTS_AGE = 7L*24*60*60*1000; // One week
 
 	private BackupManager() {}
 
@@ -59,9 +59,9 @@ final public class BackupManager {
 	public static void backupAndDeleteFiles(List<File> deleteFileList) throws IOException, SQLException {
 		if(!deleteFileList.isEmpty()) {
 			// Get the next backup filename
-			File backupFile = getNextBackupFile();
+			File backupFile = getNextTarballBackupFile();
 			// Backup
-			backupFiles(deleteFileList, backupFile);
+			createTarball(deleteFileList, backupFile);
 			// Remove the files that have been backed up.
 			AOServer thisAoServer = AOServDaemon.getThisAOServer();
 			int uid_min = thisAoServer.getUidMin().getId();
@@ -75,7 +75,7 @@ final public class BackupManager {
 	/**
 	 * Makes a tarball of the provided files into the provided file.
 	 */
-	public static void backupFiles(List<File> files, File backupFile) throws IOException {
+	public static void createTarball(List<File> files, File backupFile) throws IOException {
 		int len=files.size();
 		String[] cmd=new String[len+5];
 		cmd[0]="/bin/tar";
@@ -214,12 +214,11 @@ final public class BackupManager {
 	static void cleanVarOldaccounts() {
 		try {
 			UnixFile oldaccountsDir = getOldaccountsDir();
-			String[] files=oldaccountsDir.list();
-			if(files!=null) {
-				int len=files.length;
-				for(int c=0;c<len;c++) {
-					String filename=files[c];
+			String[] files = oldaccountsDir.list();
+			if(files != null) {
+				for(String filename : files) {
 					// Construct the Calendar from the filename
+					// Not y10k compatible ;)
 					Calendar fileCal=Calendar.getInstance();
 					fileCal.set(Calendar.YEAR, Integer.parseInt(filename.substring(0,4)));
 					fileCal.set(Calendar.MONTH, Integer.parseInt(filename.substring(4,6))-1);
@@ -228,8 +227,24 @@ final public class BackupManager {
 					fileCal.set(Calendar.MINUTE, Integer.parseInt(filename.substring(11,13)));
 					fileCal.set(Calendar.SECOND, Integer.parseInt(filename.substring(13,15)));
 
-					if((System.currentTimeMillis()-fileCal.getTime().getTime())>=MAX_OLDACCOUNTS_AGE) {
+					// If more than double the max age, we might have a system time problem or an extended down time
+					long age = (System.currentTimeMillis() - fileCal.getTime().getTime());
+					if(age >= (MAX_OLDACCOUNTS_AGE * 2)) {
+						LogFactory.getLogger(BackupManager.class).warning(
+							filename + "\n"
+								+ "File date unexpectedly far in the past; refusing to delete.\n"
+								+ "This could be due to a system time change or a very long outage.\n"
+								+ "Please investigate and removed as-needed."
+						);
+					} else if(age >= MAX_OLDACCOUNTS_AGE) {
 						new UnixFile(oldaccountsDir, filename, true).delete();
+					} else if(age < 0) {
+						LogFactory.getLogger(BackupManager.class).warning(
+							filename + "\n"
+								+ "File date is in the future.\n"
+								+ "This could be due to a system time change or a clock problem.\n"
+								+ "Please investigate and removed as-needed."
+						);
 					}
 				}
 			}
@@ -243,7 +258,7 @@ final public class BackupManager {
 	/**
 	 * The full path to the df command.
 	 */
-	public static final String DF="/bin/df";
+	public static final String DF = "/bin/df";
 
 	public static long getDiskDeviceTotalSize(UnixPath path) throws IOException {
 		return getDFColumn(path, 1);
@@ -289,11 +304,21 @@ final public class BackupManager {
 	}
 
 	/**
-	 * Gets the next backup filename in the oldaccounts directory.
-	 * The filename format is <code>YYYYMMDD_HHMMSS_C.tgz</code> where <code>C</code> a counter
-	 * starting at one.
+	 * Gets the next backup file for ".tgz" extension.
+	 *
+	 * @see  #getNextBackupFile(java.lang.String)
 	 */
-	public static File getNextBackupFile() throws IOException {
+	public static File getNextTarballBackupFile() throws IOException {
+		return getNextBackupFile(".tgz");
+	}
+
+	/**
+	 * Gets the next backup filename in the oldaccounts directory.
+	 * The filename format is <code>YYYYMMDD_HHMMSS_C<i>extension</i></code> where <code>C</code> a counter
+	 * starting at one.
+	 * The file is created empty with permissions 0600.
+	 */
+	public static File getNextBackupFile(String extension) throws IOException {
 		synchronized(BackupManager.class) {
 			Calendar cal=Calendar.getInstance();
 			StringBuilder SB=new StringBuilder(11);
@@ -323,14 +348,15 @@ final public class BackupManager {
 			UnixFile oldaccountsDir = getOldaccountsDir();
 			String prefix=SB.toString();
 			for(int c=1;c<Integer.MAX_VALUE;c++) {
-				UnixFile unixFile=new UnixFile(oldaccountsDir, prefix+c+".tgz", true);
+				UnixFile unixFile=new UnixFile(oldaccountsDir, prefix + c + extension, true);
 				if(!unixFile.getStat().exists()) {
 					File file = unixFile.getFile();
 					new FileOutputStream(file).close();
+					unixFile.setMode(0600);
 					return file;
 				}
 			}
-			throw new IOException("Unable to allocate backup file for "+oldaccountsDir.getPath()+'/'+prefix);
+			throw new IOException("Unable to allocate backup file for "+oldaccountsDir.getPath()+'/'+prefix + '*' + extension);
 		}
 	}
 

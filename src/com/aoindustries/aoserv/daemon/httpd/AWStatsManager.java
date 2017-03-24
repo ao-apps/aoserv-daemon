@@ -529,8 +529,8 @@ final public class AWStatsManager extends BuilderThread {
 				int deleteFileListLen=deleteFileList.size();
 				if(deleteFileListLen>0) {
 					// Get the next backup filename
-					File backupFile=BackupManager.getNextBackupFile();
-					BackupManager.backupFiles(deleteFileList, backupFile);
+					File backupFile=BackupManager.getNextTarballBackupFile();
+					BackupManager.createTarball(deleteFileList, backupFile);
 
 					/*
 					 * Remove the files that have been backed up.
