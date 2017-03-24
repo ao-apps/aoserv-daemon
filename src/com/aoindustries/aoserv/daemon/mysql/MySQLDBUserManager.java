@@ -74,12 +74,11 @@ final public class MySQLDBUserManager extends BuilderThread {
 						) {
 							while (results.next()) {
 								try {
-									existing.add(
-										new Tuple2<>(
-											MySQLDatabaseName.valueOf(results.getString(1)),
-											MySQLUserId.valueOf(results.getString(2))
-										)
+									Tuple2<MySQLDatabaseName,MySQLUserId> tuple = new Tuple2<>(
+										MySQLDatabaseName.valueOf(results.getString(1)),
+										MySQLUserId.valueOf(results.getString(2))
 									);
+									if(!existing.add(tuple)) throw new SQLException("Duplicate (db, user): " + tuple);
 								} catch(ValidationException e) {
 									throw new SQLException(e);
 								}
@@ -121,8 +120,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 									+')'
 								);
 								Tuple2<MySQLDatabaseName,MySQLUserId> key = new Tuple2<>(db, user);
-								if (existing.contains(key)) existing.remove(key);
-								else {
+								if(!existing.remove(key)) {
 									// Add the db entry
 									String host=MySQLServerUser.ANY_HOST;
 									pstmt.setString(1, host);
@@ -173,10 +171,9 @@ final public class MySQLDBUserManager extends BuilderThread {
 									pstmt.setString(1, key.getElement1().toString());
 									pstmt.setString(2, key.getElement2().toString());
 									pstmt.executeUpdate();
-
-									modified = true;
 								}
 							}
+							modified = true;
 						}
 					} finally {
 						pool.releaseConnection(conn);

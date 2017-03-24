@@ -76,12 +76,11 @@ final public class MySQLUserManager extends BuilderThread {
 						) {
 							try {
 								while (results.next()) {
-									existing.add(
-										new Tuple2<>(
-											results.getString(1),
-											MySQLUserId.valueOf(results.getString(2))
-										)
+									Tuple2<String,MySQLUserId> tuple = new Tuple2<>(
+										results.getString(1),
+										MySQLUserId.valueOf(results.getString(2))
 									);
+									if(!existing.add(tuple)) throw new SQLException("Duplicate (host, user): " + tuple);
 								}
 							} catch(ValidationException e) {
 								throw new SQLException(e);
@@ -352,7 +351,7 @@ final public class MySQLUserManager extends BuilderThread {
 								Tuple2<String,MySQLUserId> key = new Tuple2<>(host, username);
 								if(existing.contains(key)) {
 									int pos=1;
-									// set
+									// Update the user
 									pstmt.setString(pos++, mu.canSelect()?"Y":"N");
 									pstmt.setString(pos++, mu.canInsert()?"Y":"N");
 									pstmt.setString(pos++, mu.canUpdate()?"Y":"N");

@@ -20,7 +20,6 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.lang.ObjectUtils;
 import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.sql.WrappedSQLException;
-import com.aoindustries.util.SortedArrayList;
 import com.aoindustries.validation.ValidationException;
 import java.io.IOException;
 import java.sql.Connection;
@@ -29,7 +28,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 /**
@@ -77,7 +78,7 @@ final public class PostgresUserManager extends BuilderThread {
 					boolean disableEnableDone = false;
 					try {
 						// Get the list of all existing users
-						List<PostgresUserId> existing=new SortedArrayList<>();
+						Set<PostgresUserId> existing = new HashSet<>();
 						try (Statement stmt = conn.createStatement()) {
 							String sqlString =
 								version.startsWith(PostgresVersion.VERSION_7_1+'.')
@@ -93,7 +94,8 @@ final public class PostgresUserManager extends BuilderThread {
 										String username = results.getString(1);
 										if(DEBUG) debug("Found user " + username);
 										try {
-											existing.add(PostgresUserId.valueOf(username));
+											PostgresUserId usename = PostgresUserId.valueOf(username);
+											if(!existing.add(usename)) throw new SQLException("Duplicate username: " + usename);
 										} catch(ValidationException e) {
 											throw new SQLException(e);
 										}
@@ -108,8 +110,7 @@ final public class PostgresUserManager extends BuilderThread {
 							for (PostgresServerUser psu : users) {
 								PostgresUser pu=psu.getPostgresUser();
 								PostgresUserId username=pu.getKey();
-								if (existing.contains(username)) existing.remove(username);
-								else needAdded.add(psu);
+								if(!existing.remove(username)) needAdded.add(psu);
 							}
 
 							// Remove the extra users before adding to avoid usesysid or usename conflicts
@@ -119,7 +120,7 @@ final public class PostgresUserManager extends BuilderThread {
 									|| username.equals(PostgresUser.AOADMIN)
 									|| username.equals(PostgresUser.AOSERV_APP)
 									|| username.equals(PostgresUser.AOWEB_APP)
-									) throw new SQLException("AOServ Daemon will not automatically drop user, please drop manually: "+username+" on "+ps.getName());
+								) throw new SQLException("AOServ Daemon will not automatically drop user, please drop manually: "+username+" on "+ps.getName());
 								sqlString = "DROP USER "+username;
 								try {
 									if(DEBUG) debug("Dropping user: " + sqlString);

@@ -68,7 +68,10 @@ final public class MySQLHostManager extends BuilderThread {
 								Statement stmt = conn.createStatement();
 								ResultSet results = stmt.executeQuery("select host from host")
 							) {
-								while (results.next()) existing.add(results.getString(1));
+								while (results.next()) {
+									String host = results.getString(1);
+									if(!existing.add(host)) throw new SQLException("Duplicate host: " + host);
+								}
 							}
 
 							// Get the list of all hosts that should exist
@@ -98,8 +101,7 @@ final public class MySQLHostManager extends BuilderThread {
 
 							try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
 								for (String hostname : hosts) {
-									if (existing.contains(hostname)) existing.remove(hostname);
-									else {
+									if(!existing.remove(hostname)) {
 										// Add the host
 										pstmt.setString(1, hostname);
 										pstmt.executeUpdate();
@@ -116,10 +118,9 @@ final public class MySQLHostManager extends BuilderThread {
 										// Remove the extra host entry
 										pstmt.setString(1, dbName);
 										pstmt.executeUpdate();
-
-										modified = true;
 									}
 								}
+								modified = true;
 							}
 						} finally {
 							pool.releaseConnection(conn);

@@ -88,7 +88,8 @@ final public class MySQLDatabaseManager extends BuilderThread {
 							try (ResultSet results = stmt.executeQuery("show databases")) {
 								while(results.next()) {
 									try {
-										existing.add(MySQLDatabaseName.valueOf(results.getString(1)));
+										MySQLDatabaseName name = MySQLDatabaseName.valueOf(results.getString(1));
+										if(!existing.add(name)) throw new SQLException("Duplicate database name: " + name);
 									} catch(ValidationException e) {
 										throw new SQLException(e);
 									}
@@ -98,8 +99,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 							// Create the databases that do not exist and should
 							for(MySQLDatabase database : mysqlServer.getMySQLDatabases()) {
 								MySQLDatabaseName name = database.getName();
-								if(existing.contains(name)) existing.remove(name);
-								else {
+								if(!existing.remove(name)) {
 									// Create the database
 									stmt.executeUpdate("create database " + name);
 									modified=true;

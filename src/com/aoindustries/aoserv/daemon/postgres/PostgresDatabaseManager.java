@@ -30,7 +30,6 @@ import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.util.BufferManager;
-import com.aoindustries.util.SortedArrayList;
 import com.aoindustries.validation.ValidationException;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -43,7 +42,9 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 /**
@@ -84,14 +85,13 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 					try {
 						conn.setAutoCommit(true);
 						// Get the list of all existing databases
-						List<PostgresDatabaseName> existing=new SortedArrayList<>();
+						Set<PostgresDatabaseName> existing = new HashSet<>();
 						try (Statement stmt = conn.createStatement()) {
 							try (ResultSet results = stmt.executeQuery("select datname from pg_database")) {
 								try {
 									while(results.next()) {
-										existing.add(
-											PostgresDatabaseName.valueOf(results.getString(1))
-										);
+										PostgresDatabaseName datname = PostgresDatabaseName.valueOf(results.getString(1));
+										if(!existing.add(datname)) throw new SQLException("Duplicate database name: " + datname);
 									}
 								} catch(ValidationException e) {
 									throw new SQLException(e);
@@ -101,8 +101,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 							// Create the databases that do not exist and should
 							for(PostgresDatabase database : ps.getPostgresDatabases()) {
 								PostgresDatabaseName name=database.getName();
-								if(existing.contains(name)) existing.remove(name);
-								else {
+								if(!existing.remove(name)) {
 									PostgresServerUser datdba=database.getDatDBA();
 									if(
 										version.startsWith(PostgresVersion.VERSION_7_3+'.')
@@ -197,7 +196,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 							}
 
 							// Remove the extra databases
-							for (PostgresDatabaseName dbName : existing) {
+							for(PostgresDatabaseName dbName : existing) {
 								// Remove the extra database
 								if(
 									dbName.equals(PostgresDatabase.TEMPLATE0)
