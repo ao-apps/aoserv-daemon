@@ -75,192 +75,196 @@ final public class PostgresUserManager extends BuilderThread {
 					Connection conn=pool.getConnection(false);
 					// Get the list of all users that should exist
 					List<PostgresServerUser> users=ps.getPostgresServerUsers();
-					boolean disableEnableDone = false;
-					try {
-						// Get the list of all existing users
-						Set<PostgresUserId> existing = new HashSet<>();
-						try (Statement stmt = conn.createStatement()) {
-							String sqlString =
-								version.startsWith(PostgresVersion.VERSION_7_1+'.')
-								|| version.startsWith(PostgresVersion.VERSION_7_2+'.')
-								|| version.startsWith(PostgresVersion.VERSION_7_3+'.')
-								|| version.startsWith(PostgresVersion.VERSION_8_0+'.')
-								? "select usename from pg_user"
-								: "select rolname from pg_authid"
-								;
-							try {
-								try (ResultSet results = stmt.executeQuery(sqlString)) {
-									while (results.next()) {
-										String username = results.getString(1);
-										if(DEBUG) debug("Found user " + username);
-										try {
-											PostgresUserId usename = PostgresUserId.valueOf(username);
-											if(!existing.add(usename)) throw new SQLException("Duplicate username: " + usename);
-										} catch(ValidationException e) {
-											throw new SQLException(e);
-										}
-									}
-								}
-							} catch(SQLException err) {
-								throw new WrappedSQLException(err, sqlString);
-							}
-
-							// Find the users that do not exist and should be added
-							List<PostgresServerUser> needAdded=new ArrayList<>();
-							for (PostgresServerUser psu : users) {
-								PostgresUser pu=psu.getPostgresUser();
-								PostgresUserId username=pu.getKey();
-								if(!existing.remove(username)) needAdded.add(psu);
-							}
-
-							// Remove the extra users before adding to avoid usesysid or usename conflicts
-							for (PostgresUserId username : existing) {
-								if(
-									username.equals(PostgresUser.POSTGRES)
-									|| username.equals(PostgresUser.AOADMIN)
-									|| username.equals(PostgresUser.AOSERV_APP)
-									|| username.equals(PostgresUser.AOWEB_APP)
-								) throw new SQLException("AOServ Daemon will not automatically drop user, please drop manually: "+username+" on "+ps.getName());
-								sqlString = "DROP USER "+username;
-								try {
-									if(DEBUG) debug("Dropping user: " + sqlString);
-									stmt.executeUpdate(sqlString);
-									//conn.commit();
-								} catch(SQLException err) {
-									throw new WrappedSQLException(err, sqlString);
-								}
-							}
-
-							// Add the new users
-							for(PostgresServerUser psu : needAdded) {
-								PostgresUser pu = psu.getPostgresUser();
-								PostgresUserId username=pu.getKey();
-
-								// Add the user
-								StringBuilder sql=new StringBuilder();
-								sql
-									.append(
-										(
-											version.startsWith(PostgresVersion.VERSION_8_1+'.')
-												|| version.startsWith(PostgresVersion.VERSION_8_3+'.')
-												|| version.startsWith(PostgresVersion.VERSION_8_3+'R')
-												|| version.startsWith(PostgresVersion.VERSION_9_4+'.')
-												|| version.startsWith(PostgresVersion.VERSION_9_4+'R')
-											)
-											? "CREATE ROLE "
-											: "CREATE USER "
-									)
-									.append(username)
-									//.append(
-									//    (
-									//        version.startsWith(PostgresVersion.VERSION_7_1+'.')
-									//    )
-									//    ? " PASSWORD '"
-									//    : " UNENCRYPTED PASSWORD '"
-									//)
-									//.append(PostgresUser.NO_PASSWORD_DB_VALUE)
-									//.append("' ")
-									.append(pu.canCreateDB()?" CREATEDB":" NOCREATEDB")
-									.append(
-										(
-											version.startsWith(PostgresVersion.VERSION_8_1+'.')
-												|| version.startsWith(PostgresVersion.VERSION_8_3+'.')
-												|| version.startsWith(PostgresVersion.VERSION_8_3+'R')
-												|| version.startsWith(PostgresVersion.VERSION_9_4+'.')
-												|| version.startsWith(PostgresVersion.VERSION_9_4+'R')
-											)
-											? (pu.canCatUPD()?" CREATEROLE":" NOCREATEROLE")
-											: (pu.canCatUPD()?" CREATEUSER":" NOCREATEUSER")
-									).append(
-										(
-											version.startsWith(PostgresVersion.VERSION_8_1+'.')
-												|| version.startsWith(PostgresVersion.VERSION_8_3+'.')
-												|| version.startsWith(PostgresVersion.VERSION_8_3+'R')
-												|| version.startsWith(PostgresVersion.VERSION_9_4+'.')
-												|| version.startsWith(PostgresVersion.VERSION_9_4+'R')
-											)
-											? " LOGIN"
-											: ""
-									)
+					if(users.isEmpty()) {
+						LogFactory.getLogger(PostgresUserManager.class).severe("No users; refusing to rebuild config: " + ps);
+					} else {
+						boolean disableEnableDone = false;
+						try {
+							// Get the list of all existing users
+							Set<PostgresUserId> existing = new HashSet<>();
+							try (Statement stmt = conn.createStatement()) {
+								String sqlString =
+									version.startsWith(PostgresVersion.VERSION_7_1+'.')
+									|| version.startsWith(PostgresVersion.VERSION_7_2+'.')
+									|| version.startsWith(PostgresVersion.VERSION_7_3+'.')
+									|| version.startsWith(PostgresVersion.VERSION_8_0+'.')
+									? "select usename from pg_user"
+									: "select rolname from pg_authid"
 									;
-								sqlString = sql.toString();
 								try {
-									if(DEBUG) debug("Adding user: " + sqlString);
-									stmt.executeUpdate(sqlString);
-									//conn.commit();
-								} catch(SQLException err) {
-									throw new WrappedSQLException(err, sqlString);
-								}
-							}
-							if(
-								!(
-								version.startsWith(PostgresVersion.VERSION_7_1+'.')
-								|| version.startsWith(PostgresVersion.VERSION_7_2+'.')
-								|| version.startsWith(PostgresVersion.VERSION_7_3+'.')
-								|| version.startsWith(PostgresVersion.VERSION_8_0+'.')
-								)
-								) {
-								// Enable/disable using rolcanlogin
-								for (PostgresServerUser psu : users) {
-									PostgresUserId username=psu.getPostgresUser().getKey();
-									// Get the current login state
-									boolean rolcanlogin;
-									sqlString = "select rolcanlogin from pg_authid where rolname='"+username+"'";
-									try {
-										try (ResultSet results = stmt.executeQuery(sqlString)) {
-											if(results.next()) {
-												rolcanlogin = results.getBoolean(1);
-											} else {
-												throw new SQLException("Unable to find pg_authid entry for rolname='"+username+"'");
+									try (ResultSet results = stmt.executeQuery(sqlString)) {
+										while (results.next()) {
+											String username = results.getString(1);
+											if(DEBUG) debug("Found user " + username);
+											try {
+												PostgresUserId usename = PostgresUserId.valueOf(username);
+												if(!existing.add(usename)) throw new SQLException("Duplicate username: " + usename);
+											} catch(ValidationException e) {
+												throw new SQLException(e);
 											}
 										}
+									}
+								} catch(SQLException err) {
+									throw new WrappedSQLException(err, sqlString);
+								}
+
+								// Find the users that do not exist and should be added
+								List<PostgresServerUser> needAdded=new ArrayList<>();
+								for (PostgresServerUser psu : users) {
+									PostgresUser pu=psu.getPostgresUser();
+									PostgresUserId username=pu.getKey();
+									if(!existing.remove(username)) needAdded.add(psu);
+								}
+
+								// Remove the extra users before adding to avoid usesysid or usename conflicts
+								for (PostgresUserId username : existing) {
+									if(
+										username.equals(PostgresUser.POSTGRES)
+										|| username.equals(PostgresUser.AOADMIN)
+										|| username.equals(PostgresUser.AOSERV_APP)
+										|| username.equals(PostgresUser.AOWEB_APP)
+									) throw new SQLException("AOServ Daemon will not automatically drop user, please drop manually: "+username+" on "+ps.getName());
+									sqlString = "DROP USER "+username;
+									try {
+										if(DEBUG) debug("Dropping user: " + sqlString);
+										stmt.executeUpdate(sqlString);
+										//conn.commit();
 									} catch(SQLException err) {
 										throw new WrappedSQLException(err, sqlString);
 									}
-									if(!psu.isDisabled()) {
-										// Enable if needed
-										if(!rolcanlogin) {
-											sqlString = "alter role "+username+" login";
-											try {
-												if(DEBUG) debug("Adding login role: " + sqlString);
-												stmt.executeUpdate(sqlString);
-											} catch(SQLException err) {
-												throw new WrappedSQLException(err, sqlString);
+								}
+
+								// Add the new users
+								for(PostgresServerUser psu : needAdded) {
+									PostgresUser pu = psu.getPostgresUser();
+									PostgresUserId username=pu.getKey();
+
+									// Add the user
+									StringBuilder sql=new StringBuilder();
+									sql
+										.append(
+											(
+												version.startsWith(PostgresVersion.VERSION_8_1+'.')
+													|| version.startsWith(PostgresVersion.VERSION_8_3+'.')
+													|| version.startsWith(PostgresVersion.VERSION_8_3+'R')
+													|| version.startsWith(PostgresVersion.VERSION_9_4+'.')
+													|| version.startsWith(PostgresVersion.VERSION_9_4+'R')
+												)
+												? "CREATE ROLE "
+												: "CREATE USER "
+										)
+										.append(username)
+										//.append(
+										//    (
+										//        version.startsWith(PostgresVersion.VERSION_7_1+'.')
+										//    )
+										//    ? " PASSWORD '"
+										//    : " UNENCRYPTED PASSWORD '"
+										//)
+										//.append(PostgresUser.NO_PASSWORD_DB_VALUE)
+										//.append("' ")
+										.append(pu.canCreateDB()?" CREATEDB":" NOCREATEDB")
+										.append(
+											(
+												version.startsWith(PostgresVersion.VERSION_8_1+'.')
+													|| version.startsWith(PostgresVersion.VERSION_8_3+'.')
+													|| version.startsWith(PostgresVersion.VERSION_8_3+'R')
+													|| version.startsWith(PostgresVersion.VERSION_9_4+'.')
+													|| version.startsWith(PostgresVersion.VERSION_9_4+'R')
+												)
+												? (pu.canCatUPD()?" CREATEROLE":" NOCREATEROLE")
+												: (pu.canCatUPD()?" CREATEUSER":" NOCREATEUSER")
+										).append(
+											(
+												version.startsWith(PostgresVersion.VERSION_8_1+'.')
+													|| version.startsWith(PostgresVersion.VERSION_8_3+'.')
+													|| version.startsWith(PostgresVersion.VERSION_8_3+'R')
+													|| version.startsWith(PostgresVersion.VERSION_9_4+'.')
+													|| version.startsWith(PostgresVersion.VERSION_9_4+'R')
+												)
+												? " LOGIN"
+												: ""
+										)
+										;
+									sqlString = sql.toString();
+									try {
+										if(DEBUG) debug("Adding user: " + sqlString);
+										stmt.executeUpdate(sqlString);
+										//conn.commit();
+									} catch(SQLException err) {
+										throw new WrappedSQLException(err, sqlString);
+									}
+								}
+								if(
+									!(
+									version.startsWith(PostgresVersion.VERSION_7_1+'.')
+									|| version.startsWith(PostgresVersion.VERSION_7_2+'.')
+									|| version.startsWith(PostgresVersion.VERSION_7_3+'.')
+									|| version.startsWith(PostgresVersion.VERSION_8_0+'.')
+									)
+									) {
+									// Enable/disable using rolcanlogin
+									for (PostgresServerUser psu : users) {
+										PostgresUserId username=psu.getPostgresUser().getKey();
+										// Get the current login state
+										boolean rolcanlogin;
+										sqlString = "select rolcanlogin from pg_authid where rolname='"+username+"'";
+										try {
+											try (ResultSet results = stmt.executeQuery(sqlString)) {
+												if(results.next()) {
+													rolcanlogin = results.getBoolean(1);
+												} else {
+													throw new SQLException("Unable to find pg_authid entry for rolname='"+username+"'");
+												}
 											}
+										} catch(SQLException err) {
+											throw new WrappedSQLException(err, sqlString);
 										}
-									} else {
-										// Disable if needed
-										if(rolcanlogin) {
-											sqlString = "alter role "+username+" nologin";
-											try {
-												if(DEBUG) debug("Removing login role: " + sqlString);
-												stmt.executeUpdate(sqlString);
-											} catch(SQLException err) {
-												throw new WrappedSQLException(err, sqlString);
+										if(!psu.isDisabled()) {
+											// Enable if needed
+											if(!rolcanlogin) {
+												sqlString = "alter role "+username+" login";
+												try {
+													if(DEBUG) debug("Adding login role: " + sqlString);
+													stmt.executeUpdate(sqlString);
+												} catch(SQLException err) {
+													throw new WrappedSQLException(err, sqlString);
+												}
+											}
+										} else {
+											// Disable if needed
+											if(rolcanlogin) {
+												sqlString = "alter role "+username+" nologin";
+												try {
+													if(DEBUG) debug("Removing login role: " + sqlString);
+													stmt.executeUpdate(sqlString);
+												} catch(SQLException err) {
+													throw new WrappedSQLException(err, sqlString);
+												}
 											}
 										}
 									}
+									disableEnableDone=true;
 								}
-								disableEnableDone=true;
 							}
+						} finally {
+							pool.releaseConnection(conn);
 						}
-					} finally {
-						pool.releaseConnection(conn);
-					}
 
-					if(!disableEnableDone) {
-						// Disable/enable using password value
-						for (PostgresServerUser psu : users) {
-							String prePassword=psu.getPredisablePassword();
-							if(!psu.isDisabled()) {
-								if(prePassword!=null) {
-									setPassword(psu, prePassword, true);
-									psu.setPredisablePassword(null);
-								}
-							} else {
-								if(prePassword==null) {
-									psu.setPredisablePassword(getPassword(psu));
-									setPassword(psu, PostgresUser.NO_PASSWORD,true);
+						if(!disableEnableDone) {
+							// Disable/enable using password value
+							for (PostgresServerUser psu : users) {
+								String prePassword=psu.getPredisablePassword();
+								if(!psu.isDisabled()) {
+									if(prePassword!=null) {
+										setPassword(psu, prePassword, true);
+										psu.setPredisablePassword(null);
+									}
+								} else {
+									if(prePassword==null) {
+										psu.setPredisablePassword(getPassword(psu));
+										setPassword(psu, PostgresUser.NO_PASSWORD,true);
+									}
 								}
 							}
 						}

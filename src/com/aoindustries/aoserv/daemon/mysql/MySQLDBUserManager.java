@@ -59,126 +59,129 @@ final public class MySQLDBUserManager extends BuilderThread {
 			AOServConnector connector = AOServDaemon.getConnector();
 			synchronized(rebuildLock) {
 				for(MySQLServer mysqlServer : connector.getMysqlServers()) {
-					String version=mysqlServer.getVersion().getVersion();
-					boolean modified=false;
+					// Get the list of all db entries that should exist
+					List<MySQLDBUser> dbUsers = mysqlServer.getMySQLDBUsers();
+					if(dbUsers.isEmpty()) {
+						LogFactory.getLogger(MySQLDBUserManager.class).severe("No users; refusing to rebuild config: " + mysqlServer);
+					} else {
+						String version=mysqlServer.getVersion().getVersion();
+						boolean modified=false;
 
-					// Get the connection to work through
-					AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
-					Connection conn = pool.getConnection();
-					try {
-						// Get the list of all existing db entries
-						Set<Tuple2<MySQLDatabaseName,MySQLUserId>> existing = new HashSet<>();
-						try (
-							Statement stmt = conn.createStatement();
-							ResultSet results = stmt.executeQuery("select db, user from db")
-						) {
-							while (results.next()) {
-								try {
-									Tuple2<MySQLDatabaseName,MySQLUserId> tuple = new Tuple2<>(
-										MySQLDatabaseName.valueOf(results.getString(1)),
-										MySQLUserId.valueOf(results.getString(2))
-									);
-									if(!existing.add(tuple)) throw new SQLException("Duplicate (db, user): " + tuple);
-								} catch(ValidationException e) {
-									throw new SQLException(e);
+						// Get the connection to work through
+						AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
+						Connection conn = pool.getConnection();
+						try {
+							// Get the list of all existing db entries
+							Set<Tuple2<MySQLDatabaseName,MySQLUserId>> existing = new HashSet<>();
+							try (
+								Statement stmt = conn.createStatement();
+								ResultSet results = stmt.executeQuery("select db, user from db")
+							) {
+								while (results.next()) {
+									try {
+										Tuple2<MySQLDatabaseName,MySQLUserId> tuple = new Tuple2<>(
+											MySQLDatabaseName.valueOf(results.getString(1)),
+											MySQLUserId.valueOf(results.getString(2))
+										);
+										if(!existing.add(tuple)) throw new SQLException("Duplicate (db, user): " + tuple);
+									} catch(ValidationException e) {
+										throw new SQLException(e);
+									}
 								}
 							}
-						}
 
-						// Get the list of all db entries that should exist
-						List<MySQLDBUser> dbUsers = mysqlServer.getMySQLDBUsers();
+							// Add the db entries that do not exist and should
+							String insertSQL;
+							if(version.startsWith(MySQLServer.VERSION_4_0_PREFIX)) insertSQL="insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+							else if(version.startsWith(MySQLServer.VERSION_4_1_PREFIX)) insertSQL="insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+							else if(version.startsWith(MySQLServer.VERSION_5_0_PREFIX)) insertSQL="insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+							else if(
+								version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
+								|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
+							) insertSQL="insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+							else throw new SQLException("Unsupported MySQL version: "+version);
+							try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
+								for(MySQLDBUser mdu : dbUsers) {
+									MySQLDatabase md = mdu.getMySQLDatabase();
+									MySQLDatabaseName db=md.getName();
+									MySQLServerUser msu=mdu.getMySQLServerUser();
+									MySQLUserId user=msu.getMySQLUser().getKey();
 
-						// Add the db entries that do not exist and should
-						String insertSQL;
-						if(version.startsWith(MySQLServer.VERSION_4_0_PREFIX)) insertSQL="insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-						else if(version.startsWith(MySQLServer.VERSION_4_1_PREFIX)) insertSQL="insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-						else if(version.startsWith(MySQLServer.VERSION_5_0_PREFIX)) insertSQL="insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-						else if(
-							version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-							|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
-						) insertSQL="insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-						else throw new SQLException("Unsupported MySQL version: "+version);
-						try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
-							for(MySQLDBUser mdu : dbUsers) {
-								MySQLDatabase md = mdu.getMySQLDatabase();
-								MySQLDatabaseName db=md.getName();
-								MySQLServerUser msu=mdu.getMySQLServerUser();
-								MySQLUserId user=msu.getMySQLUser().getKey();
-
-								// These must both be on the same server !!!
-								if(!md.getMySQLServer().equals(msu.getMySQLServer())) throw new SQLException(
-									"Server mismatch in mysql_db_users.pkey="
-									+mdu.getPkey()
-									+": ((mysql_databases.pkey="
-									+md.getPkey()
-									+").mysql_server="
-									+md.getMySQLServer().getPkey()
-									+")!=((mysql_server_users.pkey="
-									+msu.getPkey()
-									+").mysql_server="
-									+msu.getMySQLServer().getPkey()
-									+')'
-								);
-								Tuple2<MySQLDatabaseName,MySQLUserId> key = new Tuple2<>(db, user);
-								if(!existing.remove(key)) {
-									// Add the db entry
-									String host=MySQLServerUser.ANY_HOST;
-									pstmt.setString(1, host);
-									pstmt.setString(2, db.toString());
-									pstmt.setString(3, user.toString());
-									pstmt.setString(4, mdu.canSelect()?"Y":"N");
-									pstmt.setString(5, mdu.canInsert()?"Y":"N");
-									pstmt.setString(6, mdu.canUpdate()?"Y":"N");
-									pstmt.setString(7, mdu.canDelete()?"Y":"N");
-									pstmt.setString(8, mdu.canCreate()?"Y":"N");
-									pstmt.setString(9, mdu.canDrop()?"Y":"N");
-									pstmt.setString(10, mdu.canGrant()?"Y":"N");
-									pstmt.setString(11, mdu.canReference()?"Y":"N");
-									pstmt.setString(12, mdu.canIndex()?"Y":"N");
-									pstmt.setString(13, mdu.canAlter()?"Y":"N");
-									pstmt.setString(14, mdu.canCreateTempTable()?"Y":"N");
-									pstmt.setString(15, mdu.canLockTables()?"Y":"N");
-									if(
-										version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
-										|| version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-										|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
-									) {
-										pstmt.setString(16, mdu.canCreateView()?"Y":"N");
-										pstmt.setString(17, mdu.canShowView()?"Y":"N");
-										pstmt.setString(18, mdu.canCreateRoutine()?"Y":"N");
-										pstmt.setString(19, mdu.canAlterRoutine()?"Y":"N");
-										pstmt.setString(20, mdu.canExecute()?"Y":"N");
+									// These must both be on the same server !!!
+									if(!md.getMySQLServer().equals(msu.getMySQLServer())) throw new SQLException(
+										"Server mismatch in mysql_db_users.pkey="
+										+mdu.getPkey()
+										+": ((mysql_databases.pkey="
+										+md.getPkey()
+										+").mysql_server="
+										+md.getMySQLServer().getPkey()
+										+")!=((mysql_server_users.pkey="
+										+msu.getPkey()
+										+").mysql_server="
+										+msu.getMySQLServer().getPkey()
+										+')'
+									);
+									Tuple2<MySQLDatabaseName,MySQLUserId> key = new Tuple2<>(db, user);
+									if(!existing.remove(key)) {
+										// Add the db entry
+										String host=MySQLServerUser.ANY_HOST;
+										pstmt.setString(1, host);
+										pstmt.setString(2, db.toString());
+										pstmt.setString(3, user.toString());
+										pstmt.setString(4, mdu.canSelect()?"Y":"N");
+										pstmt.setString(5, mdu.canInsert()?"Y":"N");
+										pstmt.setString(6, mdu.canUpdate()?"Y":"N");
+										pstmt.setString(7, mdu.canDelete()?"Y":"N");
+										pstmt.setString(8, mdu.canCreate()?"Y":"N");
+										pstmt.setString(9, mdu.canDrop()?"Y":"N");
+										pstmt.setString(10, mdu.canGrant()?"Y":"N");
+										pstmt.setString(11, mdu.canReference()?"Y":"N");
+										pstmt.setString(12, mdu.canIndex()?"Y":"N");
+										pstmt.setString(13, mdu.canAlter()?"Y":"N");
+										pstmt.setString(14, mdu.canCreateTempTable()?"Y":"N");
+										pstmt.setString(15, mdu.canLockTables()?"Y":"N");
 										if(
-											version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
+											version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
+											|| version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
 											|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
 										) {
-											pstmt.setString(21, mdu.canEvent()?"Y":"N");
-											pstmt.setString(22, mdu.canTrigger()?"Y":"N");
+											pstmt.setString(16, mdu.canCreateView()?"Y":"N");
+											pstmt.setString(17, mdu.canShowView()?"Y":"N");
+											pstmt.setString(18, mdu.canCreateRoutine()?"Y":"N");
+											pstmt.setString(19, mdu.canAlterRoutine()?"Y":"N");
+											pstmt.setString(20, mdu.canExecute()?"Y":"N");
+											if(
+												version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
+												|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
+											) {
+												pstmt.setString(21, mdu.canEvent()?"Y":"N");
+												pstmt.setString(22, mdu.canTrigger()?"Y":"N");
+											}
 										}
+										pstmt.executeUpdate();
+
+										modified = true;
 									}
-									pstmt.executeUpdate();
-
-									modified = true;
 								}
 							}
-						}
 
-						// Remove the extra db entries
-						if (!existing.isEmpty()) {
-							try (PreparedStatement pstmt = conn.prepareStatement("delete from db where db=? and user=?")) {
-								for (Tuple2<MySQLDatabaseName,MySQLUserId> key : existing) {
-									// Remove the extra db entry
-									pstmt.setString(1, key.getElement1().toString());
-									pstmt.setString(2, key.getElement2().toString());
-									pstmt.executeUpdate();
+							// Remove the extra db entries
+							if (!existing.isEmpty()) {
+								try (PreparedStatement pstmt = conn.prepareStatement("delete from db where db=? and user=?")) {
+									for (Tuple2<MySQLDatabaseName,MySQLUserId> key : existing) {
+										// Remove the extra db entry
+										pstmt.setString(1, key.getElement1().toString());
+										pstmt.setString(2, key.getElement2().toString());
+										pstmt.executeUpdate();
+									}
 								}
+								modified = true;
 							}
-							modified = true;
+						} finally {
+							pool.releaseConnection(conn);
 						}
-					} finally {
-						pool.releaseConnection(conn);
+						if(modified) MySQLServerManager.flushPrivileges(mysqlServer);
 					}
-					if(modified) MySQLServerManager.flushPrivileges(mysqlServer);
 				}
 			}
 			return true;

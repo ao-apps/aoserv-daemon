@@ -223,5 +223,5 @@ final public class MySQLCreditCardScanner implements CronJob {
 		}
 		// TODO: Scan for both PostgreSQL and MySQL here
 		// TODO: Scan for both PostgreSQL and MySQL here
-			}
+	}
 }
