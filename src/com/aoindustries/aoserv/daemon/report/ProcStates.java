@@ -45,18 +45,18 @@ final public class ProcStates {
 
 	public ProcStates() throws IOException, SQLException {
 		int
-			total_sleep=0,
-			user_sleep=0,
-			total_run=0,
-			user_run=0,
-			total_zombie=0,
-			user_zombie=0,
-			total_trace=0,
-			user_trace=0,
-			total_uninterruptible=0,
-			user_uninterruptible=0,
-			total_unknown=0,
-			user_unknown=0
+			_total_sleep=0,
+			_user_sleep=0,
+			_total_run=0,
+			_user_run=0,
+			_total_zombie=0,
+			_user_zombie=0,
+			_total_trace=0,
+			_user_trace=0,
+			_total_uninterruptible=0,
+			_user_uninterruptible=0,
+			_total_unknown=0,
+			_user_unknown=0
 		;
 
 		AOServer thisAoServer = AOServDaemon.getThisAOServer();
@@ -87,30 +87,30 @@ final public class ProcStates {
 							}
 						}
 						if(isOuterServer) {
-							if(state==null) total_unknown++;
+							if(state==null) _total_unknown++;
 							else {
 								ch=state.charAt(0);
-								if(ch=='S') total_sleep++;
-								else if(ch=='R') total_run++;
-								else if(ch=='Z') total_zombie++;
-								else if(ch=='T') total_trace++;
-								else if(ch=='D') total_uninterruptible++;
-								else total_unknown++;
+								if(ch=='S') _total_sleep++;
+								else if(ch=='R') _total_run++;
+								else if(ch=='Z') _total_zombie++;
+								else if(ch=='T') _total_trace++;
+								else if(ch=='D') _total_uninterruptible++;
+								else _total_unknown++;
 							}
 						}
 						if(
 							uid >= uid_min
 							&& thisAoServer.getLinuxServerAccount(LinuxId.valueOf(uid))!=null
 						) {
-							if(state==null) user_unknown++;
+							if(state==null) _user_unknown++;
 							else {
 								ch=state.charAt(0);
-								if(ch=='S') user_sleep++;
-								else if(ch=='R') user_run++;
-								else if(ch=='Z') user_zombie++;
-								else if(ch=='T') user_trace++;
-								else if(ch=='D') user_uninterruptible++;
-								else user_unknown++;
+								if(ch=='S') _user_sleep++;
+								else if(ch=='R') _user_run++;
+								else if(ch=='Z') _user_zombie++;
+								else if(ch=='T') _user_trace++;
+								else if(ch=='D') _user_uninterruptible++;
+								else _user_unknown++;
 							}
 						}
 						in.close();
@@ -124,18 +124,18 @@ final public class ProcStates {
 		}
 
 		// Copy into instance
-		this.total_sleep=total_sleep;
-		this.user_sleep=user_sleep;
-		this.total_run=total_run;
-		this.user_run=user_run;
-		this.total_zombie=total_zombie;
-		this.user_zombie=user_zombie;
-		this.total_trace=total_trace;
-		this.user_trace=user_trace;
-		this.total_uninterruptible=total_uninterruptible;
-		this.user_uninterruptible=user_uninterruptible;
-		this.total_unknown=total_unknown;
-		this.user_unknown=user_unknown;
+		this.total_sleep=_total_sleep;
+		this.user_sleep=_user_sleep;
+		this.total_run=_total_run;
+		this.user_run=_user_run;
+		this.total_zombie=_total_zombie;
+		this.user_zombie=_user_zombie;
+		this.total_trace=_total_trace;
+		this.user_trace=_user_trace;
+		this.total_uninterruptible=_total_uninterruptible;
+		this.user_uninterruptible=_user_uninterruptible;
+		this.total_unknown=_total_unknown;
+		this.user_unknown=_user_unknown;
 	}
 
 	public static void main(String[] args) {

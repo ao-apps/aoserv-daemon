@@ -1992,11 +1992,7 @@ final public class FailoverFileReplicationManager {
 				activity.update("socket: write: AOServDaemonProtocol.DONE");
 				out.write(AOServDaemonProtocol.DONE);
 				out.flush();
-			} catch(RuntimeException err) {
-				activity.update("socket: close");
-				socket.close();
-				throw err;
-			} catch(IOException err) {
+			} catch(RuntimeException | IOException err) {
 				activity.update("socket: close");
 				socket.close();
 				throw err;

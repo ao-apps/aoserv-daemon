@@ -723,8 +723,10 @@ final public class NetDeviceManager extends BuilderThread {
 								for(NetDevice netDevice : netDevices) {
 									try {
 										updateCounts(netDevice, tempSB);
-									} catch(Exception err) {
-										LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, err);
+									} catch(ThreadDeath td) {
+										throw td;
+									} catch(Throwable t) {
+										LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, t);
 									}
 								}
 							}

@@ -794,8 +794,10 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 						}
 					}
 				}
-			} catch(Exception err) {
-				LogFactory.getLogger(SpamAssassinManager.class).log(Level.SEVERE, null, err);
+			} catch(ThreadDeath td) {
+				throw td;
+			} catch(Throwable t) {
+				LogFactory.getLogger(SpamAssassinManager.class).log(Level.SEVERE, null, t);
 			}
 		}
 
