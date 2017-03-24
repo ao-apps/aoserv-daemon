@@ -16,6 +16,7 @@ import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
+import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
@@ -134,8 +135,14 @@ final public class MySQLDatabaseManager extends BuilderThread {
 											new SQLException("Refusing to drop critical MySQL Database: " + dbName + " on " + mysqlServer)
 										);
 									} else {
-										// Remove the extra database
-										// TODO: Dump database before dropping
+										// Dump database before dropping
+										dumpDatabase(
+											mysqlServer,
+											dbName,
+											BackupManager.getNextBackupFile("-mysql-" + mysqlServer.getName()+"-"+dbName+".sql.gz"),
+											true
+										);
+										// Now drop
 										stmt.executeUpdate("drop database " + dbName);
 										modified=true;
 									}
@@ -157,39 +164,37 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		}
 	}
 
-	private static MySQLDatabaseManager mysqlDatabaseManager;
-
-	public static void dumpDatabase(MySQLDatabase md, CompressedDataOutputStream masterOut) throws IOException, SQLException {
-		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
-		int osvId = osv.getPkey();
-		UnixFile tempFile = UnixFile.mktemp("/tmp/dump_mysql_database.sql.", true);
+	public static void dumpDatabase(
+		MySQLDatabase md,
+		AOServDaemonProtocol.Version clientVersion,
+		CompressedDataOutputStream masterOut,
+		boolean gzip
+	) throws IOException, SQLException {
+		UnixFile tempFile=UnixFile.mktemp(
+			gzip
+				? "/tmp/dump_mysql_database.sql.gz."
+				: "/tmp/dump_mysql_database.sql.",
+			true
+		);
 		try {
-			MySQLDatabaseName dbName = md.getName();
-			MySQLServer ms = md.getMySQLServer();
-			String path;
-			if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-				path = "/usr/aoserv/daemon/bin/dump_mysql_database";
-			} else if(
-				osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-				|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-				|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
-			) {
-				path = "/opt/aoserv-daemon/bin/dump_mysql_database";
-			} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-			// Make sure perl is installed as required by dump_mysql_database
-			PackageManager.installPackage(PackageManager.PackageName.PERL);
-			AOServDaemon.exec(
-				path,
-				dbName.toString(),
-				ms.getMinorVersion(),
-				Integer.toString(ms.getNetBind().getPort().getPort()),
-				tempFile.getPath()
+			dumpDatabase(
+				md.getMySQLServer(),
+				md.getName(),
+				tempFile.getFile(),
+				gzip
 			);
+			long dumpSize = tempFile.getStat().getSize();
+			if(clientVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT) >= 0) {
+				masterOut.writeLong(dumpSize);
+			}
+			long bytesRead = 0;
 			try (InputStream dumpin = new FileInputStream(tempFile.getFile())) {
 				byte[] buff = BufferManager.getBytes();
 				try {
 					int ret;
-					while((ret = dumpin.read(buff, 0, BufferManager.BUFFER_SIZE)) != -1) {
+					while((ret=dumpin.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
+						bytesRead += ret;
+						if(bytesRead > dumpSize) throw new IOException("Too many bytes read: " + bytesRead + " > " + dumpSize);
 						masterOut.writeByte(AOServDaemonProtocol.NEXT);
 						masterOut.writeShort(ret);
 						masterOut.write(buff, 0, ret);
@@ -198,10 +203,49 @@ final public class MySQLDatabaseManager extends BuilderThread {
 					BufferManager.release(buff, false);
 				}
 			}
+			if(bytesRead < dumpSize) throw new IOException("Too few bytes read: " + bytesRead + " < " + dumpSize);
 		} finally {
 			if(tempFile.getStat().exists()) tempFile.delete();
 		}
 	}
+
+	private static void dumpDatabase(
+		MySQLServer ms,
+		MySQLDatabaseName dbName,
+		File output,
+		boolean gzip
+	) throws IOException, SQLException {
+		String commandPath;
+		{
+			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+			int osvId = osv.getPkey();
+			if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+				commandPath = "/usr/aoserv/daemon/bin/dump_mysql_database";
+			} else if(
+				osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+				|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
+			) {
+				commandPath = "/opt/aoserv-daemon/bin/dump_mysql_database";
+			} else {
+				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+			}
+		}
+		// Make sure perl is installed as required by dump_mysql_database
+		PackageManager.installPackage(PackageManager.PackageName.PERL);
+		if(gzip) PackageManager.installPackage(PackageManager.PackageName.GZIP);
+		AOServDaemon.exec(
+			commandPath,
+			dbName.toString(),
+			ms.getMinorVersion(),
+			Integer.toString(ms.getNetBind().getPort().getPort()),
+			output.getPath(),
+			Boolean.toString(gzip)
+		);
+		if(output.length() == 0) throw new SQLException("Empty dump file: " + output);
+	}
+
+	private static MySQLDatabaseManager mysqlDatabaseManager;
 
 	public static void start() throws IOException, SQLException {
 		AOServer thisAOServer = AOServDaemon.getThisAOServer();

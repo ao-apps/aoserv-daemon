@@ -19,6 +19,7 @@ import com.aoindustries.aoserv.client.validator.PostgresDatabaseName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
+import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
@@ -31,6 +32,7 @@ import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.util.BufferManager;
 import com.aoindustries.validation.ValidationException;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -209,11 +211,23 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 										|| dbName.equals(PostgresDatabase.AOINDUSTRIES)
 										|| dbName.equals(PostgresDatabase.AOWEB)
 									) {
-										throw new SQLException("AOServ Daemon will not automatically drop database, please drop manually: "+dbName);
+										LogFactory.getLogger(PostgresDatabaseManager.class).log(
+											Level.WARNING,
+											null,
+											new SQLException("Refusing to drop critical PostgreSQL Database: " + dbName + " on " + ps)
+										);
+									} else {
+										// Dump database before dropping
+										dumpDatabase(
+											ps,
+											dbName,
+											BackupManager.getNextBackupFile("-postgresql-" + ps.getName()+"-"+dbName+".sql.gz"),
+											true
+										);
+										// Now drop
+										stmt.executeUpdate("drop database "+dbName);
+										//conn.commit();
 									}
-									// TODO: Dump database before dropping
-									stmt.executeUpdate("drop database "+dbName);
-									//conn.commit();
 								}
 							}
 						} finally {
@@ -231,17 +245,61 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 		}
 	}
 
-	public static void dumpDatabase(PostgresDatabase pd, CompressedDataOutputStream masterOut) throws IOException, SQLException {
-		UnixFile tempFile=UnixFile.mktemp("/tmp/dump_postgres_database.sql.", true);
+	public static void dumpDatabase(
+		PostgresDatabase pd,
+		AOServDaemonProtocol.Version clientVersion,
+		CompressedDataOutputStream masterOut,
+		boolean gzip
+	) throws IOException, SQLException {
+		UnixFile tempFile=UnixFile.mktemp(
+			gzip
+				? "/tmp/dump_postgres_database.sql.gz."
+				: "/tmp/dump_postgres_database.sql.",
+			true
+		);
 		try {
-			//AOServConnector conn=AOServDaemon.getConnector();
-			PostgresServer ps=pd.getPostgresServer();
-			String minorVersion=ps.getPostgresVersion().getMinorVersion();
-			int port=ps.getNetBind().getPort().getPort();
-			PostgresDatabaseName dbName=pd.getName();
+			dumpDatabase(
+				pd.getPostgresServer(),
+				pd.getName(),
+				tempFile.getFile(),
+				gzip
+			);
+			long dumpSize = tempFile.getStat().getSize();
+			if(clientVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT) >= 0) {
+				masterOut.writeLong(dumpSize);
+			}
+			long bytesRead = 0;
+			try (InputStream dumpin = new FileInputStream(tempFile.getFile())) {
+				byte[] buff = BufferManager.getBytes();
+				try {
+					int ret;
+					while((ret=dumpin.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
+						bytesRead += ret;
+						if(bytesRead > dumpSize) throw new IOException("Too many bytes read: " + bytesRead + " > " + dumpSize);
+						masterOut.writeByte(AOServDaemonProtocol.NEXT);
+						masterOut.writeShort(ret);
+						masterOut.write(buff, 0, ret);
+					}
+				} finally {
+					BufferManager.release(buff, false);
+				}
+			}
+			if(bytesRead < dumpSize) throw new IOException("Too few bytes read: " + bytesRead + " < " + dumpSize);
+		} finally {
+			if(tempFile.getStat().exists()) tempFile.delete();
+		}
+	}
+
+	private static void dumpDatabase(
+		PostgresServer ps,
+		PostgresDatabaseName dbName,
+		File output,
+		boolean gzip
+	) throws IOException, SQLException {
+		String commandPath;
+		{
 			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
-			String commandPath;
 			if(
 				osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
 				|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
@@ -253,31 +311,19 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 			} else {
 				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 			}
-			// Make sure perl is installed as required by dump_postgres_database
-			PackageManager.installPackage(PackageManager.PackageName.PERL);
-			AOServDaemon.exec(
-				commandPath,
-				minorVersion,
-				Integer.toString(port),
-				dbName.toString(),
-				tempFile.getPath()
-			);
-			try (InputStream dumpin = new FileInputStream(tempFile.getFile())) {
-				byte[] buff=BufferManager.getBytes();
-				try {
-					int ret;
-					while((ret=dumpin.read(buff, 0, BufferManager.BUFFER_SIZE))!=-1) {
-						masterOut.writeByte(AOServDaemonProtocol.NEXT);
-						masterOut.writeShort(ret);
-						masterOut.write(buff, 0, ret);
-					}
-				} finally {
-					BufferManager.release(buff, false);
-				}
-			}
-		} finally {
-			if(tempFile.getStat().exists()) tempFile.delete();
 		}
+		// Make sure perl is installed as required by dump_postgres_database
+		PackageManager.installPackage(PackageManager.PackageName.PERL);
+		if(gzip) PackageManager.installPackage(PackageManager.PackageName.GZIP);
+		AOServDaemon.exec(
+			commandPath,
+			ps.getPostgresVersion().getMinorVersion(),
+			Integer.toString(ps.getNetBind().getPort().getPort()),
+			dbName.toString(),
+			output.getPath(),
+			Boolean.toString(gzip)
+		);
+		if(output.length() == 0) throw new SQLException("Empty dump file: " + output);
 	}
 
 	private static PostgresDatabaseManager postgresDatabaseManager;
