@@ -60,7 +60,8 @@ public class PackageManager {
 		PHP_5_6("php_5_6-i686"),
 		POLICYCOREUTILS_PYTHON("policycoreutils-python"),
 		SENDMAIL("sendmail"),
-		SMARTMONTOOLS("smartmontools");
+		SMARTMONTOOLS("smartmontools"),
+		TAR("tar");
 
 		private final String rpmName;
 		// Only needed when trying to automatically remove packages: private final PackageName[] requires;

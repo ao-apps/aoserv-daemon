@@ -9,6 +9,7 @@ import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.util.StringUtility;
 import java.io.BufferedReader;
@@ -76,6 +77,11 @@ final public class BackupManager {
 	 * Makes a tarball of the provided files into the provided file.
 	 */
 	public static void createTarball(List<File> files, File backupFile) throws IOException {
+		if(files.isEmpty()) throw new IllegalArgumentException("files.size() = " + files.size());
+		PackageManager.installPackages(
+			PackageManager.PackageName.TAR,
+			PackageManager.PackageName.GZIP
+		);
 		int len=files.size();
 		String[] cmd=new String[len+5];
 		cmd[0]="/bin/tar";
