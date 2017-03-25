@@ -16,7 +16,6 @@ import com.aoindustries.aoserv.client.NetDevice;
 import com.aoindustries.aoserv.client.PostgresDatabase;
 import com.aoindustries.aoserv.client.PostgresServer;
 import com.aoindustries.aoserv.client.PostgresServerUser;
-import com.aoindustries.aoserv.client.SchemaTable;
 import com.aoindustries.aoserv.client.validator.HashedPassword;
 import com.aoindustries.aoserv.client.validator.MySQLDatabaseName;
 import com.aoindustries.aoserv.client.validator.MySQLServerName;
@@ -102,9 +101,6 @@ final public class AOServDaemonServerThread extends Thread {
 	 * The <code>CompressedDataOutputStream</code> that is being written to.
 	 */
 	private final CompressedDataOutputStream out;
-
-	/** Keeps a copy to avoid multiple copies on each access. */
-	private static final SchemaTable.TableID[] tableIDs = SchemaTable.TableID.values();
 
 	/**
 	 * Creates a new, running <code>AOServServerThread</code>.
@@ -1053,39 +1049,110 @@ final public class AOServDaemonServerThread extends Thread {
 								out.write(AOServDaemonProtocol.DONE);
 							}
 							break;
-						case AOServDaemonProtocol.WAIT_FOR_REBUILD :
+						case AOServDaemonProtocol.OLD_WAIT_FOR_REBUILD :
 							{
-								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing WAIT_FOR_REBUILD, Thread="+toString());
-								SchemaTable.TableID tableID=tableIDs[in.readCompressedInt()];
-								if(daemonKey==null) throw new IOException("Only the master server may WAIT_FOR_REBUILD");
-								switch(tableID) {
-									case HTTPD_SITES :
+								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing OLD_WAIT_FOR_REBUILD, Thread="+toString());
+								int oldTableID = in.readCompressedInt();
+								if(daemonKey==null) throw new IOException("Only the master server may OLD_WAIT_FOR_REBUILD");
+								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT) >= 0) {
+									throw new IOException(
+										"OLD_WAIT_FOR_REBUILD should not be used by "
+										+ AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT
+										+ " or newer"
+									);
+								}
+								switch(oldTableID) {
+									case AOServDaemonProtocol.OLD_HTTPD_SITES_TABLE_ID :
 										HttpdManager.waitForRebuild();
 										break;
-									case LINUX_ACCOUNTS :
+									case AOServDaemonProtocol.OLD_LINUX_ACCOUNTS_TABLE_ID :
 										LinuxAccountManager.waitForRebuild();
 										break;
-									case MYSQL_DATABASES :
+									case AOServDaemonProtocol.OLD_MYSQL_DATABASES_TABLE_ID :
 										MySQLDatabaseManager.waitForRebuild();
 										break;
-									case MYSQL_DB_USERS :
+									case AOServDaemonProtocol.OLD_MYSQL_DB_USERS_TABLE_ID :
 										MySQLDBUserManager.waitForRebuild();
 										break;
-									case MYSQL_USERS :
+									case AOServDaemonProtocol.OLD_MYSQL_USERS_TABLE_ID :
 										MySQLUserManager.waitForRebuild();
 										break;
-									case POSTGRES_DATABASES :
+									case AOServDaemonProtocol.OLD_POSTGRES_DATABASES_TABLE_ID :
 										PostgresDatabaseManager.waitForRebuild();
 										break;
-									case POSTGRES_SERVERS :
-										MySQLServerManager.waitForRebuild();
+									case AOServDaemonProtocol.OLD_POSTGRES_SERVERS_TABLE_ID :
+										PostgresServerManager.waitForRebuild();
 										break;
-									case POSTGRES_USERS :
+									case AOServDaemonProtocol.OLD_POSTGRES_USERS_TABLE_ID :
 										PostgresUserManager.waitForRebuild();
 										break;
 									default :
-										throw new IOException("Unable to wait for rebuild on table "+tableID);
+										throw new IOException("Unable to wait for rebuild on table "+oldTableID);
 								}
+								out.write(AOServDaemonProtocol.DONE);
+							}
+							break;
+						case AOServDaemonProtocol.WAIT_FOR_HTTPD_SITE_REBUILD :
+							{
+								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing WAIT_FOR_HTTPD_SITE_REBUILD, Thread="+toString());
+								if(daemonKey==null) throw new IOException("Only the master server may WAIT_FOR_HTTPD_SITE_REBUILD");
+								HttpdManager.waitForRebuild();
+								out.write(AOServDaemonProtocol.DONE);
+							}
+							break;
+						case AOServDaemonProtocol.WAIT_FOR_LINUX_ACCOUNT_REBUILD :
+							{
+								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing WAIT_FOR_LINUX_ACCOUNT_REBUILD, Thread="+toString());
+								if(daemonKey==null) throw new IOException("Only the master server may WAIT_FOR_LINUX_ACCOUNT_REBUILD");
+								LinuxAccountManager.waitForRebuild();
+								out.write(AOServDaemonProtocol.DONE);
+							}
+							break;
+						case AOServDaemonProtocol.WAIT_FOR_MYSQL_DATABASE_REBUILD :
+							{
+								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing WAIT_FOR_MYSQL_DATABASE_REBUILD, Thread="+toString());
+								if(daemonKey==null) throw new IOException("Only the master server may WAIT_FOR_MYSQL_DATABASE_REBUILD");
+								MySQLDatabaseManager.waitForRebuild();
+								out.write(AOServDaemonProtocol.DONE);
+							}
+							break;
+						case AOServDaemonProtocol.WAIT_FOR_MYSQL_DB_USER_REBUILD :
+							{
+								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing WAIT_FOR_MYSQL_DB_USER_REBUILD, Thread="+toString());
+								if(daemonKey==null) throw new IOException("Only the master server may WAIT_FOR_MYSQL_DB_USER_REBUILD");
+								MySQLDBUserManager.waitForRebuild();
+								out.write(AOServDaemonProtocol.DONE);
+							}
+							break;
+						case AOServDaemonProtocol.WAIT_FOR_MYSQL_USER_REBUILD :
+							{
+								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing WAIT_FOR_MYSQL_USER_REBUILD, Thread="+toString());
+								if(daemonKey==null) throw new IOException("Only the master server may WAIT_FOR_MYSQL_USER_REBUILD");
+								MySQLUserManager.waitForRebuild();
+								out.write(AOServDaemonProtocol.DONE);
+							}
+							break;
+						case AOServDaemonProtocol.WAIT_FOR_POSTGRES_DATABASE_REBUILD :
+							{
+								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing WAIT_FOR_POSTGRES_DATABASE_REBUILD, Thread="+toString());
+								if(daemonKey==null) throw new IOException("Only the master server may WAIT_FOR_POSTGRES_DATABASE_REBUILD");
+								PostgresDatabaseManager.waitForRebuild();
+								out.write(AOServDaemonProtocol.DONE);
+							}
+							break;
+						case AOServDaemonProtocol.WAIT_FOR_POSTGRES_SERVER_REBUILD :
+							{
+								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing WAIT_FOR_POSTGRES_SERVER_REBUILD, Thread="+toString());
+								if(daemonKey==null) throw new IOException("Only the master server may WAIT_FOR_POSTGRES_SERVER_REBUILD");
+								PostgresServerManager.waitForRebuild();
+								out.write(AOServDaemonProtocol.DONE);
+							}
+							break;
+						case AOServDaemonProtocol.WAIT_FOR_POSTGRES_USER_REBUILD :
+							{
+								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing WAIT_FOR_POSTGRES_USER_REBUILD, Thread="+toString());
+								if(daemonKey==null) throw new IOException("Only the master server may WAIT_FOR_POSTGRES_USER_REBUILD");
+								PostgresUserManager.waitForRebuild();
 								out.write(AOServDaemonProtocol.DONE);
 							}
 							break;
