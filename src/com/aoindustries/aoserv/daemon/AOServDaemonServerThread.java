@@ -198,14 +198,30 @@ final public class AOServDaemonServerThread extends Thread {
 				}
 			}
 			out.writeBoolean(true);
-			if(protocolVersion != AOServDaemonProtocol.Version.VERSION_1_77) {
+			// Command sequence starts at a random value
+			final long startSeq;
+			if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT) >= 0) {
 				out.writeUTF(protocolVersion.getVersion());
+				startSeq = AOServDaemon.getRandom().nextLong();
+				out.writeLong(startSeq);
+			} else {
+				startSeq = 0;
 			}
 			out.flush();
 
-			int taskCode;
+			long seq = startSeq;
 		Loop:
-			while ((taskCode = in.readCompressedInt()) != AOServDaemonProtocol.QUIT) {
+			while(true) {
+				// Verify client sends matching sequence
+				if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT) >= 0) {
+					long clientSeq = in.readLong();
+					if(clientSeq != seq) throw new IOException("Sequence mismatch: " + clientSeq + " != " + seq);
+				}
+				// Increment sequence
+				seq++;
+				// Continue with task
+				int taskCode = in.readCompressedInt();
+				if(taskCode == AOServDaemonProtocol.QUIT) break Loop;
 				boolean logIOException = true;
 				try {
 					switch (taskCode) {
