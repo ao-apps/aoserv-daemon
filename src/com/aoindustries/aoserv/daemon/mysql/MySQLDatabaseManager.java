@@ -166,7 +166,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 
 	public static void dumpDatabase(
 		MySQLDatabase md,
-		AOServDaemonProtocol.Version clientVersion,
+		AOServDaemonProtocol.Version protocolVersion,
 		CompressedDataOutputStream masterOut,
 		boolean gzip
 	) throws IOException, SQLException {
@@ -184,7 +184,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 				gzip
 			);
 			long dumpSize = tempFile.getStat().getSize();
-			if(clientVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT) >= 0) {
+			if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT) >= 0) {
 				masterOut.writeLong(dumpSize);
 			}
 			long bytesRead = 0;

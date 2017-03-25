@@ -76,9 +76,12 @@ import javax.net.ssl.SSLHandshakeException;
 final public class AOServDaemonServerThread extends Thread {
 
 	/**
-	 * The minimum supported protocol version.
+	 * The set of supported versions, with the most preferred versions first.
 	 */
-	private static final AOServDaemonProtocol.Version MINIMUM_VERSION = AOServDaemonProtocol.Version.VERSION_1_77;
+	private static final AOServDaemonProtocol.Version[] SUPPORTED_VERSIONS = {
+		AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT,
+		AOServDaemonProtocol.Version.VERSION_1_77
+	};
 
 	/**
 	 * The <code>AOServServer</code> that created this <code>AOServServerThread</code>.
@@ -121,34 +124,51 @@ final public class AOServDaemonServerThread extends Thread {
 			final AOServConnector connector = AOServDaemon.getConnector();
 			final AOServer thisAOServer = AOServDaemon.getThisAOServer();
 
-			final AOServDaemonProtocol.Version clientVersion;
+			final AOServDaemonProtocol.Version protocolVersion;
 			final String daemonKey;
 			{
-				String protocolVersion = in.readUTF();
-				// Read the key first so that any failed connection looks the same from the outside,
-				// regardless of reason
-				daemonKey=in.readBoolean()?in.readUTF():null;
-				// Get the version
-				try {
-					clientVersion = AOServDaemonProtocol.Version.valueOf(protocolVersion);
-				} catch(IllegalArgumentException e) {
+				// Write the most preferred version
+				String preferredVersion = in.readUTF();
+				// Then connector key
+				daemonKey = in.readNullUTF();
+				// Now additional versions.
+				String[] versions;
+				if(preferredVersion.equals(AOServDaemonProtocol.Version.VERSION_1_77.getVersion())) {
+					// Client 1.77 only sends the single preferred version
+					versions = new String[] {preferredVersion};
+				} else {
+					versions = new String[1 + in.readCompressedInt()];
+					versions[0] = preferredVersion;
+					for(int i = 1; i < versions.length; i++) {
+						versions[i] = in.readUTF();
+					}
+				}
+				// Select the first supported version
+				AOServDaemonProtocol.Version selectedVersion = null;
+				SELECT_VERSION :
+				for(String version : versions) {
+					for(AOServDaemonProtocol.Version supportedVersion : SUPPORTED_VERSIONS) {
+						if(supportedVersion.getVersion().equals(version)) {
+							selectedVersion = supportedVersion;
+							break SELECT_VERSION;
+						}
+					}
+				}
+				if(selectedVersion == null) {
 					out.writeBoolean(false);
-					out.writeUTF(MINIMUM_VERSION.getVersion());
+					out.writeUTF(SUPPORTED_VERSIONS[0].getVersion());
+					if(!preferredVersion.equals(AOServDaemonProtocol.Version.VERSION_1_77.getVersion())) {
+						// Client 1.77 only expects the single preferred version
+						out.writeCompressedInt(SUPPORTED_VERSIONS.length - 1);
+						for(int i = 1; i < SUPPORTED_VERSIONS.length; i++) {
+							out.writeUTF(SUPPORTED_VERSIONS[i].getVersion());
+						}
+					}
 					out.flush();
 					return;
-				}
-				// Check if client too old
-				if(clientVersion.compareTo(MINIMUM_VERSION) < 0) {
-					out.writeBoolean(false);
-					out.writeUTF(MINIMUM_VERSION.getVersion());
-					out.flush();
-					return;
-				}
-				// Check if client too new (this should really not happen, since current_version is always the highest)
-				if(clientVersion.compareTo(AOServDaemonProtocol.Version.CURRENT_VERSION) > 0) {
-					throw new IOException("Client is too new of version: " + clientVersion.getVersion() + " > " + AOServDaemonProtocol.Version.CURRENT_VERSION.getVersion());
 				}
 				out.writeBoolean(true);
+				protocolVersion = selectedVersion;
 			}
 			if(daemonKey!=null) {
 				// Must come from one of the hosts listed in the database
@@ -178,6 +198,9 @@ final public class AOServDaemonServerThread extends Thread {
 				}
 			}
 			out.writeBoolean(true);
+			if(protocolVersion != AOServDaemonProtocol.Version.VERSION_1_77) {
+				out.writeUTF(protocolVersion.getVersion());
+			}
 			out.flush();
 
 			int taskCode;
@@ -202,7 +225,7 @@ final public class AOServDaemonServerThread extends Thread {
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing DUMP_MYSQL_DATABASE, Thread="+toString());
 								int pkey=in.readCompressedInt();
 								boolean gzip;
-								if(clientVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT) >= 0) {
+								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT) >= 0) {
 									gzip = in.readBoolean();
 								} else {
 									gzip = false;
@@ -210,7 +233,7 @@ final public class AOServDaemonServerThread extends Thread {
 								if(daemonKey==null) throw new IOException("Only the master server may DUMP_MYSQL_DATABASE");
 								MySQLDatabase md=connector.getMysqlDatabases().get(pkey);
 								if(md==null) throw new SQLException("Unable to find MySQLDatabase: "+pkey);
-								MySQLDatabaseManager.dumpDatabase(md, clientVersion, out, gzip);
+								MySQLDatabaseManager.dumpDatabase(md, protocolVersion, out, gzip);
 								out.write(AOServDaemonProtocol.DONE);
 							}
 							break;
@@ -219,7 +242,7 @@ final public class AOServDaemonServerThread extends Thread {
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing DUMP_POSTGRES_DATABASE, Thread="+toString());
 								int pkey=in.readCompressedInt();
 								boolean gzip;
-								if(clientVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT) >= 0) {
+								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT) >= 0) {
 									gzip = in.readBoolean();
 								} else {
 									gzip = false;
@@ -227,7 +250,7 @@ final public class AOServDaemonServerThread extends Thread {
 								if(daemonKey==null) throw new IOException("Only the master server may DUMP_POSTGRES_DATABASE");
 								PostgresDatabase pd=connector.getPostgresDatabases().get(pkey);
 								if(pd==null) throw new SQLException("Unable to find PostgresDatabase: "+pkey);
-								PostgresDatabaseManager.dumpDatabase(pd, clientVersion, out, gzip);
+								PostgresDatabaseManager.dumpDatabase(pd, protocolVersion, out, gzip);
 								out.write(AOServDaemonProtocol.DONE);
 							}
 							break;
