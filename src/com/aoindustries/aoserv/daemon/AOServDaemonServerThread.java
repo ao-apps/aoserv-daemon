@@ -1124,6 +1124,14 @@ final public class AOServDaemonServerThread extends Thread {
 								out.write(AOServDaemonProtocol.DONE);
 							}
 							break;
+						case AOServDaemonProtocol.WAIT_FOR_MYSQL_SERVER_REBUILD :
+							{
+								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing WAIT_FOR_MYSQL_SERVER_REBUILD, Thread="+toString());
+								if(daemonKey==null) throw new IOException("Only the master server may WAIT_FOR_MYSQL_SERVER_REBUILD");
+								MySQLServerManager.waitForRebuild();
+								out.write(AOServDaemonProtocol.DONE);
+							}
+							break;
 						case AOServDaemonProtocol.WAIT_FOR_MYSQL_USER_REBUILD :
 							{
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing WAIT_FOR_MYSQL_USER_REBUILD, Thread="+toString());
