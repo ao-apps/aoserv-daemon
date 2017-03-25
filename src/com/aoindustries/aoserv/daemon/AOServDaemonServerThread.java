@@ -485,10 +485,18 @@ final public class AOServDaemonServerThread extends Thread {
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing CHECK_PORT, Thread="+toString());
 								if(daemonKey==null) throw new IOException("Only the master server may CHECK_PORT");
 								com.aoindustries.net.InetAddress ipAddress = com.aoindustries.net.InetAddress.valueOf(in.readUTF());
-								Port port = Port.valueOf(
-									in.readCompressedInt(),
-									Protocol.valueOf(in.readUTF().toUpperCase(Locale.ROOT))
-								);
+								Port port;
+								{
+									int portNum = in.readCompressedInt();
+									Protocol protocol;
+									if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT) < 0) {
+										// Old protocol transferred lowercase
+										protocol = Protocol.valueOf(in.readUTF().toUpperCase(Locale.ROOT));
+									} else {
+										protocol = in.readEnum(Protocol.class);
+									}
+									port = Port.valueOf(portNum, protocol);
+								}
 								String appProtocol = in.readUTF();
 								String monitoringParameters = in.readUTF();
 								PortMonitor portMonitor = PortMonitor.getPortMonitor(
