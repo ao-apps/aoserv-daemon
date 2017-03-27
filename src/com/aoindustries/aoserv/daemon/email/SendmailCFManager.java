@@ -245,7 +245,7 @@ final public class SendmailCFManager extends BuilderThread {
 							IPAddress ia=nb.getIPAddress();
 							InetAddress ip=ia.getInetAddress();
 							if(
-								!ip.isLooback()
+								!ip.isLoopback()
 								&& !finishedIPs.contains(ip)
 							) {
 								out
@@ -270,7 +270,7 @@ final public class SendmailCFManager extends BuilderThread {
 							IPAddress ia=nb.getIPAddress();
 							InetAddress ip=ia.getInetAddress();
 							if(
-								!ip.isLooback()
+								!ip.isLoopback()
 								&& !finishedIPs.contains(ip)
 							) {
 								out
@@ -295,7 +295,7 @@ final public class SendmailCFManager extends BuilderThread {
 							IPAddress ia=nb.getIPAddress();
 							InetAddress ip=ia.getInetAddress();
 							if(
-								!ip.isLooback()
+								!ip.isLoopback()
 								&& !finishedIPs.contains(ip)
 							) {
 								out
