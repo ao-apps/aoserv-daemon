@@ -532,22 +532,27 @@ final public class SshdManager extends BuilderThread {
 					}
 				}
 				if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-					// Manage firewalld
-					List<Target> targets = new ArrayList<>(nbs.size());
-					for(NetBind nb : nbs) {
-						InetAddress ip = nb.getIPAddress().getInetAddress();
-						// Assume can access self
-						if(!ip.isLoopback()) {
-							targets.add(
-								new Target(
-									InetAddressPrefix.valueOf(ip, ip.getAddressFamily().getMaxPrefix()),
-									nb.getPort()
-								)
-							);
+					// Manage firewalld if installed
+					if(PackageManager.getInstalledPackage(PackageManager.PackageName.FIREWALLD) != null) {
+						List<Target> targets = new ArrayList<>(nbs.size());
+						for(NetBind nb : nbs) {
+							InetAddress ip = nb.getIPAddress().getInetAddress();
+							// Assume can access self
+							if(!ip.isLoopback()) {
+								targets.add(
+									new Target(
+										InetAddressPrefix.valueOf(
+											ip,
+											ip.isUnspecified() ? 0 : ip.getAddressFamily().getMaxPrefix()
+										),
+										nb.getPort()
+									)
+								);
+							}
 						}
+						ServiceSet.createOptimizedServiceSet("ssh", targets).commit(centos7Zones);
+						// TODO: Include rate-limiting from public zone, as well as a zone for monitoring
 					}
-					ServiceSet.createOptimizedServiceSet("ssh", targets).commit(centos7Zones);
-					// TODO: Include rate-limiting from public zone, as well as a zone for monitoring
 				}
 				// TODO: List AOServDaemon at http://www.firewalld.org/
 				// TODO: AOServDaemon verify operating system version is correct on start-up to protect against config mistakes.
