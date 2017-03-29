@@ -531,28 +531,29 @@ final public class SshdManager extends BuilderThread {
 						} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 					}
 				}
-				if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+				if(
+					osvId == OperatingSystemVersion.CENTOS_7_X86_64
 					// Manage firewalld if installed
-					if(PackageManager.getInstalledPackage(PackageManager.PackageName.FIREWALLD) != null) {
-						List<Target> targets = new ArrayList<>(nbs.size());
-						for(NetBind nb : nbs) {
-							InetAddress ip = nb.getIPAddress().getInetAddress();
-							// Assume can access self
-							if(!ip.isLoopback()) {
-								targets.add(
-									new Target(
-										InetAddressPrefix.valueOf(
-											ip,
-											ip.isUnspecified() ? 0 : ip.getAddressFamily().getMaxPrefix()
-										),
-										nb.getPort()
-									)
-								);
-							}
+					&& PackageManager.getInstalledPackage(PackageManager.PackageName.FIREWALLD) != null
+				) {
+					List<Target> targets = new ArrayList<>(nbs.size());
+					for(NetBind nb : nbs) {
+						InetAddress ip = nb.getIPAddress().getInetAddress();
+						// Assume can access self
+						if(!ip.isLoopback()) {
+							targets.add(
+								new Target(
+									InetAddressPrefix.valueOf(
+										ip,
+										ip.isUnspecified() ? 0 : ip.getAddressFamily().getMaxPrefix()
+									),
+									nb.getPort()
+								)
+							);
 						}
-						ServiceSet.createOptimizedServiceSet("ssh", targets).commit(centos7Zones);
-						// TODO: Include rate-limiting from public zone, as well as a zone for monitoring
 					}
+					ServiceSet.createOptimizedServiceSet("ssh", targets).commit(centos7Zones);
+					// TODO: Include rate-limiting from public zone, as well as a zone for monitoring
 				}
 			}
 			return true;

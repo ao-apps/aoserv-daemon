@@ -265,25 +265,26 @@ final public class AOServDaemon {
 						bind.getAppProtocol().getProtocol()
 					);
 					server.start();
-					if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+					if(
+						osvId == OperatingSystemVersion.CENTOS_7_X86_64
 						// Manage firewalld if installed
-						if(PackageManager.getInstalledPackage(PackageManager.PackageName.FIREWALLD) != null) {
-							List<Target> targets = new ArrayList<>(1);
-							InetAddress ip = bind.getIPAddress().getInetAddress();
-							// Assume can access self
-							if(!ip.isLoopback()) {
-								targets.add(
-									new Target(
-										InetAddressPrefix.valueOf(
-											ip,
-											ip.isUnspecified() ? 0 : ip.getAddressFamily().getMaxPrefix()
-										),
-										bind.getPort()
-									)
-								);
-							}
-							ServiceSet.createOptimizedServiceSet("aoserv-daemon", targets).commit(centos7Zones);
+						&& PackageManager.getInstalledPackage(PackageManager.PackageName.FIREWALLD) != null
+					) {
+						List<Target> targets = new ArrayList<>(1);
+						InetAddress ip = bind.getIPAddress().getInetAddress();
+						// Assume can access self
+						if(!ip.isLoopback()) {
+							targets.add(
+								new Target(
+									InetAddressPrefix.valueOf(
+										ip,
+										ip.isUnspecified() ? 0 : ip.getAddressFamily().getMaxPrefix()
+									),
+									bind.getPort()
+								)
+							);
 						}
+						ServiceSet.createOptimizedServiceSet("aoserv-daemon", targets).commit(centos7Zones);
 					}
 				}
 				done = true;
