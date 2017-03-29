@@ -554,9 +554,6 @@ final public class SshdManager extends BuilderThread {
 						// TODO: Include rate-limiting from public zone, as well as a zone for monitoring
 					}
 				}
-				// TODO: List AOServDaemon at http://www.firewalld.org/
-				// TODO: AOServDaemon verify operating system version is correct on start-up to protect against config mistakes.
-				// TODO: AOServDaemon also configure firewall during start-up as it binds to ports in a kicked-off background thread.
 			}
 			return true;
 		} catch(ThreadDeath TD) {

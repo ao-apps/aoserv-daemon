@@ -9,6 +9,7 @@ import com.aoindustries.aoserv.client.AOServClientConfiguration;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.NetBind;
+import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.client.Shell;
 import com.aoindustries.aoserv.client.validator.UserId;
@@ -48,9 +49,14 @@ import com.aoindustries.aoserv.daemon.postgres.PostgresUserManager;
 import com.aoindustries.aoserv.daemon.random.RandomEntropyManager;
 import com.aoindustries.aoserv.daemon.timezone.TimeZoneManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.firewalld.ServiceSet;
+import com.aoindustries.firewalld.Target;
 import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.net.InetAddress;
+import com.aoindustries.net.InetAddressPrefix;
 import com.aoindustries.util.IntList;
 import java.io.File;
 import java.io.IOException;
@@ -60,8 +66,13 @@ import java.io.InterruptedIOException;
 import java.io.Reader;
 import java.security.SecureRandom;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -69,12 +80,20 @@ import java.util.logging.Logger;
 
 /**
  * The <code>AOServDaemon</code> starts all of the services that run inside the Java VM.
+ * <p>
+ * TODO: List AOServDaemon at http://www.firewalld.org/
+ * </p>
  *
  * @author  AO Industries, Inc.
  */
 final public class AOServDaemon {
 
 	public static final boolean DEBUG=false;
+
+	/**
+	 * The firewalld zones for CentOS 7.
+	 */
+	private static final Set<String> centos7Zones = Collections.singleton("public");
 
 	/**
 	 * A single random number generator is shared by all daemon resources to provide better randomness.
@@ -175,6 +194,11 @@ final public class AOServDaemon {
 					System.setProperty("javax.net.ssl.keyStorePassword", keyStorePassword);
 				}
 
+				OperatingSystemVersion osv = getThisAOServer().getServer().getOperatingSystemVersion();
+				int osvId = osv.getPkey();
+				// TODO: Verify operating system version is correct on start-up to protect against config mistakes.
+				// TODO: Verify operating system version matches via /etc/release...
+
 				// Start up the managers
 				// cvsd
 				CvsManager.start();
@@ -241,6 +265,26 @@ final public class AOServDaemon {
 						bind.getAppProtocol().getProtocol()
 					);
 					server.start();
+					if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+						// Manage firewalld if installed
+						if(PackageManager.getInstalledPackage(PackageManager.PackageName.FIREWALLD) != null) {
+							List<Target> targets = new ArrayList<>(1);
+							InetAddress ip = bind.getIPAddress().getInetAddress();
+							// Assume can access self
+							if(!ip.isLoopback()) {
+								targets.add(
+									new Target(
+										InetAddressPrefix.valueOf(
+											ip,
+											ip.isUnspecified() ? 0 : ip.getAddressFamily().getMaxPrefix()
+										),
+										bind.getPort()
+									)
+								);
+							}
+							ServiceSet.createOptimizedServiceSet("aoserv-daemon", targets).commit(centos7Zones);
+						}
+					}
 				}
 				done = true;
 			} catch (ThreadDeath TD) {
