@@ -50,7 +50,7 @@ final public class AOServDaemonServer extends Thread {
 	 * Creates a new, running <code>AOServServer</code>.
 	 */
 	public AOServDaemonServer(com.aoindustries.net.InetAddress serverBind, int serverPort, String protocol) {
-	super(AOServDaemonServer.class.getName()+"?address="+serverBind+"&port="+serverPort+"&protocol="+protocol);
+		super(AOServDaemonServer.class.getName()+"?address="+serverBind+"&port="+serverPort+"&protocol="+protocol);
 		this.serverBind = serverBind;
 		this.serverPort = serverPort;
 		this.protocol = protocol;
