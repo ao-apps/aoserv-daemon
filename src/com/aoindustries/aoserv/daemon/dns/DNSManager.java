@@ -21,10 +21,16 @@ import com.aoindustries.aoserv.daemon.ftp.FTPManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
+import com.aoindustries.firewalld.Service;
+import com.aoindustries.firewalld.ServiceSet;
+import com.aoindustries.firewalld.Target;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.AddressFamily;
 import com.aoindustries.net.InetAddress;
+import com.aoindustries.net.InetAddressPrefix;
+import com.aoindustries.net.InetAddressPrefixes;
+import com.aoindustries.net.Port;
 import com.aoindustries.util.WrappedException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -33,6 +39,7 @@ import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -92,6 +99,11 @@ final public class DNSManager extends BuilderThread {
 	;
 
 	private static final UnixFile namedZoneDir = new UnixFile("/var/named");
+
+	/**
+	 * The firewalld zones for CentOS 7.
+	 */
+	private static final Set<String> centos7Zones = Collections.singleton("public");
 
 	/**
 	 * Files and directories in /var/named that are never removed.
@@ -437,10 +449,6 @@ final public class DNSManager extends BuilderThread {
 					 */
 					files.addAll(Arrays.asList(getStaticFiles(osvId)));
 					FTPManager.trimFiles(namedZoneDir, files);
-
-					// TODO: firewalld stuff here, too? (aoserv-bind package?), only if have any non-loopback ips
-					//       https://linuxconfig.org/how-to-setup-a-named-dns-service-on-redhat-7-linux-server#h2-firewall-settings
-					//       Also remove the service when removing
 				} else {
 					// No binds, uninstall package(s)
 					if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
@@ -452,6 +460,46 @@ final public class DNSManager extends BuilderThread {
 					} else {
 						throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 					}
+				}
+				if(
+					osvId == OperatingSystemVersion.CENTOS_7_X86_64
+					// Manage firewalld if installed
+					&& PackageManager.getInstalledPackage(PackageManager.PackageName.FIREWALLD) != null
+				) {
+					List<Target> targets = new ArrayList<>(netBinds.size());
+					for(NetBind nb : netBinds) {
+						InetAddress ip = nb.getIPAddress().getInetAddress();
+						// Assume can access self
+						if(!ip.isLoopback()) {
+							targets.add(
+								new Target(
+									InetAddressPrefix.valueOf(
+										ip,
+										ip.isUnspecified() ? 0 : ip.getAddressFamily().getMaxPrefix()
+									),
+									nb.getPort()
+								)
+							);
+						}
+					}
+					ServiceSet.createOptimizedServiceSet(
+						new Service(
+							"named",
+							null,
+							"named",
+							"Berkeley Internet Name Domain (DNS)",
+							Arrays.asList(
+								Port.valueOf(53, com.aoindustries.net.Protocol.TCP),
+								Port.valueOf(53, com.aoindustries.net.Protocol.UDP)
+							),
+							Collections.emptySet(), // protocols
+							Collections.emptySet(), // sourcePorts
+							Collections.emptySet(), // modules
+							InetAddressPrefixes.UNSPECIFIED_IPV4,
+							InetAddressPrefixes.UNSPECIFIED_IPV6
+						),
+						targets
+					).commit(centos7Zones);
 				}
 			}
 			return true;
