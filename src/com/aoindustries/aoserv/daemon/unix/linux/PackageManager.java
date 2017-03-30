@@ -9,7 +9,6 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.io.DirectoryMetaSnapshot;
 import com.aoindustries.util.StringUtility;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -17,6 +16,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Manages the set of packages on a server.
@@ -24,6 +25,8 @@ import java.util.TreeSet;
  * @author  AO Industries, Inc.
  */
 public class PackageManager {
+
+	private static final Logger logger = Logger.getLogger(PackageManager.class.getName());
 
 	/**
 	 * The set of all managed package names.  This is specified as an enum
@@ -80,11 +83,6 @@ public class PackageManager {
 			return rpmName;
 		}
 	}
-
-	/**
-	 * Enables debugging output.
-	 */
-	private static final boolean DEBUG = false;
 
 	/**
 	 * The path to some executables.
@@ -351,18 +349,15 @@ public class PackageManager {
 		 * Removes this package.
 		 */
 		public void remove() throws IOException {
-			if(DEBUG) {
-				final PrintStream out = System.out;
-				synchronized(out) {
-					out.print("Removing package: ");
-					out.println(toString());
-				}
+			String packageIdentifier = this.toStringWithoutEpoch();
+			if(logger.isLoggable(Level.INFO)) {
+				logger.info("Removing package: " + packageIdentifier);
 			}
 			synchronized(packagesLock) {
 				AOServDaemon.exec(
 					RPM_EXE_PATH,
 					"-e",
-					this.toStringWithoutEpoch()
+					packageIdentifier
 				);
 			}
 		}
@@ -381,20 +376,22 @@ public class PackageManager {
 	public static SortedSet<RPM> getAllRpms() throws IOException {
 		synchronized(packagesLock) {
 			DirectoryMetaSnapshot currentDirectorySnapshot = new DirectoryMetaSnapshot(VAR_LIB_RPM);
-			if(DEBUG) {
-				final PrintStream out = System.out;
-				synchronized(out) {
-					out.println("Got directory snapshot:");
-					for(Map.Entry<String, DirectoryMetaSnapshot.FileMetaSnapshot> entry : currentDirectorySnapshot.getFiles().entrySet()) {
-						out.print("    ");
-						out.print(entry.getKey());
-						DirectoryMetaSnapshot.FileMetaSnapshot meta = entry.getValue();
-						out.print(' ');
-						out.print(meta.getLastModified());
-						out.print(' ');
-						out.println(meta.getLength());
-					}
+			if(logger.isLoggable(Level.FINER)) {
+				StringBuilder message = new StringBuilder();
+				message.append("Got directory snapshot:");
+				boolean didOne = false;
+				for(Map.Entry<String, DirectoryMetaSnapshot.FileMetaSnapshot> entry : currentDirectorySnapshot.getFiles().entrySet()) {
+					if(didOne) message.append('\n');
+					else didOne = true;
+					message.append("    ");
+					message.append(entry.getKey());
+					DirectoryMetaSnapshot.FileMetaSnapshot meta = entry.getValue();
+					message.append(' ');
+					message.append(meta.getLastModified());
+					message.append(' ');
+					message.append(meta.getLength());
 				}
+				logger.finer(message.toString());
 			}
 			if(!currentDirectorySnapshot.equals(lastSnapshot)) {
 				// Get all RPMs
@@ -424,32 +421,36 @@ public class PackageManager {
 				}
 				// Get snapshot after RPM transaction completes because querying the RPMs updates timestamps.
 				currentDirectorySnapshot = new DirectoryMetaSnapshot(VAR_LIB_RPM);
-				if(DEBUG) {
-					final PrintStream out = System.out;
-					synchronized(out) {
-						out.println("Got directory snapshot after rpm -q:");
-						for(Map.Entry<String, DirectoryMetaSnapshot.FileMetaSnapshot> entry : currentDirectorySnapshot.getFiles().entrySet()) {
-							out.print("    ");
-							out.print(entry.getKey());
-							DirectoryMetaSnapshot.FileMetaSnapshot meta = entry.getValue();
-							out.print(' ');
-							out.print(meta.getLastModified());
-							out.print(' ');
-							out.println(meta.getLength());
-						}
+				if(logger.isLoggable(Level.FINER)) {
+					StringBuilder message = new StringBuilder();
+					message.append("Got directory snapshot after rpm -q:");
+					boolean didOne = false;
+					for(Map.Entry<String, DirectoryMetaSnapshot.FileMetaSnapshot> entry : currentDirectorySnapshot.getFiles().entrySet()) {
+						if(didOne) message.append('\n');
+						else didOne = true;
+						message.append("    ");
+						message.append(entry.getKey());
+						DirectoryMetaSnapshot.FileMetaSnapshot meta = entry.getValue();
+						message.append(' ');
+						message.append(meta.getLastModified());
+						message.append(' ');
+						message.append(meta.getLength());
 					}
+					logger.finer(message.toString());
 				}
 				lastSnapshot = currentDirectorySnapshot;
 				lastAllRpms = Collections.unmodifiableSortedSet(newAllRpms);
-				if(DEBUG) {
-					final PrintStream out = System.out;
-					synchronized(out) {
-						out.println("Got all RPMs:");
-						for(RPM rpm : lastAllRpms) {
-							out.print("    ");
-							out.println(rpm);
-						}
+				if(logger.isLoggable(Level.FINE)) {
+					StringBuilder message = new StringBuilder();
+					message.append("Got all RPMs:");
+					boolean didOne = false;
+					for(RPM rpm : lastAllRpms) {
+						if(didOne) message.append('\n');
+						else didOne = true;
+						message.append("    ");
+						message.append(rpm);
 					}
+					logger.fine(message.toString());
 				}
 			}
 			return lastAllRpms;
@@ -465,6 +466,13 @@ public class PackageManager {
 		RPM highestVersionFound = null;
 		for(RPM rpm : getAllRpms()) {
 			if(rpm.getName().equals(name.rpmName)) highestVersionFound = rpm;
+		}
+		if(logger.isLoggable(Level.FINER)) {
+			if(highestVersionFound == null) {
+				logger.finer("No installed package found for " + name);
+			} else {
+				logger.finer("Highest installed package for " + name + ": " + highestVersionFound);
+			}
 		}
 		return highestVersionFound;
 	}
@@ -497,12 +505,8 @@ public class PackageManager {
 			RPM highestVersionFound = getInstalledPackage(name);
 			if(highestVersionFound != null) return highestVersionFound;
 			// Install with yum
-			if(DEBUG) {
-				final PrintStream out = System.out;
-				synchronized(out) {
-					out.print("Installing package: ");
-					out.println(name.rpmName);
-				}
+			if(logger.isLoggable(Level.INFO)) {
+				logger.info("Installing package: " + name.rpmName);
 			}
 			AOServDaemon.exec(
 				YUM_EXE_PATH,
