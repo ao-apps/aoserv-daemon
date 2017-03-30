@@ -274,13 +274,17 @@ public class PackageManager {
 
 		@Override
 		public String toString() {
-			if(epoch==null) {
-				if(architecture==null) return name+'-'+version+'-'+release;
-				else return name+'-'+version+'-'+release+'.'+architecture;
+			if(epoch == null) {
+				return toStringWithoutEpoch();
 			} else {
-				if(architecture==null) return name+'-'+epoch+':'+version+'-'+release;
-				else return name+'-'+epoch+':'+version+'-'+release+'.'+architecture;
+				if(architecture == null) return name + '-' + epoch + ':' + version + '-' + release;
+				else return name + '-' + epoch + ':' + version + '-' + release + '.' + architecture;
 			}
+		}
+
+		public String toStringWithoutEpoch() {
+			if(architecture == null) return name + '-' + version + '-' + release;
+			else return name + '-' + version + '-' + release + '.' + architecture;
 		}
 
 		@Override
@@ -358,7 +362,7 @@ public class PackageManager {
 				AOServDaemon.exec(
 					RPM_EXE_PATH,
 					"-e",
-					this.toString()
+					this.toStringWithoutEpoch()
 				);
 			}
 		}
