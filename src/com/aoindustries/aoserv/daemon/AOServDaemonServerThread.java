@@ -78,7 +78,7 @@ final public class AOServDaemonServerThread extends Thread {
 	 * The set of supported versions, with the most preferred versions first.
 	 */
 	private static final AOServDaemonProtocol.Version[] SUPPORTED_VERSIONS = {
-		AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT,
+		AOServDaemonProtocol.Version.VERSION_1_80_0,
 		AOServDaemonProtocol.Version.VERSION_1_77
 	};
 
@@ -196,7 +196,7 @@ final public class AOServDaemonServerThread extends Thread {
 			out.writeBoolean(true);
 			// Command sequence starts at a random value
 			final long startSeq;
-			if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT) >= 0) {
+			if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0) >= 0) {
 				out.writeUTF(protocolVersion.getVersion());
 				startSeq = AOServDaemon.getRandom().nextLong();
 				out.writeLong(startSeq);
@@ -209,7 +209,7 @@ final public class AOServDaemonServerThread extends Thread {
 		Loop:
 			while(true) {
 				// Verify client sends matching sequence
-				if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT) >= 0) {
+				if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0) >= 0) {
 					long clientSeq = in.readLong();
 					if(clientSeq != seq) throw new IOException("Sequence mismatch: " + clientSeq + " != " + seq);
 				}
@@ -237,7 +237,7 @@ final public class AOServDaemonServerThread extends Thread {
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing DUMP_MYSQL_DATABASE, Thread="+toString());
 								int pkey=in.readCompressedInt();
 								boolean gzip;
-								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT) >= 0) {
+								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0) >= 0) {
 									gzip = in.readBoolean();
 								} else {
 									gzip = false;
@@ -254,7 +254,7 @@ final public class AOServDaemonServerThread extends Thread {
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing DUMP_POSTGRES_DATABASE, Thread="+toString());
 								int pkey=in.readCompressedInt();
 								boolean gzip;
-								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT) >= 0) {
+								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0) >= 0) {
 									gzip = in.readBoolean();
 								} else {
 									gzip = false;
@@ -489,7 +489,7 @@ final public class AOServDaemonServerThread extends Thread {
 								{
 									int portNum = in.readCompressedInt();
 									Protocol protocol;
-									if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT) < 0) {
+									if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0) < 0) {
 										// Old protocol transferred lowercase
 										protocol = Protocol.valueOf(in.readUTF().toUpperCase(Locale.ROOT));
 									} else {
@@ -1062,10 +1062,10 @@ final public class AOServDaemonServerThread extends Thread {
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing OLD_WAIT_FOR_REBUILD, Thread="+toString());
 								int oldTableID = in.readCompressedInt();
 								if(daemonKey==null) throw new IOException("Only the master server may OLD_WAIT_FOR_REBUILD");
-								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT) >= 0) {
+								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0) >= 0) {
 									throw new IOException(
 										"OLD_WAIT_FOR_REBUILD should not be used by "
-										+ AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT
+										+ AOServDaemonProtocol.Version.VERSION_1_80_0
 										+ " or newer"
 									);
 								}

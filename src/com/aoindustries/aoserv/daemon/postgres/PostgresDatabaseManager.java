@@ -265,7 +265,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 				gzip
 			);
 			long dumpSize = tempFile.getStat().getSize();
-			if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0_SNAPSHOT) >= 0) {
+			if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0) >= 0) {
 				masterOut.writeLong(dumpSize);
 			}
 			long bytesRead = 0;
