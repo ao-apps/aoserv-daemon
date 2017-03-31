@@ -162,7 +162,7 @@ public final class XinetdManager extends BuilderThread {
 								null,
 								-1,
 								null,
-								redirect.getDestinationHost().toString()+" "+redirect.getDestinationPort()
+								redirect.getDestinationHost().toString()+" "+redirect.getDestinationPort().getPort()
 							);
 						} else {
 							boolean portMatches=protocolObj.getPort().equals(port);
