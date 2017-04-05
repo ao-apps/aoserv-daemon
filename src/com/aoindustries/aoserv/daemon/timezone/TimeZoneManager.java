@@ -150,7 +150,7 @@ public class TimeZoneManager extends BuilderThread {
 						// Atomically move into place
 						newClockConfig.renameTo(clockConfig);
 					}
-				} else if(osvId != OperatingSystemVersion.CENTOS_7_X86_64) {
+				} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 					// Check symlink at /etc/localtime, use systemd to set timezone
 					String correctTarget = "../usr/share/zoneinfo/" + timeZone;
 					Stat localtimeStat = ETC_LOCALTIME.getStat();
