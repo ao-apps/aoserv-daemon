@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Configures the timezone settings in /etc/localtime and /etc/sysconfig/clock based on the
@@ -29,7 +30,11 @@ import java.util.logging.Level;
  */
 public class TimeZoneManager extends BuilderThread {
 
+	private static final Logger logger = Logger.getLogger(TimeZoneManager.class.getName());
+
 	private static TimeZoneManager timeZoneManager;
+
+	private static final UnixFile ETC_LOCALTIME = new UnixFile("/etc/localtime");
 
 	private TimeZoneManager() {
 	}
@@ -55,10 +60,12 @@ public class TimeZoneManager extends BuilderThread {
 					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
 					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
 					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					timeZoneManager = new TimeZoneManager();
 					conn.getAoServers().addTableListener(timeZoneManager, 0);
+					conn.getTimeZones().addTableListener(timeZoneManager, 0);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);
@@ -74,71 +81,93 @@ public class TimeZoneManager extends BuilderThread {
 			AOServer thisAoServer = AOServDaemon.getThisAOServer();
 			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
-			if(
-				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-
-			int uid_min = thisAoServer.getUidMin().getId();
-			int gid_min = thisAoServer.getGidMin().getId();
-
 			String timeZone = thisAoServer.getTimeZone().getName();
-
 			synchronized(rebuildLock) {
-				/*
-				 * Control the /etc/localtime symbolic link
-				 */
-				String correctTarget = "../usr/share/zoneinfo/" + timeZone;
-				UnixFile localtime = new UnixFile("/etc/localtime");
-				Stat localtimeStat = localtime.getStat();
-				if(!localtimeStat.exists()) localtime.symLink(correctTarget);
-				else {
-					if(localtimeStat.isSymLink()) {
-						String currentTarget = localtime.readLink();
-						if(!currentTarget.equals(correctTarget)) {
-							localtime.delete();
-							localtime.symLink(correctTarget);
+				if(
+					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				) {
+					/*
+					 * Control the /etc/localtime symbolic link
+					 */
+					String correctTarget = "../usr/share/zoneinfo/" + timeZone;
+					Stat localtimeStat = ETC_LOCALTIME.getStat();
+					if(!localtimeStat.exists()) ETC_LOCALTIME.symLink(correctTarget);
+					else {
+						if(localtimeStat.isSymLink()) {
+							String currentTarget = ETC_LOCALTIME.readLink();
+							if(!currentTarget.equals(correctTarget)) {
+								ETC_LOCALTIME.delete();
+								ETC_LOCALTIME.symLink(correctTarget);
+							}
+						} else {
+							ETC_LOCALTIME.delete();
+							ETC_LOCALTIME.symLink(correctTarget);
 						}
-					} else {
-						localtime.delete();
-						localtime.symLink(correctTarget);
 					}
-				}
 
-				/*
-				 * Control /etc/sysconfig/clock
-				 */
-				// Build the new file contents to RAM
-				ByteArrayOutputStream bout = new ByteArrayOutputStream();
-				try (ChainWriter newOut = new ChainWriter(bout)) {
-					if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-						newOut.print("ZONE=\"").print(timeZone).print("\"\n"
-								   + "UTC=true\n"
-								   + "ARC=false\n");
-					} else if(
-						osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-						|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+					/*
+					 * Control /etc/sysconfig/clock
+					 */
+					// Build the new file contents to RAM
+					ByteArrayOutputStream bout = new ByteArrayOutputStream();
+					try (ChainWriter newOut = new ChainWriter(bout)) {
+						if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+							newOut.print("ZONE=\"").print(timeZone).print("\"\n"
+									   + "UTC=true\n"
+									   + "ARC=false\n");
+						} else if(
+							osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+							|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+						) {
+							newOut.print("ARC=false\n"
+									   + "ZONE=").print(timeZone).print("\n"
+									   + "UTC=false\n");
+						} else {
+							throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+						}
+					}
+					byte[] newBytes = bout.toByteArray();
+
+					// Only update the file when it has changed
+					UnixFile clockConfig = new UnixFile("/etc/sysconfig/clock");
+					if(!clockConfig.getStat().exists() || !clockConfig.contentEquals(newBytes)) {
+						// Write to temp file
+						UnixFile newClockConfig = new UnixFile("/etc/sysconfig/clock.new");
+						try (
+							OutputStream newClockOut = newClockConfig.getSecureOutputStream(
+								UnixFile.ROOT_UID,
+								UnixFile.ROOT_GID,
+								0755,
+								true,
+								thisAoServer.getUidMin().getId(),
+								thisAoServer.getGidMin().getId()
+							)
+						) {
+							newClockOut.write(newBytes);
+						}
+						// Atomically move into place
+						newClockConfig.renameTo(clockConfig);
+					}
+				} else if(osvId != OperatingSystemVersion.CENTOS_7_X86_64) {
+					// Check symlink at /etc/localtime, use systemd to set timezone
+					String correctTarget = "../usr/share/zoneinfo/" + timeZone;
+					Stat localtimeStat = ETC_LOCALTIME.getStat();
+					if(
+						!localtimeStat.exists()
+						|| !localtimeStat.isSymLink()
+						|| !correctTarget.equals(ETC_LOCALTIME.readLink())
 					) {
-						newOut.print("ARC=false\n"
-								   + "ZONE=").print(timeZone).print("\n"
-								   + "UTC=false\n");
-					} else {
-						throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+						if(logger.isLoggable(Level.INFO)) logger.info("Setting time zone: " + timeZone);
+						AOServDaemon.exec(
+							"/usr/bin/timedatectl",
+							"set-timezone",
+							timeZone
+						);
 					}
-				}
-				byte[] newBytes = bout.toByteArray();
-
-				// Only update the file when it has changed
-				UnixFile clockConfig = new UnixFile("/etc/sysconfig/clock");
-				if(!clockConfig.getStat().exists() || !clockConfig.contentEquals(newBytes)) {
-					// Write to temp file
-					UnixFile newClockConfig = new UnixFile("/etc/sysconfig/clock.new");
-					try (OutputStream newClockOut = newClockConfig.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0755, true, uid_min, gid_min)) {
-						newClockOut.write(newBytes);
-					}
-					// Atomically move into place
-					newClockConfig.renameTo(clockConfig);
+				} else {
+					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 				}
 			}
 			return true;
