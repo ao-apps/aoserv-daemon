@@ -34,11 +34,14 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Handles the configuration of firewalld.
  */
 final public class FirewalldManager extends BuilderThread {
+
+	private static final Logger logger = Logger.getLogger(FirewalldManager.class.getName());
 
 	/**
 	 * The zones for SSH.
@@ -101,14 +104,16 @@ final public class FirewalldManager extends BuilderThread {
 					&& PackageManager.getInstalledPackage(PackageManager.PackageName.FIREWALLD) != null
 				) {
 					List<NetBind> netBinds = thisServer.getNetBinds();
+					if(logger.isLoggable(Level.FINE)) logger.fine("netBinds: " + netBinds);
 					// SSH
 					{
 						List<Target> targets = new ArrayList<>();
 						for(NetBind nb : netBinds) {
-							if(nb.getAppProtocol().getName().equals(Protocol.SSH)) {
+							if(nb.getAppProtocol().getProtocol().equals(Protocol.SSH)) {
 								addTarget(nb, targets);
 							}
 						}
+						if(logger.isLoggable(Level.FINE)) logger.fine("ssh targets: " + targets);
 						ServiceSet.createOptimizedServiceSet("ssh", targets).commit(sshZones);
 						// TODO: Include rate-limiting from public zone, as well as a zone for monitoring
 					}
@@ -118,7 +123,7 @@ final public class FirewalldManager extends BuilderThread {
 					{
 						List<Target> targets = new ArrayList<>();
 						for(NetBind nb : netBinds) {
-							String appProtocol = nb.getAppProtocol().getName();
+							String appProtocol = nb.getAppProtocol().getProtocol();
 							if(
 								appProtocol.equals(Protocol.AOSERV_DAEMON)
 								|| appProtocol.equals(Protocol.AOSERV_DAEMON_SSL)
@@ -126,13 +131,14 @@ final public class FirewalldManager extends BuilderThread {
 								addTarget(nb, targets);
 							}
 						}
+						if(logger.isLoggable(Level.FINE)) logger.fine("aoserv-daemon targets: " + targets);
 						publicServiceSets.add(ServiceSet.createOptimizedServiceSet("aoserv-daemon", targets));
 					}
 					// AOServ Master
 					{
 						List<Target> targets = new ArrayList<>();
 						for(NetBind nb : netBinds) {
-							String appProtocol = nb.getAppProtocol().getName();
+							String appProtocol = nb.getAppProtocol().getProtocol();
 							if(
 								appProtocol.equals(Protocol.AOSERV_MASTER)
 								|| appProtocol.equals(Protocol.AOSERV_MASTER_SSL)
@@ -141,6 +147,7 @@ final public class FirewalldManager extends BuilderThread {
 							}
 						}
 						// Only configure when either non-empty targets or system service exists
+						if(logger.isLoggable(Level.FINE)) logger.fine("aoserv-master targets: " + targets);
 						Service template = Service.loadSystemService("aoserv-master");
 						if(template != null) {
 							publicServiceSets.add(ServiceSet.createOptimizedServiceSet(template, targets));
@@ -153,10 +160,11 @@ final public class FirewalldManager extends BuilderThread {
 					{
 						List<Target> targets = new ArrayList<>();
 						for(NetBind nb : netBinds) {
-							if(nb.getAppProtocol().getName().equals(Protocol.DNS)) {
+							if(nb.getAppProtocol().getProtocol().equals(Protocol.DNS)) {
 								addTarget(nb, targets);
 							}
 						}
+						if(logger.isLoggable(Level.FINE)) logger.fine("named targets: " + targets);
 						publicServiceSets.add(
 							ServiceSet.createOptimizedServiceSet(
 								new Service(
@@ -182,20 +190,22 @@ final public class FirewalldManager extends BuilderThread {
 					{
 						List<Target> targets = new ArrayList<>();
 						for(NetBind nb : netBinds) {
-							if(nb.getAppProtocol().getName().equals(Protocol.MYSQL)) {
+							if(nb.getAppProtocol().getProtocol().equals(Protocol.MYSQL)) {
 								addTarget(nb, targets);
 							}
 						}
+						if(logger.isLoggable(Level.FINE)) logger.fine("mysql targets: " + targets);
 						publicServiceSets.add(ServiceSet.createOptimizedServiceSet("mysql", targets));
 					}
 					// PostgreSQL
 					{
 						List<Target> targets = new ArrayList<>();
 						for(NetBind nb : netBinds) {
-							if(nb.getAppProtocol().getName().equals(Protocol.POSTGRESQL)) {
+							if(nb.getAppProtocol().getProtocol().equals(Protocol.POSTGRESQL)) {
 								addTarget(nb, targets);
 							}
 						}
+						if(logger.isLoggable(Level.FINE)) logger.fine("postgresql targets: " + targets);
 						publicServiceSets.add(ServiceSet.createOptimizedServiceSet("postgresql", targets));
 					}
 					// Commit all public service sets
