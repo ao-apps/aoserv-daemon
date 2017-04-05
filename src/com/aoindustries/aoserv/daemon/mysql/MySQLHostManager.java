@@ -56,7 +56,10 @@ final public class MySQLHostManager extends BuilderThread {
 				for(MySQLServer mysqlServer : connector.getMysqlServers()) {
 					String version=mysqlServer.getVersion().getVersion();
 					// hosts no longer exists in MySQL 5.6.7+
-					if(!version.startsWith(MySQLServer.VERSION_5_6_PREFIX)) {
+					if(
+						!version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
+						&& !version.startsWith(MySQLServer.VERSION_5_7_PREFIX)
+					) {
 						boolean modified = false;
 						// Get the connection to work through
 						AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);

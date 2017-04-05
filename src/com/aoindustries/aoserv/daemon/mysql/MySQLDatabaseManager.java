@@ -41,6 +41,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -82,76 +83,100 @@ final public class MySQLDatabaseManager extends BuilderThread {
 						LogFactory.getLogger(MySQLDatabaseManager.class).severe("No databases; refusing to rebuild config: " + mysqlServer);
 					} else {
 						String version = mysqlServer.getVersion().getVersion();
-						boolean modified = false;
-						// Get the connection to work through
-						AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
-						Connection conn = pool.getConnection(false);
-						try {
-							// Get the list of all existing databases
-							Set<MySQLDatabaseName> existing = new HashSet<>();
-							try (Statement stmt = conn.createStatement()) {
-								try (ResultSet results = stmt.executeQuery("show databases")) {
-									while(results.next()) {
-										try {
-											MySQLDatabaseName name = MySQLDatabaseName.valueOf(results.getString(1));
-											if(!existing.add(name)) throw new SQLException("Duplicate database name: " + name);
-										} catch(ValidationException e) {
-											throw new SQLException(e);
+						// Different versions of MySQL have different sets of system databases
+						Set<MySQLDatabaseName> systemDatabases = new LinkedHashSet<>();
+						if(
+							version.startsWith(MySQLServer.VERSION_4_0_PREFIX)
+							|| version.startsWith(MySQLServer.VERSION_4_1_PREFIX)
+						) {
+							systemDatabases.add(MySQLDatabase.MYSQL);
+						} else if(
+							version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
+							|| version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
+						) {
+							systemDatabases.add(MySQLDatabase.MYSQL);
+							systemDatabases.add(MySQLDatabase.INFORMATION_SCHEMA);
+						} else if(version.startsWith(MySQLServer.VERSION_5_6_PREFIX)) {
+							systemDatabases.add(MySQLDatabase.MYSQL);
+							systemDatabases.add(MySQLDatabase.INFORMATION_SCHEMA);
+							systemDatabases.add(MySQLDatabase.PERFORMANCE_SCHEMA);
+						} else if(version.startsWith(MySQLServer.VERSION_5_7_PREFIX)) {
+							systemDatabases.add(MySQLDatabase.MYSQL);
+							systemDatabases.add(MySQLDatabase.INFORMATION_SCHEMA);
+							systemDatabases.add(MySQLDatabase.PERFORMANCE_SCHEMA);
+							systemDatabases.add(MySQLDatabase.SYS);
+						} else {
+							throw new SQLException("Unsupported version of MySQL: " + version);
+						}
+						// Verify has all system databases
+						Set<MySQLDatabaseName> requiredDatabases = new LinkedHashSet<>(systemDatabases);
+						for(MySQLDatabase database : databases) {
+							if(
+								requiredDatabases.remove(database.getName())
+								&& requiredDatabases.isEmpty()
+							) {
+								break;
+							}
+						}
+						if(!requiredDatabases.isEmpty()) {
+							LogFactory.getLogger(MySQLUserManager.class).severe("Required databases not found; refusing to rebuild config: " + mysqlServer + " -> " + requiredDatabases);
+						} else {
+							boolean modified = false;
+							// Get the connection to work through
+							AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
+							Connection conn = pool.getConnection(false);
+							try {
+								// Get the list of all existing databases
+								Set<MySQLDatabaseName> existing = new HashSet<>();
+								try (Statement stmt = conn.createStatement()) {
+									try (ResultSet results = stmt.executeQuery("show databases")) {
+										while(results.next()) {
+											try {
+												MySQLDatabaseName name = MySQLDatabaseName.valueOf(results.getString(1));
+												if(!existing.add(name)) throw new SQLException("Duplicate database name: " + name);
+											} catch(ValidationException e) {
+												throw new SQLException(e);
+											}
+										}
+									}
+
+									// Create the databases that do not exist and should
+									for(MySQLDatabase database : databases) {
+										MySQLDatabaseName name = database.getName();
+										if(!existing.remove(name)) {
+											// Create the database
+											stmt.executeUpdate("create database " + name);
+											modified=true;
+										}
+									}
+
+									// Remove the extra databases
+									for(MySQLDatabaseName dbName : existing) {
+										if(systemDatabases.contains(dbName)) {
+											LogFactory.getLogger(MySQLDatabaseManager.class).log(
+												Level.WARNING,
+												null,
+												new SQLException("Refusing to drop system MySQL Database: " + dbName + " on " + mysqlServer)
+											);
+										} else {
+											// Dump database before dropping
+											dumpDatabase(
+												mysqlServer,
+												dbName,
+												BackupManager.getNextBackupFile("-mysql-" + mysqlServer.getName()+"-"+dbName+".sql.gz"),
+												true
+											);
+											// Now drop
+											stmt.executeUpdate("drop database " + dbName);
+											modified=true;
 										}
 									}
 								}
-
-								// Create the databases that do not exist and should
-								for(MySQLDatabase database : databases) {
-									MySQLDatabaseName name = database.getName();
-									if(!existing.remove(name)) {
-										// Create the database
-										stmt.executeUpdate("create database " + name);
-										modified=true;
-									}
-								}
-
-								// Remove the extra databases
-								for(MySQLDatabaseName dbName : existing) {
-									if(
-										dbName.equals(MySQLDatabase.MYSQL)
-										|| (
-											version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
-											&& dbName.equals(MySQLDatabase.INFORMATION_SCHEMA)
-										) || (
-											version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-											&& dbName.equals(MySQLDatabase.INFORMATION_SCHEMA)
-										) || (
-											version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
-											&& (
-												dbName.equals(MySQLDatabase.INFORMATION_SCHEMA)
-												|| dbName.equals(MySQLDatabase.PERFORMANCE_SCHEMA)
-											)
-										)
-									) {
-										LogFactory.getLogger(MySQLDatabaseManager.class).log(
-											Level.WARNING,
-											null,
-											new SQLException("Refusing to drop critical MySQL Database: " + dbName + " on " + mysqlServer)
-										);
-									} else {
-										// Dump database before dropping
-										dumpDatabase(
-											mysqlServer,
-											dbName,
-											BackupManager.getNextBackupFile("-mysql-" + mysqlServer.getName()+"-"+dbName+".sql.gz"),
-											true
-										);
-										// Now drop
-										stmt.executeUpdate("drop database " + dbName);
-										modified=true;
-									}
-								}
+							} finally {
+								pool.releaseConnection(conn);
 							}
-						} finally {
-							pool.releaseConnection(conn);
+							if(modified) MySQLServerManager.flushPrivileges(mysqlServer);
 						}
-						if(modified) MySQLServerManager.flushPrivileges(mysqlServer);
 					}
 				}
 			}
