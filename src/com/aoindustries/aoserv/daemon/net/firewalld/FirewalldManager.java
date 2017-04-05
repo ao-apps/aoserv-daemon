@@ -140,7 +140,14 @@ final public class FirewalldManager extends BuilderThread {
 								addTarget(nb, targets);
 							}
 						}
-						publicServiceSets.add(ServiceSet.createOptimizedServiceSet("aoserv-master", targets));
+						// Only configure when either non-empty targets or system service exists
+						Service template = Service.loadSystemService("aoserv-master");
+						if(template != null) {
+							publicServiceSets.add(ServiceSet.createOptimizedServiceSet(template, targets));
+						} else if(!targets.isEmpty()) {
+							// Has net binds but no firewalld system service
+							throw new SQLException("System service not found: aoserv-master");
+						}
 					}
 					// DNS
 					{
