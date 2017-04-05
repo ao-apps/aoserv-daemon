@@ -16,12 +16,9 @@ import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.firewalld.ServiceSet;
-import com.aoindustries.firewalld.Target;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.AddressFamily;
 import com.aoindustries.net.InetAddress;
-import com.aoindustries.net.InetAddressPrefix;
 import com.aoindustries.net.Port;
 import com.aoindustries.selinux.SEManagePort;
 import com.aoindustries.util.WrappedException;
@@ -30,12 +27,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -79,22 +72,6 @@ final public class SshdManager extends BuilderThread {
 	 * </p>
 	 */
 	private static final int MAX_LISTEN_SOCKS = 16; // Matches the value defined in sshd.c
-
-	/**
-	 * The firewalld zones for CentOS 7.
-	 */
-	private static final Set<String> centos7Zones = Collections.unmodifiableSet(
-		new LinkedHashSet<String>(
-			Arrays.asList(
-				"dmz",
-				"external",
-				"home",
-				"internal",
-				"public",
-				"work"
-			)
-		)
-	);
 
 	private static SshdManager sshdManager;
 
@@ -530,30 +507,6 @@ final public class SshdManager extends BuilderThread {
 							AOServDaemon.exec("/usr/bin/systemctl", "restart", "sshd");
 						} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 					}
-				}
-				if(
-					osvId == OperatingSystemVersion.CENTOS_7_X86_64
-					// Manage firewalld if installed
-					&& PackageManager.getInstalledPackage(PackageManager.PackageName.FIREWALLD) != null
-				) {
-					List<Target> targets = new ArrayList<>(nbs.size());
-					for(NetBind nb : nbs) {
-						InetAddress ip = nb.getIPAddress().getInetAddress();
-						// Assume can access self
-						if(!ip.isLoopback()) {
-							targets.add(
-								new Target(
-									InetAddressPrefix.valueOf(
-										ip,
-										ip.isUnspecified() ? 0 : ip.getAddressFamily().getMaxPrefix()
-									),
-									nb.getPort()
-								)
-							);
-						}
-					}
-					ServiceSet.createOptimizedServiceSet("ssh", targets).commit(centos7Zones);
-					// TODO: Include rate-limiting from public zone, as well as a zone for monitoring
 				}
 			}
 			return true;
