@@ -202,7 +202,7 @@ public class LinuxAccountManager extends BuilderThread {
 				for (int c = 0; c < accountsLen; c++) {
 					LinuxServerAccount account = accounts.get(c);
 					if(account.getLinuxAccount().getUsername().getUsername().equals(LinuxAccount.ROOT)) {
-						printPasswdLine(account, out, true);
+						printPasswdLine(account, out);
 						rootFound=true;
 						break;
 					}
@@ -211,7 +211,7 @@ public class LinuxAccountManager extends BuilderThread {
 				for (int c = 0; c < accountsLen; c++) {
 					LinuxServerAccount account = accounts.get(c);
 					if(!account.getLinuxAccount().getUsername().getUsername().equals(LinuxAccount.ROOT)) {
-						printPasswdLine(account, out, true);
+						printPasswdLine(account, out);
 					}
 				}
 			} finally {
@@ -707,10 +707,8 @@ public class LinuxAccountManager extends BuilderThread {
 	 *
 	 * @param  account   the <code>LinuxServerAccount</code> to print
 	 * @param  out       the <code>ChainWriter</code> to print to
-	 * @param  complete  if <code>true</code>, a complete line will be printed, otherwise
-	 *                   only the username, uid, gid, and full name are included
 	 */
-	public static void printPasswdLine(LinuxServerAccount account, ChainWriter out, boolean complete) throws IOException, SQLException {
+	public static void printPasswdLine(LinuxServerAccount account, ChainWriter out) throws IOException, SQLException {
 		LinuxAccount linuxAccount = account.getLinuxAccount();
 		UserId username=linuxAccount.getUsername().getUsername();
 		LinuxServerGroup primaryGroup = account.getPrimaryLinuxServerGroup();
@@ -722,26 +720,41 @@ public class LinuxAccountManager extends BuilderThread {
 			.print(':')
 			.print(primaryGroup.getGid().getId())
 			.print(':')
-			.print(linuxAccount.getName().toString())
-			.print(',')
 		;
-		if(complete) {
-			Gecos field=linuxAccount.getOfficeLocation();
-			if(field!=null) out.print(field.toString());
+		int commaCount = 0;
+		Gecos fullName = linuxAccount.getName();
+		if(fullName != null) {
+			out.print(fullName.toString());
+		}
+		Gecos officeLocation = linuxAccount.getOfficeLocation();
+		if(officeLocation != null) {
 			out.print(',');
-			field=linuxAccount.getOfficePhone();
-			if(field!=null) out.print(field.toString());
-			out.print(',');
-			field=linuxAccount.getHomePhone();
-			if(field!=null) out.print(field.toString());
-			out
-				.print(':')
-				.print(account.getHome())
-				.print(':')
-				.print(linuxAccount.getShell().getPath())
-				.print('\n')
-			;
-		} else out.print(",,::\n");
+			commaCount++;
+			out.print(officeLocation.toString());
+		}
+		Gecos officePhone = linuxAccount.getOfficePhone();
+		if(officePhone != null) {
+			while(commaCount < 2) {
+				out.print(',');
+				commaCount++;
+			}
+			out.print(officePhone.toString());
+		}
+		Gecos homePhone = linuxAccount.getHomePhone();
+		if(homePhone != null) {
+			while(commaCount < 3) {
+				out.print(',');
+				commaCount++;
+			}
+			out.print(homePhone.toString());
+		}
+		out
+			.print(':')
+			.print(account.getHome())
+			.print(':')
+			.print(linuxAccount.getShell().getPath())
+			.print('\n')
+		;
 	}
 
 	public static void setBashProfile(LinuxServerAccount lsa, String profile) throws IOException, SQLException {
