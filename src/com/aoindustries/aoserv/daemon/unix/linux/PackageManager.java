@@ -443,11 +443,8 @@ public class PackageManager {
 				if(logger.isLoggable(Level.FINE)) {
 					StringBuilder message = new StringBuilder();
 					message.append("Got all RPMs:");
-					boolean didOne = false;
 					for(RPM rpm : lastAllRpms) {
-						if(didOne) message.append('\n');
-						else didOne = true;
-						message.append("    ");
+						message.append("\n    ");
 						message.append(rpm);
 					}
 					logger.fine(message.toString());
