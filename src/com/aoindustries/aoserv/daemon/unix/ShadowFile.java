@@ -343,7 +343,7 @@ final public class ShadowFile {
 	/**
 	 * Locks the shadow file for updates
 	 */
-	private static final Object	shadowLock = new Object();
+	public static final Object shadowLock = new Object();
 
 	/**
 	 * Gets the encrypted password for one user on the system include the {@link Entry#getChangedDate() changeDate}, if known.
@@ -412,10 +412,8 @@ final public class ShadowFile {
 		}
 	}
 
-	private static void writeShadowFile(Iterable<Entry> shadowEntries) throws SQLException, IOException {
-		assert Thread.holdsLock(shadowLock);
-		byte[] newContents;
-		{
+	private static byte[] createShadowFile(Iterable<Entry> shadowEntries) {
+		try {
 			ByteArrayOutputStream bout = new ByteArrayOutputStream();
 			try (ChainWriter out = new ChainWriter(bout)) {
 				boolean rootFound = false;
@@ -424,10 +422,19 @@ final public class ShadowFile {
 					entry.appendTo(out);
 					out.print('\n');
 				}
-				if(!rootFound) throw new SQLException(LinuxAccount.ROOT + " user not found while creating " + newShadowFile.getPath());
+				if(!rootFound) throw new IllegalArgumentException(LinuxAccount.ROOT + " user not found while creating " + newShadowFile.getPath());
 			}
-			newContents = bout.toByteArray();
+			return bout.toByteArray();
+		} catch(IOException e) {
+			throw new AssertionError(e);
 		}
+	}
+
+	/**
+	 * Must hold {@link #shadowLock}
+	 */
+	public static void writeShadowFile(byte[] newContents) throws SQLException, IOException {
+		assert Thread.holdsLock(shadowLock);
 		if(!shadowFile.contentEquals(newContents)) {
 			AOServer thisAoServer = AOServDaemon.getThisAOServer();
 			try (
@@ -470,35 +477,38 @@ final public class ShadowFile {
 		}
 	}
 
-	public static void rebuildShadowFile(Set<UserId> usernames) throws SQLException, IOException {
+	/**
+	 * Builds a new version of the shadow file with necessary adjustments made.
+	 *
+	 * Must hold {@link #shadowLock}
+	 */
+	public static byte[] buildShadowFile(Set<UserId> usernames) throws IOException {
+		assert Thread.holdsLock(shadowLock);
 		if(!usernames.contains(LinuxAccount.ROOT)) throw new IllegalArgumentException(LinuxAccount.ROOT + " user not found");
-		synchronized(shadowLock) {
-			Map<UserId,Entry> shadowEntries = readShadowFile();
-			// Remove any users that no longer exist
-			Iterator<Map.Entry<UserId,Entry>> entryIter = shadowEntries.entrySet().iterator();
-			while(entryIter.hasNext()) {
-				Map.Entry<UserId,Entry> mapEntry = entryIter.next();
-				UserId username = mapEntry.getKey();
-				if(!usernames.contains(username)) {
-					if(logger.isLoggable(Level.INFO)) {
-						logger.info("Removing user from " + shadowFile + ": " + username);
-					}
-					entryIter.remove();
+		Map<UserId,Entry> shadowEntries = readShadowFile();
+		// Remove any users that no longer exist
+		Iterator<Map.Entry<UserId,Entry>> entryIter = shadowEntries.entrySet().iterator();
+		while(entryIter.hasNext()) {
+			Map.Entry<UserId,Entry> mapEntry = entryIter.next();
+			UserId username = mapEntry.getKey();
+			if(!usernames.contains(username)) {
+				if(logger.isLoggable(Level.INFO)) {
+					logger.info("Removing user from " + shadowFile + ": " + username);
 				}
+				entryIter.remove();
 			}
-
-			// Add new users
-			for(UserId username : usernames) {
-				if(!shadowEntries.containsKey(username)) {
-					if(logger.isLoggable(Level.INFO)) {
-						logger.info("Adding user to " + shadowFile + ": " + username);
-					}
-					shadowEntries.put(username, new Entry(username));
-				}
-			}
-
-			writeShadowFile(shadowEntries.values());
 		}
+
+		// Add new users
+		for(UserId username : usernames) {
+			if(!shadowEntries.containsKey(username)) {
+				if(logger.isLoggable(Level.INFO)) {
+					logger.info("Adding user to " + shadowFile + ": " + username);
+				}
+				shadowEntries.put(username, new Entry(username));
+			}
+		}
+		return createShadowFile(shadowEntries.values());
 	}
 
 	/**
@@ -532,7 +542,9 @@ final public class ShadowFile {
 				shadowEntries.put(username, new Entry(username, encryptedPassword, newChangedDate));
 			}
 
-			writeShadowFile(shadowEntries.values());
+			writeShadowFile(
+				createShadowFile(shadowEntries.values())
+			);
 		}
 	}
 
