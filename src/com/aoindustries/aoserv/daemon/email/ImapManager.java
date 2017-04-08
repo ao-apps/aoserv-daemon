@@ -324,7 +324,7 @@ final public class ImapManager extends BuilderThread {
 			// Backup the password
 			if(!passwordBackup.getStat().exists()) {
 				log(logOut, Level.FINE, username, "Backing-up password");
-				String encryptedPassword = LinuxAccountManager.getEncryptedPassword(username);
+				String encryptedPassword = LinuxAccountManager.getEncryptedPassword(username).getElement1();
 				UnixFile tempFile = UnixFile.mktemp(passwordBackup.getPath()+".", false);
 				try (PrintWriter out = new PrintWriter(new FileOutputStream(tempFile.getFile()))) {
 					out.println(encryptedPassword);
@@ -1438,7 +1438,7 @@ final public class ImapManager extends BuilderThread {
 
 										// Restore passwd, if needed
 										if(passwordBackup.getStat().exists()) {
-											String currentEncryptedPassword = LinuxAccountManager.getEncryptedPassword(laUsername);
+											String currentEncryptedPassword = LinuxAccountManager.getEncryptedPassword(laUsername).getElement1();
 											String savedEncryptedPassword;
 											try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(passwordBackup.getFile())))) {
 												savedEncryptedPassword = in.readLine();
@@ -1446,7 +1446,7 @@ final public class ImapManager extends BuilderThread {
 											if(savedEncryptedPassword==null) throw new IOException("Unable to load saved password");
 											if(!savedEncryptedPassword.equals(currentEncryptedPassword)) {
 												log(logOut, Level.FINE, laUsername, "Restoring password");
-												LinuxAccountManager.setEncryptedPassword(laUsername, savedEncryptedPassword, false);
+												LinuxAccountManager.setEncryptedPassword(laUsername, savedEncryptedPassword, null);
 												UnixFile passwordBackupOld = new UnixFile(userBackupDirectory, "passwd.old", false);
 												passwordBackup.renameTo(passwordBackupOld);
 											} else {

@@ -52,6 +52,7 @@ import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.net.Port;
 import com.aoindustries.net.Protocol;
 import com.aoindustries.noc.monitor.portmon.PortMonitor;
+import com.aoindustries.util.Tuple2;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.EOFException;
@@ -78,6 +79,7 @@ final public class AOServDaemonServerThread extends Thread {
 	 * The set of supported versions, with the most preferred versions first.
 	 */
 	private static final AOServDaemonProtocol.Version[] SUPPORTED_VERSIONS = {
+		AOServDaemonProtocol.Version.VERSION_1_80_1_SNAPSHOT,
 		AOServDaemonProtocol.Version.VERSION_1_80_0,
 		AOServDaemonProtocol.Version.VERSION_1_77
 	};
@@ -579,9 +581,13 @@ final public class AOServDaemonServerThread extends Thread {
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_ENCRYPTED_LINUX_ACCOUNT_PASSWORD, Thread="+toString());
 								UserId username=UserId.valueOf(in.readUTF());
 								if(daemonKey==null) throw new IOException("Only the master server may GET_ENCRYPTED_LINUX_ACCOUNT_PASSWORD");
-								String encryptedPassword=LinuxAccountManager.getEncryptedPassword(username);
+								Tuple2<String,Integer> encryptedPassword = LinuxAccountManager.getEncryptedPassword(username);
 								out.write(AOServDaemonProtocol.DONE);
-								out.writeUTF(encryptedPassword);
+								out.writeUTF(encryptedPassword.getElement1());
+								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_1_SNAPSHOT) >= 0) {
+									Integer changeDate = encryptedPassword.getElement2();
+									out.writeCompressedInt(changeDate==null ? -1 : changeDate);
+								}
 							}
 							break;
 						case AOServDaemonProtocol.GET_ENCRYPTED_MYSQL_USER_PASSWORD :
@@ -846,9 +852,16 @@ final public class AOServDaemonServerThread extends Thread {
 							{
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing SET_ENCRYPTED_LINUX_ACCOUNT_PASSWORD, Thread="+toString());
 								UserId username=UserId.valueOf(in.readUTF());
-								String encryptedPassword=in.readUTF();
+								String encryptedPassword = in.readUTF();
+								Integer changedDate;
+								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_1_SNAPSHOT) >= 0) {
+									int i = in.readCompressedInt();
+									changedDate = i==-1 ? null : i;
+								} else {
+									changedDate = null;
+								}
 								if(daemonKey==null) throw new IOException("Only the master server may SET_ENCRYPTED_LINUX_ACCOUNT_PASSWORD");
-								LinuxAccountManager.setEncryptedPassword(username, encryptedPassword);
+								LinuxAccountManager.setEncryptedPassword(username, encryptedPassword, changedDate);
 								out.write(AOServDaemonProtocol.DONE);
 							}
 							break;
@@ -888,7 +901,7 @@ final public class AOServDaemonServerThread extends Thread {
 								UserId username=UserId.valueOf(in.readUTF());
 								String plainPassword=in.readUTF();
 								if(daemonKey==null) throw new IOException("Only the master server may SET_LINUX_SERVER_ACCOUNT_PASSWORD");
-								LinuxAccountManager.setPassword(username, plainPassword);
+								LinuxAccountManager.setPassword(username, plainPassword, true);
 								out.write(AOServDaemonProtocol.DONE);
 							}
 							break;

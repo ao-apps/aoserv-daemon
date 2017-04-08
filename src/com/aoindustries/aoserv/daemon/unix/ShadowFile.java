@@ -14,6 +14,7 @@ import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.math.SafeMath;
 import com.aoindustries.util.StringUtility;
+import com.aoindustries.util.Tuple2;
 import com.aoindustries.validation.ValidationException;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -165,11 +166,11 @@ final public class ShadowFile {
 		/**
 		 * Constructs a new shadow file entry for the given user and encrypted password.
 		 */
-		public Entry(UserId username, String password) {
+		public Entry(UserId username, String password, Integer newChangedDate) {
 			this(
 				username,
 				password,
-				getCurrentDate(),
+				newChangedDate != null ? newChangedDate : getCurrentDate(),
 				0,
 				99999,
 				7,
@@ -183,7 +184,7 @@ final public class ShadowFile {
 		 * Constructs a new shadow file entry for the given user.
 		 */
 		public Entry(UserId username) {
-			this(username, LinuxAccount.NO_PASSWORD_CONFIG_VALUE);
+			this(username, LinuxAccount.NO_PASSWORD_CONFIG_VALUE, null);
 		}
 
 		/**
@@ -261,16 +262,18 @@ final public class ShadowFile {
 		/**
 		 * Sets the encrypted password, optionally updating the changedDate.
 		 *
+		 * @param newChangedDate  The new changeDate or {@code null} to not alter
+		 *
 		 * @return  a new entry if the password changed or {@code this} when the password is the same
 		 */
-		public Entry setPassword(String newPassword, boolean updateChangedDate) {
+		public Entry setPassword(String newPassword, Integer newChangedDate) {
 			if(newPassword.equals(password)) {
 				return this;
 			} else {
 				return new Entry(
 					username,
 					newPassword,
-					updateChangedDate ? getCurrentDate() : changedDate,
+					newChangedDate != null ? newChangedDate : this.changedDate,
 					minPasswordAge,
 					maxPasswordAge,
 					warningDays,
@@ -343,9 +346,11 @@ final public class ShadowFile {
 	private static final Object	shadowLock = new Object();
 
 	/**
-	 * Gets the encrypted password for one user on the system.
+	 * Gets the encrypted password for one user on the system include the {@link Entry#getChangedDate() changeDate}, if known.
+	 *
+	 * If there is no entry for the user in the shadow file, returns <code>({@link LinuxAccount#NO_PASSWORD_CONFIG_VALUE}, null)</code>.
 	 */
-	public static String getEncryptedPassword(UserId username) throws IOException, SQLException {
+	public static Tuple2<String,Integer> getEncryptedPassword(UserId username) throws IOException, SQLException {
 		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
@@ -368,11 +373,11 @@ final public class ShadowFile {
 					while((line = in.readLine()) != null) {
 						Entry entry = new Entry(line);
 						if(entry.getUsername().equals(username)) {
-							return entry.getPassword();
+							return new Tuple2<>(entry.getPassword(), entry.getChangedDate());
 						}
 					}
 				}
-				return LinuxAccount.NO_PASSWORD_CONFIG_VALUE;
+				return new Tuple2<>(LinuxAccount.NO_PASSWORD_CONFIG_VALUE, null);
 			} catch(ValidationException e) {
 				throw new IOException(e);
 			}
@@ -504,9 +509,11 @@ final public class ShadowFile {
 	 * passwords are never lost during updates.
 	 * </p>
 	 *
+	 * @param newChangedDate  The new changeDate or {@code null} to not alter
+	 *
 	 * @see UnixFile#crypt(java.lang.String, com.aoindustries.io.unix.UnixFile.CryptAlgorithm)
 	 */
-	public static void setEncryptedPassword(UserId username, String encryptedPassword, boolean updateChangedDate) throws IOException, SQLException {
+	public static void setEncryptedPassword(UserId username, String encryptedPassword, Integer newChangedDate) throws IOException, SQLException {
 		synchronized(shadowLock) {
 			Map<UserId,Entry> shadowEntries = readShadowFile();
 
@@ -516,13 +523,13 @@ final public class ShadowFile {
 				if(logger.isLoggable(Level.INFO)) {
 					logger.info("Resetting password for existing entry in " + shadowFile + ": " + username);
 				}
-				shadowEntries.put(username, entry.setPassword(encryptedPassword, updateChangedDate));
+				shadowEntries.put(username, entry.setPassword(encryptedPassword, newChangedDate));
 			} else {
 				// Add if does not yet exist
 				if(logger.isLoggable(Level.INFO)) {
 					logger.info("Adding user to " + shadowFile + " for password reset: " + username);
 				}
-				shadowEntries.put(username, new Entry(username, encryptedPassword));
+				shadowEntries.put(username, new Entry(username, encryptedPassword, newChangedDate));
 			}
 
 			writeShadowFile(shadowEntries.values());
@@ -538,7 +545,7 @@ final public class ShadowFile {
 			plaintext == null || plaintext.isEmpty()
 				? LinuxAccount.NO_PASSWORD_CONFIG_VALUE
 				: UnixFile.crypt(plaintext, cryptAlgorithm, AOServDaemon.getRandom()),
-			updateChangedDate
+			updateChangedDate ? Entry.getCurrentDate() : null
 		);
 	}
 
