@@ -115,27 +115,11 @@ final public class CvsManager extends BuilderThread {
 					existing.remove(path.toString());
 				}
 
-				/*
-				 * Back up the files scheduled for removal.
-				 */
-				int svLen = existing.size();
-				if(svLen > 0) {
-					List<File> deleteFileList = new ArrayList<>(svLen);
+				// Back-up and delete the files scheduled for removal.
+				if(!existing.isEmpty()) {
+					List<File> deleteFileList = new ArrayList<>(existing.size());
 					for(String deleteFilename : existing) deleteFileList.add(new File(deleteFilename));
-
-					// Get the next backup filename
-					File backupFile = BackupManager.getNextTarballBackupFile();
-					BackupManager.createTarball(deleteFileList, backupFile);
-
-					/*
-					 * Remove the files that have been backed up.
-					 */
-					int uid_min = thisAoServer.getUidMin().getId();
-					int gid_min = thisAoServer.getGidMin().getId();
-					for(int c = 0; c < svLen; c++) {
-						File file = deleteFileList.get(c);
-						new UnixFile(file.getPath()).secureDeleteRecursive(uid_min, gid_min);
-					}
+					BackupManager.backupAndDeleteFiles(deleteFileList);
 				}
 			}
 			return true;

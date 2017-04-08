@@ -494,15 +494,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 					}
 				}
 
-				// Back up the files scheduled for removal.
-				if(!deleteFileList.isEmpty()) {
-					// Get the next backup filename
-					File backupFile = BackupManager.getNextTarballBackupFile();
-					BackupManager.createTarball(deleteFileList, backupFile);
-
-					// Remove the files that have been backed up.
-					for(File file : deleteFileList) new UnixFile(file).secureDeleteRecursive(uid_min, gid_min);
-				}
+				// Back-up and delete the files scheduled for removal.
+				BackupManager.backupAndDeleteFiles(deleteFileList);
 
 				// Nothing to do, end loop to sleep
 				if(oldestLsa==null) break;

@@ -523,23 +523,8 @@ final public class AWStatsManager extends BuilderThread {
 				// Remove any files or directories that should not exist
 				for(String filename : existingHostDirectories.keySet()) deleteFileList.add(new File(hostsDirectory, filename));
 
-				/*
-				 * Back up the files scheduled for removal.
-				 */
-				int deleteFileListLen=deleteFileList.size();
-				if(deleteFileListLen>0) {
-					// Get the next backup filename
-					File backupFile=BackupManager.getNextTarballBackupFile();
-					BackupManager.createTarball(deleteFileList, backupFile);
-
-					/*
-					 * Remove the files that have been backed up.
-					 */
-					for(int c=0;c<deleteFileListLen;c++) {
-						File file=deleteFileList.get(c);
-						new UnixFile(file).secureDeleteRecursive(uid_min, gid_min);
-					}
-				}
+				// Back-up and delete the files scheduled for removal.
+				BackupManager.backupAndDeleteFiles(deleteFileList);
 			}
 			return true;
 		} catch(ThreadDeath TD) {

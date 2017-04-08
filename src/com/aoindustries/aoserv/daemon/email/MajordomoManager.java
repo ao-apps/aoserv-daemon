@@ -957,23 +957,9 @@ final public class MajordomoManager extends BuilderThread {
 					deleteFileList.add(new File(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY.toString(), filename.toString()));
 				}
 
-				/*
-				 * Back up the files scheduled for removal.
-				 */
-				int deleteFileListLen=deleteFileList.size();
-				if(deleteFileListLen>0) {
-					// Get the next backup filename
-					File backupFile = BackupManager.getNextTarballBackupFile();
-					BackupManager.createTarball(deleteFileList, backupFile);
+				// Back-up and delete the files scheduled for removal.
+				BackupManager.backupAndDeleteFiles(deleteFileList);
 
-					/*
-					 * Remove the files that have been backed up.
-					 */
-					for(int c=0;c<deleteFileListLen;c++) {
-						File file=deleteFileList.get(c);
-						new UnixFile(file.getPath()).secureDeleteRecursive(uid_min, gid_min);
-					}
-				}
 				if(mss.isEmpty()) {
 					// Delete the directory if no longer needed (it should be empty already)
 					// RPM will clean it up: if(serversUF.getStat().exists()) serversUF.delete();
