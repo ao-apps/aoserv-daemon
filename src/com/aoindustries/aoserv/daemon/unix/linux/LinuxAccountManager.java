@@ -26,6 +26,7 @@ import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.email.ImapManager;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
+import com.aoindustries.aoserv.daemon.unix.GShadowFile;
 import com.aoindustries.aoserv.daemon.unix.ShadowFile;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
@@ -53,16 +54,18 @@ import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * TODO: Keep original file ordering.
- * TODO: gshadow: Add alt users on gshadow, too
- * TODO: gshadow: maintain "!" and "!!": https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/4/html/Introduction_To_System_Administration/s3-acctsgrps-gshadow.html
  * TODO: add system groups to master as found
  * TODO: add system users to master as found
  *
@@ -84,11 +87,7 @@ public class LinuxAccountManager extends BuilderThread {
 
 		newGroup    = new UnixFile("/etc/group.new"),
 		group       = new UnixFile("/etc/group"),
-		backupGroup = new UnixFile("/etc/group.old"),
-
-		newGShadow    = new UnixFile("/etc/gshadow.new"),
-		gshadow       = new UnixFile("/etc/gshadow"),
-		backupGShadow = new UnixFile("/etc/gshadow.old")
+		backupGroup = new UnixFile("/etc/group.old")
 	;
 
 	private static final String BASHRC = ".bashrc";
@@ -150,12 +149,13 @@ public class LinuxAccountManager extends BuilderThread {
 			// be backed-up before removal.
 			List<File> deleteFileList = new ArrayList<>();
 
-			// Get the list of users from the database
-			List<LinuxServerAccount> accounts = thisAoServer.getLinuxServerAccounts();
+			// Get the lists from the database
+			List<LinuxServerAccount> lsas = thisAoServer.getLinuxServerAccounts();
+			List<LinuxServerGroup> lsgs = thisAoServer.getLinuxServerGroups();
 
 			// Install /usr/bin/ftppasswd and /usr/bin/ftponly if required by any LinuxServerAccount
 			boolean hasFtpShell = false;
-			for(LinuxServerAccount lsa : accounts) {
+			for(LinuxServerAccount lsa : lsas) {
 				UnixPath shellPath = lsa.getLinuxAccount().getShell().getPath();
 				if(
 					shellPath.equals(Shell.FTPONLY)
@@ -171,7 +171,7 @@ public class LinuxAccountManager extends BuilderThread {
 
 			// Add /usr/bin/passwd to /etc/shells if required by any LinuxServerAccount
 			boolean hasPasswdShell = false;
-			for(LinuxServerAccount lsa : accounts) {
+			for(LinuxServerAccount lsa : lsas) {
 				if(lsa.getLinuxAccount().getShell().getPath().equals(Shell.PASSWD)) {
 					hasPasswdShell = true;
 					break;
@@ -181,19 +181,19 @@ public class LinuxAccountManager extends BuilderThread {
 				PackageManager.installPackage(PackageManager.PackageName.AOSERV_PASSWD_SHELL);
 			}
 
-			// Build sets of all the usernames, user ids, and home directories
+			// Build passwd data
 			final Set<UserId> usernames;
 			final Set<String> usernameStrs;
 			final Set<Integer> uids;
 			final Set<String> homeDirs;
 			{
-				int initialCapacity = accounts.size()*4/3+1;
+				int initialCapacity = lsas.size()*4/3+1;
 				usernames    = new HashSet<>(initialCapacity);
 				usernameStrs = new HashSet<>(initialCapacity);
 				uids         = new HashSet<>(initialCapacity);
 				homeDirs     = new HashSet<>(initialCapacity);
 				boolean hasRoot = false;
-				for(LinuxServerAccount lsa : accounts) {
+				for(LinuxServerAccount lsa : lsas) {
 					UserId username = lsa.getLinuxAccount().getUsername().getUsername();
 					if(!usernames.add(username)) throw new SQLException("Duplicate username: " + username);
 					if(!usernameStrs.add(username.toString())) throw new AssertionError();
@@ -204,139 +204,127 @@ public class LinuxAccountManager extends BuilderThread {
 				if(!hasRoot) throw new SQLException(LinuxAccount.ROOT + " user not found");
 			}
 
+			// Build group data
+			final Map<GroupId,Set<UserId>> groups;
+			{
+				int initialCapacity = lsgs.size()*4/3+1;
+				groups = new HashMap<>(initialCapacity);
+				boolean hasRoot = false;
+				for(LinuxServerGroup lsg : lsgs) {
+					GroupId groupName = lsg.getLinuxGroup().getName();
+					Set<UserId> groupMembers;
+					{
+						List<LinuxServerAccount> altAccounts = lsg.getAlternateLinuxServerAccounts();
+						int size = altAccounts.size();
+						if(size == 0) groupMembers = Collections.emptySet();
+						else if(size == 1) groupMembers = Collections.singleton(altAccounts.get(0).getLinuxAccount().getUsername().getUsername());
+						else {
+							groupMembers = new LinkedHashSet<>(size*4/3+1);
+							for(LinuxServerAccount altAccount : altAccounts) {
+								UserId userId = altAccount.getLinuxAccount().getUsername().getUsername();
+								if(!groupMembers.add(userId)) throw new SQLException("Duplicate group member: " + userId);
+							}
+						}
+					}
+					if(groups.put(groupName, groupMembers) != null) throw new SQLException("Duplicate group name: " + groupName);
+					if(groupName.equals(LinuxGroup.ROOT)) hasRoot = true;
+				}
+				if(!hasRoot) throw new SQLException(LinuxGroup.ROOT + " group not found");
+			}
+
 			synchronized(ShadowFile.shadowLock) {
-				byte[] newPasswdContent;
-				byte[] newShadowContent;
-				byte[] newGroupContent;
-				byte[] newGShadowContent;
-				{
-					ByteArrayOutputStream bout = new ByteArrayOutputStream();
-					// Build the new /etc/passwd file.
-					try (ChainWriter out = new ChainWriter(bout)) {
-						// Write root first
-						boolean rootFound = false;
-						for(LinuxServerAccount account : accounts) {
-							if(account.getLinuxAccount().getUsername().getUsername().equals(LinuxAccount.ROOT)) {
-								printPasswdLine(account, out);
-								rootFound = true;
-								break;
+				synchronized(GShadowFile.gshadowLock) {
+					byte[] newPasswdContent;
+					byte[] newShadowContent;
+					byte[] newGroupContent;
+					byte[] newGShadowContent;
+					{
+						ByteArrayOutputStream bout = new ByteArrayOutputStream();
+						// Build the new /etc/passwd file.
+						try (ChainWriter out = new ChainWriter(bout)) {
+							// Write root first
+							boolean rootFound = false;
+							for(LinuxServerAccount account : lsas) {
+								if(account.getLinuxAccount().getUsername().getUsername().equals(LinuxAccount.ROOT)) {
+									printPasswdLine(account, out);
+									rootFound = true;
+									break;
+								}
+							}
+							if(!rootFound) throw new SQLException("root user not found while creating " + newPasswd.getPath());
+							for(LinuxServerAccount account : lsas) {
+								if(!account.getLinuxAccount().getUsername().getUsername().equals(LinuxAccount.ROOT)) {
+									printPasswdLine(account, out);
+								}
 							}
 						}
-						if(!rootFound) throw new SQLException("root user not found while creating " + newPasswd.getPath());
-						for(LinuxServerAccount account : accounts) {
-							if(!account.getLinuxAccount().getUsername().getUsername().equals(LinuxAccount.ROOT)) {
-								printPasswdLine(account, out);
+						newPasswdContent = bout.toByteArray();
+
+						/*
+						 * Build the new /etc/shadow file.
+						 */
+						newShadowContent = ShadowFile.buildShadowFile(usernames);
+
+						/*
+						 * Build the new /etc/group file.
+						 */
+						bout.reset();
+						try (ChainWriter out = new ChainWriter(bout)) {
+							Set<UserId> tempSet = new HashSet<>();
+							boolean rootFound = false;
+							// Write root first
+							for(LinuxServerGroup lsg : lsgs) {
+								if(lsg.getLinuxGroup().getName().equals(LinuxGroup.ROOT)) {
+									printGroupLine(lsg, out, tempSet);
+									rootFound = true;
+									break;
+								}
+							}
+							if(!rootFound) throw new SQLException("root group not found while creating " + newGroup.getPath());
+							for(LinuxServerGroup lsg : lsgs) {
+								if(!lsg.getLinuxGroup().getName().equals(LinuxGroup.ROOT)) {
+									printGroupLine(lsg, out, tempSet);
+								}
 							}
 						}
+						newGroupContent = bout.toByteArray();
+
+						/*
+						 * Build the new /etc/gshadow file.
+						 */
+						newGShadowContent = GShadowFile.buildGShadowFile(groups);
 					}
-					newPasswdContent = bout.toByteArray();
+
+					// TODO: Only rename once all new* files successfully written
 
 					/*
-					 * Build the new /etc/shadow file.
+					 * Move the new files into place.
 					 */
-					newShadowContent = ShadowFile.buildShadowFile(usernames);
-
-					/*
-					 * Build the new /etc/group file.
-					 */
-					List<LinuxServerGroup> groups = thisAoServer.getLinuxServerGroups();
-					bout.reset();
-					try (ChainWriter out = new ChainWriter(bout)) {
-						Set<UserId> tempSet = new HashSet<>();
-						boolean rootFound = false;
-						// Write root first
-						for(LinuxServerGroup lsg : groups) {
-							if(lsg.getLinuxGroup().getName().equals(LinuxGroup.ROOT)) {
-								printGroupLine(lsg, out, tempSet);
-								rootFound = true;
-								break;
-							}
+					if(!passwd.contentEquals(newPasswdContent)) {
+						try (OutputStream out = newPasswd.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true, uid_min, gid_min)) {
+							out.write(newPasswdContent);
 						}
-						if(!rootFound) throw new SQLException("root group not found while creating " + newGroup.getPath());
-						for(LinuxServerGroup lsg : groups) {
-							if(!lsg.getLinuxGroup().getName().equals(LinuxGroup.ROOT)) {
-								printGroupLine(lsg, out, tempSet);
-							}
+						if(newPasswd.getStat().getSize() <= 0) {
+							throw new IOException(newPasswd + " is zero or unknown length");
 						}
+						passwd.renameTo(backupPasswd);
+						newPasswd.renameTo(passwd);
 					}
-					newGroupContent = bout.toByteArray();
 
-					/*
-					 * Build the new /etc/gshadow file.
-					 */
-					bout.reset();
-					try (ChainWriter out = new ChainWriter(bout)) {
-						// Write root first
-						boolean rootFound = false;
-						for(LinuxServerGroup lsg : groups) {
-							if(lsg.getLinuxGroup().getName().equals(LinuxGroup.ROOT)) {
-								printGShadowLine(lsg, out);
-								rootFound = true;
-								break;
-							}
+					ShadowFile.writeShadowFile(newShadowContent);
+
+					if(!group.contentEquals(newGroupContent)) {
+						try (OutputStream out = newGroup.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true, uid_min, gid_min)) {
+							out.write(newGroupContent);
 						}
-						if(!rootFound) throw new SQLException("root group not found while creating " + newGShadow.getPath());
-						for(LinuxServerGroup lsg : groups) {
-							if(!lsg.getLinuxGroup().getName().equals(LinuxGroup.ROOT)) {
-								printGShadowLine(lsg, out);
-							}
+						if(newGroup.getStat().getSize() <= 0) {
+							throw new IOException(newGroup + " is zero or unknown length");
 						}
+						group.renameTo(backupGroup);
+						newGroup.renameTo(group);
 					}
-					newGShadowContent = bout.toByteArray();
-				}
 
-				// TODO: Only rename once all new* files successfully written
-
-				/*
-				 * Move the new files into place.
-				 */
-				if(!passwd.contentEquals(newPasswdContent)) {
-					try (OutputStream out = newPasswd.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true, uid_min, gid_min)) {
-						out.write(newPasswdContent);
-					}
-					if(newPasswd.getStat().getSize() <= 0) {
-						throw new IOException(newPasswd + " is zero or unknown length");
-					}
-					passwd.renameTo(backupPasswd);
-					newPasswd.renameTo(passwd);
-				}
-
-				ShadowFile.writeShadowFile(newShadowContent);
-
-				if(!group.contentEquals(newGroupContent)) {
-					try (OutputStream out = newGroup.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true, uid_min, gid_min)) {
-						out.write(newGroupContent);
-					}
-					if(newGroup.getStat().getSize() <= 0) {
-						throw new IOException(newGroup + " is zero or unknown length");
-					}
-					group.renameTo(backupGroup);
-					newGroup.renameTo(group);
-				}
-
-				if(!gshadow.contentEquals(newGShadowContent)) {
-					try (OutputStream out = newGShadow.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true, uid_min, gid_min)) {
-						out.write(newGShadowContent);
-					}
-					if(newGShadow.getStat().getSize() <= 0) {
-						throw new IOException(newGShadow + " is zero or unknown length");
-					}
-					if(
-						osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-						|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-					) {
-						// Remains 0600
-					} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-						// Set to 0400
-						newGShadow.setMode(0400);
-					} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-						// Set to 0000
-						newGShadow.setMode(0);
-					} else {
-						throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-					}
-					gshadow.renameTo(backupGShadow);
-					newGShadow.renameTo(gshadow);
+					GShadowFile.writeGShadowFile(newGShadowContent);
 				}
 			}
 
@@ -344,7 +332,7 @@ public class LinuxAccountManager extends BuilderThread {
 				// Create any inboxes that need to exist.
 				LinuxServerGroup mailGroup = connector.getLinuxGroups().get(LinuxGroup.MAIL).getLinuxServerGroup(thisAoServer);
 				if(mailGroup == null) throw new SQLException("Unable to find LinuxServerGroup: " + LinuxGroup.MAIL + " on " + thisAoServer.getHostname());
-				for(LinuxServerAccount account : accounts) {
+				for(LinuxServerAccount account : lsas) {
 					LinuxAccount linuxAccount = account.getLinuxAccount();
 					if(linuxAccount.getType().isEmail()) {
 						UserId username = linuxAccount.getUsername().getUsername();
@@ -392,7 +380,7 @@ public class LinuxAccountManager extends BuilderThread {
 			/*
 			 * Create any home directories that do not exist.
 			 */
-			for(LinuxServerAccount lsa : accounts) {
+			for(LinuxServerAccount lsa : lsas) {
 				LinuxAccount la = lsa.getLinuxAccount();
 				String type = la.getType().getName();
 				LinuxServerGroup primaryLsg = lsa.getPrimaryLinuxServerGroup();
@@ -529,7 +517,7 @@ public class LinuxAccountManager extends BuilderThread {
 			// Disable and enable accounts
 			// TODO: Put "!" in from of the password when disabled, like done for usermod --lock
 			// TODO: Then no longer have PredisablePassword stored in the master.
-			for(LinuxServerAccount lsa : accounts) {
+			for(LinuxServerAccount lsa : lsas) {
 				String prePassword = lsa.getPredisablePassword();
 				if(lsa.isDisabled()) {
 					// Account is disabled
