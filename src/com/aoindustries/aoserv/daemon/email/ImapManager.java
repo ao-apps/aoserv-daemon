@@ -334,7 +334,7 @@ final public class ImapManager extends BuilderThread {
 			// Change the password to a random value
 			password = PasswordGenerator.generatePassword();
 			log(logOut, Level.FINE, username, "Setting password to "+password);
-			LinuxAccountManager.setPassword(username, password);
+			LinuxAccountManager.setPassword(username, password, false);
 			tempPassword[0] = password;
 		}
 
@@ -1446,7 +1446,7 @@ final public class ImapManager extends BuilderThread {
 											if(savedEncryptedPassword==null) throw new IOException("Unable to load saved password");
 											if(!savedEncryptedPassword.equals(currentEncryptedPassword)) {
 												log(logOut, Level.FINE, laUsername, "Restoring password");
-												LinuxAccountManager.setEncryptedPassword(laUsername, savedEncryptedPassword);
+												LinuxAccountManager.setEncryptedPassword(laUsername, savedEncryptedPassword, false);
 												UnixFile passwordBackupOld = new UnixFile(userBackupDirectory, "passwd.old", false);
 												passwordBackup.renameTo(passwordBackupOld);
 											} else {
