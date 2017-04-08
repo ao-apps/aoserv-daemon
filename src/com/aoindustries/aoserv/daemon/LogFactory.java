@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2013 by AO Industries, Inc.,
+ * Copyright 2009-2013, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -17,6 +17,10 @@ import java.util.logging.Logger;
 /**
  * Provides static access to the logging facilities.  The logs are written
  * into the AOServ ticket system under the type "logs".
+ *
+ * <p>
+ * TODO: Configure this in logging.properties and use typical static loggers per class.
+ * </p>
  *
  * @author  AO Industries, Inc.
  */
