@@ -7,50 +7,343 @@ package com.aoindustries.aoserv.daemon.unix;
 
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.LinuxAccount;
-import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.math.SafeMath;
+import com.aoindustries.util.StringUtility;
 import com.aoindustries.validation.ValidationException;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * A <code>ShadowFileEntry</code> represents one line of the
- * <code>/etc/shadow</code> file on a Unix server.
+ * Manages access to the <code>/etc/shadow</code> file.
  *
  * @author  AO Industries, Inc.
  */
 final public class ShadowFile {
 
-	public static final UnixFile
-		newShadowFile=new UnixFile("/etc/shadow.new"),
-		shadowFile=new UnixFile("/etc/shadow"),
-		backupShadowFile=new UnixFile("/etc/shadow.old")
+	private static final Logger logger = Logger.getLogger(ShadowFile.class.getName());
+
+	private static final UnixFile
+		newShadowFile    = new UnixFile("/etc/shadow.new"),
+		shadowFile       = new UnixFile("/etc/shadow"),
+		backupShadowFile = new UnixFile("/etc/shadow.old")
 	;
 
-	/** Locks the shadow file for updates */
-	private static final Object	shadowLock=new Object();
+	/**
+	 * Represents one line of the <code>/etc/shadow</code> file on a POSIX server.
+	 */
+	final public static class Entry {
 
-	private ShadowFile(/*String line*/) {
+		/**
+		 * @see  #getUsername()
+		 */
+		private final UserId username;
+
+		/**
+		 * @see  #getPassword()
+		 */
+		private final String password;
+
+		/**
+		 * @see  #getChangedDate()
+		 */
+		private final int changedDate;
+
+		/**
+		 * @see  #getMinPasswordAge()
+		 */
+		private final Integer minPasswordAge;
+
+		/**
+		 * @see  #getMaxPasswordAge()
+		 */
+		private final Integer maxPasswordAge;
+
+		/**
+		 * @see  #getWarningDays()
+		 */
+		private final Integer warningDays;
+
+		/**
+		 * @see  #getInactivateDays()
+		 */
+		private final Integer inactivateDays;
+
+		/**
+		 * @see  #getExpirationDate()
+		 */
+		private final Integer expirationDate;
+
+		/**
+		 * @see  #getFlag()
+		 */
+		private final String flag;
+
+		/**
+		 * Constructs a shadow file entry given one line of the <code>/etc/shadow</code> file, not including
+		 * the trailing newline (<code>'\n'</code>).  This may also be called providing only the username,
+		 * in which case the default values are used and the password is set to {@link LinuxAccount#NO_PASSWORD_CONFIG_VALUE}
+		 * (disabled).
+		 */
+		public Entry(String line) throws ValidationException {
+			List<String> values = StringUtility.splitString(line, ':');
+			int len = values.size();
+			if(len < 1) throw new IllegalArgumentException("At least the first field of shadow file required: " + line);
+
+			username = UserId.valueOf(values.get(0));
+
+			String S;
+
+			if(len > 1 && (S = values.get(1)).length() > 0) password = S;
+			else password = LinuxAccount.NO_PASSWORD_CONFIG_VALUE;
+
+			if(len > 2 && (S = values.get(2)).length() > 0) changedDate = Integer.parseInt(S);
+			else changedDate = getCurrentDate();
+
+			if(len > 3 && (S = values.get(3)).length() > 0) minPasswordAge = Integer.parseInt(S);
+			else minPasswordAge = null;
+
+			if(len > 4 && (S = values.get(4)).length() > 0) maxPasswordAge = Integer.parseInt(S);
+			else maxPasswordAge = null;
+
+			if(len > 5 && (S = values.get(5)).length() > 0) warningDays = Integer.parseInt(S);
+			else warningDays = null;
+
+			if(len > 6 && (S = values.get(6)).length() > 0) inactivateDays = Integer.parseInt(S);
+			else inactivateDays = null;
+
+			if(len > 7 && (S = values.get(7)).length() > 0) expirationDate = Integer.parseInt(S);
+			else expirationDate = null;
+
+			if(len > 8 && (S = values.get(8)).length() > 0) flag = S;
+			else flag = null;
+
+			if(len > 9) throw new IllegalArgumentException("Too many fields: " + line);
+		}
+
+		/**
+		 * Constructs a shadow file entry given all the values.
+		 */
+		public Entry(
+			UserId username,
+			String password,
+			int changedDate,
+			Integer minPasswordAge,
+			Integer maxPasswordAge,
+			Integer warningDays,
+			Integer inactivateDays,
+			Integer expirationDate,
+			String flag
+		) {
+			this.username = username;
+			this.password = password;
+			this.changedDate = changedDate;
+			this.minPasswordAge = minPasswordAge;
+			this.maxPasswordAge = maxPasswordAge;
+			this.warningDays = warningDays;
+			this.inactivateDays = inactivateDays;
+			this.expirationDate = expirationDate;
+			this.flag = flag;
+		}
+
+		/**
+		 * Constructs a new shadow file entry for the given user and encrypted password.
+		 */
+		public Entry(UserId username, String password) {
+			this(
+				username,
+				password,
+				getCurrentDate(),
+				0,
+				99999,
+				7,
+				null,
+				null,
+				null
+			);
+		}
+
+		/**
+		 * Constructs a new shadow file entry for the given user.
+		 */
+		public Entry(UserId username) {
+			this(username, LinuxAccount.NO_PASSWORD_CONFIG_VALUE);
+		}
+
+		/**
+		 * Gets the number of days from the Epoch for the current day.
+		 */
+		public static int getCurrentDate() {
+			return getCurrentDate(System.currentTimeMillis());
+		}
+
+		/**
+		 * Gets the number of days from the Epoch for the provided time in milliseconds from Epoch.
+		 */
+		public static int getCurrentDate(long time) {
+			return SafeMath.castInt(time / (24 * 60 * 60 * 1000));
+		}
+
+		/**
+		 * Gets this {@link ShadowFileEntry} as it would be written in <code>/etc/shadow</code>,
+		 * not including any newline.
+		 *
+		 * @see  #appendTo(java.lang.Appendable)
+		 */
+		@Override
+		public String toString() {
+			try {
+				return appendTo(new StringBuilder()).toString();
+			} catch(IOException e) {
+				throw new AssertionError(e);
+			}
+		}
+
+		/**
+		 * Appends this {@link ShadowFileEntry} as it would be written in <code>/etc/shadow</code>,
+		 * not including any newline.
+		 *
+		 * @see  #toString()
+		 */
+		public <A extends Appendable> A appendTo(A out) throws IOException {
+			out
+				.append(username.toString())
+				.append(':')
+				.append(password)
+				.append(':')
+				.append(Integer.toString(changedDate))
+				.append(':')
+			;
+			if(minPasswordAge != null) out.append(minPasswordAge.toString());
+			out.append(':');
+			if(maxPasswordAge != null) out.append(maxPasswordAge.toString());
+			out.append(':');
+			if(warningDays != null) out.append(warningDays.toString());
+			out.append(':');
+			if(inactivateDays != null) out.append(inactivateDays.toString());
+			out.append(':');
+			if(expirationDate != null) out.append(expirationDate.toString());
+			out.append(':');
+			if(flag != null) out.append(flag);
+			return out;
+		}
+
+		/**
+		 * The username the entry is for
+		 */
+		public UserId getUsername() {
+			return username;
+		}
+
+		/**
+		 * The encrypted password
+		 */
+		public String getPassword() {
+			return password;
+		}
+
+		/**
+		 * Sets the encrypted password, optionally updating the changedDate.
+		 *
+		 * @return  a new entry if the password changed or {@code this} when the password is the same
+		 */
+		public Entry setPassword(String newPassword, boolean updateChangedDate) {
+			if(newPassword.equals(password)) {
+				return this;
+			} else {
+				return new Entry(
+					username,
+					newPassword,
+					updateChangedDate ? getCurrentDate() : changedDate,
+					minPasswordAge,
+					maxPasswordAge,
+					warningDays,
+					inactivateDays,
+					expirationDate,
+					flag
+				);
+			}
+		}
+
+		/**
+		 * The days since Jan 1, 1970 password was last changed
+		 */
+		public int getChangedDate() {
+			return changedDate;
+		}
+
+		/**
+		 * The number of days until a password change is allowed
+		 * or {@code null} if not set.
+		 */
+		public Integer getMinPasswordAge() {
+			return minPasswordAge;
+		}
+
+		/**
+		 * The number of days until a password change is forced
+		 * or {@code null} if not set.
+		 */
+		public Integer getMaxPasswordAge() {
+			return maxPasswordAge;
+		}
+
+		/**
+		 * The days before password is to expire that user is warned of pending password expiration
+		 * or {@code null} if not set.
+		 */
+		public Integer getWarningDays() {
+			return warningDays;
+		}
+
+		/**
+		 * The days after password expires that account is considered inactive and disabled
+		 * or {@code null} if not set.
+		 */
+		public Integer getInactivateDays() {
+			return inactivateDays;
+		}
+
+		/**
+		 * The days since Jan 1, 1970 when account will be disabled
+		 * or {@code null} if not set.
+		 */
+		public Integer getExpirationDate() {
+			return expirationDate;
+		}
+
+		/**
+		 * Reserved for future use,
+		 * {@code null} if not set.
+		 */
+		public String getFlag() {
+			return flag;
+		}
 	}
 
 	/**
-	 * Gets the encypted password for one user on the system.
-	 * <p>
-	 * This method is synchronized with <code>doRebuild</code> to ensure that
-	 * passwords are never lost during updates.
+	 * Locks the shadow file for updates
+	 */
+	private static final Object	shadowLock = new Object();
+
+	/**
+	 * Gets the encrypted password for one user on the system.
 	 */
 	public static String getEncryptedPassword(UserId username) throws IOException, SQLException {
 		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
@@ -59,206 +352,196 @@ final public class ShadowFile {
 			osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
 			&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
 			&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 		synchronized(shadowLock) {
 			try {
-				BufferedReader in = new BufferedReader(new InputStreamReader(new BufferedInputStream(new FileInputStream(shadowFile.getFile()))));
-				String password;
-				try {
-					password=LinuxAccount.NO_PASSWORD_CONFIG_VALUE;
+				try (
+					BufferedReader in = new BufferedReader(
+						new InputStreamReader(
+							new FileInputStream(shadowFile.getFile())
+						)
+					)
+				) {
 					String line;
-					while ((line = in.readLine()) != null) {
-						ShadowFileEntry entry = new ShadowFileEntry(line);
-						if(entry.username.equals(username)) {
-							password=entry.password;
-							break;
+					while((line = in.readLine()) != null) {
+						Entry entry = new Entry(line);
+						if(entry.getUsername().equals(username)) {
+							return entry.getPassword();
 						}
 					}
-				} finally {
-					in.close();
 				}
-
-				return password;
+				return LinuxAccount.NO_PASSWORD_CONFIG_VALUE;
 			} catch(ValidationException e) {
 				throw new IOException(e);
 			}
 		}
 	}
 
-	public static void rebuildShadowFile(List<LinuxServerAccount> accounts) throws IOException, SQLException {
+	/**
+	 * Reads the full contents of /etc/shadow
+	 */
+	private static Map<UserId,Entry> readShadowFile() throws IOException {
+		assert Thread.holdsLock(shadowLock);
 		try {
-			AOServer thisAoServer = AOServDaemon.getThisAOServer();
-			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
-			int osvId = osv.getPkey();
-			if(
-				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-
-			int uid_min = thisAoServer.getUidMin().getId();
-			int gid_min = thisAoServer.getGidMin().getId();
-
-			synchronized(shadowLock) {
-				/*
-				 * Get the old data from /etc/shadow
-				 */
-				Map<UserId,ShadowFileEntry> shadowEntries = new HashMap<>();
-				try (BufferedReader in = new BufferedReader(new InputStreamReader(new BufferedInputStream(new FileInputStream(shadowFile.getFile()))))) {
-					String line;
-					while ((line = in.readLine()) != null) {
-						ShadowFileEntry entry = new ShadowFileEntry(line);
-						if (shadowEntries.containsKey(entry.username)) throw new IllegalArgumentException("Shadow file contains duplicate entry: " + line);
-						shadowEntries.put(entry.username, entry);
-					}
-				}
-
-				/*
-				 * Write the new /etc/shadow file, creating default entries if needed.
-				 */
-				ChainWriter out = new ChainWriter(
-					new BufferedOutputStream(
-						newShadowFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true, uid_min, gid_min)
+			Map<UserId,Entry> shadowEntries = new LinkedHashMap<>();
+			try (
+				BufferedReader in = new BufferedReader(
+					new InputStreamReader(
+						new FileInputStream(shadowFile.getFile())
 					)
-				);
-				try {
-					boolean rootFound=false;
-					for (LinuxServerAccount account : accounts) {
-						UserId username = account
-							.getLinuxAccount()
-							.getUsername()
-							.getUsername()
-						;
-						if(username.equals(LinuxAccount.ROOT)) {
-							ShadowFileEntry entry = shadowEntries.get(username);
-							if (entry == null) {
-								throw new SQLException("No existing shadow entry found for " + LinuxAccount.ROOT);
-								// entry = new ShadowFileEntry(username.toString());
-							}
-							out.print(entry.toString());
-							out.print('\n');
-							rootFound=true;
-							break;
-						}
+				)
+			) {
+				String line;
+				while((line = in.readLine()) != null) {
+					Entry entry = new Entry(line);
+					if(shadowEntries.put(entry.getUsername(), entry) != null) {
+						throw new IllegalStateException(shadowFile + " contains duplicate entry: " + line);
 					}
-					if(!rootFound) throw new SQLException("root user not found while creating "+newShadowFile.getPath());
-					for (LinuxServerAccount account : accounts) {
-						UserId username = account
-							.getLinuxAccount()
-							.getUsername()
-							.getUsername()
-						;
-						if(!username.equals(LinuxAccount.ROOT)) {
-							ShadowFileEntry entry = shadowEntries.get(username);
-							if (entry == null) entry = new ShadowFileEntry(username.toString());
-							out.print(entry.toString());
-							out.print('\n');
-						}
-					}
-				} finally {
-					out.flush();
-					out.close();
 				}
-
-				if(newShadowFile.getStat().getSize()>0) {
-					if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-						// Do nothing
-					} else if(osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-						// Do nothing
-					} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-						newShadowFile.setMode(0400);
-					} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-					shadowFile.renameTo(backupShadowFile);
-					newShadowFile.renameTo(shadowFile);
-				} else throw new IOException(newShadowFile.getPath()+" has zero or unknown length");
 			}
+			return shadowEntries;
 		} catch(ValidationException e) {
 			throw new IOException(e);
 		}
 	}
 
+	private static void writeShadowFile(Iterable<Entry> shadowEntries) throws SQLException, IOException {
+		assert Thread.holdsLock(shadowLock);
+		byte[] newContents;
+		{
+			ByteArrayOutputStream bout = new ByteArrayOutputStream();
+			try (ChainWriter out = new ChainWriter(bout)) {
+				boolean rootFound = false;
+				for(Entry entry : shadowEntries) {
+					if(entry.getUsername().equals(LinuxAccount.ROOT)) rootFound = true;
+					entry.appendTo(out);
+					out.print('\n');
+				}
+				if(!rootFound) throw new SQLException(LinuxAccount.ROOT + " user not found while creating " + newShadowFile.getPath());
+			}
+			newContents = bout.toByteArray();
+		}
+		if(!shadowFile.contentEquals(newContents)) {
+			AOServer thisAoServer = AOServDaemon.getThisAOServer();
+			try (
+				OutputStream out = newShadowFile.getSecureOutputStream(
+					UnixFile.ROOT_UID,
+					UnixFile.ROOT_GID,
+					0600,
+					true,
+					thisAoServer.getUidMin().getId(),
+					thisAoServer.getGidMin().getId()
+				)
+			) {
+				out.write(newContents);
+			}
+			if(newShadowFile.getStat().getSize() <= 0) {
+				throw new IOException(newShadowFile + " has zero or unknown length");
+			}
+			// Set permissions
+			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+			int osvId = osv.getPkey();
+			if(
+				osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+				|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+			) {
+				// Permissions remain 0600
+			} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+				// Set to 0400
+				newShadowFile.setMode(0400);
+			} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+				// Set to 0000
+				newShadowFile.setMode(0000);
+			} else {
+				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+			}
+			if(logger.isLoggable(Level.FINE)) {
+				logger.fine("Replacing " + shadowFile + " with new version");
+			}
+			shadowFile.renameTo(backupShadowFile);
+			newShadowFile.renameTo(shadowFile);
+		}
+	}
+
+	public static void rebuildShadowFile(Set<UserId> usernames) throws SQLException, IOException {
+		if(!usernames.contains(LinuxAccount.ROOT)) throw new IllegalArgumentException(LinuxAccount.ROOT + " user not found");
+		synchronized(shadowLock) {
+			Map<UserId,Entry> shadowEntries = readShadowFile();
+			// Remove any users that no longer exist
+			Iterator<Map.Entry<UserId,Entry>> entryIter = shadowEntries.entrySet().iterator();
+			while(entryIter.hasNext()) {
+				Map.Entry<UserId,Entry> mapEntry = entryIter.next();
+				UserId username = mapEntry.getKey();
+				if(!usernames.contains(username)) {
+					if(logger.isLoggable(Level.INFO)) {
+						logger.info("Removing user from " + shadowFile + ": " + username);
+					}
+					entryIter.remove();
+				}
+			}
+
+			// Add new users
+			for(UserId username : usernames) {
+				if(!shadowEntries.containsKey(username)) {
+					if(logger.isLoggable(Level.INFO)) {
+						logger.info("Adding user to " + shadowFile + ": " + username);
+					}
+					shadowEntries.put(username, new Entry(username));
+				}
+			}
+
+			writeShadowFile(shadowEntries.values());
+		}
+	}
+
 	/**
-	 * Sets the encypted password for one user on the system.  This password must already
-	 * be hashed using the crypt or MD5 algorithm.
+	 * Sets the encrypted password for one user on the system.  This password must already
+	 * be {@link UnixFile#crypt(java.lang.String, com.aoindustries.io.unix.UnixFile.CryptAlgorithm) hashed}.
 	 * <p>
 	 * This method is synchronized with <code>doRebuild</code> to ensure that
 	 * passwords are never lost during updates.
+	 * </p>
+	 *
+	 * @see UnixFile#crypt(java.lang.String, com.aoindustries.io.unix.UnixFile.CryptAlgorithm)
 	 */
-	public static void setEncryptedPassword(UserId username, String encryptedPassword) throws IOException, SQLException {
-		AOServer thisAoServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
-		int osvId = osv.getPkey();
-		if(
-			osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-			&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
-			&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-
-		int uid_min = thisAoServer.getUidMin().getId();
-		int gid_min = thisAoServer.getGidMin().getId();
-
+	public static void setEncryptedPassword(UserId username, String encryptedPassword, boolean updateChangedDate) throws IOException, SQLException {
 		synchronized(shadowLock) {
-			try {
-				/*
-				 * Get the old data from /etc/shadow
-				 */
-				List<ShadowFileEntry> shadowEntries = new ArrayList<>();
-				boolean userFound=false;
-				try (BufferedReader in = new BufferedReader(new InputStreamReader(new BufferedInputStream(new FileInputStream(shadowFile.getFile()))))) {
-					// Reset if already exists
-					String line;
-					while ((line = in.readLine()) != null) {
-						ShadowFileEntry entry = new ShadowFileEntry(line);
-						if(entry.username.equals(username)) {
-							userFound=true;
-							entry.password=encryptedPassword;
-						}
-						shadowEntries.add(entry);
-					}
-				}
+			Map<UserId,Entry> shadowEntries = readShadowFile();
 
+			Entry entry = shadowEntries.get(username);
+			if(entry != null) {
+				// Reset if already exists
+				if(logger.isLoggable(Level.INFO)) {
+					logger.info("Resetting password for existing entry in " + shadowFile + ": " + username);
+				}
+				shadowEntries.put(username, entry.setPassword(encryptedPassword, updateChangedDate));
+			} else {
 				// Add if does not yet exist
-				if(!userFound) shadowEntries.add(new ShadowFileEntry(username.toString()+':'+encryptedPassword));
-
-				/*
-				 * Write the new /etc/shadow file.
-				 */
-				ChainWriter out = new ChainWriter(
-					new BufferedOutputStream(
-						newShadowFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true, uid_min, gid_min)
-					)
-				);
-				try {
-					for (ShadowFileEntry entry : shadowEntries) {
-						out.print(entry.toString());
-						out.print('\n');
-					}
-				} finally {
-					out.flush();
-					out.close();
+				if(logger.isLoggable(Level.INFO)) {
+					logger.info("Adding user to " + shadowFile + " for password reset: " + username);
 				}
-
-				/*
-				 * Move the new file into place.
-				 */
-				shadowFile.renameTo(backupShadowFile);
-				newShadowFile.renameTo(shadowFile);
-			} catch(ValidationException e) {
-				throw new IOException(e);
+				shadowEntries.put(username, new Entry(username, encryptedPassword));
 			}
+
+			writeShadowFile(shadowEntries.values());
 		}
 	}
 
 	/**
 	 * Sets the password for one user on the system.
 	 */
-	public static void setPassword(UserId username, String plaintext) throws IOException, SQLException {
+	public static void setPassword(UserId username, String plaintext, UnixFile.CryptAlgorithm cryptAlgorithm, boolean updateChangedDate) throws IOException, SQLException {
 		setEncryptedPassword(
 			username,
-			plaintext==null || plaintext.length()==0
-			?LinuxAccount.NO_PASSWORD_CONFIG_VALUE
-			:UnixFile.crypt(plaintext, AOServDaemon.getRandom())
+			plaintext == null || plaintext.isEmpty()
+				? LinuxAccount.NO_PASSWORD_CONFIG_VALUE
+				: UnixFile.crypt(plaintext, cryptAlgorithm, AOServDaemon.getRandom()),
+			updateChangedDate
 		);
+	}
+
+	private ShadowFile() {
 	}
 }
