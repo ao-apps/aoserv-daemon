@@ -202,7 +202,7 @@ final public class ShadowFile {
 		}
 
 		/**
-		 * Gets this {@link ShadowFileEntry} as it would be written in <code>/etc/shadow</code>,
+		 * Gets this {@link Entry} as it would be written in <code>/etc/shadow</code>,
 		 * not including any newline.
 		 *
 		 * @see  #appendTo(java.lang.Appendable)
@@ -217,7 +217,7 @@ final public class ShadowFile {
 		}
 
 		/**
-		 * Appends this {@link ShadowFileEntry} as it would be written in <code>/etc/shadow</code>,
+		 * Appends this {@link Entry} as it would be written in <code>/etc/shadow</code>,
 		 * not including any newline.
 		 *
 		 * @see  #toString()
