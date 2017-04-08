@@ -53,7 +53,6 @@ import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.util.IntList;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -62,6 +61,7 @@ import java.io.InterruptedIOException;
 import java.io.Reader;
 import java.security.SecureRandom;
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
@@ -114,7 +114,7 @@ final public class AOServDaemon {
 	 * @param  file  the <code>File</code> to search from
 	 * @param  uids  the <code>IntList</code> containing the list of uids
 	 */
-	public static void findUnownedFiles(File file, IntList uids, List<File> deleteFileList, int recursionLevel) throws IOException {
+	public static void findUnownedFiles(File file, Collection<Integer> uids, List<File> deleteFileList, int recursionLevel) throws IOException {
 		if(file.exists()) {
 			// Figure out the ownership
 			UnixFile unixFile=new UnixFile(file.getPath());
