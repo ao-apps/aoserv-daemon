@@ -30,6 +30,7 @@ import com.aoindustries.aoserv.daemon.unix.GShadowFile;
 import com.aoindustries.aoserv.daemon.unix.GroupFile;
 import com.aoindustries.aoserv.daemon.unix.ShadowFile;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
+import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
@@ -79,9 +80,8 @@ public class LinuxAccountManager extends BuilderThread {
 	private static final Logger logger = Logger.getLogger(LinuxAccountManager.class.getName());
 
 	private static final UnixFile
-		newPasswd    = new UnixFile("/etc/passwd.new"),
 		passwd       = new UnixFile("/etc/passwd"),
-		backupPasswd = new UnixFile("/etc/passwd.old")
+		backupPasswd = new UnixFile("/etc/passwd-")
 	;
 
 	private static final String BASHRC = ".bashrc";
@@ -273,7 +273,7 @@ public class LinuxAccountManager extends BuilderThread {
 										break;
 									}
 								}
-								if(!rootFound) throw new SQLException("root user not found while creating " + newPasswd.getPath());
+								if(!rootFound) throw new SQLException("root user not found while creating " + passwd);
 								for(LinuxServerAccount account : lsas) {
 									if(!account.getLinuxAccount().getUsername().getUsername().equals(LinuxAccount.ROOT)) {
 										printPasswdLine(account, out);
@@ -292,17 +292,14 @@ public class LinuxAccountManager extends BuilderThread {
 						/*
 						 * Move the new files into place.
 						 */
-						if(!passwd.contentEquals(newPasswdContent)) {
-							try (OutputStream out = newPasswd.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, true, uid_min, gid_min)) {
-								out.write(newPasswdContent);
-							}
-							if(newPasswd.getStat().getSize() <= 0) {
-								throw new IOException(newPasswd + " is zero or unknown length");
-							}
-							passwd.renameTo(backupPasswd);
-							newPasswd.renameTo(passwd);
-						}
-
+						DaemonFileUtils.atomicWrite(
+							passwd,
+							backupPasswd,
+							newPasswdContent,
+							0644,
+							UnixFile.ROOT_UID,
+							UnixFile.ROOT_GID
+						);
 						ShadowFile.writeShadowFile(newShadowContent);
 						GroupFile.writeGroupFile(newGroupContent);
 						GShadowFile.writeGShadowFile(newGShadowContent);

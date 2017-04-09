@@ -5,11 +5,11 @@
  */
 package com.aoindustries.aoserv.daemon.unix;
 
-import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.math.SafeMath;
@@ -21,7 +21,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -41,9 +40,8 @@ final public class ShadowFile {
 	private static final Logger logger = Logger.getLogger(ShadowFile.class.getName());
 
 	private static final UnixFile
-		newShadowFile    = new UnixFile("/etc/shadow.new"),
 		shadowFile       = new UnixFile("/etc/shadow"),
-		backupShadowFile = new UnixFile("/etc/shadow.old")
+		backupShadowFile = new UnixFile("/etc/shadow-")
 	;
 
 	/**
@@ -422,7 +420,7 @@ final public class ShadowFile {
 					entry.appendTo(out);
 					out.print('\n');
 				}
-				if(!rootFound) throw new IllegalArgumentException(LinuxAccount.ROOT + " user not found while creating " + newShadowFile.getPath());
+				if(!rootFound) throw new IllegalArgumentException(LinuxAccount.ROOT + " user not found while creating " + shadowFile);
 			}
 			return bout.toByteArray();
 		} catch(IOException e) {
@@ -435,46 +433,35 @@ final public class ShadowFile {
 	 */
 	public static void writeShadowFile(byte[] newContents) throws SQLException, IOException {
 		assert Thread.holdsLock(shadowLock);
-		if(!shadowFile.contentEquals(newContents)) {
-			AOServer thisAoServer = AOServDaemon.getThisAOServer();
-			try (
-				OutputStream out = newShadowFile.getSecureOutputStream(
-					UnixFile.ROOT_UID,
-					UnixFile.ROOT_GID,
-					0600,
-					true,
-					thisAoServer.getUidMin().getId(),
-					thisAoServer.getGidMin().getId()
-				)
-			) {
-				out.write(newContents);
-			}
-			if(newShadowFile.getStat().getSize() <= 0) {
-				throw new IOException(newShadowFile + " has zero or unknown length");
-			}
-			// Set permissions
-			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+		// Determine permissions
+		long mode;
+		{
+			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
 				|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
 			) {
 				// Permissions remain 0600
+				mode = 0600;
 			} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 				// Set to 0400
-				newShadowFile.setMode(0400);
+				mode = 0400;
 			} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 				// Set to 0000
-				newShadowFile.setMode(0000);
+				mode = 0000;
 			} else {
 				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 			}
-			if(logger.isLoggable(Level.FINE)) {
-				logger.fine("Replacing " + shadowFile + " with new version");
-			}
-			shadowFile.renameTo(backupShadowFile);
-			newShadowFile.renameTo(shadowFile);
 		}
+		DaemonFileUtils.atomicWrite(
+			shadowFile,
+			backupShadowFile,
+			newContents,
+			mode,
+			UnixFile.ROOT_UID,
+			UnixFile.ROOT_GID
+		);
 	}
 
 	/**

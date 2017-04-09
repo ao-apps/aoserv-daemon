@@ -5,11 +5,10 @@
  */
 package com.aoindustries.aoserv.daemon.unix;
 
-import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.LinuxGroup;
 import com.aoindustries.aoserv.client.validator.GroupId;
 import com.aoindustries.aoserv.client.validator.UserId;
-import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.util.AoCollections;
@@ -20,7 +19,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Iterator;
@@ -41,9 +39,8 @@ final public class GroupFile {
 	private static final Logger logger = Logger.getLogger(GroupFile.class.getName());
 
 	private static final UnixFile
-		newGroupFile    = new UnixFile("/etc/group.new"),
 		groupFile       = new UnixFile("/etc/group"),
-		backupGroupFile = new UnixFile("/etc/group.old")
+		backupGroupFile = new UnixFile("/etc/group-")
 	;
 
 	/**
@@ -203,7 +200,7 @@ final public class GroupFile {
 					entry.appendTo(out);
 					out.print('\n');
 				}
-				if(!rootFound) throw new IllegalArgumentException(LinuxGroup.ROOT + " group not found while creating " + newGroupFile.getPath());
+				if(!rootFound) throw new IllegalArgumentException(LinuxGroup.ROOT + " group not found while creating " + groupFile);
 			}
 			return bout.toByteArray();
 		} catch(IOException e) {
@@ -216,29 +213,14 @@ final public class GroupFile {
 	 */
 	public static void writeGroupFile(byte[] newContents) throws SQLException, IOException {
 		assert Thread.holdsLock(groupLock);
-		if(!groupFile.contentEquals(newContents)) {
-			AOServer thisAoServer = AOServDaemon.getThisAOServer();
-			try (
-				OutputStream out = newGroupFile.getSecureOutputStream(
-					UnixFile.ROOT_UID,
-					UnixFile.ROOT_GID,
-					0644,
-					true,
-					thisAoServer.getUidMin().getId(),
-					thisAoServer.getGidMin().getId()
-				)
-			) {
-				out.write(newContents);
-			}
-			if(newGroupFile.getStat().getSize() <= 0) {
-				throw new IOException(newGroupFile + " has zero or unknown length");
-			}
-			if(logger.isLoggable(Level.FINE)) {
-				logger.fine("Replacing " + groupFile + " with new version");
-			}
-			groupFile.renameTo(backupGroupFile);
-			newGroupFile.renameTo(groupFile);
-		}
+		DaemonFileUtils.atomicWrite(
+			groupFile,
+			backupGroupFile,
+			newContents,
+			0644,
+			UnixFile.ROOT_UID,
+			UnixFile.ROOT_GID
+		);
 	}
 
 	/**

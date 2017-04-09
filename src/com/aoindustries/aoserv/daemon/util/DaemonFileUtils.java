@@ -1,10 +1,11 @@
 /*
- * Copyright 2008-2009, 2014, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2008-2009, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.util;
 
+import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -14,6 +15,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Reusable file utilities.
@@ -21,6 +24,8 @@ import java.io.OutputStream;
  * @author  AO Industries, Inc.
  */
 public class DaemonFileUtils {
+
+	private final static Logger logger = Logger.getLogger(DaemonFileUtils.class.getName());
 
 	/**
 	 * Make no instances.
@@ -191,4 +196,100 @@ public class DaemonFileUtils {
             return false;
         }
     }
+
+	/**
+	 * Atomically replaces a file.  The file will always exist and will always
+	 * be either the old of new version.
+	 * <p>
+	 * Will not overwrite the file if the contents already match,
+	 * but the permissions and ownership will still be verified.
+	 * </p>
+	 * <p>
+	 * New file contents, both for the file and its optional backup, are written
+	 * to temp files and then atomically renamed into place, with the backup
+	 * renamed into place first.
+	 * </p>
+	 *
+	 * @param  file  the file to overwrite
+	 * @param  backupFile  the optional backup file
+	 */
+	public static void atomicWrite(UnixFile file, UnixFile backupFile, byte[] newContents, long mode, int uid, int gid) throws IOException {
+		Stat fileStat = file.getStat();
+		if(
+			!fileStat.exists()
+			|| !file.contentEquals(newContents)
+		) {
+			UnixFile backupTemp;
+			if(backupFile != null && fileStat.exists()) {
+				// Create temp backup
+				backupTemp = UnixFile.mktemp(backupFile.getPath(), false);
+				if(logger.isLoggable(Level.FINE)) logger.fine("mktemp \"" + backupFile + "\" -> \"" + backupTemp + '"');
+				long numBytes = FileUtils.copy(file.getFile(), backupTemp.getFile());
+				if(logger.isLoggable(Level.FINE)) logger.fine("cp \"" + file + "\" \"" + backupTemp + "\", " + numBytes + " bytes copied");
+				if(fileStat.getSize() != numBytes) throw new IOException("File size mismatch: " + fileStat.getSize() + " != " + numBytes);
+				Stat backupTempStat = backupTemp.getStat();
+				if(backupTempStat.getSize() != numBytes) throw new IOException("File size mismatch: " + backupTempStat.getSize() + " != " + numBytes);
+				// Set ownership
+				if(backupTempStat.getUid() != uid || backupTempStat.getGid() != gid) {
+					if(logger.isLoggable(Level.FINE)) logger.fine("chown " + uid + ':' + gid + " \"" + backupTemp + '"');
+					backupTemp.chown(uid, gid);
+				}
+				// Set permissions
+				if(backupTempStat.getMode() != mode) {
+					if(logger.isLoggable(Level.FINE)) logger.fine("chmod " + Long.toOctalString(mode) + " \"" + backupTemp + '"');
+					backupTemp.setMode(mode);
+				}
+				// Set modified time
+				if(
+					backupTempStat.getAccessTime() != fileStat.getAccessTime()
+					|| backupTempStat.getModifyTime() != fileStat.getModifyTime()
+				) {
+					if(logger.isLoggable(Level.FINE)) logger.fine("utime " + fileStat.getAccessTime() + ' ' + fileStat.getModifyTime() + " \"" + backupTemp + '"');
+					backupTemp.utime(
+						fileStat.getAccessTime(),
+						fileStat.getModifyTime()
+					);
+				}
+			} else {
+				// No backup
+				backupTemp = null;
+			}
+			// Write the new contents into a temp file
+			UnixFile fileTemp = UnixFile.mktemp(file.getPath(), false);
+			if(logger.isLoggable(Level.FINE)) logger.fine("mktemp \"" + file + "\" -> \"" + fileTemp + '"');
+			try (FileOutputStream out = new FileOutputStream(fileTemp.getFile())) {
+				out.write(newContents);
+			}
+			if(logger.isLoggable(Level.FINE)) logger.fine("Wrote " + newContents.length + " bytes to \"" + fileTemp + '"');
+			Stat fileTempStat = fileTemp.getStat();
+			if(fileTempStat.getSize() != newContents.length) throw new IOException("File size mismatch: " + fileTempStat.getSize() + " != " + newContents.length);
+			// Set ownership
+			if(fileTempStat.getUid() != uid || fileTempStat.getGid() != gid) {
+				if(logger.isLoggable(Level.FINE)) logger.fine("chown " + uid + ':' + gid + " \"" + fileTemp + '"');
+				fileTemp.chown(uid, gid);
+			}
+			// Set permissions
+			if(fileTempStat.getMode() != mode) {
+				if(logger.isLoggable(Level.FINE)) logger.fine("chmod " + Long.toOctalString(mode) + " \"" + fileTemp + '"');
+				fileTemp.setMode(mode);
+			}
+			// Move backup into place
+			if(backupTemp != null) {
+				backupTemp.renameTo(backupFile);
+			}
+			// Move file into place
+			fileTemp.renameTo(file);
+		} else {
+			// Verify ownership
+			if(fileStat.getUid() != uid || fileStat.getGid() != gid) {
+				if(logger.isLoggable(Level.FINE)) logger.fine("chown " + uid + ':' + gid + " \"" + file + '"');
+				file.chown(uid, gid);
+			}
+			// Verify permissions
+			if(fileStat.getMode() != mode) {
+				if(logger.isLoggable(Level.FINE)) logger.fine("chmod " + Long.toOctalString(mode) + " \"" + file + '"');
+				file.setMode(mode);
+			}
+		}
+	}
 }

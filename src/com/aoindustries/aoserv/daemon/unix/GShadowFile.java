@@ -5,12 +5,12 @@
  */
 package com.aoindustries.aoserv.daemon.unix;
 
-import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.LinuxGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.validator.GroupId;
 import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.util.AoCollections;
@@ -21,7 +21,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Iterator;
@@ -43,9 +42,8 @@ final public class GShadowFile {
 	private static final Logger logger = Logger.getLogger(GShadowFile.class.getName());
 
 	private static final UnixFile
-		newGShadowFile    = new UnixFile("/etc/gshadow.new"),
 		gshadowFile       = new UnixFile("/etc/gshadow"),
-		backupGShadowFile = new UnixFile("/etc/gshadow.old")
+		backupGShadowFile = new UnixFile("/etc/gshadow-")
 	;
 
 	/**
@@ -251,7 +249,7 @@ final public class GShadowFile {
 					entry.appendTo(out);
 					out.print('\n');
 				}
-				if(!rootFound) throw new IllegalArgumentException(LinuxGroup.ROOT + " group not found while creating " + newGShadowFile.getPath());
+				if(!rootFound) throw new IllegalArgumentException(LinuxGroup.ROOT + " group not found while creating " + gshadowFile);
 			}
 			return bout.toByteArray();
 		} catch(IOException e) {
@@ -264,46 +262,35 @@ final public class GShadowFile {
 	 */
 	public static void writeGShadowFile(byte[] newContents) throws SQLException, IOException {
 		assert Thread.holdsLock(gshadowLock);
-		if(!gshadowFile.contentEquals(newContents)) {
-			AOServer thisAoServer = AOServDaemon.getThisAOServer();
-			try (
-				OutputStream out = newGShadowFile.getSecureOutputStream(
-					UnixFile.ROOT_UID,
-					UnixFile.ROOT_GID,
-					0600,
-					true,
-					thisAoServer.getUidMin().getId(),
-					thisAoServer.getGidMin().getId()
-				)
-			) {
-				out.write(newContents);
-			}
-			if(newGShadowFile.getStat().getSize() <= 0) {
-				throw new IOException(newGShadowFile + " has zero or unknown length");
-			}
-			// Set permissions
-			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+		// Determine permissions
+		long mode;
+		{
+			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
 				|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
 			) {
 				// Permissions remain 0600
+				mode = 0600;
 			} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 				// Set to 0400
-				newGShadowFile.setMode(0400);
+				mode = 0400;
 			} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 				// Set to 0000
-				newGShadowFile.setMode(0000);
+				mode = 0000;
 			} else {
 				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 			}
-			if(logger.isLoggable(Level.FINE)) {
-				logger.fine("Replacing " + gshadowFile + " with new version");
-			}
-			gshadowFile.renameTo(backupGShadowFile);
-			newGShadowFile.renameTo(gshadowFile);
 		}
+		DaemonFileUtils.atomicWrite(
+			gshadowFile,
+			backupGShadowFile,
+			newContents,
+			mode,
+			UnixFile.ROOT_UID,
+			UnixFile.ROOT_GID
+		);
 	}
 
 	/**
