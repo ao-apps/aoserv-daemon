@@ -15,7 +15,6 @@ import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Shell;
-import com.aoindustries.aoserv.client.validator.Gecos;
 import com.aoindustries.aoserv.client.validator.GroupId;
 import com.aoindustries.aoserv.client.validator.LinuxId;
 import com.aoindustries.aoserv.client.validator.UnixPath;
@@ -28,10 +27,9 @@ import com.aoindustries.aoserv.daemon.email.ImapManager;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.GShadowFile;
 import com.aoindustries.aoserv.daemon.unix.GroupFile;
+import com.aoindustries.aoserv.daemon.unix.PasswdFile;
 import com.aoindustries.aoserv.daemon.unix.ShadowFile;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.io.FileUtils;
@@ -44,7 +42,6 @@ import com.aoindustries.validation.ValidationException;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -78,11 +75,6 @@ import java.util.logging.Logger;
 public class LinuxAccountManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(LinuxAccountManager.class.getName());
-
-	private static final UnixFile
-		passwd       = new UnixFile("/etc/passwd"),
-		backupPasswd = new UnixFile("/etc/passwd-")
-	;
 
 	private static final String BASHRC = ".bashrc";
 
@@ -183,19 +175,42 @@ public class LinuxAccountManager extends BuilderThread {
 			final Set<String> usernameStrs;
 			final Set<Integer> uids;
 			final Set<String> homeDirs;
+			final Map<UserId,PasswdFile.Entry> passwdEntries;
 			{
 				int initialCapacity = lsas.size()*4/3+1;
-				usernames    = new HashSet<>(initialCapacity);
-				usernameStrs = new HashSet<>(initialCapacity);
-				uids         = new HashSet<>(initialCapacity);
-				homeDirs     = new HashSet<>(initialCapacity);
+				usernames     = new HashSet<>(initialCapacity);
+				usernameStrs  = new HashSet<>(initialCapacity);
+				uids          = new HashSet<>(initialCapacity);
+				homeDirs      = new HashSet<>(initialCapacity);
+				passwdEntries = new HashMap<>(initialCapacity);
 				boolean hasRoot = false;
 				for(LinuxServerAccount lsa : lsas) {
-					UserId username = lsa.getLinuxAccount().getUsername().getUsername();
+					LinuxAccount la = lsa.getLinuxAccount();
+					UserId username = la.getUsername().getUsername();
 					if(!usernames.add(username)) throw new SQLException("Duplicate username: " + username);
 					if(!usernameStrs.add(username.toString())) throw new AssertionError();
 					uids.add(lsa.getUid().getId());
 					homeDirs.add(lsa.getHome().toString());
+					LinuxServerGroup primaryGroup = lsa.getPrimaryLinuxServerGroup();
+					if(primaryGroup == null) throw new SQLException("Unable to find primary LinuxServerGroup for username=" + username + " on " + lsa.getAOServer());
+					if(
+						passwdEntries.put(
+							username,
+							new PasswdFile.Entry(
+								username,
+								lsa.getUid().getId(),
+								primaryGroup.getGid().getId(),
+								la.getName(),
+								la.getOfficeLocation(),
+								la.getOfficePhone(),
+								la.getHomePhone(),
+								lsa.getHome(),
+								la.getShell().getPath()
+							)
+						) != null
+					) {
+						throw new SQLException("Duplicate username: " + username);
+					}
 					if(username.equals(LinuxAccount.ROOT)) hasRoot = true;
 				}
 				if(!hasRoot) throw new SQLException(LinuxAccount.ROOT + " user not found");
@@ -253,56 +268,23 @@ public class LinuxAccountManager extends BuilderThread {
 				if(!hasRoot) throw new SQLException(LinuxGroup.ROOT + " group not found");
 			}
 
-			synchronized(ShadowFile.shadowLock) {
-				synchronized(GroupFile.groupLock) {
-					synchronized(GShadowFile.gshadowLock) {
-						byte[] newPasswdContent;
-						byte[] newShadowContent;
-						byte[] newGroupContent;
-						byte[] newGShadowContent;
-						{
-							ByteArrayOutputStream bout = new ByteArrayOutputStream();
-							// Build the new /etc/passwd file.
-							try (ChainWriter out = new ChainWriter(bout)) {
-								// Write root first
-								boolean rootFound = false;
-								for(LinuxServerAccount account : lsas) {
-									if(account.getLinuxAccount().getUsername().getUsername().equals(LinuxAccount.ROOT)) {
-										printPasswdLine(account, out);
-										rootFound = true;
-										break;
-									}
-								}
-								if(!rootFound) throw new SQLException("root user not found while creating " + passwd);
-								for(LinuxServerAccount account : lsas) {
-									if(!account.getLinuxAccount().getUsername().getUsername().equals(LinuxAccount.ROOT)) {
-										printPasswdLine(account, out);
-									}
-								}
-							}
-							newPasswdContent = bout.toByteArray();
+			synchronized(PasswdFile.passwdLock) {
+				synchronized(ShadowFile.shadowLock) {
+					synchronized(GroupFile.groupLock) {
+						synchronized(GShadowFile.gshadowLock) {
+							byte[] newPasswdContent = PasswdFile.buildPasswdFile(passwdEntries, uid_min);
+							byte[] newShadowContent = ShadowFile.buildShadowFile(usernames);
+							byte[] newGroupContent = GroupFile.buildGroupFile(groupEntries, gid_min);
+							byte[] newGShadowContent = GShadowFile.buildGShadowFile(groups);
 
-							newShadowContent = ShadowFile.buildShadowFile(usernames);
-							newGroupContent = GroupFile.buildGroupFile(groupEntries, gid_min);
-							newGShadowContent = GShadowFile.buildGShadowFile(groups);
+							// TODO: Only rename once all *.new files successfully written; rename as a batch
+
+							// Write any updates
+							PasswdFile.writePasswdFile(newPasswdContent);
+							ShadowFile.writeShadowFile(newShadowContent);
+							GroupFile.writeGroupFile(newGroupContent);
+							GShadowFile.writeGShadowFile(newGShadowContent);
 						}
-
-						// TODO: Only rename once all *.new files successfully written; rename as a batch
-
-						/*
-						 * Move the new files into place.
-						 */
-						DaemonFileUtils.atomicWrite(
-							passwd,
-							backupPasswd,
-							newPasswdContent,
-							0644,
-							UnixFile.ROOT_UID,
-							UnixFile.ROOT_GID
-						);
-						ShadowFile.writeShadowFile(newShadowContent);
-						GroupFile.writeGroupFile(newGroupContent);
-						GShadowFile.writeGShadowFile(newGShadowContent);
 					}
 				}
 			}
@@ -647,61 +629,6 @@ public class LinuxAccountManager extends BuilderThread {
 	 */
 	public static Tuple2<String,Integer> getEncryptedPassword(UserId username) throws IOException, SQLException {
 		return ShadowFile.getEncryptedPassword(username);
-	}
-
-	/**
-	 * Prints one line of a Linux passwd file.
-	 *
-	 * @param  account   the <code>LinuxServerAccount</code> to print
-	 * @param  out       the <code>ChainWriter</code> to print to
-	 */
-	public static void printPasswdLine(LinuxServerAccount account, ChainWriter out) throws IOException, SQLException {
-		LinuxAccount linuxAccount = account.getLinuxAccount();
-		UserId username=linuxAccount.getUsername().getUsername();
-		LinuxServerGroup primaryGroup = account.getPrimaryLinuxServerGroup();
-		if(primaryGroup == null) throw new SQLException("Unable to find primary LinuxServerGroup for username=" + username + " on " + account.getAOServer().getHostname());
-		out
-			.print(username)
-			.print(":x:")
-			.print(account.getUid().getId())
-			.print(':')
-			.print(primaryGroup.getGid().getId())
-			.print(':')
-		;
-		int commaCount = 0;
-		Gecos fullName = linuxAccount.getName();
-		if(fullName != null) {
-			out.print(fullName.toString());
-		}
-		Gecos officeLocation = linuxAccount.getOfficeLocation();
-		if(officeLocation != null) {
-			out.print(',');
-			commaCount++;
-			out.print(officeLocation.toString());
-		}
-		Gecos officePhone = linuxAccount.getOfficePhone();
-		if(officePhone != null) {
-			while(commaCount < 2) {
-				out.print(',');
-				commaCount++;
-			}
-			out.print(officePhone.toString());
-		}
-		Gecos homePhone = linuxAccount.getHomePhone();
-		if(homePhone != null) {
-			while(commaCount < 3) {
-				out.print(',');
-				commaCount++;
-			}
-			out.print(homePhone.toString());
-		}
-		out
-			.print(':')
-			.print(account.getHome())
-			.print(':')
-			.print(linuxAccount.getShell().getPath())
-			.print('\n')
-		;
 	}
 
 	public static void setBashProfile(LinuxServerAccount lsa, String profile) throws IOException, SQLException {
