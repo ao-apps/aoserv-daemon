@@ -73,7 +73,7 @@ final public class GShadowFile {
 		 */
 		private final Set<UserId> groupMembers;
 
-		private static Set<UserId> parseUserIds(String s) throws ValidationException {
+		static Set<UserId> parseUserIds(String s) throws ValidationException {
 			List<String> usernames = StringUtility.splitStringCommaSpace(s);
 			int size = usernames.size();
 			if(size == 0) return Collections.emptySet();
