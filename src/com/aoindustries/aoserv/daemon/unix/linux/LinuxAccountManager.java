@@ -63,12 +63,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * TODO: Keep original file ordering.
- *
  * TODO: File locking compatible with shadow-utils: https://superuser.com/questions/296373/cannot-lock-etc-passwd-try-again-later
  * TODO: along with tmpfiles.d entries to delete them on start-up.
- *
- * TODO: Use same backup filename as shadow-utils (/etc/passwd- instead of /etc/passwd.old, for example)
  *
  * @author  AO Industries, Inc.
  */
@@ -478,6 +474,7 @@ public class LinuxAccountManager extends BuilderThread {
 			// Disable and enable accounts
 			// TODO: Put "!" in from of the password when disabled, like done for usermod --lock
 			// TODO: Then no longer have PredisablePassword stored in the master.
+			// TODO: Consider effect on isPasswordSet
 			for(LinuxServerAccount lsa : lsas) {
 				String prePassword = lsa.getPredisablePassword();
 				if(lsa.isDisabled()) {
