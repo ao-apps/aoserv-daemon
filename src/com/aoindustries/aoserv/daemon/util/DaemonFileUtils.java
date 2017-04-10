@@ -275,9 +275,11 @@ public class DaemonFileUtils {
 			}
 			// Move backup into place
 			if(backupTemp != null) {
+				if(logger.isLoggable(Level.FINE)) logger.fine("mv \"" + backupTemp + "\" \"" + backupFile + '"');
 				backupTemp.renameTo(backupFile);
 			}
 			// Move file into place
+			if(logger.isLoggable(Level.FINE)) logger.fine("mv \"" + fileTemp + "\" \"" + file + '"');
 			fileTemp.renameTo(file);
 		} else {
 			// Verify ownership
