@@ -240,10 +240,10 @@ final public class GroupFile {
 			Map.Entry<GroupId,Entry> mapEntry = entryIter.next();
 			GroupId groupName = mapEntry.getKey();
 			Entry existingEntry = mapEntry.getValue();
-			boolean existingIsSystem = existingEntry.gid < gid_min;
+			boolean existingIsSystem = existingEntry.gid < gid_min || existingEntry.gid > LinuxGroup.GID_MAX;
 			if(groups.containsKey(groupName)) {
 				Entry expectedEntry = groups.get(groupName);
-				boolean expectedIsSystem = expectedEntry.gid < gid_min;
+				boolean expectedIsSystem = expectedEntry.gid < gid_min || expectedEntry.gid > LinuxGroup.GID_MAX;
 				if(existingEntry.gid != expectedEntry.gid) {
 					if(existingIsSystem != expectedIsSystem) {
 						throw new IllegalArgumentException("Refusing to change group id between system and regular users; from " + existingEntry.gid + " to " + expectedEntry.gid + " for " + groupName);

@@ -159,7 +159,10 @@ public class LinuxAccountManager extends BuilderThread {
 					}
 					boolean modified = false;
 					for(GroupFile.Entry entry : groupFile.values()) {
-						if(entry.getGid() < gid_min) {
+						if(
+							entry.getGid() < gid_min
+							|| entry.getGid() > LinuxGroup.GID_MAX
+						) {
 							GroupId groupName = entry.getGroupName();
 							boolean found = false;
 							for(LinuxServerGroup lsg : lsgs) {
@@ -188,7 +191,10 @@ public class LinuxAccountManager extends BuilderThread {
 					}
 					boolean modified = false;
 					for(PasswdFile.Entry entry : passwdFile.values()) {
-						if(entry.getUid() < uid_min) {
+						if(
+							entry.getUid() < uid_min
+							|| entry.getUid() > LinuxAccount.UID_MAX
+						) {
 							UserId username = entry.getUsername();
 							boolean found = false;
 							for(LinuxServerAccount lsa : lsas) {

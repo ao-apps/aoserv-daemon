@@ -375,10 +375,10 @@ final public class PasswdFile {
 			Map.Entry<UserId,Entry> mapEntry = entryIter.next();
 			UserId username = mapEntry.getKey();
 			Entry existingEntry = mapEntry.getValue();
-			boolean existingIsSystem = existingEntry.uid < uid_min;
+			boolean existingIsSystem = existingEntry.uid < uid_min || existingEntry.uid > LinuxAccount.UID_MAX;
 			if(expectedEntries.containsKey(username)) {
 				Entry expectedEntry = expectedEntries.get(username);
-				boolean expectedIsSystem = expectedEntry.uid < uid_min;
+				boolean expectedIsSystem = expectedEntry.uid < uid_min || expectedEntry.uid > LinuxAccount.UID_MAX;
 				if(existingEntry.uid != expectedEntry.uid) {
 					if(existingIsSystem != expectedIsSystem) {
 						throw new IllegalArgumentException("Refusing to change user id between system and regular users; from " + existingEntry.uid + " to " + expectedEntry.uid + " for " + username);
