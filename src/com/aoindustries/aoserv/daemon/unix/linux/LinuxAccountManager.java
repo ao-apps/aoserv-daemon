@@ -67,6 +67,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * TODO: Watch for changes in /etc/passwd and /etc/group and auto-run rebuild.
+ * TODO: This will more promptly add new system users and groups to the master.
+ *
  * @author  AO Industries, Inc.
  */
 public class LinuxAccountManager extends BuilderThread {
@@ -75,6 +78,8 @@ public class LinuxAccountManager extends BuilderThread {
 
 	/**
 	 * Lockfile for password file updates.
+	 *
+	 * TODO: Is this sufficient locking, or should we also lock each individual file while updating? (/etc/passwd.lock, ...)
 	 */
 	private static final File PWD_LOCK = new File("/etc/.pwd.lock");
 
@@ -131,6 +136,7 @@ public class LinuxAccountManager extends BuilderThread {
 
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
+		if(logger.isLoggable(Level.FINER)) logger.finer("uid_min=" + uid_min + ", gid_min=" + gid_min);
 
 		synchronized(rebuildLock) {
 			// Get the lists from the database
@@ -347,15 +353,15 @@ public class LinuxAccountManager extends BuilderThread {
 					synchronized(ShadowFile.shadowLock) {
 						synchronized(GroupFile.groupLock) {
 							synchronized(GShadowFile.gshadowLock) {
-								byte[] newPasswdContent = PasswdFile.buildPasswdFile(passwdEntries, uid_min);
-								byte[] newShadowContent = ShadowFile.buildShadowFile(usernames);
-								byte[] newGroupContent = GroupFile.buildGroupFile(groupEntries, gid_min);
+								// Build new file contents
+								byte[] newPasswdContent  = PasswdFile .buildPasswdFile (passwdEntries, uid_min);
+								byte[] newShadowContent  = ShadowFile .buildShadowFile (usernames);
+								byte[] newGroupContent   = GroupFile  .buildGroupFile  (groupEntries, gid_min);
 								byte[] newGShadowContent = GShadowFile.buildGShadowFile(groups);
-
 								// Write any updates
-								PasswdFile.writePasswdFile(newPasswdContent);
-								ShadowFile.writeShadowFile(newShadowContent);
-								GroupFile.writeGroupFile(newGroupContent);
+								PasswdFile .writePasswdFile (newPasswdContent);
+								ShadowFile .writeShadowFile (newShadowContent);
+								GroupFile  .writeGroupFile  (newGroupContent);
 								GShadowFile.writeGShadowFile(newGShadowContent);
 							}
 						}
@@ -371,15 +377,16 @@ public class LinuxAccountManager extends BuilderThread {
 				// Create any inboxes that need to exist.
 				LinuxServerGroup mailGroup = connector.getLinuxGroups().get(LinuxGroup.MAIL).getLinuxServerGroup(thisAoServer);
 				if(mailGroup == null) throw new SQLException("Unable to find LinuxServerGroup: " + LinuxGroup.MAIL + " on " + thisAoServer.getHostname());
-				for(LinuxServerAccount account : lsas) {
-					LinuxAccount linuxAccount = account.getLinuxAccount();
-					if(linuxAccount.getType().isEmail()) {
-						UserId username = linuxAccount.getUsername().getUsername();
+				for(LinuxServerAccount lsa : lsas) {
+					LinuxAccount la = lsa.getLinuxAccount();
+					if(la.getType().isEmail()) {
+						UserId username = la.getUsername().getUsername();
 						File file = new File(ImapManager.mailSpool, username.toString());
 						if(!file.exists()) {
 							UnixFile unixFile = new UnixFile(file.getPath());
+							if(logger.isLoggable(Level.INFO)) logger.info("Creating inbox: \"" + unixFile + '"');
 							unixFile.getSecureOutputStream(
-								account.getUid().getId(),
+								lsa.getUid().getId(),
 								mailGroup.getGid().getId(),
 								0660,
 								false,
@@ -401,6 +408,7 @@ public class LinuxAccountManager extends BuilderThread {
 								|| !usernameStrs.contains(filename.substring(0, filename.length() - ".lock".length()))
 							) {
 								File spoolFile = new File(ImapManager.mailSpool, filename);
+								if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + spoolFile);
 								deleteFileList.add(spoolFile);
 							}
 						}
@@ -416,9 +424,7 @@ public class LinuxAccountManager extends BuilderThread {
 				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 			}
 
-			/*
-			 * Create any home directories that do not exist.
-			 */
+			// Create any home directories that do not exist.
 			for(LinuxServerAccount lsa : lsas) {
 				LinuxAccount la = lsa.getLinuxAccount();
 				String type = la.getType().getName();
@@ -433,9 +439,11 @@ public class LinuxAccountManager extends BuilderThread {
 					// Make the parent of the home directory if it does not exist
 					UnixFile parent = homeDir.getParent();
 					if(!parent.getStat().exists()) {
+						if(logger.isLoggable(Level.INFO)) logger.info("mkdir \"" + parent + '"');
 						parent.mkdir(true, 0755);
 					}
 					// Make the home directory
+					if(logger.isLoggable(Level.INFO)) logger.info("mkdir \"" + homeDir + '"');
 					homeDir.mkdir(false, 0700);
 					copySkel = true;
 				}
@@ -476,10 +484,12 @@ public class LinuxAccountManager extends BuilderThread {
 						String[] skelList = skel.list();
 						if(skelList != null) {
 							for(String filename : skelList) {
-								UnixFile skelFile = new UnixFile(skel, filename);
 								UnixFile homeFile = new UnixFile(homeDir, filename, true);
 								if(!homeFile.getStat().exists()) {
+									UnixFile skelFile = new UnixFile(skel, filename);
+									if(logger.isLoggable(Level.INFO)) logger.info("cp \"" + skelFile + "\" \"" + homeFile + '"');
 									skelFile.copyTo(homeFile, false);
+									if(logger.isLoggable(Level.INFO)) logger.info("chown " + uid + ':' + gid + " \"" + homeFile + '"');
 									homeFile.chown(uid, gid);
 								}
 							}
@@ -487,6 +497,7 @@ public class LinuxAccountManager extends BuilderThread {
 					}
 					// Set final directory ownership now that home directory completely setup
 					if(chownHome) {
+						if(logger.isLoggable(Level.INFO)) logger.info("chown " + uid + ':' + gid + " \"" + homeDir + '"');
 						homeDir.chown(uid, gid);
 						// Now done in mkdir above: homeDir.setMode(0700);
 					}
@@ -496,33 +507,39 @@ public class LinuxAccountManager extends BuilderThread {
 			/*
 			 * Remove any home directories that should not exist.
 			 */
-			if(true) throw new NotImplementedException("TODO: Review this carefully before going to production");
-			// TODO: Review this carefully
 			Set<String> keepHashDirs = new HashSet<>();
 			for(char ch='a'; ch<='z'; ch++) {
 				UnixFile hashDir = new UnixFile("/home/" + ch);
-				if(!homeDirs.contains(hashDir.getPath())) {
-					if(hashDir.getStat().exists()) {
-						boolean hasHomeDir = false;
-						List<File> hashDirToDelete = new ArrayList<>();
-						String[] homeList = hashDir.list();
-						if(homeList != null) {
-							for(String dirName : homeList) {
-								UnixFile dir = new UnixFile(hashDir, dirName, true);
-								String dirPath = dir.getPath();
-								// Allow encrypted form of home directory
-								if(dirPath.endsWith(".aes256.img")) dirPath = dirPath.substring(0, dirPath.length() - ".aes256.img".length());
-								if(homeDirs.contains(dirPath)) {
-									hasHomeDir = true;
-								} else {
-									hashDirToDelete.add(dir.getFile());
-								}
+				if(homeDirs.contains(hashDir.getPath())) {
+					if(logger.isLoggable(Level.FINE)) logger.fine("hashDir is a home directory, not cleaning: " + hashDir);
+				} else if(hashDir.getStat().exists()) {
+					boolean hasHomeDir = false;
+					List<File> hashDirToDelete = new ArrayList<>();
+					String[] homeList = hashDir.list();
+					if(homeList != null) {
+						for(String dirName : homeList) {
+							UnixFile dir = new UnixFile(hashDir, dirName, true);
+							String dirPath = dir.getPath();
+							// Allow encrypted form of home directory
+							if(dirPath.endsWith(".aes256.img")) dirPath = dirPath.substring(0, dirPath.length() - ".aes256.img".length());
+							if(homeDirs.contains(dirPath)) {
+								if(logger.isLoggable(Level.FINE)) logger.fine("hashDir has home directory: " + dir);
+								hasHomeDir = true;
+							} else {
+								if(logger.isLoggable(Level.FINE)) logger.fine("hashDir has an extra directory: " + dir);
+								hashDirToDelete.add(dir.getFile());
 							}
 						}
-						if(hasHomeDir) {
-							deleteFileList.addAll(hashDirToDelete);
-							keepHashDirs.add(hashDir.getPath());
+					}
+					if(hasHomeDir) {
+						if(logger.isLoggable(Level.FINE)) logger.fine("hashDir still has home directories: " + hashDir);
+						for(File toDelete : hashDirToDelete) {
+							if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+							deleteFileList.add(toDelete);
 						}
+						keepHashDirs.add(hashDir.getPath());
+					} else {
+						if(logger.isLoggable(Level.FINE)) logger.fine("hashDir does not have any home directories, will be deleted completely: " + hashDir);
 					}
 				}
 			}
@@ -533,11 +550,17 @@ public class LinuxAccountManager extends BuilderThread {
 				for(String dirName : homeList) {
 					UnixFile dir = new UnixFile(homeDir, dirName, true);
 					String dirPath = dir.getPath();
-					if(!keepHashDirs.contains(dirPath)) {
+					if(keepHashDirs.contains(dirPath)) {
+						if(logger.isLoggable(Level.FINE)) logger.fine("Keeping hashDir that is still used: " + dir);
+					} else {
 						// Allow encrypted form of home directory
 						if(dirPath.endsWith(".aes256.img")) dirPath = dirPath.substring(0, dirPath.length() - ".aes256.img".length());
-						if(!homeDirs.contains(dirPath)) {
-							deleteFileList.add(dir.getFile());
+						if(homeDirs.contains(dirPath)) {
+							if(logger.isLoggable(Level.FINE)) logger.fine("Is a home directory: " + dir);
+						} else {
+							File toDelete = dir.getFile();
+							if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+							deleteFileList.add(toDelete);
 						}
 					}
 				}
@@ -550,34 +573,47 @@ public class LinuxAccountManager extends BuilderThread {
 			if(cronList != null) {
 				for(String filename : cronList) {
 					// Filename must be the username of one of the users to be kept intact
-					if(!usernameStrs.contains(filename)) deleteFileList.add(new File(cronDirectory, filename));
+					if(!usernameStrs.contains(filename)) {
+						File toDelete = new File(cronDirectory, filename);
+						if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+						deleteFileList.add(toDelete);
+					}
 				}
 			}
 
 			// Disable and enable accounts
 			// TODO: Put "!" in from of the password when disabled, like done for usermod --lock
 			// TODO: Then no longer have PredisablePassword stored in the master.
-			// TODO: Consider effect on isPasswordSet
+			// TODO: Consider effect on isPasswordSet and comparePassword (should password check still work on disabled user?)
 			for(LinuxServerAccount lsa : lsas) {
 				String prePassword = lsa.getPredisablePassword();
 				if(lsa.isDisabled()) {
 					// Account is disabled
 					if(prePassword == null) {
 						UserId username = lsa.getLinuxAccount().getUsername().getUsername();
+						if(logger.isLoggable(Level.INFO)) logger.info("Storing predisable password for " + username);
 						lsa.setPredisablePassword(getEncryptedPassword(username).getElement1());
+						if(logger.isLoggable(Level.INFO)) logger.info("Clearing password for " + username);
 						setPassword(username, null, false);
 					}
 				} else {
 					// Account is enabled
 					if(prePassword != null) {
+						UserId username = lsa.getLinuxAccount().getUsername().getUsername();
+						if(logger.isLoggable(Level.INFO)) logger.info("Restoring password for " + username);
 						setEncryptedPassword(lsa.getLinuxAccount().getUsername().getUsername(), prePassword, null);
+						if(logger.isLoggable(Level.INFO)) logger.info("Clearing predisable password for " + username);
 						lsa.setPredisablePassword(null);
 					}
 				}
 			}
 
 			// Only the top level server in a physical server gets to kill processes
-			if(!AOServDaemonConfiguration.isNested() && thisAoServer.getFailoverServer() == null) {
+			if(AOServDaemonConfiguration.isNested()) {
+				if(logger.isLoggable(Level.FINE)) logger.fine("This server is nested, not killing processes.");
+			} else if(thisAoServer.getFailoverServer() != null) {
+				if(logger.isLoggable(Level.FINE)) logger.fine("This server is in a fail-over state, not killing processes; parent server will kill processes.");
+			} else {
 				List<AOServer> nestedServers = thisAoServer.getNestedAOServers();
 
 				/*
@@ -599,7 +635,8 @@ public class LinuxAccountManager extends BuilderThread {
 						}
 						if(allNum) {
 							try {
-								LinuxProcess process = new LinuxProcess(Integer.parseInt(filename));
+								int pid = Integer.parseInt(filename);
+								LinuxProcess process = new LinuxProcess(pid);
 								int uid = process.getUid();
 								// Never kill root processes, just to be safe
 								if(uid != LinuxServerAccount.ROOT_UID) {
@@ -622,7 +659,10 @@ public class LinuxAccountManager extends BuilderThread {
 												break;
 											}
 										}
-										if(!foundInNested) process.killProc();
+										if(!foundInNested) {
+											if(logger.isLoggable(Level.INFO)) logger.info("Killing process # " + pid + " running as user # " + uid);
+											process.killProc();
+										}
 									}
 								}
 							} catch(FileNotFoundException err) {
@@ -641,8 +681,13 @@ public class LinuxAccountManager extends BuilderThread {
 			 * Recursively find and remove any temporary files that should not exist.
 			 */
 			try {
-				AOServDaemon.findUnownedFiles(new File("/tmp"), uids, deleteFileList, 0);
-				AOServDaemon.findUnownedFiles(new File("/var/tmp"), uids, deleteFileList, 0);
+				List<File> tmpToDelete = new ArrayList<>();
+				AOServDaemon.findUnownedFiles(new File("/tmp"), uids, tmpToDelete, 0);
+				AOServDaemon.findUnownedFiles(new File("/var/tmp"), uids, tmpToDelete, 0);
+				for(File toDelete : tmpToDelete) {
+					if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+					deleteFileList.add(toDelete);
+				}
 			} catch(FileNotFoundException err) {
 				if(logger.isLoggable(Level.FINE)) {
 					logger.log(Level.FINE, "This may normally occur because of the dynamic nature of the tmp directories", err);
