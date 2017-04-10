@@ -342,7 +342,7 @@ final public class DistroManager implements Runnable {
 		}
 	}
 
-	private static List<DistroReportFile> checkFilesystem(DistroReportStats stats, Appendable verboseOut) throws IOException, SQLException {
+	private static List<DistroReportFile> checkFilesystem(DistroReportStats stats, Appendable verboseOut) throws ValidationException, IOException, SQLException {
 		stats.startTime = System.currentTimeMillis();
 		try {
 			// Build the list of files that should exist
@@ -430,7 +430,7 @@ final public class DistroManager implements Runnable {
 		List<DistroReportFile> results,
 		DistroReportStats stats,
 		Appendable verboseOut
-	) throws IOException, SQLException {
+	) throws ValidationException, IOException, SQLException {
 		stats.scanned++;
 		stats.systemCount++;
 		// Check for ... and other patterns baddies use to hide directories
@@ -448,7 +448,7 @@ final public class DistroManager implements Runnable {
 		{
 			// First look for exact match
 			String filename = file.getPath();
-			int index = Collections.binarySearch(distroFiles, new Object[] {filename, osVersionPKey}, pathComparator);
+			int index = Collections.binarySearch(distroFiles, new Object[] {UnixPath.valueOf(filename), osVersionPKey}, pathComparator);
 			if(index >= 0) {
 				distroFile = distroFiles.get(index);
 				// Flag as found
@@ -459,7 +459,7 @@ final public class DistroManager implements Runnable {
 				int pos = filename.indexOf(hostname);
 				if(pos >= 0) {
 					filename = filename.substring(0, pos) + "$h" + filename.substring(pos+hostname.length());
-					index = Collections.binarySearch(distroFiles, new Object[] {filename, osVersionPKey}, pathComparator);
+					index = Collections.binarySearch(distroFiles, new Object[] {UnixPath.valueOf(filename), osVersionPKey}, pathComparator);
 					if(index >= 0) {
 						distroFile = distroFiles.get(index);
 						// Flag as found
@@ -986,7 +986,7 @@ final public class DistroManager implements Runnable {
 			} finally {
 				out.flush();
 			}
-		} catch(IOException exc) {
+		} catch(IOException | ValidationException exc) {
 			ErrorPrinter.printStackTraces(exc, System.err);
 			System.err.flush();
 			retVal = SysExits.EX_IOERR;
