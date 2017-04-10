@@ -178,6 +178,8 @@ public enum HttpdOperatingSystemConfiguration {
 				return REDHAT_ES_4_X86_64;
 			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
 				return CENTOS_5_I686_AND_X86_64;
+			case OperatingSystemVersion.CENTOS_7_X86_64:
+				return CENTOS_7_X86_64;
 			default :
 				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 		}
