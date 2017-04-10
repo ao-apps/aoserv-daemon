@@ -35,6 +35,7 @@ import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.NotImplementedException;
 import com.aoindustries.util.BufferManager;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.Tuple2;
@@ -51,6 +52,9 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.file.StandardOpenOption;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -63,14 +67,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * TODO: File locking compatible with shadow-utils: https://superuser.com/questions/296373/cannot-lock-etc-passwd-try-again-later
- * TODO: along with tmpfiles.d entries to delete them on start-up.
- *
  * @author  AO Industries, Inc.
  */
 public class LinuxAccountManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(LinuxAccountManager.class.getName());
+
+	/**
+	 * Lockfile for password file updates.
+	 */
+	private static final File PWD_LOCK = new File("/etc/.pwd.lock");
 
 	private static final String BASHRC = ".bashrc";
 
@@ -120,170 +126,240 @@ public class LinuxAccountManager extends BuilderThread {
 			osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
 			&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
 			&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-			// TODO: CentOS 7 once system groups and users auto-added
+			&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
 
 		synchronized(rebuildLock) {
-			// A list of all files to delete is created so that all the data can
-			// be backed-up before removal.
-			List<File> deleteFileList = new ArrayList<>();
-
 			// Get the lists from the database
 			List<LinuxServerAccount> lsas = thisAoServer.getLinuxServerAccounts();
-			List<LinuxServerGroup> lsgs = thisAoServer.getLinuxServerGroups();
-
-			// TODO: Add any system groups found, updating lsgs
-			// TODO: Add any system users found, updating lsas
-
-			// Install /usr/bin/ftppasswd and /usr/bin/ftponly if required by any LinuxServerAccount
 			boolean hasFtpShell = false;
-			for(LinuxServerAccount lsa : lsas) {
-				UnixPath shellPath = lsa.getLinuxAccount().getShell().getPath();
-				if(
-					shellPath.equals(Shell.FTPONLY)
-					|| shellPath.equals(Shell.FTPPASSWD)
-				) {
-					hasFtpShell = true;
-					break;
-				}
-			}
-			if(hasFtpShell) {
-				PackageManager.installPackage(PackageManager.PackageName.AOSERV_FTP_SHELLS);
-			}
-
-			// Add /usr/bin/passwd to /etc/shells if required by any LinuxServerAccount
 			boolean hasPasswdShell = false;
-			for(LinuxServerAccount lsa : lsas) {
-				if(lsa.getLinuxAccount().getShell().getPath().equals(Shell.PASSWD)) {
-					hasPasswdShell = true;
-					break;
-				}
-			}
-			if(hasPasswdShell) {
-				PackageManager.installPackage(PackageManager.PackageName.AOSERV_PASSWD_SHELL);
-			}
-
-			// Build passwd data
 			final Set<UserId> usernames;
 			final Set<String> usernameStrs;
 			final Set<Integer> uids;
 			final Set<String> homeDirs;
 			final Map<UserId,PasswdFile.Entry> passwdEntries;
-			{
-				int initialCapacity = lsas.size()*4/3+1;
-				usernames     = new HashSet<>(initialCapacity);
-				usernameStrs  = new HashSet<>(initialCapacity);
-				uids          = new HashSet<>(initialCapacity);
-				homeDirs      = new HashSet<>(initialCapacity);
-				passwdEntries = new HashMap<>(initialCapacity);
-				boolean hasRoot = false;
-				for(LinuxServerAccount lsa : lsas) {
-					LinuxAccount la = lsa.getLinuxAccount();
-					UserId username = la.getUsername().getUsername();
-					if(!usernames.add(username)) throw new SQLException("Duplicate username: " + username);
-					if(!usernameStrs.add(username.toString())) throw new AssertionError();
-					uids.add(lsa.getUid().getId());
-					homeDirs.add(lsa.getHome().toString());
-					LinuxServerGroup primaryGroup = lsa.getPrimaryLinuxServerGroup();
-					if(primaryGroup == null) throw new SQLException("Unable to find primary LinuxServerGroup for username=" + username + " on " + lsa.getAOServer());
-					if(
-						passwdEntries.put(
-							username,
-							new PasswdFile.Entry(
-								username,
-								lsa.getUid().getId(),
-								primaryGroup.getGid().getId(),
-								la.getName(),
-								la.getOfficeLocation(),
-								la.getOfficePhone(),
-								la.getHomePhone(),
-								lsa.getHome(),
-								la.getShell().getPath()
-							)
-						) != null
-					) {
-						throw new SQLException("Duplicate username: " + username);
-					}
-					if(username.equals(LinuxAccount.ROOT)) hasRoot = true;
-				}
-				if(!hasRoot) throw new SQLException(LinuxAccount.ROOT + " user not found");
-			}
 
-			// Build group data
+			List<LinuxServerGroup> lsgs = thisAoServer.getLinuxServerGroups();
 			final Map<GroupId,Set<UserId>> groups;
 			final Map<GroupId,GroupFile.Entry> groupEntries;
-			{
-				int initialCapacity = lsgs.size()*4/3+1;
-				groups = new HashMap<>(initialCapacity);
-				groupEntries = new HashMap<>(initialCapacity);
-				boolean hasRoot = false;
-				for(LinuxServerGroup lsg : lsgs) {
-					GroupId groupName = lsg.getLinuxGroup().getName();
-					Set<UserId> groupMembers = new LinkedHashSet<>();
-					{
-						for(LinuxServerAccount altAccount : lsg.getAlternateLinuxServerAccounts()) {
-							UserId userId = altAccount.getLinuxAccount().getUsername().getUsername();
-							if(!groupMembers.add(userId)) throw new SQLException("Duplicate group member: " + userId);
-						}
-						if(groupName.equals(LinuxGroup.PROFTPD_JAILED)) {
-							if(
-								osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-								|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-							) {
-								for(FTPGuestUser guestUser : thisAoServer.getFTPGuestUsers()) {
-									groupMembers.add(guestUser.getLinuxAccount().getUsername().getUsername());
+
+			try (
+				FileChannel fileChannel = FileChannel.open(PWD_LOCK.toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE);
+				FileLock fileLock = fileChannel.lock();
+			) {
+				// Add any system groups found, updating lsgs
+				{
+					Map<GroupId,GroupFile.Entry> groupFile;
+					synchronized(GroupFile.groupLock) {
+						groupFile = GroupFile.readGroupFile();
+					}
+					boolean modified = false;
+					for(GroupFile.Entry entry : groupFile.values()) {
+						if(entry.getGid() < gid_min) {
+							GroupId groupName = entry.getGroupName();
+							boolean found = false;
+							for(LinuxServerGroup lsg : lsgs) {
+								if(lsg.getLinuxGroup().getName().equals(groupName)) {
+									found = true;
+									break;
 								}
-							} else if(
-								osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-								|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
-							) {
-								// Nothing to do, no special FTP server groups
-							} else {
-								throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+							}
+							if(!found) {
+								int gid = entry.getGid();
+								if(logger.isLoggable(Level.FINE)) {
+									logger.fine("Adding system group: " + groupName + " #" + gid);
+								}
+								thisAoServer.addSystemGroup(groupName, gid);
+								modified = true;
 							}
 						}
 					}
-					if(groups.put(groupName, groupMembers) != null) throw new SQLException("Duplicate group name: " + groupName);
-					if(
-						groupEntries.put(
-							groupName,
-							new GroupFile.Entry(
-								groupName,
-								lsg.getGid().getId(),
-								groupMembers
-							)
-						) != null
-					) {
-						throw new SQLException("Duplicate group name: " + groupName);
-					}
-					if(groupName.equals(LinuxGroup.ROOT)) hasRoot = true;
+					if(modified) lsgs = thisAoServer.getLinuxServerGroups();
 				}
-				if(!hasRoot) throw new SQLException(LinuxGroup.ROOT + " group not found");
-			}
+				// Add any system users found, updating lsas
+				{
+					Map<UserId,PasswdFile.Entry> passwdFile;
+					synchronized(PasswdFile.passwdLock) {
+						passwdFile = PasswdFile.readPasswdFile();
+					}
+					boolean modified = false;
+					for(PasswdFile.Entry entry : passwdFile.values()) {
+						if(entry.getUid() < uid_min) {
+							UserId username = entry.getUsername();
+							boolean found = false;
+							for(LinuxServerAccount lsa : lsas) {
+								if(lsa.getLinuxAccount().getUsername().getUsername().equals(username)) {
+									found = true;
+									break;
+								}
+							}
+							if(!found) {
+								int uid = entry.getUid();
+								if(logger.isLoggable(Level.FINE)) {
+									logger.fine("Adding system user: " + username + " #" + uid);
+								}
+								thisAoServer.addSystemUser(
+									username,
+									uid,
+									entry.getGid(),
+									entry.getFullName(),
+									entry.getOfficeLocation(),
+									entry.getOfficePhone(),
+									entry.getHomePhone(),
+									entry.getHome(),
+									entry.getShell()
+								);
+								modified = true;
+							}
+						}
+					}
+					if(modified) lsas = thisAoServer.getLinuxServerAccounts();
+				}
 
-			synchronized(PasswdFile.passwdLock) {
-				synchronized(ShadowFile.shadowLock) {
-					synchronized(GroupFile.groupLock) {
-						synchronized(GShadowFile.gshadowLock) {
-							byte[] newPasswdContent = PasswdFile.buildPasswdFile(passwdEntries, uid_min);
-							byte[] newShadowContent = ShadowFile.buildShadowFile(usernames);
-							byte[] newGroupContent = GroupFile.buildGroupFile(groupEntries, gid_min);
-							byte[] newGShadowContent = GShadowFile.buildGShadowFile(groups);
+				// Install /usr/bin/ftppasswd and /usr/bin/ftponly if required by any LinuxServerAccount
+				for(LinuxServerAccount lsa : lsas) {
+					UnixPath shellPath = lsa.getLinuxAccount().getShell().getPath();
+					if(
+						shellPath.equals(Shell.FTPONLY)
+						|| shellPath.equals(Shell.FTPPASSWD)
+					) {
+						hasFtpShell = true;
+						break;
+					}
+				}
+				if(hasFtpShell) {
+					PackageManager.installPackage(PackageManager.PackageName.AOSERV_FTP_SHELLS);
+				}
 
-							// TODO: Only rename once all *.new files successfully written; rename as a batch
+				// Add /usr/bin/passwd to /etc/shells if required by any LinuxServerAccount
+				for(LinuxServerAccount lsa : lsas) {
+					if(lsa.getLinuxAccount().getShell().getPath().equals(Shell.PASSWD)) {
+						hasPasswdShell = true;
+						break;
+					}
+				}
+				if(hasPasswdShell) {
+					PackageManager.installPackage(PackageManager.PackageName.AOSERV_PASSWD_SHELL);
+				}
 
-							// Write any updates
-							PasswdFile.writePasswdFile(newPasswdContent);
-							ShadowFile.writeShadowFile(newShadowContent);
-							GroupFile.writeGroupFile(newGroupContent);
-							GShadowFile.writeGShadowFile(newGShadowContent);
+				// Build passwd data
+				{
+					int initialCapacity = lsas.size()*4/3+1;
+					usernames     = new HashSet<>(initialCapacity);
+					usernameStrs  = new HashSet<>(initialCapacity);
+					uids          = new HashSet<>(initialCapacity);
+					homeDirs      = new HashSet<>(initialCapacity);
+					passwdEntries = new HashMap<>(initialCapacity);
+					boolean hasRoot = false;
+					for(LinuxServerAccount lsa : lsas) {
+						LinuxAccount la = lsa.getLinuxAccount();
+						UserId username = la.getUsername().getUsername();
+						if(!usernames.add(username)) throw new SQLException("Duplicate username: " + username);
+						if(!usernameStrs.add(username.toString())) throw new AssertionError();
+						uids.add(lsa.getUid().getId());
+						homeDirs.add(lsa.getHome().toString());
+						LinuxServerGroup primaryGroup = lsa.getPrimaryLinuxServerGroup();
+						if(primaryGroup == null) throw new SQLException("Unable to find primary LinuxServerGroup for username=" + username + " on " + lsa.getAOServer());
+						if(
+							passwdEntries.put(
+								username,
+								new PasswdFile.Entry(
+									username,
+									lsa.getUid().getId(),
+									primaryGroup.getGid().getId(),
+									la.getName(),
+									la.getOfficeLocation(),
+									la.getOfficePhone(),
+									la.getHomePhone(),
+									lsa.getHome(),
+									la.getShell().getPath()
+								)
+							) != null
+						) {
+							throw new SQLException("Duplicate username: " + username);
+						}
+						if(username.equals(LinuxAccount.ROOT)) hasRoot = true;
+					}
+					if(!hasRoot) throw new SQLException(LinuxAccount.ROOT + " user not found");
+				}
+
+				// Build group data
+				{
+					int initialCapacity = lsgs.size()*4/3+1;
+					groups = new HashMap<>(initialCapacity);
+					groupEntries = new HashMap<>(initialCapacity);
+					boolean hasRoot = false;
+					for(LinuxServerGroup lsg : lsgs) {
+						GroupId groupName = lsg.getLinuxGroup().getName();
+						Set<UserId> groupMembers = new LinkedHashSet<>();
+						{
+							for(LinuxServerAccount altAccount : lsg.getAlternateLinuxServerAccounts()) {
+								UserId userId = altAccount.getLinuxAccount().getUsername().getUsername();
+								if(!groupMembers.add(userId)) throw new SQLException("Duplicate group member: " + userId);
+							}
+							if(groupName.equals(LinuxGroup.PROFTPD_JAILED)) {
+								if(
+									osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+									|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+								) {
+									for(FTPGuestUser guestUser : thisAoServer.getFTPGuestUsers()) {
+										groupMembers.add(guestUser.getLinuxAccount().getUsername().getUsername());
+									}
+								} else if(
+									osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+									|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
+								) {
+									// Nothing to do, no special FTP server groups
+								} else {
+									throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+								}
+							}
+						}
+						if(groups.put(groupName, groupMembers) != null) throw new SQLException("Duplicate group name: " + groupName);
+						if(
+							groupEntries.put(
+								groupName,
+								new GroupFile.Entry(
+									groupName,
+									lsg.getGid().getId(),
+									groupMembers
+								)
+							) != null
+						) {
+							throw new SQLException("Duplicate group name: " + groupName);
+						}
+						if(groupName.equals(LinuxGroup.ROOT)) hasRoot = true;
+					}
+					if(!hasRoot) throw new SQLException(LinuxGroup.ROOT + " group not found");
+				}
+
+				synchronized(PasswdFile.passwdLock) {
+					synchronized(ShadowFile.shadowLock) {
+						synchronized(GroupFile.groupLock) {
+							synchronized(GShadowFile.gshadowLock) {
+								byte[] newPasswdContent = PasswdFile.buildPasswdFile(passwdEntries, uid_min);
+								byte[] newShadowContent = ShadowFile.buildShadowFile(usernames);
+								byte[] newGroupContent = GroupFile.buildGroupFile(groupEntries, gid_min);
+								byte[] newGShadowContent = GShadowFile.buildGShadowFile(groups);
+
+								// Write any updates
+								PasswdFile.writePasswdFile(newPasswdContent);
+								ShadowFile.writeShadowFile(newShadowContent);
+								GroupFile.writeGroupFile(newGroupContent);
+								GShadowFile.writeGShadowFile(newGShadowContent);
+							}
 						}
 					}
 				}
 			}
+
+			// A list of all files to delete is created so that all the data can
+			// be backed-up before removal.
+			List<File> deleteFileList = new ArrayList<>();
 
 			if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 				// Create any inboxes that need to exist.
@@ -414,6 +490,7 @@ public class LinuxAccountManager extends BuilderThread {
 			/*
 			 * Remove any home directories that should not exist.
 			 */
+			if(true) throw new NotImplementedException("TODO: Review this carefully before going to production");
 			// TODO: Review this carefully
 			Set<String> keepHashDirs = new HashSet<>();
 			for(char ch='a'; ch<='z'; ch++) {
@@ -772,7 +849,7 @@ public class LinuxAccountManager extends BuilderThread {
 					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
 					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
 					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-					// TODO: CentOS 7 once system groups and accounts auto-added
+					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					linuxAccountManager = new LinuxAccountManager();

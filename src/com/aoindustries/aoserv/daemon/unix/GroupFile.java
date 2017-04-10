@@ -164,8 +164,10 @@ final public class GroupFile {
 
 	/**
 	 * Reads the full contents of /etc/group
+	 *
+	 * Must hold {@link #groupLock}
 	 */
-	private static Map<GroupId,Entry> readGroupFile() throws IOException {
+	public static Map<GroupId,Entry> readGroupFile() throws IOException {
 		assert Thread.holdsLock(groupLock);
 		try {
 			Map<GroupId,Entry> groupEntries = new LinkedHashMap<>();

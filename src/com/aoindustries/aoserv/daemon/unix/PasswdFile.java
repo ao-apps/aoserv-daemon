@@ -299,8 +299,10 @@ final public class PasswdFile {
 
 	/**
 	 * Reads the full contents of /etc/passwd
+	 *
+	 * Must hold {@link #passwdLock}
 	 */
-	private static Map<UserId,Entry> readPasswdFile() throws IOException {
+	public static Map<UserId,Entry> readPasswdFile() throws IOException {
 		assert Thread.holdsLock(passwdLock);
 		try {
 			Map<UserId,Entry> passwdEntries = new LinkedHashMap<>();
