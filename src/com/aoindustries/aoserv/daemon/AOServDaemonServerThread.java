@@ -216,7 +216,13 @@ final public class AOServDaemonServerThread extends Thread {
 					if(clientSeq != seq) throw new IOException("Sequence mismatch: " + clientSeq + " != " + seq);
 				}
 				// Increment sequence
-				seq++;
+				{
+					long currentSeq = seq++;
+					// Send command sequence
+					if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_1_SNAPSHOT) >= 0) {
+						out.writeLong(currentSeq); // out is buffered, so no I/O created by writing this early
+					}
+				}
 				// Continue with task
 				int taskCode = in.readCompressedInt();
 				if(taskCode == AOServDaemonProtocol.QUIT) break Loop;
