@@ -35,7 +35,6 @@ import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.NotImplementedException;
 import com.aoindustries.util.BufferManager;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.Tuple2;
@@ -69,6 +68,8 @@ import java.util.logging.Logger;
 /**
  * TODO: Watch for changes in /etc/passwd and /etc/group and auto-run rebuild.
  * TODO: This will more promptly add new system users and groups to the master.
+ *
+ * TODO: Manage /etc/sudoers.d
  *
  * @author  AO Industries, Inc.
  */
@@ -165,11 +166,12 @@ public class LinuxAccountManager extends BuilderThread {
 					}
 					boolean modified = false;
 					for(GroupFile.Entry entry : groupFile.values()) {
+						GroupId groupName = entry.getGroupName();
 						if(
 							entry.getGid() < gid_min
 							|| entry.getGid() > LinuxGroup.GID_MAX
+							|| groupName.equals(LinuxGroup.AOADMIN)
 						) {
-							GroupId groupName = entry.getGroupName();
 							boolean found = false;
 							for(LinuxServerGroup lsg : lsgs) {
 								if(lsg.getLinuxGroup().getName().equals(groupName)) {
@@ -197,11 +199,12 @@ public class LinuxAccountManager extends BuilderThread {
 					}
 					boolean modified = false;
 					for(PasswdFile.Entry entry : passwdFile.values()) {
+						UserId username = entry.getUsername();
 						if(
 							entry.getUid() < uid_min
 							|| entry.getUid() > LinuxAccount.UID_MAX
+							|| username.equals(LinuxAccount.AOADMIN)
 						) {
-							UserId username = entry.getUsername();
 							boolean found = false;
 							for(LinuxServerAccount lsa : lsas) {
 								if(lsa.getLinuxAccount().getUsername().getUsername().equals(username)) {
