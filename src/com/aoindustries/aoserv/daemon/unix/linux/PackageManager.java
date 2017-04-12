@@ -65,6 +65,7 @@ public class PackageManager {
 		POLICYCOREUTILS_PYTHON("policycoreutils-python"),
 		SENDMAIL("sendmail"),
 		SMARTMONTOOLS("smartmontools"),
+		SUDO("sudo"),
 		TAR("tar");
 
 		private final String rpmName;

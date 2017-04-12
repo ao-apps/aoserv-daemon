@@ -30,6 +30,7 @@ import com.aoindustries.aoserv.daemon.unix.GroupFile;
 import com.aoindustries.aoserv.daemon.unix.PasswdFile;
 import com.aoindustries.aoserv.daemon.unix.ShadowFile;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
+import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.io.FileUtils;
@@ -42,6 +43,7 @@ import com.aoindustries.validation.ValidationException;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -49,15 +51,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
+import java.io.Writer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.StandardOpenOption;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -68,8 +74,6 @@ import java.util.logging.Logger;
 /**
  * TODO: Watch for changes in /etc/passwd and /etc/group and auto-run rebuild.
  * TODO: This will more promptly add new system users and groups to the master.
- *
- * TODO: Manage /etc/sudoers.d
  *
  * @author  AO Industries, Inc.
  */
@@ -83,6 +87,8 @@ public class LinuxAccountManager extends BuilderThread {
 	 * TODO: Is this sufficient locking, or should we also lock each individual file while updating? (/etc/passwd.lock, ...)
 	 */
 	private static final File PWD_LOCK = new File("/etc/.pwd.lock");
+
+	private static final UnixFile SUDOERS_D = new UnixFile("/etc/sudoers.d");
 
 	private static final String BASHRC = ".bashrc";
 
@@ -580,6 +586,64 @@ public class LinuxAccountManager extends BuilderThread {
 						File toDelete = new File(cronDirectory, filename);
 						if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
 						deleteFileList.add(toDelete);
+					}
+				}
+			}
+
+			// Configure sudo
+			if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+				Map<String,String> sudoers = new LinkedHashMap<>();
+				for(LinuxServerAccount lsa : lsas) {
+					String sudo = lsa.getSudo();
+					if(sudo != null) {
+						sudoers.put(lsa.getLinuxAccount().getUsername().getUsername().toString(), sudo);
+					}
+				}
+				if(!sudoers.isEmpty()) {
+					// Install package when first needed
+					PackageManager.installPackage(PackageManager.PackageName.SUDO);
+					// Create /etc/sudoers.d if missing
+					if(!SUDOERS_D.getStat().exists()) SUDOERS_D.mkdir(false, 0750);
+					// Update any files
+					ByteArrayOutputStream bout = new ByteArrayOutputStream();
+					for(Map.Entry<String,String> entry : sudoers.entrySet()) {
+						String username = entry.getKey();
+						String sudo = entry.getValue();
+						bout.reset();
+						try (Writer out = new OutputStreamWriter(bout, StandardCharsets.UTF_8)) {
+							out.write("##\n"
+								+ "## Configured by ");
+							out.write(LinuxAccountManager.class.getName());
+							out.write(".\n"
+								+ "## \n"
+								+ "## See ");
+							out.write(LinuxServerAccount.class.getName());
+							out.write(".getSudo()\n"
+								+ "##\n");
+							out.write(username);
+							out.write(' ');
+							out.write(sudo);
+							out.write('\n');
+						}
+						DaemonFileUtils.atomicWrite(
+							new UnixFile(SUDOERS_D, username, true),
+							null,
+							bout.toByteArray(),
+							0440,
+							UnixFile.ROOT_UID,
+							UnixFile.ROOT_GID
+						);
+					}
+				}
+				// Delete any extra files
+				String[] list = SUDOERS_D.list();
+				if(list != null) {
+					for(String filename : list) {
+						if(!sudoers.containsKey(filename)) {
+							File toDelete = new File(SUDOERS_D.getFile(), filename);
+							if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+							deleteFileList.add(toDelete);
+						}
 					}
 				}
 			}

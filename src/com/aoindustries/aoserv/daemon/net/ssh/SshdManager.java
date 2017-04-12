@@ -229,6 +229,7 @@ final public class SshdManager extends BuilderThread {
 				+ "# Authentication:\n"
 				+ "\n"
 				+ "#LoginGraceTime 2m\n"
+			// TODO: When there is at least one non-disabled sudoer, should this be automatically set to "no"?
 				+ "#PermitRootLogin yes\n"
 				+ "#StrictModes yes\n"
 				+ "#MaxAuthTries 6\n"
