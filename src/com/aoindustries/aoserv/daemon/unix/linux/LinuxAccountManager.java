@@ -437,13 +437,15 @@ public class LinuxAccountManager extends BuilderThread {
 			for(LinuxServerAccount lsa : lsas) {
 				LinuxAccount la = lsa.getLinuxAccount();
 				String type = la.getType().getName();
+				UserId username = la.getUsername().getUsername();
 				LinuxServerGroup primaryLsg = lsa.getPrimaryLinuxServerGroup();
 				int uid = lsa.getUid().getId();
 				int gid = primaryLsg.getGid().getId();
 
 				boolean copySkel = false;
 
-				final UnixFile homeDir = new UnixFile(lsa.getHome().toString());
+				final UnixPath homePath = lsa.getHome();
+				final UnixFile homeDir = new UnixFile(homePath.toString());
 				if(!homeDir.getStat().exists()) {
 					// Make the parent of the home directory if it does not exist
 					UnixFile parent = homeDir.getParent();
@@ -451,10 +453,35 @@ public class LinuxAccountManager extends BuilderThread {
 						if(logger.isLoggable(Level.INFO)) logger.info("mkdir \"" + parent + '"');
 						parent.mkdir(true, 0755);
 					}
-					// Make the home directory
-					if(logger.isLoggable(Level.INFO)) logger.info("mkdir \"" + homeDir + '"');
-					homeDir.mkdir(false, 0700);
-					copySkel = true;
+					// Look for home directory being moved
+					UnixFile oldHome;
+					{
+						UnixPath defaultHome = LinuxServerAccount.getDefaultHomeDirectory(username);
+						UnixPath hashedHome = LinuxServerAccount.getHashedHomeDirectory(username);
+						if(homePath.equals(defaultHome)) {
+							oldHome = new UnixFile(hashedHome.toString());
+						} else if(homePath.equals(hashedHome)) {
+							oldHome = new UnixFile(defaultHome.toString());
+						} else {
+							oldHome = null;
+						}
+					}
+					if(
+						oldHome != null
+						// Don't move a home directory still being used
+						&& !homeDirs.contains(oldHome.getPath())
+						// Only move when exists
+						&& oldHome.getStat().exists()
+					) {
+						// Move the home directory from old location
+						if(logger.isLoggable(Level.INFO)) logger.info("mv \"" + oldHome + "\" \"" + homeDir + '"');
+						oldHome.renameTo(homeDir);
+					} else {
+						// Make the home directory
+						if(logger.isLoggable(Level.INFO)) logger.info("mkdir \"" + homeDir + '"');
+						homeDir.mkdir(false, 0700);
+						copySkel = true;
+					}
 				}
 				// Set up the directory if it was just created or was created as root before
 				final String homeStr = homeDir.getPath();
@@ -646,6 +673,14 @@ public class LinuxAccountManager extends BuilderThread {
 						}
 					}
 				}
+			} else if(
+				osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+				|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+				|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			) {
+				// Not supporting sudo on these operating system versions
+			} else {
+				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 			}
 
 			// Disable and enable accounts
