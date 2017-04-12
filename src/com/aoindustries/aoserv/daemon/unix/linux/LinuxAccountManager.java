@@ -160,651 +160,668 @@ public class LinuxAccountManager extends BuilderThread {
 			final Map<GroupId,Set<UserId>> groups;
 			final Map<GroupId,GroupFile.Entry> groupEntries;
 
-			try (
-				FileChannel fileChannel = FileChannel.open(PWD_LOCK.toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE);
-				FileLock fileLock = fileChannel.lock();
-			) {
-				// Add any system groups found, updating lsgs
-				{
-					Map<GroupId,GroupFile.Entry> groupFile;
-					synchronized(GroupFile.groupLock) {
-						groupFile = GroupFile.readGroupFile();
-					}
-					boolean modified = false;
-					for(GroupFile.Entry entry : groupFile.values()) {
-						GroupId groupName = entry.getGroupName();
-						if(
-							entry.getGid() < gid_min
-							|| entry.getGid() > LinuxGroup.GID_MAX
-							|| groupName.equals(LinuxGroup.AOADMIN)
-						) {
-							boolean found = false;
-							for(LinuxServerGroup lsg : lsgs) {
-								if(lsg.getLinuxGroup().getName().equals(groupName)) {
-									found = true;
-									break;
+			Set<UnixFile> restorecon = new LinkedHashSet<>();
+			try {
+				try (
+					FileChannel fileChannel = FileChannel.open(PWD_LOCK.toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE);
+					FileLock fileLock = fileChannel.lock();
+				) {
+					// Add any system groups found, updating lsgs
+					{
+						Map<GroupId,GroupFile.Entry> groupFile;
+						synchronized(GroupFile.groupLock) {
+							groupFile = GroupFile.readGroupFile();
+						}
+						boolean modified = false;
+						for(GroupFile.Entry entry : groupFile.values()) {
+							GroupId groupName = entry.getGroupName();
+							if(
+								entry.getGid() < gid_min
+								|| entry.getGid() > LinuxGroup.GID_MAX
+								|| groupName.equals(LinuxGroup.AOADMIN)
+							) {
+								boolean found = false;
+								for(LinuxServerGroup lsg : lsgs) {
+									if(lsg.getLinuxGroup().getName().equals(groupName)) {
+										found = true;
+										break;
+									}
 								}
-							}
-							if(!found) {
-								int gid = entry.getGid();
-								if(logger.isLoggable(Level.FINE)) {
-									logger.fine("Adding system group: " + groupName + " #" + gid);
+								if(!found) {
+									int gid = entry.getGid();
+									if(logger.isLoggable(Level.FINE)) {
+										logger.fine("Adding system group: " + groupName + " #" + gid);
+									}
+									thisAoServer.addSystemGroup(groupName, gid);
+									modified = true;
 								}
-								thisAoServer.addSystemGroup(groupName, gid);
-								modified = true;
 							}
 						}
+						if(modified) lsgs = thisAoServer.getLinuxServerGroups();
 					}
-					if(modified) lsgs = thisAoServer.getLinuxServerGroups();
-				}
-				// Add any system users found, updating lsas
-				{
-					Map<UserId,PasswdFile.Entry> passwdFile;
-					synchronized(PasswdFile.passwdLock) {
-						passwdFile = PasswdFile.readPasswdFile();
-					}
-					boolean modified = false;
-					for(PasswdFile.Entry entry : passwdFile.values()) {
-						UserId username = entry.getUsername();
-						if(
-							entry.getUid() < uid_min
-							|| entry.getUid() > LinuxAccount.UID_MAX
-							|| username.equals(LinuxAccount.AOADMIN)
-						) {
-							boolean found = false;
-							for(LinuxServerAccount lsa : lsas) {
-								if(lsa.getLinuxAccount().getUsername().getUsername().equals(username)) {
-									found = true;
-									break;
+					// Add any system users found, updating lsas
+					{
+						Map<UserId,PasswdFile.Entry> passwdFile;
+						synchronized(PasswdFile.passwdLock) {
+							passwdFile = PasswdFile.readPasswdFile();
+						}
+						boolean modified = false;
+						for(PasswdFile.Entry entry : passwdFile.values()) {
+							UserId username = entry.getUsername();
+							if(
+								entry.getUid() < uid_min
+								|| entry.getUid() > LinuxAccount.UID_MAX
+								|| username.equals(LinuxAccount.AOADMIN)
+							) {
+								boolean found = false;
+								for(LinuxServerAccount lsa : lsas) {
+									if(lsa.getLinuxAccount().getUsername().getUsername().equals(username)) {
+										found = true;
+										break;
+									}
+								}
+								if(!found) {
+									int uid = entry.getUid();
+									if(logger.isLoggable(Level.FINE)) {
+										logger.fine("Adding system user: " + username + " #" + uid);
+									}
+									thisAoServer.addSystemUser(
+										username,
+										uid,
+										entry.getGid(),
+										entry.getFullName(),
+										entry.getOfficeLocation(),
+										entry.getOfficePhone(),
+										entry.getHomePhone(),
+										entry.getHome(),
+										entry.getShell()
+									);
+									modified = true;
 								}
 							}
-							if(!found) {
-								int uid = entry.getUid();
-								if(logger.isLoggable(Level.FINE)) {
-									logger.fine("Adding system user: " + username + " #" + uid);
-								}
-								thisAoServer.addSystemUser(
+						}
+						if(modified) lsas = thisAoServer.getLinuxServerAccounts();
+					}
+
+					// Install /usr/bin/ftppasswd and /usr/bin/ftponly if required by any LinuxServerAccount
+					for(LinuxServerAccount lsa : lsas) {
+						UnixPath shellPath = lsa.getLinuxAccount().getShell().getPath();
+						if(
+							shellPath.equals(Shell.FTPONLY)
+							|| shellPath.equals(Shell.FTPPASSWD)
+						) {
+							hasFtpShell = true;
+							break;
+						}
+					}
+					if(hasFtpShell) {
+						PackageManager.installPackage(PackageManager.PackageName.AOSERV_FTP_SHELLS);
+					}
+
+					// Add /usr/bin/passwd to /etc/shells if required by any LinuxServerAccount
+					for(LinuxServerAccount lsa : lsas) {
+						if(lsa.getLinuxAccount().getShell().getPath().equals(Shell.PASSWD)) {
+							hasPasswdShell = true;
+							break;
+						}
+					}
+					if(hasPasswdShell) {
+						PackageManager.installPackage(PackageManager.PackageName.AOSERV_PASSWD_SHELL);
+					}
+
+					// Build passwd data
+					{
+						int initialCapacity = lsas.size()*4/3+1;
+						usernames     = new HashSet<>(initialCapacity);
+						usernameStrs  = new HashSet<>(initialCapacity);
+						uids          = new HashSet<>(initialCapacity);
+						homeDirs      = new HashSet<>(initialCapacity);
+						passwdEntries = new HashMap<>(initialCapacity);
+						boolean hasRoot = false;
+						for(LinuxServerAccount lsa : lsas) {
+							LinuxAccount la = lsa.getLinuxAccount();
+							UserId username = la.getUsername().getUsername();
+							if(!usernames.add(username)) throw new SQLException("Duplicate username: " + username);
+							if(!usernameStrs.add(username.toString())) throw new AssertionError();
+							uids.add(lsa.getUid().getId());
+							homeDirs.add(lsa.getHome().toString());
+							LinuxServerGroup primaryGroup = lsa.getPrimaryLinuxServerGroup();
+							if(primaryGroup == null) throw new SQLException("Unable to find primary LinuxServerGroup for username=" + username + " on " + lsa.getAOServer());
+							if(
+								passwdEntries.put(
 									username,
-									uid,
-									entry.getGid(),
-									entry.getFullName(),
-									entry.getOfficeLocation(),
-									entry.getOfficePhone(),
-									entry.getHomePhone(),
-									entry.getHome(),
-									entry.getShell()
-								);
-								modified = true;
+									new PasswdFile.Entry(
+										username,
+										lsa.getUid().getId(),
+										primaryGroup.getGid().getId(),
+										la.getName(),
+										la.getOfficeLocation(),
+										la.getOfficePhone(),
+										la.getHomePhone(),
+										lsa.getHome(),
+										la.getShell().getPath()
+									)
+								) != null
+							) {
+								throw new SQLException("Duplicate username: " + username);
+							}
+							if(username.equals(LinuxAccount.ROOT)) hasRoot = true;
+						}
+						if(!hasRoot) throw new SQLException(LinuxAccount.ROOT + " user not found");
+					}
+
+					// Build group data
+					{
+						int initialCapacity = lsgs.size()*4/3+1;
+						groups = new HashMap<>(initialCapacity);
+						groupEntries = new HashMap<>(initialCapacity);
+						boolean hasRoot = false;
+						for(LinuxServerGroup lsg : lsgs) {
+							GroupId groupName = lsg.getLinuxGroup().getName();
+							Set<UserId> groupMembers = new LinkedHashSet<>();
+							{
+								for(LinuxServerAccount altAccount : lsg.getAlternateLinuxServerAccounts()) {
+									UserId userId = altAccount.getLinuxAccount().getUsername().getUsername();
+									if(!groupMembers.add(userId)) throw new SQLException("Duplicate group member: " + userId);
+								}
+								if(groupName.equals(LinuxGroup.PROFTPD_JAILED)) {
+									if(
+										osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+										|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+									) {
+										for(FTPGuestUser guestUser : thisAoServer.getFTPGuestUsers()) {
+											groupMembers.add(guestUser.getLinuxAccount().getUsername().getUsername());
+										}
+									} else if(
+										osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+										|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
+									) {
+										// Nothing to do, no special FTP server groups
+									} else {
+										throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+									}
+								}
+							}
+							if(groups.put(groupName, groupMembers) != null) throw new SQLException("Duplicate group name: " + groupName);
+							if(
+								groupEntries.put(
+									groupName,
+									new GroupFile.Entry(
+										groupName,
+										lsg.getGid().getId(),
+										groupMembers
+									)
+								) != null
+							) {
+								throw new SQLException("Duplicate group name: " + groupName);
+							}
+							if(groupName.equals(LinuxGroup.ROOT)) hasRoot = true;
+						}
+						if(!hasRoot) throw new SQLException(LinuxGroup.ROOT + " group not found");
+					}
+
+					synchronized(PasswdFile.passwdLock) {
+						synchronized(ShadowFile.shadowLock) {
+							synchronized(GroupFile.groupLock) {
+								synchronized(GShadowFile.gshadowLock) {
+									// Build new file contents
+									byte[] newPasswdContent  = PasswdFile .buildPasswdFile (passwdEntries, uid_min);
+									byte[] newShadowContent  = ShadowFile .buildShadowFile (usernames);
+									byte[] newGroupContent   = GroupFile  .buildGroupFile  (groupEntries, gid_min);
+									byte[] newGShadowContent = GShadowFile.buildGShadowFile(groups);
+									// Write any updates
+									PasswdFile .writePasswdFile (newPasswdContent,  restorecon);
+									ShadowFile .writeShadowFile (newShadowContent,  restorecon);
+									GroupFile  .writeGroupFile  (newGroupContent,   restorecon);
+									GShadowFile.writeGShadowFile(newGShadowContent, restorecon);
+								}
 							}
 						}
 					}
-					if(modified) lsas = thisAoServer.getLinuxServerAccounts();
+					// restorecon any changed before releasing lock
+					DaemonFileUtils.restorecon(restorecon);
+					restorecon.clear();
 				}
+				// A list of all files to delete is created so that all the data can
+				// be backed-up before removal.
+				List<File> deleteFileList = new ArrayList<>();
 
-				// Install /usr/bin/ftppasswd and /usr/bin/ftponly if required by any LinuxServerAccount
-				for(LinuxServerAccount lsa : lsas) {
-					UnixPath shellPath = lsa.getLinuxAccount().getShell().getPath();
-					if(
-						shellPath.equals(Shell.FTPONLY)
-						|| shellPath.equals(Shell.FTPPASSWD)
-					) {
-						hasFtpShell = true;
-						break;
-					}
-				}
-				if(hasFtpShell) {
-					PackageManager.installPackage(PackageManager.PackageName.AOSERV_FTP_SHELLS);
-				}
-
-				// Add /usr/bin/passwd to /etc/shells if required by any LinuxServerAccount
-				for(LinuxServerAccount lsa : lsas) {
-					if(lsa.getLinuxAccount().getShell().getPath().equals(Shell.PASSWD)) {
-						hasPasswdShell = true;
-						break;
-					}
-				}
-				if(hasPasswdShell) {
-					PackageManager.installPackage(PackageManager.PackageName.AOSERV_PASSWD_SHELL);
-				}
-
-				// Build passwd data
-				{
-					int initialCapacity = lsas.size()*4/3+1;
-					usernames     = new HashSet<>(initialCapacity);
-					usernameStrs  = new HashSet<>(initialCapacity);
-					uids          = new HashSet<>(initialCapacity);
-					homeDirs      = new HashSet<>(initialCapacity);
-					passwdEntries = new HashMap<>(initialCapacity);
-					boolean hasRoot = false;
+				if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+					// Create any inboxes that need to exist.
+					LinuxServerGroup mailGroup = connector.getLinuxGroups().get(LinuxGroup.MAIL).getLinuxServerGroup(thisAoServer);
+					if(mailGroup == null) throw new SQLException("Unable to find LinuxServerGroup: " + LinuxGroup.MAIL + " on " + thisAoServer.getHostname());
 					for(LinuxServerAccount lsa : lsas) {
 						LinuxAccount la = lsa.getLinuxAccount();
-						UserId username = la.getUsername().getUsername();
-						if(!usernames.add(username)) throw new SQLException("Duplicate username: " + username);
-						if(!usernameStrs.add(username.toString())) throw new AssertionError();
-						uids.add(lsa.getUid().getId());
-						homeDirs.add(lsa.getHome().toString());
-						LinuxServerGroup primaryGroup = lsa.getPrimaryLinuxServerGroup();
-						if(primaryGroup == null) throw new SQLException("Unable to find primary LinuxServerGroup for username=" + username + " on " + lsa.getAOServer());
-						if(
-							passwdEntries.put(
-								username,
-								new PasswdFile.Entry(
-									username,
+						if(la.getType().isEmail()) {
+							UserId username = la.getUsername().getUsername();
+							File file = new File(ImapManager.mailSpool, username.toString());
+							if(!file.exists()) {
+								UnixFile unixFile = new UnixFile(file.getPath());
+								if(logger.isLoggable(Level.INFO)) logger.info("Creating inbox: \"" + unixFile + '"');
+								unixFile.getSecureOutputStream(
 									lsa.getUid().getId(),
-									primaryGroup.getGid().getId(),
-									la.getName(),
-									la.getOfficeLocation(),
-									la.getOfficePhone(),
-									la.getHomePhone(),
-									lsa.getHome(),
-									la.getShell().getPath()
-								)
-							) != null
-						) {
-							throw new SQLException("Duplicate username: " + username);
-						}
-						if(username.equals(LinuxAccount.ROOT)) hasRoot = true;
-					}
-					if(!hasRoot) throw new SQLException(LinuxAccount.ROOT + " user not found");
-				}
-
-				// Build group data
-				{
-					int initialCapacity = lsgs.size()*4/3+1;
-					groups = new HashMap<>(initialCapacity);
-					groupEntries = new HashMap<>(initialCapacity);
-					boolean hasRoot = false;
-					for(LinuxServerGroup lsg : lsgs) {
-						GroupId groupName = lsg.getLinuxGroup().getName();
-						Set<UserId> groupMembers = new LinkedHashSet<>();
-						{
-							for(LinuxServerAccount altAccount : lsg.getAlternateLinuxServerAccounts()) {
-								UserId userId = altAccount.getLinuxAccount().getUsername().getUsername();
-								if(!groupMembers.add(userId)) throw new SQLException("Duplicate group member: " + userId);
+									mailGroup.getGid().getId(),
+									0660,
+									false,
+									uid_min,
+									gid_min
+								).close();
 							}
-							if(groupName.equals(LinuxGroup.PROFTPD_JAILED)) {
+						}
+					}
+
+					// Remove any inboxes that should not exist.
+					String[] list = ImapManager.mailSpool.list();
+					if(list != null) {
+						for(String filename : list) {
+							if(!usernameStrs.contains(filename)) {
+								// Also allow a username.lock file to remain
 								if(
-									osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-									|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+									!filename.endsWith(".lock")
+									|| !usernameStrs.contains(filename.substring(0, filename.length() - ".lock".length()))
 								) {
-									for(FTPGuestUser guestUser : thisAoServer.getFTPGuestUsers()) {
-										groupMembers.add(guestUser.getLinuxAccount().getUsername().getUsername());
-									}
-								} else if(
-									osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-									|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
-								) {
-									// Nothing to do, no special FTP server groups
-								} else {
-									throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+									File spoolFile = new File(ImapManager.mailSpool, filename);
+									if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + spoolFile);
+									deleteFileList.add(spoolFile);
 								}
 							}
 						}
-						if(groups.put(groupName, groupMembers) != null) throw new SQLException("Duplicate group name: " + groupName);
-						if(
-							groupEntries.put(
-								groupName,
-								new GroupFile.Entry(
-									groupName,
-									lsg.getGid().getId(),
-									groupMembers
-								)
-							) != null
-						) {
-							throw new SQLException("Duplicate group name: " + groupName);
-						}
-						if(groupName.equals(LinuxGroup.ROOT)) hasRoot = true;
 					}
-					if(!hasRoot) throw new SQLException(LinuxGroup.ROOT + " group not found");
+				} else if(
+					osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
+				) {
+					// Nothing done, user management put in ImapManager
+				} else {
+					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 				}
 
-				synchronized(PasswdFile.passwdLock) {
-					synchronized(ShadowFile.shadowLock) {
-						synchronized(GroupFile.groupLock) {
-							synchronized(GShadowFile.gshadowLock) {
-								// Build new file contents
-								byte[] newPasswdContent  = PasswdFile .buildPasswdFile (passwdEntries, uid_min);
-								byte[] newShadowContent  = ShadowFile .buildShadowFile (usernames);
-								byte[] newGroupContent   = GroupFile  .buildGroupFile  (groupEntries, gid_min);
-								byte[] newGShadowContent = GShadowFile.buildGShadowFile(groups);
-								// Write any updates
-								PasswdFile .writePasswdFile (newPasswdContent);
-								ShadowFile .writeShadowFile (newShadowContent);
-								GroupFile  .writeGroupFile  (newGroupContent);
-								GShadowFile.writeGShadowFile(newGShadowContent);
-							}
-						}
-					}
-				}
-			}
-
-			// A list of all files to delete is created so that all the data can
-			// be backed-up before removal.
-			List<File> deleteFileList = new ArrayList<>();
-
-			if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-				// Create any inboxes that need to exist.
-				LinuxServerGroup mailGroup = connector.getLinuxGroups().get(LinuxGroup.MAIL).getLinuxServerGroup(thisAoServer);
-				if(mailGroup == null) throw new SQLException("Unable to find LinuxServerGroup: " + LinuxGroup.MAIL + " on " + thisAoServer.getHostname());
+				// Create any home directories that do not exist.
 				for(LinuxServerAccount lsa : lsas) {
 					LinuxAccount la = lsa.getLinuxAccount();
-					if(la.getType().isEmail()) {
-						UserId username = la.getUsername().getUsername();
-						File file = new File(ImapManager.mailSpool, username.toString());
-						if(!file.exists()) {
-							UnixFile unixFile = new UnixFile(file.getPath());
-							if(logger.isLoggable(Level.INFO)) logger.info("Creating inbox: \"" + unixFile + '"');
-							unixFile.getSecureOutputStream(
-								lsa.getUid().getId(),
-								mailGroup.getGid().getId(),
-								0660,
-								false,
-								uid_min,
-								gid_min
-							).close();
-						}
-					}
-				}
+					String type = la.getType().getName();
+					UserId username = la.getUsername().getUsername();
+					LinuxServerGroup primaryLsg = lsa.getPrimaryLinuxServerGroup();
+					int uid = lsa.getUid().getId();
+					int gid = primaryLsg.getGid().getId();
 
-				// Remove any inboxes that should not exist.
-				String[] list = ImapManager.mailSpool.list();
-				if(list != null) {
-					for(String filename : list) {
-						if(!usernameStrs.contains(filename)) {
-							// Also allow a username.lock file to remain
-							if(
-								!filename.endsWith(".lock")
-								|| !usernameStrs.contains(filename.substring(0, filename.length() - ".lock".length()))
-							) {
-								File spoolFile = new File(ImapManager.mailSpool, filename);
-								if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + spoolFile);
-								deleteFileList.add(spoolFile);
+					boolean copySkel = false;
+
+					final UnixPath homePath = lsa.getHome();
+					final UnixFile homeDir = new UnixFile(homePath.toString());
+					if(!homeDir.getStat().exists()) {
+						// Make the parent of the home directory if it does not exist
+						UnixFile parent = homeDir.getParent();
+						if(!parent.getStat().exists()) {
+							if(logger.isLoggable(Level.INFO)) logger.info("mkdir \"" + parent + '"');
+							parent.mkdir(true, 0755);
+						}
+						// Look for home directory being moved
+						UnixFile oldHome;
+						{
+							UnixPath defaultHome = LinuxServerAccount.getDefaultHomeDirectory(username);
+							UnixPath hashedHome = LinuxServerAccount.getHashedHomeDirectory(username);
+							if(homePath.equals(defaultHome)) {
+								oldHome = new UnixFile(hashedHome.toString());
+							} else if(homePath.equals(hashedHome)) {
+								oldHome = new UnixFile(defaultHome.toString());
+							} else {
+								oldHome = null;
 							}
 						}
-					}
-				}
-			} else if(
-				osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-				|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-				|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
-			) {
-				// Nothing done, user management put in ImapManager
-			} else {
-				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-			}
-
-			// Create any home directories that do not exist.
-			for(LinuxServerAccount lsa : lsas) {
-				LinuxAccount la = lsa.getLinuxAccount();
-				String type = la.getType().getName();
-				UserId username = la.getUsername().getUsername();
-				LinuxServerGroup primaryLsg = lsa.getPrimaryLinuxServerGroup();
-				int uid = lsa.getUid().getId();
-				int gid = primaryLsg.getGid().getId();
-
-				boolean copySkel = false;
-
-				final UnixPath homePath = lsa.getHome();
-				final UnixFile homeDir = new UnixFile(homePath.toString());
-				if(!homeDir.getStat().exists()) {
-					// Make the parent of the home directory if it does not exist
-					UnixFile parent = homeDir.getParent();
-					if(!parent.getStat().exists()) {
-						if(logger.isLoggable(Level.INFO)) logger.info("mkdir \"" + parent + '"');
-						parent.mkdir(true, 0755);
-					}
-					// Look for home directory being moved
-					UnixFile oldHome;
-					{
-						UnixPath defaultHome = LinuxServerAccount.getDefaultHomeDirectory(username);
-						UnixPath hashedHome = LinuxServerAccount.getHashedHomeDirectory(username);
-						if(homePath.equals(defaultHome)) {
-							oldHome = new UnixFile(hashedHome.toString());
-						} else if(homePath.equals(hashedHome)) {
-							oldHome = new UnixFile(defaultHome.toString());
+						if(
+							oldHome != null
+							// Don't move a home directory still being used
+							&& !homeDirs.contains(oldHome.getPath())
+							// Only move when exists
+							&& oldHome.getStat().exists()
+						) {
+							// Move the home directory from old location
+							if(logger.isLoggable(Level.INFO)) logger.info("mv \"" + oldHome + "\" \"" + homeDir + '"');
+							oldHome.renameTo(homeDir);
+							// This moved directory requires restorecon
+							restorecon.add(homeDir);
 						} else {
-							oldHome = null;
+							// Make the home directory
+							if(logger.isLoggable(Level.INFO)) logger.info("mkdir \"" + homeDir + '"');
+							homeDir.mkdir(false, 0700);
+							copySkel = true;
 						}
 					}
-					if(
-						oldHome != null
-						// Don't move a home directory still being used
-						&& !homeDirs.contains(oldHome.getPath())
-						// Only move when exists
-						&& oldHome.getStat().exists()
-					) {
-						// Move the home directory from old location
-						if(logger.isLoggable(Level.INFO)) logger.info("mv \"" + oldHome + "\" \"" + homeDir + '"');
-						oldHome.renameTo(homeDir);
-					} else {
-						// Make the home directory
-						if(logger.isLoggable(Level.INFO)) logger.info("mkdir \"" + homeDir + '"');
-						homeDir.mkdir(false, 0700);
-						copySkel = true;
-					}
-				}
-				// Set up the directory if it was just created or was created as root before
-				final String homeStr = homeDir.getPath();
-				// Homes in /www will have all the skel copied, but will not set the directory perms
-				boolean isWWWAndUser =
-					homeStr.startsWith(osConfig.getHttpdSitesDirectory().toString() + '/')
-					&& (type.equals(LinuxAccountType.USER) || type.equals(LinuxAccountType.APPLICATION))
-					&& la.getFTPGuestUser() == null
-				;
-				// Only build directories for accounts that are in /home/ or user account in /www/
-				if(
-					isWWWAndUser
-					|| homeStr.startsWith("/home/")
-				) {
-					boolean chownHome;
-					{
-						Stat homeDirStat = homeDir.getStat();
-						chownHome = (
-							!isWWWAndUser
-							&& (
-								homeDirStat.getUid() == UnixFile.ROOT_UID
-								|| homeDirStat.getGid() == UnixFile.ROOT_GID
-							)
-							// Do not set permissions for encrypted home directories
-							&& !(new UnixFile(homeStr + ".aes256.img").getStat().exists())
-						);
-						if(chownHome) copySkel = true;
-					}
-					// Copy the /etc/skel directory
-					if(
-						copySkel
-						// Only copy the files for user accounts
+					// Set up the directory if it was just created or was created as root before
+					final String homeStr = homeDir.getPath();
+					// Homes in /www will have all the skel copied, but will not set the directory perms
+					boolean isWWWAndUser =
+						homeStr.startsWith(osConfig.getHttpdSitesDirectory().toString() + '/')
 						&& (type.equals(LinuxAccountType.USER) || type.equals(LinuxAccountType.APPLICATION))
+						&& la.getFTPGuestUser() == null
+					;
+					// Only build directories for accounts that are in /home/ or user account in /www/
+					if(
+						isWWWAndUser
+						|| homeStr.startsWith("/home/")
 					) {
-						File skel = new File("/etc/skel");
-						String[] skelList = skel.list();
-						if(skelList != null) {
-							for(String filename : skelList) {
-								UnixFile homeFile = new UnixFile(homeDir, filename, true);
-								if(!homeFile.getStat().exists()) {
-									UnixFile skelFile = new UnixFile(skel, filename);
-									if(logger.isLoggable(Level.INFO)) logger.info("cp \"" + skelFile + "\" \"" + homeFile + '"');
-									skelFile.copyTo(homeFile, false);
-									if(logger.isLoggable(Level.INFO)) logger.info("chown " + uid + ':' + gid + " \"" + homeFile + '"');
-									homeFile.chown(uid, gid);
+						boolean chownHome;
+						{
+							Stat homeDirStat = homeDir.getStat();
+							chownHome = (
+								!isWWWAndUser
+								&& (
+									homeDirStat.getUid() == UnixFile.ROOT_UID
+									|| homeDirStat.getGid() == UnixFile.ROOT_GID
+								)
+								// Do not set permissions for encrypted home directories
+								&& !(new UnixFile(homeStr + ".aes256.img").getStat().exists())
+							);
+							if(chownHome) copySkel = true;
+						}
+						// Copy the /etc/skel directory
+						if(
+							copySkel
+							// Only copy the files for user accounts
+							&& (type.equals(LinuxAccountType.USER) || type.equals(LinuxAccountType.APPLICATION))
+						) {
+							File skel = new File("/etc/skel");
+							String[] skelList = skel.list();
+							if(skelList != null) {
+								for(String filename : skelList) {
+									UnixFile homeFile = new UnixFile(homeDir, filename, true);
+									if(!homeFile.getStat().exists()) {
+										UnixFile skelFile = new UnixFile(skel, filename);
+										if(logger.isLoggable(Level.INFO)) logger.info("cp \"" + skelFile + "\" \"" + homeFile + '"');
+										skelFile.copyTo(homeFile, false);
+										if(logger.isLoggable(Level.INFO)) logger.info("chown " + uid + ':' + gid + " \"" + homeFile + '"');
+										homeFile.chown(uid, gid);
+									}
 								}
 							}
 						}
-					}
-					// Set final directory ownership now that home directory completely setup
-					if(chownHome) {
-						if(logger.isLoggable(Level.INFO)) logger.info("chown " + uid + ':' + gid + " \"" + homeDir + '"');
-						homeDir.chown(uid, gid);
-						// Now done in mkdir above: homeDir.setMode(0700);
+						// Set final directory ownership now that home directory completely setup
+						if(chownHome) {
+							if(logger.isLoggable(Level.INFO)) logger.info("chown " + uid + ':' + gid + " \"" + homeDir + '"');
+							homeDir.chown(uid, gid);
+							// Now done in mkdir above: homeDir.setMode(0700);
+						}
 					}
 				}
-			}
 
-			/*
-			 * Remove any home directories that should not exist.
-			 */
-			Set<String> keepHashDirs = new HashSet<>();
-			for(char ch='a'; ch<='z'; ch++) {
-				UnixFile hashDir = new UnixFile("/home/" + ch);
-				if(homeDirs.contains(hashDir.getPath())) {
-					if(logger.isLoggable(Level.FINE)) logger.fine("hashDir is a home directory, not cleaning: " + hashDir);
-				} else if(hashDir.getStat().exists()) {
-					boolean hasHomeDir = false;
-					List<File> hashDirToDelete = new ArrayList<>();
-					String[] homeList = hashDir.list();
-					if(homeList != null) {
-						for(String dirName : homeList) {
-							UnixFile dir = new UnixFile(hashDir, dirName, true);
-							String dirPath = dir.getPath();
+				// restorecon any moved home directories
+				DaemonFileUtils.restorecon(restorecon);
+				restorecon.clear();
+
+				/*
+				 * Remove any home directories that should not exist.
+				 */
+				Set<String> keepHashDirs = new HashSet<>();
+				for(char ch='a'; ch<='z'; ch++) {
+					UnixFile hashDir = new UnixFile("/home/" + ch);
+					if(homeDirs.contains(hashDir.getPath())) {
+						if(logger.isLoggable(Level.FINE)) logger.fine("hashDir is a home directory, not cleaning: " + hashDir);
+					} else if(hashDir.getStat().exists()) {
+						boolean hasHomeDir = false;
+						List<File> hashDirToDelete = new ArrayList<>();
+						String[] homeList = hashDir.list();
+						if(homeList != null) {
+							for(String dirName : homeList) {
+								UnixFile dir = new UnixFile(hashDir, dirName, true);
+								String dirPath = dir.getPath();
+								// Allow encrypted form of home directory
+								if(dirPath.endsWith(".aes256.img")) dirPath = dirPath.substring(0, dirPath.length() - ".aes256.img".length());
+								if(homeDirs.contains(dirPath)) {
+									if(logger.isLoggable(Level.FINE)) logger.fine("hashDir has home directory: " + dir);
+									hasHomeDir = true;
+								} else {
+									if(logger.isLoggable(Level.FINE)) logger.fine("hashDir has an extra directory: " + dir);
+									hashDirToDelete.add(dir.getFile());
+								}
+							}
+						}
+						if(hasHomeDir) {
+							if(logger.isLoggable(Level.FINE)) logger.fine("hashDir still has home directories: " + hashDir);
+							for(File toDelete : hashDirToDelete) {
+								if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+								deleteFileList.add(toDelete);
+							}
+							keepHashDirs.add(hashDir.getPath());
+						} else {
+							if(logger.isLoggable(Level.FINE)) logger.fine("hashDir does not have any home directories, will be deleted completely: " + hashDir);
+						}
+					}
+				}
+				// Direct children of /home
+				UnixFile homeDir = new UnixFile("/home");
+				String[] homeList = homeDir.list();
+				if(homeList != null) {
+					for(String dirName : homeList) {
+						UnixFile dir = new UnixFile(homeDir, dirName, true);
+						String dirPath = dir.getPath();
+						if(keepHashDirs.contains(dirPath)) {
+							if(logger.isLoggable(Level.FINE)) logger.fine("Keeping hashDir that is still used: " + dir);
+						} else {
 							// Allow encrypted form of home directory
 							if(dirPath.endsWith(".aes256.img")) dirPath = dirPath.substring(0, dirPath.length() - ".aes256.img".length());
 							if(homeDirs.contains(dirPath)) {
-								if(logger.isLoggable(Level.FINE)) logger.fine("hashDir has home directory: " + dir);
-								hasHomeDir = true;
+								if(logger.isLoggable(Level.FINE)) logger.fine("Is a home directory: " + dir);
 							} else {
-								if(logger.isLoggable(Level.FINE)) logger.fine("hashDir has an extra directory: " + dir);
-								hashDirToDelete.add(dir.getFile());
+								File toDelete = dir.getFile();
+								if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+								deleteFileList.add(toDelete);
 							}
 						}
 					}
-					if(hasHomeDir) {
-						if(logger.isLoggable(Level.FINE)) logger.fine("hashDir still has home directories: " + hashDir);
-						for(File toDelete : hashDirToDelete) {
-							if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
-							deleteFileList.add(toDelete);
-						}
-						keepHashDirs.add(hashDir.getPath());
-					} else {
-						if(logger.isLoggable(Level.FINE)) logger.fine("hashDir does not have any home directories, will be deleted completely: " + hashDir);
-					}
 				}
-			}
-			// Direct children of /home
-			UnixFile homeDir = new UnixFile("/home");
-			String[] homeList = homeDir.list();
-			if(homeList != null) {
-				for(String dirName : homeList) {
-					UnixFile dir = new UnixFile(homeDir, dirName, true);
-					String dirPath = dir.getPath();
-					if(keepHashDirs.contains(dirPath)) {
-						if(logger.isLoggable(Level.FINE)) logger.fine("Keeping hashDir that is still used: " + dir);
-					} else {
-						// Allow encrypted form of home directory
-						if(dirPath.endsWith(".aes256.img")) dirPath = dirPath.substring(0, dirPath.length() - ".aes256.img".length());
-						if(homeDirs.contains(dirPath)) {
-							if(logger.isLoggable(Level.FINE)) logger.fine("Is a home directory: " + dir);
-						} else {
-							File toDelete = dir.getFile();
-							if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
-							deleteFileList.add(toDelete);
-						}
-					}
-				}
-			}
 
-			/*
-			 * Remove any cron jobs that should not exist.
-			 */ 
-			String[] cronList = cronDirectory.list();
-			if(cronList != null) {
-				for(String filename : cronList) {
-					// Filename must be the username of one of the users to be kept intact
-					if(!usernameStrs.contains(filename)) {
-						File toDelete = new File(cronDirectory, filename);
+				/*
+				 * Remove any cron jobs that should not exist.
+				 */ 
+				String[] cronList = cronDirectory.list();
+				if(cronList != null) {
+					for(String filename : cronList) {
+						// Filename must be the username of one of the users to be kept intact
+						if(!usernameStrs.contains(filename)) {
+							File toDelete = new File(cronDirectory, filename);
+							if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+							deleteFileList.add(toDelete);
+						}
+					}
+				}
+
+				// Configure sudo
+				if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+					Map<String,String> sudoers = new LinkedHashMap<>();
+					for(LinuxServerAccount lsa : lsas) {
+						String sudo = lsa.getSudo();
+						if(sudo != null) {
+							sudoers.put(lsa.getLinuxAccount().getUsername().getUsername().toString(), sudo);
+						}
+					}
+					if(!sudoers.isEmpty()) {
+						// Install package when first needed
+						PackageManager.installPackage(PackageManager.PackageName.SUDO);
+						// Create /etc/sudoers.d if missing
+						if(!SUDOERS_D.getStat().exists()) SUDOERS_D.mkdir(false, 0750);
+						// Update any files
+						ByteArrayOutputStream bout = new ByteArrayOutputStream();
+						for(Map.Entry<String,String> entry : sudoers.entrySet()) {
+							String username = entry.getKey();
+							String sudo = entry.getValue();
+							bout.reset();
+							try (Writer out = new OutputStreamWriter(bout, StandardCharsets.UTF_8)) {
+								out.write("##\n"
+									+ "## Configured by ");
+								out.write(LinuxAccountManager.class.getName());
+								out.write(".\n"
+									+ "## \n"
+									+ "## See ");
+								out.write(LinuxServerAccount.class.getName());
+								out.write(".getSudo()\n"
+									+ "##\n");
+								out.write(username);
+								out.write(' ');
+								out.write(sudo);
+								out.write('\n');
+							}
+							DaemonFileUtils.atomicWrite(
+								new UnixFile(SUDOERS_D, username, true),
+								bout.toByteArray(),
+								0440,
+								UnixFile.ROOT_UID,
+								UnixFile.ROOT_GID,
+								null,
+								restorecon
+							);
+						}
+					}
+					// restorecon any new config files
+					DaemonFileUtils.restorecon(restorecon);
+					restorecon.clear();
+					// Delete any extra files
+					String[] list = SUDOERS_D.list();
+					if(list != null) {
+						for(String filename : list) {
+							if(!sudoers.containsKey(filename)) {
+								File toDelete = new File(SUDOERS_D.getFile(), filename);
+								if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+								deleteFileList.add(toDelete);
+							}
+						}
+					}
+				} else if(
+					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				) {
+					// Not supporting sudo on these operating system versions
+				} else {
+					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+				}
+
+				// Disable and enable accounts
+				// TODO: Put "!" in from of the password when disabled, like done for usermod --lock
+				// TODO: Then no longer have PredisablePassword stored in the master.
+				// TODO: Consider effect on isPasswordSet and comparePassword (should password check still work on disabled user?)
+				for(LinuxServerAccount lsa : lsas) {
+					String prePassword = lsa.getPredisablePassword();
+					if(lsa.isDisabled()) {
+						// Account is disabled
+						if(prePassword == null) {
+							UserId username = lsa.getLinuxAccount().getUsername().getUsername();
+							if(logger.isLoggable(Level.INFO)) logger.info("Storing predisable password for " + username);
+							lsa.setPredisablePassword(getEncryptedPassword(username).getElement1());
+							if(logger.isLoggable(Level.INFO)) logger.info("Clearing password for " + username);
+							setPassword(username, null, false);
+						}
+					} else {
+						// Account is enabled
+						if(prePassword != null) {
+							UserId username = lsa.getLinuxAccount().getUsername().getUsername();
+							if(logger.isLoggable(Level.INFO)) logger.info("Restoring password for " + username);
+							setEncryptedPassword(lsa.getLinuxAccount().getUsername().getUsername(), prePassword, null);
+							if(logger.isLoggable(Level.INFO)) logger.info("Clearing predisable password for " + username);
+							lsa.setPredisablePassword(null);
+						}
+					}
+				}
+
+				// Only the top level server in a physical server gets to kill processes
+				if(AOServDaemonConfiguration.isNested()) {
+					if(logger.isLoggable(Level.FINE)) logger.fine("This server is nested, not killing processes.");
+				} else if(thisAoServer.getFailoverServer() != null) {
+					if(logger.isLoggable(Level.FINE)) logger.fine("This server is in a fail-over state, not killing processes; parent server will kill processes.");
+				} else {
+					List<AOServer> nestedServers = thisAoServer.getNestedAOServers();
+
+					/*
+					 * Kill any processes that are running as a UID that
+					 * should not exist on this server.
+					 */
+					File procDir = new File("/proc");
+					String[] procList = procDir.list();
+					if(procList != null) {
+						for(String filename : procList) {
+							int flen = filename.length();
+							boolean allNum = true;
+							for(int d = 0; d < flen; d++) {
+								char ch = filename.charAt(d);
+								if(ch<'0' || ch>'9') {
+									allNum = false;
+									break;
+								}
+							}
+							if(allNum) {
+								try {
+									int pid = Integer.parseInt(filename);
+									LinuxProcess process = new LinuxProcess(pid);
+									int uid = process.getUid();
+									// Never kill root processes, just to be safe
+									if(uid != LinuxServerAccount.ROOT_UID) {
+										// Search each server
+										LinuxServerAccount lsa;
+										if(
+											!uids.contains(uid)
+											|| (lsa = thisAoServer.getLinuxServerAccount(LinuxId.valueOf(uid))) == null
+											|| lsa.isDisabled()
+										) {
+											// Also must not be in a nested server
+											boolean foundInNested = false;
+											for(AOServer nestedServer : nestedServers) {
+												lsa = nestedServer.getLinuxServerAccount(LinuxId.valueOf(uid));
+												if(
+													lsa != null
+													&& !lsa.isDisabled()
+												) {
+													foundInNested = true;
+													break;
+												}
+											}
+											if(!foundInNested) {
+												if(logger.isLoggable(Level.INFO)) logger.info("Killing process # " + pid + " running as user # " + uid);
+												process.killProc();
+											}
+										}
+									}
+								} catch(FileNotFoundException err) {
+									if(logger.isLoggable(Level.FINE)) {
+										logger.log(Level.FINE, "It is normal that this is thrown if the process has already closed", err);
+									}
+								} catch(IOException | ValidationException err) {
+									logger.log(Level.SEVERE, "filename=" + filename, err);
+								}
+							}
+						}
+					}
+				}
+
+				/*
+				 * Recursively find and remove any temporary files that should not exist.
+				 */
+				try {
+					List<File> tmpToDelete = new ArrayList<>();
+					AOServDaemon.findUnownedFiles(new File("/tmp"), uids, tmpToDelete, 0);
+					AOServDaemon.findUnownedFiles(new File("/var/tmp"), uids, tmpToDelete, 0);
+					for(File toDelete : tmpToDelete) {
 						if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
 						deleteFileList.add(toDelete);
 					}
-				}
-			}
-
-			// Configure sudo
-			if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-				Map<String,String> sudoers = new LinkedHashMap<>();
-				for(LinuxServerAccount lsa : lsas) {
-					String sudo = lsa.getSudo();
-					if(sudo != null) {
-						sudoers.put(lsa.getLinuxAccount().getUsername().getUsername().toString(), sudo);
+				} catch(FileNotFoundException err) {
+					if(logger.isLoggable(Level.FINE)) {
+						logger.log(Level.FINE, "This may normally occur because of the dynamic nature of the tmp directories", err);
 					}
 				}
-				if(!sudoers.isEmpty()) {
-					// Install package when first needed
-					PackageManager.installPackage(PackageManager.PackageName.SUDO);
-					// Create /etc/sudoers.d if missing
-					if(!SUDOERS_D.getStat().exists()) SUDOERS_D.mkdir(false, 0750);
-					// Update any files
-					ByteArrayOutputStream bout = new ByteArrayOutputStream();
-					for(Map.Entry<String,String> entry : sudoers.entrySet()) {
-						String username = entry.getKey();
-						String sudo = entry.getValue();
-						bout.reset();
-						try (Writer out = new OutputStreamWriter(bout, StandardCharsets.UTF_8)) {
-							out.write("##\n"
-								+ "## Configured by ");
-							out.write(LinuxAccountManager.class.getName());
-							out.write(".\n"
-								+ "## \n"
-								+ "## See ");
-							out.write(LinuxServerAccount.class.getName());
-							out.write(".getSudo()\n"
-								+ "##\n");
-							out.write(username);
-							out.write(' ');
-							out.write(sudo);
-							out.write('\n');
-						}
-						DaemonFileUtils.atomicWrite(
-							new UnixFile(SUDOERS_D, username, true),
-							null,
-							bout.toByteArray(),
-							0440,
-							UnixFile.ROOT_UID,
-							UnixFile.ROOT_GID
-						);
-					}
-				}
-				// Delete any extra files
-				String[] list = SUDOERS_D.list();
-				if(list != null) {
-					for(String filename : list) {
-						if(!sudoers.containsKey(filename)) {
-							File toDelete = new File(SUDOERS_D.getFile(), filename);
-							if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
-							deleteFileList.add(toDelete);
-						}
-					}
-				}
-			} else if(
-				osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-				|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-				|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-			) {
-				// Not supporting sudo on these operating system versions
-			} else {
-				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-			}
 
-			// Disable and enable accounts
-			// TODO: Put "!" in from of the password when disabled, like done for usermod --lock
-			// TODO: Then no longer have PredisablePassword stored in the master.
-			// TODO: Consider effect on isPasswordSet and comparePassword (should password check still work on disabled user?)
-			for(LinuxServerAccount lsa : lsas) {
-				String prePassword = lsa.getPredisablePassword();
-				if(lsa.isDisabled()) {
-					// Account is disabled
-					if(prePassword == null) {
-						UserId username = lsa.getLinuxAccount().getUsername().getUsername();
-						if(logger.isLoggable(Level.INFO)) logger.info("Storing predisable password for " + username);
-						lsa.setPredisablePassword(getEncryptedPassword(username).getElement1());
-						if(logger.isLoggable(Level.INFO)) logger.info("Clearing password for " + username);
-						setPassword(username, null, false);
-					}
-				} else {
-					// Account is enabled
-					if(prePassword != null) {
-						UserId username = lsa.getLinuxAccount().getUsername().getUsername();
-						if(logger.isLoggable(Level.INFO)) logger.info("Restoring password for " + username);
-						setEncryptedPassword(lsa.getLinuxAccount().getUsername().getUsername(), prePassword, null);
-						if(logger.isLoggable(Level.INFO)) logger.info("Clearing predisable password for " + username);
-						lsa.setPredisablePassword(null);
-					}
+				// Back-up and delete the files scheduled for removal.
+				BackupManager.backupAndDeleteFiles(deleteFileList);
+
+				// Remove shell packages if installed and no longer required
+				if(!hasPasswdShell) {
+					PackageManager.removePackage(PackageManager.PackageName.AOSERV_PASSWD_SHELL);
 				}
-			}
-
-			// Only the top level server in a physical server gets to kill processes
-			if(AOServDaemonConfiguration.isNested()) {
-				if(logger.isLoggable(Level.FINE)) logger.fine("This server is nested, not killing processes.");
-			} else if(thisAoServer.getFailoverServer() != null) {
-				if(logger.isLoggable(Level.FINE)) logger.fine("This server is in a fail-over state, not killing processes; parent server will kill processes.");
-			} else {
-				List<AOServer> nestedServers = thisAoServer.getNestedAOServers();
-
-				/*
-				 * Kill any processes that are running as a UID that
-				 * should not exist on this server.
-				 */
-				File procDir = new File("/proc");
-				String[] procList = procDir.list();
-				if(procList != null) {
-					for(String filename : procList) {
-						int flen = filename.length();
-						boolean allNum = true;
-						for(int d = 0; d < flen; d++) {
-							char ch = filename.charAt(d);
-							if(ch<'0' || ch>'9') {
-								allNum = false;
-								break;
-							}
-						}
-						if(allNum) {
-							try {
-								int pid = Integer.parseInt(filename);
-								LinuxProcess process = new LinuxProcess(pid);
-								int uid = process.getUid();
-								// Never kill root processes, just to be safe
-								if(uid != LinuxServerAccount.ROOT_UID) {
-									// Search each server
-									LinuxServerAccount lsa;
-									if(
-										!uids.contains(uid)
-										|| (lsa = thisAoServer.getLinuxServerAccount(LinuxId.valueOf(uid))) == null
-										|| lsa.isDisabled()
-									) {
-										// Also must not be in a nested server
-										boolean foundInNested = false;
-										for(AOServer nestedServer : nestedServers) {
-											lsa = nestedServer.getLinuxServerAccount(LinuxId.valueOf(uid));
-											if(
-												lsa != null
-												&& !lsa.isDisabled()
-											) {
-												foundInNested = true;
-												break;
-											}
-										}
-										if(!foundInNested) {
-											if(logger.isLoggable(Level.INFO)) logger.info("Killing process # " + pid + " running as user # " + uid);
-											process.killProc();
-										}
-									}
-								}
-							} catch(FileNotFoundException err) {
-								if(logger.isLoggable(Level.FINE)) {
-									logger.log(Level.FINE, "It is normal that this is thrown if the process has already closed", err);
-								}
-							} catch(IOException | ValidationException err) {
-								logger.log(Level.SEVERE, "filename=" + filename, err);
-							}
-						}
-					}
+				if(!hasFtpShell) {
+					PackageManager.removePackage(PackageManager.PackageName.AOSERV_FTP_SHELLS);
 				}
-			}
-
-			/*
-			 * Recursively find and remove any temporary files that should not exist.
-			 */
-			try {
-				List<File> tmpToDelete = new ArrayList<>();
-				AOServDaemon.findUnownedFiles(new File("/tmp"), uids, tmpToDelete, 0);
-				AOServDaemon.findUnownedFiles(new File("/var/tmp"), uids, tmpToDelete, 0);
-				for(File toDelete : tmpToDelete) {
-					if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
-					deleteFileList.add(toDelete);
-				}
-			} catch(FileNotFoundException err) {
-				if(logger.isLoggable(Level.FINE)) {
-					logger.log(Level.FINE, "This may normally occur because of the dynamic nature of the tmp directories", err);
-				}
-			}
-
-			// Back-up and delete the files scheduled for removal.
-			BackupManager.backupAndDeleteFiles(deleteFileList);
-
-			// Remove shell packages if installed and no longer required
-			if(!hasPasswdShell) {
-				PackageManager.removePackage(PackageManager.PackageName.AOSERV_PASSWD_SHELL);
-			}
-			if(!hasFtpShell) {
-				PackageManager.removePackage(PackageManager.PackageName.AOSERV_FTP_SHELLS);
+			} finally {
+				DaemonFileUtils.restorecon(restorecon);
 			}
 		}
 	}

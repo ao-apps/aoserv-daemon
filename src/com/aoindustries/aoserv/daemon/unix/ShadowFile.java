@@ -24,6 +24,7 @@ import java.io.InputStreamReader;
 import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -431,7 +432,7 @@ final public class ShadowFile {
 	/**
 	 * Must hold {@link #shadowLock}
 	 */
-	public static void writeShadowFile(byte[] newContents) throws SQLException, IOException {
+	public static void writeShadowFile(byte[] newContents, Set<UnixFile> restorecon) throws SQLException, IOException {
 		assert Thread.holdsLock(shadowLock);
 		// Determine permissions
 		long mode;
@@ -456,11 +457,12 @@ final public class ShadowFile {
 		}
 		DaemonFileUtils.atomicWrite(
 			shadowFile,
-			backupShadowFile,
 			newContents,
 			mode,
 			UnixFile.ROOT_UID,
-			UnixFile.ROOT_GID
+			UnixFile.ROOT_GID,
+			backupShadowFile,
+			restorecon
 		);
 	}
 
@@ -529,9 +531,12 @@ final public class ShadowFile {
 				shadowEntries.put(username, new Entry(username, encryptedPassword, newChangedDate));
 			}
 
+			Set<UnixFile> restorecon = new LinkedHashSet<>();
 			writeShadowFile(
-				createShadowFile(shadowEntries.values())
+				createShadowFile(shadowEntries.values()),
+				restorecon
 			);
+			DaemonFileUtils.restorecon(restorecon);
 		}
 	}
 

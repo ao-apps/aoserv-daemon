@@ -5,6 +5,9 @@
  */
 package com.aoindustries.aoserv.daemon.util;
 
+import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.Stat;
@@ -15,6 +18,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.sql.SQLException;
+import java.util.ConcurrentModificationException;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -212,8 +218,9 @@ public class DaemonFileUtils {
 	 *
 	 * @param  file  the file to overwrite
 	 * @param  backupFile  the optional backup file
+	 * @param  restorecon  when not null, any file moved into place that might need "restorecon" will be added to the set
 	 */
-	public static void atomicWrite(UnixFile file, UnixFile backupFile, byte[] newContents, long mode, int uid, int gid) throws IOException {
+	public static void atomicWrite(UnixFile file, byte[] newContents, long mode, int uid, int gid, UnixFile backupFile, Set<UnixFile> restorecon) throws IOException {
 		Stat fileStat = file.getStat();
 		if(
 			!fileStat.exists()
@@ -277,10 +284,12 @@ public class DaemonFileUtils {
 			if(backupTemp != null) {
 				if(logger.isLoggable(Level.FINE)) logger.fine("mv \"" + backupTemp + "\" \"" + backupFile + '"');
 				backupTemp.renameTo(backupFile);
+				if(restorecon != null) restorecon.add(backupFile);
 			}
 			// Move file into place
 			if(logger.isLoggable(Level.FINE)) logger.fine("mv \"" + fileTemp + "\" \"" + file + '"');
 			fileTemp.renameTo(file);
+			if(restorecon != null) restorecon.add(file);
 		} else {
 			// Verify ownership
 			if(fileStat.getUid() != uid || fileStat.getGid() != gid) {
@@ -291,6 +300,50 @@ public class DaemonFileUtils {
 			if(fileStat.getMode() != mode) {
 				if(logger.isLoggable(Level.FINE)) logger.fine("chmod " + Long.toOctalString(mode) + " \"" + file + '"');
 				file.setMode(mode);
+			}
+		}
+	}
+
+	/**
+	 * Calls "restorecon" on the given set of paths if this server is CentOS 7
+	 * and has selinux installed.
+	 */
+	public static void restorecon(Set<UnixFile> restorecon) throws IOException, SQLException {
+		int size = restorecon.size();
+		if(size > 0) {
+			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+			switch(osv.getPkey()) {
+				case OperatingSystemVersion.MANDRIVA_2006_0_I586 :
+				case OperatingSystemVersion.REDHAT_ES_4_X86_64 :
+				case OperatingSystemVersion.CENTOS_5_DOM0_I686 :
+				case OperatingSystemVersion.CENTOS_5_DOM0_X86_64 :
+				case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
+					// Nothing to do
+					break;
+				case OperatingSystemVersion.CENTOS_7_DOM0_X86_64 :
+				case OperatingSystemVersion.CENTOS_7_X86_64 :
+					String restoreconCommand = "/usr/sbin/restorecon";
+					if(PackageManager.getInstalledPackage(PackageManager.PackageName.POLICYCOREUTILS) == null) {
+						if(logger.isLoggable(Level.WARNING)) {
+							logger.warning(PackageManager.PackageName.POLICYCOREUTILS + " package not installed, not running " + restoreconCommand + ": " + PackageManager.PackageName.POLICYCOREUTILS);
+						}
+					} else {
+						String[] command = new String[2 + size];
+						int i = 0;
+						command[i++] = restoreconCommand;
+						command[i++] = "-R";
+						for(UnixFile uf : restorecon) {
+							command[i++] = uf.getPath();
+						}
+						if(i != command.length) throw new ConcurrentModificationException();
+						if(logger.isLoggable(Level.INFO)) {
+							logger.info(AOServDaemon.getCommandString(command));
+						}
+						AOServDaemon.exec(command);
+					}
+					break;
+				default :
+					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 			}
 		}
 	}

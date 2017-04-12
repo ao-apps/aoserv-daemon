@@ -213,15 +213,16 @@ final public class GroupFile {
 	/**
 	 * Must hold {@link #groupLock}
 	 */
-	public static void writeGroupFile(byte[] newContents) throws SQLException, IOException {
+	public static void writeGroupFile(byte[] newContents, Set<UnixFile> restorecon) throws SQLException, IOException {
 		assert Thread.holdsLock(groupLock);
 		DaemonFileUtils.atomicWrite(
 			groupFile,
-			backupGroupFile,
 			newContents,
 			0644,
 			UnixFile.ROOT_UID,
-			UnixFile.ROOT_GID
+			UnixFile.ROOT_GID,
+			backupGroupFile,
+			restorecon
 		);
 	}
 

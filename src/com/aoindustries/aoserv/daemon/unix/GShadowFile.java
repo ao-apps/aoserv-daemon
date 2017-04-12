@@ -260,7 +260,7 @@ final public class GShadowFile {
 	/**
 	 * Must hold {@link #gshadowLock}
 	 */
-	public static void writeGShadowFile(byte[] newContents) throws SQLException, IOException {
+	public static void writeGShadowFile(byte[] newContents, Set<UnixFile> restorecon) throws SQLException, IOException {
 		assert Thread.holdsLock(gshadowLock);
 		// Determine permissions
 		long mode;
@@ -285,11 +285,12 @@ final public class GShadowFile {
 		}
 		DaemonFileUtils.atomicWrite(
 			gshadowFile,
-			backupGShadowFile,
 			newContents,
 			mode,
 			UnixFile.ROOT_UID,
-			UnixFile.ROOT_GID
+			UnixFile.ROOT_GID,
+			backupGShadowFile,
+			restorecon
 		);
 	}
 

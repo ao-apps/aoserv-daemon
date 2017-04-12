@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -348,15 +349,16 @@ final public class PasswdFile {
 	/**
 	 * Must hold {@link #passwdLock}
 	 */
-	public static void writePasswdFile(byte[] newContents) throws SQLException, IOException {
+	public static void writePasswdFile(byte[] newContents, Set<UnixFile> restorecon) throws SQLException, IOException {
 		assert Thread.holdsLock(passwdLock);
 		DaemonFileUtils.atomicWrite(
 			passwdFile,
-			backupPasswdFile,
 			newContents,
 			0644,
 			UnixFile.ROOT_UID,
-			UnixFile.ROOT_GID
+			UnixFile.ROOT_GID,
+			backupPasswdFile,
+			restorecon
 		);
 	}
 
