@@ -190,7 +190,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         return webapps;
     }
 
-	/**
+    /**
      * Gets the PID file for the wrapper script.  When this file exists the
      * script is assumed to be running.  This PID file may be shared between
      * multiple sites in the case of a shared Tomcat.  Also, it is possible
@@ -247,11 +247,15 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
             if(enableCgi()) {
                 DaemonFileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
                 //FileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
+                createTestCGI(cgibinDirectory);
             }
 
             // index.html
             UnixFile indexFile = new UnixFile(rootDirectory, "index.html", false);
             createTestIndex(indexFile);
+
+            // PHP
+            createTestPHP(rootDirectory);
 
             // Always cause restart when is new
             needsRestart = true;
@@ -283,7 +287,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
      * the siteDirectory itself, which has already been created.  This should also
      * not include any files that enable/disable the site.
      * 
-     * This doesn't need to create the cgi-bin, cgi-bin/test, or index.html
+     * This doesn't need to create the cgi-bin, cgi-bin/test, test.php, or index.html
      */
     protected abstract void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException;
 
