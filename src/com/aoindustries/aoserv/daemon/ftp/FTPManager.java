@@ -37,11 +37,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Handles the building of FTP configs and files.
  */
 final public class FTPManager extends BuilderThread {
+
+	private static final Logger logger = Logger.getLogger(FTPManager.class.getName());
 
 	private static final UnixFile
 		newProFtpdConf=new UnixFile("/etc/proftpd.conf.new"),
@@ -57,7 +60,7 @@ final public class FTPManager extends BuilderThread {
 	;
 
 	/**
-	 * The directory that is used for site-independant FTP access.
+	 * The directory that is used for site-independent FTP access.
 	 */
 	private static final UnixFile sharedFtpDirectory = new UnixFile("/var/ftp/pub");
 
@@ -391,15 +394,22 @@ final public class FTPManager extends BuilderThread {
 	}
 
 	/**
-	 * Rebuilds the contents of /var/cvs  Each site optionally gets its own
+	 * Rebuilds the contents of /var/ftp/pub  Each site optionally gets its own
 	 * shared FTP space.
 	 */
 	private static void doRebuildSharedFtpDirectory() throws IOException, SQLException {
 		List<File> deleteFileList=new ArrayList<>();
 
-		String[] list = sharedFtpDirectory.list();
-		Set<String> ftpDirectories = new HashSet<>(list.length*4/3+1);
-		ftpDirectories.addAll(Arrays.asList(list));
+		Set<String> ftpDirectories;
+		{
+			String[] list = sharedFtpDirectory.list();
+			if(list == null) {
+				ftpDirectories = new HashSet<>();
+			} else {
+				ftpDirectories = new HashSet<>(list.length*4/3+1);
+				ftpDirectories.addAll(Arrays.asList(list));
+			}
+		}
 
 		for(HttpdSite httpdSite : AOServDaemon.getThisAOServer().getHttpdSites()) {
 			HttpdSiteManager manager = HttpdSiteManager.getInstance(httpdSite);
@@ -415,7 +425,11 @@ final public class FTPManager extends BuilderThread {
 		}
 
 		File sharedFtpDirectoryFile = sharedFtpDirectory.getFile();
-		for(String filename : ftpDirectories) deleteFileList.add(new File(sharedFtpDirectoryFile, filename));
+		for(String filename : ftpDirectories) {
+			File toDelete = new File(sharedFtpDirectoryFile, filename);
+			if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+			deleteFileList.add(toDelete);
+		}
 
 		// Back-up and delete the files scheduled for removal
 		BackupManager.backupAndDeleteFiles(deleteFileList);
