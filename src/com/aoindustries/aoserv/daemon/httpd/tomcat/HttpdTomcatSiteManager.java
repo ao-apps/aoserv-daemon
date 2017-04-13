@@ -65,21 +65,6 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         this.tomcatSite = tomcatSite;
     }
 
-	@Override
-    protected boolean enableCgi() {
-        return true;
-    }
-
-	@Override
-    protected boolean enablePhp() {
-        return true;
-    }
-    
-	@Override
-    public boolean enableAnonymousFtp() {
-        return true;
-    }
-
     public abstract TC getTomcatCommon();
 
     /**
@@ -91,7 +76,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
     public SortedSet<Location> getRejectedLocations() throws IOException, SQLException {
         // If not using Apache, let Tomcat do its own protection
         SortedSet<Location> standardRejectedLocations = super.getRejectedLocations();
-        if(!tomcatSite.useApache()) return standardRejectedLocations;
+        if(!tomcatSite.getUseApache()) return standardRejectedLocations;
 
         SortedSet<Location> rejectedLocations = new TreeSet<>(standardRejectedLocations);
         for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
@@ -160,7 +145,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
     public SortedSet<JkSetting> getJkSettings() throws IOException, SQLException {
         final String jkCode = getHttpdWorker().getCode().getCode();
         SortedSet<JkSetting> settings = new TreeSet<>();
-        if(tomcatSite.useApache()) {
+        if(tomcatSite.getUseApache()) {
             // Using Apache for static content, send specific requests to Tomcat
             for(HttpdTomcatContext context : tomcatSite.getHttpdTomcatContexts()) {
                 String path=context.getPath();
@@ -194,8 +179,10 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
                 htc.getPath(),
                 new WebAppSettings(
                     htc.getDocBase(),
-                    "All",
-                    "Indexes IncludesNOEXEC",
+                    httpdSite.getEnableHtaccess() ? "All" : "None",
+					httpdSite.getEnableSsi(),
+					httpdSite.getEnableIndexes(),
+					httpdSite.getEnableFollowSymlinks(),
                     enableCgi()
                 )
             );
@@ -203,7 +190,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         return webapps;
     }
 
-    /**
+	/**
      * Gets the PID file for the wrapper script.  When this file exists the
      * script is assumed to be running.  This PID file may be shared between
      * multiple sites in the case of a shared Tomcat.  Also, it is possible
@@ -260,15 +247,11 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
             if(enableCgi()) {
                 DaemonFileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
                 //FileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
-                createTestCGI(cgibinDirectory);
             }
 
             // index.html
             UnixFile indexFile = new UnixFile(rootDirectory, "index.html", false);
             createTestIndex(indexFile);
-
-            // PHP
-            createTestPHP(rootDirectory);
 
             // Always cause restart when is new
             needsRestart = true;
@@ -300,7 +283,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
      * the siteDirectory itself, which has already been created.  This should also
      * not include any files that enable/disable the site.
      * 
-     * This doesn't need to create the cgi-bin, cgi-bin/test, test.php, or index.html
+     * This doesn't need to create the cgi-bin, cgi-bin/test, or index.html
      */
     protected abstract void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException;
 

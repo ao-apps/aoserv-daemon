@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2015 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2015, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -35,7 +35,7 @@ public abstract class TomcatCommon {
         out.print("          <Parameter\n"
                 + "            name=\"").encodeXmlAttribute(parameter.getName()).print("\"\n"
                 + "            value=\"").encodeXmlAttribute(parameter.getValue()).print("\"\n"
-                + "            override=\"").print(parameter.getOverride()).print("\"\n");
+                + "            override=\"").encodeXmlAttribute(parameter.getOverride()).print("\"\n");
         if(parameter.getDescription()!=null) out.print("            description=\"").encodeXmlAttribute(parameter.getDescription()).print("\"\n");
         out.print("          />\n");
     }

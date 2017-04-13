@@ -144,13 +144,19 @@ public class DaemonFileUtils {
     }
 
     /**
+	 * <p>
      * Overwrites a file only when missing or not equal to the provided
      * content.  Will first create a new file into <code>tempFile</code>,
      * set the ownership and permissions, and then rename over any
      * existing files.  If <code>tempFile</code> exists and <code>file</code>
      * has to be written, <code>tempFile</code> will be overwritten.
      * If file is a symlink, will be removed first.
-     * 
+	 * </p>
+	 * <p>
+	 * TODO: Is this redundant with {@link #atomicWrite(com.aoindustries.io.unix.UnixFile, byte[], long, int, int, com.aoindustries.io.unix.UnixFile, java.util.Set)}?
+	 * TODO: Is atomic one better?
+	 * </p>
+     *
      * @param  tempFile  if <code>null</code>, a randomly-generated filename will
      *                   be used
      *

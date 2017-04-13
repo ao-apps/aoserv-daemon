@@ -110,8 +110,10 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 							+httpdSite.getSiteName()
 							+"/htdocs"
 					),
-					"AuthConfig Indexes Limit",
-					"Indexes IncludesNOEXEC",
+					httpdSite.getEnableHtaccess() ? "AuthConfig Indexes Limit" : "None",
+					httpdSite.getEnableSsi(),
+					httpdSite.getEnableIndexes(),
+					httpdSite.getEnableFollowSymlinks(),
 					enableCgi()
 				)
 			);

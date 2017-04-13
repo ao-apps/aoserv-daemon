@@ -46,6 +46,8 @@ import java.util.logging.Level;
 /**
  * Manages HttpdServer configurations and control.
  *
+ * TODO: Build first Apache as "httpd" instead of "httpd1".
+ *
  * @author  AO Industries, Inc.
  */
 public class HttpdServerManager {
@@ -211,6 +213,7 @@ public class HttpdServerManager {
 					} else {
 						// Create auto config
 						newContent = buildHttpdSiteBindFile(
+							manager,
 							bind,
 							isDisabled ? HttpdSite.DISABLED : siteName,
 							bout
@@ -435,10 +438,11 @@ public class HttpdServerManager {
 		int gid_min = thisAoServer.getGidMin().getId();
 		// Rebuild per-server files
 		for(HttpdServer hs : thisAoServer.getHttpdServers()) {
+			List<HttpdSite> sites = hs.getHttpdSites();
 			// Rebuild the httpd.conf file
 			if(
 				DaemonFileUtils.writeIfNeeded(
-					buildHttpdConf(hs, bout),
+					buildHttpdConf(hs, sites, bout),
 					new UnixFile(getHttpdConfNewFile(hs)),
 					new UnixFile(getHttpdConfFile(hs)),
 					UnixFile.ROOT_UID,
@@ -452,19 +456,34 @@ public class HttpdServerManager {
 			}
 
 			// Rebuild the workers.properties file
-			if(
-				DaemonFileUtils.writeIfNeeded(
-					buildWorkersFile(hs, bout),
-					new UnixFile(getWorkersNewFile(hs)),
-					new UnixFile(getWorkersFile(hs)),
-					UnixFile.ROOT_UID,
-					UnixFile.ROOT_GID,
-					0644,
-					uid_min,
-					gid_min
-				)
-			) {
-				serversNeedingReloaded.add(hs);
+			// Only include mod_jk when at least one site has jk settings
+			boolean hasJkSettings = false;
+			for(HttpdSite site : sites) {
+				HttpdSiteManager manager = HttpdSiteManager.getInstance(site);
+				if(!manager.getJkSettings().isEmpty()) {
+					hasJkSettings = true;
+					break;
+				}
+			}
+			UnixFile workersFile = new UnixFile(getWorkersFile(hs));
+			if(hasJkSettings) {
+				if(
+					DaemonFileUtils.writeIfNeeded(
+						buildWorkersFile(hs, bout),
+						new UnixFile(getWorkersNewFile(hs)),
+						workersFile,
+						UnixFile.ROOT_UID,
+						UnixFile.ROOT_GID,
+						0644,
+						uid_min,
+						gid_min
+					)
+				) {
+					serversNeedingReloaded.add(hs);
+				}
+			} else {
+				// mod_jk not used: remove the unnecessary workers file
+				if(workersFile.getStat().exists()) workersFile.delete();
 			}
 		}
 	}
@@ -472,7 +491,7 @@ public class HttpdServerManager {
 	/**
 	 * Builds the httpd#.conf file for CentOS 5
 	 */
-	private static byte[] buildHttpdConfCentOs5(HttpdServer hs, ByteArrayOutputStream bout) throws IOException, SQLException {
+	private static byte[] buildHttpdConfCentOs5(HttpdServer hs, List<HttpdSite> sites, ByteArrayOutputStream bout) throws IOException, SQLException {
 		final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		if(osConfig!=HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) throw new AssertionError("This method is for CentOS 5 only");
 		final int serverNum = hs.getNumber();
@@ -512,8 +531,17 @@ public class HttpdServerManager {
 					+ "#LoadModule authz_dbm_module modules/mod_authz_dbm.so\n"
 					+ "#LoadModule authz_default_module modules/mod_authz_default.so\n"
 					+ "#LoadModule ldap_module modules/mod_ldap.so\n"
-					+ "#LoadModule authnz_ldap_module modules/mod_authnz_ldap.so\n"
-					+ "LoadModule include_module modules/mod_include.so\n"
+					+ "#LoadModule authnz_ldap_module modules/mod_authnz_ldap.so\n");
+			// Comment-out include module when no site has .shtml enabled
+			boolean hasSsi = false;
+			for(HttpdSite site : sites) {
+				if(site.getEnableSsi()) {
+					hasSsi = true;
+					break;
+				}
+			}
+			if(!hasSsi) out.print('#');
+			out.print("LoadModule include_module modules/mod_include.so\n"
 					+ "LoadModule log_config_module modules/mod_log_config.so\n"
 					+ "#LoadModule logio_module modules/mod_logio.so\n"
 					+ "LoadModule env_module modules/mod_env.so\n"
@@ -526,8 +554,17 @@ public class HttpdServerManager {
 					+ "LoadModule setenvif_module modules/mod_setenvif.so\n"
 					+ "LoadModule mime_module modules/mod_mime.so\n"
 					+ "#LoadModule dav_module modules/mod_dav.so\n"
-					+ "LoadModule status_module modules/mod_status.so\n"
-					+ "LoadModule autoindex_module modules/mod_autoindex.so\n"
+					+ "LoadModule status_module modules/mod_status.so\n");
+			// Comment-out mod_autoindex when no sites used auto-indexes
+			boolean hasIndexes = false;
+			for(HttpdSite site : sites) {
+				if(site.getEnableIndexes()) {
+					hasIndexes = true;
+					break;
+				}
+			}
+			if(!hasIndexes) out.print('#');
+			out.print("LoadModule autoindex_module modules/mod_autoindex.so\n"
 					+ "#LoadModule info_module modules/mod_info.so\n"
 					+ "#LoadModule dav_fs_module modules/mod_dav_fs.so\n"
 					+ "#LoadModule vhost_alias_module modules/mod_vhost_alias.so\n"
@@ -549,12 +586,46 @@ public class HttpdServerManager {
 			else out.print("#LoadModule suexec_module modules/mod_suexec.so\n");
 			out.print("#LoadModule disk_cache_module modules/mod_disk_cache.so\n"
 					+ "#LoadModule file_cache_module modules/mod_file_cache.so\n"
-					+ "#LoadModule mem_cache_module modules/mod_mem_cache.so\n"
-					+ "LoadModule cgi_module modules/mod_cgi.so\n"
+					+ "#LoadModule mem_cache_module modules/mod_mem_cache.so\n");
+			// Comment-out cgi_module when no CGI enabled
+			boolean hasCgi = false;
+			for(HttpdSite site : sites) {
+				HttpdSiteManager manager = HttpdSiteManager.getInstance(site);
+				if(manager.enableCgi()) {
+					hasCgi = true;
+					break;
+				}
+			}
+			if(!hasCgi) out.print('#');
+			out.print("LoadModule cgi_module modules/mod_cgi.so\n"
 					+ "#LoadModule cern_meta_module modules/mod_cern_meta.so\n"
-					+ "#LoadModule asis_module modules/mod_asis.so\n"
-					+ "LoadModule jk_module modules/mod_jk-1.2.27.so\n"
-					+ "LoadModule ssl_module modules/mod_ssl.so\n");
+					+ "#LoadModule asis_module modules/mod_asis.so\n");
+			// Only include mod_jk when at least one site has jk settings
+			boolean hasJkSettings = false;
+			for(HttpdSite site : sites) {
+				HttpdSiteManager manager = HttpdSiteManager.getInstance(site);
+				if(!manager.getJkSettings().isEmpty()) {
+					hasJkSettings = true;
+					break;
+				}
+			}
+			if(hasJkSettings) {
+				// TODO: CentOS 7: Install mod_jk RPM now
+				out.print("LoadModule jk_module modules/mod_jk-1.2.27.so\n");
+			}
+			// Comment-out ssl module when has no ssl
+			boolean hasSsl = false;
+			HAS_SSL :
+			for(HttpdSite site : sites) {
+				for(HttpdSiteBind hsb : site.getHttpdSiteBinds(hs)) {
+					if(hsb.getSSLCertFile() != null) {
+						hasSsl = true;
+						break HAS_SSL;
+					}
+				}
+			}
+			if(!hasSsl) out.print('#');
+			out.print("LoadModule ssl_module modules/mod_ssl.so\n");
 			if(isEnabled && phpVersion!=null) {
 				String version = phpVersion.getVersion();
 				String phpMinorVersion = getMinorPhpVersion(version);
@@ -573,14 +644,19 @@ public class HttpdServerManager {
 					+ "Include conf/modules_conf/mod_proxy\n"
 					+ "Include conf/modules_conf/mod_mime\n"
 					+ "Include conf/modules_conf/mod_dav\n"
-					+ "Include conf/modules_conf/mod_status\n"
-					+ "Include conf/modules_conf/mod_autoindex\n"
+					+ "Include conf/modules_conf/mod_status\n");
+			// Comment-out mod_autoindex when no sites used auto-indexes
+			if(!hasIndexes) out.print('#');
+			out.print("Include conf/modules_conf/mod_autoindex\n"
 					+ "Include conf/modules_conf/mod_negotiation\n"
 					+ "Include conf/modules_conf/mod_dir\n"
-					+ "Include conf/modules_conf/mod_userdir\n"
-					+ "Include conf/modules_conf/mod_ssl\n"
-					+ "Include conf/modules_conf/mod_jk\n"
-					+ "\n"
+					+ "Include conf/modules_conf/mod_userdir\n");
+			// Comment-out ssl module when has no ssl
+			if(!hasSsl) out.print('#');
+			out.print("Include conf/modules_conf/mod_ssl\n");
+			// Only include mod_jk when at least one site has jk settings
+			if(hasJkSettings) out.print("Include conf/modules_conf/mod_jk\n");
+			out.print("\n"
 					+ "ServerAdmin root@").print(hs.getAOServer().getHostname()).print("\n"
 					+ "\n"
 					+ "SSLSessionCache shmcb:/var/cache/httpd/mod_ssl/ssl_scache").print(serverNum).print("(512000)\n"
@@ -602,161 +678,15 @@ public class HttpdServerManager {
 					+ "<IfModule mod_dav_fs.c>\n"
 					+ "    DAVLockDB /var/lib/dav").print(serverNum).print("/lockdb\n"
 					+ "</IfModule>\n"
-					+ "\n"
-					+ "<IfModule mod_jk.c>\n"
-					+ "    JkWorkersFile /etc/httpd/conf/workers").print(serverNum).print(".properties\n"
-					+ "    JkLogFile /var/log/httpd/httpd").print(serverNum).print("/mod_jk.log\n"
-					+ "    JkShmFile /var/log/httpd/httpd").print(serverNum).print("/jk-runtime-status\n"
-					+ "</IfModule>\n"
-					+ "\n"
-			);
-
-			// List of binds
-			for(HttpdBind hb : hs.getHttpdBinds()) {
-				NetBind nb=hb.getNetBind();
-				InetAddress ip=nb.getIPAddress().getInetAddress();
-				int port=nb.getPort().getPort();
-				out.print("Listen ").print(ip.toBracketedString()).print(':').print(port).print("\n"
-						+ "NameVirtualHost ").print(ip.toBracketedString()).print(':').print(port).print('\n');
-			}
-
-			// The list of sites to include
-			List<HttpdSite> sites=hs.getHttpdSites();
-			for(int d=0;d<2;d++) {
-				boolean listFirst=d==0;
-				out.print("\n");
-				for(HttpdSite site : sites) {
-					if(site.listFirst()==listFirst) {
-						for(HttpdSiteBind bind : site.getHttpdSiteBinds(hs)) {
-							NetBind nb=bind.getHttpdBind().getNetBind();
-							InetAddress ipAddress=nb.getIPAddress().getInetAddress();
-							int port=nb.getPort().getPort();
-							out.print("Include conf/hosts/").print(site.getSiteName()).print('_').print(ipAddress).print('_').print(port).print('\n');
-						}
-					}
-				}
-			}
-		}
-		return bout.toByteArray();
-	}
-
-	/**
-	 * Builds the httpd#.conf file for RedHat ES 4
-	 */
-	private static byte[] buildHttpdConfRedHatEs4(HttpdServer hs, ByteArrayOutputStream bout) throws IOException, SQLException {
-		final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
-		if(osConfig!=HttpdOperatingSystemConfiguration.REDHAT_ES_4_X86_64) throw new AssertionError("This method is for RedHat ES 4 only");
-		final int serverNum = hs.getNumber();
-		bout.reset();
-		try (ChainWriter out = new ChainWriter(bout)) {
-			LinuxServerAccount lsa=hs.getLinuxServerAccount();
-			boolean isEnabled=!lsa.isDisabled();
-			// The version of PHP module to run
-			TechnologyVersion phpVersion=hs.getModPhpVersion();
-			out.print("ServerRoot \""+CONFIG_DIRECTORY+"\"\n"
-					+ "Include conf/modules_conf/core\n"
-					+ "PidFile /var/run/httpd").print(serverNum).print(".pid\n"
-					+ "Timeout ").print(hs.getTimeOut()).print("\n"
-					+ "CoreDumpDirectory /var/log/httpd").print(serverNum).print("\n"
-					+ "LockFile /var/log/httpd").print(serverNum).print("/accept.lock\n"
-					+ "\n"
-					+ "Include conf/modules_conf/prefork\n"
-					+ "Include conf/modules_conf/worker\n"
-					+ "\n"
-					+ "LoadModule access_module modules/mod_access.so\n"
-					+ "LoadModule auth_module modules/mod_auth.so\n"
-					+ "# LoadModule auth_anon_module modules/mod_auth_anon.so\n"
-					+ "# LoadModule auth_dbm_module modules/mod_auth_dbm.so\n"
-					+ "# LoadModule auth_digest_module modules/mod_auth_digest.so\n"
-					+ "# LoadModule ldap_module modules/mod_ldap.so\n"
-					+ "# LoadModule auth_ldap_module modules/mod_auth_ldap.so\n"
-					+ "LoadModule include_module modules/mod_include.so\n"
-					+ "LoadModule log_config_module modules/mod_log_config.so\n"
-					+ "LoadModule env_module modules/mod_env.so\n"
-					+ "LoadModule mime_magic_module modules/mod_mime_magic.so\n"
-					+ "# LoadModule cern_meta_module modules/mod_cern_meta.so\n"
-					+ "LoadModule expires_module modules/mod_expires.so\n"
-					+ "LoadModule deflate_module modules/mod_deflate.so\n"
-					+ "LoadModule headers_module modules/mod_headers.so\n"
-					+ "# LoadModule usertrack_module modules/mod_usertrack.so\n"
-					+ "LoadModule setenvif_module modules/mod_setenvif.so\n"
-					+ "LoadModule mime_module modules/mod_mime.so\n"
-					+ "# LoadModule dav_module modules/mod_dav.so\n"
-					+ "# LoadModule status_module modules/mod_status.so\n"
-					+ "LoadModule autoindex_module modules/mod_autoindex.so\n"
-					+ "LoadModule asis_module modules/mod_asis.so\n"
-					+ "# LoadModule info_module modules/mod_info.so\n"
-					+ "# LoadModule dav_fs_module modules/mod_dav_fs.so\n"
-					+ "# LoadModule vhost_alias_module modules/mod_vhost_alias.so\n"
-					+ "LoadModule negotiation_module modules/mod_negotiation.so\n"
-					+ "LoadModule dir_module modules/mod_dir.so\n"
-					+ "LoadModule imap_module modules/mod_imap.so\n"
-					+ "LoadModule actions_module modules/mod_actions.so\n"
-					+ "# LoadModule speling_module modules/mod_speling.so\n"
-					+ "# LoadModule userdir_module modules/mod_userdir.so\n"
-					+ "LoadModule alias_module modules/mod_alias.so\n"
-					+ "LoadModule rewrite_module modules/mod_rewrite.so\n"
-					+ "LoadModule proxy_module modules/mod_proxy.so\n"
-					+ "# LoadModule proxy_ftp_module modules/mod_proxy_ftp.so\n"
-					+ "LoadModule proxy_http_module modules/mod_proxy_http.so\n"
-					+ "# LoadModule proxy_connect_module modules/mod_proxy_connect.so\n"
-					+ "# LoadModule cache_module modules/mod_cache.so\n");
-			if(hs.useSuexec()) out.print("LoadModule suexec_module modules/mod_suexec.so\n");
-			if(isEnabled && phpVersion!=null) {
-				String version = phpVersion.getVersion();
-				String phpMajorVersion = getMajorPhpVersion(version);
-				out.print("\n"
-						+ "# Enable mod_php\n"
-						+ "LoadModule php").print(phpMajorVersion).print("_module /opt/php-").print(phpMajorVersion).print("/lib/apache/").print(getPhpLib(phpVersion)).print("\n"
-						+ "AddType application/x-httpd-php .php\n"
-						+ "AddType application/x-httpd-php-source .phps\n");
-			}
-			out.print("# LoadModule disk_cache_module modules/mod_disk_cache.so\n"
-					+ "# LoadModule file_cache_module modules/mod_file_cache.so\n"
-					+ "# LoadModule mem_cache_module modules/mod_mem_cache.so\n"
-					+ "LoadModule cgi_module modules/mod_cgi.so\n"
-					+ "LoadModule ssl_module modules/mod_ssl.so\n"
-					+ "LoadModule jk_module modules/mod_jk-apache-2.0.52-linux-x86_64.so\n"
-					+ "\n"
-					+ "Include conf/modules_conf/mod_log_config\n"
-					+ "Include conf/modules_conf/mod_mime_magic\n"
-					+ "Include conf/modules_conf/mod_setenvif\n"
-					+ "Include conf/modules_conf/mod_mime\n"
-					+ "Include conf/modules_conf/mod_status\n"
-					+ "Include conf/modules_conf/mod_autoindex\n"
-					+ "Include conf/modules_conf/mod_negotiation\n"
-					+ "Include conf/modules_conf/mod_dir\n"
-					+ "Include conf/modules_conf/mod_userdir\n"
-					+ "Include conf/modules_conf/mod_proxy\n"
-					+ "Include conf/modules_conf/mod_ssl\n"
-					+ "Include conf/modules_conf/mod_jk\n"
-					+ "\n"
-					+ "SSLSessionCache shmcb:/var/cache/mod_ssl/scache").print(serverNum).print("(512000)\n"
 					+ "\n");
-			// Use apache if the account is disabled
-			if(isEnabled) {
-				out.print("User ").print(lsa.getLinuxAccount().getUsername().getUsername()).print("\n"
-						+ "Group ").print(hs.getLinuxServerGroup().getLinuxGroup().getName()).print("\n");
-			} else {
-				out.print("User "+LinuxAccount.APACHE+"\n"
-						+ "Group "+LinuxGroup.APACHE+"\n");
+			if(hasJkSettings) {
+				out.print("<IfModule mod_jk.c>\n"
+						+ "    JkWorkersFile /etc/httpd/conf/workers").print(serverNum).print(".properties\n"
+						+ "    JkLogFile /var/log/httpd/httpd").print(serverNum).print("/mod_jk.log\n"
+						+ "    JkShmFile /var/log/httpd/httpd").print(serverNum).print("/jk-runtime-status\n"
+						+ "</IfModule>\n"
+						+ "\n");
 			}
-			out.print("\n"
-					+ "ServerName ").print(hs.getAOServer().getHostname()).print("\n"
-					+ "\n"
-					+ "ErrorLog /var/log/httpd").print(serverNum).print("/error_log\n"
-					+ "CustomLog /var/log/httpd").print(serverNum).print("/access_log combined\n"
-					+ "\n"
-					+ "<IfModule mod_dav_fs.c>\n"
-					+ "    DAVLockDB /var/lib/dav").print(serverNum).print("/lockdb\n"
-					+ "</IfModule>\n"
-					+ "\n"
-					+ "<IfModule mod_jk.c>\n"
-					+ "    JkWorkersFile /etc/httpd/conf/workers").print(serverNum).print(".properties\n"
-					+ "    JkLogFile /var/log/httpd").print(serverNum).print("/mod_jk.log\n"
-					+ "</IfModule>\n"
-					+ "\n"
-			);
 
 			// List of binds
 			for(HttpdBind hb : hs.getHttpdBinds()) {
@@ -768,7 +698,6 @@ public class HttpdServerManager {
 			}
 
 			// The list of sites to include
-			List<HttpdSite> sites=hs.getHttpdSites();
 			for(int d=0;d<2;d++) {
 				boolean listFirst=d==0;
 				out.print("\n");
@@ -790,11 +719,10 @@ public class HttpdServerManager {
 	/**
 	 * Builds the httpd#.conf file contents for the provided HttpdServer.
 	 */
-	private static byte[] buildHttpdConf(HttpdServer hs, ByteArrayOutputStream bout) throws IOException, SQLException {
+	private static byte[] buildHttpdConf(HttpdServer hs, List<HttpdSite> sites, ByteArrayOutputStream bout) throws IOException, SQLException {
 		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		switch(osConfig) {
-			case REDHAT_ES_4_X86_64       : return buildHttpdConfRedHatEs4(hs, bout);
-			case CENTOS_5_I686_AND_X86_64 : return buildHttpdConfCentOs5(hs, bout);
+			case CENTOS_5_I686_AND_X86_64 : return buildHttpdConfCentOs5(hs, sites, bout);
 			default                       : throw new AssertionError("Unexpected value for osConfig: "+osConfig);
 		}
 	}
@@ -829,7 +757,7 @@ public class HttpdServerManager {
 	/**
 	 * Builds the contents of a HttpdSiteBind file.
 	 */
-	private static byte[] buildHttpdSiteBindFile(HttpdSiteBind bind, String siteInclude, ByteArrayOutputStream bout) throws IOException, SQLException {
+	private static byte[] buildHttpdSiteBindFile(HttpdSiteManager manager, HttpdSiteBind bind, String siteInclude, ByteArrayOutputStream bout) throws IOException, SQLException {
 		OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
 		HttpdBind httpdBind = bind.getHttpdBind();
 		NetBind netBind = httpdBind.getNetBind();
@@ -870,11 +798,23 @@ public class HttpdServerManager {
 				out.print("    <IfModule mod_ssl.c>\n"
 						+ "        SSLCertificateFile ").print(sslCert).print("\n"
 						+ "        SSLCertificateKeyFile ").print(bind.getSSLCertKeyFile()).print("\n"
-						+ "        SSLCACertificateFile ").print(sslCa).print("\n"
-						+ "        <Files ~ \"\\.(cgi|shtml)$\">\n"
-						+ "            SSLOptions +StdEnvVars\n"
-						+ "        </Files>\n"
-						+ "        SSLEngine On\n"
+						+ "        SSLCACertificateFile ").print(sslCa).print("\n");
+				boolean enableCgi = manager.enableCgi();
+				boolean enableSsi = manager.httpdSite.getEnableSsi();
+				if(enableCgi && enableSsi) {
+					out.print("        <Files ~ \"\\.(cgi|shtml)$\">\n"
+							+ "            SSLOptions +StdEnvVars\n"
+							+ "        </Files>\n");
+				} else if(enableCgi) {
+					out.print("        <Files ~ \"\\.cgi$\">\n"
+							+ "            SSLOptions +StdEnvVars\n"
+							+ "        </Files>\n");
+				} else if(enableSsi) {
+					out.print("        <Files ~ \"\\.shtml$\">\n"
+							+ "            SSLOptions +StdEnvVars\n"
+							+ "        </Files>\n");
+				}
+				out.print("        SSLEngine On\n"
 						+ "    </IfModule>\n"
 						+ "\n"
 				);

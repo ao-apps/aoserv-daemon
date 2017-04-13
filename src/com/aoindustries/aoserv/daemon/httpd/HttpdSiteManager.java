@@ -312,34 +312,8 @@ public abstract class HttpdSiteManager {
 	 * Gets the auto-mode warning for this website for use in XML files.  This
 	 * may be used on any config files that a user would be tempted to change
 	 * directly.
-	 *
-	 * TODO: Change www.aoindustries.com to aoindustries.com
 	 */
 	public String getAutoWarningXmlOld() throws IOException, SQLException {
-		return
-			"<!--\n"
-			+ "  Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
-			+ "  to this file will be overwritten.  Please set the is_manual flag for this website\n"
-			+ "  to be able to make permanent changes to this file.\n"
-			+ "\n"
-			+ "  Control Panel: https://www.aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey="+httpdSite.getPkey()+"\n"
-			+ "\n"
-			+ "  AOSH: "+AOSHCommand.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getSiteName()+" "+httpdSite.getAOServer().getHostname()+" true\n"
-			+ "\n"
-			+ "  support@aoindustries.com\n"
-			+ "  (866) 270-6195\n"
-			+ "-->\n"
-		;
-	}
-
-	/**
-	 * Gets the auto-mode warning for this website for use in XML files.  This
-	 * may be used on any config files that a user would be tempted to change
-	 * directly.
-	 *
-	 * TODO: Change www.aoindustries.com to aoindustries.com
-	 */
-	public String getAutoWarningXml() throws IOException, SQLException {
 		return
 			"<!--\n"
 			+ "  Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
@@ -357,25 +331,45 @@ public abstract class HttpdSiteManager {
 	}
 
 	/**
+	 * Gets the auto-mode warning for this website for use in XML files.  This
+	 * may be used on any config files that a user would be tempted to change
+	 * directly.
+	 */
+	public String getAutoWarningXml() throws IOException, SQLException {
+		return
+			"<!--\n"
+			+ "  Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
+			+ "  to this file will be overwritten.  Please set the is_manual flag for this website\n"
+			+ "  to be able to make permanent changes to this file.\n"
+			+ "\n"
+			+ "  Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey="+httpdSite.getPkey()+"\n"
+			+ "\n"
+			+ "  AOSH: "+AOSHCommand.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getSiteName()+" "+httpdSite.getAOServer().getHostname()+" true\n"
+			+ "\n"
+			+ "  support@aoindustries.com\n"
+			+ "  (205) 454-2556\n"
+			+ "-->\n"
+		;
+	}
+
+	/**
 	 * Gets the auto-mode warning using Unix-style comments (#).  This
 	 * may be used on any config files that a user would be tempted to change
 	 * directly.
-	 *
-	 * TODO: Change www.aoindustries.com to aoindustries.com
 	 */
-	/* Change to 2054542556 if re-enabled: public String getAutoWarningUnix() throws IOException, SQLException {
+	/* public String getAutoWarningUnix() throws IOException, SQLException {
 		return
 			"#\n"
 			+ "# Warning: This file is automatically created by HttpdManager.  Any manual changes\n"
 			+ "# to this file will be overwritten.  Please set the is_manual flag for this website\n"
 			+ "# to be able to make permanent changes to this file.\n"
 			+ "#\n"
-			+ "# Control Panel: https://www.aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey="+httpdSite.getPkey()+"\n"
+			+ "# Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey="+httpdSite.getPkey()+"\n"
 			+ "#\n"
 			+ "# AOSH: "+AOSHCommand.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getSiteName()+' '+httpdSite.getAOServer().getHostname()+" true\n"
 			+ "#\n"
 			+ "# support@aoindustries.com\n"
-			+ "# (866) 270-6195\n"
+			+ "# (205) 454-2556\n"
 			+ "#\n"
 		;
 	}*/
@@ -410,7 +404,9 @@ public abstract class HttpdSiteManager {
 	/**
 	 * Determines if should have anonymous FTP area.
 	 */
-	public abstract boolean enableAnonymousFtp();
+	public boolean enableAnonymousFtp() {
+		return httpdSite.getEnableAnonymousFtp();
+	}
 
 	/**
 	 * Configures the anonymous FTP directory associated with this site.
@@ -444,16 +440,24 @@ public abstract class HttpdSiteManager {
 
 	/**
 	 * Determines if CGI should be enabled.
+	 *
+	 * @see  HttpdSite#getEnableCgi()
 	 */
-	protected abstract boolean enableCgi();
+	protected boolean enableCgi() {
+		return httpdSite.getEnableCgi();
+	}
 
 	/**
 	 * Determines if PHP should be enabled.
 	 *
 	 * If this is enabled and CGI is disabled, then the HttpdServer for the
 	 * site must use mod_php.
+	 *
+	 * @see  HttpdSite#getPhpVersion()
 	 */
-	protected abstract boolean enablePhp();
+	protected boolean enablePhp() throws IOException, SQLException {
+		return httpdSite.getPhpVersion() != null;
+	}
 
 	/**
 	 * Creates or updates the CGI php script, CGI must be enabled and PHP enabled.
@@ -462,112 +466,53 @@ public abstract class HttpdSiteManager {
 	 */
 	protected void createCgiPhpScript(UnixFile cgibinDirectory) throws IOException, SQLException {
 		UnixFile phpFile = new UnixFile(cgibinDirectory, "php", false);
-		// TODO: If every server this site runs as uses mod_php, then don't make the script
-		// TODO: Make based on per-httpd_site setting
+		// TODO: If every server this site runs as uses mod_php, then don't make the script?
 		if(enableCgi() && enablePhp()) {
 			AOServer thisAoServer = AOServDaemon.getThisAOServer();
-			int uid_min = thisAoServer.getUidMin().getId();
-			int gid_min = thisAoServer.getGidMin().getId();
 			final OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 			final int osvId = osv.getPkey();
-			HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
-			final String phpMinorVersion;
-			if(phpFile.getStat().exists()) {
-				// TODO: Get from DB-based per-httpd_site config
-				String contents = FileUtils.readFileAsString(phpFile.getFile());
-				if(
-					contents.contains("/opt/php-5/bin/php")
-					|| contents.contains("/opt/php-5-i686/bin/php")
-				) {
-					switch(osvId) {
-						case OperatingSystemVersion.REDHAT_ES_4_X86_64 :
-							phpMinorVersion = "5.2";
-							break;
-						case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
-							phpMinorVersion = "5.3";
-							break;
-						default :
-							throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-					}
-				} else if(
-					contents.contains("/opt/php-5.2/bin/php")
-					|| contents.contains("/opt/php-5.2-i686/bin/php")
-				) {
-					phpMinorVersion = "5.2";
-				} else if(
-					contents.contains("/opt/php-5.3/bin/php")
-					|| contents.contains("/opt/php-5.3-i686/bin/php")
-				) {
-					phpMinorVersion = "5.3";
-				} else if(
-					contents.contains("/opt/php-5.4/bin/php")
-					|| contents.contains("/opt/php-5.4-i686/bin/php")
-				) {
-					phpMinorVersion = "5.4";
-				} else if(
-					contents.contains("/opt/php-5.5/bin/php")
-					|| contents.contains("/opt/php-5.5-i686/bin/php")
-				) {
-					phpMinorVersion = "5.5";
-				} else if(
-					contents.contains("/opt/php-5.6/bin/php")
-					|| contents.contains("/opt/php-5.6-i686/bin/php")
-				) {
-					phpMinorVersion = "5.6";
-				} else if(
-					contents.contains("/opt/php-4/bin/php")
-					|| contents.contains("/opt/php-4-i686/bin/php")
-				) {
-					phpMinorVersion = "4.4";
-				} else {
-					phpMinorVersion = osConfig.getDefaultPhpMinorVersion();
-				}
-			} else {
-				phpMinorVersion = osConfig.getDefaultPhpMinorVersion();
-			}
-			UnixPath phpCgiPath = osConfig.getPhpCgiPath(phpMinorVersion);
 
 			PackageManager.PackageName requiredPackage;
-
+			String phpVersion = httpdSite.getPhpVersion().getVersion();
 			// Build to RAM first
 			ByteArrayOutputStream bout = new ByteArrayOutputStream();
 			try (ChainWriter out = new ChainWriter(bout)) {
+				String phpMinorVersion;
 				out.print("#!/bin/sh\n");
-				switch (phpMinorVersion) {
-					case "4.4":
-						requiredPackage = null;
-						out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
-						out.print(". /opt/postgresql-7.3-i686/setenv.sh\n");
-						break;
-					case "5.2":
-						requiredPackage = PackageManager.PackageName.PHP_5_2;
-						out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
-						out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
-						break;
-					case "5.3":
-						requiredPackage = PackageManager.PackageName.PHP_5_3;
-						out.print(". /opt/mysql-5.1-i686/setenv.sh\n");
-						out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
-						break;
-					case "5.4":
-						requiredPackage = PackageManager.PackageName.PHP_5_4;
-						out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
-						out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
-						break;
-					case "5.5":
-						requiredPackage = PackageManager.PackageName.PHP_5_5;
-						out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
-						out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
-						break;
-					case "5.6":
-						requiredPackage = PackageManager.PackageName.PHP_5_6;
-						out.print(". /opt/mysql-5.7-i686/setenv.sh\n");
-						out.print(". /opt/postgresql-9.4-i686/setenv.sh\n");
-						break;
-					default:
-						throw new SQLException("Unexpected version for php: "+phpMinorVersion);
+				if(phpVersion.startsWith("4.4.")) {
+					phpMinorVersion = "4.4";
+					requiredPackage = null;
+					out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
+					out.print(". /opt/postgresql-7.3-i686/setenv.sh\n");
+				} else if(phpVersion.startsWith("5.2.")) {
+					phpMinorVersion = "5.2";
+					requiredPackage = PackageManager.PackageName.PHP_5_2;
+					out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
+					out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
+				} else if(phpVersion.startsWith("5.3.")) {
+					phpMinorVersion = "5.3";
+					requiredPackage = PackageManager.PackageName.PHP_5_3;
+					out.print(". /opt/mysql-5.1-i686/setenv.sh\n");
+					out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
+				} else if(phpVersion.startsWith("5.4.")) {
+					phpMinorVersion = "5.4";
+					requiredPackage = PackageManager.PackageName.PHP_5_4;
+					out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
+					out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
+				} else if(phpVersion.startsWith("5.5.")) {
+					phpMinorVersion = "5.5";
+					requiredPackage = PackageManager.PackageName.PHP_5_5;
+					out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
+					out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
+				} else if(phpVersion.startsWith("5.6.")) {
+					phpMinorVersion = "5.6";
+					requiredPackage = PackageManager.PackageName.PHP_5_6;
+					out.print(". /opt/mysql-5.7-i686/setenv.sh\n");
+					out.print(". /opt/postgresql-9.4-i686/setenv.sh\n");
+				} else {
+					throw new SQLException("Unexpected version for php: " + phpVersion);
 				}
-				out.print("exec ").print(phpCgiPath).print(" \"$@\"\n");
+				out.print("exec ").print(HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getPhpCgiPath(phpMinorVersion)).print(" \"$@\"\n");
 			}
 			// Make sure required RPM is installed
 			if(requiredPackage != null) PackageManager.installPackage(requiredPackage);
@@ -588,8 +533,8 @@ public abstract class HttpdSiteManager {
 				uid,
 				gid,
 				mode,
-				uid_min,
-				gid_min
+				thisAoServer.getUidMin().getId(),
+				thisAoServer.getGidMin().getId()
 			);
 			// Make sure permissions correct
 			Stat phpStat = phpFile.getStat();
@@ -597,49 +542,9 @@ public abstract class HttpdSiteManager {
 			if(phpStat.getMode()!=mode) phpFile.setMode(mode);
 		} else {
 			if(phpFile.getStat().exists()) phpFile.delete();
-		}
-	}
-
-	/**
-	 * Creates the test CGI script, must have CGI enabled.
-	 * If CGI is disabled, does nothing.
-	 * Any existing file will not be overwritten, even when in auto mode.
-	 */
-	protected void createTestCGI(UnixFile cgibinDirectory) throws IOException, SQLException {
-		if(enableCgi()) {
-			UnixFile testFile = new UnixFile(cgibinDirectory, "test", false);
-			if(!testFile.getStat().exists()) {
-				HttpdSiteURL primaryHsu = httpdSite.getPrimaryHttpdSiteURL();
-				String primaryUrl = primaryHsu==null ? httpdSite.getSiteName() : primaryHsu.getHostname().toString();
-				// Write to temp file first
-				UnixFile tempFile = UnixFile.mktemp(testFile.getPath()+".", false);
-				try {
-					try (ChainWriter out = new ChainWriter(new FileOutputStream(tempFile.getFile()))) {
-						out.print("#!/usr/bin/perl\n"
-								+ "print \"Content-Type: text/html\\n\";\n"
-								+ "print \"\\n\";\n"
-								+ "print \"<html>\\n\";\n"
-								+ "print \"  <head><title>Test CGI Page for ").print(primaryUrl).print("</title></head>\\n\";\n"
-								+ "print \"  <body>\\n\";\n"
-								+ "print \"    Test CGI Page for ").print(primaryUrl).print("<br />\\n\";\n"
-								+ "print \"    <br />\\n\";\n"
-								+ "print \"    The current time is \";\n"
-								+ "@date=`/bin/date -R`;\n"
-								+ "chop(@date);\n"
-								+ "print \"@date.\\n\";\n"
-								+ "print \"  </body>\\n\";\n"
-								+ "print \"</html>\\n\";\n");
-					}
-					// Set permissions and ownership
-					tempFile.setMode(0755);
-					tempFile.chown(httpdSite.getLinuxServerAccount().getUid().getId(), httpdSite.getLinuxServerGroup().getGid().getId());
-					// Move into place
-					tempFile.renameTo(testFile);
-				} finally {
-					// If still exists then there was a problem, clean-up
-					if(tempFile.getStat().exists()) tempFile.delete();
-				}
-			}
+			// Remove any php.ini, too
+			UnixFile phpIniFile = new UnixFile(cgibinDirectory, "php.ini", false);
+			if(phpIniFile.getStat().exists()) phpIniFile.delete();
 		}
 	}
 
@@ -658,9 +563,9 @@ public abstract class HttpdSiteManager {
 			try {
 				try (ChainWriter out = new ChainWriter(new FileOutputStream(tempFile.getFile()))) {
 					out.print("<html>\n"
-							+ "  <head><title>Test HTML Page for ").print(primaryUrl).print("</title></head>\n"
+							+ "  <head><title>Test HTML Page for ").encodeXhtml(primaryUrl).print("</title></head>\n"
 							+ "  <body>\n"
-							+ "    Test HTML Page for ").print(primaryUrl).print("\n"
+							+ "    Test HTML Page for ").encodeXhtml(primaryUrl).print("\n"
 							+ "  </body>\n"
 							+ "</html>\n");
 				}
@@ -672,44 +577,6 @@ public abstract class HttpdSiteManager {
 			} finally {
 				// If still exists then there was a problem, clean-up
 				if(tempFile.getStat().exists()) tempFile.delete();
-			}
-		}
-	}
-
-	/**
-	 * Creates the test PHP script, must have PHP enabled.
-	 * If PHP is disabled, does nothing.
-	 * Any existing file will not be overwritten, even when in auto mode.
-	 */
-	protected void createTestPHP(UnixFile rootDirectory) throws IOException, SQLException {
-		// TODO: Overwrite the phpinfo pages with this new version, for security
-		if(enablePhp()) {
-			UnixFile testFile = new UnixFile(rootDirectory, "test.php", false);
-			if(!testFile.getStat().exists()) {
-				HttpdSiteURL primaryHsu = httpdSite.getPrimaryHttpdSiteURL();
-				String primaryUrl = primaryHsu==null ? httpdSite.getSiteName() : primaryHsu.getHostname().toString();
-				// Write to temp file first
-				UnixFile tempFile = UnixFile.mktemp(testFile.getPath()+".", false);
-				try {
-					try (ChainWriter out = new ChainWriter(new FileOutputStream(tempFile.getFile()))) {
-					out.print("<html>\n"
-							+ "  <head><title>Test PHP Page for ").print(primaryUrl).print("</title></head>\n"
-							+ "  <body>\n"
-							+ "    Test PHP Page for ").print(primaryUrl).print("<br />\n"
-							+ "    <br />\n"
-							+ "    The current time is <?= date('r') ?>.\n"
-							+ "  </body>\n"
-							+ "</html>\n");
-					}
-					// Set permissions and ownership
-					tempFile.setMode(0664);
-					tempFile.chown(httpdSite.getLinuxServerAccount().getUid().getId(), httpdSite.getLinuxServerGroup().getGid().getId());
-					// Move into place
-					tempFile.renameTo(testFile);
-				} finally {
-					// If still exists then there was a problem, clean-up
-					if(tempFile.getStat().exists()) tempFile.delete();
-				}
 			}
 		}
 	}
@@ -940,6 +807,29 @@ public abstract class HttpdSiteManager {
 
 	public static class WebAppSettings {
 
+		/** https://httpd.apache.org/docs/2.4/mod/core.html#options */
+		public static String generateOptions(
+			boolean enableSsi,
+			boolean enableIndexes,
+			boolean enableFollowSymlinks
+		) {
+			StringBuilder options = new StringBuilder();
+			if(enableFollowSymlinks) options.append("FollowSymLinks");
+			if(enableSsi) {
+				if(options.length() > 0) options.append(' ');
+				options.append("IncludesNOEXEC");
+			}
+			if(enableIndexes) {
+				if(options.length() > 0) options.append(' ');
+				options.append("Indexes");
+			}
+			if(options.length() == 0) {
+				return "None";
+			} else {
+				return options.toString();
+			}
+		}
+
 		private final UnixPath docBase;
 		private final String allowOverride;
 		private final String options;
@@ -950,6 +840,22 @@ public abstract class HttpdSiteManager {
 			this.allowOverride = allowOverride;
 			this.options = options;
 			this.enableCgi = enableCgi;
+		}
+
+		public WebAppSettings(
+			UnixPath docBase,
+			String allowOverride,
+			boolean enableSsi,
+			boolean enableIndexes,
+			boolean enableFollowSymlinks,
+			boolean enableCgi
+		) {
+			this(
+				docBase,
+				allowOverride,
+				generateOptions(enableSsi, enableIndexes, enableFollowSymlinks),
+				enableCgi
+			);
 		}
 
 		public UnixPath getDocBase() {

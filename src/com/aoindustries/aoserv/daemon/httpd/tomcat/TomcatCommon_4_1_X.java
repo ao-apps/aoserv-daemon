@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2015 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2015, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -48,9 +48,9 @@ class TomcatCommon_4_1_X extends TomcatCommon {
 				+ "            <parameter><name>password</name><value>").encodeXhtml(dataSource.getPassword()).print("</value></parameter>\n"
 				+ "            <parameter><name>driverClassName</name><value>").encodeXhtml(dataSource.getDriverClassName()).print("</value></parameter>\n"
 				+ "            <parameter><name>url</name><value>").encodeXhtml(dataSource.getUrl()).print("</value></parameter>\n"
-				+ "            <parameter><name>maxActive</name><value>").print(dataSource.getMaxActive()).print("</value></parameter>\n"
-				+ "            <parameter><name>maxIdle</name><value>").print(dataSource.getMaxIdle()).print("</value></parameter>\n"
-				+ "            <parameter><name>maxWait</name><value>").print(dataSource.getMaxWait()).print("</value></parameter>\n");
+				+ "            <parameter><name>maxActive</name><value>").encodeXhtml(dataSource.getMaxActive()).print("</value></parameter>\n"
+				+ "            <parameter><name>maxIdle</name><value>").encodeXhtml(dataSource.getMaxIdle()).print("</value></parameter>\n"
+				+ "            <parameter><name>maxWait</name><value>").encodeXhtml(dataSource.getMaxWait()).print("</value></parameter>\n");
 		if(dataSource.getValidationQuery()!=null) {
 			out.print("            <parameter><name>validationQuery</name><value>").encodeXhtml(dataSource.getValidationQuery()).print("</value></parameter>\n");
 		}

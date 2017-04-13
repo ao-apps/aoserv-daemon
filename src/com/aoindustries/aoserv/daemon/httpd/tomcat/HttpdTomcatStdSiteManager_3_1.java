@@ -50,17 +50,15 @@ class HttpdTomcatStdSiteManager_3_1 extends HttpdTomcatStdSiteManager_3_X<Tomcat
 			out.print("<Server>\n"
 					+ "    <xmlmapper:debug level=\"0\" />\n"
 					+ "    <Logger name=\"tc_log\"\n"
-					+ "            path=\"").print(siteDir).print("/var/log/tomcat.log\"\n"
+					+ "            path=\"").encodeXmlAttribute(siteDir).print("/var/log/tomcat.log\"\n"
 					+ "            customOutput=\"yes\" />\n"
 					+ "    <Logger name=\"servlet_log\"\n"
-					+ "            path=\"").print(siteDir).print("/var/log/servlet.log\"\n"
+					+ "            path=\"").encodeXmlAttribute(siteDir).print("/var/log/servlet.log\"\n"
 					+ "            customOutput=\"yes\" />\n"
 					+ "    <Logger name=\"JASPER_LOG\"\n"
-					+ "            path=\"").print(siteDir).print("/var/log/jasper.log\"\n"
+					+ "            path=\"").encodeXmlAttribute(siteDir).print("/var/log/jasper.log\"\n"
 					+ "            verbosityLevel = \"INFORMATION\" />\n"
-					+ "    <ContextManager debug=\"0\" home=\"").print(siteDir).print("\" workDir=\"");
-			out.print(siteDir).print("/work");
-			out.print("\" >\n"
+					+ "    <ContextManager debug=\"0\" home=\"").encodeXmlAttribute(siteDir).print("\" workDir=\"").encodeXmlAttribute(siteDir).print("/work\" >\n"
 					+ "        <ContextInterceptor className=\"org.apache.tomcat.context.DefaultCMSetter\" />\n"
 					+ "        <ContextInterceptor className=\"org.apache.tomcat.context.WorkDirInterceptor\" />\n"
 					+ "        <ContextInterceptor className=\"org.apache.tomcat.context.WebXmlReader\" />\n"
@@ -80,9 +78,9 @@ class HttpdTomcatStdSiteManager_3_1 extends HttpdTomcatStdSiteManager_3_X<Tomcat
 				else if(protocol.equals(HttpdJKProtocol.AJP13)) throw new IllegalArgumentException("Tomcat Version "+htv+" does not support AJP version: "+protocol);
 				else throw new IllegalArgumentException("Unknown AJP version: "+htv);
 				out.print("\"/>\n"
-						+ "            <Parameter name=\"port\" value=\"").print(netBind.getPort().getPort()).print("\"/>\n");
+						+ "            <Parameter name=\"port\" value=\"").encodeXmlAttribute(netBind.getPort().getPort()).print("\"/>\n");
 				InetAddress ip=netBind.getIPAddress().getInetAddress();
-				if(!ip.isUnspecified()) out.print("            <Parameter name=\"inet\" value=\"").encodeXmlAttribute(ip.toString()).print("\"/>\n");
+				if(!ip.isUnspecified()) out.print("            <Parameter name=\"inet\" value=\"").encodeXmlAttribute(ip).print("\"/>\n");
 				out.print("            <Parameter name=\"max_threads\" value=\"30\"/>\n"
 						+ "            <Parameter name=\"max_spare_threads\" value=\"10\"/>\n"
 						+ "            <Parameter name=\"min_spare_threads\" value=\"1\"/>\n"
@@ -90,7 +88,7 @@ class HttpdTomcatStdSiteManager_3_1 extends HttpdTomcatStdSiteManager_3_X<Tomcat
 				);
 			}
 			for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
-				out.print("    <Context path=\"").print(htc.getPath()).print("\" docBase=\"").print(htc.getDocBase()).print("\" debug=\"").print(htc.getDebugLevel()).print("\" reloadable=\"").print(htc.isReloadable()).print("\" />\n");
+				out.print("    <Context path=\"").encodeXmlAttribute(htc.getPath()).print("\" docBase=\"").encodeXmlAttribute(htc.getDocBase()).print("\" debug=\"").encodeXmlAttribute(htc.getDebugLevel()).print("\" reloadable=\"").encodeXmlAttribute(htc.isReloadable()).print("\" />\n");
 			}
 			out.print("  </ContextManager>\n"
 					+ "</Server>\n");

@@ -54,6 +54,8 @@ class HttpdLogManager {
 
 	/**
 	 * Pattern to match HttpdServer when in /etc/logrotate.d
+	 *
+	 * TODO: First httpd as "httpd" not "httpd1".
 	 */
 	private static final Pattern HTTPD_SERVER_REGEXP = Pattern.compile("^" + HTTPD_SERVER_PREFIX + "[0-9]+$");
 

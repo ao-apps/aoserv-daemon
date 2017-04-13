@@ -319,7 +319,7 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 			String shutdownKey=tomcatStdSite.getTomcat4ShutdownKey();
 			if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for HttpdTomcatStdSite="+tomcatStdSite);
 			out.print(//"<?xml version='1.0' encoding='utf-8'?>\n"
-					"<Server port=\"").print(shutdownPort.getPort().getPort()).print("\" shutdown=\"").print(shutdownKey).print("\">\n"
+					"<Server port=\"").encodeXmlAttribute(shutdownPort.getPort().getPort()).print("\" encodeXmlAttribute=\"").print(shutdownKey).print("\">\n"
 					+ "  <Listener className=\"org.apache.catalina.startup.VersionLoggerListener\" />\n"
 					+ "  <!-- Security listener. Documentation at /docs/config/listeners.html\n"
 					+ "  <Listener className=\"org.apache.catalina.security.SecurityListener\" />\n"
@@ -345,9 +345,9 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 					+ "  </GlobalNamingResources>\n"
 					+ "  <Service name=\"Catalina\">\n"
 					+ "    <Connector\n"
-					+ "      port=\"").print(hw.getNetBind().getPort().getPort()).print("\"\n"
-					+ "      address=\""+IPAddress.LOOPBACK_IP+"\"\n"
-					+ "      maxPostSize=\"" + TomcatCommon_6_0_X.MAX_POST_SIZE + "\"\n"
+					+ "      port=\"").encodeXmlAttribute(hw.getNetBind().getPort().getPort()).print("\"\n"
+					+ "      address=\"").encodeXmlAttribute(IPAddress.LOOPBACK_IP).print("\"\n"
+					+ "      maxPostSize=\"").encodeXmlAttribute(tomcatStdSite.getMaxPostSize()).print("\"\n"
 					+ "      protocol=\"AJP/1.3\"\n"
 					+ "      redirectPort=\"8443\"\n"
 					+ "      URIEncoding=\"UTF-8\"\n"
@@ -359,23 +359,23 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 					+ "      <Host\n"
 					+ "        name=\"localhost\"\n"
 					+ "        appBase=\"webapps\"\n"
-					+ "        unpackWARs=\"true\"\n"
-					+ "        autoDeploy=\"true\"\n"
+					+ "        unpackWARs=\"").encodeXmlAttribute(tomcatStdSite.getUnpackWARs()).print("\"\n"
+					+ "        autoDeploy=\"").encodeXmlAttribute(tomcatStdSite.getAutoDeploy()).print("\"\n"
 					+ "      >\n");
 			for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
 				out.print("        <Context\n");
-				if(htc.getClassName()!=null) out.print("          className=\"").print(htc.getClassName()).print("\"\n");
-				out.print("          cookies=\"").print(htc.useCookies()).print("\"\n"
-						+ "          crossContext=\"").print(htc.allowCrossContext()).print("\"\n"
-						+ "          docBase=\"").print(htc.getDocBase()).print("\"\n"
-						+ "          override=\"").print(htc.allowOverride()).print("\"\n"
-						+ "          path=\"").print(htc.getPath()).print("\"\n"
-						+ "          privileged=\"").print(htc.isPrivileged()).print("\"\n"
-						+ "          reloadable=\"").print(htc.isReloadable()).print("\"\n"
-						+ "          useNaming=\"").print(htc.useNaming()).print("\"\n");
-				if(htc.getWrapperClass()!=null) out.print("          wrapperClass=\"").print(htc.getWrapperClass()).print("\"\n");
-				out.print("          debug=\"").print(htc.getDebugLevel()).print("\"\n");
-				if(htc.getWorkDir()!=null) out.print("          workDir=\"").print(htc.getWorkDir()).print("\"\n");
+				if(htc.getClassName()!=null) out.print("          className=\"").encodeXmlAttribute(htc.getClassName()).print("\"\n");
+				out.print("          cookies=\"").encodeXmlAttribute(htc.useCookies()).print("\"\n"
+						+ "          crossContext=\"").encodeXmlAttribute(htc.allowCrossContext()).print("\"\n"
+						+ "          docBase=\"").encodeXmlAttribute(htc.getDocBase()).print("\"\n"
+						+ "          override=\"").encodeXmlAttribute(htc.allowOverride()).print("\"\n"
+						+ "          path=\"").encodeXmlAttribute(htc.getPath()).print("\"\n"
+						+ "          privileged=\"").encodeXmlAttribute(htc.isPrivileged()).print("\"\n"
+						+ "          reloadable=\"").encodeXmlAttribute(htc.isReloadable()).print("\"\n"
+						+ "          useNaming=\"").encodeXmlAttribute(htc.useNaming()).print("\"\n");
+				if(htc.getWrapperClass()!=null) out.print("          wrapperClass=\"").encodeXmlAttribute(htc.getWrapperClass()).print("\"\n");
+				out.print("          debug=\"").encodeXmlAttribute(htc.getDebugLevel()).print("\"\n");
+				if(htc.getWorkDir()!=null) out.print("          workDir=\"").encodeXmlAttribute(htc.getWorkDir()).print("\"\n");
 				List<HttpdTomcatParameter> parameters=htc.getHttpdTomcatParameters();
 				List<HttpdTomcatDataSource> dataSources=htc.getHttpdTomcatDataSources();
 				if(parameters.isEmpty() && dataSources.isEmpty()) {

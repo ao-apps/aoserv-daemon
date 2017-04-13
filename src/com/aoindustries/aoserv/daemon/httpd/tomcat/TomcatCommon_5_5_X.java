@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2015 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2015, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -45,9 +45,9 @@ class TomcatCommon_5_5_X extends TomcatCommon {
 				+ "            password=\"").encodeXmlAttribute(dataSource.getPassword()).print("\"\n"
 				+ "            driverClassName=\"").encodeXmlAttribute(dataSource.getDriverClassName()).print("\"\n"
 				+ "            url=\"").encodeXmlAttribute(dataSource.getUrl()).print("\"\n"
-				+ "            maxActive=\"").print(dataSource.getMaxActive()).print("\"\n"
-				+ "            maxIdle=\"").print(dataSource.getMaxIdle()).print("\"\n"
-				+ "            maxWait=\"").print(dataSource.getMaxWait()).print("\"\n");
+				+ "            maxActive=\"").encodeXmlAttribute(dataSource.getMaxActive()).print("\"\n"
+				+ "            maxIdle=\"").encodeXmlAttribute(dataSource.getMaxIdle()).print("\"\n"
+				+ "            maxWait=\"").encodeXmlAttribute(dataSource.getMaxWait()).print("\"\n");
 		if(dataSource.getValidationQuery()!=null) {
 			out.print("            validationQuery=\"").encodeXmlAttribute(dataSource.getValidationQuery()).print("\"\n");
 		}

@@ -422,11 +422,11 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 			if(!httpdSite.isManual()) out.print(autoWarning);
 			out.print("<Server>\n"
 					+ "  <xmlmapper:debug level=\"0\" />\n"
-					+ "  <Logger name=\"tc_log\" verbosityLevel = \"INFORMATION\" path=\"").print(siteDir).print("/var/log/tomcat.log\" />\n"
-					+ "  <Logger name=\"servlet_log\" path=\"").print(siteDir).print("/var/log/servlet.log\" />\n"
-					+ "  <Logger name=\"JASPER_LOG\" path=\"").print(siteDir).print("/var/log/jasper.log\" verbosityLevel = \"INFORMATION\" />\n"
+					+ "  <Logger name=\"tc_log\" verbosityLevel = \"INFORMATION\" path=\"").encodeXmlAttribute(siteDir).print("/var/log/tomcat.log\" />\n"
+					+ "  <Logger name=\"servlet_log\" path=\"").encodeXmlAttribute(siteDir).print("/var/log/servlet.log\" />\n"
+					+ "  <Logger name=\"JASPER_LOG\" path=\"").encodeXmlAttribute(siteDir).print("/var/log/jasper.log\" verbosityLevel = \"INFORMATION\" />\n"
 					+ "\n"
-					+ "  <ContextManager debug=\"0\" home=\"").print(siteDir).print("\" workDir=\"").print(siteDir).print("/work").print("\" showDebugInfo=\"true\" >\n"
+					+ "  <ContextManager debug=\"0\" home=\"").encodeXmlAttribute(siteDir).print("\" workDir=\"").encodeXmlAttribute(siteDir).print("/work\" showDebugInfo=\"true\" >\n"
 					+ "    <ContextInterceptor className=\"org.apache.tomcat.context.WebXmlReader\" />\n"
 					+ "    <ContextInterceptor className=\"org.apache.tomcat.context.LoaderInterceptor\" />\n"
 					+ "    <ContextInterceptor className=\"org.apache.tomcat.context.DefaultCMSetter\" />\n"
@@ -458,9 +458,9 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 						throw new IllegalArgumentException("Unknown AJP version: "+htv);
 				}
 				out.print("\"/>\n"
-						+ "      <Parameter name=\"port\" value=\"").print(netBind.getPort().getPort()).print("\"/>\n");
+						+ "      <Parameter name=\"port\" value=\"").encodeXmlAttribute(netBind.getPort().getPort()).print("\"/>\n");
 				InetAddress ip=netBind.getIPAddress().getInetAddress();
-				if(!ip.isUnspecified()) out.print("      <Parameter name=\"inet\" value=\"").encodeXmlAttribute(ip.toString()).print("\"/>\n");
+				if(!ip.isUnspecified()) out.print("      <Parameter name=\"inet\" value=\"").encodeXmlAttribute(ip).print("\"/>\n");
 				out.print("      <Parameter name=\"max_threads\" value=\"30\"/>\n"
 						+ "      <Parameter name=\"max_spare_threads\" value=\"10\"/>\n"
 						+ "      <Parameter name=\"min_spare_threads\" value=\"1\"/>\n"
@@ -468,7 +468,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 				);
 			}
 			for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
-				out.print("    <Context path=\"").print(htc.getPath()).print("\" docBase=\"").print(htc.getDocBase()).print("\" debug=\"").print(htc.getDebugLevel()).print("\" reloadable=\"").print(htc.isReloadable()).print("\" />\n");
+				out.print("    <Context path=\"").encodeXmlAttribute(htc.getPath()).print("\" docBase=\"").encodeXmlAttribute(htc.getDocBase()).print("\" debug=\"").encodeXmlAttribute(htc.getDebugLevel()).print("\" reloadable=\"").encodeXmlAttribute(htc.isReloadable()).print("\" />\n");
 			}
 			out.print("  </ContextManager>\n"
 					+ "</Server>\n");

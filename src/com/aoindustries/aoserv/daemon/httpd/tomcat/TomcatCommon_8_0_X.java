@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 by AO Industries, Inc.,
+ * Copyright 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -23,13 +23,6 @@ import java.util.Set;
  */
 class TomcatCommon_8_0_X extends TomcatCommon {
 
-	/**
-	 * The default setting of maxPostSize on the &lt;Connector /&gt; in server.xml.
-	 * This raises the value from the Tomcat default of 2 MiB to a more real-world
-	 * value, such as allowing uploads of pictures from modern digital cameras.
-	 */
-	public static final int MAX_POST_SIZE = 16 * 1024 * 1024; // 16 MiB
-
 	private static final TomcatCommon_8_0_X instance = new TomcatCommon_8_0_X();
 	static TomcatCommon_8_0_X getInstance() {
 		return instance;
@@ -52,9 +45,9 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 				+ "            password=\"").encodeXmlAttribute(dataSource.getPassword()).print("\"\n"
 				+ "            driverClassName=\"").encodeXmlAttribute(dataSource.getDriverClassName()).print("\"\n"
 				+ "            url=\"").encodeXmlAttribute(dataSource.getUrl()).print("\"\n"
-				+ "            maxActive=\"").print(dataSource.getMaxActive()).print("\"\n"
-				+ "            maxIdle=\"").print(dataSource.getMaxIdle()).print("\"\n"
-				+ "            maxWait=\"").print(dataSource.getMaxWait()).print("\"\n");
+				+ "            maxActive=\"").encodeXmlAttribute(dataSource.getMaxActive()).print("\"\n"
+				+ "            maxIdle=\"").encodeXmlAttribute(dataSource.getMaxIdle()).print("\"\n"
+				+ "            maxWait=\"").encodeXmlAttribute(dataSource.getMaxWait()).print("\"\n");
 		if(dataSource.getValidationQuery()!=null) {
 			out.print("            validationQuery=\"").encodeXmlAttribute(dataSource.getValidationQuery()).print("\"\n");
 		}

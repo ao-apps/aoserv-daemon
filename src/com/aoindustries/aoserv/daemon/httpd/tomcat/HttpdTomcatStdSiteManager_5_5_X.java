@@ -328,15 +328,15 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
 			if(shutdownPort==null) throw new SQLException("Unable to find shutdown port for HttpdTomcatStdSite="+tomcatStdSite);
 			String shutdownKey=tomcatStdSite.getTomcat4ShutdownKey();
 			if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for HttpdTomcatStdSite="+tomcatStdSite);
-			out.print("<Server port=\"").print(shutdownPort.getPort().getPort()).print("\" shutdown=\"").print(shutdownKey).print("\" debug=\"0\">\n");
+			out.print("<Server port=\"").encodeXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").encodeXmlAttribute(shutdownKey).print("\" debug=\"0\">\n");
 			out.print("  <GlobalNamingResources>\n"
 					+ "    <Resource name=\"UserDatabase\" auth=\"Container\"\n"
 					+ "              type=\"org.apache.catalina.UserDatabase\"\n"
 					+ "       description=\"User database that can be updated and saved\"\n"
 					+ "           factory=\"org.apache.catalina.users.MemoryUserDatabaseFactory\"\n"
 					+ "          pathname=\"conf/tomcat-users.xml\" />\n"
-					+ "   </GlobalNamingResources>\n");
-			out.print("  <Service name=\"Catalina\">\n"
+					+ "   </GlobalNamingResources>\n"
+					+ "  <Service name=\"Catalina\">\n"
 					+ "    <Connector\n"
 					//+ "      className=\"org.apache.coyote.tomcat4.CoyoteConnector\"\n"
 					//+ "      port=\"").print(hw.getNetBind().getPort().getPort()).print("\"\n"
@@ -349,42 +349,42 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
 					//+ "      connectionTimeout=\"20000\"\n"
 					//+ "      useURIValidationHack=\"false\"\n"
 					//+ "      protocolHandlerClassName=\"org.apache.jk.server.JkCoyoteHandler\"\n"
-					);
-			out.print("      port=\"").print(hw.getNetBind().getPort().getPort()).print("\"\n");
-			out.print("      enableLookups=\"false\"\n");
-			out.print("      minProcessors=\"2\"\n"
+					+ "      port=\"").encodeXmlAttribute(hw.getNetBind().getPort().getPort()).print("\"\n"
+					+ "      enableLookups=\"false\"\n"
+					+ "      minProcessors=\"2\"\n"
 					+ "      maxProcessors=\"200\"\n"
-					+ "      address=\""+IPAddress.LOOPBACK_IP+"\"\n"
+					+ "      address=\"").encodeXmlAttribute(IPAddress.LOOPBACK_IP).print("\"\n"
 					+ "      acceptCount=\"10\"\n"
 					+ "      debug=\"0\"\n"
+					+ "      maxPostSize=\"").encodeXmlAttribute(tomcatStdSite.getMaxPostSize()).print("\"\n"
 					+ "      protocol=\"AJP/1.3\"\n"
 					+ "    />\n"
-					+ "    <Engine name=\"Catalina\" defaultHost=\"localhost\" debug=\"0\">\n");
-			out.print("      <Realm className=\"org.apache.catalina.realm.UserDatabaseRealm\"\n"
-					+ "          resourceName=\"UserDatabase\" />\"\n");
-			out.print("      <Host\n"
+					+ "    <Engine name=\"Catalina\" defaultHost=\"localhost\" debug=\"0\">\n"
+					+ "      <Realm className=\"org.apache.catalina.realm.UserDatabaseRealm\"\n"
+					+ "          resourceName=\"UserDatabase\" />\"\n"
+					+ "      <Host\n"
 					+ "        name=\"localhost\"\n"
 					+ "        debug=\"0\"\n"
 					+ "        appBase=\"webapps\"\n"
-					+ "        unpackWARs=\"true\"\n");
-			out.print("        autoDeploy=\"true\"\n");
-			out.print("        xmlValidation=\"false\"\n"
-					+ "        xmlNamespaceAware=\"false\"\n");
-			out.print("      >\n");
+					+ "        unpackWARs=\"").encodeXmlAttribute(tomcatStdSite.getUnpackWARs()).print("\"\n"
+					+ "        autoDeploy=\"").encodeXmlAttribute(tomcatStdSite.getAutoDeploy()).print("\"\n"
+					+ "        xmlValidation=\"false\"\n"
+					+ "        xmlNamespaceAware=\"false\"\n"
+					+ "      >\n");
 			for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
 				out.print("        <Context\n");
-				if(htc.getClassName()!=null) out.print("          className=\"").print(htc.getClassName()).print("\"\n");
-				out.print("          cookies=\"").print(htc.useCookies()).print("\"\n"
-						+ "          crossContext=\"").print(htc.allowCrossContext()).print("\"\n"
-						+ "          docBase=\"").print(htc.getDocBase()).print("\"\n"
-						+ "          override=\"").print(htc.allowOverride()).print("\"\n"
-						+ "          path=\"").print(htc.getPath()).print("\"\n"
-						+ "          privileged=\"").print(htc.isPrivileged()).print("\"\n"
-						+ "          reloadable=\"").print(htc.isReloadable()).print("\"\n"
-						+ "          useNaming=\"").print(htc.useNaming()).print("\"\n");
-				if(htc.getWrapperClass()!=null) out.print("          wrapperClass=\"").print(htc.getWrapperClass()).print("\"\n");
-				out.print("          debug=\"").print(htc.getDebugLevel()).print("\"\n");
-				if(htc.getWorkDir()!=null) out.print("          workDir=\"").print(htc.getWorkDir()).print("\"\n");
+				if(htc.getClassName()!=null) out.print("          className=\"").encodeXmlAttribute(htc.getClassName()).print("\"\n");
+				out.print("          cookies=\"").encodeXmlAttribute(htc.useCookies()).print("\"\n"
+						+ "          crossContext=\"").encodeXmlAttribute(htc.allowCrossContext()).print("\"\n"
+						+ "          docBase=\"").encodeXmlAttribute(htc.getDocBase()).print("\"\n"
+						+ "          override=\"").encodeXmlAttribute(htc.allowOverride()).print("\"\n"
+						+ "          path=\"").encodeXmlAttribute(htc.getPath()).print("\"\n"
+						+ "          privileged=\"").encodeXmlAttribute(htc.isPrivileged()).print("\"\n"
+						+ "          reloadable=\"").encodeXmlAttribute(htc.isReloadable()).print("\"\n"
+						+ "          useNaming=\"").encodeXmlAttribute(htc.useNaming()).print("\"\n");
+				if(htc.getWrapperClass()!=null) out.print("          wrapperClass=\"").encodeXmlAttribute(htc.getWrapperClass()).print("\"\n");
+				out.print("          debug=\"").encodeXmlAttribute(htc.getDebugLevel()).print("\"\n");
+				if(htc.getWorkDir()!=null) out.print("          workDir=\"").encodeXmlAttribute(htc.getWorkDir()).print("\"\n");
 				List<HttpdTomcatParameter> parameters=htc.getHttpdTomcatParameters();
 				List<HttpdTomcatDataSource> dataSources=htc.getHttpdTomcatDataSources();
 				if(parameters.isEmpty() && dataSources.isEmpty()) {

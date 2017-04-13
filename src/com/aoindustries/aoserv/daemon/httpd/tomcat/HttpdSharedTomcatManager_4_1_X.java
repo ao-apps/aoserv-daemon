@@ -125,9 +125,8 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 			);
 			try {
 				out.print("#!/bin/sh\n"
-						  + "\n");
-
-				out.print(". /etc/profile\n"
+						+ "\n"
+						+ ". /etc/profile\n"
 						+ ". /opt/jdk1-i686/setenv.sh\n");
 				//if(postgresServerMinorVersion!=null) {
 				//	out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
@@ -139,19 +138,17 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 						+ "export CATALINA_BASE=\"").print(wwwGroupDir).print("\"\n"
 						+ "export CATALINA_HOME=\"").print(wwwGroupDir).print("\"\n"
 						+ "export CATALINA_TEMP=\"").print(wwwGroupDir).print("/temp\"\n"
-				);
-
-				out.print("\n"
+						+ "\n"
 						+ "export PATH=\"${PATH}:").print(wwwGroupDir).print("/bin\"\n"
 						+ "\n"
 						+ "export JAVA_OPTS='-server -Djava.awt.headless=true -Xmx128M'\n"
-						+ "\n");
-				out.print(". ").print(wwwGroupDir).print("/bin/profile.sites\n"
+						+ "\n"
+						+ ". ").print(wwwGroupDir).print("/bin/profile.sites\n"
 						+ "\n"
 						+ "for SITE in $SITES\n"
 						+ "do\n"
-						+ "    export PATH=\"${PATH}:").print(wwwDirectory).print("/${SITE}/bin\"\n");
-				out.print("done\n");
+						+ "    export PATH=\"${PATH}:").print(wwwDirectory).print("/${SITE}/bin\"\n"
+						+ "done\n");
 			} finally {
 				out.close();
 			}
@@ -182,9 +179,8 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 						+ "        . \"$TOMCAT_HOME/bin/profile\"\n"
 						+ "        if [ \"$SITES\" != \"\" ]; then\n"
 						+ "            cd \"$TOMCAT_HOME\"\n"
-				);
-				out.print("            \"${TOMCAT_HOME}/bin/catalina.sh\" stop 2>&1 >>\"${TOMCAT_HOME}/var/log/tomcat_err\"\n");
-				out.print("        fi\n"
+						+ "            \"${TOMCAT_HOME}/bin/catalina.sh\" stop 2>&1 >>\"${TOMCAT_HOME}/var/log/tomcat_err\"\n"
+						+ "        fi\n"
 						+ "        kill `cat \"${TOMCAT_HOME}/var/run/java.pid\"` &>/dev/null\n"
 						+ "        rm -f \"${TOMCAT_HOME}/var/run/java.pid\"\n"
 						+ "    fi\n"
@@ -194,10 +190,9 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 						+ "\n"
 						+ "    if [ \"$SITES\" != \"\" ]; then\n"
 						+ "        while [ 1 ]; do\n"
-				);
-				out.print("            mv -f \"${TOMCAT_HOME}/var/log/tomcat_err\" \"${TOMCAT_HOME}/var/log/tomcat_err_$(date +%Y%m%d_%H%M%S)\"\n"
-						+ "            \"${TOMCAT_HOME}/bin/catalina.sh\" run >&\"${TOMCAT_HOME}/var/log/tomcat_err\" &\n");
-				out.print("            echo \"$!\" >\"${TOMCAT_HOME}/var/run/java.pid\"\n"
+						+ "            mv -f \"${TOMCAT_HOME}/var/log/tomcat_err\" \"${TOMCAT_HOME}/var/log/tomcat_err_$(date +%Y%m%d_%H%M%S)\"\n"
+						+ "            \"${TOMCAT_HOME}/bin/catalina.sh\" run >&\"${TOMCAT_HOME}/var/log/tomcat_err\" &\n"
+						+ "            echo \"$!\" >\"${TOMCAT_HOME}/var/run/java.pid\"\n"
 						+ "            wait\n"
 						+ "            RETCODE=\"$?\"\n"
 						+ "            echo \"`date`: JVM died with a return code of $RETCODE, restarting in 5 seconds\" >>\"${TOMCAT_HOME}/var/log/jvm_crashes.log\"\n"
@@ -222,7 +217,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 			out=new ChainWriter(shutdown.getSecureOutputStream(lsaUID, lsgGID, 0700, true, uid_min, gid_min));
 			try {
 				out.print("#!/bin/sh\n"
-						  + "exec \"").print(wwwGroupDir).print("/bin/tomcat\" stop\n");
+						+ "exec \"").print(wwwGroupDir).print("/bin/tomcat\" stop\n");
 			} finally {
 				out.close();
 			}
@@ -231,7 +226,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 			out=new ChainWriter(startup.getSecureOutputStream(lsaUID, lsgGID, 0700, true, uid_min, gid_min));
 			try {
 				out.print("#!/bin/sh\n"
-						  + "exec \"").print(wwwGroupDir).print("/bin/tomcat\" start\n");
+						+ "exec \"").print(wwwGroupDir).print("/bin/tomcat\" start\n");
 			} finally {
 				out.close();
 			}
@@ -374,7 +369,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 				if(shutdownPort==null) throw new SQLException("Unable to find shutdown key for HttpdSharedTomcat: "+sharedTomcat);
 				String shutdownKey=sharedTomcat.getTomcat4ShutdownKey();
 				if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for HttpdSharedTomcat: "+sharedTomcat);
-				out.print("<Server port=\"").print(shutdownPort.getPort().getPort()).print("\" shutdown=\"").print(shutdownKey).print("\" debug=\"0\">\n");
+				out.print("<Server port=\"").encodeXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").encodeXmlAttribute(shutdownKey).print("\" debug=\"0\">\n");
 				out.print("  <Listener className=\"org.apache.catalina.mbeans.ServerLifecycleListener\" debug=\"0\"/>\n"
 						+ "  <Listener className=\"org.apache.catalina.mbeans.GlobalResourcesLifecycleListener\" debug=\"0\"/>\n"
 						+ "  <GlobalNamingResources>\n"
@@ -389,9 +384,9 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 						+ "        <value>conf/tomcat-users.xml</value>\n"
 						+ "      </parameter>\n"
 						+ "    </ResourceParams>\n"
-						+ "  </GlobalNamingResources>\n");
-				out.print("  <Service name=\"Tomcat-Apache\">\n"
-						+ "    <Connector\n");
+						+ "  </GlobalNamingResources>\n"
+						+ "  <Service name=\"Tomcat-Apache\">\n"
+						+ "    <Connector\n"
 						//+ "      className=\"org.apache.coyote.tomcat4.CoyoteConnector\"\n"
 						//+ "      port=\"").print(hw.getNetBind().getPort().getPort()).print("\"\n"
 						//+ "      minProcessors=\"2\"\n"
@@ -403,17 +398,18 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 						//+ "      connectionTimeout=\"20000\"\n"
 						//+ "      useURIValidationHack=\"false\"\n"
 						//+ "      protocolHandlerClassName=\"org.apache.jk.server.JkCoyoteHandler\"\n"
-				out.print("      className=\"org.apache.ajp.tomcat4.Ajp13Connector\"\n");
-				out.print("      port=\"").print(hw.getNetBind().getPort().getPort()).print("\"\n");
-				out.print("      minProcessors=\"2\"\n"
+						+ "      className=\"org.apache.ajp.tomcat4.Ajp13Connector\"\n"
+						+ "      port=\"").encodeXmlAttribute(hw.getNetBind().getPort().getPort()).print("\"\n"
+						+ "      minProcessors=\"2\"\n"
 						+ "      maxProcessors=\"200\"\n"
-						+ "      address=\""+IPAddress.LOOPBACK_IP+"\"\n"
+						+ "      address=\"").encodeXmlAttribute(IPAddress.LOOPBACK_IP).print("\"\n"
 						+ "      acceptCount=\"10\"\n"
 						+ "      debug=\"0\"\n"
+						+ "      maxPostSize=\"").encodeXmlAttribute(sharedTomcat.getMaxPostSize()).print("\"\n"
 						+ "      protocol=\"AJP/1.3\"\n"
 						+ "    />\n"
-						+ "    <Engine name=\"Tomcat-Apache\" defaultHost=\"localhost\" debug=\"0\">\n");
-				out.print("      <Logger\n"
+						+ "    <Engine name=\"Tomcat-Apache\" defaultHost=\"localhost\" debug=\"0\">\n"
+						+ "      <Logger\n"
 						+ "        className=\"org.apache.catalina.logger.FileLogger\"\n"
 						+ "        directory=\"var/log\"\n"
 						+ "        prefix=\"catalina_log.\"\n"
@@ -426,11 +422,11 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 					if(!hs.isDisabled()) {
 						String primaryHostname=hs.getPrimaryHttpdSiteURL().getHostname().toString();
 						out.print("      <Host\n"
-								+ "        name=\"").print(primaryHostname).print("\"\n"
+								+ "        name=\"").encodeXmlAttribute(primaryHostname).print("\"\n"
 								+ "        debug=\"0\"\n"
-								+ "        appBase=\"").print(wwwDirectory).print('/').print(hs.getSiteName()).print("/webapps\"\n"
-								+ "        unpackWARs=\"true\"\n");
-						out.print("        autoDeploy=\"true\"\n");
+								+ "        appBase=\"").encodeXmlAttribute(wwwDirectory).print('/').encodeXmlAttribute(hs.getSiteName()).print("/webapps\"\n"
+								+ "        unpackWARs=\"").encodeXmlAttribute(sharedTomcat.getUnpackWARs()).print("\"\n");
+						out.print("        autoDeploy=\"").encodeXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n");
 						out.print("      >\n");
 						List<String> usedHostnames=new SortedArrayList<>();
 						usedHostnames.add(primaryHostname);
@@ -440,7 +436,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 							for (HttpdSiteURL url : urls) {
 								String hostname = url.getHostname().toString();
 								if(!usedHostnames.contains(hostname)) {
-									out.print("        <Alias>").print(hostname).print("</Alias>\n");
+									out.print("        <Alias>").encodeXhtml(hostname).print("</Alias>\n");
 									usedHostnames.add(hostname);
 								}
 							}
@@ -455,26 +451,26 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 						}
 						out.print("        <Logger\n"
 								+ "          className=\"org.apache.catalina.logger.FileLogger\"\n"
-								+ "          directory=\"").print(wwwDirectory).print('/').print(hs.getSiteName()).print("/var/log\"\n"
-								+ "          prefix=\"").print(primaryHostname).print("_log.\"\n"
+								+ "          directory=\"").encodeXmlAttribute(wwwDirectory).print('/').encodeXmlAttribute(hs.getSiteName()).print("/var/log\"\n"
+								+ "          prefix=\"").encodeXmlAttribute(primaryHostname).print("_log.\"\n"
 								+ "          suffix=\".txt\"\n"
 								+ "          timestamp=\"true\"\n"
 								+ "        />\n");
 						HttpdTomcatSite tomcatSite=hs.getHttpdTomcatSite();
 						for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
 							out.print("        <Context\n");
-							if(htc.getClassName()!=null) out.print("          className=\"").print(htc.getClassName()).print("\"\n");
-							out.print("          cookies=\"").print(htc.useCookies()).print("\"\n"
-									+ "          crossContext=\"").print(htc.allowCrossContext()).print("\"\n"
-									+ "          docBase=\"").print(htc.getDocBase()).print("\"\n"
-									+ "          override=\"").print(htc.allowOverride()).print("\"\n"
-									+ "          path=\"").print(htc.getPath()).print("\"\n"
-									+ "          privileged=\"").print(htc.isPrivileged()).print("\"\n"
-									+ "          reloadable=\"").print(htc.isReloadable()).print("\"\n"
-									+ "          useNaming=\"").print(htc.useNaming()).print("\"\n");
-							if(htc.getWrapperClass()!=null) out.print("          wrapperClass=\"").print(htc.getWrapperClass()).print("\"\n");
-							out.print("          debug=\"").print(htc.getDebugLevel()).print("\"\n");
-							if(htc.getWorkDir()!=null) out.print("          workDir=\"").print(htc.getWorkDir()).print("\"\n");
+							if(htc.getClassName()!=null) out.print("          className=\"").encodeXmlAttribute(htc.getClassName()).print("\"\n");
+							out.print("          cookies=\"").encodeXmlAttribute(htc.useCookies()).print("\"\n"
+									+ "          crossContext=\"").encodeXmlAttribute(htc.allowCrossContext()).print("\"\n"
+									+ "          docBase=\"").encodeXmlAttribute(htc.getDocBase()).print("\"\n"
+									+ "          override=\"").encodeXmlAttribute(htc.allowOverride()).print("\"\n"
+									+ "          path=\"").encodeXmlAttribute(htc.getPath()).print("\"\n"
+									+ "          privileged=\"").encodeXmlAttribute(htc.isPrivileged()).print("\"\n"
+									+ "          reloadable=\"").encodeXmlAttribute(htc.isReloadable()).print("\"\n"
+									+ "          useNaming=\"").encodeXmlAttribute(htc.useNaming()).print("\"\n");
+							if(htc.getWrapperClass()!=null) out.print("          wrapperClass=\"").encodeXmlAttribute(htc.getWrapperClass()).print("\"\n");
+							out.print("          debug=\"").encodeXmlAttribute(htc.getDebugLevel()).print("\"\n");
+							if(htc.getWorkDir()!=null) out.print("          workDir=\"").encodeXmlAttribute(htc.getWorkDir()).print("\"\n");
 							List<HttpdTomcatParameter> parameters=htc.getHttpdTomcatParameters();
 							List<HttpdTomcatDataSource> dataSources=htc.getHttpdTomcatDataSources();
 							if(parameters.isEmpty() && dataSources.isEmpty()) {

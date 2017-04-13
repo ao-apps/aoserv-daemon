@@ -25,10 +25,6 @@ public enum HttpdOperatingSystemConfiguration {
 		public OperatingSystemConfiguration getOperatingSystemConfiguration() {
 			return OperatingSystemConfiguration.REDHAT_ES_4_X86_64;
 		}
-		@Override
-		public String getDefaultPhpMinorVersion() {
-			return "5.2";
-		}
 		//public String getDefaultPhpPostgresMinorVersion() {
 		//    return "8.1";
 		//}
@@ -70,11 +66,6 @@ public enum HttpdOperatingSystemConfiguration {
 		@Override
 		public OperatingSystemConfiguration getOperatingSystemConfiguration() {
 			return OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64;
-		}
-		// TODO: Set to 5.5 - or better put in control panels and make be user selectable and changeable
-		@Override
-		public String getDefaultPhpMinorVersion() {
-			return "5.6";
 		}
 		//public String getDefaultPhpPostgresMinorVersion() {
 		//    return "9.2";
@@ -119,19 +110,13 @@ public enum HttpdOperatingSystemConfiguration {
 		public OperatingSystemConfiguration getOperatingSystemConfiguration() {
 			return OperatingSystemConfiguration.CENTOS_7_X86_64;
 		}
-		// TODO: Set to 5.5 - or better put in control panels and make be user selectable and changeable
-		@Override
-		public String getDefaultPhpMinorVersion() {
-			return "5.6";
-		}
 		//public String getDefaultPhpPostgresMinorVersion() {
 		//    return "9.2";
 		//}
 		@Override
 		public UnixPath getPhpCgiPath(String minorVersion) {
 			try {
-				if(minorVersion.startsWith("4.")) return UnixPath.valueOf("/opt/php-4/bin/php-cgi");
-				else if(minorVersion.startsWith("5.")) return UnixPath.valueOf("/opt/php-" + minorVersion + "/bin/php-cgi");
+				if(minorVersion.startsWith("5.")) return UnixPath.valueOf("/opt/php-" + minorVersion + "/bin/php-cgi");
 				else throw new AssertionError("Unexpected PHP version: "+minorVersion);
 			} catch(ValidationException e) {
 				throw new WrappedException(e);
@@ -189,11 +174,6 @@ public enum HttpdOperatingSystemConfiguration {
 	 * Gets the configuration for general tasks.
 	 */
 	public abstract OperatingSystemConfiguration getOperatingSystemConfiguration();
-
-	/**
-	 * The default PHP version.
-	 */
-	public abstract String getDefaultPhpMinorVersion();
 
 	/**
 	 * The version of PostgreSQL minor version used by the default PHP minor version.
