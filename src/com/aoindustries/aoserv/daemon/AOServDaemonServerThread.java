@@ -79,7 +79,7 @@ final public class AOServDaemonServerThread extends Thread {
 	 * The set of supported versions, with the most preferred versions first.
 	 */
 	private static final AOServDaemonProtocol.Version[] SUPPORTED_VERSIONS = {
-		AOServDaemonProtocol.Version.VERSION_1_80_1_SNAPSHOT,
+		AOServDaemonProtocol.Version.VERSION_1_80_1,
 		AOServDaemonProtocol.Version.VERSION_1_80_0,
 		AOServDaemonProtocol.Version.VERSION_1_77
 	};
@@ -216,7 +216,7 @@ final public class AOServDaemonServerThread extends Thread {
 					if(clientSeq != seq) throw new IOException("Sequence mismatch: " + clientSeq + " != " + seq);
 				}
 				// Send command sequence
-				if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_1_SNAPSHOT) >= 0) {
+				if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_1) >= 0) {
 					out.writeLong(seq); // out is buffered, so no I/O created by writing this early
 				}
 				// Increment sequence
@@ -588,7 +588,7 @@ final public class AOServDaemonServerThread extends Thread {
 								Tuple2<String,Integer> encryptedPassword = LinuxAccountManager.getEncryptedPassword(username);
 								out.write(AOServDaemonProtocol.DONE);
 								out.writeUTF(encryptedPassword.getElement1());
-								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_1_SNAPSHOT) >= 0) {
+								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_1) >= 0) {
 									Integer changeDate = encryptedPassword.getElement2();
 									out.writeCompressedInt(changeDate==null ? -1 : changeDate);
 								}
@@ -858,7 +858,7 @@ final public class AOServDaemonServerThread extends Thread {
 								UserId username=UserId.valueOf(in.readUTF());
 								String encryptedPassword = in.readUTF();
 								Integer changedDate;
-								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_1_SNAPSHOT) >= 0) {
+								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_1) >= 0) {
 									int i = in.readCompressedInt();
 									changedDate = i==-1 ? null : i;
 								} else {
