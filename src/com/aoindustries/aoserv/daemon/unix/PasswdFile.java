@@ -447,7 +447,7 @@ final public class PasswdFile {
 		}
 
 		// Add new users
-		for(Entry entry : passwdEntries.values()) {
+		for(Entry entry : expectedEntries.values()) {
 			UserId username = entry.username;
 			if(!passwdEntries.containsKey(username)) {
 				if(logger.isLoggable(Level.INFO)) {
