@@ -61,7 +61,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.StandardOpenOption;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -272,11 +271,11 @@ public class LinuxAccountManager extends BuilderThread {
 					// Build passwd data
 					{
 						int initialCapacity = lsas.size()*4/3+1;
-						usernames     = new HashSet<>(initialCapacity);
-						usernameStrs  = new HashSet<>(initialCapacity);
-						uids          = new HashSet<>(initialCapacity);
-						homeDirs      = new HashSet<>(initialCapacity);
-						passwdEntries = new HashMap<>(initialCapacity);
+						usernames     = new LinkedHashSet<>(initialCapacity);
+						usernameStrs  = new LinkedHashSet<>(initialCapacity);
+						uids          = new LinkedHashSet<>(initialCapacity);
+						homeDirs      = new LinkedHashSet<>(initialCapacity);
+						passwdEntries = new LinkedHashMap<>(initialCapacity);
 						boolean hasRoot = false;
 						for(LinuxServerAccount lsa : lsas) {
 							LinuxAccount la = lsa.getLinuxAccount();
@@ -313,8 +312,8 @@ public class LinuxAccountManager extends BuilderThread {
 					// Build group data
 					{
 						int initialCapacity = lsgs.size()*4/3+1;
-						groups = new HashMap<>(initialCapacity);
-						groupEntries = new HashMap<>(initialCapacity);
+						groups = new LinkedHashMap<>(initialCapacity);
+						groupEntries = new LinkedHashMap<>(initialCapacity);
 						boolean hasRoot = false;
 						for(LinuxServerGroup lsg : lsgs) {
 							GroupId groupName = lsg.getLinuxGroup().getName();
