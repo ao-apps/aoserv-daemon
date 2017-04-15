@@ -82,6 +82,45 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 	};
 
 	/**
+	 * Upgrade from Tomcat 8.0.32 to 8.0.43
+	 */
+	private static final UpgradeSymlink[] upgradeSymlinks_8_0_43 = {
+		// ecj-4.4.2.jar -> ecj-4.6.1.jar
+		new UpgradeSymlink(
+			"lib/ecj-4.4.2.jar",
+			"../../../opt/apache-tomcat-8.0/lib/ecj-4.4.2.jar",
+			null
+		),
+		new UpgradeSymlink(
+			"lib/ecj-4.6.1.jar",
+			null,
+			"../../../opt/apache-tomcat-8.0/lib/ecj-4.6.1.jar.jar"
+		),
+		// mysql-connector-java-5.1.38-bin.jar -> mysql-connector-java-5.1.41-bin.jar
+		new UpgradeSymlink(
+			"lib/mysql-connector-java-5.1.38-bin.jar",
+			"../../../opt/apache-tomcat-8.0/lib/mysql-connector-java-5.1.38-bin.jar",
+			null
+		),
+		new UpgradeSymlink(
+			"lib/mysql-connector-java-5.1.41-bin.jar",
+			null,
+			"../../../opt/apache-tomcat-8.0/lib/mysql-connector-java-5.1.41-bin.jar"
+		),
+		// postgresql-9.4.1208.jar -> postgresql-42.0.0.jar
+		new UpgradeSymlink(
+			"lib/postgresql-9.4.1208.jar",
+			"../../../opt/apache-tomcat-8.0/lib/postgresql-9.4.1208.jar",
+			null
+		),
+		new UpgradeSymlink(
+			"lib/postgresql-42.0.0.jar",
+			null,
+			"../../../opt/apache-tomcat-8.0/lib/postgresql-42.0.0.jar"
+		)
+	};
+
+	/**
 	 * Upgrades the Tomcat 8.0.X installed in the provided directory.
 	 */
 	boolean upgradeTomcatDirectory(UnixFile tomcatDirectory, int uid, int gid) throws IOException, SQLException {
@@ -95,6 +134,10 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 				}
 			} else if(rpmVersion.equals("8.0.32")) {
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_0_32) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+			} else if(rpmVersion.equals("8.0.43")) {
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_0_43) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			} else {

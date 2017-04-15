@@ -103,6 +103,34 @@ class TomcatCommon_6_0_X extends TomcatCommon {
 	};
 
 	/**
+	 * Upgrade from Tomcat 6.0.45 to 6.0.53
+	 */
+	private static final UpgradeSymlink[] upgradeSymlinks_6_0_53 = {
+		// mysql-connector-java-5.1.38-bin.jar -> mysql-connector-java-5.1.41-bin.jar
+		new UpgradeSymlink(
+			"lib/mysql-connector-java-5.1.38-bin.jar",
+			"../../../opt/apache-tomcat-6.0/lib/mysql-connector-java-5.1.38-bin.jar",
+			null
+		),
+		new UpgradeSymlink(
+			"lib/mysql-connector-java-5.1.41-bin.jar",
+			null,
+			"../../../opt/apache-tomcat-6.0/lib/mysql-connector-java-5.1.41-bin.jar"
+		),
+		// postgresql-9.4.1208.jre6.jar -> postgresql-42.0.0.jre6.jar
+		new UpgradeSymlink(
+			"lib/postgresql-9.4.1208.jre6.jar",
+			"../../../opt/apache-tomcat-6.0/lib/postgresql-9.4.1208.jre6.jar",
+			null
+		),
+		new UpgradeSymlink(
+			"lib/postgresql-42.0.0.jre6.jar",
+			null,
+			"../../../opt/apache-tomcat-6.0/lib/postgresql-42.0.0.jre6.jar"
+		)
+	};
+
+	/**
 	 * Upgrades the Tomcat 6.0.X installed in the provided directory.
 	 */
 	boolean upgradeTomcatDirectory(UnixFile tomcatDirectory, int uid, int gid) throws IOException, SQLException {
@@ -129,6 +157,10 @@ class TomcatCommon_6_0_X extends TomcatCommon {
 					}
 				);
 				if(results.length()>0) needsRestart = true;
+			} else if(rpmVersion.equals("6.0.53")) {
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_6_0_53) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
 			} else {
 				throw new IllegalStateException("Unexpected version of Tomcat: " + rpmVersion);
 			}
