@@ -85,7 +85,7 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 	 * Upgrade from Tomcat 8.0.32 to 8.0.43
 	 */
 	private static final UpgradeSymlink[] upgradeSymlinks_8_0_43 = {
-		// ecj-4.4.2.jar -> ecj-4.6.1.jar.jar (whoops!)
+		// ecj-4.4.2.jar -> ecj-4.6.1.jar
 		new UpgradeSymlink(
 			"lib/ecj-4.4.2.jar",
 			"../../../opt/apache-tomcat-8.0/lib/ecj-4.4.2.jar",
@@ -94,7 +94,7 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 		new UpgradeSymlink(
 			"lib/ecj-4.6.1.jar",
 			null,
-			"../../../opt/apache-tomcat-8.0/lib/ecj-4.6.1.jar.jar"
+			"../../../opt/apache-tomcat-8.0/lib/ecj-4.6.1.jar"
 		),
 		// ecj-4.6.1.jar.jar -> ecj-4.6.1.jar (unwhoops!)
 		new UpgradeSymlink(
