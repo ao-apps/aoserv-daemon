@@ -504,6 +504,7 @@ final public class SshdManager extends BuilderThread {
 								);
 							}
 						} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+							AOServDaemon.exec("/usr/bin/systemctl", "enable", "sshd");
 							// TODO: Should this be reload-or-restart?
 							AOServDaemon.exec("/usr/bin/systemctl", "restart", "sshd");
 						} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
