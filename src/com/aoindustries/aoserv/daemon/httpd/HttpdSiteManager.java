@@ -26,7 +26,6 @@ import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.validation.ValidationException;
@@ -35,6 +34,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -56,6 +56,30 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 public abstract class HttpdSiteManager {
+
+	/**
+	 * The directories in /www or /var/www that will never be deleted.
+	 * <p>
+	 * Note: This matches the check constraint on the httpd_sites table.
+	 * Note: This matches isValidSiteName in HttpdSite.
+	 * </p>
+	 */
+	private static final Set<String> keepWwwDirs = new HashSet<>(Arrays.asList(
+        // TODO: "disabled" once packaged via RPM and not put into httpd_sites table itself
+        // CentOS 5 only
+        "cache", // nginx only?
+        "fastcgi",
+        "error",
+        "icons",
+        // CentOS 7
+        "cgi-bin",
+        "html",
+        "mrtg",
+		// Other filesystem patterns
+        "lost+found",
+        "aquota.group",
+        "aquota.user"
+	));
 
 	/**
 	 * Gets the specific manager for one type of web site.
@@ -87,14 +111,12 @@ public abstract class HttpdSiteManager {
 
 			// The www directories that exist but are not used will be removed
 			UnixFile wwwDirectory = new UnixFile(osConfig.getHttpdSitesDirectory().toString());
-			String[] list = wwwDirectory.list();
-			Set<String> wwwRemoveList = new HashSet<>(list.length*4/3+1);
-			for (String dirname : list) {
-				if(
-					!dirname.equals("lost+found")
-					&& !dirname.equals("aquota.user")
-				) {
-					wwwRemoveList.add(dirname);
+			Set<String> wwwRemoveList = new HashSet<>();
+			{
+				String[] list = wwwDirectory.list();
+				if(list != null) {
+					wwwRemoveList.addAll(Arrays.asList(list));
+					wwwRemoveList.removeAll(keepWwwDirs);
 				}
 			}
 
@@ -134,6 +156,8 @@ public abstract class HttpdSiteManager {
 	 * Logs errors on calls as warnings, continues to next site.
 	 *
 	 * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
+	 *
+	 * TODO: Do not call when /var/run/daemons.pid is present. (or /run/daemons.pid on CentOS 7)
 	 */
 	static void stopStartAndRestart(Set<HttpdSite> sitesNeedingRestarted) throws IOException, SQLException {
 		for(HttpdSite httpdSite : AOServDaemon.getThisAOServer().getHttpdSites()) {
