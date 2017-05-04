@@ -110,6 +110,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 
 	@Override
     public boolean start() throws IOException, SQLException {
+		// TODO: Don't call this when /var/run/daemons.pid exists (which is during overall system start-up and shutdown), here and all places
         UnixFile pidFile = getPidFile();
         if(!pidFile.getStat().exists()) {
             AOServDaemon.suexec(
@@ -190,7 +191,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         return webapps;
     }
 
-    /**
+	/**
      * Gets the PID file for the wrapper script.  When this file exists the
      * script is assumed to be running.  This PID file may be shared between
      * multiple sites in the case of a shared Tomcat.  Also, it is possible
@@ -211,7 +212,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
     public abstract UserId getStartStopScriptUsername() throws IOException, SQLException;
 
 	@Override
-	protected Set<PackageManager.PackageName> getRequiredPackages() {
+	protected Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException {
 		return getTomcatCommon().getRequiredPackages();
 	}
 
@@ -219,11 +220,14 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
      * Every Tomcat site is built through the same overall set of steps.
      */
 	@Override
-    final protected void buildSiteDirectory(UnixFile siteDirectory, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
+    final protected void buildSiteDirectory(UnixFile siteDirectory, String optSlash, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
         final int apacheUid = getApacheUid();
         final int uid = httpdSite.getLinuxServerAccount().getUid().getId();
         final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
         final String siteDir = siteDirectory.getPath();
+		// TODO: Consider unpackWARs setting for root directory existence and apache configs
+		// TODO: Also unpackwars=false incompatible cgi or php options (and htaccess, ssi?)
+		// TODO: Also unpackWARs=false would require use_apache=false
         final UnixFile rootDirectory = new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE);
         final UnixFile cgibinDirectory = new UnixFile(rootDirectory, "cgi-bin", false);
 
@@ -241,30 +245,26 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
         boolean needsRestart = false;
         if(isNew) {
             // Build the per-Tomcat-version unique values
-            buildSiteDirectoryContents(siteDirectory);
+            buildSiteDirectoryContents(optSlash, siteDirectory);
 
             // CGI
             if(enableCgi()) {
                 DaemonFileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
                 //FileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
-                createTestCGI(cgibinDirectory);
             }
 
             // index.html
             UnixFile indexFile = new UnixFile(rootDirectory, "index.html", false);
             createTestIndex(indexFile);
 
-            // PHP
-            createTestPHP(rootDirectory);
-
             // Always cause restart when is new
             needsRestart = true;
         }
 
         // Perform any necessary upgrades
-        if(upgradeSiteDirectoryContents(siteDirectory)) needsRestart = true;
-        
-        // CGI-based PHP
+        if(upgradeSiteDirectoryContents(optSlash, siteDirectory)) needsRestart = true;
+
+		// CGI-based PHP
         createCgiPhpScript(cgibinDirectory);
 
         // Rebuild config files that need to be updated
@@ -286,17 +286,22 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
      * Builds the complete directory tree for a new site.  This should not include
      * the siteDirectory itself, which has already been created.  This should also
      * not include any files that enable/disable the site.
-     * 
-     * This doesn't need to create the cgi-bin, cgi-bin/test, test.php, or index.html
+     * <p>
+     * This doesn't need to create the cgi-bin, cgi-bin/test, or index.html
+	 * </p>
+	 *
+	 * @param optSlash  Relative path from the CATALINA_HOME to /opt/, including trailing slash, such as <code>../../opt/</code>.
      */
-    protected abstract void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException;
+    protected abstract void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException;
 
     /**
      * Upgrades the site directory contents for an auto-upgrade.
+	 *
+	 * @param optSlash  Relative path from the CATALINA_HOME to /opt/, including trailing slash, such as <code>../../opt/</code>.
      *
      * @return  <code>true</code> if the site needs to be restarted.
      */
-    protected abstract boolean upgradeSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException;
+    protected abstract boolean upgradeSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException;
 
     /**
      * Rebuilds any config files that need updated.  This should not include any

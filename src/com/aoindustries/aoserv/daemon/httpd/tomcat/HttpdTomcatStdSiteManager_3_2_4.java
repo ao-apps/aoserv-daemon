@@ -38,7 +38,7 @@ class HttpdTomcatStdSiteManager_3_2_4 extends HttpdTomcatStdSiteManager_3_X<Tomc
 
 	@Override
 	protected byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException {
-		final TomcatCommon tomcatCommon = getTomcatCommon();
+		//final TomcatCommon tomcatCommon = getTomcatCommon();
 		final String siteDir = siteDirectory.getPath();
 		AOServConnector conn = AOServDaemon.getConnector();
 		final HttpdTomcatVersion htv = tomcatSite.getHttpdTomcatVersion();

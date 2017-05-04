@@ -15,7 +15,6 @@ import com.aoindustries.aoserv.client.HttpdTomcatDataSource;
 import com.aoindustries.aoserv.client.HttpdTomcatParameter;
 import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
 import com.aoindustries.aoserv.client.HttpdTomcatSite;
-import com.aoindustries.aoserv.client.HttpdTomcatVersion;
 import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
@@ -38,6 +37,8 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Manages HttpdSharedTomcat version 5.5.X configurations.
@@ -45,6 +46,8 @@ import java.util.Set;
  * @author  AO Industries, Inc.
  */
 class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatCommon_5_5_X> {
+
+	private static final Logger logger = Logger.getLogger(HttpdSharedTomcatManager_5_5_X.class.getName());
 
 	HttpdSharedTomcatManager_5_5_X(HttpdSharedTomcat sharedTomcat) {
 		super(sharedTomcat);
@@ -56,7 +59,7 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 	}
 
 	@Override
-	void buildSharedTomcatDirectory(UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
+	void buildSharedTomcatDirectory(String optSlash, UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
 		/*
 		 * Get values used in the rest of the loop.
 		 */
@@ -65,8 +68,6 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 		final AOServer thisAoServer = AOServDaemon.getThisAOServer();
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
-		final HttpdTomcatVersion htv=sharedTomcat.getHttpdTomcatVersion();
-		final UnixPath tomcatDirectory=htv.getInstallDirectory();
 		final TomcatCommon tomcatCommon = getTomcatCommon();
 		final LinuxServerAccount lsa = sharedTomcat.getLinuxServerAccount();
 		final int lsaUID = lsa.getUid().getId();
@@ -104,14 +105,14 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 			//PostgresServer postgresServer=aoServer.getPreferredPostgresServer();
 			//String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
 
-			DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/bootstrap.jar", wwwGroupDir+"/bin/bootstrap.jar", lsaUID, lsgGID);
-			DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/catalina.sh", wwwGroupDir+"/bin/catalina.sh", lsaUID, lsgGID);
+			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-5.5/bin/bootstrap.jar", wwwGroupDir+"/bin/bootstrap.jar", lsaUID, lsgGID);
+			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-5.5/bin/catalina.sh", wwwGroupDir+"/bin/catalina.sh", lsaUID, lsgGID);
 			//UnixFile catalinaUF=new UnixFile(wwwGroupDir+"/bin/catalina.sh");
 			//new UnixFile(tomcatDirectory+"/bin/catalina.sh").copyTo(catalinaUF, false);
 			//catalinaUF.chown(lsaUID, lsgGID).setMode(0740);
-			DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/commons-daemon.jar", wwwGroupDir+"/bin/commons-daemon.jar", lsaUID, lsgGID);
-			DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/commons-logging-api.jar", wwwGroupDir+"/bin/commons-logging-api.jar", lsaUID, lsgGID);
-			DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/digest.sh", wwwGroupDir+"/bin/digest.sh", lsaUID, lsgGID);
+			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-5.5/bin/commons-daemon.jar", wwwGroupDir+"/bin/commons-daemon.jar", lsaUID, lsgGID);
+			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-5.5/bin/commons-logging-api.jar", wwwGroupDir+"/bin/commons-logging-api.jar", lsaUID, lsgGID);
+			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-5.5/bin/digest.sh", wwwGroupDir+"/bin/digest.sh", lsaUID, lsgGID);
 
 			String profileFile = wwwGroupDir + "/bin/profile";
 			LinuxAccountManager.setBashProfile(lsa, profileFile);
@@ -126,7 +127,7 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 				out.print("#!/bin/sh\n"
 						+ "\n"
 						+ ". /etc/profile\n"
-						+ ". /opt/jdk1-i686/setenv.sh\n");
+						+ ". ").print(osConfig.getJdk17SetEnv()).print('\n');
 				//if(postgresServerMinorVersion!=null) {
 				//	out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
 				//}
@@ -210,7 +211,7 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 				out.close();
 			}
 
-			DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/setclasspath.sh", wwwGroupDir+"/bin/setclasspath.sh", lsaUID, lsgGID);
+			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-5.5/bin/setclasspath.sh", wwwGroupDir+"/bin/setclasspath.sh", lsaUID, lsgGID);
 
 			UnixFile shutdown=new UnixFile(wwwGroupDir+"/bin/shutdown.sh");
 			out=new ChainWriter(shutdown.getSecureOutputStream(lsaUID, lsgGID, 0700, true, uid_min, gid_min));
@@ -230,19 +231,19 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 				out.close();
 			}
 
-			DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/tomcat-juli.jar", wwwGroupDir+"/bin/tomcat-juli.jar", lsaUID, lsgGID);
-			DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/tool-wrapper.sh", wwwGroupDir+"/bin/tool-wrapper.sh", lsaUID, lsgGID);
-			DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/version.sh", wwwGroupDir+"/bin/version.sh", lsaUID, lsgGID);
+			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-5.5/bin/tomcat-juli.jar", wwwGroupDir+"/bin/tomcat-juli.jar", lsaUID, lsgGID);
+			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-5.5/bin/tool-wrapper.sh", wwwGroupDir+"/bin/tool-wrapper.sh", lsaUID, lsgGID);
+			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-5.5/bin/version.sh", wwwGroupDir+"/bin/version.sh", lsaUID, lsgGID);
 
 			// Create the common directory and all contents
 			DaemonFileUtils.mkdir(wwwGroupDir+"/common", 0770, lsaUID, lsgGID);
 			DaemonFileUtils.mkdir(wwwGroupDir+"/common/classes", 0770, lsaUID, lsgGID);
 			DaemonFileUtils.mkdir(wwwGroupDir+"/common/endorsed", 0770, lsaUID, lsgGID);
-			DaemonFileUtils.lnAll("../../../.."+tomcatDirectory+"/common/endorsed/", wwwGroupDir+"/common/endorsed/", lsaUID, lsgGID);
+			DaemonFileUtils.lnAll("../../" + optSlash + "apache-tomcat-5.5/common/endorsed/", wwwGroupDir+"/common/endorsed/", lsaUID, lsgGID);
 			DaemonFileUtils.mkdir(wwwGroupDir+"/common/i18n", 0770, lsaUID, lsgGID);
-			DaemonFileUtils.lnAll("../../../.."+tomcatDirectory+"/common/i18n/", wwwGroupDir+"/common/i18n/", lsaUID, lsgGID);
+			DaemonFileUtils.lnAll("../../" + optSlash + "apache-tomcat-5.5/common/i18n/", wwwGroupDir+"/common/i18n/", lsaUID, lsgGID);
 			DaemonFileUtils.mkdir(wwwGroupDir+"/common/lib", 0770, lsaUID, lsgGID);
-			DaemonFileUtils.lnAll("../../../.."+tomcatDirectory+"/common/lib/", wwwGroupDir+"/common/lib/", lsaUID, lsgGID);
+			DaemonFileUtils.lnAll("../../" + optSlash + "apache-tomcat-5.5/common/lib/", wwwGroupDir+"/common/lib/", lsaUID, lsgGID);
 
 			//if(postgresServerMinorVersion!=null) {
 			//	String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
@@ -257,39 +258,39 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 			// Write the conf/catalina.policy file
 			{
 				UnixFile cp=new UnixFile(wwwGroupDir+"/conf/catalina.policy");
-				new UnixFile(tomcatDirectory+"/conf/catalina.policy").copyTo(cp, false);
+				new UnixFile("/opt/apache-tomcat-5.5/conf/catalina.policy").copyTo(cp, false);
 				cp.chown(lsaUID, lsgGID).setMode(0660);
 			}
 			{
 				UnixFile cp=new UnixFile(wwwGroupDir+"/conf/catalina.properties");
-				new UnixFile(tomcatDirectory+"/conf/catalina.properties").copyTo(cp, false);
+				new UnixFile("/opt/apache-tomcat-5.5/conf/catalina.properties").copyTo(cp, false);
 				cp.chown(lsaUID, lsgGID).setMode(0660);
 			}
 			{
 				UnixFile cp=new UnixFile(wwwGroupDir+"/conf/context.xml");
-				new UnixFile(tomcatDirectory+"/conf/context.xml").copyTo(cp, false);
+				new UnixFile("/opt/apache-tomcat-5.5/conf/context.xml").copyTo(cp, false);
 				cp.chown(lsaUID, lsgGID).setMode(0660);
 			}
 			{
 				UnixFile cp=new UnixFile(wwwGroupDir+"/conf/logging.properties");
-				new UnixFile(tomcatDirectory+"/conf/logging.properties").copyTo(cp, false);
+				new UnixFile("/opt/apache-tomcat-5.5/conf/logging.properties").copyTo(cp, false);
 				cp.chown(lsaUID, lsgGID).setMode(0660);
 			}
 
 			// Create the tomcat-users.xml file
 			UnixFile tuUF=new UnixFile(wwwGroupDir+"/conf/tomcat-users.xml");
-			new UnixFile(tomcatDirectory+"/conf/tomcat-users.xml").copyTo(tuUF, false);
+			new UnixFile("/opt/apache-tomcat-5.5/conf/tomcat-users.xml").copyTo(tuUF, false);
 			tuUF.chown(lsaUID, lsgGID).setMode(0660);
 
 			// Create the web.xml file.
 			UnixFile webUF=new UnixFile(wwwGroupDir+"/conf/web.xml");
-			new UnixFile(tomcatDirectory+"/conf/web.xml").copyTo(webUF, false);
+			new UnixFile("/opt/apache-tomcat-5.5/conf/web.xml").copyTo(webUF, false);
 			webUF.chown(lsaUID, lsgGID).setMode(0660);
 
 			DaemonFileUtils.mkdir(wwwGroupDir+"/server", 0770, lsaUID, lsgGID);
 			DaemonFileUtils.mkdir(wwwGroupDir+"/server/classes", 0770, lsaUID, lsgGID);
 			DaemonFileUtils.mkdir(wwwGroupDir+"/server/lib", 0770, lsaUID, lsgGID);
-			DaemonFileUtils.lnAll("../../../.."+tomcatDirectory+"/server/lib/", wwwGroupDir+"/server/lib/", lsaUID, lsgGID);
+			DaemonFileUtils.lnAll("../../" + optSlash + "apache-tomcat-5.5/server/lib/", wwwGroupDir+"/server/lib/", lsaUID, lsgGID);
 
 			DaemonFileUtils.mkdir(wwwGroupDir+"/server/webapps", 0770, lsaUID, lsgGID);
 
@@ -363,8 +364,10 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 				}
 			}
 		}
-		for (String workFile : workFiles) {
-			deleteFileList.add(new File(innerWorkUF.getFile(), workFile));
+		for(String workFile : workFiles) {
+			File toDelete = new File(innerWorkUF.getFile(), workFile);
+			if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+			deleteFileList.add(toDelete);
 		}
 
 		// Rebuild the server.xml for Tomcat 4 and Tomcat 5 JVMs
@@ -544,36 +547,14 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 	}
 
 	@Override
-	protected boolean upgradeSharedTomcatDirectory(UnixFile siteDirectory) throws IOException, SQLException {
+	protected boolean upgradeSharedTomcatDirectory(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
 		// Upgrade Tomcat
 		boolean needsRestart = getTomcatCommon().upgradeTomcatDirectory(
+			optSlash,
 			siteDirectory,
 			sharedTomcat.getLinuxServerAccount().getUid().getId(),
 			sharedTomcat.getLinuxServerGroup().getGid().getId()
 		);
-
-		// Update bin/tomcat script
-		/*
-		OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
-		if(osConfig==OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
-			// Replace /usr/aoserv/sbin/filtersites in bin/tomcat
-			String results = AOServDaemon.execAndCapture(
-				new String[] {
-					osConfig.getReplaceCommand(),
-					"    SITES=`/usr/aoserv/sbin/filtersites", // Leading spaces prevent repetitive updates
-					"    # SITES=`/usr/aoserv/sbin/filtersites",
-
-					// Fix upgrade mistake
-					"# # SITES=`/usr/aoserv/sbin/filtersites",
-					"# SITES=`/usr/aoserv/sbin/filtersites",
-
-					"--",
-					siteDirectory.getPath()+"/bin/tomcat"
-				}
-			);
-			if(results.length()>0) needsRestart = true;
-		}
-		 */
 		return needsRestart;
 	}
 }

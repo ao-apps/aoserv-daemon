@@ -31,8 +31,11 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 	private TomcatCommon_8_0_X() {}
 
 	@Override
-	protected Set<PackageManager.PackageName> getRequiredPackages() {
-		return EnumSet.of(PackageManager.PackageName.APACHE_TOMCAT_8_0);
+	protected Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException {
+		return EnumSet.of(
+			OperatingSystemConfiguration.getOperatingSystemConfiguration().getDefaultJdkPackageName(),
+			PackageManager.PackageName.APACHE_TOMCAT_8_0
+		);
 	}
 
 	@Override
@@ -58,91 +61,86 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 	}
 
 	/**
-	 * Upgrade to Tomcat 8.0.30.
-	 */
-	private static final UpgradeSymlink[] upgradeSymlinks_8_0_30 = {
-		// Nothing to do
-	};
-
-	/**
-	 * Upgrade to Tomcat 8.0.32.
-	 */
-	private static final UpgradeSymlink[] upgradeSymlinks_8_0_32 = {
-		// Upgrade from Tomcat 8.0.30 to 8.0.32
-		new UpgradeSymlink(
-			"lib/postgresql-9.4.1207.jar",
-			"../../../opt/apache-tomcat-8.0/lib/postgresql-9.4.1207.jar",
-			null
-		),
-		new UpgradeSymlink(
-			"lib/postgresql-9.4.1208.jar",
-			null,
-			"../../../opt/apache-tomcat-8.0/lib/postgresql-9.4.1208.jar"
-		)
-	};
-
-	/**
-	 * Upgrade from Tomcat 8.0.32 to 8.0.43
-	 */
-	private static final UpgradeSymlink[] upgradeSymlinks_8_0_43 = {
-		// ecj-4.4.2.jar -> ecj-4.6.1.jar
-		new UpgradeSymlink(
-			"lib/ecj-4.4.2.jar",
-			"../../../opt/apache-tomcat-8.0/lib/ecj-4.4.2.jar",
-			null
-		),
-		new UpgradeSymlink(
-			"lib/ecj-4.6.1.jar",
-			null,
-			"../../../opt/apache-tomcat-8.0/lib/ecj-4.6.1.jar"
-		),
-		// ecj-4.6.1.jar.jar -> ecj-4.6.1.jar (unwhoops!)
-		new UpgradeSymlink(
-			"lib/ecj-4.6.1.jar",
-			"../../../opt/apache-tomcat-8.0/lib/ecj-4.6.1.jar.jar",
-			"../../../opt/apache-tomcat-8.0/lib/ecj-4.6.1.jar"
-		),
-		// mysql-connector-java-5.1.38-bin.jar -> mysql-connector-java-5.1.41-bin.jar
-		new UpgradeSymlink(
-			"lib/mysql-connector-java-5.1.38-bin.jar",
-			"../../../opt/apache-tomcat-8.0/lib/mysql-connector-java-5.1.38-bin.jar",
-			null
-		),
-		new UpgradeSymlink(
-			"lib/mysql-connector-java-5.1.41-bin.jar",
-			null,
-			"../../../opt/apache-tomcat-8.0/lib/mysql-connector-java-5.1.41-bin.jar"
-		),
-		// postgresql-9.4.1208.jar -> postgresql-42.0.0.jar
-		new UpgradeSymlink(
-			"lib/postgresql-9.4.1208.jar",
-			"../../../opt/apache-tomcat-8.0/lib/postgresql-9.4.1208.jar",
-			null
-		),
-		new UpgradeSymlink(
-			"lib/postgresql-42.0.0.jar",
-			null,
-			"../../../opt/apache-tomcat-8.0/lib/postgresql-42.0.0.jar"
-		)
-	};
-
-	/**
 	 * Upgrades the Tomcat 8.0.X installed in the provided directory.
+	 *
+	 * @param optSlash  Relative path from the CATALINA_HOME to /opt/, including trailing slash, such as <code>../../opt/</code>.
 	 */
-	boolean upgradeTomcatDirectory(UnixFile tomcatDirectory, int uid, int gid) throws IOException, SQLException {
+	boolean upgradeTomcatDirectory(String optSlash, UnixFile tomcatDirectory, int uid, int gid) throws IOException, SQLException {
 		boolean needsRestart = false;
 		OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
-		if(osConfig==OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
+		if(
+			osConfig == OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64
+			|| osConfig == OperatingSystemConfiguration.CENTOS_7_X86_64
+		) {
 			String rpmVersion = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_8_0).getVersion().toString();
 			if(rpmVersion.equals("8.0.30")) {
-				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_0_30) {
-					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
-				}
+				// Nothing to do
 			} else if(rpmVersion.equals("8.0.32")) {
+				// Upgrade from Tomcat 8.0.30 to 8.0.32
+				UpgradeSymlink[] upgradeSymlinks_8_0_32 = {
+					new UpgradeSymlink(
+						"lib/postgresql-9.4.1207.jar",
+						"../" + optSlash + "apache-tomcat-8.0/lib/postgresql-9.4.1207.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-9.4.1208.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.0/lib/postgresql-9.4.1208.jar"
+					)
+				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_0_32) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			} else if(rpmVersion.equals("8.0.43")) {
+				 // Upgrade from Tomcat 8.0.32 to 8.0.43
+				UpgradeSymlink[] upgradeSymlinks_8_0_43 = {
+					// ecj-4.4.2.jar -> ecj-4.6.1.jar
+					new UpgradeSymlink(
+						"lib/ecj-4.4.2.jar",
+						"../" + optSlash + "apache-tomcat-8.0/lib/ecj-4.4.2.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/ecj-4.6.1.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.0/lib/ecj-4.6.1.jar"
+					),
+					// ecj-4.6.1.jar.jar -> ecj-4.6.1.jar (unwhoops!)
+					new UpgradeSymlink(
+						"lib/ecj-4.6.1.jar",
+						"../" + optSlash + "apache-tomcat-8.0/lib/ecj-4.6.1.jar.jar",
+						"../" + optSlash + "apache-tomcat-8.0/lib/ecj-4.6.1.jar"
+					),
+					// mysql-connector-java-5.1.38-bin.jar -> mysql-connector-java-5.1.42-bin.jar
+					// mysql-connector-java-5.1.41-bin.jar -> mysql-connector-java-5.1.42-bin.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-5.1.38-bin.jar",
+						"../" + optSlash + "apache-tomcat-8.0/lib/mysql-connector-java-5.1.38-bin.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-5.1.41-bin.jar",
+						"../" + optSlash + "apache-tomcat-8.0/lib/mysql-connector-java-5.1.41-bin.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-5.1.42-bin.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.0/lib/mysql-connector-java-5.1.42-bin.jar"
+					),
+					// postgresql-9.4.1208.jar -> postgresql-42.0.0.jar
+					new UpgradeSymlink(
+						"lib/postgresql-9.4.1208.jar",
+						"../" + optSlash + "apache-tomcat-8.0/lib/postgresql-9.4.1208.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.0.0.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.0/lib/postgresql-42.0.0.jar"
+					)
+				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_0_43) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}

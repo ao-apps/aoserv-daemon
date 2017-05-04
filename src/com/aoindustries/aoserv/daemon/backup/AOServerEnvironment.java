@@ -149,6 +149,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		}
 		filesystemRules.put("", FilesystemIteratorRule.OK); // Default to being included unless explicitly excluded
 		filesystemRules.put("/.journal", FilesystemIteratorRule.SKIP);
+		filesystemRules.put("/aquota.group", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/aquota.user", FilesystemIteratorRule.SKIP);
 		//filesystemRules.put("/backup", FilesystemIteratorRule.NO_RECURSE);
 		filesystemRules.put("/boot/.journal", FilesystemIteratorRule.SKIP);
@@ -266,6 +267,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		filesystemRules.put("/var/lib/mysql/5.0/"+hostname+".pid", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lib/mysql/5.1/"+hostname+".pid", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lib/mysql/5.6/"+hostname+".pid", FilesystemIteratorRule.SKIP);
+		filesystemRules.put("/var/lib/mysql/5.7/"+hostname+".pid", FilesystemIteratorRule.SKIP);
 		if(retention==1) {
 			// Skip files for any MySQL Server that is being replicated through MySQL replication
 			List<MySQLServerName> replicatedMySQLServers;
@@ -406,6 +408,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 			)
 		);
 		filesystemRules.put("/www/.journal", FilesystemIteratorRule.SKIP);
+		filesystemRules.put("/www/aquota.group", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/www/aquota.user", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/www/lost+found", FilesystemIteratorRule.SKIP);
 		// Do not replicate the backup directories
@@ -424,6 +427,8 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		filesystemPrefixRules.put("/var/lib/mysql/5.1/relay-log.", FilesystemIteratorRule.SKIP);
 		filesystemPrefixRules.put("/var/lib/mysql/5.6/mysql-bin.", FilesystemIteratorRule.SKIP);
 		filesystemPrefixRules.put("/var/lib/mysql/5.6/relay-log.", FilesystemIteratorRule.SKIP);
+		filesystemPrefixRules.put("/var/lib/mysql/5.7/mysql-bin.", FilesystemIteratorRule.SKIP);
+		filesystemPrefixRules.put("/var/lib/mysql/5.7/relay-log.", FilesystemIteratorRule.SKIP);
 		return filesystemPrefixRules;
 	}
 

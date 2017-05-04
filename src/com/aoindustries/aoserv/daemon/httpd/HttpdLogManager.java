@@ -12,6 +12,7 @@ import com.aoindustries.aoserv.client.HttpdSiteBind;
 import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.Stat;
@@ -21,9 +22,12 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 /**
@@ -33,36 +37,31 @@ import java.util.regex.Pattern;
  */
 class HttpdLogManager {
 
+	private static final Logger logger = Logger.getLogger(HttpdLogManager.class.getName());
+
 	/**
 	 * The directory that contains the log rotation scripts.
 	 */
 	private static final String LOG_ROTATION_DIR_REDHAT = HttpdServerManager.CONF_DIRECTORY + "/logrotate.d";
 	private static final String LOG_ROTATION_DIR_CENTOS_5 = HttpdServerManager.CONF_DIRECTORY + "/logrotate.sites";
 	private static final String SERVER_LOG_ROTATION_DIR_CENTOS_5 = HttpdServerManager.CONF_DIRECTORY + "/logrotate.servers";
-	// CentOS 7: we're putting all log rotations directly in /etc/logrotate.d to avoid required modification of /etc/logrotate.conf
-	private static final String ETC_LOGROTATE_D = "/etc/logrotate.d";
-
-	/**
-	 * Logrotate file prefix used for HttpdSite in /etc/logrotate.d
-	 */
-	private static final String HTTPD_SITE_PREFIX = "httpd-site-";
 
 	/**
 	 * Logrotate file prefix used for HttpdServer
 	 */
-	private static final String HTTPD_SERVER_PREFIX = "httpd";
+	private static final String HTTPD_SERVER_PREFIX_OLD = "httpd";
 
 	/**
-	 * Pattern to match HttpdServer when in /etc/logrotate.d
-	 *
-	 * TODO: First httpd as "httpd" not "httpd1".
+	 * The /var/log directory.
 	 */
-	private static final Pattern HTTPD_SERVER_REGEXP = Pattern.compile("^" + HTTPD_SERVER_PREFIX + "[0-9]+$");
+	private static final UnixFile varLogDir = new UnixFile("/var/log");
 
 	/**
 	 * The directory that contains the per-apache-instance logs.
 	 */
-	private static final UnixFile serverLogDir = new UnixFile("/var/log/httpd");
+	private static final UnixFile serverLogDirOld = new UnixFile("/var/log/httpd");
+
+	private static final Pattern HTTPD_N_REGEXP = Pattern.compile("^httpd-[0-9]+$");
 
 	/**
 	 * Responsible for control of all things in /logs and /etc/httpd/conf/logrotate.d
@@ -88,39 +87,7 @@ class HttpdLogManager {
 	}
 
 	/**
-	 * Rebuilds the /var/log/httpd directory
-	 */
-	private static void doRebuildVarLogHttpd(AOServer aoServer, List<File> deleteFileList) throws IOException, SQLException {
-		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
-		if(osConfig==HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
-
-			// Remove any symlink at /var/log/httpd
-			Stat serverLogDirStat = serverLogDir.getStat();
-			if(serverLogDirStat.exists() && serverLogDirStat.isSymLink()) serverLogDir.delete();
-
-			// Create /var/log/httpd if missing
-			DaemonFileUtils.mkdir(serverLogDir, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
-
-			// Create all /var/log/httpd/* directories
-			List<HttpdServer> hss = aoServer.getHttpdServers();
-			Set<String> dontDeleteFilenames = new HashSet<>(hss.size()*4/3+1);
-			for(HttpdServer hs : hss) {
-				String filename = "httpd"+hs.getNumber();
-				dontDeleteFilenames.add(filename);
-				DaemonFileUtils.mkdir(new UnixFile(serverLogDir, filename, false), 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
-			}
-
-			// Remove any extra
-			for(String filename : serverLogDir.list()) {
-				if(!dontDeleteFilenames.contains(filename)) {
-					if(!filename.startsWith("suexec.log")) deleteFileList.add(new UnixFile(serverLogDir, filename, false).getFile());
-				}
-			}
-		}
-	}
-
-	/**
-	 * Rebuilds the directories under /logs
+	 * Rebuilds the directories under /logs or /var/log/httpd-sites
 	 */
 	private static void doRebuildLogs(
 		AOServer aoServer,
@@ -128,7 +95,17 @@ class HttpdLogManager {
 		Set<HttpdServer> serversNeedingReloaded
 	) throws IOException, SQLException {
 		// Values used below
-		final int awstatsUID = aoServer.getLinuxServerAccount(LinuxAccount.AWSTATS).getUid().getId();
+		final int logfileUID;
+		if(
+			PackageManager.getInstalledPackage(PackageManager.PackageName.AWSTATS_6) != null
+			|| PackageManager.getInstalledPackage(PackageManager.PackageName.AWSTATS_7) != null
+		) {
+			// Allow access to AWStats
+			logfileUID = aoServer.getLinuxServerAccount(LinuxAccount.AWSTATS).getUid().getId();
+		} else {
+			// Allow access to root
+			logfileUID = UnixFile.ROOT_UID;
+		}
 
 		// The log directories that exist but are not used will be removed
 		UnixPath logDir = aoServer.getServer().getOperatingSystemVersion().getHttpdSiteLogsDirectory();
@@ -139,16 +116,25 @@ class HttpdLogManager {
 				logDirUF.mkdir(true, 0755, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
 			}
 
-			String[] list = logDirUF.list();
-			Set<String> logDirectories = new HashSet<>(list.length*4/3+1);
-			for(String dirname : list) {
-				if(!dirname.equals("lost+found")) logDirectories.add(dirname);
+			Set<String> logDirectories;
+			{
+				String[] list = logDirUF.list();
+				logDirectories = new HashSet<>(list.length*4/3+1);
+				for(String dirname : list) {
+					if(
+						!dirname.equals("lost+found")
+						&& !dirname.equals("aquota.group")
+						&& !dirname.equals("aquota.user")
+					) {
+						logDirectories.add(dirname);
+					}
+				}
 			}
 
 			for(HttpdSite httpdSite : aoServer.getHttpdSites()) {
 				int lsgGID = httpdSite.getLinuxServerGroup().getGid().getId();
 
-				// Create the /logs/<site_name> directory
+				// Create the /logs/<site_name> or /var/log/httpd-sites/<site_name> directory
 				String siteName = httpdSite.getSiteName();
 				UnixFile logDirectory = new UnixFile(logDirUF, siteName, true);
 				Stat logStat = logDirectory.getStat();
@@ -156,8 +142,8 @@ class HttpdLogManager {
 					logDirectory.mkdir();
 					logStat = logDirectory.getStat();
 				}
-				if(logStat.getUid()!=awstatsUID || logStat.getGid()!=lsgGID) logDirectory.chown(awstatsUID, lsgGID);
-				if(logStat.getMode()!=0750) logDirectory.setMode(0750);
+				if(logStat.getUid() != logfileUID || logStat.getGid() != lsgGID) logDirectory.chown(logfileUID, lsgGID);
+				if(logStat.getMode() != 0750) logDirectory.setMode(0750);
 
 				// Remove from list so it will not be deleted
 				logDirectories.remove(siteName);
@@ -171,8 +157,8 @@ class HttpdLogManager {
 					Stat accessLogStat = accessLogFile.getStat();
 					if(!accessLogStat.exists()) {
 						// Make sure the parent directory exists
-						UnixFile accessLogParent=accessLogFile.getParent();
-						if(!accessLogParent.getStat().exists()) accessLogParent.mkdir(true, 0750, awstatsUID, lsgGID);
+						UnixFile accessLogParent = accessLogFile.getParent();
+						if(!accessLogParent.getStat().exists()) accessLogParent.mkdir(true, 0750, logfileUID, lsgGID);
 						// Create the empty logfile
 						new FileOutputStream(accessLogFile.getFile(), true).close();
 						accessLogStat = accessLogFile.getStat();
@@ -183,8 +169,8 @@ class HttpdLogManager {
 							}
 						}
 					}
-					if(accessLogStat.getMode()!=0640) accessLogFile.setMode(0640);
-					if(accessLogStat.getUid()!=awstatsUID || accessLogStat.getGid()!=lsgGID) accessLogFile.chown(awstatsUID, lsgGID);
+					if(accessLogStat.getMode() != 0640) accessLogFile.setMode(0640);
+					if(accessLogStat.getUid() != logfileUID || accessLogStat.getGid() != lsgGID) accessLogFile.chown(logfileUID, lsgGID);
 
 					// error_log
 					UnixPath errorLog = hsb.getErrorLog();
@@ -192,8 +178,8 @@ class HttpdLogManager {
 					Stat errorLogStat = errorLogFile.getStat();
 					if(!errorLogStat.exists()) {
 						// Make sure the parent directory exists
-						UnixFile errorLogParent=errorLogFile.getParent();
-						if(!errorLogParent.getStat().exists()) errorLogParent.mkdir(true, 0750, awstatsUID, lsgGID);
+						UnixFile errorLogParent = errorLogFile.getParent();
+						if(!errorLogParent.getStat().exists()) errorLogParent.mkdir(true, 0750, logfileUID, lsgGID);
 						// Create the empty logfile
 						new FileOutputStream(errorLogFile.getFile(), true).close();
 						errorLogStat = errorLogFile.getStat();
@@ -204,12 +190,16 @@ class HttpdLogManager {
 							}
 						}
 					}
-					if(errorLogStat.getMode()!=0640) errorLogFile.setMode(0640);
-					if(errorLogStat.getUid()!=awstatsUID || errorLogStat.getGid()!=lsgGID) errorLogFile.chown(awstatsUID, lsgGID);
+					if(errorLogStat.getMode() != 0640) errorLogFile.setMode(0640);
+					if(errorLogStat.getUid() != logfileUID || errorLogStat.getGid() != lsgGID) errorLogFile.chown(logfileUID, lsgGID);
 				}
 			}
 
-			for(String filename : logDirectories) deleteFileList.add(new File(logDirUF.getFile(), filename));
+			for(String filename : logDirectories) {
+				File logFile = new File(logDirUF.getFile(), filename);
+				if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + logFile);
+				deleteFileList.add(logFile);
+			}
 		}
 	}
 
@@ -224,23 +214,18 @@ class HttpdLogManager {
 		final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		final String siteLogRotationDir;
 		final String serverLogRotationDir;
-		final boolean isGlobalLogrotateDir;
 		switch(osConfig) {
 			case REDHAT_ES_4_X86_64 :
 				siteLogRotationDir = LOG_ROTATION_DIR_REDHAT;
 				serverLogRotationDir = null;
-				isGlobalLogrotateDir = false;
 				break;
 			case CENTOS_5_I686_AND_X86_64 :
 				siteLogRotationDir = LOG_ROTATION_DIR_CENTOS_5;
 				serverLogRotationDir = SERVER_LOG_ROTATION_DIR_CENTOS_5;
-				isGlobalLogrotateDir = false;
 				break;
 			case CENTOS_7_X86_64 :
-				siteLogRotationDir = ETC_LOGROTATE_D;
-				serverLogRotationDir = ETC_LOGROTATE_D;
-				isGlobalLogrotateDir = true;
-				break;
+				// Nothing done for CentOS 7, we now use wildcard patterns in static /etc/logrotate.d/httpd-(n|sites) files.
+				return;
 			default :
 				throw new AssertionError("Unexpected value for osConfig: "+osConfig);
 		}
@@ -249,24 +234,13 @@ class HttpdLogManager {
 		int gid_min = thisAoServer.getGidMin().getId();
 
 		// Create directory if missing
-		if(!isGlobalLogrotateDir) {
-			DaemonFileUtils.mkdir(siteLogRotationDir, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
-		}
+		DaemonFileUtils.mkdir(siteLogRotationDir, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
 
 		// The log rotations that exist but are not used will be removed
-		String[] list = new File(siteLogRotationDir).list();
-		Set<String> logRotationFiles = new HashSet<>(list.length*4/3+1);
-		for(String filename : list) {
-			if(
-				!isGlobalLogrotateDir
-				|| filename.startsWith(HTTPD_SITE_PREFIX)
-			) {
-				logRotationFiles.add(filename);
-			}
-		}
+		Set<String> logRotationFiles = new HashSet<>(Arrays.asList(new File(siteLogRotationDir).list()));
 
 		// Each log file will be only rotated at most once
-		Set<UnixPath> completedPaths = new HashSet<>(list.length*4/3+1);
+		Set<UnixPath> completedPaths = new HashSet<>(logRotationFiles.size()*4/3+1);
 
 		// For each site, build/rebuild the logrotate.d file as necessary and create any necessary log files
 		ChainWriter chainOut=new ChainWriter(byteOut);
@@ -320,30 +294,23 @@ class HttpdLogManager {
 
 		// Remove extra filenames
 		for(String extraFilename : logRotationFiles) {
-			deleteFileList.add(new File(siteLogRotationDir, extraFilename));
+			File siteLogRotationFile = new File(siteLogRotationDir, extraFilename);
+			if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + siteLogRotationFile);
+			deleteFileList.add(siteLogRotationFile);
 		}
 
 		if(serverLogRotationDir != null) {
 			// Create directory if missing
-			if(!isGlobalLogrotateDir) {
-				DaemonFileUtils.mkdir(serverLogRotationDir, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
-			}
+			DaemonFileUtils.mkdir(serverLogRotationDir, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
 
 			// The log rotations that exist but are not used will be removed
 			logRotationFiles.clear();
-			for(String filename : new File(serverLogRotationDir).list()) {
-				if(
-					!isGlobalLogrotateDir
-					|| HTTPD_SERVER_REGEXP.matcher(filename).matches()
-				) {
-					logRotationFiles.add(filename);
-				}
-			}
+			logRotationFiles.addAll(Arrays.asList(new File(serverLogRotationDir).list()));
 
 			boolean isFirst = true;
 			for(HttpdServer hs : thisAoServer.getHttpdServers()) {
 				int num = hs.getNumber();
-				String filename = HTTPD_SERVER_PREFIX + num;
+				String filename = HTTPD_SERVER_PREFIX_OLD + num;
 				logRotationFiles.remove(filename);
 
 				// Build to RAM first
@@ -402,7 +369,68 @@ class HttpdLogManager {
 
 			// Remove extra filenames
 			for(String extraFilename : logRotationFiles) {
-				deleteFileList.add(new File(serverLogRotationDir, extraFilename));
+				File serverLogRotationFile = new File(serverLogRotationDir, extraFilename);
+				if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + serverLogRotationFile);
+				deleteFileList.add(serverLogRotationFile);
+			}
+		}
+	}
+
+	/**
+	 * Rebuilds the /var/log/httpd[-#] directories
+	 */
+	private static void doRebuildVarLogHttpd(AOServer aoServer, List<File> deleteFileList) throws IOException, SQLException {
+		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
+		if(osConfig == HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
+
+			// Remove any symlink at /var/log/httpd
+			Stat serverLogDirStat = serverLogDirOld.getStat();
+			if(serverLogDirStat.exists() && serverLogDirStat.isSymLink()) serverLogDirOld.delete();
+
+			// Create /var/log/httpd if missing
+			DaemonFileUtils.mkdir(serverLogDirOld, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
+
+			// Create all /var/log/httpd/* directories
+			List<HttpdServer> hss = aoServer.getHttpdServers();
+			Set<String> keepFilenames = new HashSet<>(hss.size()*4/3+1);
+			for(HttpdServer hs : hss) {
+				String dirname = "httpd"+hs.getNumber();
+				keepFilenames.add(dirname);
+				DaemonFileUtils.mkdir(new UnixFile(serverLogDirOld, dirname, false), 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
+			}
+
+			// Remove any extra
+			for(String filename : serverLogDirOld.list()) {
+				if(!keepFilenames.contains(filename)) {
+					if(!filename.startsWith("suexec.log")) {
+						File toDelete = new UnixFile(serverLogDirOld, filename, false).getFile();
+						if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+						deleteFileList.add(toDelete);
+					}
+				}
+			}
+		} else if(osConfig == HttpdOperatingSystemConfiguration.CENTOS_7_X86_64) {
+			// Create all /var/log/httpd[-#] directories
+			List<HttpdServer> hss = aoServer.getHttpdServers();
+			Set<String> keepFilenames = new HashSet<>(hss.size()*4/3+1);
+			for(HttpdServer hs : hss) {
+				int num = hs.getNumber();
+				String dirname = num == 1 ? "httpd" : ("httpd-" + num);
+				keepFilenames.add(dirname);
+				DaemonFileUtils.mkdir(new UnixFile(varLogDir, dirname, true), 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
+			}
+
+			// Remove any extra /var/log/httpd-# directories.
+			// Note: /var/log/httpd will always be left in-place because it is part of the stock httpd RPM.
+			for(String filename : varLogDir.list()) {
+				if(
+					!keepFilenames.contains(filename)
+					&& HTTPD_N_REGEXP.matcher(filename).matches()
+				) {
+					File toDelete = new UnixFile(varLogDir, filename, false).getFile();
+					if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+					deleteFileList.add(toDelete);
+				}
 			}
 		}
 	}

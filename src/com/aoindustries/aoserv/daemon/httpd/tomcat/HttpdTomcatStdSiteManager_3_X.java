@@ -14,7 +14,6 @@ import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
-import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
@@ -49,18 +48,17 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 		for(HttpdWorker hw : workers) {
 			if(hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol().equals(HttpdJKProtocol.AJP12)) return hw;
 		}
-		throw new SQLException("Couldn't ajp12");
+		throw new SQLException("Couldn't find " + HttpdJKProtocol.AJP12);
 	}
 
 	/**
 	 * Builds a standard install for Tomcat 3.X
 	 */
 	@Override
-	protected void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
+	protected void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
 		// Resolve and allocate stuff used throughout the method
 		final TomcatCommon_3_X tomcatCommon = getTomcatCommon();
 		final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
-		final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
 		final String siteDir = siteDirectory.getPath();
 		final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
 		final int uid = lsa.getUid().getId();
@@ -106,7 +104,7 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 			out.print("#!/bin/sh\n"
 					+ "\n"
 					+ ". /etc/profile\n"
-					+ ". /opt/jdk1-i686/setenv.sh\n"
+					+ ". ").print(osConfig.getJdk17SetEnv()).print('\n'
 					+ ". /opt/jakarta-oro-2.0/setenv.sh\n"
 					+ ". /opt/jakarta-regexp-1/setenv.sh\n"
 					//+ ". /opt/jakarta-servletapi-").print(tomcatCommon.getServletApiVersion()).print("/setenv.sh\n"
@@ -380,8 +378,8 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 	}
 
 	@Override
-	protected boolean upgradeSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
-		// TODO
+	protected boolean upgradeSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
+		// Nothing to do
 		return false;
 	}
 }

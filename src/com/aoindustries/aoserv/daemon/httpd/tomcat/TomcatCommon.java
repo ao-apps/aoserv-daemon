@@ -26,7 +26,7 @@ public abstract class TomcatCommon {
 	/**
 	 * Gets any packages that must be installed for this site.
 	 */
-	protected abstract Set<PackageManager.PackageName> getRequiredPackages();
+	protected abstract Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException;
 
 	/**
      * Writes a single parameter.
@@ -44,84 +44,4 @@ public abstract class TomcatCommon {
      * Writes a single data source.
      */
     public abstract void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws IOException, SQLException;
-
-//    protected static final UpgradeSymlink[] upgradeSymlinks_MySQL = {
-//        new UpgradeSymlink("common/lib/mm.mysql-2.0.7-bin.jar", "../../../../usr/mm.mysql-2.0.7/mm.mysql-2.0.7-bin.jar", "../../../../opt/mm.mysql-2.0.7/mm.mysql-2.0.7-bin.jar"),
-//        new UpgradeSymlink("common/lib/mm.mysql-2.0.7-bin.jar", "/usr/mm.mysql/2.0.7/mm.mysql-2.0.7-bin.jar", "../../../../opt/mm.mysql-2.0.7/mm.mysql-2.0.7-bin.jar"),
-//        new UpgradeSymlink("common/lib/mysql-connector-java-3.0.11-stable-bin.jar", "../../../../usr/mysql-connector-java-3.0.11-stable/mysql-connector-java-3.0.11-stable-bin.jar", "../../../../opt/mysql-connector-java-3.0.11-stable/mysql-connector-java-3.0.11-stable-bin.jar"),
-//        new UpgradeSymlink("common/lib/mysql-connector-java-3.0.11-stable-bin.jar", "../../../../usr/mysql-connector-java/3.0.11-stable/mysql-connector-java-3.0.11-stable-bin.jar", "../../../../opt/mysql-connector-java-3.0.11-stable/mysql-connector-java-3.0.11-stable-bin.jar"),
-//        new UpgradeSymlink("common/lib/mysql-connector-java-3.1.12-bin.jar", "../../../../usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", "../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar"),
-//        new UpgradeSymlink("common/lib/mysql-connector-java-3.1.12-bin.jar", "/usr/mysql-connector-java/3.1.12/mysql-connector-java-3.1.12-bin.jar", "../../../../opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar")
-//    };
-
-	// TODO: Should change this to somehow determine proper PostgreSQL driver given
-	//       The installed PostgreSQL versions and the selected JDK.
-	//       Or - just hard-code the most recent???
-//    protected static final UpgradeSymlink[] upgradeSymlinks_PostgreSQL = {
-//        new UpgradeSymlink(
-//            "common/lib/postgresql.jar",
-//            "../../../../opt/postgresql-7.1/share/java/postgresql.jar",
-//            "../../../../opt/postgresql-7.1-i686/share/java/postgresql.jar"
-//        ),
-//        new UpgradeSymlink(
-//            "server/lib/postgresql.jar",
-//            "../../../../opt/postgresql-7.1/share/java/postgresql.jar",
-//            "../../../../opt/postgresql-7.1-i686/share/java/postgresql.jar"
-//        ),
-//        new UpgradeSymlink(
-//            "common/lib/postgresql.jar",
-//            "../../../../opt/postgresql-7.2/share/java/postgresql.jar",
-//            "../../../../opt/postgresql-7.2-i686/share/java/postgresql.jar"
-//        ),
-//        new UpgradeSymlink(
-//            "server/lib/postgresql.jar",
-//            "../../../../opt/postgresql-7.2/share/java/postgresql.jar",
-//            "../../../../opt/postgresql-7.2-i686/share/java/postgresql.jar"
-//        ),
-//        new UpgradeSymlink(
-//            "common/lib/postgresql.jar",
-//            "../../../../opt/postgresql-7.3/share/java/postgresql.jar",
-//            "../../../../opt/postgresql-7.3-i686/share/java/postgresql.jar"
-//        ),
-//        new UpgradeSymlink(
-//            "server/lib/postgresql.jar",
-//            "../../../../opt/postgresql-7.3/share/java/postgresql.jar",
-//            "../../../../opt/postgresql-7.3-i686/share/java/postgresql.jar"
-//        ),
-//        new UpgradeSymlink(
-//            "common/lib/postgresql.jar",
-//            "../../../../opt/postgresql-8.1/share/java/postgresql.jar",
-//            "../../../../opt/postgresql-8.1-i686/share/java/postgresql.jar"
-//        ),
-//        new UpgradeSymlink(
-//            "server/lib/postgresql.jar",
-//            "../../../../opt/postgresql-8.1/share/java/postgresql.jar",
-//            "../../../../opt/postgresql-8.1-i686/share/java/postgresql.jar"
-//        ),
-//        new UpgradeSymlink(
-//            "common/lib/postgresql.jar",
-//            "../../../../opt/postgresql-8.3/share/java/postgresql.jar",
-//            "../../../../opt/postgresql-8.3-i686/share/java/postgresql.jar"
-//        ),
-//        new UpgradeSymlink(
-//            "server/lib/postgresql.jar",
-//            "../../../../opt/postgresql-8.3/share/java/postgresql.jar",
-//            "../../../../opt/postgresql-8.3-i686/share/java/postgresql.jar"
-//        ),
-//        new UpgradeSymlink(
-//            "lib/postgresql-8.3-605.jdbc3.jar",
-//            "../../../opt/postgresql-8.3/share/java/postgresql-8.3-605.jdbc3.jar",
-//            "../../../opt/postgresql-8.3-i686/share/java/postgresql-8.3-605.jdbc3.jar"
-//        ),
-//        new UpgradeSymlink(
-//            "common/lib/postgresql.jar",
-//            "../../../../opt/postgresql-9.2/share/java/postgresql.jar",
-//            "../../../../opt/postgresql-9.2-i686/share/java/postgresql.jar"
-//        ),
-//        new UpgradeSymlink(
-//            "server/lib/postgresql.jar",
-//            "../../../../opt/postgresql-9.2/share/java/postgresql.jar",
-//            "../../../../opt/postgresql-9.2-i686/share/java/postgresql.jar"
-//        )
-//    };
 }

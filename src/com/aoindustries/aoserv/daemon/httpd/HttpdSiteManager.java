@@ -49,6 +49,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Manages HttpdSite configurations.
@@ -56,6 +57,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 public abstract class HttpdSiteManager {
+
+	private static final Logger logger = Logger.getLogger(HttpdSiteManager.class.getName());
 
 	/**
 	 * The directories in /www or /var/www that will never be deleted.
@@ -65,7 +68,7 @@ public abstract class HttpdSiteManager {
 	 * </p>
 	 */
 	private static final Set<String> keepWwwDirs = new HashSet<>(Arrays.asList(
-        // TODO: "disabled" once packaged via RPM and not put into httpd_sites table itself
+        "disabled", // Provided by aoserv-httpd-site-disabled package
         // CentOS 5 only
         "cache", // nginx only?
         "fastcgi",
@@ -95,7 +98,7 @@ public abstract class HttpdSiteManager {
 	}
 
 	/**
-	 * Responsible for control of all things in /www
+	 * Responsible for control of all things in [/var]/www
 	 *
 	 * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
 	 */
@@ -107,6 +110,7 @@ public abstract class HttpdSiteManager {
 		try {
 			// Get values used in the rest of the method.
 			HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
+			String optSlash = osConfig.getHttpdSitesOptSlash();
 			AOServer aoServer = AOServDaemon.getThisAOServer();
 
 			// The www directories that exist but are not used will be removed
@@ -130,7 +134,12 @@ public abstract class HttpdSiteManager {
 				// Create and fill in any incomplete installations.
 				final String siteName = httpdSite.getSiteName();
 				UnixFile siteDirectory = new UnixFile(wwwDirectory, siteName, false);
-				manager.buildSiteDirectory(siteDirectory, sitesNeedingRestarted, sharedTomcatsNeedingRestarted);
+				manager.buildSiteDirectory(
+					siteDirectory,
+					optSlash,
+					sitesNeedingRestarted,
+					sharedTomcatsNeedingRestarted
+				);
 				wwwRemoveList.remove(siteName);
 			}
 
@@ -140,7 +149,11 @@ public abstract class HttpdSiteManager {
 				// Stop and disable any daemons
 				stopAndDisableDaemons(removeFile);
 				// Only remove the directory when not used by a home directory
-				if(!aoServer.isHomeUsed(UnixPath.valueOf(removeFile.getPath()))) deleteFileList.add(removeFile.getFile());
+				if(!aoServer.isHomeUsed(UnixPath.valueOf(removeFile.getPath()))) {
+					File toDelete = removeFile.getFile();
+					if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+					deleteFileList.add(toDelete);
+				}
 			}
 		} catch(ValidationException e) {
 			throw new IOException(e);
@@ -403,7 +416,7 @@ public abstract class HttpdSiteManager {
 	 *
 	 * By default, no specific packages are required.
 	 */
-	protected Set<PackageManager.PackageName> getRequiredPackages() {
+	protected Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException {
 		return Collections.emptySet();
 	}
 
@@ -423,7 +436,7 @@ public abstract class HttpdSiteManager {
 	 *   <li>Otherwise, make necessary config changes or upgrades while adhering to the manual flag</li>
 	 * </ol>
 	 */
-	protected abstract void buildSiteDirectory(UnixFile siteDirectory, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException;
+	protected abstract void buildSiteDirectory(UnixFile siteDirectory, String optSlash, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException;
 
 	/**
 	 * Determines if should have anonymous FTP area.
@@ -753,7 +766,7 @@ public abstract class HttpdSiteManager {
 	/**
 	 * By default, sites will block all TRACE and TRACK requests.
 	 *
-	 * Seriously consider security ramifications before enabling.
+	 * Seriously consider security ramifications before enabling TRACK and TRACE.
 	 */
 	public boolean blockAllTraceAndTrackRequests() {
 		return true;

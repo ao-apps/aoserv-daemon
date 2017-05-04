@@ -9,7 +9,6 @@ import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
 import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
-import com.aoindustries.aoserv.client.HttpdTomcatVersion;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.validator.UnixPath;
@@ -29,6 +28,8 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Manages HttpdSharedTomcat version 3.X configurations.
@@ -40,12 +41,14 @@ import java.util.Set;
  */
 abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends HttpdSharedTomcatManager<TC> {
 
+	private static final Logger logger = Logger.getLogger(HttpdSharedTomcatManager_3_X.class.getName());
+
 	HttpdSharedTomcatManager_3_X(HttpdSharedTomcat sharedTomcat) {
 		super(sharedTomcat);
 	}
 
 	@Override
-	void buildSharedTomcatDirectory(UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
+	void buildSharedTomcatDirectory(String optSlash, UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
 		/*
 		 * Get values used in the rest of the loop.
 		 */
@@ -54,8 +57,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 		final AOServer thisAoServer = AOServDaemon.getThisAOServer();
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
-		final HttpdTomcatVersion htv=sharedTomcat.getHttpdTomcatVersion();
-		final UnixPath tomcatDirectory=htv.getInstallDirectory();
+		final String optDir = getOptDir();
 		final TC tomcatCommon = getTomcatCommon();
 		final LinuxServerAccount lsa = sharedTomcat.getLinuxServerAccount();
 		final int lsaUID = lsa.getUid().getId();
@@ -101,7 +103,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 				out.print("#!/bin/sh\n"
 						+ "\n"
 						+ ". /etc/profile\n"
-						+ ". /opt/jdk1-i686/setenv.sh\n"
+						+ ". ").print(osConfig.getJdk17SetEnv()).print('\n'
 						+ ". /opt/jakarta-oro-2.0/setenv.sh\n"
 						+ ". /opt/jakarta-regexp-1/setenv.sh\n"
 						//+ ". /opt/jakarta-servletapi-").print(tomcatCommon.getServletApiVersion()).print("/setenv.sh\n"
@@ -236,8 +238,8 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 
 			// Create /lib
 			new UnixFile(sharedTomcatDirectory, "lib", false).mkdir().chown(lsaUID, lsgGID).setMode(0770);
-			DaemonFileUtils.lnAll("../../.."+tomcatDirectory+"/lib/", wwwGroupDir+"/lib/", lsaUID, lsgGID);
-			DaemonFileUtils.ln("../../.."+tomcatDirectory+"/lib/jasper-runtime.jar", wwwGroupDir+"/lib/jasper-runtime.jar", lsaUID, lsgGID);
+			DaemonFileUtils.lnAll("../" + optSlash + optDir + "/lib/", wwwGroupDir+"/lib/", lsaUID, lsgGID);
+			DaemonFileUtils.ln("../" + optSlash + optDir + "/lib/jasper-runtime.jar", wwwGroupDir+"/lib/jasper-runtime.jar", lsaUID, lsgGID);
 			//if(postgresServerMinorVersion!=null) {
 			//    String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
 			//    if(postgresPath!=null) FileUtils.ln("../../.."+postgresPath+"/share/java/postgresql.jar", wwwGroupDir+"/lib/postgresql.jar", lsaUID, lsgGID);
@@ -313,8 +315,10 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 				}
 			}
 		}
-		for (String workFile : workFiles) {
-			deleteFileList.add(new File(workUF.getFile(), workFile));
+		for(String workFile : workFiles) {
+			File toDelete = new File(workUF.getFile(), workFile);
+			if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+			deleteFileList.add(toDelete);
 		}
 
 		// Enable/Disable
@@ -337,8 +341,13 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 	}
 
 	@Override
-	protected boolean upgradeSharedTomcatDirectory(UnixFile siteDirectory) throws IOException, SQLException {
-		// TODO
+	protected boolean upgradeSharedTomcatDirectory(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
+		// Nothing to do
 		return false;
 	}
+
+	/**
+	 * Gets the package's directory name under /opt, not including /opt itself.
+	 */
+	abstract protected String getOptDir();
 }

@@ -27,11 +27,8 @@ class HttpdTomcatSharedSiteManager_4_1_X extends HttpdTomcatSharedSiteManager<To
 		super(tomcatSharedSite);
 	}
 
-	/**
-	 * Builds a shared site for Tomcat 4.1.X
-	 */
 	@Override
-	protected void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
+	protected void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
 		/*
 		 * Resolve and allocate stuff used throughout the method
 		 */
@@ -96,7 +93,7 @@ class HttpdTomcatSharedSiteManager_4_1_X extends HttpdTomcatSharedSiteManager<To
 	}
 
 	@Override
-	protected boolean upgradeSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
+	protected boolean upgradeSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
 		// Nothing to do
 		return false;
 	}

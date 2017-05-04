@@ -50,6 +50,7 @@ class HttpdTomcatSharedSiteManager_3_2_4 extends HttpdTomcatSharedSiteManager_3_
 		// Build to RAM first
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
 		try (ChainWriter out = new ChainWriter(bout)) {
+			// TODO: Encoding UTF-8 here? (and other versions)
 			out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n");
 			if(!httpdSite.isManual()) out.print(autoWarning);
 			out.print("<Server>\n"

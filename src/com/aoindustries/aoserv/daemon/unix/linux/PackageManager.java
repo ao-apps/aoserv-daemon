@@ -41,18 +41,29 @@ public class PackageManager {
 		APACHE_TOMCAT_7_0("apache-tomcat_7_0"),
 		APACHE_TOMCAT_8_0("apache-tomcat_8_0"),
 		AOSERV_FTP_SHELLS("aoserv-ftp-shells"),
+		AOSERV_HTTPD_CONFIG("aoserv-httpd-config"),
+		AOSERV_HTTPD_SITE_DISABLED("aoserv-httpd-site-disabled"),
 		AOSERV_JILTER("aoserv-jilter"),
 		AOSERV_MRTG("aoserv-mrtg"),
 		AOSERV_PASSWD_SHELL("aoserv-passwd-shell"),
+		AWSTATS_6("awstats_6"),
+		AWSTATS_7("awstats_7"),
 		BIND("bind"),
 		CACHING_NAMESERVER("caching-nameserver"), // This is a distinct package in CentOS 5, but provided by "bind" in CentOS 7
 		CVS("cvs"),
 		FIREWALLD("firewalld"),
 		GZIP("gzip"),
 		HDDTEMP("hddtemp"),
-		LIBPCAP("libpcap"),
+		HTTPD("httpd"),
+		HTTPD_TOOLS("httpd-tools"),
 		JBOSS_2_2_2("jboss_2_2_2"),
+		JDK1("jdk1"),
+		JDK1_I686("jdk1-i686"),
+		JDK17("jdk17"),
+		JDK17_I686("jdk17-i686"),
+		LIBPCAP("libpcap"),
 		MAJORDOMO("majordomo"),
+		MOD_SSL("mod_ssl"),
 		MRTG("mrtg"),
 		NET_TOOLS("net-tools"),
 		OPENSSH_SERVER("openssh-server"),
@@ -67,7 +78,8 @@ public class PackageManager {
 		SENDMAIL("sendmail"),
 		SMARTMONTOOLS("smartmontools"),
 		SUDO("sudo"),
-		TAR("tar");
+		TAR("tar"),
+		TOMCAT_CONNECTORS("tomcat-connectors");
 
 		private final String rpmName;
 		// Only needed when trying to automatically remove packages: private final PackageName[] requires;

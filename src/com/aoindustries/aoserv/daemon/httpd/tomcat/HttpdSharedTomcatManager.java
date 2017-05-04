@@ -23,6 +23,7 @@ import com.aoindustries.validation.ValidationException;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -32,6 +33,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Manages HttpdSharedTomcat configurations.
@@ -39,6 +41,22 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implements StopStartable {
+
+	private static final Logger logger = Logger.getLogger(HttpdSharedTomcatManager.class.getName());
+
+	/**
+	 * The directories in /wwwgroup or /var/opt/apache-tomcat that will never be deleted.
+	 * <p>
+	 * Note: This matches the check constraint on the httpd_shared_tomcats table.
+	 * Note: This matches isValidSharedTomcatName in HttpdSharedTomcat.
+	 * </p>
+	 */
+	private static final Set<String> keepWwwgroupDirs = new HashSet<>(Arrays.asList(
+		// Other filesystem patterns
+        "lost+found",
+        "aquota.group",
+        "aquota.user"
+	));
 
 	/**
 	 * Gets the specific manager for one version of shared Tomcat.
@@ -69,18 +87,17 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 		try {
 			// Get values used in the rest of the method.
 			HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
+			String optSlash = osConfig.getHttpdSharedTomcatsOptSlash();
 			AOServer aoServer = AOServDaemon.getThisAOServer();
 
 			// The www group directories that exist but are not used will be removed
 			UnixFile wwwgroupDirectory = new UnixFile(osConfig.getHttpdSharedTomcatsDirectory().toString());
-			String[] list = wwwgroupDirectory.list();
-			Set<String> wwwgroupRemoveList = new HashSet<>(list.length*4/3+1);
-			for (String dirname : list) {
-				if(
-					!dirname.equals("lost+found")
-					&& !dirname.equals("aquota.user")
-				) {
-					wwwgroupRemoveList.add(dirname);
+			Set<String> wwwgroupRemoveList = new HashSet<>();
+			{
+				String[] list = wwwgroupDirectory.list();
+				if(list != null) {
+					wwwgroupRemoveList.addAll(Arrays.asList(list));
+					wwwgroupRemoveList.removeAll(keepWwwgroupDirs);
 				}
 			}
 
@@ -94,8 +111,15 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 				// Create and fill in any incomplete installations.
 				final String tomcatName = sharedTomcat.getName();
 				UnixFile sharedTomcatDirectory = new UnixFile(wwwgroupDirectory, tomcatName, false);
-				manager.buildSharedTomcatDirectory(sharedTomcatDirectory, deleteFileList, sharedTomcatsNeedingRestarted);
-				if(manager.upgradeSharedTomcatDirectory(sharedTomcatDirectory)) sharedTomcatsNeedingRestarted.add(sharedTomcat);
+				manager.buildSharedTomcatDirectory(
+					optSlash,
+					sharedTomcatDirectory,
+					deleteFileList,
+					sharedTomcatsNeedingRestarted
+				);
+				if(manager.upgradeSharedTomcatDirectory(optSlash, sharedTomcatDirectory)) {
+					sharedTomcatsNeedingRestarted.add(sharedTomcat);
+				}
 				wwwgroupRemoveList.remove(tomcatName);
 			}
 
@@ -105,7 +129,11 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 				// Stop and disable any daemons
 				stopAndDisableDaemons(removeFile);
 				// Only remove the directory when not used by a home directory
-				if(!aoServer.isHomeUsed(UnixPath.valueOf(removeFile.getPath()))) deleteFileList.add(removeFile.getFile());
+				if(!aoServer.isHomeUsed(UnixPath.valueOf(removeFile.getPath()))) {
+					File toDelete = removeFile.getFile();
+					if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+					deleteFileList.add(toDelete);
+				}
 			}
 		} catch(ValidationException e) {
 			throw new IOException(e);
@@ -186,8 +214,6 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	 * Gets the auto-mode warning for this website for use in XML files.  This
 	 * may be used on any config files that a user would be tempted to change
 	 * directly.
-	 *
-	 * TODO: Change www.aoindustries.com to aoindustries.com
 	 */
 	String getAutoWarningXmlOld() throws IOException, SQLException {
 		return
@@ -232,8 +258,6 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	 * Gets the auto-mode warning using Unix-style comments (#).  This
 	 * may be used on any config files that a user would be tempted to change
 	 * directly.
-	 *
-	 * TODO: Change www.aoindustries.com to aoindustries.com
 	 */
 	/*String getAutoWarningUnixOld() throws IOException, SQLException {
 		return
@@ -242,7 +266,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 			+ "# to this file will be overwritten.  Please set the is_manual flag for this multi-site\n"
 			+ "# JVM to be able to make permanent changes to this file.\n"
 			+ "#\n"
-			+ "# Control Panel: https://www.aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey="+sharedTomcat.getPkey()+"\n"
+			+ "# Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey="+sharedTomcat.getPkey()+"\n"
 			+ "#\n"
 			+ "# AOSH: "+AOSHCommand.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+' '+sharedTomcat.getAOServer().getHostname()+" true\n"
 			+ "#\n"
@@ -256,8 +280,6 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	 * Gets the auto-mode warning using Unix-style comments (#).  This
 	 * may be used on any config files that a user would be tempted to change
 	 * directly.
-	 *
-	 * TODO: Change www.aoindustries.com to aoindustries.com
 	 */
 	/*String getAutoWarningUnix() throws IOException, SQLException {
 		return
@@ -266,7 +288,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 			+ "# to this file will be overwritten.  Please set the is_manual flag for this multi-site\n"
 			+ "# JVM to be able to make permanent changes to this file.\n"
 			+ "#\n"
-			+ "# Control Panel: https://www.aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey="+sharedTomcat.getPkey()+"\n"
+			+ "# Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey="+sharedTomcat.getPkey()+"\n"
 			+ "#\n"
 			+ "# AOSH: "+AOSHCommand.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+' '+sharedTomcat.getAOServer().getHostname()+" true\n"
 			+ "#\n"
@@ -281,7 +303,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	 *
 	 * By default, uses the package required for Tomcat.
 	 */
-	protected Set<PackageManager.PackageName> getRequiredPackages() {
+	protected Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException {
 		return getTomcatCommon().getRequiredPackages();
 	}
 
@@ -300,14 +322,14 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	 *   <li>Otherwise, make necessary config changes or upgrades while adhering to the manual flag</li>
 	 * </ol>
 	 */
-	abstract void buildSharedTomcatDirectory(UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException;
+	abstract void buildSharedTomcatDirectory(String optSlash, UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException;
 
 	/**
 	 * Upgrades the site directory contents for an auto-upgrade.
 	 *
 	 * @return  <code>true</code> if the site needs to be restarted.
 	 */
-	protected abstract boolean upgradeSharedTomcatDirectory(UnixFile siteDirectory) throws IOException, SQLException;
+	protected abstract boolean upgradeSharedTomcatDirectory(String optSlash, UnixFile siteDirectory) throws IOException, SQLException;
 
 	/**
 	 * Gets the PID file.

@@ -32,8 +32,11 @@ class TomcatCommon_6_0_X extends TomcatCommon {
     private TomcatCommon_6_0_X() {}
 
 	@Override
-	protected Set<PackageManager.PackageName> getRequiredPackages() {
-		return EnumSet.of(PackageManager.PackageName.APACHE_TOMCAT_6_0);
+	protected Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException {
+		return EnumSet.of(
+			OperatingSystemConfiguration.getOperatingSystemConfiguration().getDefaultJdkPackageName(),
+			PackageManager.PackageName.APACHE_TOMCAT_6_0
+		);
 	}
 
 	@Override
@@ -59,105 +62,102 @@ class TomcatCommon_6_0_X extends TomcatCommon {
     }
 
 	/**
-	 * Upgrade to Tomcat 6.0.37.
-	 */
-	private static final UpgradeSymlink[] upgradeSymlinks_6_0_37 = {
-		// Nothing to do
-	};
-
-	/**
-	 * Upgrade to Tomcat 6.0.45.
-	 */
-	private static final UpgradeSymlink[] upgradeSymlinks_6_0_45 = {
-		// Upgrade from Tomcat 6.0.37 to 6.0.45
-		new UpgradeSymlink(
-			"lib/ecj-4.2.2.jar",
-			"../../../opt/apache-tomcat-6.0/lib/ecj-4.2.2.jar",
-			null
-		),
-		new UpgradeSymlink(
-			"lib/ecj-4.3.1.jar",
-			null,
-			"../../../opt/apache-tomcat-6.0/lib/ecj-4.3.1.jar"
-		),
-		new UpgradeSymlink(
-			"lib/mysql-connector-java-5.1.25-bin.jar",
-			"../../../opt/apache-tomcat-6.0/lib/mysql-connector-java-5.1.25-bin.jar",
-			null
-		),
-		new UpgradeSymlink(
-			"lib/mysql-connector-java-5.1.38-bin.jar",
-			null,
-			"../../../opt/apache-tomcat-6.0/lib/mysql-connector-java-5.1.38-bin.jar"
-		),
-		new UpgradeSymlink(
-			"lib/postgresql-9.2-1003.jdbc4.jar",
-			"../../../opt/apache-tomcat-6.0/lib/postgresql-9.2-1003.jdbc4.jar",
-			null
-		),
-		new UpgradeSymlink(
-			"lib/postgresql-9.4.1208.jre6.jar",
-			null,
-			"../../../opt/apache-tomcat-6.0/lib/postgresql-9.4.1208.jre6.jar"
-		)
-	};
-
-	/**
-	 * Upgrade from Tomcat 6.0.45 to 6.0.53
-	 */
-	private static final UpgradeSymlink[] upgradeSymlinks_6_0_53 = {
-		// mysql-connector-java-5.1.38-bin.jar -> mysql-connector-java-5.1.41-bin.jar
-		new UpgradeSymlink(
-			"lib/mysql-connector-java-5.1.38-bin.jar",
-			"../../../opt/apache-tomcat-6.0/lib/mysql-connector-java-5.1.38-bin.jar",
-			null
-		),
-		new UpgradeSymlink(
-			"lib/mysql-connector-java-5.1.41-bin.jar",
-			null,
-			"../../../opt/apache-tomcat-6.0/lib/mysql-connector-java-5.1.41-bin.jar"
-		),
-		// postgresql-9.4.1208.jre6.jar -> postgresql-42.0.0.jre6.jar
-		new UpgradeSymlink(
-			"lib/postgresql-9.4.1208.jre6.jar",
-			"../../../opt/apache-tomcat-6.0/lib/postgresql-9.4.1208.jre6.jar",
-			null
-		),
-		new UpgradeSymlink(
-			"lib/postgresql-42.0.0.jre6.jar",
-			null,
-			"../../../opt/apache-tomcat-6.0/lib/postgresql-42.0.0.jre6.jar"
-		)
-	};
-
-	/**
 	 * Upgrades the Tomcat 6.0.X installed in the provided directory.
+	 *
+	 * @param optSlash  Relative path from the CATALINA_HOME to /opt/, including trailing slash, such as <code>../../opt/</code>.
 	 */
-	boolean upgradeTomcatDirectory(UnixFile tomcatDirectory, int uid, int gid) throws IOException, SQLException {
+	boolean upgradeTomcatDirectory(String optSlash, UnixFile tomcatDirectory, int uid, int gid) throws IOException, SQLException {
 		boolean needsRestart = false;
 		OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
-		if(osConfig==OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
+		if(
+			osConfig == OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64
+			|| osConfig == OperatingSystemConfiguration.CENTOS_7_X86_64
+		) {
 			String rpmVersion = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_6_0).getVersion().toString();
 			if(rpmVersion.equals("6.0.37")) {
-				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_6_0_37) {
-					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
-				}
+				// Nothing to do
 			} else if(rpmVersion.equals("6.0.45")) {
+				// Upgrade from Tomcat 6.0.37 to 6.0.45
+				UpgradeSymlink[] upgradeSymlinks_6_0_45 = {
+					new UpgradeSymlink(
+						"lib/ecj-4.2.2.jar",
+						"../" + optSlash + "apache-tomcat-6.0/lib/ecj-4.2.2.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/ecj-4.3.1.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-6.0/lib/ecj-4.3.1.jar"
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-5.1.25-bin.jar",
+						"../" + optSlash + "apache-tomcat-6.0/lib/mysql-connector-java-5.1.25-bin.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-5.1.38-bin.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-6.0/lib/mysql-connector-java-5.1.38-bin.jar"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-9.2-1003.jdbc4.jar",
+						"../" + optSlash + "apache-tomcat-6.0/lib/postgresql-9.2-1003.jdbc4.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-9.4.1208.jre6.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-6.0/lib/postgresql-9.4.1208.jre6.jar"
+					)
+				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_6_0_45) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
-				// Switch from Java 1.7 to Java 1.* now that compatible with Java 1.8
-				String results = AOServDaemon.execAndCapture(
-					new String[] {
-						osConfig.getReplaceCommand().toString(),
-						"/opt/jdk1.7-i686/setenv.sh",
-						"/opt/jdk1-i686/setenv.sh",
-						"--",
-						tomcatDirectory.getPath()+"/bin/profile"
-					}
-				);
-				if(results.length()>0) needsRestart = true;
+				if(osConfig == OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
+					// Switch from Java 1.7 to Java 1.* now that compatible with Java 1.8
+					String results = AOServDaemon.execAndCapture(
+						new String[] {
+							osConfig.getReplaceCommand().toString(),
+							"/opt/jdk1.7-i686/setenv.sh",
+							"/opt/jdk1-i686/setenv.sh",
+							"--",
+							tomcatDirectory.getPath()+"/bin/profile"
+						}
+					);
+					if(results.length()>0) needsRestart = true;
+				}
 			} else if(rpmVersion.equals("6.0.53")) {
+				// Upgrade from Tomcat 6.0.45 to 6.0.53
+				UpgradeSymlink[] upgradeSymlinks_6_0_53 = {
+					// mysql-connector-java-5.1.38-bin.jar -> mysql-connector-java-5.1.42-bin.jar
+					// mysql-connector-java-5.1.41-bin.jar -> mysql-connector-java-5.1.42-bin.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-5.1.38-bin.jar",
+						"../" + optSlash + "apache-tomcat-6.0/lib/mysql-connector-java-5.1.38-bin.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-5.1.41-bin.jar",
+						"../" + optSlash + "apache-tomcat-6.0/lib/mysql-connector-java-5.1.41-bin.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-5.1.42-bin.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-6.0/lib/mysql-connector-java-5.1.42-bin.jar"
+					),
+					// postgresql-9.4.1208.jre6.jar -> postgresql-42.0.0.jre6.jar
+					new UpgradeSymlink(
+						"lib/postgresql-9.4.1208.jre6.jar",
+						"../" + optSlash + "apache-tomcat-6.0/lib/postgresql-9.4.1208.jre6.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.0.0.jre6.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-6.0/lib/postgresql-42.0.0.jre6.jar"
+					)
+				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_6_0_53) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}

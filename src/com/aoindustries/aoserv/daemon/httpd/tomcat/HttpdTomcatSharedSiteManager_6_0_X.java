@@ -27,11 +27,8 @@ class HttpdTomcatSharedSiteManager_6_0_X extends HttpdTomcatSharedSiteManager<To
 		super(tomcatSharedSite);
 	}
 
-	/**
-	 * Builds a shared site for Tomcat 6.0.X
-	 */
 	@Override
-	protected void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
+	protected void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
 		/*
 		 * Resolve and allocate stuff used throughout the method
 		 */
@@ -71,6 +68,7 @@ class HttpdTomcatSharedSiteManager_6_0_X extends HttpdTomcatSharedSiteManager<To
 					+ "   xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
 					+ "   xsi:schemaLocation=\"http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd\"\n"
 					+ "   version=\"2.5\">\n"
+				// TODO: AOServ Platform branding here? (and other versions)
 					+ "  <display-name>Welcome to Tomcat</display-name>\n"
 					+ "  <description>\n"
 					+ "     Welcome to Tomcat\n"
@@ -91,7 +89,7 @@ class HttpdTomcatSharedSiteManager_6_0_X extends HttpdTomcatSharedSiteManager<To
 	}
 
 	@Override
-	protected boolean upgradeSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
+	protected boolean upgradeSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
 		// Nothing to do
 		return false;
 	}

@@ -42,8 +42,16 @@ public enum HttpdOperatingSystemConfiguration {
 			return OperatingSystemVersion.getHttpdSitesDirectory(OperatingSystemVersion.REDHAT_ES_4_X86_64);
 		}
 		@Override
+		public String getHttpdSitesOptSlash() {
+			return "../../opt/";
+		}
+		@Override
 		public UnixPath getHttpdSharedTomcatsDirectory() {
 			return OperatingSystemVersion.getHttpdSharedTomcatsDirectory(OperatingSystemVersion.REDHAT_ES_4_X86_64);
+		}
+		@Override
+		public String getHttpdSharedTomcatsOptSlash() {
+			return "../../opt/";
 		}
 		@Override
 		public UnixPath getAwstatsDirectory() {
@@ -85,8 +93,16 @@ public enum HttpdOperatingSystemConfiguration {
 			return OperatingSystemVersion.getHttpdSitesDirectory(OperatingSystemVersion.CENTOS_5_I686_AND_X86_64);
 		}
 		@Override
+		public String getHttpdSitesOptSlash() {
+			return "../../opt/";
+		}
+		@Override
 		public UnixPath getHttpdSharedTomcatsDirectory() {
 			return OperatingSystemVersion.getHttpdSharedTomcatsDirectory(OperatingSystemVersion.CENTOS_5_I686_AND_X86_64);
+		}
+		@Override
+		public String getHttpdSharedTomcatsOptSlash() {
+			return "../../opt/";
 		}
 		@Override
 		public UnixPath getAwstatsDirectory() {
@@ -127,8 +143,16 @@ public enum HttpdOperatingSystemConfiguration {
 			return OperatingSystemVersion.getHttpdSitesDirectory(OperatingSystemVersion.CENTOS_7_X86_64);
 		}
 		@Override
+		public String getHttpdSitesOptSlash() {
+			return "../../../opt/";
+		}
+		@Override
 		public UnixPath getHttpdSharedTomcatsDirectory() {
 			return OperatingSystemVersion.getHttpdSharedTomcatsDirectory(OperatingSystemVersion.CENTOS_7_X86_64);
+		}
+		@Override
+		public String getHttpdSharedTomcatsOptSlash() {
+			return "../../../opt/";
 		}
 		@Override
 		public UnixPath getAwstatsDirectory() {
@@ -191,9 +215,19 @@ public enum HttpdOperatingSystemConfiguration {
 	public abstract UnixPath getHttpdSitesDirectory();
 
 	/**
+	 * Gets the relative path from CATALINA_HOME to /opt/ for the website directories, including the trailing slash.
+	 */
+	public abstract String getHttpdSitesOptSlash();
+
+	/**
 	 * Gets the directory that contains the shared tomcat directories.
 	 */
 	public abstract UnixPath getHttpdSharedTomcatsDirectory();
+
+	/**
+	 * Gets the relative path from CATALINA_HOME to /opt/ for the shared tomcat directories, including the trailing slash.
+	 */
+	public abstract String getHttpdSharedTomcatsOptSlash();
 
 	/**
 	 * Gets the configuration directory used by AWStats

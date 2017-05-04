@@ -54,11 +54,8 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		return EnumSet.of(PackageManager.PackageName.JBOSS_2_2_2);
 	}
 
-	/**
-	 * Builds a JBoss 2.2.2 installation
-	 */
 	@Override
-	protected void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
+	protected void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
 		/*
 		 * Resolve and allocate stuff used throughout the method
 		 */
@@ -528,8 +525,8 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 	}
 
 	@Override
-	protected boolean upgradeSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
-		// TODO
+	protected boolean upgradeSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
+		// Nothing to do
 		return false;
 	}
 }

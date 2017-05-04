@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Controls the configuration files for AWStats and provides access to the AWStats system.
@@ -52,6 +53,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 final public class AWStatsManager extends BuilderThread {
+
+	private static final Logger logger = Logger.getLogger(AWStatsManager.class.getName());
 
 	private static AWStatsManager awstatsManager;
 
@@ -62,6 +65,7 @@ final public class AWStatsManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
+			// TODO: Install awstats_6/7 package when first needed, uninstall and clean-up when not needed
 			HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 			final File awstatsDirectory = new File(osConfig.getAwstatsDirectory().toString());
 			final File binDirectory     = new File(osConfig.getAwstatsBinDirectory().toString());
@@ -518,10 +522,18 @@ final public class AWStatsManager extends BuilderThread {
 				}
 
 				// Remove any extra config files
-				for(String filename : existingConfigFiles.keySet()) deleteFileList.add(new File(configDirectory, filename));
+				for(String filename : existingConfigFiles.keySet()) {
+					File configFile = new File(configDirectory, filename);
+					if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + configFile);
+					deleteFileList.add(configFile);
+				}
 
 				// Remove any files or directories that should not exist
-				for(String filename : existingHostDirectories.keySet()) deleteFileList.add(new File(hostsDirectory, filename));
+				for(String filename : existingHostDirectories.keySet()) {
+					File hostsFile = new File(hostsDirectory, filename);
+					if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + hostsFile);
+					deleteFileList.add(hostsFile);
+				}
 
 				// Back-up and delete the files scheduled for removal.
 				BackupManager.backupAndDeleteFiles(deleteFileList);

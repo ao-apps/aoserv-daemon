@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -22,4 +22,9 @@ class HttpdSharedTomcatManager_3_2_4 extends HttpdSharedTomcatManager_3_X<Tomcat
     TomcatCommon_3_2_4 getTomcatCommon() {
         return TomcatCommon_3_2_4.getInstance();
     }
+
+	@Override
+	protected String getOptDir() {
+		return "apache-tomcat-3.2";
+	}
 }

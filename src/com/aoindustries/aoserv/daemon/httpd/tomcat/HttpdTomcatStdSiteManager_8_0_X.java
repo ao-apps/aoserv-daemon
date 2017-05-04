@@ -16,10 +16,8 @@ import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.client.IPAddress;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.NetBind;
-import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
-import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
@@ -41,20 +39,15 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 		super(tomcatStdSite);
 	}
 
-	/**
-	 * Builds a standard install for Tomcat 8.0.X
-	 */
 	@Override
-	protected void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
+	protected void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
 		// Resolve and allocate stuff used throughout the method
 		final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
-		final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
 		//final TomcatCommon tomcatCommon = getTomcatCommon();
 		final String siteDir = siteDirectory.getPath();
 		final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
 		final int uid = lsa.getUid().getId();
 		final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
-		final UnixPath tomcatDirectory=tomcatSite.getHttpdTomcatVersion().getInstallDirectory();
 		final AOServer thisAoServer = AOServDaemon.getThisAOServer();
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
@@ -80,10 +73,10 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/work", 0750, uid, gid);
-		DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/bootstrap.jar", siteDir+"/bin/bootstrap.jar", uid, gid);
-		DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/catalina.sh", siteDir+"/bin/catalina.sh", uid, gid);
-		DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/commons-daemon.jar", siteDir+"/bin/commons-daemon.jar", uid, gid);
-		DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/digest.sh", siteDir+"/bin/digest.sh", uid, gid);
+		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/bin/bootstrap.jar", siteDir+"/bin/bootstrap.jar", uid, gid);
+		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/bin/catalina.sh", siteDir+"/bin/catalina.sh", uid, gid);
+		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/bin/commons-daemon.jar", siteDir+"/bin/commons-daemon.jar", uid, gid);
+		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/bin/digest.sh", siteDir+"/bin/digest.sh", uid, gid);
 
 		/*
 		 * Set up the bash profile source
@@ -106,7 +99,7 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 			out.print("#!/bin/sh\n"
 					+ "\n"
 					+ ". /etc/profile\n"
-					+ ". /opt/jdk1-i686/setenv.sh\n");
+					+ ". ").print(osConfig.getDefaultJdkSetEnv()).print('\n');
 			//if(enablePhp()) {
 			//	out.print(". /opt/php-").print(httpdConfig.getDefaultPhpMinorVersion()).print("-i686/setenv.sh\n");
 			//}
@@ -190,7 +183,7 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 		} finally {
 			out.close();
 		}
-		DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/setclasspath.sh", siteDir+"/bin/setclasspath.sh", uid, gid);
+		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/bin/setclasspath.sh", siteDir+"/bin/setclasspath.sh", uid, gid);
 
 		out=new ChainWriter(new UnixFile(siteDir+"/bin/shutdown.sh").getSecureOutputStream(uid, gid, 0700, true, uid_min, gid_min));
 		try {
@@ -208,13 +201,13 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 			out.close();
 		}
 
-		DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/tomcat-juli.jar", siteDir+"/bin/tomcat-juli.jar", uid, gid);
-		DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/tool-wrapper.sh", siteDir+"/bin/tool-wrapper.sh", uid, gid);
-		DaemonFileUtils.ln("../../.."+tomcatDirectory+"/bin/version.sh", siteDir+"/bin/version.sh", uid, gid);
+		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/bin/tomcat-juli.jar", siteDir+"/bin/tomcat-juli.jar", uid, gid);
+		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/bin/tool-wrapper.sh", siteDir+"/bin/tool-wrapper.sh", uid, gid);
+		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/bin/version.sh", siteDir+"/bin/version.sh", uid, gid);
 
 		// Create the lib directory and all contents
 		DaemonFileUtils.mkdir(siteDir+"/lib", 0770, uid, gid);
-		DaemonFileUtils.lnAll("../../.."+tomcatDirectory+"/lib/", siteDir+"/lib/", uid, gid);
+		DaemonFileUtils.lnAll("../" + optSlash + "apache-tomcat-8.0/lib/", siteDir+"/lib/", uid, gid);
 
 		//if(postgresServerMinorVersion!=null) {
 		//    String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
@@ -231,36 +224,37 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 		 */
 		{
 			UnixFile cp=new UnixFile(siteDir+"/conf/catalina.policy");
-			new UnixFile(tomcatDirectory+"/conf/catalina.policy").copyTo(cp, false);
+			new UnixFile("/opt/apache-tomcat-8.0/conf/catalina.policy").copyTo(cp, false);
 			cp.chown(uid, gid).setMode(0660);
 		}
 
 		{
 			UnixFile cp=new UnixFile(siteDir+"/conf/catalina.properties");
-			new UnixFile(tomcatDirectory+"/conf/catalina.properties").copyTo(cp, false);
+			new UnixFile("/opt/apache-tomcat-8.0/conf/catalina.properties").copyTo(cp, false);
 			cp.chown(uid, gid).setMode(0660);
 		}
 
 		{
 			UnixFile cp=new UnixFile(siteDir+"/conf/context.xml");
-			new UnixFile(tomcatDirectory+"/conf/context.xml").copyTo(cp, false);
+			new UnixFile("/opt/apache-tomcat-8.0/conf/context.xml").copyTo(cp, false);
 			cp.chown(uid, gid).setMode(0660);
 		}
 
 		{
 			UnixFile cp=new UnixFile(siteDir+"/conf/logging.properties");
-			new UnixFile(tomcatDirectory+"/conf/logging.properties").copyTo(cp, false);
+			new UnixFile("/opt/apache-tomcat-8.0/conf/logging.properties").copyTo(cp, false);
 			cp.chown(uid, gid).setMode(0660);
 		}
 		{
 			UnixFile tu=new UnixFile(siteDir+"/conf/tomcat-users.xml");
-			new UnixFile(tomcatDirectory+"/conf/tomcat-users.xml").copyTo(tu, false);
+			new UnixFile("/opt/apache-tomcat-8.0/conf/tomcat-users.xml").copyTo(tu, false);
 			tu.chown(uid, gid).setMode(0660);
 		}
-		DaemonFileUtils.ln("../../.."+tomcatDirectory+"/conf/tomcat-users.xsd", siteDir+"/conf/tomcat-users.xsd", uid, gid);
+		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/conf/tomcat-users.xsd", siteDir+"/conf/tomcat-users.xsd", uid, gid);
 		{
+			// TODO: As symbolic link, what about other files copied?
 			UnixFile wx=new UnixFile(siteDir+"/conf/web.xml");
-			new UnixFile(tomcatDirectory+"/conf/web.xml").copyTo(wx, false);
+			new UnixFile("/opt/apache-tomcat-8.0/conf/web.xml").copyTo(wx, false);
 			wx.chown(uid, gid).setMode(0660);
 		}
 
@@ -402,9 +396,10 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 	}
 
 	@Override
-	protected boolean upgradeSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
+	protected boolean upgradeSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
 		// The only thing that needs to be modified is the included Tomcat
 		return getTomcatCommon().upgradeTomcatDirectory(
+			optSlash,
 			siteDirectory,
 			httpdSite.getLinuxServerAccount().getUid().getId(),
 			httpdSite.getLinuxServerGroup().getGid().getId()

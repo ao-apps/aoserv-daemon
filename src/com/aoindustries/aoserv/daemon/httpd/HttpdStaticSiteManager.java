@@ -43,7 +43,7 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 	}
 
 	@Override
-	protected void buildSiteDirectory(UnixFile siteDirectory, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
+	protected void buildSiteDirectory(UnixFile siteDirectory, String optSlash, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
 		final boolean isAuto = !httpdSite.isManual();
 		final int apacheUid = getApacheUid();
 		final int uid = httpdSite.getLinuxServerAccount().getUid().getId();

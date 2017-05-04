@@ -49,11 +49,8 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
 		throw new SQLException("Couldn't find ajp12 for httpd_tomcat_shared_site="+tomcatSharedSite);
 	}
 
-	/**
-	 * Builds a shared site for Tomcat 3.X
-	 */
 	@Override
-	protected void buildSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
+	protected void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
 		// Resolve and allocate stuff used throughout the method
 		final TomcatCommon_3_X tomcatCommon = getTomcatCommon();
 		final String siteDir = siteDirectory.getPath();
@@ -335,8 +332,8 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
 	}
 
 	@Override
-	protected boolean upgradeSiteDirectoryContents(UnixFile siteDirectory) throws IOException, SQLException {
-		// TODO
+	protected boolean upgradeSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
+		// Nothing to do
 		return false;
 	}
 }

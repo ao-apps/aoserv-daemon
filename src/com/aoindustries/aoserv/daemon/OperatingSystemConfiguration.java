@@ -8,6 +8,7 @@ package com.aoindustries.aoserv.daemon;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.util.WrappedException;
 import com.aoindustries.validation.ValidationException;
 import java.io.IOException;
@@ -55,6 +56,30 @@ public enum OperatingSystemConfiguration {
 		//public UnixPath getMySQLConnectorJavaJarPath() {
 		//	return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
 		//}
+		@Override
+		public UnixPath getDefaultJdkSetEnv() {
+			try {
+				return UnixPath.valueOf("/opt/jdk1/setenv.sh");
+			} catch(ValidationException e) {
+				throw new WrappedException(e);
+			}
+		}
+		@Override
+		public PackageManager.PackageName getDefaultJdkPackageName() {
+			return PackageManager.PackageName.JDK1;
+		}
+		@Override
+		public UnixPath getJdk17SetEnv() {
+			try {
+				return UnixPath.valueOf("/opt/jdk1.7/setenv.sh");
+			} catch(ValidationException e) {
+				throw new WrappedException(e);
+			}
+		}
+		@Override
+		public PackageManager.PackageName getJdk17PackageName() {
+			return PackageManager.PackageName.JDK17;
+		}
 	},
 	CENTOS_5_I686_AND_X86_64 {
 		@Override
@@ -96,6 +121,30 @@ public enum OperatingSystemConfiguration {
 		//public UnixPath getMySQLConnectorJavaJarPath() {
 		//	return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
 		//}
+		@Override
+		public UnixPath getDefaultJdkSetEnv() {
+			try {
+				return UnixPath.valueOf("/opt/jdk1-i686/setenv.sh");
+			} catch(ValidationException e) {
+				throw new WrappedException(e);
+			}
+		}
+		@Override
+		public PackageManager.PackageName getDefaultJdkPackageName() {
+			return PackageManager.PackageName.JDK1_I686;
+		}
+		@Override
+		public UnixPath getJdk17SetEnv() {
+			try {
+				return UnixPath.valueOf("/opt/jdk1.7-i686/setenv.sh");
+			} catch(ValidationException e) {
+				throw new WrappedException(e);
+			}
+		}
+		@Override
+		public PackageManager.PackageName getJdk17PackageName() {
+			return PackageManager.PackageName.JDK17_I686;
+		}
 	},
 	CENTOS_5DOM0_I686 {
 		@Override
@@ -120,6 +169,22 @@ public enum OperatingSystemConfiguration {
 		//public UnixPath getMySQLConnectorJavaJarPath() {
 		//	return null;
 		//}
+		@Override
+		public UnixPath getDefaultJdkSetEnv() {
+			return CENTOS_5_I686_AND_X86_64.getDefaultJdkSetEnv();
+		}
+		@Override
+		public PackageManager.PackageName getDefaultJdkPackageName() {
+			return CENTOS_5_I686_AND_X86_64.getDefaultJdkPackageName();
+		}
+		@Override
+		public UnixPath getJdk17SetEnv() {
+			return CENTOS_5_I686_AND_X86_64.getJdk17SetEnv();
+		}
+		@Override
+		public PackageManager.PackageName getJdk17PackageName() {
+			return CENTOS_5_I686_AND_X86_64.getJdk17PackageName();
+		}
 	},
 	CENTOS_5DOM0_X86_64 {
 		@Override
@@ -144,6 +209,22 @@ public enum OperatingSystemConfiguration {
 		//public UnixPath getMySQLConnectorJavaJarPath() {
 		//	return null;
 		//}
+		@Override
+		public UnixPath getDefaultJdkSetEnv() {
+			return CENTOS_5_I686_AND_X86_64.getDefaultJdkSetEnv();
+		}
+		@Override
+		public PackageManager.PackageName getDefaultJdkPackageName() {
+			return CENTOS_5_I686_AND_X86_64.getDefaultJdkPackageName();
+		}
+		@Override
+		public UnixPath getJdk17SetEnv() {
+			return CENTOS_5_I686_AND_X86_64.getJdk17SetEnv();
+		}
+		@Override
+		public PackageManager.PackageName getJdk17PackageName() {
+			return CENTOS_5_I686_AND_X86_64.getJdk17PackageName();
+		}
 	},
 	CENTOS_7_X86_64 {
 		@Override
@@ -185,6 +266,30 @@ public enum OperatingSystemConfiguration {
 		//public UnixPath getMySQLConnectorJavaJarPath() {
 		//	return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
 		//}
+		@Override
+		public UnixPath getDefaultJdkSetEnv() {
+			try {
+				return UnixPath.valueOf("/opt/jdk1/setenv.sh");
+			} catch(ValidationException e) {
+				throw new WrappedException(e);
+			}
+		}
+		@Override
+		public PackageManager.PackageName getDefaultJdkPackageName() {
+			return PackageManager.PackageName.JDK1;
+		}
+		@Override
+		public UnixPath getJdk17SetEnv() {
+			try {
+				return UnixPath.valueOf("/opt/jdk1.7/setenv.sh");
+			} catch(ValidationException e) {
+				throw new WrappedException(e);
+			}
+		}
+		@Override
+		public PackageManager.PackageName getJdk17PackageName() {
+			return PackageManager.PackageName.JDK17;
+		}
 	},
 	CENTOS_7DOM0_X86_64 {
 		@Override
@@ -210,6 +315,22 @@ public enum OperatingSystemConfiguration {
 		//public UnixPath getMySQLConnectorJavaJarPath() {
 		//	return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
 		//}
+		@Override
+		public UnixPath getDefaultJdkSetEnv() {
+			return CENTOS_7_X86_64.getDefaultJdkSetEnv();
+		}
+		@Override
+		public PackageManager.PackageName getDefaultJdkPackageName() {
+			return CENTOS_7_X86_64.getDefaultJdkPackageName();
+		}
+		@Override
+		public UnixPath getJdk17SetEnv() {
+			return CENTOS_7_X86_64.getJdk17SetEnv();
+		}
+		@Override
+		public PackageManager.PackageName getJdk17PackageName() {
+			return CENTOS_7_X86_64.getJdk17PackageName();
+		}
 	};
 
 	/**
@@ -276,4 +397,24 @@ public enum OperatingSystemConfiguration {
 	 * <code>null</code> if none available.
 	 */
 	//public abstract UnixPath getMySQLConnectorJavaJarPath();
+
+	/**
+	 * Gets the path to the default JDK setenv.sh script.
+	 */
+	public abstract UnixPath getDefaultJdkSetEnv();
+
+	/**
+	 * Gets the package that provides the default JDK.
+	 */
+	public abstract PackageManager.PackageName getDefaultJdkPackageName();
+
+	/**
+	 * Gets the path to the JDK 1.7 setenv.sh script.
+	 */
+	public abstract UnixPath getJdk17SetEnv();
+
+	/**
+	 * Gets the package that provides JDK 1.7.
+	 */
+	public abstract PackageManager.PackageName getJdk17PackageName();
 }

@@ -94,6 +94,7 @@ final public class HttpdManager extends BuilderThread {
 				if(
 					osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
 					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 				) {
 					AOServConnector connector = AOServDaemon.getConnector();
 					httpdManager = new HttpdManager();

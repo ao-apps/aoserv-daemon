@@ -1,14 +1,16 @@
 /*
- * Copyright 2008-2013, 2014, 2015, 2016 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
+import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -27,8 +29,11 @@ class TomcatCommon_3_1 extends TomcatCommon_3_X {
 	private TomcatCommon_3_1() {}
 
 	@Override
-	protected Set<PackageManager.PackageName> getRequiredPackages() {
-		return EnumSet.of(PackageManager.PackageName.APACHE_TOMCAT_3_1);
+	protected Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException {
+		return EnumSet.of(
+			OperatingSystemConfiguration.getOperatingSystemConfiguration().getJdk17PackageName(),
+			PackageManager.PackageName.APACHE_TOMCAT_3_1
+		);
 	}
 
 	@Override
