@@ -186,6 +186,28 @@ final public class FirewalldManager extends BuilderThread {
 							)
 						);
 					}
+					// HTTP
+					{
+						List<Target> targets = new ArrayList<>();
+						for(NetBind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(Protocol.HTTP)) {
+								addTarget(nb, targets);
+							}
+						}
+						if(logger.isLoggable(Level.FINE)) logger.fine("http targets: " + targets);
+						publicServiceSets.add(ServiceSet.createOptimizedServiceSet("http", targets));
+					}
+					// HTTPS
+					{
+						List<Target> targets = new ArrayList<>();
+						for(NetBind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(Protocol.HTTPS)) {
+								addTarget(nb, targets);
+							}
+						}
+						if(logger.isLoggable(Level.FINE)) logger.fine("https targets: " + targets);
+						publicServiceSets.add(ServiceSet.createOptimizedServiceSet("https", targets));
+					}
 					// MySQL
 					{
 						List<Target> targets = new ArrayList<>();
