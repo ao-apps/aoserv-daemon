@@ -2079,6 +2079,7 @@ public class HttpdServerManager {
 			}
 			case OperatingSystemVersion.CENTOS_7_X86_64 : {
 				// TODO
+				// TODO: Disable when doesn't have any active httpd_binds
 				break;
 			}
 			default :
