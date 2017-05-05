@@ -19,6 +19,8 @@ import com.aoindustries.aoserv.client.LinuxGroup;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.NetBind;
+import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.Protocol;
 import com.aoindustries.aoserv.client.TechnologyVersion;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -28,8 +30,11 @@ import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.FileUtils;
+import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.InetAddress;
+import com.aoindustries.net.Port;
+import com.aoindustries.selinux.SEManagePort;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -41,33 +46,56 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 /**
  * Manages HttpdServer configurations and control.
  *
- * TODO: Build first Apache as "httpd" instead of "httpd1".
- *
  * @author  AO Industries, Inc.
  */
 public class HttpdServerManager {
+
+	private static final Logger logger = Logger.getLogger(HttpdServerManager.class.getName());
 
 	private HttpdServerManager() {}
 
 	/**
 	 * The directory that all HTTPD configs are located in (/etc/httpd).
 	 */
-	static final String CONFIG_DIRECTORY = "/etc/httpd";
+	static final String SERVER_ROOT = "/etc/httpd";
 
 	/**
 	 * The directory that HTTPD conf are located in (/etc/httpd/conf).
 	 */
-	static final String CONF_DIRECTORY = CONFIG_DIRECTORY + "/conf";
+	static final String CONF_DIRECTORY = SERVER_ROOT + "/conf";
+
+	/**
+	 * The pattern matching secondary httpd[-#].conf files.
+	 */
+	private static final Pattern HTTPD_N_CONF_REGEXP = Pattern.compile("^httpd-[0-9]+\\.conf$");
+
+	/**
+	 * The pattern matching secondary workers[-#].properties files.
+	 */
+	private static final Pattern WORKERS_N_PROPERTIES_REGEXP = Pattern.compile("^workers-[0-9]+\\.properties$");
 
 	/**
 	 * The directory that individual host and bind configurations are in.
 	 */
-	static final String CONF_HOSTS = CONF_DIRECTORY+"/hosts";
+	private static final String CONF_HOSTS = CONF_DIRECTORY + "/hosts";
+
+	/**
+	 * The directory that individual host and bind configurations are for CentOS 7.
+	 */
+	private static final String SITES_AVAILABLE = SERVER_ROOT + "/sites-available";
+
+	/**
+	 * The directory that individual host and bind configurations are for CentOS 7.
+	 */
+	private static final String SITES_ENABLED = SERVER_ROOT + "/sites-enabled";
 
 	/**
 	 * The init.d directory.
@@ -75,31 +103,44 @@ public class HttpdServerManager {
 	private static final String INIT_DIRECTORY = "/etc/rc.d/init.d";
 
 	/**
-	 * Gets the workers#.properties file path.
+	 * The SELinux type for the SSH daemon.
 	 */
-	private static String getWorkersFile(HttpdServer hs) {
-		return CONF_DIRECTORY+"/workers"+hs.getNumber()+".properties";
+	private static final String SELINUX_TYPE = "http_port_t";
+
+	/**
+	 * Gets the workers[[-]#].properties file path.
+	 */
+	private static String getWorkersFile(HttpdServer hs) throws IOException, SQLException {
+		int num = hs.getNumber();
+		OperatingSystemVersion osv = hs.getAOServer().getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
+		switch(osvId) {
+			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
+				return CONF_DIRECTORY + "/workers" + num + ".properties";
+			case OperatingSystemVersion.CENTOS_7_X86_64 :
+				if(num == 1) return CONF_DIRECTORY + "/workers.properties";
+				else return CONF_DIRECTORY + "/workers-" + num + ".properties";
+			default :
+				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+		}
 	}
 
 	/**
-	 * Gets the workers#.properties.new file path.
+	 * Gets the httpd[-[#]].conf file name.
 	 */
-	private static String getWorkersNewFile(HttpdServer hs) {
-		return getWorkersFile(hs)+".new";
-	}
-
-	/**
-	 * Gets the httpd#.conf file path.
-	 */
-	private static String getHttpdConfFile(HttpdServer hs) {
-		return CONF_DIRECTORY+"/httpd"+hs.getNumber()+".conf";
-	}
-
-	/**
-	 * Gets the httpd#.conf.new file path.
-	 */
-	private static String getHttpdConfNewFile(HttpdServer hs) {
-		return getHttpdConfFile(hs)+".new";
+	private static String getHttpdConfFile(HttpdServer hs) throws IOException, SQLException {
+		int num = hs.getNumber();
+		OperatingSystemVersion osv = hs.getAOServer().getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
+		switch(osvId) {
+			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
+				return "httpd" + num + ".conf";
+			case OperatingSystemVersion.CENTOS_7_X86_64 :
+				if(num == 1) return "httpd.conf";
+				else return "httpd-" + num+".conf";
+			default :
+				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+		}
 	}
 
 	/**
@@ -113,14 +154,17 @@ public class HttpdServerManager {
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
 		AOServer aoServer = AOServDaemon.getThisAOServer();
 
-		// Rebuild /etc/httpd/conf/hosts/ files
+		// Rebuild /etc/httpd/conf/hosts/ or /etc/httpd/sites-available and /etc/httpd/sites-enabled files
 		doRebuildConfHosts(aoServer, bout, deleteFileList, serversNeedingReloaded);
 
 		// Rebuild /etc/httpd/conf/ files
-		doRebuildConf(aoServer, bout, serversNeedingReloaded);
+		doRebuildConf(aoServer, bout, deleteFileList, serversNeedingReloaded);
 
-		// Control the /etc/rc.d/init.d/httpd* files
+		// Control the /etc/rc.d/init.d/httpd* files or /etc/systemd/system/httpd[-#].service
 		doRebuildInitScripts(aoServer, bout, deleteFileList, serversNeedingReloaded);
+
+		// Configure SELinux
+		doReuildSELinux(aoServer, serversNeedingReloaded);
 
 		// Other filesystem fixes related to logging
 		fixFilesystem(deleteFileList);
@@ -128,6 +172,7 @@ public class HttpdServerManager {
 
 	/**
 	 * Rebuilds the files in /etc/httpd/conf/hosts/
+	 * or /etc/httpd/sites-available and /etc/httpd/sites-enabled
 	 */
 	private static void doRebuildConfHosts(
 		AOServer thisAoServer,
@@ -135,112 +180,293 @@ public class HttpdServerManager {
 		List<File> deleteFileList,
 		Set<HttpdServer> serversNeedingReloaded
 	) throws IOException, SQLException {
-		// The config directory should only contain files referenced in the database
-		String[] list=new File(CONF_HOSTS).list();
-		Set<String> extraFiles = new HashSet<>(list.length*4/3+1);
-		extraFiles.addAll(Arrays.asList(list));
-
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
 
-		// Iterate through each site
-		for(HttpdSite httpdSite : thisAoServer.getHttpdSites()) {
-			// Some values used below
-			final String siteName = httpdSite.getSiteName();
-			final HttpdSiteManager manager = HttpdSiteManager.getInstance(httpdSite);
-			final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
-			final LinuxServerGroup lsg = httpdSite.getLinuxServerGroup();
-			final int lsgGID = lsg.getGid().getId();
-			final List<HttpdSiteBind> binds = httpdSite.getHttpdSiteBinds();
+		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
+		switch(osvId) {
+			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 : {
+				// The config directory should only contain files referenced in the database, or "disabled"
+				String[] list=new File(CONF_HOSTS).list();
+				Set<String> extraFiles = new HashSet<>(list.length*4/3+1);
+				extraFiles.addAll(Arrays.asList(list));
 
-			// Remove from delete list
-			extraFiles.remove(siteName);
+				// Iterate through each site
+				for(HttpdSite httpdSite : thisAoServer.getHttpdSites()) {
+					// Some values used below
+					final String siteName = httpdSite.getSiteName();
+					final HttpdSiteManager manager = HttpdSiteManager.getInstance(httpdSite);
+					final LinuxServerGroup lsg = httpdSite.getLinuxServerGroup();
+					final int lsgGID = lsg.getGid().getId();
+					final List<HttpdSiteBind> binds = httpdSite.getHttpdSiteBinds();
 
-			// The shared config part
-			final UnixFile sharedFile = new UnixFile(CONF_HOSTS, siteName);
-			if(!manager.httpdSite.isManual() || !sharedFile.getStat().exists()) {
-				if(
-					DaemonFileUtils.writeIfNeeded(
-						buildHttpdSiteSharedFile(manager, bout),
-						null,
-						sharedFile,
-						UnixFile.ROOT_UID,
-						lsgGID,
-						0640,
-						uid_min,
-						gid_min
-					)
-				) {
-					// File changed, all servers that use this site need restarted
-					for(HttpdSiteBind hsb : binds) serversNeedingReloaded.add(hsb.getHttpdBind().getHttpdServer());
+					// Remove from delete list
+					extraFiles.remove(siteName);
+
+					// The shared config part
+					final UnixFile sharedFile = new UnixFile(CONF_HOSTS, siteName);
+					if(!manager.httpdSite.isManual() || !sharedFile.getStat().exists()) {
+						if(
+							DaemonFileUtils.writeIfNeeded(
+								buildHttpdSiteSharedFile(manager, bout),
+								null,
+								sharedFile,
+								UnixFile.ROOT_UID,
+								lsgGID,
+								0640,
+								uid_min,
+								gid_min
+							)
+						) {
+							// File changed, all servers that use this site need restarted
+							for(HttpdSiteBind hsb : binds) serversNeedingReloaded.add(hsb.getHttpdBind().getHttpdServer());
+						}
+					}
+
+					// Each of the binds
+					for(HttpdSiteBind bind : binds) {
+						// Some value used below
+						final boolean isManual = bind.isManual();
+						final boolean isDisabled = bind.isDisabled();
+						final String predisableConfig = bind.getPredisableConfig();
+						final HttpdBind httpdBind = bind.getHttpdBind();
+						final NetBind nb = httpdBind.getNetBind();
+
+						// Generate the filename
+						final String bindFilename = siteName+"_"+nb.getIPAddress().getInetAddress()+"_"+nb.getPort().getPort();
+						final UnixFile bindFile = new UnixFile(CONF_HOSTS, bindFilename);
+						final boolean exists = bindFile.getStat().exists();
+
+						// Remove from delete list
+						extraFiles.remove(bindFilename);
+
+						// Will only be verified when not exists, auto mode, disabled, or predisabled config need to be restored
+						if(
+							!exists                                 // Not exists
+							|| !isManual                            // Auto mode
+							|| isDisabled                           // Disabled
+							|| predisableConfig!=null               // Predisabled config needs to be restored
+						) {
+							// Save manual config file for later restoration
+							if(exists && isManual && isDisabled && predisableConfig==null) {
+								bind.setPredisableConfig(FileUtils.readFileAsString(bindFile.getFile()));
+							}
+
+							// Restore/build the file
+							byte[] newContent;
+							if(isManual && !isDisabled && predisableConfig!=null) {
+								// Restore manual config values
+								newContent = predisableConfig.getBytes();
+							} else {
+								// Create auto config
+								if(isDisabled) PackageManager.installPackage(PackageManager.PackageName.AOSERV_HTTPD_SITE_DISABLED);
+								newContent = buildHttpdSiteBindFile(
+									manager,
+									bind,
+									isDisabled ? HttpdSite.DISABLED : siteName,
+									bout
+								);
+							}
+							// Write only when missing or modified
+							if(
+								DaemonFileUtils.writeIfNeeded(
+									newContent,
+									null,
+									bindFile,
+									UnixFile.ROOT_UID,
+									lsgGID,
+									0640,
+									uid_min,
+									gid_min
+							   )
+							) {
+								// Reload server if the file is modified
+								serversNeedingReloaded.add(httpdBind.getHttpdServer());
+							}
+						}
+					}
 				}
+
+				// Mark files for deletion
+				for(String filename : extraFiles) {
+					if(!filename.equals(HttpdSite.DISABLED)) {
+						File toDelete = new File(CONF_HOSTS, filename);
+						if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+						deleteFileList.add(toDelete);
+					}
+				}
+				break;
 			}
+			case OperatingSystemVersion.CENTOS_7_X86_64 : {
+				// The config directory should only contain files referenced in the database, or "disabled.inc" or README.txt
+				Set<String> extraFiles = new HashSet<>();
+				{
+					String[] list = new File(SITES_AVAILABLE).list();
+					if(list != null) extraFiles.addAll(Arrays.asList(list));
+				}
 
-			// Each of the binds
-			for(HttpdSiteBind bind : binds) {
-				// Some value used below
-				final boolean isManual = bind.isManual();
-				final boolean isDisabled = bind.isDisabled();
-				final String predisableConfig = bind.getPredisableConfig();
-				final HttpdBind httpdBind = bind.getHttpdBind();
-				final NetBind nb = httpdBind.getNetBind();
+				// Iterate through each site
+				for(HttpdSite httpdSite : thisAoServer.getHttpdSites()) {
+					// Some values used below
+					final String siteName = httpdSite.getSiteName();
+					final HttpdSiteManager manager = HttpdSiteManager.getInstance(httpdSite);
+					final LinuxServerGroup lsg = httpdSite.getLinuxServerGroup();
+					final int lsgGID = lsg.getGid().getId();
+					final List<HttpdSiteBind> binds = httpdSite.getHttpdSiteBinds();
 
-				// Generate the filename
-				final String bindFilename = siteName+"_"+nb.getIPAddress().getInetAddress()+"_"+nb.getPort().getPort();
-				final UnixFile bindFile = new UnixFile(CONF_HOSTS, bindFilename);
-				final boolean exists = bindFile.getStat().exists();
+					// Remove from delete list
+					String sharedFilename = siteName + ".inc";
+					extraFiles.remove(sharedFilename);
 
-				// Remove from delete list
-				extraFiles.remove(bindFilename);
-
-				// Will only be verified when not exists, auto mode, disabled, or predisabled config need to be restored
-				if(
-					!exists                                 // Not exists
-					|| !isManual                            // Auto mode
-					|| isDisabled                           // Disabled
-					|| predisableConfig!=null               // Predisabled config needs to be restored
-				) {
-					// Save manual config file for later restoration
-					if(exists && isManual && isDisabled && predisableConfig==null) {
-						bind.setPredisableConfig(FileUtils.readFileAsString(bindFile.getFile()));
+					// The shared config part
+					final UnixFile sharedFile = new UnixFile(SITES_ENABLED, sharedFilename);
+					if(!manager.httpdSite.isManual() || !sharedFile.getStat().exists()) {
+						if(
+							DaemonFileUtils.writeIfNeeded(
+								buildHttpdSiteSharedFile(manager, bout),
+								null,
+								sharedFile,
+								UnixFile.ROOT_UID,
+								lsgGID,
+								0640,
+								uid_min,
+								gid_min
+							)
+						) {
+							// File changed, all servers that use this site need restarted
+							for(HttpdSiteBind hsb : binds) serversNeedingReloaded.add(hsb.getHttpdBind().getHttpdServer());
+						}
 					}
 
-					// Restore/build the file
-					byte[] newContent;
-					if(isManual && !isDisabled && predisableConfig!=null) {
-						// Restore manual config values
-						newContent = predisableConfig.getBytes();
-					} else {
-						// Create auto config
-						newContent = buildHttpdSiteBindFile(
-							manager,
-							bind,
-							isDisabled ? HttpdSite.DISABLED : siteName,
-							bout
-						);
+					// Each of the binds
+					for(HttpdSiteBind bind : binds) {
+						// Some value used below
+						final boolean isManual = bind.isManual();
+						final boolean isDisabled = bind.isDisabled();
+						final String predisableConfig = bind.getPredisableConfig();
+						final HttpdBind httpdBind = bind.getHttpdBind();
+						final NetBind nb = httpdBind.getNetBind();
+
+						// Generate the filename
+						final String bindFilename = siteName+"_"+nb.getIPAddress().getInetAddress()+"_"+nb.getPort().getPort()+".conf";
+						final UnixFile bindFile = new UnixFile(SITES_AVAILABLE, bindFilename);
+						final boolean exists = bindFile.getStat().exists();
+
+						// Remove from delete list
+						extraFiles.remove(bindFilename);
+
+						// Will only be verified when not exists, auto mode, disabled, or predisabled config need to be restored
+						if(
+							!exists                                 // Not exists
+							|| !isManual                            // Auto mode
+							|| isDisabled                           // Disabled
+							|| predisableConfig!=null               // Predisabled config needs to be restored
+						) {
+							// Save manual config file for later restoration
+							if(exists && isManual && isDisabled && predisableConfig==null) {
+								bind.setPredisableConfig(FileUtils.readFileAsString(bindFile.getFile()));
+							}
+
+							// Restore/build the file
+							byte[] newContent;
+							if(isManual && !isDisabled && predisableConfig!=null) {
+								// Restore manual config values
+								newContent = predisableConfig.getBytes();
+							} else {
+								// Create auto config
+								if(isDisabled) PackageManager.installPackage(PackageManager.PackageName.AOSERV_HTTPD_SITE_DISABLED);
+								newContent = buildHttpdSiteBindFile(
+									manager,
+									bind,
+									isDisabled ? (HttpdSite.DISABLED+".inc") : sharedFilename,
+									bout
+								);
+							}
+							// Write only when missing or modified
+							if(
+								DaemonFileUtils.writeIfNeeded(
+									newContent,
+									null,
+									bindFile,
+									UnixFile.ROOT_UID,
+									lsgGID,
+									0640,
+									uid_min,
+									gid_min
+							   )
+							) {
+								// Reload server if the file is modified
+								serversNeedingReloaded.add(httpdBind.getHttpdServer());
+							}
+						}
 					}
-					// Write only when missing or modified
+				}
+
+				// Mark files for deletion
+				for(String filename : extraFiles) {
 					if(
-						DaemonFileUtils.writeIfNeeded(
-							newContent,
-							null,
-							bindFile,
-							UnixFile.ROOT_UID,
-							lsgGID,
-							0640,
-							uid_min,
-							gid_min
-					   )
+						!filename.equals(HttpdSite.DISABLED + ".inc")
+						&& !filename.equals("README.txt")
 					) {
-						// Reload server if the file is modified
-						serversNeedingReloaded.add(httpdBind.getHttpdServer());
+						File toDelete = new File(SITES_AVAILABLE, filename);
+						if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+						deleteFileList.add(toDelete);
 					}
 				}
-			}
-		}
 
-		// Mark files for deletion
-		for(String filename : extraFiles) deleteFileList.add(new File(CONF_HOSTS, filename));
+				// Symlinks in sites-enabled
+				extraFiles.clear();
+				{
+					String[] list = new File(SITES_ENABLED).list();
+					if(list != null) extraFiles.addAll(Arrays.asList(list));
+				}
+
+				// Iterate through each site
+				for(HttpdSite httpdSite : thisAoServer.getHttpdSites()) {
+					// Some values used below
+					final String siteName = httpdSite.getSiteName();
+					// Each of the binds
+					for(HttpdSiteBind bind : httpdSite.getHttpdSiteBinds()) {
+						// Some value used below
+						final HttpdBind httpdBind = bind.getHttpdBind();
+						final NetBind nb = httpdBind.getNetBind();
+
+						// Generate the filename
+						final String bindFilename = siteName+"_"+nb.getIPAddress().getInetAddress()+"_"+nb.getPort().getPort()+".conf";
+						final String symlinkTarget = "../sites-available/" + bindFilename;
+
+						final UnixFile symlinkFile = new UnixFile(SITES_ENABLED, bindFilename);
+						final Stat symlinkStat = symlinkFile.getStat();
+
+						// Remove from delete list
+						extraFiles.remove(bindFilename);
+
+						if(
+							!symlinkStat.exists()
+							|| !symlinkStat.isSymLink()
+							|| !symlinkTarget.equals(symlinkFile.readLink())
+						) {
+							if(symlinkStat.exists()) symlinkFile.delete();
+							symlinkFile.symLink(symlinkTarget);
+							serversNeedingReloaded.add(httpdBind.getHttpdServer());
+						}
+					}
+				}
+
+				// Mark files for deletion
+				for(String filename : extraFiles) {
+					if(!filename.equals("README.txt")) {
+						File toDelete = new File(SITES_ENABLED, filename);
+						if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+						deleteFileList.add(toDelete);
+					}
+				}
+				break;
+			}
+			default :
+				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+		}
 	}
 
 	/**
@@ -250,177 +476,431 @@ public class HttpdServerManager {
 		final HttpdSite httpdSite = manager.httpdSite;
 		final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
 		final LinuxServerGroup lsg = httpdSite.getLinuxServerGroup();
+		final SortedSet<HttpdSiteManager.JkSetting> jkSettings = manager.getJkSettings();
 
 		// Build to a temporary buffer
 		bout.reset();
 		try (ChainWriter out = new ChainWriter(bout)) {
-			out.print("    ServerAdmin ").print(httpdSite.getServerAdmin()).print("\n");
+			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+			int osvId = osv.getPkey();
+			switch(osvId) {
+				case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 : {
+					out.print("    ServerAdmin ").print(httpdSite.getServerAdmin()).print("\n");
 
-			// Enable CGI PHP option if the site supports CGI and PHP
-			if(manager.enablePhp() && manager.enableCgi()) {
-				out.print("\n"
-						+ "    # Use CGI-based PHP when not using mod_php\n"
-						+ "    <IfModule !sapi_apache2.c>\n"
-						+ "        <IfModule !mod_php5.c>\n"
-						+ "            Action php-script /cgi-bin/php\n"
-						// Avoid *.php.txt going to PHP: http://php.net/manual/en/install.unix.apache2.php
-						+ "            <FilesMatch \\.php$>\n"
-						+ "                SetHandler php-script\n"
-						+ "            </FilesMatch>\n"
-						//+ "            AddHandler php-script .php\n"
-						+ "        </IfModule>\n"
-						+ "    </IfModule>\n");
-			}
-
-			// The CGI user info
-			out.print("\n"
-					+ "    # Use suexec when available\n"
-					+ "    <IfModule mod_suexec.c>\n"
-					+ "        SuexecUserGroup ").print(lsa.getLinuxAccount().getUsername()).print(' ').print(lsg.getLinuxGroup().getName()).print("\n"
-					+ "    </IfModule>\n");
-
-			// Protect against TRACE and TRACK
-			if(manager.blockAllTraceAndTrackRequests()) {
-				out.print("\n"
-						+ "    # Protect dangerous request methods\n"
-						+ "    <IfModule mod_rewrite.c>\n"
-						+ "        RewriteEngine on\n"
-						+ "        RewriteCond %{REQUEST_METHOD} ^(TRACE|TRACK)\n"
-						+ "        RewriteRule .* - [F]\n"
-						+ "    </IfModule>\n");
-			}
-
-			// Rejected URLs
-			SortedSet<HttpdSiteManager.Location> rejectedLocations = manager.getRejectedLocations();
-			if(!rejectedLocations.isEmpty()) {
-				out.print("\n"
-						+ "    # Rejected URL patterns\n");
-				for(HttpdSiteManager.Location location : rejectedLocations) {
-					if(location.isRegularExpression()) {
-						out.print("    <LocationMatch \"").print(location.getLocation()).print("\">\n"
-								+ "        Order deny,allow\n"
-								+ "        Deny from All\n"
-								+ "    </LocationMatch>\n"
-						);
-					} else {
-						out.print("    <Location \"").print(location.getLocation()).print("\">\n"
-								+ "        Order deny,allow\n"
-								+ "        Deny from All\n"
-								+ "    </Location>\n"
-						);
+					// Enable CGI PHP option if the site supports CGI and PHP
+					if(manager.enablePhp() && manager.enableCgi()) {
+						out.print("\n"
+								+ "    # Use CGI-based PHP when not using mod_php\n"
+								+ "    <IfModule !sapi_apache2.c>\n"
+								+ "        <IfModule !mod_php5.c>\n"
+								+ "            Action php-script /cgi-bin/php\n"
+								// Avoid *.php.txt going to PHP: http://php.net/manual/en/install.unix.apache2.php
+								+ "            <FilesMatch \\.php$>\n"
+								+ "                SetHandler php-script\n"
+								+ "            </FilesMatch>\n"
+								//+ "            AddHandler php-script .php\n"
+								+ "        </IfModule>\n"
+								+ "    </IfModule>\n");
 					}
-				}
-			}
 
-			// Rewrite rules
-			SortedMap<String,String> permanentRewrites = manager.getPermanentRewriteRules();
-			if(!permanentRewrites.isEmpty()) {
-				// Write the standard restricted URL patterns
-				out.print("\n"
-						+ "    # Rewrite rules\n"
-						+ "    <IfModule mod_rewrite.c>\n"
-						+ "        RewriteEngine on\n");
-				for(Map.Entry<String,String> entry : permanentRewrites.entrySet()) {
-					out.print("        RewriteRule ").print(entry.getKey()).print(' ').print(entry.getValue()).print(" [L,R=permanent]\n");
-				}
-				out.print("    </IfModule>\n");
-			}
-
-			// Write the authenticated locations
-			List<HttpdSiteAuthenticatedLocation> hsals = httpdSite.getHttpdSiteAuthenticatedLocations();
-			if(!hsals.isEmpty()) {
-				out.print("\n"
-						+ "    # Authenticated Locations\n");
-				for(HttpdSiteAuthenticatedLocation hsal : hsals) {
-					out.print("    <").print(hsal.getIsRegularExpression()?"LocationMatch":"Location").print(" \"").print(hsal.getPath()).print("\">\n");
-					if(hsal.getAuthUserFile() != null || hsal.getAuthGroupFile() != null) out.print("        AuthType Basic\n");
-					if(hsal.getAuthName().length()>0) out.print("        AuthName \"").print(hsal.getAuthName()).print("\"\n");
-					if(hsal.getAuthUserFile() != null) out.print("        AuthUserFile \"").print(hsal.getAuthUserFile()).print("\"\n");
-					if(hsal.getAuthGroupFile() != null) out.print("        AuthGroupFile \"").print(hsal.getAuthGroupFile()).print("\"\n");
-					if(hsal.getRequire().length()>0) out.print("        require ").print(hsal.getRequire()).print('\n');
-					out.print("    </").print(hsal.getIsRegularExpression()?"LocationMatch":"Location").print(">\n");
-				}
-			}
-
-			// Error if no root webapp found
-			boolean foundRoot = false;
-			SortedMap<String,HttpdSiteManager.WebAppSettings> webapps = manager.getWebapps();
-			for(Map.Entry<String,HttpdSiteManager.WebAppSettings> entry : webapps.entrySet()) {
-				String path = entry.getKey();
-				HttpdSiteManager.WebAppSettings settings = entry.getValue();
-				UnixPath docBase = settings.getDocBase();
-
-				if(path.length()==0) {
-					foundRoot = true;
-					// DocumentRoot
+					// The CGI user info
 					out.print("\n"
-							+ "    # Set up the default webapp\n"
-							+ "    DocumentRoot \"").print(docBase).print("\"\n"
-							+ "    <Directory \"").print(docBase).print("\">\n"
-							+ "        Allow from All\n"
-							+ "        AllowOverride ").print(settings.getAllowOverride()).print("\n"
-							+ "        Order allow,deny\n"
-							+ "        Options ").print(settings.getOptions()).print("\n"
-							+ "    </Directory>\n");
-				} else {
-					// Is webapp/alias
-					out.print("\n"
-							+ "    # Set up the ").print(path).print(" webapp\n"
-							+ "    Alias \"").print(path).print("/\" \"").print(docBase).print("/\"\n"
-							+ "    AliasMatch \"^").print(path).print("$\" \"").print(docBase).print("\"\n"
-							+ "    <Directory \"").print(docBase).print("\">\n"
-							+ "        Allow from All\n"
-							+ "        AllowOverride ").print(settings.getAllowOverride()).print("\n"
-							+ "        Order allow,deny\n"
-							+ "        Options ").print(settings.getOptions()).print("\n"
-							+ "    </Directory>\n");
-				}
-				if(settings.enableCgi()) {
-					if(!manager.enableCgi()) throw new SQLException("Unable to enable webapp CGI when site has CGI disabled");
-					out.print("    <Directory \"").print(docBase).print("/cgi-bin\">\n"
-							+ "        <IfModule mod_ssl.c>\n"
-							+ "            SSLOptions +StdEnvVars\n"
-							+ "        </IfModule>\n"
-							+ "        Options ExecCGI\n"
-							+ "        SetHandler cgi-script\n"
-							+ "    </Directory>\n");
-					/*
-					out.print("    ScriptAlias \"").print(path).print("/cgi-bin/\" \"").print(docBase).print("/cgi-bin/\"\n"
-							+ "    <Directory \"").print(docBase).print("/cgi-bin\">\n"
-							+ "        Options ExecCGI\n"
-							+ "        <IfModule mod_ssl.c>\n"
-							+ "            SSLOptions +StdEnvVars\n"
-							+ "        </IfModule>\n"
-							+ "        Allow from All\n"
-							+ "        Order allow,deny\n"
-							+ "    </Directory>\n");*/
-				}
-			}
-			if(!foundRoot) throw new SQLException("No DocumentRoot found");
+							+ "    # Use suexec when available\n"
+							+ "    <IfModule mod_suexec.c>\n"
+							+ "        SuexecUserGroup ").print(lsa.getLinuxAccount().getUsername()).print(' ').print(lsg.getLinuxGroup().getName()).print("\n"
+							+ "    </IfModule>\n");
 
-			// Write any JkMount and JkUnmount directives
-			SortedSet<HttpdSiteManager.JkSetting> jkSettings = manager.getJkSettings();
-			if(!jkSettings.isEmpty()) {
-				out.print("\n"
-						+ "    # Request patterns mapped through mod_jk\n"
-						+ "    <IfModule mod_jk.c>\n");
-				for(HttpdSiteManager.JkSetting setting : jkSettings) {
-					out
-						.print("        ")
-						.print(setting.isMount() ? "JkMount" : "JkUnMount")
-						.print(' ')
-						.print(setting.getPath())
-						.print(' ')
-						.print(setting.getJkCode())
-						.print('\n');
+					// Protect against TRACE and TRACK
+					if(manager.blockAllTraceAndTrackRequests()) {
+						out.print("\n"
+								+ "    # Protect dangerous request methods\n"
+								+ "    <IfModule mod_rewrite.c>\n"
+								+ "        RewriteEngine on\n"
+								+ "        RewriteCond %{REQUEST_METHOD} ^(TRACE|TRACK)\n"
+								+ "        RewriteRule .* - [F]\n"
+								+ "    </IfModule>\n");
+					}
+
+					// Rejected URLs
+					SortedSet<HttpdSiteManager.Location> rejectedLocations = manager.getRejectedLocations();
+					if(!rejectedLocations.isEmpty()) {
+						out.print("\n"
+								+ "    # Rejected URL patterns\n");
+						for(HttpdSiteManager.Location location : rejectedLocations) {
+							if(location.isRegularExpression()) {
+								out.print("    <LocationMatch \"").print(location.getLocation()).print("\">\n"
+										+ "        Order deny,allow\n"
+										+ "        Deny from All\n"
+										+ "    </LocationMatch>\n"
+								);
+							} else {
+								out.print("    <Location \"").print(location.getLocation()).print("\">\n"
+										+ "        Order deny,allow\n"
+										+ "        Deny from All\n"
+										+ "    </Location>\n"
+								);
+							}
+						}
+					}
+
+					// Rewrite rules
+					SortedMap<String,String> permanentRewrites = manager.getPermanentRewriteRules();
+					if(!permanentRewrites.isEmpty()) {
+						// Write the standard restricted URL patterns
+						out.print("\n"
+								+ "    # Rewrite rules\n"
+								+ "    <IfModule mod_rewrite.c>\n"
+								+ "        RewriteEngine on\n");
+						for(Map.Entry<String,String> entry : permanentRewrites.entrySet()) {
+							out.print("        RewriteRule ").print(entry.getKey()).print(' ').print(entry.getValue()).print(" [L,R=permanent]\n");
+						}
+						out.print("    </IfModule>\n");
+					}
+
+					// Write the authenticated locations
+					List<HttpdSiteAuthenticatedLocation> hsals = httpdSite.getHttpdSiteAuthenticatedLocations();
+					if(!hsals.isEmpty()) {
+						out.print("\n"
+								+ "    # Authenticated Locations\n");
+						for(HttpdSiteAuthenticatedLocation hsal : hsals) {
+							out.print("    <").print(hsal.getIsRegularExpression()?"LocationMatch":"Location").print(" \"").print(hsal.getPath()).print("\">\n");
+							if(hsal.getAuthUserFile() != null || hsal.getAuthGroupFile() != null) out.print("        AuthType Basic\n");
+							if(hsal.getAuthName().length()>0) out.print("        AuthName \"").print(hsal.getAuthName()).print("\"\n");
+							if(hsal.getAuthUserFile() != null) out.print("        AuthUserFile \"").print(hsal.getAuthUserFile()).print("\"\n");
+							if(hsal.getAuthGroupFile() != null) out.print("        AuthGroupFile \"").print(hsal.getAuthGroupFile()).print("\"\n");
+							if(hsal.getRequire().length()>0) out.print("        require ").print(hsal.getRequire()).print('\n');
+							out.print("    </").print(hsal.getIsRegularExpression()?"LocationMatch":"Location").print(">\n");
+						}
+					}
+
+					// Error if no root webapp found
+					boolean foundRoot = false;
+					SortedMap<String,HttpdSiteManager.WebAppSettings> webapps = manager.getWebapps();
+					for(Map.Entry<String,HttpdSiteManager.WebAppSettings> entry : webapps.entrySet()) {
+						String path = entry.getKey();
+						HttpdSiteManager.WebAppSettings settings = entry.getValue();
+						UnixPath docBase = settings.getDocBase();
+
+						if(path.length()==0) {
+							foundRoot = true;
+							// DocumentRoot
+							out.print("\n"
+									+ "    # Set up the default webapp\n"
+									+ "    DocumentRoot \"").print(docBase).print("\"\n"
+									+ "    <Directory \"").print(docBase).print("\">\n"
+									+ "        Allow from All\n"
+									+ "        AllowOverride ").print(settings.getAllowOverride()).print("\n"
+									+ "        Order allow,deny\n"
+									+ "        Options ").print(settings.getOptions()).print("\n"
+									+ "    </Directory>\n");
+						} else {
+							// Is webapp/alias
+							out.print("\n"
+									+ "    # Set up the ").print(path).print(" webapp\n"
+									+ "    Alias \"").print(path).print("/\" \"").print(docBase).print("/\"\n"
+									+ "    AliasMatch \"^").print(path).print("$\" \"").print(docBase).print("\"\n"
+									+ "    <Directory \"").print(docBase).print("\">\n"
+									+ "        Allow from All\n"
+									+ "        AllowOverride ").print(settings.getAllowOverride()).print("\n"
+									+ "        Order allow,deny\n"
+									+ "        Options ").print(settings.getOptions()).print("\n"
+									+ "    </Directory>\n");
+						}
+						if(settings.enableCgi()) {
+							if(!manager.enableCgi()) throw new SQLException("Unable to enable webapp CGI when site has CGI disabled");
+							out.print("    <Directory \"").print(docBase).print("/cgi-bin\">\n"
+									+ "        <IfModule mod_ssl.c>\n"
+									+ "            SSLOptions +StdEnvVars\n"
+									+ "        </IfModule>\n"
+									+ "        Options ExecCGI\n"
+									+ "        SetHandler cgi-script\n"
+									+ "    </Directory>\n");
+							/*
+							out.print("    ScriptAlias \"").print(path).print("/cgi-bin/\" \"").print(docBase).print("/cgi-bin/\"\n"
+									+ "    <Directory \"").print(docBase).print("/cgi-bin\">\n"
+									+ "        Options ExecCGI\n"
+									+ "        <IfModule mod_ssl.c>\n"
+									+ "            SSLOptions +StdEnvVars\n"
+									+ "        </IfModule>\n"
+									+ "        Allow from All\n"
+									+ "        Order allow,deny\n"
+									+ "    </Directory>\n");*/
+						}
+					}
+					if(!foundRoot) throw new SQLException("No DocumentRoot found");
+
+					// Write any JkMount and JkUnmount directives
+					if(!jkSettings.isEmpty()) {
+						out.print("\n"
+								+ "    # Request patterns mapped through mod_jk\n"
+								+ "    <IfModule mod_jk.c>\n");
+						for(HttpdSiteManager.JkSetting setting : jkSettings) {
+							out
+								.print("        ")
+								.print(setting.isMount() ? "JkMount" : "JkUnMount")
+								.print(' ')
+								.print(setting.getPath())
+								.print(' ')
+								.print(setting.getJkCode())
+								.print('\n');
+						}
+						out.print("\n"
+								+ "        # Remove jsessionid for non-jk requests\n"
+								+ "        <IfModule mod_rewrite.c>\n"
+								+ "            RewriteEngine On\n"
+								+ "            RewriteRule ^(.*);jsessionid=.*$ $1\n"
+								+ "        </IfModule>\n"
+								+ "    </IfModule>\n");
+					}
+					break;
 				}
-				out.print("\n"
-						+ "        # Remove jsessionid for non-jk requests\n"
-						+ "        <IfModule mod_rewrite.c>\n"
-						+ "            RewriteEngine On\n"
-						+ "            RewriteRule ^(.*);jsessionid=.*$ $1\n"
-						+ "        </IfModule>\n"
-						+ "    </IfModule>\n");
+				case OperatingSystemVersion.CENTOS_7_X86_64 : {
+					out.print("    ServerAdmin ").print(httpdSite.getServerAdmin()).print("\n");
+
+					// Enable CGI PHP option if the site supports CGI and PHP
+					if(manager.enablePhp() && manager.enableCgi()) {
+						out.print("\n"
+								+ "    # Use CGI-based PHP when not using mod_php\n"
+								+ "    <IfModule !sapi_apache2.c>\n"
+								+ "        <IfModule !mod_php5.c>\n"
+								+ "            <IfModule actions_module>\n"
+								+ "                Action php-script /cgi-bin/php\n"
+								// Avoid *.php.txt going to PHP: http://php.net/manual/en/install.unix.apache2.php
+								+ "                <FilesMatch \\.php$>\n"
+								+ "                    SetHandler php-script\n"
+								+ "                </FilesMatch>\n"
+								//+ "                AddHandler php-script .php\n"
+								+ "            </IfModule>\n"
+								+ "        </IfModule>\n"
+								+ "    </IfModule>\n");
+					}
+
+					// The CGI user info
+					out.print("\n"
+							+ "    # Use suexec when available\n"
+							+ "    <IfModule suexec_module>\n"
+							+ "        SuexecUserGroup ").print(lsa.getLinuxAccount().getUsername()).print(' ').print(lsg.getLinuxGroup().getName()).print("\n"
+							+ "    </IfModule>\n");
+
+					// Protect against TRACE and TRACK
+					if(manager.blockAllTraceAndTrackRequests()) {
+						out.print("\n"
+								+ "    # Protect dangerous request methods\n"
+								+ "    <IfModule rewrite_module>\n"
+								+ "        RewriteEngine on\n"
+								+ "        RewriteCond %{REQUEST_METHOD} ^(TRACE|TRACK)\n"
+								+ "        RewriteRule .* - [F]\n"
+								+ "    </IfModule>\n");
+					}
+
+					// Rejected URLs
+					SortedSet<HttpdSiteManager.Location> rejectedLocations = manager.getRejectedLocations();
+					if(!rejectedLocations.isEmpty()) {
+						out.print("\n"
+								+ "    # Rejected URL patterns\n");
+						for(HttpdSiteManager.Location location : rejectedLocations) {
+							if(location.isRegularExpression()) {
+								out.print("    <LocationMatch \"").print(location.getLocation()).print("\">\n"
+										+ "        <IfModule authz_core_module>\n"
+										+ "            Require all denied\n"
+										+ "        </IfModule>\n"
+										+ "    </LocationMatch>\n"
+								);
+							} else {
+								out.print("    <Location \"").print(location.getLocation()).print("\">\n"
+										+ "        <IfModule authz_core_module>\n"
+										+ "            Require all denied\n"
+										+ "        </IfModule>\n"
+										+ "    </Location>\n"
+								);
+							}
+						}
+					}
+
+					// Rewrite rules
+					SortedMap<String,String> permanentRewrites = manager.getPermanentRewriteRules();
+					if(!permanentRewrites.isEmpty()) {
+						// Write the standard restricted URL patterns
+						out.print("\n"
+								+ "    # Rewrite rules\n"
+								+ "    <IfModule rewrite_module>\n"
+								+ "        RewriteEngine on\n");
+						for(Map.Entry<String,String> entry : permanentRewrites.entrySet()) {
+							out.print("        RewriteRule ").print(entry.getKey()).print(' ').print(entry.getValue()).print(" [L,R=permanent]\n");
+						}
+						out.print("    </IfModule>\n");
+					}
+
+					// Write the authenticated locations
+					List<HttpdSiteAuthenticatedLocation> hsals = httpdSite.getHttpdSiteAuthenticatedLocations();
+					if(!hsals.isEmpty()) {
+						out.print("\n"
+								+ "    # Authenticated Locations\n");
+						for(HttpdSiteAuthenticatedLocation hsal : hsals) {
+							out.print("    ").print(hsal.getIsRegularExpression()?"<LocationMatch ":"<Location ").print('"').print(hsal.getPath()).print("\">\n");
+							boolean includeAuthType = hsal.getAuthUserFile() != null || hsal.getAuthGroupFile() != null;
+							boolean includeAuthName = hsal.getAuthName().length()>0;
+							if(includeAuthType || includeAuthName) {
+								out.print("        <IfModule authn_core_module>\n");
+								if(includeAuthType) out.print("            AuthType Basic\n");
+								if(includeAuthName) out.print("            AuthName \"").print(hsal.getAuthName()).print("\"\n");
+								out.print("        </IfModule>\n");
+							}
+							if(hsal.getAuthUserFile() != null) {
+								PackageManager.installPackage(PackageManager.PackageName.HTTPD_TOOLS);
+								out.print(
+									"        <IfModule authn_file_module>\n"
+									+ "            AuthUserFile \"").print(hsal.getAuthUserFile()).print("\"\n"
+									+ "        </IfModule>\n");
+							}
+							if(hsal.getAuthGroupFile() != null) {
+								out.print(
+									"        <IfModule authz_groupfile_module>\n"
+									+ "            AuthGroupFile \"").print(hsal.getAuthGroupFile()).print("\"\n"
+									+ "        </IfModule>\n");
+							}
+							if(hsal.getRequire().length()>0) {
+								out.print(
+									"        <IfModule mod_authz_core>\n"
+									+ "            Require ").print(hsal.getRequire()).print("\n"
+									+ "        </IfModule>\n");
+							}
+							out.print("    ").print(hsal.getIsRegularExpression()?"</LocationMatch>":"</Location>").print('\n');
+						}
+					}
+
+					// Error if no root webapp found
+					boolean foundRoot = false;
+					SortedMap<String,HttpdSiteManager.WebAppSettings> webapps = manager.getWebapps();
+					for(Map.Entry<String,HttpdSiteManager.WebAppSettings> entry : webapps.entrySet()) {
+						String path = entry.getKey();
+						HttpdSiteManager.WebAppSettings settings = entry.getValue();
+						UnixPath docBase = settings.getDocBase();
+
+						if(path.length()==0) {
+							foundRoot = true;
+							// DocumentRoot
+							out.print("\n"
+									+ "    # Set up the default webapp\n"
+									+ "    DocumentRoot \"").print(docBase).print("\"\n"
+									+ "    <Directory \"").print(docBase).print("\">\n"
+									+ "        <IfModule authz_core_module>\n"
+									+ "            Require all granted\n"
+									+ "        </IfModule>\n"
+									+ "        AllowOverride ").print(settings.getAllowOverride()).print("\n"
+									+ "        Options ").print(settings.getOptions()).print("\n"
+									+ "        <IfModule dir_module>\n");
+							if(!jkSettings.isEmpty()) {
+								out.print("            <IfModule jk_module>\n"
+										+ "                DirectoryIndex index.jsp\n"
+										+ "            </IfModule>\n");
+							}
+							out.print("                DirectoryIndex index.xml\n"); // This was Cocoon, enable Tomcat 3.* only?
+							if(settings.enableSsi()) {
+								out.print("            <IfModule include_module>\n"
+										+ "                DirectoryIndex index.shtml\n"
+										+ "            </IfModule>\n");
+							}
+							if(manager.enablePhp()) {
+								out.print("            DirectoryIndex index.php\n");
+							}
+							out.print("            DirectoryIndex index.html\n"
+									+ "            <IfModule negotiation_module>\n"
+									+ "                DirectoryIndex index.html.var\n"
+									+ "            </IfModule>\n"
+									+ "            DirectoryIndex index.htm\n"
+									+ "            <IfModule negotiation_module>\n"
+									+ "                DirectoryIndex index.htm.var\n"
+									+ "            </IfModule>\n");
+							if(manager.enableCgi()) {
+								out.print("            DirectoryIndex index.cgi\n");
+							}
+							out.print("            DirectoryIndex default.html\n"
+									+ "            <IfModule negotiation_module>\n"
+									+ "                DirectoryIndex default.html.var\n"
+									+ "            </IfModule>\n");
+							if(!jkSettings.isEmpty()) {
+								out.print("            <IfModule jk_module>\n"
+										+ "                DirectoryIndex default.jsp\n"
+										+ "            </IfModule>\n");
+							}
+							if(settings.enableSsi()) {
+								out.print("            <IfModule include_module>\n"
+										+ "                DirectoryIndex default.shtml\n"
+										+ "            </IfModule>\n");
+							}
+							if(manager.enableCgi()) {
+								out.print("            DirectoryIndex default.cgi\n");
+							}
+							out.print("            DirectoryIndex Default.htm\n"
+									+ "            <IfModule negotiation_module>\n"
+									+ "                DirectoryIndex Default.htm.var\n"
+									+ "            </IfModule>\n"
+									+ "        </IfModule>\n"
+									+ "    </Directory>\n");
+							if(settings.enableCgi()) {
+								if(!manager.enableCgi()) throw new SQLException("Unable to enable webapp CGI when site has CGI disabled");
+								out.print("    <Directory \"").print(docBase).print("/cgi-bin\">\n"
+										+ "        <IfModule ssl_module>\n"
+										+ "            SSLOptions +StdEnvVars\n"
+										+ "        </IfModule>\n"
+										+ "        Options ExecCGI\n"
+										+ "        SetHandler cgi-script\n"
+										+ "    </Directory>\n");
+							}
+						} else {
+							// Is webapp/alias
+							out.print("\n"
+									+ "    # Set up the ").print(path).print(" webapp\n"
+									+ "    <IfModule alias_module>\n"
+									+ "        Alias \"").print(path).print("/\" \"").print(docBase).print("/\"\n"
+									+ "        AliasMatch \"^").print(path).print("$\" \"").print(docBase).print("\"\n"
+									+ "        <Directory \"").print(docBase).print("\">\n"
+									+ "            <IfModule authz_core_module>\n"
+									+ "                Require all granted\n"
+									+ "            </IfModule>\n"
+									+ "            AllowOverride ").print(settings.getAllowOverride()).print("\n"
+									+ "            Options ").print(settings.getOptions()).print("\n"
+									+ "        </Directory>\n");
+							if(settings.enableCgi()) {
+								if(!manager.enableCgi()) throw new SQLException("Unable to enable webapp CGI when site has CGI disabled");
+								out.print("        <Directory \"").print(docBase).print("/cgi-bin\">\n"
+										+ "            <IfModule ssl_module>\n"
+										+ "                SSLOptions +StdEnvVars\n"
+										+ "            </IfModule>\n"
+										+ "            Options ExecCGI\n"
+										+ "            SetHandler cgi-script\n"
+										+ "        </Directory>\n");
+							}
+							out.print("    </IfModule>\n");
+						}
+					}
+					if(!foundRoot) throw new SQLException("No DocumentRoot found");
+
+					// Write any JkMount and JkUnmount directives
+					if(!jkSettings.isEmpty()) {
+						out.print("\n"
+								+ "    # Request patterns mapped through mod_jk\n"
+								+ "    <IfModule jk_module>\n");
+						for(HttpdSiteManager.JkSetting setting : jkSettings) {
+							out
+								.print("        ")
+								.print(setting.isMount() ? "JkMount" : "JkUnMount")
+								.print(' ')
+								.print(setting.getPath())
+								.print(' ')
+								.print(setting.getJkCode())
+								.print('\n');
+						}
+						out.print("\n"
+								+ "        # Remove jsessionid for non-jk requests\n"
+								+ "        JkStripSession On\n"
+								+ "    </IfModule>\n");
+					}
+					break;
+				}
+				default :
+					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 			}
 		}
 		return bout.toByteArray();
@@ -429,22 +909,31 @@ public class HttpdServerManager {
 	/**
 	 * Rebuilds the files in /etc/httpd/conf/
 	 * <ul>
-	 *   <li>/etc/httpd/conf/httpd#.conf</li>
-	 *   <li>/etc/httpd/conf/workers#.properties</li>
+	 *   <li>/etc/httpd/conf/httpd[[-]#].conf</li>
+	 *   <li>/etc/httpd/conf/workers[[-]#].properties</li>
 	 * </ul>
 	 */
-	private static void doRebuildConf(AOServer thisAoServer, ByteArrayOutputStream bout, Set<HttpdServer> serversNeedingReloaded) throws IOException, SQLException {
+	private static void doRebuildConf(
+		AOServer thisAoServer,
+		ByteArrayOutputStream bout,
+		List<File> deleteFileList,
+		Set<HttpdServer> serversNeedingReloaded
+	) throws IOException, SQLException {
+		Set<String> httpdConfFilenames = new HashSet<>();
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
 		// Rebuild per-server files
 		for(HttpdServer hs : thisAoServer.getHttpdServers()) {
 			List<HttpdSite> sites = hs.getHttpdSites();
+			String httpdConfFilename = getHttpdConfFile(hs);
+			UnixFile httpdConf = new UnixFile(CONF_DIRECTORY, httpdConfFilename);
+			httpdConfFilenames.add(httpdConfFilename);
 			// Rebuild the httpd.conf file
 			if(
 				DaemonFileUtils.writeIfNeeded(
 					buildHttpdConf(hs, sites, bout),
-					new UnixFile(getHttpdConfNewFile(hs)),
-					new UnixFile(getHttpdConfFile(hs)),
+					null,
+					httpdConf,
 					UnixFile.ROOT_UID,
 					UnixFile.ROOT_GID,
 					0644,
@@ -465,12 +954,14 @@ public class HttpdServerManager {
 					break;
 				}
 			}
-			UnixFile workersFile = new UnixFile(getWorkersFile(hs));
 			if(hasJkSettings) {
+				String workersFilename = getWorkersFile(hs);
+				UnixFile workersFile = new UnixFile(CONF_DIRECTORY, workersFilename);
+				httpdConfFilenames.add(workersFilename);
 				if(
 					DaemonFileUtils.writeIfNeeded(
 						buildWorkersFile(hs, bout),
-						new UnixFile(getWorkersNewFile(hs)),
+						null,
 						workersFile,
 						UnixFile.ROOT_UID,
 						UnixFile.ROOT_GID,
@@ -481,10 +972,26 @@ public class HttpdServerManager {
 				) {
 					serversNeedingReloaded.add(hs);
 				}
-			} else {
-				// mod_jk not used: remove the unnecessary workers file
-				if(workersFile.getStat().exists()) workersFile.delete();
 			}
+		}
+		// Delete extra httpdConfFilenames
+		String[] list = new File(CONF_DIRECTORY).list();
+		if(list != null) {
+			for(String filename : list) {
+				if(
+					!httpdConfFilenames.contains(filename)
+					&& (
+						"workers.properties".equals(filename)
+						|| HTTPD_N_CONF_REGEXP.matcher(filename).matches()
+						|| WORKERS_N_PROPERTIES_REGEXP.matcher(filename).matches()
+					)
+				) {
+					File toDelete = new File(CONF_DIRECTORY, filename);
+					if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+					deleteFileList.add(toDelete);
+				}
+			}
+			
 		}
 	}
 
@@ -493,15 +1000,15 @@ public class HttpdServerManager {
 	 */
 	private static byte[] buildHttpdConfCentOs5(HttpdServer hs, List<HttpdSite> sites, ByteArrayOutputStream bout) throws IOException, SQLException {
 		final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
-		if(osConfig!=HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) throw new AssertionError("This method is for CentOS 5 only");
+		if(osConfig != HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) throw new AssertionError("This method is for CentOS 5 only");
 		final int serverNum = hs.getNumber();
 		bout.reset();
 		try (ChainWriter out = new ChainWriter(bout)) {
-			LinuxServerAccount lsa=hs.getLinuxServerAccount();
-			boolean isEnabled=!lsa.isDisabled();
+			LinuxServerAccount lsa = hs.getLinuxServerAccount();
+			boolean isEnabled = !lsa.isDisabled();
 			// The version of PHP module to run
-			TechnologyVersion phpVersion=hs.getModPhpVersion();
-			out.print("ServerRoot \""+CONFIG_DIRECTORY+"\"\n"
+			TechnologyVersion phpVersion = hs.getModPhpVersion();
+			out.print("ServerRoot \""+SERVER_ROOT+"\"\n"
 					+ "Include conf/modules_conf/core\n"
 					+ "PidFile /var/run/httpd").print(serverNum).print(".pid\n"
 					+ "Timeout ").print(hs.getTimeOut()).print("\n"
@@ -610,7 +1117,6 @@ public class HttpdServerManager {
 				}
 			}
 			if(hasJkSettings) {
-				// TODO: CentOS 7: Install mod_jk RPM now
 				out.print("LoadModule jk_module modules/mod_jk-1.2.27.so\n");
 			}
 			// Comment-out ssl module when has no ssl
@@ -624,8 +1130,13 @@ public class HttpdServerManager {
 					}
 				}
 			}
-			if(!hasSsl) out.print('#');
-			out.print("LoadModule ssl_module modules/mod_ssl.so\n");
+			// Install mod_ssl when first needed
+			if(hasSsl) PackageManager.installPackage(PackageManager.PackageName.MOD_SSL);
+			boolean isModSslInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.MOD_SSL) != null;
+			if(hasSsl || isModSslInstalled) {
+				if(!hasSsl) out.print('#');
+				out.print("LoadModule ssl_module modules/mod_ssl.so\n");
+			}
 			if(isEnabled && phpVersion!=null) {
 				String version = phpVersion.getVersion();
 				String phpMinorVersion = getMinorPhpVersion(version);
@@ -659,7 +1170,9 @@ public class HttpdServerManager {
 			out.print("\n"
 					+ "ServerAdmin root@").print(hs.getAOServer().getHostname()).print("\n"
 					+ "\n"
-					+ "SSLSessionCache shmcb:/var/cache/httpd/mod_ssl/ssl_scache").print(serverNum).print("(512000)\n"
+					+ "<IfModule mod_ssl.c>\n"
+					+ "    SSLSessionCache shmcb:/var/cache/httpd/mod_ssl/ssl_scache").print(serverNum).print("(512000)\n"
+					+ "</IfModule>\n"
 					+ "\n");
 			// Use apache if the account is disabled
 			if(isEnabled) {
@@ -717,12 +1230,349 @@ public class HttpdServerManager {
 	}
 
 	/**
-	 * Builds the httpd#.conf file contents for the provided HttpdServer.
+	 * Builds the httpd[-#].conf file for CentOS 7
+	 */
+	private static byte[] buildHttpdConfCentOs7(HttpdServer hs, List<HttpdSite> sites, ByteArrayOutputStream bout) throws IOException, SQLException {
+		final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
+		if(osConfig != HttpdOperatingSystemConfiguration.CENTOS_7_X86_64) throw new AssertionError("This method is for CentOS 7 only");
+		PackageManager.installPackages(
+			PackageManager.PackageName.HTTPD,
+			PackageManager.PackageName.AOSERV_HTTPD_CONFIG
+		);
+		final int serverNum = hs.getNumber();
+		bout.reset();
+		try (ChainWriter out = new ChainWriter(bout)) {
+			LinuxServerAccount lsa = hs.getLinuxServerAccount();
+			boolean isEnabled = !lsa.isDisabled();
+			// The version of PHP module to run
+			TechnologyVersion phpVersion = hs.getModPhpVersion();
+			out.print("#\n"
+					+ "# core\n"
+					+ "#\n"
+					+ "ServerRoot \"" + SERVER_ROOT + "\"\n"
+					+ "Include aoserv.conf.d/core.conf\n"
+					+ "ErrorLog \"/var/log/httpd/httpd").print(serverNum).print("/error_log\"\n"
+					+ "ServerAdmin root@").print(hs.getAOServer().getHostname()).print("\n"
+					+ "ServerName ").print(hs.getAOServer().getHostname()).print("\n"
+					+ "TimeOut ").print(hs.getTimeOut()).print("\n"
+					+ "\n"
+					+ "#\n"
+					+ "# mpm\n"
+					+ "#\n"
+					+ "# LoadModule mpm_event_module modules/mod_mpm_event.so\n"
+					+ "LoadModule mpm_prefork_module modules/mod_mpm_prefork.so\n"
+					+ "# LoadModule mpm_worker_module modules/mod_mpm_worker.so\n"
+					+ "Include aoserv.conf.d/mpm_*.conf\n"
+					+ "CoreDumpDirectory /var/log/httpd");
+			if(serverNum != 1) out.print('-').print(serverNum);
+			out.print("\n"
+					+ "# ListenBacklog 511\n"
+					//+ "PidFile /var/run/httpd").print(serverNum).print(".pid\n"
+					+ "<IfModule mpm_prefork_module>\n"
+					+ "    MaxRequestWorkers ").print(hs.getMaxConcurrency()).print("\n"
+					+ "    ServerLimit ").print(hs.getMaxConcurrency()).print("\n"
+					+ "</IfModule>\n"
+					+ "\n"
+					+ "#\n"
+					+ "# Load Modules\n"
+					+ "#\n"
+					+ "# LoadModule access_compat_module modules/mod_access_compat.so\n");
+			// actions_module not required when mod_php or has no CGI PHP
+			if(isEnabled && phpVersion != null) {
+				out.print("# ");
+			} else {
+				boolean hasCgiPhp = false;
+				for(HttpdSite site : sites) {
+					if(site.getPhpVersion() != null) {
+						hasCgiPhp = true;
+						break;
+					}
+				}
+				if(!hasCgiPhp) out.print("# ");
+			}
+			out.print("LoadModule actions_module modules/mod_actions.so\n"
+					+ "LoadModule alias_module modules/mod_alias.so\n"
+					+ "# LoadModule allowmethods_module modules/mod_allowmethods.so\n"
+					+ "# LoadModule asis_module modules/mod_asis.so\n"
+					+ "LoadModule auth_basic_module modules/mod_auth_basic.so\n" // TODO: As-needed
+					+ "# LoadModule auth_digest_module modules/mod_auth_digest.so\n"
+					+ "# LoadModule authn_anon_module modules/mod_authn_anon.so\n"
+					+ "LoadModule authn_core_module modules/mod_authn_core.so\n" // TODO: As-needed
+					+ "# LoadModule authn_dbd_module modules/mod_authn_dbd.so\n"
+					+ "# LoadModule authn_dbm_module modules/mod_authn_dbm.so\n"
+					+ "LoadModule authn_file_module modules/mod_authn_file.so\n" // TODO: As-needed
+					+ "# LoadModule authn_socache_module modules/mod_authn_socache.so\n"
+					+ "LoadModule authz_core_module modules/mod_authz_core.so\n"
+					+ "# LoadModule authz_dbd_module modules/mod_authz_dbd.so\n"
+					+ "# LoadModule authz_dbm_module modules/mod_authz_dbm.so\n"
+					+ "LoadModule authz_groupfile_module modules/mod_authz_groupfile.so\n" // TODO: As-needed
+					+ "LoadModule authz_host_module modules/mod_authz_host.so\n" // TODO: As-needed
+					+ "# LoadModule authz_owner_module modules/mod_authz_owner.so\n"
+					+ "LoadModule authz_user_module modules/mod_authz_user.so\n"); // TODO: As-needed
+			// Comment-out mod_autoindex when no sites used auto-indexes
+			boolean hasIndexes = false;
+			for(HttpdSite site : sites) {
+				if(site.getEnableIndexes()) {
+					hasIndexes = true;
+					break;
+				}
+			}
+			if(!hasIndexes) out.print("# ");
+			out.print("LoadModule autoindex_module modules/mod_autoindex.so\n"
+					+ "# LoadModule buffer_module modules/mod_buffer.so\n"
+					+ "# LoadModule cache_module modules/mod_cache.so\n"
+					+ "# LoadModule cache_disk_module modules/mod_cache_disk.so\n"
+					+ "# LoadModule cache_socache_module modules/mod_cache_socache.so\n");
+			// Comment-out cgi_module when no CGI enabled
+			boolean hasCgi = false;
+			for(HttpdSite site : sites) {
+				HttpdSiteManager manager = HttpdSiteManager.getInstance(site);
+				if(manager.enableCgi()) {
+					hasCgi = true;
+					break;
+				}
+			}
+			if(!hasCgi) out.print("# ");
+			out.print("<IfModule mpm_event_module>\n");
+			if(!hasCgi) out.print("# ");
+			out.print("    LoadModule cgid_module modules/mod_cgid.so\n");
+			if(!hasCgi) out.print("# ");
+			out.print("</IfModule>\n");
+			if(!hasCgi) out.print("# ");
+			out.print("<IfModule mpm_prefork_module>\n");
+			if(!hasCgi) out.print("# ");
+			out.print("    LoadModule cgi_module modules/mod_cgi.so\n");
+			if(!hasCgi) out.print("# ");
+			out.print("</IfModule>\n");
+			if(!hasCgi) out.print("# ");
+			out.print("<IfModule mpm_worker_module>\n");
+			if(!hasCgi) out.print("# ");
+			out.print("    LoadModule cgid_module modules/mod_cgid.so\n");
+			if(!hasCgi) out.print("# ");
+			out.print("</IfModule>\n"
+					+ "# LoadModule charset_lite_module modules/mod_charset_lite.so\n"
+					+ "# LoadModule data_module modules/mod_data.so\n"
+					+ "# LoadModule dav_module modules/mod_dav.so\n"
+					+ "# LoadModule dav_fs_module modules/mod_dav_fs.so\n"
+					+ "# LoadModule dav_lock_module modules/mod_dav_lock.so\n"
+					+ "# LoadModule dbd_module modules/mod_dbd.so\n"
+					+ "LoadModule deflate_module modules/mod_deflate.so\n"
+					+ "# LoadModule dialup_module modules/mod_dialup.so\n"
+					+ "LoadModule dir_module modules/mod_dir.so\n"
+					+ "# LoadModule dumpio_module modules/mod_dumpio.so\n"
+					+ "# LoadModule echo_module modules/mod_echo.so\n"
+					+ "# LoadModule env_module modules/mod_env.so\n"
+					+ "# LoadModule expires_module modules/mod_expires.so\n"
+					+ "# LoadModule ext_filter_module modules/mod_ext_filter.so\n"
+					+ "# LoadModule file_cache_module modules/mod_file_cache.so\n"
+					+ "LoadModule filter_module modules/mod_filter.so\n"
+					+ "LoadModule headers_module modules/mod_headers.so\n"
+					+ "# LoadModule heartbeat_module modules/mod_heartbeat.so\n"
+					+ "# LoadModule heartmonitor_module modules/mod_heartmonitor.so\n");
+			// Comment-out include module when no site has .shtml enabled
+			boolean hasSsi = false;
+			for(HttpdSite site : sites) {
+				if(site.getEnableSsi()) {
+					hasSsi = true;
+					break;
+				}
+			}
+			if(!hasSsi) out.print("# ");
+			out.print("LoadModule include_module modules/mod_include.so\n"
+					+ "# LoadModule info_module modules/mod_info.so\n");
+			// Only include mod_jk when at least one site has jk settings
+			boolean hasJkSettings = false;
+			for(HttpdSite site : sites) {
+				HttpdSiteManager manager = HttpdSiteManager.getInstance(site);
+				if(!manager.getJkSettings().isEmpty()) {
+					hasJkSettings = true;
+					break;
+				}
+			}
+			if(hasJkSettings) PackageManager.installPackage(PackageManager.PackageName.TOMCAT_CONNECTORS);
+			boolean isModJkInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.TOMCAT_CONNECTORS) != null;
+			if(hasJkSettings || isModJkInstalled) {
+				if(!hasJkSettings) out.print("# ");
+				out.print("LoadModule jk_module modules/mod_jk.so\n");
+			}
+			out.print("# LoadModule lbmethod_bybusyness_module modules/mod_lbmethod_bybusyness.so\n"
+					+ "# LoadModule lbmethod_byrequests_module modules/mod_lbmethod_byrequests.so\n"
+					+ "# LoadModule lbmethod_bytraffic_module modules/mod_lbmethod_bytraffic.so\n"
+					+ "# LoadModule lbmethod_heartbeat_module modules/mod_lbmethod_heartbeat.so\n"
+					+ "LoadModule log_config_module modules/mod_log_config.so\n"
+					+ "# LoadModule log_debug_module modules/mod_log_debug.so\n"
+					+ "# LoadModule log_forensic_module modules/mod_log_forensic.so\n"
+					+ "# LoadModule logio_module modules/mod_logio.so\n"
+					+ "# LoadModule lua_module modules/mod_lua.so\n"
+					+ "# LoadModule macro_module modules/mod_macro.so\n"
+					+ "LoadModule mime_module modules/mod_mime.so\n"
+					+ "LoadModule mime_magic_module modules/mod_mime_magic.so\n"
+					+ "LoadModule negotiation_module modules/mod_negotiation.so\n" // TODO: Enable per site, as-needed
+					+ "LoadModule proxy_module modules/mod_proxy.so\n" // TODO: Enable per site, as-needed
+					+ "# LoadModule proxy_ajp_module modules/mod_proxy_ajp.so\n"
+					+ "# LoadModule proxy_balancer_module modules/mod_proxy_balancer.so\n"
+					+ "# LoadModule proxy_connect_module modules/mod_proxy_connect.so\n"
+					+ "# LoadModule proxy_express_module modules/mod_proxy_express.so\n"
+					+ "# LoadModule proxy_fcgi_module modules/mod_proxy_fcgi.so\n"
+					+ "# LoadModule proxy_fdpass_module modules/mod_proxy_fdpass.so\n"
+					+ "# LoadModule proxy_ftp_module modules/mod_proxy_ftp.so\n"
+					+ "LoadModule proxy_http_module modules/mod_proxy_http.so\n" // TODO: As-needed
+					+ "# LoadModule proxy_scgi_module modules/mod_proxy_scgi.so\n"
+					+ "# LoadModule proxy_wstunnel_module modules/mod_proxy_wstunnel.so\n"
+					+ "# LoadModule ratelimit_module modules/mod_ratelimit.so\n"
+					+ "# LoadModule reflector_module modules/mod_reflector.so\n"
+					+ "# LoadModule remoteip_module modules/mod_remoteip.so\n"
+					+ "LoadModule reqtimeout_module modules/mod_reqtimeout.so\n"
+					+ "# LoadModule request_module modules/mod_request.so\n"
+					+ "LoadModule rewrite_module modules/mod_rewrite.so\n"
+					+ "# LoadModule sed_module modules/mod_sed.so\n"
+					+ "LoadModule setenvif_module modules/mod_setenvif.so\n" // TODO: As-needed
+					+ "# LoadModule slotmem_plain_module modules/mod_slotmem_plain.so\n" // Required?
+					+ "# LoadModule slotmem_shm_module modules/mod_slotmem_shm.so\n" // Required?
+					+ "# LoadModule socache_dbm_module modules/mod_socache_dbm.so\n" // Required?
+					+ "# LoadModule socache_memcache_module modules/mod_socache_memcache.so\n" // Required?
+					+ "# LoadModule socache_shmcb_module modules/mod_socache_shmcb.so\n" // Required?
+					+ "# LoadModule speling_module modules/mod_speling.so\n");
+			// Comment-out ssl module when has no ssl
+			boolean hasSsl = false;
+			HAS_SSL :
+			for(HttpdSite site : sites) {
+				for(HttpdSiteBind hsb : site.getHttpdSiteBinds(hs)) {
+					if(hsb.getSSLCertFile() != null) {
+						hasSsl = true;
+						break HAS_SSL;
+					}
+				}
+			}
+			// Install mod_ssl when first needed
+			if(hasSsl) PackageManager.installPackage(PackageManager.PackageName.MOD_SSL);
+			boolean isModSslInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.MOD_SSL) != null;
+			if(hasSsl || isModSslInstalled) {
+				if(!hasSsl) out.print("# ");
+				out.print("LoadModule ssl_module modules/mod_ssl.so\n");
+			}
+			out.print("LoadModule status_module modules/mod_status.so\n" // TODO: As-needed
+					+ "# LoadModule substitute_module modules/mod_substitute.so\n");
+			if(!hs.useSuexec()) out.print("# ");
+			out.print("LoadModule suexec_module modules/mod_suexec.so\n"
+					+ "LoadModule systemd_module modules/mod_systemd.so\n"
+					+ "# LoadModule unique_id_module modules/mod_unique_id.so\n"
+					+ "LoadModule unixd_module modules/mod_unixd.so\n"
+					+ "# LoadModule userdir_module modules/mod_userdir.so\n"
+					+ "# LoadModule usertrack_module modules/mod_usertrack.so\n"
+					+ "# LoadModule version_module modules/mod_version.so\n"
+					+ "# LoadModule vhost_alias_module modules/mod_vhost_alias.so\n"
+					+ "# LoadModule watchdog_module modules/mod_watchdog.so\n"
+					+ "\n"
+					+ "#\n"
+					+ "# Configure Modules\n"
+					+ "#\n"
+					+ "Include aoserv.conf.d/mod_*.conf\n"
+					+ "<IfModule dav_fs_module>\n"
+					+ "    DavLockDB /var/lib/dav");
+			if(serverNum != 1) out.print('-').print(serverNum);
+			out.print("/lockdb\n"
+					+ "</IfModule>\n");
+			if(hasJkSettings || isModJkInstalled) {
+				out.print("<IfModule jk_module>\n"
+						+ "    JkWorkersFile \"conf/workers");
+				if(serverNum != 1) out.print('-').print(serverNum);
+				out.print(".properties\"\n"
+						+ "    JkShmFile \"/var/log/httpd");
+				if(serverNum != 1) out.print('-').print(serverNum);
+				out.print("/jk-runtime-status\"\n"
+						+ "    JkLogFile \"/var/log/httpd");
+				if(serverNum != 1) out.print('-').print(serverNum);
+				out.print("/mod_jk.log\"\n"
+						+ "</IfModule>\n");
+			}
+			out.print("<IfModule log_config_module>\n"
+					+ "    CustomLog \"/var/log/httpd");
+			if(serverNum != 1) out.print('-').print(serverNum);
+			out.print("/access_log\" combined\n"
+					+ "</IfModule>\n");
+			if(hasSsl || isModSslInstalled) {
+				out.print("<IfModule ssl_module>\n"
+						+ "    SSLSessionCache shmcb:/run/httpd/sslcache");
+				if(serverNum != 1) out.print('-').print(serverNum);
+				out.print("(512000)\n"
+						+ "</IfModule>\n");
+			}
+			// Use apache if the account is disabled
+			out.print("<IfModule unixd_module>\n");
+			if(isEnabled) {
+				out.print("    User ").print(lsa.getLinuxAccount().getUsername().getUsername()).print("\n"
+						+ "    Group ").print(hs.getLinuxServerGroup().getLinuxGroup().getName()).print("\n");
+			} else {
+				out.print("    User "+LinuxAccount.APACHE+"\n"
+						+ "    Group "+LinuxGroup.APACHE+"\n");
+			}
+			out.print("</IfModule>\n");
+			if(isEnabled && phpVersion != null) {
+				String version = phpVersion.getVersion();
+				String phpMinorVersion = getMinorPhpVersion(version);
+				String phpMajorVersion = getMajorPhpVersion(version);
+				out.print("\n"
+						+ "#"
+						+ "# Enable mod_php\n"
+						+ "#\n"
+						+ "LoadModule php").print(phpMajorVersion).print("_module /opt/php-").print(phpMinorVersion).print("/lib/apache/").print(getPhpLib(phpVersion)).print("\n"
+						+ "<IfModule mime_module>\n"
+						+ "    AddType application/x-httpd-php .php\n"
+						+ "    AddType application/x-httpd-php-source .phps\n"
+						+ "</IfModule\n");
+			}
+
+			// List of binds
+			out.print("\n"
+					+ "#\n"
+					+ "# Binds\n"
+					+ "#\n");
+			for(HttpdBind hb : hs.getHttpdBinds()) {
+				NetBind nb=hb.getNetBind();
+				InetAddress ip=nb.getIPAddress().getInetAddress();
+				int port = nb.getPort().getPort();
+				out.print("Listen ").print(ip.toBracketedString()).print(':').print(port);
+				String appProtocol = nb.getAppProtocol().getName();
+				if(appProtocol.equals(Protocol.HTTP)) {
+					if(port != 80) out.print(" http");
+				} else if(appProtocol.equals(Protocol.HTTPS)) {
+					if(port != 443) out.print(" https");
+				} else {
+					throw new SQLException("Unexpected app protocol: " + appProtocol);
+				}
+				out.print("\n");
+			}
+			out.print("\n"
+					+ "#\n"
+					+ "# Sites\n"
+					+ "#\n");
+			// TODO: Could use wildcard include if there are no list-first sites and there is only one apache instance
+			for(int d=0;d<2;d++) {
+				boolean listFirst=d==0;
+				for(HttpdSite site : sites) {
+					if(site.listFirst() == listFirst) {
+						for(HttpdSiteBind bind : site.getHttpdSiteBinds(hs)) {
+							NetBind nb=bind.getHttpdBind().getNetBind();
+							InetAddress ipAddress=nb.getIPAddress().getInetAddress();
+							int port=nb.getPort().getPort();
+							out.print("Include sites-enabled/").print(site.getSiteName()).print('_').print(ipAddress).print('_').print(port).print(".conf\n");
+						}
+					}
+				}
+			}
+		}
+		return bout.toByteArray();
+	}
+
+	/**
+	 * Builds the httpd[[-]#].conf file contents for the provided HttpdServer.
 	 */
 	private static byte[] buildHttpdConf(HttpdServer hs, List<HttpdSite> sites, ByteArrayOutputStream bout) throws IOException, SQLException {
 		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		switch(osConfig) {
 			case CENTOS_5_I686_AND_X86_64 : return buildHttpdConfCentOs5(hs, sites, bout);
+			case CENTOS_7_X86_64          : return buildHttpdConfCentOs7(hs, sites, bout);
 			default                       : throw new AssertionError("Unexpected value for osConfig: "+osConfig);
 		}
 	}
@@ -770,66 +1620,143 @@ public class HttpdServerManager {
 		// TODO: Canonical URL header for non-primary, non-test: https://support.google.com/webmasters/answer/139066
 		bout.reset();
 		try (ChainWriter out = new ChainWriter(bout)) {
-			out.print("<VirtualHost ").print(ipAddress.toBracketedString()).print(':').print(port).print(">\n"
-					+ "    ServerName ").print(primaryHostname).print('\n'
-			);
-			List<HttpdSiteURL> altURLs=bind.getAltHttpdSiteURLs();
-			if(!altURLs.isEmpty()) {
-				out.print("    ServerAlias");
-				for(HttpdSiteURL altURL : altURLs) {
-					out.print(' ').print(altURL.getHostname().toString());
-				}
-				out.print('\n');
-			}
-			out.print("\n"
-					+ "    CustomLog ").print(bind.getAccessLog()).print(" combined\n"
-					+ "    ErrorLog ").print(bind.getErrorLog()).print("\n"
-					+ "\n");
-			UnixPath sslCert=bind.getSSLCertFile();
-			if(sslCert!=null) {
-				String sslCertStr = sslCert.toString();
-				// If a .ca file exists with the same name as the certificate, use it instead of the OS default
-				String sslCa = osConfig.getOpensslDefaultCaFile().toString();
-				if(sslCertStr.endsWith(".cert")) {
-					String possibleCa = sslCertStr.substring(0, sslCertStr.length()-5) + ".ca";
-					if(new File(possibleCa).exists()) sslCa = possibleCa;
-				}
+			switch(osConfig) {
+				case CENTOS_5_I686_AND_X86_64 : {
+					out.print("<VirtualHost ").print(ipAddress.toBracketedString()).print(':').print(port).print(">\n"
+							+ "    ServerName ").print(primaryHostname).print('\n'
+					);
+					List<HttpdSiteURL> altURLs=bind.getAltHttpdSiteURLs();
+					if(!altURLs.isEmpty()) {
+						out.print("    ServerAlias");
+						for(HttpdSiteURL altURL : altURLs) {
+							out.print(' ').print(altURL.getHostname().toString());
+						}
+						out.print('\n');
+					}
+					out.print("\n"
+							+ "    CustomLog ").print(bind.getAccessLog()).print(" combined\n"
+							+ "    ErrorLog ").print(bind.getErrorLog()).print("\n"
+							+ "\n");
+					UnixPath sslCert=bind.getSSLCertFile();
+					if(sslCert!=null) {
+						String sslCertStr = sslCert.toString();
+						// If a .ca file exists with the same name as the certificate, use it instead of the OS default
+						String sslCa = osConfig.getOpensslDefaultCaFile().toString();
+						if(sslCertStr.endsWith(".cert")) {
+							String possibleCa = sslCertStr.substring(0, sslCertStr.length()-5) + ".ca";
+							if(new File(possibleCa).exists()) sslCa = possibleCa;
+						}
 
-				out.print("    <IfModule mod_ssl.c>\n"
-						+ "        SSLCertificateFile ").print(sslCert).print("\n"
-						+ "        SSLCertificateKeyFile ").print(bind.getSSLCertKeyFile()).print("\n"
-						+ "        SSLCACertificateFile ").print(sslCa).print("\n");
-				boolean enableCgi = manager.enableCgi();
-				boolean enableSsi = manager.httpdSite.getEnableSsi();
-				if(enableCgi && enableSsi) {
-					out.print("        <Files ~ \"\\.(cgi|shtml)$\">\n"
-							+ "            SSLOptions +StdEnvVars\n"
-							+ "        </Files>\n");
-				} else if(enableCgi) {
-					out.print("        <Files ~ \"\\.cgi$\">\n"
-							+ "            SSLOptions +StdEnvVars\n"
-							+ "        </Files>\n");
-				} else if(enableSsi) {
-					out.print("        <Files ~ \"\\.shtml$\">\n"
-							+ "            SSLOptions +StdEnvVars\n"
-							+ "        </Files>\n");
+						out.print("    <IfModule mod_ssl.c>\n"
+								+ "        SSLCertificateFile ").print(sslCert).print("\n"
+								+ "        SSLCertificateKeyFile ").print(bind.getSSLCertKeyFile()).print("\n"
+								+ "        SSLCACertificateFile ").print(sslCa).print("\n");
+						boolean enableCgi = manager.enableCgi();
+						boolean enableSsi = manager.httpdSite.getEnableSsi();
+						if(enableCgi && enableSsi) {
+							out.print("        <Files ~ \"\\.(cgi|shtml)$\">\n"
+									+ "            SSLOptions +StdEnvVars\n"
+									+ "        </Files>\n");
+						} else if(enableCgi) {
+							out.print("        <Files ~ \"\\.cgi$\">\n"
+									+ "            SSLOptions +StdEnvVars\n"
+									+ "        </Files>\n");
+						} else if(enableSsi) {
+							out.print("        <Files ~ \"\\.shtml$\">\n"
+									+ "            SSLOptions +StdEnvVars\n"
+									+ "        </Files>\n");
+						}
+						out.print("        SSLEngine On\n"
+								+ "    </IfModule>\n"
+								+ "\n"
+						);
+					}
+					if(bind.getRedirectToPrimaryHostname()) {
+						out.print("    # Redirect requests that are not to either the IP address or the primary hostname to the primary hostname\n"
+								+ "    RewriteEngine on\n"
+								+ "    RewriteCond %{HTTP_HOST} !=").print(primaryHostname).print(" [NC]\n"
+								+ "    RewriteCond %{HTTP_HOST} !=").print(ipAddress).print("\n"
+								+ "    RewriteRule ^(.*)$ ").print(primaryHSU.getURLNoSlash()).print("$1 [L,R=permanent]\n"
+								+ "    \n");
+					}
+					out.print("    Include conf/hosts/").print(siteInclude).print("\n"
+							+ "\n"
+							+ "</VirtualHost>\n");
+					break;
 				}
-				out.print("        SSLEngine On\n"
-						+ "    </IfModule>\n"
-						+ "\n"
-				);
+				case CENTOS_7_X86_64 : {
+					out.print("<VirtualHost ").print(ipAddress.toBracketedString()).print(':').print(port).print(">\n"
+							+ "    ServerName ").print(primaryHostname).print('\n'
+					);
+					List<HttpdSiteURL> altURLs=bind.getAltHttpdSiteURLs();
+					if(!altURLs.isEmpty()) {
+						out.print("    ServerAlias");
+						for(HttpdSiteURL altURL : altURLs) {
+							out.print(' ').print(altURL.getHostname().toString());
+						}
+						out.print('\n');
+					}
+					out.print("\n"
+							+ "    <IfModule log_config_module>\n"
+							+ "        CustomLog \"").print(bind.getAccessLog()).print("\" combined\n"
+							+ "    </IfModule\n"
+							+ "    ErrorLog \"").print(bind.getErrorLog()).print("\"\n"
+							+ "\n");
+					UnixPath sslCert=bind.getSSLCertFile();
+					if(sslCert != null) {
+						String sslCertStr = sslCert.toString();
+						// If a .ca file exists with the same name as the certificate, use it instead of the OS default
+						String sslCa = osConfig.getOpensslDefaultCaFile().toString();
+						if(sslCertStr.endsWith(".cert")) {
+							String possibleCa = sslCertStr.substring(0, sslCertStr.length()-5) + ".ca";
+							if(new File(possibleCa).exists()) sslCa = possibleCa;
+						}
+						out.print("    <IfModule ssl_module>\n"
+								+ "        SSLCertificateFile ").print(sslCert).print("\n"
+								+ "        SSLCertificateKeyFile ").print(bind.getSSLCertKeyFile()).print("\n"
+								+ "        SSLCACertificateFile ").print(sslCa).print("\n");
+						boolean enableCgi = manager.enableCgi();
+						boolean enableSsi = manager.httpdSite.getEnableSsi();
+						if(enableCgi && enableSsi) {
+							out.print("        <Files ~ \"\\.(cgi|shtml)$\">\n"
+									+ "            SSLOptions +StdEnvVars\n"
+									+ "        </Files>\n");
+						} else if(enableCgi) {
+							out.print("        <Files ~ \"\\.cgi$\">\n"
+									+ "            SSLOptions +StdEnvVars\n"
+									+ "        </Files>\n");
+						} else if(enableSsi) {
+							out.print("        <Files ~ \"\\.shtml$\">\n"
+									+ "            SSLOptions +StdEnvVars\n"
+									+ "        </Files>\n");
+						}
+						// See https://unix.stackexchange.com/questions/162478/how-to-disable-sslv3-in-apache
+						// TODO: Test if required in our Apache 2.4
+						// TODO:     Test with: https://www.tinfoilsecurity.com/poodle
+						out.print("        SSLProtocol all -SSLv2 -SSLv3\n"
+								+ "        SSLEngine On\n"
+								+ "    </IfModule>\n"
+								+ "\n"
+						);
+					}
+					if(bind.getRedirectToPrimaryHostname()) {
+						out.print("    # Redirect requests that are not to either the IP address or the primary hostname to the primary hostname\n"
+								+ "    <IfModule rewrite_module>\n"
+								+ "        RewriteEngine on\n"
+								+ "        RewriteCond %{HTTP_HOST} !=").print(primaryHostname).print(" [NC]\n"
+								+ "        RewriteCond %{HTTP_HOST} !=").print(ipAddress).print("\n"
+								+ "        RewriteRule ^(.*)$ ").print(primaryHSU.getURLNoSlash()).print("$1 [L,R=permanent]\n"
+								+ "    </IfModule>\n"
+								+ "    \n");
+					}
+					out.print("    Include sites-available/").print(siteInclude).print("\n"
+							+ "\n"
+							+ "</VirtualHost>\n");
+					break;
+				}
+				default :
+					throw new AssertionError();
 			}
-			if(bind.getRedirectToPrimaryHostname()) {
-				out.print("    # Redirect requests that are not to either the IP address or the primary hostname to the primary hostname\n"
-						+ "    RewriteEngine on\n"
-						+ "    RewriteCond %{HTTP_HOST} !=").print(primaryHostname).print(" [NC]\n"
-						+ "    RewriteCond %{HTTP_HOST} !=").print(ipAddress).print("\n"
-						+ "    RewriteRule ^(.*)$ ").print(primaryHSU.getURLNoSlash()).print("$1 [L,R=permanent]\n"
-						+ "    \n");
-			}
-			out.print("    Include conf/hosts/").print(siteInclude).print("\n"
-					+ "\n"
-					+ "</VirtualHost>\n");
 		}
 		return bout.toByteArray();
 	}
@@ -837,17 +1764,41 @@ public class HttpdServerManager {
 	/**
 	 * Reloads the configs for all provided <code>HttpdServer</code>s.
 	 */
-	public static void reloadConfigs(Set<HttpdServer> serversNeedingReloaded) throws IOException {
+	public static void reloadConfigs(Set<HttpdServer> serversNeedingReloaded) throws IOException, SQLException {
 		for(HttpdServer hs : serversNeedingReloaded) reloadConfigs(hs);
 	}
 
 	private static final Object processControlLock = new Object();
-	private static void reloadConfigs(HttpdServer hs) throws IOException {
+	private static void reloadConfigs(HttpdServer hs) throws IOException, SQLException {
+		int num = hs.getNumber();
+		OperatingSystemVersion osv = hs.getAOServer().getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 		synchronized(processControlLock) {
-			AOServDaemon.exec(
-				"/etc/rc.d/init.d/httpd"+hs.getNumber(),
-				"reload" // Should this be restart for SSL changes?
-			);
+			switch(osvId) {
+				case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
+					AOServDaemon.exec(
+						"/etc/rc.d/init.d/httpd" + num,
+						"reload" // Should this be restart for SSL changes?
+					);
+					break;
+				case OperatingSystemVersion.CENTOS_7_X86_64 :
+					if(num == 1) {
+						AOServDaemon.exec(
+							"/usr/bin/systemctl",
+							"reload",
+							"httpd.service"
+						);
+					} else {
+						AOServDaemon.exec(
+							"/usr/bin/systemctl",
+							"reload",
+							"httpd-" + num + ".service"
+						);
+					}
+					break;
+				default :
+					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+			}
 		}
 	}
 
@@ -855,12 +1806,38 @@ public class HttpdServerManager {
 	 * Calls all Apache instances with the provided command.
 	 */
 	private static void controlApache(String command) throws IOException, SQLException {
+		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 		synchronized(processControlLock) {
-			for(HttpdServer hs : AOServDaemon.getThisAOServer().getHttpdServers()) {
-				AOServDaemon.exec(
-					"/etc/rc.d/init.d/httpd"+hs.getNumber(),
-					command
-				);
+			switch(osvId) {
+				case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
+					for(HttpdServer hs : AOServDaemon.getThisAOServer().getHttpdServers()) {
+						AOServDaemon.exec(
+							"/etc/rc.d/init.d/httpd" + hs.getNumber(),
+							command
+						);
+					}
+					break;
+				case OperatingSystemVersion.CENTOS_7_X86_64 :
+					for(HttpdServer hs : AOServDaemon.getThisAOServer().getHttpdServers()) {
+						int num = hs.getNumber();
+						if(num == 1) {
+							AOServDaemon.exec(
+								"/usr/bin/systemctl",
+								command,
+								"httpd.service"
+							);
+						} else {
+							AOServDaemon.exec(
+								"/usr/bin/systemctl",
+								command,
+								"httpd-" + num + ".service"
+							);
+						}
+					}
+					break;
+				default :
+					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 			}
 		}
 	}
@@ -914,7 +1891,7 @@ public class HttpdServerManager {
 		return pos == -1 ? version : version.substring(0, pos);
 	}
 
-	private static final UnixFile[] centOsAlwaysDelete = {
+	private static final UnixFile[] centOs5AlwaysDelete = {
 		new UnixFile("/etc/httpd/conf/httpd1.conf.old"),
 		new UnixFile("/etc/httpd/conf/httpd2.conf.old"),
 		new UnixFile("/etc/httpd/conf/httpd3.conf.old"),
@@ -950,142 +1927,195 @@ public class HttpdServerManager {
 		if(osConfig==HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
 			// Make sure these files don't exist.  They may be due to upgrades or a
 			// result of RPM installs.
-			for(UnixFile uf : centOsAlwaysDelete) {
-				if(uf.getStat().exists()) deleteFileList.add(uf.getFile());
+			for(UnixFile uf : centOs5AlwaysDelete) {
+				if(uf.getStat().exists()) {
+					File toDelete = uf.getFile();
+					if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+					deleteFileList.add(toDelete);
+				}
 			}
 		}
 	}
 
 	/**
-	 * Rebuilds /etc/rc.d/init.d/httpd* init scripts.
+	 * Rebuilds /etc/rc.d/init.d/httpd* init scripts
+	 * or /etc/systemd/system/httpd[-#].service files.
 	 */
 	private static void doRebuildInitScripts(AOServer thisAoServer, ByteArrayOutputStream bout, List<File> deleteFileList, Set<HttpdServer> serversNeedingReloaded) throws IOException, SQLException {
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
 		List<HttpdServer> hss = thisAoServer.getHttpdServers();
-		Set<String> dontDeleteFilenames = new HashSet<>(hss.size()*4/3+1);
-		for(HttpdServer hs : hss) {
-			int num = hs.getNumber();
-			bout.reset();
-			try (ChainWriter out = new ChainWriter(bout)) {
-				out.print("#!/bin/bash\n"
-						+ "#\n"
-						+ "# httpd").print(num).print("        Startup script for the Apache HTTP Server ").print(num).print("\n"
-						+ "#\n"
-						+ "# chkconfig: 345 85 15\n"
-						+ "# description: Apache is a World Wide Web server.  It is used to serve \\\n"
-						+ "#              HTML files and CGI.\n"
-						+ "# processname: httpd").print(num).print("\n"
-						+ "# config: /etc/httpd/conf/httpd").print(num).print(".conf\n"
-						+ "# pidfile: /var/run/httpd").print(num).print(".pid\n"
-						+ "\n");
-				// mod_php requires MySQL and PostgreSQL in the path
-				TechnologyVersion modPhpVersion = hs.getModPhpVersion();
-				if(modPhpVersion!=null) {
-					PackageManager.PackageName requiredPackage;
-					String version = modPhpVersion.getVersion();
-					String minorVersion = getMinorPhpVersion(version);
-					switch (minorVersion) {
-						case "4.4":
-							requiredPackage = null;
-							out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
-							out.print(". /opt/postgresql-7.3-i686/setenv.sh\n");
-							out.print('\n');
-							break;
-						case "5.2":
-							requiredPackage = PackageManager.PackageName.PHP_5_2;
-							out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
-							out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
-							out.print('\n');
-							break;
-						case "5.3":
-							requiredPackage = PackageManager.PackageName.PHP_5_3;
-							out.print(". /opt/mysql-5.1-i686/setenv.sh\n");
-							out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
-							out.print('\n');
-							break;
-						case "5.4":
-							requiredPackage = PackageManager.PackageName.PHP_5_4;
-							out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
-							out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
-							out.print('\n');
-							break;
-						case "5.5":
-							requiredPackage = PackageManager.PackageName.PHP_5_5;
-							out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
-							out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
-							out.print('\n');
-							break;
-						case "5.6":
-							requiredPackage = PackageManager.PackageName.PHP_5_6;
-							out.print(". /opt/mysql-5.7-i686/setenv.sh\n");
-							out.print(". /opt/postgresql-9.4-i686/setenv.sh\n");
-							out.print('\n');
-							break;
-						default:
-							throw new SQLException("Unexpected version for mod_php: "+version);
-					}
+		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
+		switch(osvId) {
+			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 : {
+				Set<String> dontDeleteFilenames = new HashSet<>(hss.size()*4/3+1);
+				for(HttpdServer hs : hss) {
+					int num = hs.getNumber();
+					bout.reset();
+					try (ChainWriter out = new ChainWriter(bout)) {
+						out.print("#!/bin/bash\n"
+								+ "#\n"
+								+ "# httpd").print(num).print("        Startup script for the Apache HTTP Server ").print(num).print("\n"
+								+ "#\n"
+								+ "# chkconfig: 345 85 15\n"
+								+ "# description: Apache is a World Wide Web server.  It is used to serve \\\n"
+								+ "#              HTML files and CGI.\n"
+								+ "# processname: httpd").print(num).print("\n"
+								+ "# config: /etc/httpd/conf/httpd").print(num).print(".conf\n"
+								+ "# pidfile: /var/run/httpd").print(num).print(".pid\n"
+								+ "\n");
+						// mod_php requires MySQL and PostgreSQL in the path
+						TechnologyVersion modPhpVersion = hs.getModPhpVersion();
+						if(modPhpVersion!=null) {
+							PackageManager.PackageName requiredPackage;
+							String version = modPhpVersion.getVersion();
+							String minorVersion = getMinorPhpVersion(version);
+							switch (minorVersion) {
+								case "4.4":
+									requiredPackage = null;
+									out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
+									out.print(". /opt/postgresql-7.3-i686/setenv.sh\n");
+									out.print('\n');
+									break;
+								case "5.2":
+									requiredPackage = PackageManager.PackageName.PHP_5_2;
+									out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
+									out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
+									out.print('\n');
+									break;
+								case "5.3":
+									requiredPackage = PackageManager.PackageName.PHP_5_3;
+									out.print(". /opt/mysql-5.1-i686/setenv.sh\n");
+									out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
+									out.print('\n');
+									break;
+								case "5.4":
+									requiredPackage = PackageManager.PackageName.PHP_5_4;
+									out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
+									out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
+									out.print('\n');
+									break;
+								case "5.5":
+									requiredPackage = PackageManager.PackageName.PHP_5_5;
+									out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
+									out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
+									out.print('\n');
+									break;
+								case "5.6":
+									requiredPackage = PackageManager.PackageName.PHP_5_6;
+									out.print(". /opt/mysql-5.7-i686/setenv.sh\n");
+									out.print(". /opt/postgresql-9.4-i686/setenv.sh\n");
+									out.print('\n');
+									break;
+								default:
+									throw new SQLException("Unexpected version for mod_php: "+version);
+							}
 
-					// Make sure required RPM is installed
-					if(requiredPackage != null) PackageManager.installPackage(requiredPackage);
-				}
-				out.print("NUM=").print(num).print("\n"
-						+ ". /opt/aoserv-daemon/init.d/httpd\n");
-			}
-			String filename = "httpd"+num;
-			dontDeleteFilenames.add(filename);
-			if(
-				DaemonFileUtils.writeIfNeeded(
-					bout.toByteArray(),
-					null,
-					new UnixFile(INIT_DIRECTORY+"/"+filename),
-					UnixFile.ROOT_UID,
-					UnixFile.ROOT_GID,
-					0700,
-					uid_min,
-					gid_min
-				)
-			) {
-				// Make start at boot
-				AOServDaemon.exec(
-					"/sbin/chkconfig",
-					"--add",
-					filename
-				);
-				AOServDaemon.exec(
-					"/sbin/chkconfig",
-					filename,
-					"on"
-				);
-				// Make reload
-				serversNeedingReloaded.add(hs);
-			}
-		}
-		for(String filename : new File(INIT_DIRECTORY).list()) {
-			if(filename.startsWith("httpd")) {
-				String suffix = filename.substring(5);
-				try {
-					// Parse to make sure is a httpd# filename
-					int num = Integer.parseInt(suffix);
-					if(!dontDeleteFilenames.contains(filename)) {
-						// chkconfig off
+							// Make sure required RPM is installed
+							if(requiredPackage != null) PackageManager.installPackage(requiredPackage);
+						}
+						out.print("NUM=").print(num).print("\n"
+								+ ". /opt/aoserv-daemon/init.d/httpd\n");
+					}
+					String filename = "httpd"+num;
+					dontDeleteFilenames.add(filename);
+					if(
+						DaemonFileUtils.writeIfNeeded(
+							bout.toByteArray(),
+							null,
+							new UnixFile(INIT_DIRECTORY+"/"+filename),
+							UnixFile.ROOT_UID,
+							UnixFile.ROOT_GID,
+							0700,
+							uid_min,
+							gid_min
+						)
+					) {
+						// Make start at boot
+						AOServDaemon.exec(
+							"/sbin/chkconfig",
+							"--add",
+							filename
+						);
 						AOServDaemon.exec(
 							"/sbin/chkconfig",
 							filename,
-							"off"
+							"on"
 						);
-						// stop
-						String fullPath = INIT_DIRECTORY+"/"+filename;
-						AOServDaemon.exec(
-							fullPath,
-							"stop"
-						);
-						deleteFileList.add(new File(fullPath));
+						// Make reload
+						serversNeedingReloaded.add(hs);
 					}
-				} catch(NumberFormatException err) {
-					LogFactory.getLogger(HttpdServerManager.class).log(Level.WARNING, null, err);
 				}
+				for(String filename : new File(INIT_DIRECTORY).list()) {
+					if(filename.startsWith("httpd")) {
+						String suffix = filename.substring(5);
+						try {
+							// Parse to make sure is a httpd# filename
+							int num = Integer.parseInt(suffix);
+							if(!dontDeleteFilenames.contains(filename)) {
+								// chkconfig off
+								AOServDaemon.exec(
+									"/sbin/chkconfig",
+									filename,
+									"off"
+								);
+								// stop
+								String fullPath = INIT_DIRECTORY+"/"+filename;
+								AOServDaemon.exec(
+									fullPath,
+									"stop"
+								);
+								File toDelete = new File(fullPath);
+								if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+								deleteFileList.add(toDelete);
+							}
+						} catch(NumberFormatException err) {
+							LogFactory.getLogger(HttpdServerManager.class).log(Level.WARNING, null, err);
+						}
+					}
+				}
+				break;
 			}
+			case OperatingSystemVersion.CENTOS_7_X86_64 : {
+				// TODO
+				break;
+			}
+			default :
+				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+		}
+	}
+
+	/**
+	 * Manages SELinux.
+	 */
+	private static void doReuildSELinux(AOServer aoServer, Set<HttpdServer> serversNeedingReloaded) throws IOException, SQLException {
+		OperatingSystemVersion osv = aoServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
+		// Manage SELinux:
+		switch(osvId) {
+			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
+				// SELinux left in Permissive state, not configured here
+				break;
+			case OperatingSystemVersion.CENTOS_7_X86_64 : {
+				// Install /usr/bin/semanage if missing
+				PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
+				// Find the set of distinct ports used by Apache
+				SortedSet<Port> httpdPorts = new TreeSet<>();
+				List<HttpdServer> hss = aoServer.getHttpdServers();
+				for(HttpdServer hs : hss) {
+					for(HttpdBind hb : hs.getHttpdBinds()) {
+						httpdPorts.add(hb.getNetBind().getPort());
+					}
+				}
+				// Reconfigure SELinux ports
+				if(SEManagePort.configure(httpdPorts, SELINUX_TYPE)) {
+					serversNeedingReloaded.addAll(hss);
+				}
+				break;
+			}
+			default :
+				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 		}
 	}
 }
