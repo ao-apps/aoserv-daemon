@@ -234,7 +234,7 @@ public enum OperatingSystemConfiguration {
 		@Override
 		public UnixPath getOpensslDefaultCaFile() {
 			try {
-				return UnixPath.valueOf("/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem");
+				return UnixPath.valueOf("/etc/pki/tls/certs/ca-bundle.crt");
 			} catch(ValidationException e) {
 				throw new WrappedException(e);
 			}
