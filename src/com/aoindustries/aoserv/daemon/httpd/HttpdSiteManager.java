@@ -870,12 +870,14 @@ public abstract class HttpdSiteManager {
 		private final UnixPath docBase;
 		private final String allowOverride;
 		private final String options;
+		private final boolean enableSsi;
 		private final boolean enableCgi;
 
-		public WebAppSettings(UnixPath docBase, String allowOverride, String options, boolean enableCgi) {
+		public WebAppSettings(UnixPath docBase, String allowOverride, String options, boolean enableSsi, boolean enableCgi) {
 			this.docBase = docBase;
 			this.allowOverride = allowOverride;
 			this.options = options;
+			this.enableSsi = enableSsi;
 			this.enableCgi = enableCgi;
 		}
 
@@ -891,6 +893,7 @@ public abstract class HttpdSiteManager {
 				docBase,
 				allowOverride,
 				generateOptions(enableSsi, enableIndexes, enableFollowSymlinks),
+				enableSsi,
 				enableCgi
 			);
 		}
@@ -905,6 +908,10 @@ public abstract class HttpdSiteManager {
 
 		public String getOptions() {
 			return options;
+		}
+
+		public boolean enableSsi() {
+			return enableSsi;
 		}
 
 		public boolean enableCgi() {
