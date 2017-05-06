@@ -358,6 +358,7 @@ final public class SshdManager extends BuilderThread {
 			synchronized(rebuildLock) {
 				// Find all the ports that should be bound to
 				List<NetBind> nbs = new ArrayList<>();
+				boolean hasSpecificAddress = false;
 				{
 					Protocol sshProtocol = conn.getProtocols().get(Protocol.SSH);
 					if(sshProtocol == null) throw new SQLException("Protocol not found: " + Protocol.SSH);
@@ -368,6 +369,7 @@ final public class SshdManager extends BuilderThread {
 								throw new IOException("Unsupported protocol for SSH: " + netProtocol);
 							}
 							nbs.add(nb);
+							if(!nb.getIPAddress().getInetAddress().isUnspecified()) hasSpecificAddress = true;
 						}
 					}
 				}
@@ -394,6 +396,10 @@ final public class SshdManager extends BuilderThread {
 							needsRestart[0] = true;
 						}
 					);
+					// Install aoserv-sshd-config package on CentOS 7 when needed
+					if(hasSpecificAddress && osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+						PackageManager.installPackage(PackageManager.PackageName.AOSERV_SSHD_CONFIG);
+					}
 				}
 				boolean isSshInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.OPENSSH_SERVER) != null;
 				if(!nbs.isEmpty() && !isSshInstalled) throw new AssertionError(PackageManager.PackageName.OPENSSH_SERVER + " not installed");
@@ -509,6 +515,10 @@ final public class SshdManager extends BuilderThread {
 							AOServDaemon.exec("/usr/bin/systemctl", "restart", "sshd");
 						} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 					}
+				}
+				// Uninstall aoserv-sshd-config package on CentOS 7 when not needed
+				if(!hasSpecificAddress && osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+					PackageManager.removePackage(PackageManager.PackageName.AOSERV_SSHD_CONFIG);
 				}
 			}
 			return true;

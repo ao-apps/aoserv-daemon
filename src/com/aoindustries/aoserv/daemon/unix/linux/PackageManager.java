@@ -50,6 +50,7 @@ public class PackageManager {
 		AOSERV_JILTER("aoserv-jilter"),
 		AOSERV_MRTG("aoserv-mrtg"),
 		AOSERV_PASSWD_SHELL("aoserv-passwd-shell"),
+		AOSERV_SSHD_CONFIG("aoserv-sshd-config"),
 		AWSTATS_6("awstats_6"),
 		AWSTATS_7("awstats_7"),
 		BIND("bind"),
