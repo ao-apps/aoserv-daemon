@@ -110,7 +110,6 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 
 	@Override
     public boolean start() throws IOException, SQLException {
-		// TODO: Don't call this when /var/run/daemons.pid exists (which is during overall system start-up and shutdown), here and all places
         UnixFile pidFile = getPidFile();
         if(!pidFile.getStat().exists()) {
             AOServDaemon.suexec(

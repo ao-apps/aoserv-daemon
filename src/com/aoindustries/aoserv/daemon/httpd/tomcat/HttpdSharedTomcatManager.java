@@ -173,7 +173,11 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 					};
 				} else {
 					commandCallable = () -> {
-						manager.start();
+						if(!new File("/var/run/daemons.pid").exists()) {
+							manager.start();
+						} else {
+							if(logger.isLoggable(Level.INFO)) logger.info("Skipping start because /var/run/daemons.pid exists: " + sharedTomcat);
+						}
 						return null;
 					};
 				}

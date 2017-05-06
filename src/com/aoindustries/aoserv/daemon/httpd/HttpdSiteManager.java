@@ -169,8 +169,6 @@ public abstract class HttpdSiteManager {
 	 * Logs errors on calls as warnings, continues to next site.
 	 *
 	 * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
-	 *
-	 * TODO: Do not call when /var/run/daemons.pid is present. (or /run/daemons.pid on CentOS 7)
 	 */
 	static void stopStartAndRestart(Set<HttpdSite> sitesNeedingRestarted) throws IOException, SQLException {
 		for(HttpdSite httpdSite : AOServDaemon.getThisAOServer().getHttpdSites()) {
@@ -196,7 +194,11 @@ public abstract class HttpdSiteManager {
 						};
 					} else {
 						commandCallable = () -> {
-							stopStartRestartable.start();
+							if(!new File("/var/run/daemons.pid").exists()) {
+								stopStartRestartable.start();
+							} else {
+								if(logger.isLoggable(Level.INFO)) logger.info("Skipping start because /var/run/daemons.pid exists: " + httpdSite);
+							}
 							return null;
 						};
 					}
