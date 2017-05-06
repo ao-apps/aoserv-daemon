@@ -22,6 +22,9 @@ import java.util.logging.Logger;
 /**
  * Manages the set of packages on a server.
  *
+ * TODO: Add listeners for when packages change.  Rebuild configs that are affected
+ *       by installed package when packages change.
+ *
  * @author  AO Industries, Inc.
  */
 public class PackageManager {
@@ -42,6 +45,7 @@ public class PackageManager {
 		APACHE_TOMCAT_8_0("apache-tomcat_8_0"),
 		AOSERV_FTP_SHELLS("aoserv-ftp-shells"),
 		AOSERV_HTTPD_CONFIG("aoserv-httpd-config"),
+		AOSERV_HTTPD_CONFIG_COMPAT("aoserv-httpd-config-compat"),
 		AOSERV_HTTPD_SITE_DISABLED("aoserv-httpd-site-disabled"),
 		AOSERV_JILTER("aoserv-jilter"),
 		AOSERV_MRTG("aoserv-mrtg"),

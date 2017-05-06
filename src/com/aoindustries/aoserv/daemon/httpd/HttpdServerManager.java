@@ -116,10 +116,10 @@ public class HttpdServerManager {
 		int osvId = osv.getPkey();
 		switch(osvId) {
 			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
-				return CONF_DIRECTORY + "/workers" + num + ".properties";
+				return "workers" + num + ".properties";
 			case OperatingSystemVersion.CENTOS_7_X86_64 :
-				if(num == 1) return CONF_DIRECTORY + "/workers.properties";
-				else return CONF_DIRECTORY + "/workers-" + num + ".properties";
+				if(num == 1) return "workers.properties";
+				else return "workers-" + num + ".properties";
 			default :
 				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 		}
@@ -320,7 +320,7 @@ public class HttpdServerManager {
 					extraFiles.remove(sharedFilename);
 
 					// The shared config part
-					final UnixFile sharedFile = new UnixFile(SITES_ENABLED, sharedFilename);
+					final UnixFile sharedFile = new UnixFile(SITES_AVAILABLE, sharedFilename);
 					if(!manager.httpdSite.isManual() || !sharedFile.getStat().exists()) {
 						if(
 							DaemonFileUtils.writeIfNeeded(
@@ -795,7 +795,7 @@ public class HttpdServerManager {
 										+ "                DirectoryIndex index.jsp\n"
 										+ "            </IfModule>\n");
 							}
-							out.print("                DirectoryIndex index.xml\n"); // This was Cocoon, enable Tomcat 3.* only?
+							out.print("            DirectoryIndex index.xml\n"); // This was Cocoon, enable Tomcat 3.* only?
 							if(settings.enableSsi()) {
 								out.print("            <IfModule include_module>\n"
 										+ "                DirectoryIndex index.shtml\n"
@@ -1251,7 +1251,9 @@ public class HttpdServerManager {
 					+ "#\n"
 					+ "ServerRoot \"" + SERVER_ROOT + "\"\n"
 					+ "Include aoserv.conf.d/core.conf\n"
-					+ "ErrorLog \"/var/log/httpd/httpd").print(serverNum).print("/error_log\"\n"
+					+ "ErrorLog \"/var/log/httpd");
+			if(serverNum != 1) out.print('-').print(serverNum);
+			out.print("/error_log\"\n"
 					+ "ServerAdmin root@").print(hs.getAOServer().getHostname()).print("\n"
 					+ "ServerName ").print(hs.getAOServer().getHostname()).print("\n"
 					+ "TimeOut ").print(hs.getTimeOut()).print("\n"
@@ -1275,8 +1277,12 @@ public class HttpdServerManager {
 					+ "\n"
 					+ "#\n"
 					+ "# Load Modules\n"
-					+ "#\n"
-					+ "# LoadModule access_compat_module modules/mod_access_compat.so\n");
+					+ "#\n");
+			// Enable mod_access_compat when aoserv-httpd-config-compat is installed
+			if(PackageManager.getInstalledPackage(PackageManager.PackageName.AOSERV_HTTPD_CONFIG_COMPAT) == null) {
+				out.print("# ");
+			}
+			out.print("LoadModule access_compat_module modules/mod_access_compat.so\n");
 			// actions_module not required when mod_php or has no CGI PHP
 			if(isEnabled && phpVersion != null) {
 				out.print("# ");
@@ -1431,7 +1437,7 @@ public class HttpdServerManager {
 					+ "# LoadModule slotmem_shm_module modules/mod_slotmem_shm.so\n" // Required?
 					+ "# LoadModule socache_dbm_module modules/mod_socache_dbm.so\n" // Required?
 					+ "# LoadModule socache_memcache_module modules/mod_socache_memcache.so\n" // Required?
-					+ "# LoadModule socache_shmcb_module modules/mod_socache_shmcb.so\n" // Required?
+					+ "LoadModule socache_shmcb_module modules/mod_socache_shmcb.so\n"
 					+ "# LoadModule speling_module modules/mod_speling.so\n");
 			// Comment-out ssl module when has no ssl
 			boolean hasSsl = false;
@@ -1533,7 +1539,7 @@ public class HttpdServerManager {
 				InetAddress ip=nb.getIPAddress().getInetAddress();
 				int port = nb.getPort().getPort();
 				out.print("Listen ").print(ip.toBracketedString()).print(':').print(port);
-				String appProtocol = nb.getAppProtocol().getName();
+				String appProtocol = nb.getAppProtocol().getProtocol();
 				if(appProtocol.equals(Protocol.HTTP)) {
 					if(port != 80) out.print(" http");
 				} else if(appProtocol.equals(Protocol.HTTPS)) {
@@ -1598,6 +1604,7 @@ public class HttpdServerManager {
 				String code=worker.getCode().getCode();
 				out.print("\n"
 						+ "worker.").print(code).print(".type=").print(worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol()).print("\n"
+						+ "worker.").print(code).print(".host=127.0.0.1\n" // For use IPv4 on CentOS 7
 						+ "worker.").print(code).print(".port=").print(worker.getNetBind().getPort().getPort()).print('\n');
 			}
 		}
@@ -1699,7 +1706,7 @@ public class HttpdServerManager {
 					out.print("\n"
 							+ "    <IfModule log_config_module>\n"
 							+ "        CustomLog \"").print(bind.getAccessLog()).print("\" combined\n"
-							+ "    </IfModule\n"
+							+ "    </IfModule>\n"
 							+ "    ErrorLog \"").print(bind.getErrorLog()).print("\"\n"
 							+ "\n");
 					UnixPath sslCert=bind.getSSLCertFile();
@@ -1785,13 +1792,13 @@ public class HttpdServerManager {
 					if(num == 1) {
 						AOServDaemon.exec(
 							"/usr/bin/systemctl",
-							"reload",
+							"reload-or-restart",
 							"httpd.service"
 						);
 					} else {
 						AOServDaemon.exec(
 							"/usr/bin/systemctl",
-							"reload",
+							"reload-or-restart",
 							"httpd-" + num + ".service"
 						);
 					}
