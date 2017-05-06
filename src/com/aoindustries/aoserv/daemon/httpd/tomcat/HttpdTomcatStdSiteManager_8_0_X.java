@@ -313,7 +313,7 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 			String shutdownKey=tomcatStdSite.getTomcat4ShutdownKey();
 			if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for HttpdTomcatStdSite="+tomcatStdSite);
 			out.print(//"<?xml version='1.0' encoding='utf-8'?>\n"
-					"<Server port=\"").encodeXmlAttribute(shutdownPort.getPort().getPort()).print("\" encodeXmlAttribute=\"").print(shutdownKey).print("\">\n"
+					"<Server port=\"").encodeXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").encodeXmlAttribute(shutdownKey).print("\">\n"
 					+ "  <Listener className=\"org.apache.catalina.startup.VersionLoggerListener\" />\n"
 					+ "  <!-- Security listener. Documentation at /docs/config/listeners.html\n"
 					+ "  <Listener className=\"org.apache.catalina.security.SecurityListener\" />\n"
