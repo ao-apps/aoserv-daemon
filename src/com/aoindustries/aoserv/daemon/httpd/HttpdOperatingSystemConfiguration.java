@@ -152,7 +152,7 @@ public enum HttpdOperatingSystemConfiguration {
 		}
 		@Override
 		public String getHttpdSharedTomcatsOptSlash() {
-			return "../../../opt/";
+			return "../../../../opt/";
 		}
 		@Override
 		public UnixPath getAwstatsDirectory() {
