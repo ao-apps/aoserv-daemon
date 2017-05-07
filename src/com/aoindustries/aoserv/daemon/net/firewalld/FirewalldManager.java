@@ -230,6 +230,17 @@ final public class FirewalldManager extends BuilderThread {
 						if(logger.isLoggable(Level.FINE)) logger.fine("postgresql targets: " + targets);
 						publicServiceSets.add(ServiceSet.createOptimizedServiceSet("postgresql", targets));
 					}
+					// vnc-server
+					{
+						List<Target> targets = new ArrayList<>();
+						for(NetBind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(Protocol.RFB)) {
+								addTarget(nb, targets);
+							}
+						}
+						if(logger.isLoggable(Level.FINE)) logger.fine("vnc-server targets: " + targets);
+						publicServiceSets.add(ServiceSet.createOptimizedServiceSet("vnc-server", targets));
+					}
 					// Commit all public service sets
 					ServiceSet.commit(publicServiceSets, publicZone);
 				}
