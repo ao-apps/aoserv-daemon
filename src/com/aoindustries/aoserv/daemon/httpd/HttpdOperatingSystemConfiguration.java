@@ -9,6 +9,7 @@ import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.util.WrappedException;
 import com.aoindustries.validation.ValidationException;
 import java.io.IOException;
@@ -54,7 +55,11 @@ public enum HttpdOperatingSystemConfiguration {
 			return "../../opt/";
 		}
 		@Override
-		public UnixPath getAwstatsDirectory() {
+		public PackageManager.PackageName getAwstatsPackageName() {
+			return null;
+		}
+		@Override
+		public UnixPath getAwstatsVarDirectory() {
 			try {
 				return UnixPath.valueOf("/var/opt/awstats-6");
 			} catch(ValidationException e) {
@@ -105,7 +110,11 @@ public enum HttpdOperatingSystemConfiguration {
 			return "../../opt/";
 		}
 		@Override
-		public UnixPath getAwstatsDirectory() {
+		public PackageManager.PackageName getAwstatsPackageName() {
+			return PackageManager.PackageName.AWSTATS_6;
+		}
+		@Override
+		public UnixPath getAwstatsVarDirectory() {
 			try {
 				return UnixPath.valueOf("/var/opt/awstats-6");
 			} catch(ValidationException e) {
@@ -155,9 +164,13 @@ public enum HttpdOperatingSystemConfiguration {
 			return "../../../../opt/";
 		}
 		@Override
-		public UnixPath getAwstatsDirectory() {
+		public PackageManager.PackageName getAwstatsPackageName() {
+			return PackageManager.PackageName.AWSTATS;
+		}
+		@Override
+		public UnixPath getAwstatsVarDirectory() {
 			try {
-				return UnixPath.valueOf("/var/opt/awstats-6");
+				return UnixPath.valueOf("/var/opt/awstats");
 			} catch(ValidationException e) {
 				throw new WrappedException(e);
 			}
@@ -165,7 +178,7 @@ public enum HttpdOperatingSystemConfiguration {
 		@Override
 		public UnixPath getAwstatsBinDirectory() {
 			try {
-				return UnixPath.valueOf("/opt/awstats-6");
+				return UnixPath.valueOf("/opt/awstats");
 			} catch(ValidationException e) {
 				throw new WrappedException(e);
 			}
@@ -241,16 +254,22 @@ public enum HttpdOperatingSystemConfiguration {
 	}
 
 	/**
+	 * Gets the package that should be installed for AWStats or <code>null</code>
+	 * for not automatic package management.
+	 */
+	public abstract PackageManager.PackageName getAwstatsPackageName();
+
+	/**
 	 * Gets the main AWStats directory.
 	 */
-	public abstract UnixPath getAwstatsDirectory();
+	public abstract UnixPath getAwstatsVarDirectory();
 
 	/**
 	 * Gets the AWStats hosts directory.
 	 */
 	public UnixPath getAwstatsHostsDirectory() {
 		try {
-			return UnixPath.valueOf(getAwstatsDirectory()+"/hosts");
+			return UnixPath.valueOf(getAwstatsVarDirectory()+"/hosts");
 		} catch(ValidationException e) {
 			throw new WrappedException(e);
 		}

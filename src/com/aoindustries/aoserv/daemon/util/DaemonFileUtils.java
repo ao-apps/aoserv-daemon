@@ -102,12 +102,27 @@ public class DaemonFileUtils {
         if(!ufStat.exists()) {
             uf.mkdir();
             ufStat = uf.getStat();
-        } else if(!ufStat.isDirectory()) throw new IOException("File exists and is not a directory: "+uf.getPath());
-        if(ufStat.getMode()!=mode) uf.setMode(mode);
-        if(ufStat.getUid()!=uid || ufStat.getGid()!=gid) uf.chown(uid, gid);
+        } else if(!ufStat.isDirectory()) throw new IOException("File exists and is not a directory: " + uf.getPath());
+        if(ufStat.getMode() != mode) uf.setMode(mode);
+        if(ufStat.getUid() != uid || ufStat.getGid() != gid) uf.chown(uid, gid);
     }
 
     /**
+     * Creates an empty file, if needed.  If the file exists its contents are not altered.
+	 * If already exists makes sure it is a file.
+     * Also sets or resets the ownership and permissions.
+     */
+    public static void createEmptyFile(UnixFile uf, int mode, int uid, int gid) throws IOException {
+        Stat ufStat = uf.getStat();
+        if(!ufStat.exists()) {
+			new FileOutputStream(uf.getFile()).close();
+            ufStat = uf.getStat();
+        } else if(!ufStat.isRegularFile()) throw new IOException("File exists and is not a regular file: " + uf.getPath());
+        if(ufStat.getMode() != mode) uf.setMode(mode);
+        if(ufStat.getUid() != uid || ufStat.getGid() != gid) uf.chown(uid, gid);
+    }
+
+	/**
      * If the file starts with the provided prefix, strips that prefix from the
      * file.  A new temp file is created and then renamed over the old.
      */

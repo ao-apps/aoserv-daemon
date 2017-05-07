@@ -10,6 +10,7 @@ import com.aoindustries.aoserv.client.HttpdServer;
 import com.aoindustries.aoserv.client.HttpdSite;
 import com.aoindustries.aoserv.client.HttpdSiteBind;
 import com.aoindustries.aoserv.client.LinuxAccount;
+import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
@@ -96,15 +97,25 @@ class HttpdLogManager {
 	) throws IOException, SQLException {
 		// Values used below
 		final int logfileUID;
-		if(
-			PackageManager.getInstalledPackage(PackageManager.PackageName.AWSTATS_6) != null
-			|| PackageManager.getInstalledPackage(PackageManager.PackageName.AWSTATS_7) != null
-		) {
-			// Allow access to AWStats
-			logfileUID = aoServer.getLinuxServerAccount(LinuxAccount.AWSTATS).getUid().getId();
-		} else {
-			// Allow access to root
-			logfileUID = UnixFile.ROOT_UID;
+		{
+			final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
+			final LinuxServerAccount awstatsLSA = aoServer.getLinuxServerAccount(LinuxAccount.AWSTATS);
+			// awstats user is required when RPM is installed
+			PackageManager.PackageName awstatsPackageName = osConfig.getAwstatsPackageName();
+			if(
+				awstatsPackageName != null
+				&& PackageManager.getInstalledPackage(awstatsPackageName) != null
+				&& awstatsLSA == null
+			) {
+				throw new SQLException("Unable to find LinuxServerAccount: " + LinuxAccount.AWSTATS);
+			}
+			if(awstatsLSA != null) {
+				// Allow access to AWStats user, if it exists
+				logfileUID = awstatsLSA.getUid().getId();
+			} else {
+				// Allow access to root otherwise
+				logfileUID = UnixFile.ROOT_UID;
+			}
 		}
 
 		// The log directories that exist but are not used will be removed
@@ -155,9 +166,9 @@ class HttpdLogManager {
 					UnixPath accessLog = hsb.getAccessLog();
 					UnixFile accessLogFile = new UnixFile(accessLog.toString());
 					Stat accessLogStat = accessLogFile.getStat();
+					UnixFile accessLogParent = accessLogFile.getParent();
 					if(!accessLogStat.exists()) {
 						// Make sure the parent directory exists
-						UnixFile accessLogParent = accessLogFile.getParent();
 						if(!accessLogParent.getStat().exists()) accessLogParent.mkdir(true, 0750, logfileUID, lsgGID);
 						// Create the empty logfile
 						new FileOutputStream(accessLogFile.getFile(), true).close();
@@ -171,14 +182,15 @@ class HttpdLogManager {
 					}
 					if(accessLogStat.getMode() != 0640) accessLogFile.setMode(0640);
 					if(accessLogStat.getUid() != logfileUID || accessLogStat.getGid() != lsgGID) accessLogFile.chown(logfileUID, lsgGID);
+					// TODO: Verify ownership and permissions of rotated logs in same directory
 
 					// error_log
 					UnixPath errorLog = hsb.getErrorLog();
 					UnixFile errorLogFile = new UnixFile(errorLog.toString());
+					UnixFile errorLogParent = errorLogFile.getParent();
 					Stat errorLogStat = errorLogFile.getStat();
 					if(!errorLogStat.exists()) {
 						// Make sure the parent directory exists
-						UnixFile errorLogParent = errorLogFile.getParent();
 						if(!errorLogParent.getStat().exists()) errorLogParent.mkdir(true, 0750, logfileUID, lsgGID);
 						// Create the empty logfile
 						new FileOutputStream(errorLogFile.getFile(), true).close();
@@ -192,6 +204,7 @@ class HttpdLogManager {
 					}
 					if(errorLogStat.getMode() != 0640) errorLogFile.setMode(0640);
 					if(errorLogStat.getUid() != logfileUID || errorLogStat.getGid() != lsgGID) errorLogFile.chown(logfileUID, lsgGID);
+					// TODO: Verify ownership and permissions of rotated logs in same directory
 				}
 			}
 

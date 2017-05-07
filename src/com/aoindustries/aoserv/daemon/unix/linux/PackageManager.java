@@ -52,7 +52,7 @@ public class PackageManager {
 		AOSERV_PASSWD_SHELL("aoserv-passwd-shell"),
 		AOSERV_SSHD_CONFIG("aoserv-sshd-config"),
 		AWSTATS_6("awstats_6"),
-		AWSTATS_7("awstats_7"),
+		AWSTATS("awstats"),
 		BIND("bind"),
 		CACHING_NAMESERVER("caching-nameserver"), // This is a distinct package in CentOS 5, but provided by "bind" in CentOS 7
 		CVS("cvs"),
