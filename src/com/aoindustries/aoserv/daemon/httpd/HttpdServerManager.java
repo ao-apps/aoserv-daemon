@@ -103,7 +103,7 @@ public class HttpdServerManager {
 	private static final String INIT_DIRECTORY = "/etc/rc.d/init.d";
 
 	/**
-	 * The SELinux type for the SSH daemon.
+	 * The SELinux type for httpd.
 	 */
 	private static final String SELINUX_TYPE = "http_port_t";
 
