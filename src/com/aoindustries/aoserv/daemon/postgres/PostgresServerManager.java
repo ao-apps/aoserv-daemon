@@ -16,19 +16,24 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.server.ServerManager;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
 import com.aoindustries.cron.CronJobScheduleMode;
 import com.aoindustries.cron.Schedule;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.net.Port;
+import com.aoindustries.selinux.SEManagePort;
 import com.aoindustries.sql.AOConnectionPool;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 
 /**
@@ -38,6 +43,11 @@ import java.util.logging.Level;
  */
 final public class PostgresServerManager extends BuilderThread implements CronJob {
 
+	/**
+	 * The SELinux type for PostgreSQL.
+	 */
+	private static final String SELINUX_TYPE = "postgresql_port_t";
+
 	public static final File pgsqlDirectory = new File(PostgresServer.DATA_BASE_DIR.toString());
 
 	private PostgresServerManager() {
@@ -46,12 +56,50 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 	private static final Object rebuildLock = new Object();
 	@Override
 	protected boolean doRebuild() {
-		synchronized(rebuildLock) {
-			// TODO: Add and initialize any missing /var/lib/pgsql/name
-			// TODO: Add/update any /etc/rc.d/init.d/postgresql-name
-			// TODO: restart any that need started/restarted
+		try {
+			AOServer thisAOServer = AOServDaemon.getThisAOServer();
+			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+			int osvId = osv.getPkey();
+			if(
+				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
+			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+
+			synchronized(rebuildLock) {
+				Set<Port> postgresqlPorts = new HashSet<>();
+				for(PostgresServer postgresServer : thisAOServer.getPostgresServers()) {
+					postgresqlPorts.add(postgresServer.getNetBind().getPort());
+				// TODO: Add and initialize any missing /var/lib/pgsql/name
+				// TODO: Add/update any /etc/rc.d/init.d/postgresql-name
+				}
+
+				// Set postgresql_port_t SELinux ports.
+				switch(osvId) {
+					case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
+						// SELinux left in Permissive state, not configured here
+						break;
+					case OperatingSystemVersion.CENTOS_7_X86_64 : {
+						// Install /usr/bin/semanage if missing
+						PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
+						// Reconfigure SELinux ports
+						if(SEManagePort.configure(postgresqlPorts, SELINUX_TYPE)) {
+							// TODO: serversNeedingReloaded.addAll(...);
+						}
+						break;
+					}
+					default :
+						throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+				}
+
+				// TODO: restart any that need started/restarted
+			}
+			return true;
+		} catch(ThreadDeath TD) {
+			throw TD;
+		} catch(Throwable T) {
+			LogFactory.getLogger(PostgresServerManager.class).log(Level.SEVERE, null, T);
+			return false;
 		}
-		return true;
 	}
 
 	private static final Map<Integer,AOConnectionPool> pools = new HashMap<>();
@@ -161,6 +209,8 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 
 	/**
 	 * Rotates PostgreSQL log files.  Those older than one month are removed.
+	 *
+	 * TODO: Should use standard log file rotation, so configuration still works if aoserv-daemon disabled or removed.
 	 */
 	@Override
 	public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {

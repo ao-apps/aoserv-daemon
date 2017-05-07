@@ -14,13 +14,19 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.server.ServerManager;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
+import com.aoindustries.net.Port;
+import com.aoindustries.selinux.SEManagePort;
 import com.aoindustries.sql.AOConnectionPool;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Controls the MySQL servers.
@@ -28,6 +34,11 @@ import java.util.Map;
  * @author  AO Industries, Inc.
  */
 final public class MySQLServerManager extends BuilderThread {
+
+	/**
+	 * The SELinux type for MySQL.
+	 */
+	private static final String SELINUX_TYPE = "mysqld_port_t";
 
 	public static final File mysqlDirectory=new File(MySQLServer.DATA_BASE_DIR.toString());
 
@@ -37,14 +48,52 @@ final public class MySQLServerManager extends BuilderThread {
 	private static final Object rebuildLock = new Object();
 	@Override
 	protected boolean doRebuild() {
-		//AOServConnector connector=AOServDaemon.getConnector();
+		try {
+			AOServer thisAOServer = AOServDaemon.getThisAOServer();
+			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+			int osvId = osv.getPkey();
+			if(
+				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
+				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
+			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
-		synchronized(rebuildLock) {
-			// TODO: Add and initialize any missing /var/lib/mysql/name
-			// TODO: Add/update any /etc/rc.d/init.d/mysql-name
-			// TODO: restart any that need started/restarted
+			synchronized(rebuildLock) {
+				Set<Port> mysqlPorts = new HashSet<>();
+				for(MySQLServer mysqlServer : thisAOServer.getMySQLServers()) {
+					mysqlPorts.add(mysqlServer.getNetBind().getPort());
+					// TODO: Add and initialize any missing /var/lib/mysql/name
+					// TODO: Add/update any /etc/rc.d/init.d/mysql-name
+				}
+
+				// Set mysql_port_t SELinux ports.
+				switch(osvId) {
+					case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
+						// SELinux left in Permissive state, not configured here
+						break;
+					case OperatingSystemVersion.CENTOS_7_X86_64 : {
+						// Install /usr/bin/semanage if missing
+						PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
+						// Reconfigure SELinux ports
+						if(SEManagePort.configure(mysqlPorts, SELINUX_TYPE)) {
+							// TODO: serversNeedingReloaded.addAll(...);
+						}
+						break;
+					}
+					default :
+						throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+				}
+
+				// TODO: restart any that need started/restarted
+			}
+			return true;
+		} catch(ThreadDeath TD) {
+			throw TD;
+		} catch(Throwable T) {
+			LogFactory.getLogger(MySQLServerManager.class).log(Level.SEVERE, null, T);
+			return false;
 		}
-		return true;
 	}
 
 	private static final Map<Integer,AOConnectionPool> pools=new HashMap<>();
