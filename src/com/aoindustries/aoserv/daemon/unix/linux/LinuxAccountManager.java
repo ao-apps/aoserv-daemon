@@ -286,6 +286,21 @@ public class LinuxAccountManager extends BuilderThread {
 							homeDirs.add(lsa.getHome().toString());
 							LinuxServerGroup primaryGroup = lsa.getPrimaryLinuxServerGroup();
 							if(primaryGroup == null) throw new SQLException("Unable to find primary LinuxServerGroup for username=" + username + " on " + lsa.getAOServer());
+							UnixPath shell = la.getShell().getPath();
+							// CentOS 5 requires /bin/bash, but CentOS 7 ships with /sbin/nologin.
+							// Unfortunately, in our current schema the shell is set of all servers at once.
+							// This ugly hack allows us to store the new version, and it will be converted
+							// for compatibility with CentOS 5 on-the-fly.
+							if(
+								osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+								&& username.equals(LinuxAccount.CYRUS)
+								&& shell.equals(Shell.NOLOGIN)
+							) {
+								if(logger.isLoggable(Level.INFO)) {
+									logger.info("Converting " + shell + " to " + Shell.BASH + " for " + username);
+									shell = Shell.BASH;
+								}
+							}
 							if(
 								passwdEntries.put(
 									username,
@@ -298,7 +313,7 @@ public class LinuxAccountManager extends BuilderThread {
 										la.getOfficePhone(),
 										la.getHomePhone(),
 										lsa.getHome(),
-										la.getShell().getPath()
+										shell
 									)
 								) != null
 							) {
