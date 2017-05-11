@@ -194,10 +194,10 @@ public abstract class HttpdSiteManager {
 						};
 					} else {
 						commandCallable = () -> {
-							if(!new File("/var/run/daemons.pid").exists()) {
+							if(!new File("/var/run/aoserv-user-daemons.pid").exists()) {
 								stopStartRestartable.start();
 							} else {
-								if(logger.isLoggable(Level.INFO)) logger.info("Skipping start because /var/run/daemons.pid exists: " + httpdSite);
+								if(logger.isLoggable(Level.INFO)) logger.info("Skipping start because /var/run/aoserv-user-daemons.pid exists: " + httpdSite);
 							}
 							return null;
 						};
