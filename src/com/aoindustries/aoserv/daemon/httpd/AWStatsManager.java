@@ -646,7 +646,11 @@ final public class AWStatsManager extends BuilderThread {
 					BackupManager.backupAndDeleteFiles(deleteFileList);
 
 					// Uninstall awstats[_6] package when not needed
-					if(awstatsPackageName != null && sites.isEmpty()) {
+					if(
+						awstatsPackageName != null
+						&& sites.isEmpty()
+						&& AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
+					) {
 						PackageManager.removePackage(awstatsPackageName);
 					}
 				} finally {

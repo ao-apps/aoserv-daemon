@@ -828,11 +828,13 @@ public class LinuxAccountManager extends BuilderThread {
 				BackupManager.backupAndDeleteFiles(deleteFileList);
 
 				// Remove shell packages if installed and no longer required
-				if(!hasPasswdShell) {
-					PackageManager.removePackage(PackageManager.PackageName.AOSERV_PASSWD_SHELL);
-				}
-				if(!hasFtpShell) {
-					PackageManager.removePackage(PackageManager.PackageName.AOSERV_FTP_SHELLS);
+				if(AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) {
+					if(!hasPasswdShell) {
+						PackageManager.removePackage(PackageManager.PackageName.AOSERV_PASSWD_SHELL);
+					}
+					if(!hasFtpShell) {
+						PackageManager.removePackage(PackageManager.PackageName.AOSERV_FTP_SHELLS);
+					}
 				}
 			} finally {
 				DaemonFileUtils.restorecon(restorecon);

@@ -238,13 +238,15 @@ public class JilterConfigurationWriter extends BuilderThread {
 				}
 			} else {
 				// Remove the package
-				PackageManager.removePackage(PackageManager.PackageName.AOSERV_JILTER);
+				if(AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) {
+					PackageManager.removePackage(PackageManager.PackageName.AOSERV_JILTER);
 
-				// Remove any left-over config file and directory
-				File rpmSaveFile = new File(JilterConfiguration.PROPS_FILE + ".rpmsave");
-				if(rpmSaveFile.exists()) FileUtils.delete(rpmSaveFile);
-				File configDir = rpmSaveFile.getParentFile();
-				if(configDir.exists()) FileUtils.delete(configDir);
+					// Remove any left-over config file and directory
+					File rpmSaveFile = new File(JilterConfiguration.PROPS_FILE + ".rpmsave");
+					if(rpmSaveFile.exists()) FileUtils.delete(rpmSaveFile);
+					File configDir = rpmSaveFile.getParentFile();
+					if(configDir.exists()) FileUtils.delete(configDir);
+				}
 			}
 			return true;
 		} catch(ThreadDeath TD) {

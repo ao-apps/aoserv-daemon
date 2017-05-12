@@ -437,7 +437,7 @@ final public class DNSManager extends BuilderThread {
 					 */
 					files.addAll(Arrays.asList(getStaticFiles(osvId)));
 					FTPManager.trimFiles(namedZoneDir, files);
-				} else {
+				} else if(AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) {
 					// No binds, uninstall package(s)
 					if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 						PackageManager.removePackage(PackageManager.PackageName.CACHING_NAMESERVER);

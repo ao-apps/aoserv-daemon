@@ -6,6 +6,7 @@
 package com.aoindustries.aoserv.daemon.unix.linux;
 
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.io.DirectoryMetaSnapshot;
 import com.aoindustries.util.StringUtility;
 import java.io.IOException;
@@ -368,6 +369,7 @@ public class PackageManager {
 		 * Removes this package.
 		 */
 		public void remove() throws IOException {
+			if(!AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) throw new IllegalStateException("Package uninstall is disabled in aoserv-daemon.properties");
 			String packageIdentifier = this.toStringWithoutEpoch();
 			if(logger.isLoggable(Level.INFO)) {
 				logger.info("Removing package: " + packageIdentifier);
@@ -572,6 +574,7 @@ public class PackageManager {
 	 * @see RPM#remove() Call remove on a specific RPM when multiple version may be installed
 	 */
 	public static void removePackage(PackageName name) throws IOException {
+		if(!AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) throw new IllegalStateException("Package uninstall is disabled in aoserv-daemon.properties");
 		synchronized(packagesLock) {
 			List<RPM> matches = new ArrayList<>();
 			for(RPM rpm : getAllRpms()) {

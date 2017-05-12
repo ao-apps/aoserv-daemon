@@ -517,7 +517,11 @@ final public class SshdManager extends BuilderThread {
 					}
 				}
 				// Uninstall aoserv-sshd-config package on CentOS 7 when not needed
-				if(!hasSpecificAddress && osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+				if(
+					!hasSpecificAddress
+					&& osvId == OperatingSystemVersion.CENTOS_7_X86_64
+					&& AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
+				) {
 					PackageManager.removePackage(PackageManager.PackageName.AOSERV_SSHD_CONFIG);
 				}
 			}

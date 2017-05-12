@@ -135,6 +135,18 @@ final public class AOServDaemonConfiguration {
 		throw new IOException("Value in aoserv-daemon.properties must be either \"true\" or \"false\": "+key);
 	}
 
+	public static boolean isPackageManagerUninstallEnabled() throws IOException {
+		final String key = "unix.linux.PackageManager.uninstallEnabled";
+		String value = getProperty(key);
+		if(
+			value == null
+			|| value.isEmpty()
+			|| "true".equalsIgnoreCase(value)
+		) return true;
+		if("false".equalsIgnoreCase(value)) return false;
+		throw new IOException("Value in aoserv-daemon.properties must be either \"true\" or \"false\": " + key);
+	}
+
 	public static class NetworkMonitorConfiguration {
 
 		public enum NetworkDirection {

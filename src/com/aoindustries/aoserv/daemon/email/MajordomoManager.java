@@ -965,7 +965,9 @@ final public class MajordomoManager extends BuilderThread {
 					// RPM will clean it up: if(serversUF.getStat().exists()) serversUF.delete();
 
 					// Remove the package
-					PackageManager.removePackage(PackageManager.PackageName.MAJORDOMO);
+					if(AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) {
+						PackageManager.removePackage(PackageManager.PackageName.MAJORDOMO);
+					}
 				}
 			}
 			return true;
