@@ -1533,7 +1533,7 @@ public class HttpdServerManager {
 						+ "<IfModule mime_module>\n"
 						+ "    AddType application/x-httpd-php .php\n"
 						+ "    AddType application/x-httpd-php-source .phps\n"
-						+ "</IfModule\n");
+						+ "</IfModule>\n");
 			}
 
 			// List of binds
