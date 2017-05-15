@@ -9,10 +9,12 @@ import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.HttpdBind;
 import com.aoindustries.aoserv.client.HttpdServer;
+import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
 import com.aoindustries.aoserv.client.HttpdSiteAuthenticatedLocation;
 import com.aoindustries.aoserv.client.HttpdSiteBind;
 import com.aoindustries.aoserv.client.HttpdSiteURL;
+import com.aoindustries.aoserv.client.HttpdTomcatSite;
 import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.client.LinuxGroup;
@@ -163,14 +165,14 @@ public class HttpdServerManager {
 		doRebuildConfHosts(aoServer, bout, deleteFileList, serversNeedingReloaded);
 
 		// Rebuild /etc/httpd/conf/ files
-		Set<Port> ajpPorts = new HashSet<>();
-		doRebuildConf(aoServer, bout, deleteFileList, serversNeedingReloaded, ajpPorts);
+		Set<Port> enabledAjpPorts = new HashSet<>();
+		doRebuildConf(aoServer, bout, deleteFileList, serversNeedingReloaded, enabledAjpPorts);
 
 		// Control the /etc/rc.d/init.d/httpd* files or /etc/systemd/system/httpd[-#].service
 		doRebuildInitScripts(aoServer, bout, deleteFileList, serversNeedingReloaded);
 
 		// Configure SELinux
-		doReuildSELinux(aoServer, serversNeedingReloaded, ajpPorts);
+		doReuildSELinux(aoServer, serversNeedingReloaded, enabledAjpPorts);
 
 		// Other filesystem fixes related to logging
 		fixFilesystem(deleteFileList);
@@ -924,7 +926,7 @@ public class HttpdServerManager {
 		ByteArrayOutputStream bout,
 		List<File> deleteFileList,
 		Set<HttpdServer> serversNeedingReloaded,
-		Set<Port> ajpPorts
+		Set<Port> enabledAjpPorts
 	) throws IOException, SQLException {
 		Set<String> httpdConfFilenames = new HashSet<>();
 		int uid_min = thisAoServer.getUidMin().getId();
@@ -967,7 +969,7 @@ public class HttpdServerManager {
 				httpdConfFilenames.add(workersFilename);
 				if(
 					DaemonFileUtils.writeIfNeeded(
-						buildWorkersFile(hs, bout, ajpPorts),
+						buildWorkersFile(hs, bout, enabledAjpPorts),
 						null,
 						workersFile,
 						UnixFile.ROOT_UID,
@@ -1590,31 +1592,42 @@ public class HttpdServerManager {
 		}
 	}
 
+	private static boolean isWorkerEnabled(HttpdWorker worker) throws IOException, SQLException {
+		HttpdSharedTomcat hst = worker.getHttpdSharedTomcat();
+		if(hst != null) return !hst.isDisabled();
+		HttpdTomcatSite hts = worker.getHttpdTomcatSite();
+		if(hts != null) return !hts.getHttpdSite().isDisabled();
+		throw new SQLException("worker is attached to neither HttpdSharedTomcat nor HttpdTomcatSite: " + worker);
+	}
+
 	/**
 	 * Builds the workers#.properties file contents for the provided HttpdServer.
 	 */
-	private static byte[] buildWorkersFile(HttpdServer hs, ByteArrayOutputStream bout, Set<Port> ajpPorts) throws IOException, SQLException {
+	private static byte[] buildWorkersFile(HttpdServer hs, ByteArrayOutputStream bout, Set<Port> enabledAjpPorts) throws IOException, SQLException {
 		AOServConnector conn = AOServDaemon.getConnector();
-		List<HttpdWorker> workers=hs.getHttpdWorkers();
-		int workerCount=workers.size();
-
+		List<HttpdWorker> workers = hs.getHttpdWorkers();
 		bout.reset();
 		try (ChainWriter out = new ChainWriter(bout)) {
 			out.print("worker.list=");
-			for(int d=0;d<workerCount;d++) {
-				if(d>0) out.print(',');
-				out.print(workers.get(d).getCode().getCode());
+			boolean didOne = false;
+			for(HttpdWorker worker : workers) {
+				if(isWorkerEnabled(worker)) {
+					if(didOne) out.print(',');
+					else didOne = true;
+					out.print(worker.getCode().getCode());
+				}
 			}
 			out.print('\n');
-			for(int d=0;d<workerCount;d++) {
-				HttpdWorker worker=workers.get(d);
-				String code=worker.getCode().getCode();
-				Port port = worker.getNetBind().getPort();
-				out.print("\n"
-						+ "worker.").print(code).print(".type=").print(worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol()).print("\n"
-						+ "worker.").print(code).print(".host=127.0.0.1\n" // For use IPv4 on CentOS 7
-						+ "worker.").print(code).print(".port=").print(port.getPort()).print('\n');
-				ajpPorts.add(port);
+			for(HttpdWorker worker : workers) {
+				if(isWorkerEnabled(worker)) {
+					String code = worker.getCode().getCode();
+					Port port = worker.getNetBind().getPort();
+					out.print("\n"
+							+ "worker.").print(code).print(".type=").print(worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol()).print("\n"
+							+ "worker.").print(code).print(".host=127.0.0.1\n" // For use IPv4 on CentOS 7
+							+ "worker.").print(code).print(".port=").print(port.getPort()).print('\n');
+					enabledAjpPorts.add(port);
+				}
 			}
 		}
 		return bout.toByteArray();
@@ -2106,7 +2119,7 @@ public class HttpdServerManager {
 	/**
 	 * Manages SELinux.
 	 */
-	private static void doReuildSELinux(AOServer aoServer, Set<HttpdServer> serversNeedingReloaded, Set<Port> ajpPorts) throws IOException, SQLException {
+	private static void doReuildSELinux(AOServer aoServer, Set<HttpdServer> serversNeedingReloaded, Set<Port> enabledAjpPorts) throws IOException, SQLException {
 		OperatingSystemVersion osv = aoServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		// Manage SELinux:
@@ -2129,7 +2142,7 @@ public class HttpdServerManager {
 				if(SEManagePort.configure(httpdPorts, SELINUX_TYPE)) {
 					serversNeedingReloaded.addAll(hss);
 				}
-				if(SEManagePort.configure(ajpPorts, AJP_SELINUX_TYPE)) {
+				if(SEManagePort.configure(enabledAjpPorts, AJP_SELINUX_TYPE)) {
 					serversNeedingReloaded.addAll(hss);
 				}
 				break;
