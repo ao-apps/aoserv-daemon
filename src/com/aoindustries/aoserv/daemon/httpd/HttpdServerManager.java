@@ -670,8 +670,8 @@ public class HttpdServerManager {
 					if(manager.enablePhp() && manager.enableCgi()) {
 						out.print("\n"
 								+ "    # Use CGI-based PHP when not using mod_php\n"
-								+ "    <IfModule !sapi_apache2.c>\n"
-								+ "        <IfModule !mod_php5.c>\n"
+								+ "    <IfModule !php5_module>\n"
+								+ "        <IfModule !php7_module>\n"
 								+ "            <IfModule actions_module>\n"
 								+ "                Action php-script /cgi-bin/php\n"
 								// Avoid *.php.txt going to PHP: http://php.net/manual/en/install.unix.apache2.php
