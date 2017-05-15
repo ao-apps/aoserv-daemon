@@ -74,9 +74,13 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
      */
     @Override
     public SortedSet<Location> getRejectedLocations() throws IOException, SQLException {
-        // If not using Apache, let Tomcat do its own protection
         SortedSet<Location> standardRejectedLocations = super.getRejectedLocations();
-        if(!tomcatSite.getUseApache()) return standardRejectedLocations;
+
+		// Tomcats may now be disabled separately from the sites, and when disabled
+		// Apache will serve content directly.
+		// Always protect at the Apache level to not expose sensitive information
+        // If not using Apache, let Tomcat do its own protection
+        //if(!tomcatSite.getUseApache()) return standardRejectedLocations;
 
         SortedSet<Location> rejectedLocations = new TreeSet<>(standardRejectedLocations);
         for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
