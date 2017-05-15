@@ -1529,7 +1529,7 @@ public class HttpdServerManager {
 				String phpMinorVersion = getMinorPhpVersion(version);
 				String phpMajorVersion = getMajorPhpVersion(version);
 				out.print("\n"
-						+ "#"
+						+ "#\n"
 						+ "# Enable mod_php\n"
 						+ "#\n"
 						+ "LoadModule php").print(phpMajorVersion).print("_module /opt/php-").print(phpMinorVersion).print("/lib/apache/").print(getPhpLib(phpVersion)).print("\n");
