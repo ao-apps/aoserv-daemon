@@ -1561,10 +1561,10 @@ public class HttpdServerManager {
 				// TODO: auto cleanup of old php config directories once no longer used
 				out.print("<IfModule php5_module>\n"
 						+ "    PHPIniDir \"").print(phpIniDir).print("\"\n"
-						+ "</IfModule>\n"
-						+ "<IfModule mime_module>\n"
-						+ "    AddType application/x-httpd-php .php\n"
-						+ "    AddType application/x-httpd-php-source .phps\n"
+						+ "    <IfModule mime_module>\n"
+						+ "        AddType application/x-httpd-php .php\n"
+						+ "        AddType application/x-httpd-php-source .phps\n"
+						+ "    </IfModule>\n"
 						+ "</IfModule>\n");
 			}
 
