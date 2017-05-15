@@ -143,6 +143,22 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 
     @Override
     public SortedSet<JkSetting> getJkSettings() throws IOException, SQLException {
+		// Only include JK settings when Tomcat instance is enabled
+		boolean tomcatDisabled;
+		{
+			HttpdTomcatSharedSite htss = tomcatSite.getHttpdTomcatSharedSite();
+			if(htss != null) {
+				// Shared Tomcat
+				tomcatDisabled = htss.getHttpdSharedTomcat().isDisabled();
+			} else {
+				// Standard Tomcat
+				tomcatDisabled = httpdSite.isDisabled();
+			}
+		}
+		if(tomcatDisabled) {
+			// Return no settings when Tomcat disabled
+			return super.getJkSettings();
+		}
         final String jkCode = getHttpdWorker().getCode().getCode();
         SortedSet<JkSetting> settings = new TreeSet<>();
         if(tomcatSite.getUseApache()) {
