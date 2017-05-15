@@ -9,6 +9,7 @@ import com.aoindustries.aoserv.client.AOSHCommand;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
+import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
 import com.aoindustries.aoserv.client.HttpdTomcatVersion;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -154,9 +155,17 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 		for(HttpdSharedTomcat sharedTomcat : AOServDaemon.getThisAOServer().getHttpdSharedTomcats()) {
 			final HttpdSharedTomcatManager<?> manager = getInstance(sharedTomcat);
 
+			boolean hasEnabledSite = false;
+			for(HttpdTomcatSharedSite htss : sharedTomcat.getHttpdTomcatSharedSites()) {
+				if(!htss.getHttpdTomcatSite().getHttpdSite().isDisabled()) {
+					hasEnabledSite = true;
+					break;
+				}
+			}
+
 			Callable<Object> commandCallable;
-			if(!sharedTomcat.isDisabled() && !sharedTomcat.getHttpdTomcatSharedSites().isEmpty()) {
-				// Enabled and has sites, start or restart
+			if(!sharedTomcat.isDisabled() && hasEnabledSite) {
+				// Enabled and has at least one enabled site, start or restart
 				if(sharedTomcatsNeedingRestarted.contains(sharedTomcat)) {
 					commandCallable = () -> {
 						if(manager.stop()) {
@@ -348,8 +357,16 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	}
 
 	@Override
-	public boolean isStartable() {
-		return !sharedTomcat.isDisabled();
+	public boolean isStartable() throws IOException, SQLException {
+		if(sharedTomcat.isDisabled()) return false;
+		// Must also have at least one enabled site
+		for(HttpdTomcatSharedSite htss : sharedTomcat.getHttpdTomcatSharedSites()) {
+			if(!htss.getHttpdTomcatSite().getHttpdSite().isDisabled()) {
+				return true;
+			}
+		}
+		// Does not have any enabled sites
+		return false;
 	}
 
 	public String getStartStopScriptPath() throws IOException, SQLException {

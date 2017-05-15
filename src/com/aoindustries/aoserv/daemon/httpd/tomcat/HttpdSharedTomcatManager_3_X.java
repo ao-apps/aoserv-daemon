@@ -269,10 +269,10 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 		try {
 			out.print("export SITES=\"");
 			boolean didOne=false;
-			for (HttpdTomcatSharedSite site : sites) {
+			for(HttpdTomcatSharedSite site : sites) {
 				HttpdSite hs = site.getHttpdTomcatSite().getHttpdSite();
 				if(!hs.isDisabled()) {
-					if (didOne) out.print(' ');
+					if(didOne) out.print(' ');
 					else didOne=true;
 					out.print(hs.getSiteName());
 				}
@@ -322,8 +322,15 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 		}
 
 		// Enable/Disable
+		boolean hasEnabledSite = false;
+		for(HttpdTomcatSharedSite htss : sharedTomcat.getHttpdTomcatSharedSites()) {
+			if(!htss.getHttpdTomcatSite().getHttpdSite().isDisabled()) {
+				hasEnabledSite = true;
+				break;
+			}
+		}
 		UnixFile daemonSymlink = new UnixFile(daemonUF, "tomcat", false);
-		if(!sharedTomcat.isDisabled()) {
+		if(!sharedTomcat.isDisabled() && hasEnabledSite) {
 			// Enabled
 			if(!daemonSymlink.getStat().exists()) {
 				daemonSymlink.symLink("../bin/tomcat").chown(
@@ -331,13 +338,12 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 					lsgGID
 				);
 			}
+			// Start if needed
+			if(needRestart) sharedTomcatsNeedingRestarted.add(sharedTomcat);
 		} else {
 			// Disabled
 			if(daemonSymlink.getStat().exists()) daemonSymlink.delete();
 		}
-
-		// Start if needed
-		if(needRestart && !sharedTomcat.isDisabled()) sharedTomcatsNeedingRestarted.add(sharedTomcat);
 	}
 
 	@Override

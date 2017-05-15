@@ -14,6 +14,7 @@ import com.aoindustries.aoserv.client.HttpdSite;
 import com.aoindustries.aoserv.client.HttpdSiteAuthenticatedLocation;
 import com.aoindustries.aoserv.client.HttpdSiteBind;
 import com.aoindustries.aoserv.client.HttpdSiteURL;
+import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
 import com.aoindustries.aoserv.client.HttpdTomcatSite;
 import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.client.LinuxAccount;
@@ -1594,7 +1595,15 @@ public class HttpdServerManager {
 
 	private static boolean isWorkerEnabled(HttpdWorker worker) throws IOException, SQLException {
 		HttpdSharedTomcat hst = worker.getHttpdSharedTomcat();
-		if(hst != null) return !hst.isDisabled();
+		if(hst != null) {
+			if(hst.isDisabled()) return false;
+			// Must also have at least one enabled site
+			for(HttpdTomcatSharedSite htss : hst.getHttpdTomcatSharedSites()) {
+				if(!htss.getHttpdTomcatSite().getHttpdSite().isDisabled()) return true;
+			}
+			// Does not have any enabled site
+			return false;
+		}
 		HttpdTomcatSite hts = worker.getHttpdTomcatSite();
 		if(hts != null) return !hts.getHttpdSite().isDisabled();
 		throw new SQLException("worker is attached to neither HttpdSharedTomcat nor HttpdTomcatSite: " + worker);

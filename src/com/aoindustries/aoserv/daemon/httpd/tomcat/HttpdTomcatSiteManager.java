@@ -143,6 +143,11 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 
     @Override
     public SortedSet<JkSetting> getJkSettings() throws IOException, SQLException {
+		// Only include JK settings when this site is enabled
+		if(httpdSite.isDisabled()) {
+			// Return no settings when this site is disabled
+			return super.getJkSettings();
+		}
 		// Only include JK settings when Tomcat instance is enabled
 		boolean tomcatDisabled;
 		{
