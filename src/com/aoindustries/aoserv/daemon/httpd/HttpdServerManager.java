@@ -1532,7 +1532,34 @@ public class HttpdServerManager {
 						+ "#"
 						+ "# Enable mod_php\n"
 						+ "#\n"
-						+ "LoadModule php").print(phpMajorVersion).print("_module /opt/php-").print(phpMinorVersion).print("/lib/apache/").print(getPhpLib(phpVersion)).print("\n"
+						+ "LoadModule php").print(phpMajorVersion).print("_module /opt/php-").print(phpMinorVersion).print("/lib/apache/").print(getPhpLib(phpVersion)).print("\n");
+				// Create initial PHP config directory
+				UnixFile phpIniDir;
+				if(serverNum == 1) {
+					phpIniDir = new UnixFile(CONF_DIRECTORY + "/php");
+				} else {
+					phpIniDir = new UnixFile(CONF_DIRECTORY + "/php-" + serverNum);
+				}
+				DaemonFileUtils.mkdir(phpIniDir, 0750, UnixFile.ROOT_UID, hs.getLinuxServerGroup().getGid().getId());
+				UnixFile phpIni = new UnixFile(phpIniDir, "php.ini", true);
+				String expectedTarget = "../../../../opt/php-" + phpMinorVersion + "/lib/php.ini";
+				Stat phpIniStat = phpIni.getStat();
+				if(!phpIniStat.exists()) {
+					phpIni.symLink(expectedTarget);
+				} else if(phpIniStat.isSymLink()) {
+					// Replace symlink if goes to a different PHP version?
+					String actualTarget = phpIni.readLink();
+					if(
+						!actualTarget.equals(expectedTarget)
+						&& actualTarget.startsWith("../../../../opt/php-")
+					) {
+						// Update link
+						phpIni.delete();
+						phpIni.symLink(expectedTarget);
+					}
+				}
+				// TODO: auto cleanup of old php config directories once no longer used
+				out.print("PHPIniDir \"").print(phpIniDir).print("\"\n"
 						+ "<IfModule mime_module>\n"
 						+ "    AddType application/x-httpd-php .php\n"
 						+ "    AddType application/x-httpd-php-source .phps\n"
