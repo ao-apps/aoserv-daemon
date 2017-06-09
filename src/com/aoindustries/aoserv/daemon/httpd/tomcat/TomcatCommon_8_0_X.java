@@ -150,6 +150,24 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_0_43) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
+			} else if(rpmVersion.equals("8.0.44")) {
+				 // Upgrade from Tomcat 8.0.43 to 8.0.44
+				UpgradeSymlink[] upgradeSymlinks_8_0_44 = {
+					// ecj-4.6.1.jar -> ecj-4.6.3.jar
+					new UpgradeSymlink(
+						"lib/ecj-4.6.1.jar",
+						"../" + optSlash + "apache-tomcat-8.0/lib/ecj-4.6.1.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/ecj-4.6.3.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.0/lib/ecj-4.6.3.jar"
+					)
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_0_44) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
 			} else {
 				throw new IllegalStateException("Unexpected version of Tomcat: " + rpmVersion);
 			}
