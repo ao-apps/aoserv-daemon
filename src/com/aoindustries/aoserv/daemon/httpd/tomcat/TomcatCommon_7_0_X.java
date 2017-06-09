@@ -136,8 +136,11 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 					);
 					if(results.length()>0) needsRestart = true;
 				}
-			} else if(rpmVersion.equals("7.0.77")) {
-				// Upgrade from Tomcat 7.0.68 to 7.0.77
+			} else if(
+				rpmVersion.equals("7.0.77")
+				|| rpmVersion.equals("7.0.78")
+			) {
+				// Upgrade from Tomcat 7.0.68 to 7.0.77/7.0.78
 				UpgradeSymlink[] upgradeSymlinks_7_0_77 = {
 					// mysql-connector-java-5.1.38-bin.jar -> mysql-connector-java-5.1.42-bin.jar
 					// mysql-connector-java-5.1.41-bin.jar -> mysql-connector-java-5.1.42-bin.jar
