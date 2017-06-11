@@ -240,8 +240,11 @@ public class DaemonFileUtils {
 	 * @param  file  the file to overwrite
 	 * @param  backupFile  the optional backup file
 	 * @param  restorecon  when not null, any file moved into place that might need "restorecon" will be added to the set
+	 *
+	 * @return {@code true} when the file is replaced with new content, has ownership updated, or has permissions updated
 	 */
-	public static void atomicWrite(UnixFile file, byte[] newContents, long mode, int uid, int gid, UnixFile backupFile, Set<UnixFile> restorecon) throws IOException {
+	public static boolean atomicWrite(UnixFile file, byte[] newContents, long mode, int uid, int gid, UnixFile backupFile, Set<UnixFile> restorecon) throws IOException {
+		boolean updated;
 		Stat fileStat = file.getStat();
 		if(
 			!fileStat.exists()
@@ -311,18 +314,23 @@ public class DaemonFileUtils {
 			if(logger.isLoggable(Level.FINE)) logger.fine("mv \"" + fileTemp + "\" \"" + file + '"');
 			fileTemp.renameTo(file);
 			if(restorecon != null) restorecon.add(file);
+			updated = true;
 		} else {
+			updated = false;
 			// Verify ownership
 			if(fileStat.getUid() != uid || fileStat.getGid() != gid) {
 				if(logger.isLoggable(Level.FINE)) logger.fine("chown " + uid + ':' + gid + " \"" + file + '"');
 				file.chown(uid, gid);
+				updated = true;
 			}
 			// Verify permissions
 			if(fileStat.getMode() != mode) {
 				if(logger.isLoggable(Level.FINE)) logger.fine("chmod " + Long.toOctalString(mode) + " \"" + file + '"');
 				file.setMode(mode);
+				updated = true;
 			}
 		}
+		return updated;
 	}
 
 	/**
