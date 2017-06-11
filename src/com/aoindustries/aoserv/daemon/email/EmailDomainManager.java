@@ -13,13 +13,15 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
+import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.ByteArrayOutputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 /**
@@ -30,10 +32,7 @@ public final class EmailDomainManager extends BuilderThread {
 	/**
 	 * email configs.
 	 */
-	private static final UnixFile
-		newFile=new UnixFile("/etc/mail/local-host-names.new"),
-		configFile=new UnixFile("/etc/mail/local-host-names")
-	;
+	private static final UnixFile configFile = new UnixFile("/etc/mail/local-host-names");
 
 	private static EmailDomainManager emailDomainManager;
 
@@ -57,25 +56,40 @@ public final class EmailDomainManager extends BuilderThread {
 			int gid_min = thisAoServer.getGidMin().getId();
 
 			synchronized(rebuildLock) {
-				// Grab the list of domains from the database
-				List<EmailDomain> domains = thisAoServer.getEmailDomains();
+				Set<UnixFile> restorecon = new LinkedHashSet<>();
+				try {
+					// Grab the list of domains from the database
+					List<EmailDomain> domains = thisAoServer.getEmailDomains();
 
-				// Create the new file
-				ByteArrayOutputStream bout = new ByteArrayOutputStream();
-				try (ChainWriter out = new ChainWriter(bout)) {
-					for(EmailDomain domain : domains) out.println(domain.getDomain());
-				}
-				byte[] newBytes = bout.toByteArray();
-
-				// Write new file only when needed
-				if(!configFile.getStat().exists() || !configFile.contentEquals(newBytes)) {
-					try (FileOutputStream newOut = newFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0644, false, uid_min, gid_min)) {
-						newOut.write(newBytes);
+					// Create the new file
+					byte[] newBytes;
+					{
+						ByteArrayOutputStream bout = new ByteArrayOutputStream();
+						try (ChainWriter out = new ChainWriter(bout)) {
+							for(EmailDomain domain : domains) out.println(domain.getDomain());
+						}
+						newBytes = bout.toByteArray();
 					}
-					newFile.renameTo(configFile);
-
-					// Reload the MTA
-					reloadMTA();
+					// Write new file only when needed
+					if(
+						DaemonFileUtils.atomicWrite(
+							configFile,
+							newBytes,
+							0644,
+							UnixFile.ROOT_UID,
+							UnixFile.ROOT_GID,
+							null,
+							restorecon
+						)
+					) {
+						// SELinux before reload
+						DaemonFileUtils.restorecon(restorecon);
+						restorecon.clear();
+						// Reload the MTA
+						reloadMTA();
+					}
+				} finally {
+					DaemonFileUtils.restorecon(restorecon);
 				}
 			}
 			return true;
