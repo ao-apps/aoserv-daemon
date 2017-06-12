@@ -81,11 +81,13 @@ public class PackageManager {
 		PHP_5_6("php_5_6-i686"),
 		POLICYCOREUTILS("policycoreutils"),
 		POLICYCOREUTILS_PYTHON("policycoreutils-python"),
+		PSMISC("psmisc"),
 		SENDMAIL("sendmail"),
 		SMARTMONTOOLS("smartmontools"),
 		SUDO("sudo"),
 		TAR("tar"),
-		TOMCAT_CONNECTORS("tomcat-connectors");
+		TOMCAT_CONNECTORS("tomcat-connectors"),
+		UTIL_LINUX("util-linux");
 
 		private final String rpmName;
 		// Only needed when trying to automatically remove packages: private final PackageName[] requires;
