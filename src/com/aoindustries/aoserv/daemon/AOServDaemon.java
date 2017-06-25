@@ -21,6 +21,7 @@ import com.aoindustries.aoserv.daemon.email.EmailDomainManager;
 import com.aoindustries.aoserv.daemon.email.ImapManager;
 import com.aoindustries.aoserv.daemon.email.MajordomoManager;
 import com.aoindustries.aoserv.daemon.email.ProcmailManager;
+import com.aoindustries.aoserv.daemon.email.SaslauthdManager;
 import com.aoindustries.aoserv.daemon.email.SendmailCFManager;
 import com.aoindustries.aoserv.daemon.email.SmtpRelayManager;
 import com.aoindustries.aoserv.daemon.email.SpamAssassinManager;
@@ -198,6 +199,7 @@ final public class AOServDaemon {
 				ImapManager.start();
 				MajordomoManager.start();
 				ProcmailManager.start();
+				SaslauthdManager.start();
 				SendmailCFManager.start();
 				SpamAssassinManager.start();
 				SmtpRelayManager.start();
