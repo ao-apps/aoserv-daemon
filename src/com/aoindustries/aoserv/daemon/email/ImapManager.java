@@ -263,8 +263,6 @@ final public class ImapManager extends BuilderThread {
 		}
 	}
 
-	// TODO: CentOS 7 from here
-
 	/**
 	 * Gets access to the old IMAPStore for wu-imapd.
 	 */
@@ -295,14 +293,14 @@ final public class ImapManager extends BuilderThread {
 		UnixFile passwordBackup
 	) throws IOException, SQLException, MessagingException {
 		InetAddress host = getImapServerIPAddress();
-		if(host==null) throw new IOException("Not an IMAP server");
+		if(host == null) throw new IOException("Not an IMAP server");
 		String usernameStr = username.toString();
 		return getUserStore(
 			logOut,
 			host.toString(),
 			143,
 			username,
-			usernameStr.indexOf('@')==-1 ? (usernameStr+"@default") : usernameStr,
+			usernameStr.indexOf('@') == -1 ? (usernameStr + "@default") : usernameStr,
 			tempPassword,
 			passwordBackup
 		);
@@ -322,12 +320,12 @@ final public class ImapManager extends BuilderThread {
 	) throws IOException, SQLException, MessagingException {
 		// Reset the user password if needed
 		String password = tempPassword[0];
-		if(password==null) {
+		if(password == null) {
 			// Backup the password
 			if(!passwordBackup.getStat().exists()) {
 				log(logOut, Level.FINE, username, "Backing-up password");
 				String encryptedPassword = LinuxAccountManager.getEncryptedPassword(username).getElement1();
-				UnixFile tempFile = UnixFile.mktemp(passwordBackup.getPath()+".", false);
+				UnixFile tempFile = UnixFile.mktemp(passwordBackup.getPath() + ".", false);
 				try (PrintWriter out = new PrintWriter(new FileOutputStream(tempFile.getFile()))) {
 					out.println(encryptedPassword);
 				}
@@ -335,7 +333,7 @@ final public class ImapManager extends BuilderThread {
 			}
 			// Change the password to a random value
 			password = PasswordGenerator.generatePassword();
-			log(logOut, Level.FINE, username, "Setting password to "+password);
+			log(logOut, Level.FINE, username, "Setting password to " + password);
 			LinuxAccountManager.setPassword(username, password, false);
 			tempPassword[0] = password;
 		}
@@ -363,10 +361,14 @@ final public class ImapManager extends BuilderThread {
 		Logger logger = LogFactory.getLogger(ImapManager.class);
 		boolean isFine = logger.isLoggable(Level.FINE);
 		try {
-			AOServer thisAOServer=AOServDaemon.getThisAOServer();
+			AOServer thisAOServer = AOServDaemon.getThisAOServer();
 			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
-			if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+			if(
+				osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				// TODO: CentOS 7 from here
+				// || osvId == OperatingSystemVersion.CENTOS_7_X86_64
+			) {
 				// Used inside synchronized block
 				ByteArrayOutputStream bout = new ByteArrayOutputStream();
 				AOServConnector conn = AOServDaemon.getConnector();

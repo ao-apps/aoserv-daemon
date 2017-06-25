@@ -11,20 +11,21 @@ import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.io.FileUtils;
-import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintWriter;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 
 /**
  * @author  AO Industries, Inc.
  */
 final public class EmailListManager {
+
+	private static final Charset ENCODING = StandardCharsets.UTF_8;
 
 	private EmailListManager() {
 	}
@@ -40,18 +41,10 @@ final public class EmailListManager {
 			osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
 			&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
 			&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
-		int uid_min = thisAoServer.getUidMin().getId();
-		int gid_min = thisAoServer.getGidMin().getId();
-
-		UnixFile file = new UnixFile(path.toString());
-		Stat fileStat = file.getStat();
-		StringBuilder sb=new StringBuilder((int) fileStat.getSize());
-		InputStream fin=new BufferedInputStream(file.getSecureInputStream(uid_min, gid_min));
-		int ch;
-		while ((ch = fin.read()) != -1) sb.append((char) ch);
-		return sb.toString();
+		return FileUtils.readFileAsString(new File(path.toString()), ENCODING);
 	}
 
 	/**
@@ -65,10 +58,13 @@ final public class EmailListManager {
 			osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
 			&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
 			&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 		File file = new File(path.toString());
 		if(file.exists()) FileUtils.delete(file);
+		// TODO: Clean-up directories, up to and possibly including /etc/mail/lists itself
+		// TODO: Background clean-up of orphaned lists
 	}
 
 	/**
@@ -88,6 +84,7 @@ final public class EmailListManager {
 			osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
 			&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
 			&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 		int uid_min = thisAoServer.getUidMin().getId();
@@ -104,8 +101,8 @@ final public class EmailListManager {
 		if(SB.length()>0 && SB.charAt(SB.length()-1)!='\n') SB.append('\n');
 
 		// If a majordomo list, add any new directories
-		boolean isMajordomo=path.toString().startsWith(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY.toString() + '/');
-		if(isMajordomo) {
+		if(path.toString().startsWith(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY.toString() + '/')) {
+			// TODO: Create /etc/mail/majordomo when first needed
 			UnixFile pathUF=new UnixFile(path.toString());
 			UnixFile listDir=pathUF.getParent();
 			if(!listDir.getStat().exists()) {
@@ -115,19 +112,19 @@ final public class EmailListManager {
 				}
 				listDir.mkdir().setMode(0750);
 			}
+		} else {
+			// TODO: Create /etc/mail/lists when first needed
 		}
 
-		UnixFile tempUF=UnixFile.mktemp(path+".new.", false);
-		PrintWriter out=new PrintWriter(
-			new BufferedOutputStream(
-				tempUF.getSecureOutputStream(uid, gid, mode, true, uid_min, gid_min)
+		// TODO: Atomic write and restorecon
+		UnixFile tempUF = UnixFile.mktemp(path+".new.", false);
+		try (
+			Writer out = new OutputStreamWriter(
+				tempUF.getSecureOutputStream(uid, gid, mode, true, uid_min, gid_min),
+				ENCODING
 			)
-		);
-		try {
-			out.print(SB.toString());
-		} finally {
-			out.flush();
-			out.close();
+		) {
+			out.write(SB.toString());
 		}
 
 		// Move the new file into place
