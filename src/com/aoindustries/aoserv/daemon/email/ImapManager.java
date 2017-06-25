@@ -132,7 +132,7 @@ final public class ImapManager extends BuilderThread {
 	public static final boolean WUIMAP_CONVERSION_ENABLED = false;
 	private static final int WUIMAP_CONVERSION_CONCURRENCY = 20;
 
-	public static final File mailSpool=new File("/var/spool/mail");
+	public static final File mailSpool = new File("/var/spool/mail");
 
 	private static final File imapSpool = new File("/var/spool/imap");
 	private static final File imapVirtDomainSpool = new File(imapSpool, "domain");
@@ -178,13 +178,13 @@ final public class ImapManager extends BuilderThread {
 	 */
 	private static Session getSession() throws IOException, SQLException {
 		synchronized(_sessionLock) {
-			if(_session==null) {
+			if(_session == null) {
 				// Create and cache new session
 				Properties props = new Properties();
 				props.put("mail.store.protocol", "imap");
 				props.put("mail.transport.protocol", "smtp");
 				props.put("mail.smtp.auth", "true");
-				props.put("mail.from", "cyrus@"+AOServDaemon.getThisAOServer().getHostname());
+				props.put("mail.from", "cyrus@" + AOServDaemon.getThisAOServer().getHostname());
 				_session = Session.getInstance(props, null);
 				//_session.setDebug(true);
 			}
@@ -207,7 +207,7 @@ final public class ImapManager extends BuilderThread {
 		AOServer aoServer = AOServDaemon.getThisAOServer();
 		AOServConnector conn = AOServDaemon.getConnector();
 		Protocol imapProtocol = conn.getProtocols().get(Protocol.IMAP2);
-		if(imapProtocol==null) throw new SQLException("Protocol not found: "+Protocol.IMAP2);
+		if(imapProtocol == null) throw new SQLException("Protocol not found: " + Protocol.IMAP2);
 		Port imapPort = imapProtocol.getPort();
 		List<NetBind> netBinds = aoServer.getServer().getNetBinds(imapProtocol);
 		// Look for primary IP match
@@ -216,10 +216,10 @@ final public class ImapManager extends BuilderThread {
 		for(NetBind nb : netBinds) {
 			if(nb.getPort() == imapPort) {
 				if(nb.getIPAddress().getInetAddress().equals(primaryIp)) return primaryIp;
-				if(firstImap==null) firstImap = nb;
+				if(firstImap == null) firstImap = nb;
 			}
 		}
-		return firstImap==null ? null : firstImap.getIPAddress().getInetAddress();
+		return firstImap == null ? null : firstImap.getIPAddress().getInetAddress();
 	}
 
 	/**
@@ -227,11 +227,11 @@ final public class ImapManager extends BuilderThread {
 	 */
 	private static IMAPStore getStore() throws IOException, SQLException, MessagingException {
 		synchronized(_storeLock) {
-			if(_store==null) {
+			if(_store == null) {
 				// Get things that may failed externally before allocating session and store
 				InetAddress host = getImapServerIPAddress();
-				if(host==null) return null;
-				String user = LinuxAccount.CYRUS+"@default";
+				if(host == null) return null;
+				String user = LinuxAccount.CYRUS + "@default";
 				String password = AOServDaemonConfiguration.getCyrusPassword();
 
 				// Create and cache new store here
@@ -252,7 +252,7 @@ final public class ImapManager extends BuilderThread {
 	 */
 	private static void closeStore() {
 		synchronized(_storeLock) {
-			if(_store!=null) {
+			if(_store != null) {
 				try {
 					_store.close();
 				} catch(MessagingException err) {
@@ -262,6 +262,8 @@ final public class ImapManager extends BuilderThread {
 			}
 		}
 	}
+
+	// TODO: CentOS 7 from here
 
 	/**
 	 * Gets access to the old IMAPStore for wu-imapd.
