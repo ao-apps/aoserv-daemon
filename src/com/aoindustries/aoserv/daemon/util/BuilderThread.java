@@ -7,9 +7,11 @@ package com.aoindustries.aoserv.daemon.util;
 
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.table.Table;
 import com.aoindustries.table.TableListener;
 import com.aoindustries.util.logging.ProcessTimer;
+import java.util.SortedSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -18,7 +20,7 @@ import java.util.logging.Logger;
  *
  * @author  AO Industries, Inc.
  */
-abstract public class BuilderThread implements TableListener {
+abstract public class BuilderThread implements TableListener, PackageManager.PackageListener {
 
 	public static final long
 		DEFAULT_PROCESS_TIMER_MAXIMUM_TIME=5*60*1000,
@@ -41,6 +43,11 @@ abstract public class BuilderThread implements TableListener {
 
 	@Override
 	public void tableUpdated(Table<?> table) {
+		delayAndRebuild();
+	}
+
+	@Override
+	public void packageListUpdated(SortedSet<PackageManager.RPM> allRpms) {
 		delayAndRebuild();
 	}
 

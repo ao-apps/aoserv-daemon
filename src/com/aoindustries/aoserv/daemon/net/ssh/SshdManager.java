@@ -558,6 +558,7 @@ final public class SshdManager extends BuilderThread {
 					AOServConnector conn = AOServDaemon.getConnector();
 					sshdManager = new SshdManager();
 					conn.getNetBinds().addTableListener(sshdManager, 0);
+					PackageManager.addPackageListener(sshdManager);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);

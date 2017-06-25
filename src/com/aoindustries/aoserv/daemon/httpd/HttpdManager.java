@@ -16,6 +16,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdSharedTomcatManager;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import java.io.File;
 import java.io.IOException;
@@ -117,6 +118,7 @@ final public class HttpdManager extends BuilderThread {
 					connector.getIpAddresses().addTableListener(httpdManager, 0);
 					connector.getLinuxServerAccounts().addTableListener(httpdManager, 0);
 					connector.getNetBinds().addTableListener(httpdManager, 0);
+					PackageManager.addPackageListener(httpdManager);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);

@@ -592,6 +592,7 @@ final public class EmailAddressManager extends BuilderThread {
 					conn.getLinuxAccAddresses().addTableListener(emailAddressManager, 0);
 					conn.getPackages().addTableListener(emailAddressManager, 0);
 					conn.getSystemEmailAliases().addTableListener(emailAddressManager, 0);
+					PackageManager.addPackageListener(emailAddressManager);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);

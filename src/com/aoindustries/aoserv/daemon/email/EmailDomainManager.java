@@ -173,6 +173,7 @@ public final class EmailDomainManager extends BuilderThread {
 					AOServConnector conn = AOServDaemon.getConnector();
 					emailDomainManager = new EmailDomainManager();
 					conn.getEmailDomains().addTableListener(emailDomainManager, 0);
+					PackageManager.addPackageListener(emailDomainManager);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);

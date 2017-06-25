@@ -274,6 +274,7 @@ final public class FirewalldManager extends BuilderThread {
 					AOServConnector conn = AOServDaemon.getConnector();
 					firewalldManager = new FirewalldManager();
 					conn.getNetBinds().addTableListener(firewalldManager, 0);
+					PackageManager.addPackageListener(firewalldManager);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);

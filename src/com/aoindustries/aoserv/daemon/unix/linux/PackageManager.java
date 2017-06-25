@@ -9,6 +9,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.io.DirectoryMetaSnapshot;
 import com.aoindustries.util.StringUtility;
+import com.aoindustries.util.concurrent.ConcurrentListenerManager;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,9 +23,6 @@ import java.util.logging.Logger;
 
 /**
  * Manages the set of packages on a server.
- *
- * TODO: Add listeners for when packages change.  Rebuild configs that are affected
- *       by installed package when packages change.
  *
  * @author  AO Industries, Inc.
  */
@@ -110,7 +108,7 @@ public class PackageManager {
 	 * The path to some executables.
 	 */
 	private static final String
-		RPM_EXE_PATH = "/bin/rpm",
+		RPM_EXE_PATH = "/bin/rpm", // TODO: /usr/bin/rpm once all CentOS 7
 		YUM_EXE_PATH = "/usr/bin/yum"
 	;
 
@@ -462,7 +460,8 @@ public class PackageManager {
 					logger.finer(message.toString());
 				}
 				lastSnapshot = currentDirectorySnapshot;
-				lastAllRpms = Collections.unmodifiableSortedSet(newAllRpms);
+				SortedSet<RPM> unmodifiableAllRpms = Collections.unmodifiableSortedSet(newAllRpms);
+				lastAllRpms = unmodifiableAllRpms;
 				if(logger.isLoggable(Level.FINE)) {
 					StringBuilder message = new StringBuilder();
 					message.append("Got all RPMs:");
@@ -472,6 +471,10 @@ public class PackageManager {
 					}
 					logger.fine(message.toString());
 				}
+				// Notify any listeners
+				listenerManager.enqueueEvent(
+					(PackageListener listener) -> () -> listener.packageListUpdated(unmodifiableAllRpms)
+				);
 			}
 			return lastAllRpms;
 		}
@@ -587,5 +590,75 @@ public class PackageManager {
 				matches.get(0).remove();
 			}
 		}
+	}
+
+	/**
+	 * Called when the package list is updated or first loaded.
+	 */
+	public static interface PackageListener {
+
+		/**
+		 * Called when the package list is updated or first loaded.
+		 */
+		void packageListUpdated(SortedSet<RPM> allRpms);
+	}
+
+	/**
+	 * TODO: Instead of polling for updates, use file watches to be notified when something changes.
+	 *       We have some recursive file watch inside the SemanticCMS AutoGit projects.  It should probably
+	 *       be pulled-out into a shared utility to simplify the watching of directory trees.
+	 *       Unless we can find a well packaged, documented, and supported package that does this.
+	 *       If not, ours should become it.
+	 */
+	private static final Object pollThreadLock = new Object();
+	private static Thread pollThread;
+
+	private static final ConcurrentListenerManager<PackageListener> listenerManager = new ConcurrentListenerManager<>();
+
+	/**
+	 * Adds a new package listener to be notified when the package list is updated or first loaded.
+	 *
+	 * @see  #removePackageListener(com.aoindustries.aoserv.daemon.unix.linux.PackageManager.PackageListener)
+	 * @see  ConcurrentListenerManager#addListener(java.lang.Object, boolean)
+	 */
+	public static void addPackageListener(PackageListener listener) {
+		listenerManager.addListener(listener, false);
+		synchronized(pollThreadLock) {
+			if(pollThread == null) {
+				pollThread = new Thread(
+					() -> {
+						while(true) {
+							try {
+								try {
+									Thread.sleep(60000); // Sleep one minute between polls
+								} catch(InterruptedException e) {
+									logger.log(Level.WARNING, null, e);
+								}
+								getAllRpms();
+							} catch(ThreadDeath td) {
+								throw td;
+							} catch(Throwable t) {
+								logger.log(Level.SEVERE, null, t);
+							}
+						}
+					},
+					"pollThread"
+				);
+				pollThread.setPriority(Thread.NORM_PRIORITY - 2);
+				pollThread.start();
+			}
+		}
+	}
+
+	/**
+	 * Removes a package listener.
+	 *
+	 * @return  {@code true} if the listener was removed, {@code false} when not found
+	 *
+	 * @see  #addPackageListener(com.aoindustries.aoserv.daemon.unix.linux.PackageManager.PackageListener)
+	 * @see  ConcurrentListenerManager#removeListener(java.lang.Object)
+	 */
+	public static boolean removePackageListener(PackageListener listener) {
+		return listenerManager.removeListener(listener);
 	}
 }
