@@ -460,21 +460,26 @@ public class PackageManager {
 					logger.finer(message.toString());
 				}
 				lastSnapshot = currentDirectorySnapshot;
-				SortedSet<RPM> unmodifiableAllRpms = Collections.unmodifiableSortedSet(newAllRpms);
-				lastAllRpms = unmodifiableAllRpms;
-				if(logger.isLoggable(Level.FINE)) {
-					StringBuilder message = new StringBuilder();
-					message.append("Got all RPMs:");
-					for(RPM rpm : lastAllRpms) {
-						message.append("\n    ");
-						message.append(rpm);
+				// When list hasn't changed, use old list and do not call listeners
+				if(!newAllRpms.equals(lastAllRpms)) {
+					SortedSet<RPM> unmodifiableAllRpms = Collections.unmodifiableSortedSet(newAllRpms);
+					lastAllRpms = unmodifiableAllRpms;
+					if(logger.isLoggable(Level.FINE)) {
+						StringBuilder message = new StringBuilder();
+						message.append("Got all RPMs:");
+						for(RPM rpm : lastAllRpms) {
+							message.append("\n    ");
+							message.append(rpm);
+						}
+						logger.fine(message.toString());
 					}
-					logger.fine(message.toString());
+					// Notify any listeners
+					listenerManager.enqueueEvent(
+						(PackageListener listener) -> () -> listener.packageListUpdated(unmodifiableAllRpms)
+					);
+				} else {
+					logger.fine("RPMs not changed");
 				}
-				// Notify any listeners
-				listenerManager.enqueueEvent(
-					(PackageListener listener) -> () -> listener.packageListUpdated(unmodifiableAllRpms)
-				);
 			}
 			return lastAllRpms;
 		}
