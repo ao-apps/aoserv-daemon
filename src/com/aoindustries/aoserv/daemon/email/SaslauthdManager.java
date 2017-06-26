@@ -108,8 +108,11 @@ final public class SaslauthdManager extends BuilderThread {
 						DaemonFileUtils.restorecon(restorecon);
 						restorecon.clear();
 
-						if(SendmailCFManager.isSendmailEnabled()) {
-							// Enable when sendmail expected to be running
+						if(
+							SendmailCFManager.isSendmailEnabled()
+							|| ImapManager.isCyrusImapdEnabled()
+						) {
+							// Enable when sendmail or cyrus-imapd expected to be running
 							logger.fine("Enabling " + SERVICE);
 							AOServDaemon.exec(SYSTEMCTL, "enable", SERVICE);
 							// Reload/start when changed

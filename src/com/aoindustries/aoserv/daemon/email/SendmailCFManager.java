@@ -540,7 +540,7 @@ final public class SendmailCFManager extends BuilderThread {
 	}
 
 	/**
-	 * Checks if sendmail is expected to be enable on the given server.
+	 * Checks if sendmail is expected to be enabled on this server.
 	 * Sendmail is enabled when it is configured to listen on a port SMTP, SMTPS, or SUBMISSION.
 	 *
 	 * @see Protocol#SMTP
@@ -554,7 +554,7 @@ final public class SendmailCFManager extends BuilderThread {
 		return
 			!thisServer.getNetBinds(conn.getProtocols().get(Protocol.SMTP)).isEmpty()
 			|| !thisServer.getNetBinds(conn.getProtocols().get(Protocol.SMTPS)).isEmpty()
-			|| thisServer.getNetBinds(conn.getProtocols().get(Protocol.SUBMISSION)).isEmpty()
+			|| !thisServer.getNetBinds(conn.getProtocols().get(Protocol.SUBMISSION)).isEmpty()
 		;
 	}
 }
