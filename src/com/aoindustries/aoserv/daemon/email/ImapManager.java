@@ -126,6 +126,8 @@ import javax.mail.StoreClosedException;
  *     Consider http://en.wikipedia.org/wiki/Application_Configuration_Access_Protocol or http://en.wikipedia.org/wiki/Application_Configuration_Access_Protocol
  *     Look for any "junk" flags for Cyrus folders - if exists can train off this instead of requiring move to/from Junk
  *
+ * TODO: SELinux port management for non-standard ports
+ *
  * @author  AO Industries, Inc.
  */
 final public class ImapManager extends BuilderThread {
@@ -165,6 +167,15 @@ final public class ImapManager extends BuilderThread {
 		imapSpoolIgnoreDirectories.add("domain");
 		imapSpoolIgnoreDirectories.add("stage.");
 	}
+
+	private static final int IMAP_PREFORK_MAX = 5;
+	private static final int IMAP_PREFORK_MIN = 1;
+	private static final int IMAPS_PREFORK_MAX = 5;
+	private static final int IMAPS_PREFORK_MIN = 1;
+	private static final int POP3_PREFORK_MAX = 3;
+	private static final int POP3_PREFORK_MIN = 1;
+	private static final int POP3S_PREFORK_MAX = 3;
+	private static final int POP3S_PREFORK_MIN = 1;
 
 	private static ImapManager imapManager;
 
@@ -356,9 +367,9 @@ final public class ImapManager extends BuilderThread {
 		return store;
 	}
 
-	private static String generateServiceName(String base, int number) {
-		if(number == 1) return base;
-		return base + '-' + number;
+	private static String generateServiceName(String first, String base, int number) {
+		if(number == 1) return first;
+		return base + number;
 	}
 
 	private static final Object rebuildLock = new Object();
@@ -495,62 +506,78 @@ final public class ImapManager extends BuilderThread {
 									// imap
 									{
 										out.print("#  imap\t\tcmd=\"imapd\" listen=\"imap\" prefork=5\n");
+										int prefork = Math.max(
+											IMAP_PREFORK_MAX / imapBinds.size(),
+											IMAP_PREFORK_MIN
+										);
 										int counter = 1;
 										for(NetBind imapBind : imapBinds) {
 											if(imapBind.getPort().getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("imap requires TCP protocol");
-											String serviceName = generateServiceName("imap", counter++);
+											String serviceName = generateServiceName("imap", "imap", counter++);
 											out.print("  ").print(serviceName);
 											if(serviceName.length() < 6) out.print('\t');
-											out.print("\tcmd=\"imapd\" listen=\"[").print(imapBind.getIPAddress().getInetAddress().toString()).print("]:").print(imapBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=5\n");
+											out.print("\tcmd=\"imapd\" listen=\"[").print(imapBind.getIPAddress().getInetAddress().toString()).print("]:").print(imapBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=").print(prefork).print('\n');
 											tlsServices.put(serviceName, imapBind);
 										}
 									}
 									// imaps
 									{
 										out.print("#  imaps\t\tcmd=\"imapd -s\" listen=\"imaps\" prefork=1\n");
+										int prefork = Math.max(
+											IMAPS_PREFORK_MAX / imapsBinds.size(),
+											IMAPS_PREFORK_MIN
+										);
 										int counter = 1;
 										for(NetBind imapsBind : imapsBinds) {
 											if(imapsBind.getPort().getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("imaps requires TCP protocol");
-											String serviceName = generateServiceName("imaps", counter++);
+											String serviceName = generateServiceName("imaps", "imaps", counter++);
 											out.print("  ").print(serviceName);
 											if(serviceName.length() < 6) out.print('\t');
-											out.print("\tcmd=\"imapd -s\" listen=\"[").print(imapsBind.getIPAddress().getInetAddress().toString()).print("]:").print(imapsBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=5\n");
+											out.print("\tcmd=\"imapd -s\" listen=\"[").print(imapsBind.getIPAddress().getInetAddress().toString()).print("]:").print(imapsBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=").print(prefork).print('\n');
 											tlsServices.put(serviceName, imapsBind);
 										}
 									}
 									// pop3
 									{
 										out.print("#  pop3\t\tcmd=\"pop3d\" listen=\"pop3\" prefork=3\n");
+										int prefork = Math.max(
+											POP3_PREFORK_MAX / pop3Binds.size(),
+											POP3_PREFORK_MIN
+										);
 										int counter = 1;
 										for(NetBind pop3Bind : pop3Binds) {
 											if(pop3Bind.getPort().getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("pop3 requires TCP protocol");
-											String serviceName = generateServiceName("pop3", counter++);
+											String serviceName = generateServiceName("pop3", "pop3n", counter++);
 											out.print("  ").print(serviceName);
 											if(serviceName.length() < 6) out.print('\t');
-											out.print("\tcmd=\"pop3d\" listen=\"[").print(pop3Bind.getIPAddress().getInetAddress().toString()).print("]:").print(pop3Bind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=3\n");
+											out.print("\tcmd=\"pop3d\" listen=\"[").print(pop3Bind.getIPAddress().getInetAddress().toString()).print("]:").print(pop3Bind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=").print(prefork).print('\n');
 											tlsServices.put(serviceName, pop3Bind);
 										}
 									}
 									// pop3s
 									{
 										out.print("#  pop3s\t\tcmd=\"pop3d -s\" listen=\"pop3s\" prefork=1\n");
+										int prefork = Math.max(
+											POP3S_PREFORK_MAX / pop3sBinds.size(),
+											POP3S_PREFORK_MIN
+										);
 										int counter = 1;
 										for(NetBind pop3sBind : pop3sBinds) {
 											if(pop3sBind.getPort().getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("pop3s requires TCP protocol");
-											String serviceName = generateServiceName("pop3s", counter++);
+											String serviceName = generateServiceName("pop3s", "pop3s", counter++);
 											out.print("  ").print(serviceName);
 											if(serviceName.length() < 6) out.print('\t');
-											out.print("\tcmd=\"pop3d -s\" listen=\"[").print(pop3sBind.getIPAddress().getInetAddress().toString()).print("]:").print(pop3sBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=3\n");
+											out.print("\tcmd=\"pop3d -s\" listen=\"[").print(pop3sBind.getIPAddress().getInetAddress().toString()).print("]:").print(pop3sBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=").print(prefork).print('\n');
 											tlsServices.put(serviceName, pop3sBind);
 										}
 									}
 									// sieve
 									{
-									out.print("#  sieve\t\tcmd=\"timsieved\" listen=\"sieve\" prefork=0\n");
+										out.print("#  sieve\t\tcmd=\"timsieved\" listen=\"sieve\" prefork=0\n");
 										int counter = 1;
 										for(NetBind sieveBind : sieveBinds) {
 											if(sieveBind.getPort().getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("sieve requires TCP protocol");
-											String serviceName = generateServiceName("sieve", counter++);
+											String serviceName = generateServiceName("sieve", "sieve", counter++);
 											out.print("  ").print(serviceName);
 											if(serviceName.length() < 6) out.print('\t');
 											out.print("\tcmd=\"timsieved\" listen=\"[").print(sieveBind.getIPAddress().getInetAddress().toString()).print("]:").print(sieveBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=0\n");
