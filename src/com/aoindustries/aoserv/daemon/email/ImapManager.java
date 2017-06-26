@@ -127,6 +127,11 @@ import javax.mail.StoreClosedException;
  *     Look for any "junk" flags for Cyrus folders - if exists can train off this instead of requiring move to/from Junk
  *
  * TODO: SELinux port management for non-standard ports
+ * TODO:   pop_port_t for 110, 143, 993, 995 (and on custom ports)
+ * TODO:   sieve_port_t for Sieve on 4190 (and on custom ports)
+ *
+ * TODO: allow lmtp-only config to support receiving-only server (without any POP3/IMAP)
+ * TODO:   This might be a server configured with Sieve port only.
  *
  * @author  AO Industries, Inc.
  */
