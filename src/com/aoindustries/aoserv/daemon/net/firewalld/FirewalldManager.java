@@ -208,6 +208,28 @@ final public class FirewalldManager extends BuilderThread {
 						if(logger.isLoggable(Level.FINE)) logger.fine("https targets: " + targets);
 						publicServiceSets.add(ServiceSet.createOptimizedServiceSet("https", targets));
 					}
+					// IMAP
+					{
+						List<Target> targets = new ArrayList<>();
+						for(NetBind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(Protocol.IMAP2)) {
+								addTarget(nb, targets);
+							}
+						}
+						if(logger.isLoggable(Level.FINE)) logger.fine("imap targets: " + targets);
+						publicServiceSets.add(ServiceSet.createOptimizedServiceSet("imap", targets));
+					}
+					// IMAPS
+					{
+						List<Target> targets = new ArrayList<>();
+						for(NetBind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(Protocol.SIMAP)) {
+								addTarget(nb, targets);
+							}
+						}
+						if(logger.isLoggable(Level.FINE)) logger.fine("imaps targets: " + targets);
+						publicServiceSets.add(ServiceSet.createOptimizedServiceSet("imaps", targets));
+					}
 					// MySQL
 					{
 						List<Target> targets = new ArrayList<>();
@@ -218,6 +240,28 @@ final public class FirewalldManager extends BuilderThread {
 						}
 						if(logger.isLoggable(Level.FINE)) logger.fine("mysql targets: " + targets);
 						publicServiceSets.add(ServiceSet.createOptimizedServiceSet("mysql", targets));
+					}
+					// POP3
+					{
+						List<Target> targets = new ArrayList<>();
+						for(NetBind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(Protocol.POP3)) {
+								addTarget(nb, targets);
+							}
+						}
+						if(logger.isLoggable(Level.FINE)) logger.fine("pop3 targets: " + targets);
+						publicServiceSets.add(ServiceSet.createOptimizedServiceSet("pop3", targets));
+					}
+					// POP3S
+					{
+						List<Target> targets = new ArrayList<>();
+						for(NetBind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(Protocol.SPOP3)) {
+								addTarget(nb, targets);
+							}
+						}
+						if(logger.isLoggable(Level.FINE)) logger.fine("pop3s targets: " + targets);
+						publicServiceSets.add(ServiceSet.createOptimizedServiceSet("pop3s", targets));
 					}
 					// PostgreSQL
 					{
