@@ -85,6 +85,7 @@ public class PackageManager {
 		POLICYCOREUTILS_PYTHON("policycoreutils-python"),
 		PROCMAIL("procmail"),
 		PSMISC("psmisc"),
+		SED("sed"),
 		SENDMAIL("sendmail"),
 		SMARTMONTOOLS("smartmontools"),
 		SPAMASSASSIN("spamassassin"),

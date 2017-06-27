@@ -113,6 +113,22 @@ public final class ProcmailManager extends BuilderThread {
 						int uid_min = thisAoServer.getUidMin().getId();
 						int gid_min = thisAoServer.getGidMin().getId();
 
+						String catPath, bashPath, sedPath;
+						// Capture return-path header if needed
+						if(
+							osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+							|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+							|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+						) {
+							catPath = "/bin/cat";
+							bashPath = "/bin/bash";
+							sedPath = "/bin/sed";
+						} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+							catPath = "/usr/bin/cat";
+							bashPath = "/usr/bin/bash";
+							sedPath = "/usr/bin/sed";
+						} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+
 						InetAddress spamcConnectAddress;
 						Port spamcConnectPort;
 						{
@@ -179,7 +195,7 @@ public final class ProcmailManager extends BuilderThread {
 											AUTO_PROCMAILRC
 											+ "\n"
 											+ "# Setup the environment\n"
-											+ "SHELL=/bin/bash\n");
+											+ "SHELL=").print(bashPath).print("\n");
 
 											// TODO: Build the file after this in advance, look for the longest line, and set accordingly.
 											//+ "LINEBUF=16384\n"
@@ -382,17 +398,6 @@ public final class ProcmailManager extends BuilderThread {
 											out.print("    -A\"X-Loop: ").print(xloopAddress).print("\" ");
 											if(path == null) out.print("\\\n");
 											else {
-												String catPath;
-												// Capture return-path header if needed
-												if(
-													osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-													|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-													|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-												) {
-													catPath = "/bin/cat";
-												} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-													catPath = "/usr/bin/cat";
-												} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 												out.print("; \\\n"
 														+ "    ").print(catPath).print(" ").print(path).print(" \\\n");
 											}
@@ -408,10 +413,12 @@ public final class ProcmailManager extends BuilderThread {
 												|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 												|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 											) {
+												// Make sure sed installed
+												PackageManager.installPackage(PackageManager.PackageName.SED);
 												out.print("\n"
 														+ "# Capture the current Return-path to pass to deliver\n"
 														+ ":0 h\n"
-														+ "RETURN_PATH=| /bin/sed -n 's/^Return-Path: <\\(.*\\)>.*$/\\1/p' | /usr/bin/head -n 1\n");
+														+ "RETURN_PATH=| ").print(sedPath).print(" -n 's/^Return-Path: <\\(.*\\)>.*$/\\1/p' | /usr/bin/head -n 1\n");
 											} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 											// Only move to Junk folder when the inbox is enabled and in IMAP mode
