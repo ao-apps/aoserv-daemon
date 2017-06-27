@@ -85,6 +85,7 @@ public class PackageManager {
 		PSMISC("psmisc"),
 		SENDMAIL("sendmail"),
 		SMARTMONTOOLS("smartmontools"),
+		SPAMASSASSIN("spamassassin"),
 		SUDO("sudo"),
 		TAR("tar"),
 		TOMCAT_CONNECTORS("tomcat-connectors"),

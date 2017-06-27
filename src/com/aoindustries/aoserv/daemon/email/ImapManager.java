@@ -849,14 +849,14 @@ final public class ImapManager extends BuilderThread {
 								if(!cyrusRcFile.getStat().exists()) {
 									if(isFine) logger.fine("Enabling cyrus-imapd service");
 									AOServDaemon.exec("/sbin/chkconfig", "cyrus-imapd", "on");
-									if(!cyrusRcFile.getStat().exists()) throw new IOException(cyrusRcFile.getPath()+" still does not exists after chkconfig on");
+									if(!cyrusRcFile.getStat().exists()) throw new IOException(cyrusRcFile.getPath()+" still does not exist after chkconfig on");
 								}
 
 								// Start service if not running
 								if(!subsysLockFile.exists()) {
 									if(isFine) logger.fine("Starting cyrus-imapd service");
 									AOServDaemon.exec("/etc/rc.d/init.d/cyrus-imapd", "start");
-									if(!subsysLockFile.exists()) throw new IOException(subsysLockFile.getPath()+" still does not exists after service start");
+									if(!subsysLockFile.exists()) throw new IOException(subsysLockFile.getPath()+" still does not exist after service start");
 								} else {
 									if(needsReload[0]) {
 										if(isFine) logger.fine("Reloading cyrus-imapd service");
