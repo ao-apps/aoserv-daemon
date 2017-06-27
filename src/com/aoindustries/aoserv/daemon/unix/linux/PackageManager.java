@@ -83,6 +83,7 @@ public class PackageManager {
 		PHP_5_6("php_5_6-i686"),
 		POLICYCOREUTILS("policycoreutils"),
 		POLICYCOREUTILS_PYTHON("policycoreutils-python"),
+		PROCMAIL("procmail"),
 		PSMISC("psmisc"),
 		SENDMAIL("sendmail"),
 		SMARTMONTOOLS("smartmontools"),

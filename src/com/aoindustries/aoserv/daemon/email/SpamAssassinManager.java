@@ -112,7 +112,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 
 	private static final int MAX_CHILDREN = 25;
 
-	private static final int DEFAULT_SPAMD_PORT = 783;
+	static final int DEFAULT_SPAMD_PORT = 783;
 
 	/**
 	 * The directory containing the spam and ham directories.
