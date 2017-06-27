@@ -46,6 +46,7 @@ public class PackageManager {
 		AOSERV_HTTPD_CONFIG("aoserv-httpd-config"),
 		AOSERV_HTTPD_CONFIG_COMPAT("aoserv-httpd-config-compat"),
 		AOSERV_HTTPD_SITE_DISABLED("aoserv-httpd-site-disabled"),
+		AOSERV_IMAPD_CONFIG("aoserv-imapd-config"),
 		AOSERV_JILTER("aoserv-jilter"),
 		AOSERV_MRTG("aoserv-mrtg"),
 		AOSERV_PASSWD_SHELL("aoserv-passwd-shell"),

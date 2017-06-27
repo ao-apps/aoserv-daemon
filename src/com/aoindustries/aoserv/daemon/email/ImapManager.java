@@ -485,10 +485,19 @@ final public class ImapManager extends BuilderThread {
 							boolean[] needsReload = {false};
 
 							// Install package if required
-							PackageManager.installPackage(
-								PackageManager.PackageName.CYRUS_IMAPD,
-								() -> needsReload[0] = true
-							);
+							if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+								PackageManager.installPackage(
+									PackageManager.PackageName.CYRUS_IMAPD,
+									() -> needsReload[0] = true
+								);
+							} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+								PackageManager.installPackage(
+									PackageManager.PackageName.AOSERV_IMAPD_CONFIG,
+									() -> needsReload[0] = true
+								);
+							} else {
+								throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+							}
 
 							// Update /etc/cyrus.conf
 							{
@@ -677,19 +686,29 @@ final public class ImapManager extends BuilderThread {
 											+ "tls_key_file: /etc/pki/cyrus-imapd/cyrus-imapd.pem\n"
 											+ "tls_ca_file: /etc/pki/tls/certs/ca-bundle.crt\n");
 									// Make sure directory exists and has proper permissions
+									/* Not needed since now included in a config RPM:
 									{
 										Stat pkiVostsDirectoryStat = pkiVostsDirectory.getStat();
 										if(!pkiVostsDirectoryStat.exists()) {
-											if(isFine) logger.fine("Creating vhosts directory: "+pkiVostsDirectory.getPath());
+											if(isFine) logger.fine("Creating vhosts directory: " + pkiVostsDirectory.getPath());
 											pkiVostsDirectory.mkdir();
 											pkiVostsDirectoryStat = pkiVostsDirectory.getStat();
 										}
-										if(pkiVostsDirectoryStat.getMode()!=0755) {
-											if(isFine) logger.fine("Setting vhosts directory permissions: "+pkiVostsDirectory.getPath());
-											pkiVostsDirectory.setMode(0755);
+										if(pkiVostsDirectoryStat.getMode() != 0750) {
+											if(isFine) logger.fine("Setting vhosts directory permissions: " + pkiVostsDirectory.getPath());
+											pkiVostsDirectory.setMode(0750);
+											pkiVostsDirectory.getStat(pkiVostsDirectoryStat);
+										}
+										if(
+											pkiVostsDirectoryStat.getUid() != UnixFile.ROOT_UID
+											|| pkiVostsDirectoryStat.getGid() != mailGid
+										) {
+											if(isFine) logger.fine("Setting vhosts directory owner: " + pkiVostsDirectory.getPath() + " " + UnixFile.ROOT_UID + ":" + mailGid);
+											pkiVostsDirectory.chown(UnixFile.ROOT_UID, mailGid);
 											// Not needed because last use: pkiVostsDirectory.getStat(pkiVostsDirectoryStat);
 										}
 									}
+									 */
 									// service-specific certificates
 									//     file:///home/o/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
 									//     value of "disabled='disabled'" if the certificate file doesn't exist (or use server default)
@@ -715,34 +734,34 @@ final public class ImapManager extends BuilderThread {
 												protocol = "pop3s";
 												break;
 											default:
-												throw new SQLException("Unexpected Protocol: "+appProtocol);
+												throw new SQLException("Unexpected Protocol: " + appProtocol);
 										}
 
 										// cert file
-										String certFilename = protocol+"_"+ipAddress.toString()+"_"+port+".cert";
+										String certFilename = protocol + "_" + ipAddress.toString() + "_" + port + ".cert";
 										UnixFile certFile = new UnixFile(pkiVostsDirectory, certFilename, false);
 										if(!certFile.getStat().exists()) {
-											if(isFine) logger.fine("Creating default cert symlink: "+certFile.getPath()+"->"+DEFAULT_CERT_SYMLINK);
+											if(isFine) logger.fine("Creating default cert symlink: " + certFile.getPath() + "->" + DEFAULT_CERT_SYMLINK);
 											certFile.symLink(DEFAULT_CERT_SYMLINK);
 										}
 										vhostsFiles.add(certFilename);
 										out.print(serviceName).print("_tls_cert_file: ").print(certFile.getPath()).print('\n');
 
 										// key file
-										String keyFilename = protocol+"_"+ipAddress.toString()+"_"+port+".key";
+										String keyFilename = protocol + "_" + ipAddress.toString() + "_" + port + ".key";
 										UnixFile keyFile = new UnixFile(pkiVostsDirectory, keyFilename, false);
 										if(!keyFile.getStat().exists()) {
-											if(isFine) logger.fine("Creating default key symlink: "+keyFile.getPath()+"->"+DEFAULT_KEY_SYMLINK);
+											if(isFine) logger.fine("Creating default key symlink: " + keyFile.getPath() + "->" + DEFAULT_KEY_SYMLINK);
 											keyFile.symLink(DEFAULT_KEY_SYMLINK);
 										}
 										vhostsFiles.add(keyFilename);
 										out.print(serviceName).print("_tls_key_file: ").print(keyFile.getPath()).print('\n');
 
 										// ca file
-										String caFilename = protocol+"_"+ipAddress.toString()+"_"+port+".ca";
+										String caFilename = protocol + "_" + ipAddress.toString() + "_" + port + ".ca";
 										UnixFile caFile = new UnixFile(pkiVostsDirectory, caFilename, false);
 										if(!caFile.getStat().exists()) {
-											if(isFine) logger.fine("Creating default ca symlink: "+caFile.getPath()+"->"+DEFAULT_CA_SYMLINK);
+											if(isFine) logger.fine("Creating default ca symlink: " + caFile.getPath() + "->" + DEFAULT_CA_SYMLINK);
 											caFile.symLink(DEFAULT_CA_SYMLINK);
 										}
 										vhostsFiles.add(caFilename);
@@ -797,7 +816,10 @@ final public class ImapManager extends BuilderThread {
 							String[] list = pkiVostsDirectory.list();
 							if(list != null) {
 								for(String filename : list) {
-									if(!vhostsFiles.contains(filename)) {
+									if(
+										!"README.txt".equals(filename)
+										&& !vhostsFiles.contains(filename)
+									) {
 										UnixFile vhostsFile = new UnixFile(pkiVostsDirectory, filename, false);
 										if(vhostsFile.getStat().isSymLink()) {
 											String target = vhostsFile.readLink();
