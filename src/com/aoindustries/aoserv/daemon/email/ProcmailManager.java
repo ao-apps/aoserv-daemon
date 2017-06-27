@@ -509,7 +509,7 @@ public final class ProcmailManager extends BuilderThread {
 											fout.write(newBytes);
 										}
 										tempUF.renameTo(procmailrc);
-										restorecon.add(tempUF);
+										restorecon.add(procmailrc);
 									}
 								}
 							}
