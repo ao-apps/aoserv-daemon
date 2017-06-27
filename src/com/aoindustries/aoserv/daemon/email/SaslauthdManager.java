@@ -114,7 +114,12 @@ final public class SaslauthdManager extends BuilderThread {
 						) {
 							// Enable when sendmail or cyrus-imapd expected to be running
 							logger.fine("Enabling " + SERVICE);
-							AOServDaemon.exec(SYSTEMCTL, "enable", SERVICE);
+							try {
+								AOServDaemon.exec(SYSTEMCTL, "is-enabled", "--quiet", SERVICE);
+							} catch(IOException e) {
+								// Non-zero response indicates not enabled
+								AOServDaemon.exec(SYSTEMCTL, "enable", SERVICE);
+							}
 							// Reload/start when changed
 							if(changed) {
 								logger.fine("Reloading or restarting " + SERVICE);

@@ -388,7 +388,7 @@ final public class SshdManager extends BuilderThread {
 								if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 									AOServDaemon.exec("/sbin/chkconfig", "sshd", "on");
 								} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-									AOServDaemon.exec("/usr/bin/systemctl", "enable", "sshd");
+									AOServDaemon.exec("/usr/bin/systemctl", "enable", "sshd.service");
 								} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 							} catch(IOException e) {
 								throw new WrappedException(e);
@@ -474,8 +474,8 @@ final public class SshdManager extends BuilderThread {
 							AOServDaemon.exec("/sbin/chkconfig", "sshd", "off");
 							AOServDaemon.exec("/etc/rc.d/init.d/sshd", "stop");
 						} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-							AOServDaemon.exec("/usr/bin/systemctl", "disable", "sshd");
-							AOServDaemon.exec("/usr/bin/systemctl", "stop", "sshd");
+							AOServDaemon.exec("/usr/bin/systemctl", "disable", "sshd.service");
+							AOServDaemon.exec("/usr/bin/systemctl", "stop", "sshd.service");
 						} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 					} else if(needsRestart[0]) {
 						if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
@@ -510,9 +510,14 @@ final public class SshdManager extends BuilderThread {
 								);
 							}
 						} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-							AOServDaemon.exec("/usr/bin/systemctl", "enable", "sshd");
+							try {
+								AOServDaemon.exec("/usr/bin/systemctl", "is-enabled", "--quiet", "sshd.service");
+							} catch(IOException e) {
+								// Non-zero response indicates not enabled
+								AOServDaemon.exec("/usr/bin/systemctl", "enable", "sshd.service");
+							}
 							// TODO: Should this be reload-or-restart?
-							AOServDaemon.exec("/usr/bin/systemctl", "restart", "sshd");
+							AOServDaemon.exec("/usr/bin/systemctl", "restart", "sshd.service");
 						} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 					}
 				}
