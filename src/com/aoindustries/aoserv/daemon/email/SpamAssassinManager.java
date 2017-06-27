@@ -634,6 +634,20 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 							PackageManager.PackageName.SPAMASSASSIN,
 							() -> restartRequired[0] = true
 						);
+						if(
+							osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+							|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+						) {
+							// No aoserv-spamassassin-config package
+						} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+							// Install aoserv-spamassassin-config package if missing
+							PackageManager.installPackage(
+								PackageManager.PackageName.AOSERV_SPAMASSASSIN_CONFIG,
+								() -> restartRequired[0] = true
+							);
+						} else {
+							throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+						}
 						spamdInstalled = true;
 					} else {
 						spamdInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.SPAMASSASSIN) != null;
@@ -758,7 +772,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 									   + "# Run at nice level of 10\n"
 									   + "NICELEVEL=\"+10\"\n");
 							} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-								// TODO: Set nice for CentOS 7?
+								// Nice level is now set through the aoserv-spamassassin-config package
 							} else {
 								throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 							}
