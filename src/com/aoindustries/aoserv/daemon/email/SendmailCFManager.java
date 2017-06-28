@@ -29,6 +29,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -38,7 +39,9 @@ import java.util.logging.Level;
 /**
  * Builds the sendmail.mc and sendmail.cf files as necessary.
  *
- * TODO: Firewalld config
+ * TODO: Firewalld config once sendmail.mc finished for CentOS 7
+ *
+ * TODO: SELinux to support nonstandard ports.
  *
  * @author  AO Industries, Inc.
  */
@@ -159,14 +162,11 @@ final public class SendmailCFManager extends BuilderThread {
 		out.print("dnl Only listen to the IP addresses of this logical server\n"
 				+ "dnl\n"
 				+ "FEATURE(`no_default_msa')dnl\n");
-		List<InetAddress> finishedIPs=new SortedArrayList<>();
+		Set<InetAddress> finishedIPs = new HashSet<>();
 		for(NetBind nb : smtpNetBinds) {
 			IPAddress ia = nb.getIPAddress();
 			InetAddress ip = ia.getInetAddress();
-			if(
-				!ip.isLoopback()
-				&& !finishedIPs.contains(ip)
-			) {
+			if(finishedIPs.add(ip)) {
 				out
 					.print("DAEMON_OPTIONS(`Addr=")
 					.print(ip.toString())
@@ -181,17 +181,13 @@ final public class SendmailCFManager extends BuilderThread {
 				if(ip.isUnspecified()) out.print("h");
 				else out.print("bh");
 				out.print("')dnl\n"); // AO added
-				finishedIPs.add(ip);
 			}
 		}
 		finishedIPs.clear();
 		for(NetBind nb : smtpsNetBinds) {
 			IPAddress ia = nb.getIPAddress();
 			InetAddress ip = ia.getInetAddress();
-			if(
-				!ip.isLoopback()
-				&& !finishedIPs.contains(ip)
-			) {
+			if(finishedIPs.add(ip)) {
 				out
 					.print("DAEMON_OPTIONS(`Addr=")
 					.print(ip.toString())
@@ -206,17 +202,13 @@ final public class SendmailCFManager extends BuilderThread {
 				if(ip.isUnspecified()) out.print("hs");
 				else out.print("bhs");
 				out.print("')dnl\n"); // AO added
-				finishedIPs.add(ip);
 			}
 		}
 		finishedIPs.clear();
 		for(NetBind nb : submissionNetBinds) {
 			IPAddress ia = nb.getIPAddress();
 			InetAddress ip = ia.getInetAddress();
-			if(
-				!ip.isLoopback()
-				&& !finishedIPs.contains(ip)
-			) {
+			if(finishedIPs.add(ip)) {
 				out
 					.print("DAEMON_OPTIONS(`Addr=")
 					.print(ip.toString())
@@ -231,7 +223,6 @@ final public class SendmailCFManager extends BuilderThread {
 				if(ip.isUnspecified()) out.print("Eh");
 				else out.print("Ebh");
 				out.print("')dnl\n"); // AO added
-				finishedIPs.add(ip);
 			}
 		}
 		out.print("dnl\n"
@@ -362,14 +353,11 @@ final public class SendmailCFManager extends BuilderThread {
 		out.print("dnl Only listen to the IP addresses of this logical server\n"
 				+ "dnl\n"
 				+ "FEATURE(`no_default_msa')dnl\n");
-		List<InetAddress> finishedIPs=new SortedArrayList<>();
+		Set<InetAddress> finishedIPs = new HashSet<>();
 		for(NetBind nb : smtpNetBinds) {
 			IPAddress ia = nb.getIPAddress();
 			InetAddress ip = ia.getInetAddress();
-			if(
-				!ip.isLoopback()
-				&& !finishedIPs.contains(ip)
-			) {
+			if(finishedIPs.add(ip)) {
 				out
 					.print("DAEMON_OPTIONS(`Addr=")
 					.print(ip.toString())
@@ -384,17 +372,13 @@ final public class SendmailCFManager extends BuilderThread {
 				if(ip.isUnspecified()) out.print("h");
 				else out.print("bh");
 				out.print("')dnl\n"); // AO added
-				finishedIPs.add(ip);
 			}
 		}
 		finishedIPs.clear();
 		for(NetBind nb : smtpsNetBinds) {
 			IPAddress ia = nb.getIPAddress();
 			InetAddress ip = ia.getInetAddress();
-			if(
-				!ip.isLoopback()
-				&& !finishedIPs.contains(ip)
-			) {
+			if(finishedIPs.add(ip)) {
 				out
 					.print("DAEMON_OPTIONS(`Addr=")
 					.print(ip.toString())
@@ -409,17 +393,13 @@ final public class SendmailCFManager extends BuilderThread {
 				if(ip.isUnspecified()) out.print("hs");
 				else out.print("bhs");
 				out.print("')dnl\n"); // AO added
-				finishedIPs.add(ip);
 			}
 		}
 		finishedIPs.clear();
 		for(NetBind nb : submissionNetBinds) {
 			IPAddress ia = nb.getIPAddress();
 			InetAddress ip = ia.getInetAddress();
-			if(
-				!ip.isLoopback()
-				&& !finishedIPs.contains(ip)
-			) {
+			if(finishedIPs.add(ip)) {
 				out
 					.print("DAEMON_OPTIONS(`Addr=")
 					.print(ip.toString())
@@ -434,7 +414,6 @@ final public class SendmailCFManager extends BuilderThread {
 				if(ip.isUnspecified()) out.print("Eh");
 				else out.print("Ebh");
 				out.print("')dnl\n"); // AO added
-				finishedIPs.add(ip);
 			}
 		}
 		out.print("dnl\n"
@@ -562,14 +541,11 @@ final public class SendmailCFManager extends BuilderThread {
 		out.print("dnl Only listen to the IP addresses of this logical server\n"
 				+ "dnl\n"
 				+ "FEATURE(`no_default_msa')dnl\n");
-		List<InetAddress> finishedIPs=new SortedArrayList<>();
+		Set<InetAddress> finishedIPs = new HashSet<>();
 		for(NetBind nb : smtpNetBinds) {
 			IPAddress ia = nb.getIPAddress();
 			InetAddress ip = ia.getInetAddress();
-			if(
-				!ip.isLoopback()
-				&& !finishedIPs.contains(ip)
-			) {
+			if(finishedIPs.add(ip)) {
 				out
 					.print("DAEMON_OPTIONS(`Addr=")
 					.print(ip.toString())
@@ -584,17 +560,13 @@ final public class SendmailCFManager extends BuilderThread {
 				if(ip.isUnspecified()) out.print("h");
 				else out.print("bh");
 				out.print("')dnl\n"); // AO added
-				finishedIPs.add(ip);
 			}
 		}
 		finishedIPs.clear();
 		for(NetBind nb : smtpsNetBinds) {
 			IPAddress ia = nb.getIPAddress();
 			InetAddress ip = ia.getInetAddress();
-			if(
-				!ip.isLoopback()
-				&& !finishedIPs.contains(ip)
-			) {
+			if(finishedIPs.add(ip)) {
 				out
 					.print("DAEMON_OPTIONS(`Addr=")
 					.print(ip.toString())
@@ -609,17 +581,13 @@ final public class SendmailCFManager extends BuilderThread {
 				if(ip.isUnspecified()) out.print("hs");
 				else out.print("bhs");
 				out.print("')dnl\n"); // AO added
-				finishedIPs.add(ip);
 			}
 		}
 		finishedIPs.clear();
 		for(NetBind nb : submissionNetBinds) {
 			IPAddress ia = nb.getIPAddress();
 			InetAddress ip = ia.getInetAddress();
-			if(
-				!ip.isLoopback()
-				&& !finishedIPs.contains(ip)
-			) {
+			if(finishedIPs.add(ip)) {
 				out
 					.print("DAEMON_OPTIONS(`Addr=")
 					.print(ip.toString())
@@ -634,7 +602,6 @@ final public class SendmailCFManager extends BuilderThread {
 				if(ip.isUnspecified()) out.print("Eh");
 				else out.print("Ebh");
 				out.print("')dnl\n"); // AO added
-				finishedIPs.add(ip);
 			}
 		}
 		out.print("dnl\n"
@@ -687,6 +654,11 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "VERSIONID(`AOServ Platform')dnl\n" // AO added
 				+ "OSTYPE(`linux')dnl\n"
 				+ "dnl #\n"
+				+ "dnl # Disable unused relays.\n"
+				+ "dnl #\n"
+				+ "undefine(`UUCP_RELAY')dnl\n"
+				+ "undefine(`BITNET_RELAY')dnl\n"
+				+ "dnl #\n"
 				+ "dnl # Do not advertize sendmail version.\n"
 				+ "dnl #\n"
 				+ "define(`confSMTP_LOGIN_MSG', `$j Sendmail; $b')dnl\n"
@@ -711,8 +683,9 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "define(`STATUS_FILE', `/var/log/mail/statistics')dnl\n"
 				+ "define(`UUCP_MAILER_MAX', `2000000')dnl\n"
 				+ "define(`confUSERDB_SPEC', `/etc/mail/userdb.db')dnl\n"
-				+ "define(`confPRIVACY_FLAGS', `authwarnings,novrfy,noexpn,restrictqrun')dnl\n"
-				+ "define(`confAUTH_OPTIONS', `A')dnl\n"
+				//+ "define(`confPRIVACY_FLAGS', `authwarnings,novrfy,noexpn,restrictqrun')dnl\n"
+				+ "define(`confPRIVACY_FLAGS', `authwarnings,goaway,novrfy,noexpn,restrictqrun,restrictmailq,restrictexpand')dnl\n" // AO Modified
+				+ "define(`confAUTH_OPTIONS', `A y')dnl\n" // AO modified from `A'
 				+ "dnl #\n"
 				+ "dnl # The following allows relaying if the user authenticates, and disallows\n"
 				+ "dnl # plaintext authentication (PLAIN/LOGIN) on non-TLS links\n"
@@ -725,8 +698,10 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl # guaranteed secure.\n"
 				+ "dnl # Please remember that saslauthd needs to be running for AUTH. \n"
 				+ "dnl #\n"
-				+ "dnl TRUST_AUTH_MECH(`EXTERNAL DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n"
-				+ "dnl define(`confAUTH_MECHANISMS', `EXTERNAL GSSAPI DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n"
+				//+ "dnl TRUST_AUTH_MECH(`EXTERNAL DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n"
+				+ "TRUST_AUTH_MECH(`EXTERNAL LOGIN PLAIN')dnl\n" // AO Enabled and modified since using pam no sasldb
+				//+ "dnl define(`confAUTH_MECHANISMS', `EXTERNAL GSSAPI DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n"
+				+ "define(`confAUTH_MECHANISMS', `EXTERNAL LOGIN PLAIN')dnl\n" // AO Enabled and modified since using pam no sasldb
 				+ "dnl #\n"
 				+ "dnl # Rudimentary information on creating certificates for sendmail TLS:\n"
 				+ "dnl #     cd /etc/pki/tls/certs; make sendmail.pem\n"
@@ -738,48 +713,104 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl define(`confSERVER_CERT', `/etc/pki/tls/certs/sendmail.pem')dnl\n"
 				+ "dnl define(`confSERVER_KEY', `/etc/pki/tls/certs/sendmail.pem')dnl\n"
 				+ "dnl #\n"
+				+ "dnl # STARTTLS configuration\n"
+				+ "dnl # extract from http://www.sendmail.org/~ca/email/starttls.html\n"
+				+ "dnl #\n"
+				+ "define(`CERT_DIR', `/etc/pki/sendmail')dnl\n"
+				+ "define(`confCACERT_PATH', `CERT_DIR')dnl\n"
+				+ "define(`confCACERT', `CERT_DIR/CAcert.pem')dnl\n"
+				+ "define(`confSERVER_CERT', `CERT_DIR/MYcert.pem')dnl\n"
+				+ "define(`confSERVER_KEY', `CERT_DIR/MYkey.pem')dnl\n"
+				+ "define(`confCLIENT_CERT', `CERT_DIR/MYcert.pem')dnl\n"
+				+ "define(`confCLIENT_KEY', `CERT_DIR/MYkey.pem')dnl\n"
+				+ "dnl #\n"
+				+ "dnl # Do not add the hostname to incorrectly formatted headers\n"
+				+ "dnl #\n"
+				+ "FEATURE(`nocanonify')dnl\n"
+				+ "define(`confBIND_OPTS',`-DNSRCH -DEFNAMES')dnl\n"
+				+ "dnl #\n"
 				+ "dnl # This allows sendmail to use a keyfile that is shared with OpenLDAP's\n"
 				+ "dnl # slapd, which requires the file to be readble by group ldap\n"
 				+ "dnl #\n"
 				+ "dnl define(`confDONT_BLAME_SENDMAIL', `groupreadablekeyfile')dnl\n"
 				+ "dnl #\n"
+				+ "dnl # Queue control.\n"
+				+ "dnl #\n"
 				+ "dnl define(`confTO_QUEUEWARN', `4h')dnl\n"
 				+ "dnl define(`confTO_QUEUERETURN', `5d')dnl\n"
-				+ "dnl define(`confQUEUE_LA', `12')dnl\n"
-				+ "dnl define(`confREFUSE_LA', `18')dnl\n"
+				+ "define(`confMAX_QUEUE_CHILDREN', `100')dnl\n"
+				+ "define(`confNICE_QUEUE_RUN', `10')dnl\n"
+				+ "dnl #\n"
+				+ "dnl # Allow relatively high load averages\n"
+				+ "dnl #\n"
+				+ "define(`confDELAY_LA', `40')dnl\n" // AO Added
+				+ "define(`confQUEUE_LA', `50')dnl\n" // AO Enabled and modified from `12'
+				+ "define(`confREFUSE_LA', `80')dnl\n" // AO Enabled and modified from `18'
+				+ "dnl #\n"
+				+ "dnl # Disable IDENT\n"
+				+ "dnl #\n"
 				+ "define(`confTO_IDENT', `0')dnl\n"
 				+ "dnl # If you're operating in a DSCP/RFC-4594 environment with QoS\n"
 				+ "dnl define(`confINET_QOS', `AF11')dnl\n"
-				+ "dnl FEATURE(delay_checks)dnl\n"
+				+ "FEATURE(`delay_checks')dnl\n" // AO Enabled
 				+ "FEATURE(`no_default_msa', `dnl')dnl\n"
 				+ "FEATURE(`smrsh', `/usr/sbin/smrsh')dnl\n"
 				+ "FEATURE(`mailertable', `hash -o /etc/mail/mailertable.db')dnl\n"
+				+ "FEATURE(`virtuser_entire_domain')dnl\n" // AO Added
 				+ "FEATURE(`virtusertable', `hash -o /etc/mail/virtusertable.db')dnl\n"
 				+ "FEATURE(redirect)dnl\n"
-				+ "FEATURE(always_add_domain)dnl\n"
+				+ "dnl FEATURE(always_add_domain)dnl\n" // AO Disabled
 				+ "FEATURE(use_cw_file)dnl\n"
-				+ "FEATURE(use_ct_file)dnl\n"
+				+ "dnl FEATURE(use_ct_file)dnl\n" // AO Disabled
 				+ "dnl #\n"
 				+ "dnl # The following limits the number of processes sendmail can fork to accept \n"
 				+ "dnl # incoming messages or process its message queues to 20.) sendmail refuses \n"
 				+ "dnl # to accept connections once it has reached its quota of child processes.\n"
 				+ "dnl #\n"
-				+ "dnl define(`confMAX_DAEMON_CHILDREN', `20')dnl\n"
+				+ "define(`confMAX_DAEMON_CHILDREN', `1000')dnl\n" // AO Enabled and modified from `20'
 				+ "dnl #\n"
 				+ "dnl # Limits the number of new connections per second. This caps the overhead \n"
 				+ "dnl # incurred due to forking new sendmail processes. May be useful against \n"
 				+ "dnl # DoS attacks or barrages of spam. (As mentioned below, a per-IP address \n"
 				+ "dnl # limit would be useful but is not available as an option at this writing.)\n"
 				+ "dnl #\n"
-				+ "dnl define(`confCONNECTION_RATE_THROTTLE', `3')dnl\n"
+				+ "define(`confBAD_RCPT_THROTTLE', `10')dnl\n" // AO added
+				+ "define(`confCONNECTION_RATE_THROTTLE', `100')dnl\n" // AO enabled and modified from `3'
+				+ "dnl #\n"
+				+ "dnl # Allow large messages for big attachments.\n"
+				+ "dnl #\n"
+				+ "define(`confMAX_MESSAGE_SIZE', `100000000')dnl\n"
+				+ "dnl #\n"
+				+ "dnl # Stop accepting mail when disk almost full.\n"
+				+ "dnl #\n"
+				+ "define(`confMIN_FREE_BLOCKS', `65536')dnl\n"
+				//+ "dnl #\n"
+				//+ "dnl # Add process title prefix for fail-over state.\n"
+				//+ "dnl #\n"
+				//+ "define(`confPROCESS_TITLE_PREFIX',`").print(thisAoServer.getHostname()).print("')dnl\n"
 				+ "dnl #\n"
 				+ "dnl # The -t option will retry delivery if e.g. the user runs over his quota.\n"
 				+ "dnl #\n"
 				+ "FEATURE(local_procmail, `', `procmail -t -Y -a $h -d $u')dnl\n"
 				+ "FEATURE(`access_db', `hash -T<TMPF> -o /etc/mail/access.db')dnl\n"
 				+ "FEATURE(`blacklist_recipients')dnl\n"
-				+ "EXPOSED_USER(`root')dnl\n"
-				+ "dnl #\n"
+				+ "EXPOSED_USER(`root')dnl\n");
+		// Look for the configured net bind for the jilter
+		NetBind jilterNetBind = JilterConfigurationWriter.getJilterNetBind();
+		// Only configure when the net bind has been found
+		if(jilterNetBind != null) {
+			out.print("dnl #\n"
+					+ "dnl # Enable AOServ Jilter\n"
+					+ "dnl #\n");
+			InetAddress ip = jilterNetBind.getIPAddress().getInetAddress();
+			if(ip.isUnspecified()) ip = thisAoServer.getPrimaryIPAddress().getInetAddress();
+			out
+				.print("INPUT_MAIL_FILTER(`jilter', `S=")
+				.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
+				.print(':')
+				.print(jilterNetBind.getPort().getPort()).print('@').print(ip).print(", F=R, T=S:60s;R:60s')\n");
+		}
+		out.print("dnl #\n"
 				+ "dnl # For using Cyrus-IMAPd as POP3/IMAP server through LMTP delivery uncomment\n"
 				+ "dnl # the following 2 definitions and activate below in the MAILER section the\n"
 				+ "dnl # cyrusv2 mailer.\n"
@@ -790,16 +821,64 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl # The following causes sendmail to only listen on the IPv4 loopback address\n"
 				+ "dnl # 127.0.0.1 and not on any other network devices. Remove the loopback\n"
 				+ "dnl # address restriction to accept email from the internet or intranet.\n"
-				+ "dnl #\n"
-				+ "DAEMON_OPTIONS(`Port=smtp,Addr=127.0.0.1, Name=MTA')dnl\n"
-				+ "dnl #\n"
+				+ "dnl #\n");
+		boolean sendmailEnabled = 
+			!smtpNetBinds.isEmpty()
+			|| !smtpsNetBinds.isEmpty()
+			|| !submissionNetBinds.isEmpty()
+		;
+		if(sendmailEnabled) out.print("dnl ");
+		out.print("DAEMON_OPTIONS(`Port=smtp,Addr=127.0.0.1, Name=MTA')dnl\n");
+		Set<InetAddress> finishedIPs = new HashSet<>();
+		for(NetBind nb : smtpNetBinds) {
+			IPAddress ia = nb.getIPAddress();
+			InetAddress ip = ia.getInetAddress();
+			if(finishedIPs.add(ip)) {
+				out
+					.print("DAEMON_OPTIONS(`Addr=")
+					.print(ip.toString())
+					.print(", Family=")
+					.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
+					.print(", Port=")
+					.print(nb.getPort().getPort())
+					.print(", Name=")
+					.print(ip.isUnspecified()?thisAoServer.getHostname():ia.getHostname())
+					.print("-MTA, Modifiers=")
+				;
+				if(ip.isUnspecified()) out.print("h");
+				else out.print("bh");
+				out.print("')dnl\n"); // AO added
+			}
+		}
+		out.print("dnl #\n"
 				+ "dnl # The following causes sendmail to additionally listen to port 587 for\n"
 				+ "dnl # mail from MUAs that authenticate. Roaming users who can't reach their\n"
 				+ "dnl # preferred sendmail daemon due to port 25 being blocked or redirected find\n"
 				+ "dnl # this useful.\n"
 				+ "dnl #\n"
-				+ "dnl DAEMON_OPTIONS(`Port=submission, Name=MSA, M=Ea')dnl\n"
-				+ "dnl #\n"
+				+ "dnl DAEMON_OPTIONS(`Port=submission, Name=MSA, M=Ea')dnl\n");
+		finishedIPs.clear();
+		for(NetBind nb : submissionNetBinds) {
+			IPAddress ia = nb.getIPAddress();
+			InetAddress ip = ia.getInetAddress();
+			if(finishedIPs.add(ip)) {
+				out
+					.print("DAEMON_OPTIONS(`Addr=")
+					.print(ip.toString())
+					.print(", Family=")
+					.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
+					.print(", Port=")
+					.print(nb.getPort().getPort())
+					.print(", Name=")
+					.print(ip.isUnspecified()?thisAoServer.getHostname():ia.getHostname())
+					.print("-MSA, Modifiers=")
+				;
+				if(ip.isUnspecified()) out.print("Eah");
+				else out.print("Eabh");
+				out.print("')dnl\n"); // AO added
+			}
+		}
+		out.print("dnl #\n"
 				+ "dnl # The following causes sendmail to additionally listen to port 465, but\n"
 				+ "dnl # starting immediately in TLS mode upon connecting. Port 25 or 587 followed\n"
 				+ "dnl # by STARTTLS is preferred, but roaming clients using Outlook Express can't\n"
@@ -809,8 +888,29 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl #\n"
 				+ "dnl # For this to work your OpenSSL certificates must be configured.\n"
 				+ "dnl #\n"
-				+ "dnl DAEMON_OPTIONS(`Port=smtps, Name=TLSMTA, M=s')dnl\n"
-				+ "dnl #\n"
+				+ "dnl DAEMON_OPTIONS(`Port=smtps, Name=TLSMTA, M=s')dnl\n");
+		finishedIPs.clear();
+		for(NetBind nb : smtpsNetBinds) {
+			IPAddress ia = nb.getIPAddress();
+			InetAddress ip = ia.getInetAddress();
+			if(finishedIPs.add(ip)) {
+				out
+					.print("DAEMON_OPTIONS(`Addr=")
+					.print(ip.toString())
+					.print(", Family=")
+					.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
+					.print(", Port=")
+					.print(nb.getPort().getPort())
+					.print(", Name=")
+					.print(ip.isUnspecified()?thisAoServer.getHostname():ia.getHostname())
+					.print("-TLSMSA, Modifiers=")
+				;
+				if(ip.isUnspecified()) out.print("sh");
+				else out.print("sbh");
+				out.print("')dnl\n"); // AO added
+			}
+		}
+		out.print("dnl #\n"
 				+ "dnl # The following causes sendmail to additionally listen on the IPv6 loopback\n"
 				+ "dnl # device. Remove the loopback address restriction listen to the network.\n"
 				+ "dnl #\n"
@@ -824,13 +924,14 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl # protect yourself from spam. However, the laptop and users on computers\n"
 				+ "dnl # that do not have 24x7 DNS do need this.\n"
 				+ "dnl #\n"
-				+ "FEATURE(`accept_unresolvable_domains')dnl\n"
+				+ "dnl FEATURE(`accept_unresolvable_domains')dnl\n" // AO Disabled
 				+ "dnl #\n"
 				+ "dnl FEATURE(`relay_based_on_MX')dnl\n"
 				+ "dnl # \n"
 				+ "dnl # Also accept email sent to \"localhost.localdomain\" as local email.\n"
-				+ "dnl # \n"
-				+ "LOCAL_DOMAIN(`localhost.localdomain')dnl\n"
+				+ "dnl # \n");
+		if(sendmailEnabled) out.print("dnl "); // AO Disabled
+		out.print("LOCAL_DOMAIN(`localhost.localdomain')dnl\n"
 				+ "dnl #\n"
 				+ "dnl # The following example makes mail from this host and any additional\n"
 				+ "dnl # specified domains appear to be sent from mydomain.com\n"
@@ -848,182 +949,25 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl MASQUERADE_DOMAIN(localhost)dnl\n"
 				+ "dnl MASQUERADE_DOMAIN(localhost.localdomain)dnl\n"
 				+ "dnl MASQUERADE_DOMAIN(mydomainalias.com)dnl\n"
-				+ "dnl MASQUERADE_DOMAIN(mydomain.lan)dnl\n"
-				+ "MAILER(smtp)dnl\n"
-				+ "MAILER(procmail)dnl\n"
-				+ "dnl MAILER(cyrusv2)dnl\n"
-		);
-		/* TODO
-		out.print("divert(-1)dnl\n"
-				+ "undefine(`UUCP_RELAY')dnl\n"
-				+ "undefine(`BITNET_RELAY')dnl\n"
-				+ "define(`confALIAS_WAIT', `30')dnl\n"
-				+ "define(`confTO_CONNECT', `1m')dnl\n"
-				+ "define(`confTRY_NULL_MX_LIST', `True')dnl\n"
-				+ "define(`confDONT_PROBE_INTERFACES', `True')dnl\n"
-				+ "define(`PROCMAIL_MAILER_PATH',`/usr/bin/procmail')dnl\n"
-				+ "define(`ALIAS_FILE', `/etc/aliases')dnl\n"
-				+ "define(`STATUS_FILE', `/var/log/mail/statistics')dnl\n"
-				+ "define(`UUCP_MAILER_MAX', `2000000')dnl\n"
-				+ "define(`confUSERDB_SPEC', `/etc/mail/userdb.db')dnl\n"
-				+ "FEATURE(`smrsh',`/usr/sbin/smrsh')dnl\n"
-				+ "dnl define delivery mode: interactive, background, or queued\n"
-				+ "define(`confDELIVERY_MODE', `background')\n"
-				+ "FEATURE(`mailertable',`hash -o /etc/mail/mailertable.db')dnl\n"
-				+ "FEATURE(`virtuser_entire_domain')dnl\n"
-				+ "FEATURE(`virtusertable',`hash -o /etc/mail/virtusertable.db')dnl\n"
-				+ "FEATURE(redirect)dnl\n"
-				+ "FEATURE(use_cw_file)dnl\n"
-				+ "FEATURE(local_procmail,`',`procmail -t -Y -a $h -d $u')dnl\n"
-				+ "FEATURE(`access_db',`hash -T<TMPF> -o /etc/mail/access.db')dnl\n"
-				+ "FEATURE(`delay_checks')dnl\n"
-				+ "FEATURE(`blacklist_recipients')dnl\n"
-				+ "dnl\n"
-				+ "dnl Next lines are for SMTP Authentication\n"
-				+ "define(`confAUTH_OPTIONS', `A y')dnl\n"
-				+ "TRUST_AUTH_MECH(`EXTERNAL DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n"
-				+ "define(`confAUTH_MECHANISMS', `EXTERNAL GSSAPI DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n"
-				+ "dnl\n"
-				+ "dnl STARTTLS configuration\n"
-				+ "dnl extract from http://www.sendmail.org/~ca/email/starttls.html\n"
-				+ "dnl\n"
-				+ "define(`CERT_DIR', `/etc/ssl/sendmail')dnl\n"
-				+ "define(`confCACERT_PATH', `CERT_DIR')dnl\n"
-				+ "define(`confCACERT', `CERT_DIR/CAcert.pem')dnl\n"
-				+ "define(`confSERVER_CERT', `CERT_DIR/MYcert.pem')dnl\n"
-				+ "define(`confSERVER_KEY', `CERT_DIR/MYkey.pem')dnl\n"
-				+ "define(`confCLIENT_CERT', `CERT_DIR/MYcert.pem')dnl\n"
-				+ "define(`confCLIENT_KEY', `CERT_DIR/MYkey.pem')dnl\n"
-				+ "dnl\n"
-				+ "dnl Allow relatively high load averages\n"
-				+ "define(`confQUEUE_LA', `50')dnl\n"
-				+ "define(`confREFUSE_LA', `80')dnl\n"
-				+ "dnl\n"
-				+ "dnl Do not add the hostname to incorrectly formatted headers\n"
-				+ "FEATURE(`nocanonify')dnl\n"
-				+ "define(`confBIND_OPTS',`-DNSRCH -DEFNAMES')dnl\n"
-				+ "dnl\n"
-				+ "dnl Uncomment next lines to hide identity of mail server\n"
-				+ "define(`confPRIVACY_FLAGS',`authwarnings,goaway,novrfy,noexpn,restrictqrun,restrictmailq,restrictexpand')dnl\n"
-				+ "dnl Do not advertize sendmail version.\n"
-				+ "define(`confSMTP_LOGIN_MSG', `$j Sendmail; $b')dnl\n"
-				+ "dnl\n"
-				+ "dnl Additional features added AO Industries on 2005-04-22\n"
-				+ "define(`confBAD_RCPT_THROTTLE',`10')dnl\n"
-				+ "define(`confCONNECTION_RATE_THROTTLE',`100')dnl\n"
-				+ "define(`confDELAY_LA',`40')dnl\n"
-				+ "define(`confMAX_DAEMON_CHILDREN',`1000')dnl\n"
-				+ "define(`confMAX_MESSAGE_SIZE',`100000000')dnl\n"
-				+ "define(`confMAX_QUEUE_CHILDREN',`100')dnl\n"
-				+ "define(`confMIN_FREE_BLOCKS',`65536')dnl\n"
-				+ "define(`confNICE_QUEUE_RUN',`10')dnl\n"
-				+ "define(`confPROCESS_TITLE_PREFIX',`").print(thisAoServer.getHostname()).print("')dnl\n"
-				+ "dnl\n");
-		// Look for the configured net bind for the jilter
-		NetBind jilterNetBind = JilterConfigurationWriter.getJilterNetBind();
-		// Only configure when the net bind has been found
-		if(jilterNetBind != null) {
-			out.print("dnl Enable Jilter\n"
-					+ "dnl\n");
-			InetAddress ip = jilterNetBind.getIPAddress().getInetAddress();
-			if(ip.isUnspecified()) ip = thisAoServer.getPrimaryIPAddress().getInetAddress();
-			out
-				.print("INPUT_MAIL_FILTER(`jilter',`S=")
-				.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
-				.print(':')
-				.print(jilterNetBind.getPort().getPort()).print('@').print(ip).print(", F=R, T=S:60s;R:60s')\n"
-					+ "dnl\n");
-		}
-		out.print("dnl Only listen to the IP addresses of this logical server\n"
-				+ "dnl\n"
-				+ "FEATURE(`no_default_msa')dnl\n");
-		List<InetAddress> finishedIPs=new SortedArrayList<>();
-		for(NetBind nb : smtpNetBinds) {
-			IPAddress ia = nb.getIPAddress();
-			InetAddress ip = ia.getInetAddress();
-			if(
-				!ip.isLoopback()
-				&& !finishedIPs.contains(ip)
-			) {
-				out
-					.print("DAEMON_OPTIONS(`Addr=")
-					.print(ip.toString())
-					.print(", Family=")
-					.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
-					.print(", Port=")
-					.print(nb.getPort().getPort())
-					.print(", Name=")
-					.print(ip.isUnspecified()?thisAoServer.getHostname():ia.getHostname())
-					.print("-MTA, Modifiers=")
-				;
-				if(ip.isUnspecified()) out.print("h");
-				else out.print("bh");
-				out.print("')dnl\n"); // AO added
-				finishedIPs.add(ip);
-			}
-		}
-		finishedIPs.clear();
-		for(NetBind nb : smtpsNetBinds) {
-			IPAddress ia = nb.getIPAddress();
-			InetAddress ip = ia.getInetAddress();
-			if(
-				!ip.isLoopback()
-				&& !finishedIPs.contains(ip)
-			) {
-				out
-					.print("DAEMON_OPTIONS(`Addr=")
-					.print(ip.toString())
-					.print(", Family=")
-					.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
-					.print(", Port=")
-					.print(nb.getPort().getPort())
-					.print(", Name=")
-					.print(ip.isUnspecified()?thisAoServer.getHostname():ia.getHostname())
-					.print("-TLSMSA, Modifiers=")
-				;
-				if(ip.isUnspecified()) out.print("hs");
-				else out.print("bhs");
-				out.print("')dnl\n"); // AO added
-				finishedIPs.add(ip);
-			}
-		}
-		finishedIPs.clear();
-		for(NetBind nb : submissionNetBinds) {
-			IPAddress ia = nb.getIPAddress();
-			InetAddress ip = ia.getInetAddress();
-			if(
-				!ip.isLoopback()
-				&& !finishedIPs.contains(ip)
-			) {
-				out
-					.print("DAEMON_OPTIONS(`Addr=")
-					.print(ip.toString())
-					.print(", Family=")
-					.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
-					.print(", Port=")
-					.print(nb.getPort().getPort())
-					.print(", Name=")
-					.print(ip.isUnspecified()?thisAoServer.getHostname():ia.getHostname())
-					.print("-MSA, Modifiers=")
-				;
-				if(ip.isUnspecified()) out.print("Eh");
-				else out.print("Ebh");
-				out.print("')dnl\n"); // AO added
-				finishedIPs.add(ip);
-			}
-		}
-		out.print("dnl\n"
-				+ "dnl Enable IDENT lookups\n"
-				// TO_IDENT set to 10s was causing normally 1 second email to become 30 second email on www.keepandshare.com
-				+ "define(`confTO_IDENT',`0s')dnl\n");
+				+ "dnl MASQUERADE_DOMAIN(mydomain.lan)dnl\n");
 		if(thisAoServer.getServer().getServerFarm().useRestrictedSmtpPort()) {
-			out.print("MODIFY_MAILER_FLAGS(`SMTP',`+R')dnl\n"
+			out.print("dnl #\n"
+					+ "dnl # Establish outgoing connections from reserved ports (0-1023).\n"
+					+ "dnl # This is used by firewall rules to prevent regular users from sending email directly.\n"
+					+ "dnl #\n"
+					+ "dnl # Some mail providers, such as yahoo.com, will not allow email from privileged ports,\n"
+					+ "dnl # so this is used in conjunction with outgoing NAT on the routers to make connections\n"
+					+ "dnl # appear to come from ports >= 1024.\n"
+					+ "dnl #\n"
+					+ "MODIFY_MAILER_FLAGS(`SMTP',`+R')dnl\n"
 					+ "MODIFY_MAILER_FLAGS(`ESMTP',`+R')dnl\n"
 					+ "MODIFY_MAILER_FLAGS(`SMTP8',`+R')dnl\n"
-					+ "MODIFY_MAILER_FLAGS(`DSMTP',`+R')dnl\n");
+					+ "MODIFY_MAILER_FLAGS(`DSMTP',`+R')dnl\n"
+					+ "dnl #\n");
 		}
 		out.print("MAILER(smtp)dnl\n"
 				+ "MAILER(procmail)dnl\n"
+				+ "dnl MAILER(cyrusv2)dnl\n"
 				+ "LOCAL_CONFIG\n"
 				// From http://serverfault.com/questions/700655/sendmail-rejecting-some-connections-with-handshake-failure-ssl-alert-number-40
 				+ "O CipherList=HIGH:!ADH\n"
@@ -1032,10 +976,8 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "O ClientSSLOptions=+SSL_OP_NO_SSLv2 +SSL_OP_NO_SSLv3\n"
 				// Add envelop header recipient
 				+ "H?m?X-RCPT-To: $u\n"
-				+ "Dj").print(thisAoServer.getHostname()).print("\n" // AO added
-				+ "\n"
-		);
-		 */
+				+ "Dj").print(thisAoServer.getHostname()).print("\n" // AO added for control $j in failover mode
+				+ "\n");
 	}
 
 	private static final Object rebuildLock = new Object();
