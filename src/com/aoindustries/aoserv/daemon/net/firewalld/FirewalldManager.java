@@ -274,6 +274,32 @@ final public class FirewalldManager extends BuilderThread {
 						if(logger.isLoggable(Level.FINE)) logger.fine("postgresql targets: " + targets);
 						publicServiceSets.add(ServiceSet.createOptimizedServiceSet("postgresql", targets));
 					}
+					// SMTP and SUBMISSION
+					{
+						List<Target> targets = new ArrayList<>();
+						for(NetBind nb : netBinds) {
+							String prot = nb.getAppProtocol().getProtocol();
+							if(
+								prot.equals(Protocol.SMTP)
+								|| prot.equals(Protocol.SUBMISSION)
+							) {
+								addTarget(nb, targets);
+							}
+						}
+						if(logger.isLoggable(Level.FINE)) logger.fine("smtp targets: " + targets);
+						publicServiceSets.add(ServiceSet.createOptimizedServiceSet("smtp", targets));
+					}
+					// SMTPS
+					{
+						List<Target> targets = new ArrayList<>();
+						for(NetBind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(Protocol.SMTPS)) {
+								addTarget(nb, targets);
+							}
+						}
+						if(logger.isLoggable(Level.FINE)) logger.fine("smtps targets: " + targets);
+						publicServiceSets.add(ServiceSet.createOptimizedServiceSet("smtps", targets));
+					}
 					// vnc-server
 					{
 						List<Target> targets = new ArrayList<>();

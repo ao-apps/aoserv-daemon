@@ -240,22 +240,17 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 		"cdb"
 	};*/
 
-	private static final String[] mandrivaSendmailMakemapCommand={
-		"/usr/aoserv/daemon/bin/make_sendmail_access_map"
-	};
-
 	private static void makeAccessMap(byte[] accessBytes, Set<UnixFile> restorecon) throws IOException, SQLException {
 		/*if(AOServDaemon.getThisAOServer().isQmail()) command = qmailctlCdbCommand;
 		else {*/
 		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-			AOServDaemon.exec(mandrivaSendmailMakemapCommand);
+			AOServDaemon.exec("/usr/aoserv/daemon/bin/make_sendmail_access_map");
 			restorecon.add(ACCESS_DB);
 		} else if(
 			osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
 			|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-			|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 		) {
 			// Make sure /usr/sbin/makemap is installed as required by make_sendmail_access_map
 			// access file only built when sendmail installed now: PackageManager.installPackage(PackageManager.PackageName.SENDMAIL);
@@ -266,6 +261,9 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 			}
 			AOServDaemon.waitFor(process, command);
 			NEW_ACCESS_DB.renameTo(ACCESS_DB);
+			restorecon.add(ACCESS_DB);
+		} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+			AOServDaemon.exec("/etc/mail/make", "access.db");
 			restorecon.add(ACCESS_DB);
 		} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 		//}

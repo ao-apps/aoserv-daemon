@@ -490,6 +490,14 @@ final public class ImapManager extends BuilderThread {
 									PackageManager.PackageName.CYRUS_IMAPD,
 									() -> needsReload[0] = true
 								);
+								PackageManager.installPackage(
+									PackageManager.PackageName.CYRUS_SASL,
+									() -> needsReload[0] = true
+								);
+								PackageManager.installPackage(
+									PackageManager.PackageName.CYRUS_SASL_PLAIN,
+									() -> needsReload[0] = true
+								);
 							} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 								PackageManager.installPackage(
 									PackageManager.PackageName.AOSERV_IMAPD_CONFIG,

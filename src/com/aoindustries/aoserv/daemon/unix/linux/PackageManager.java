@@ -60,6 +60,7 @@ public class PackageManager {
 		CVS("cvs"),
 		CYRUS_IMAPD("cyrus-imapd"),
 		CYRUS_SASL("cyrus-sasl"),
+		CYRUS_SASL_PLAIN("cyrus-sasl-plain"),
 		FIREWALLD("firewalld"),
 		GZIP("gzip"),
 		HDDTEMP("hddtemp"),

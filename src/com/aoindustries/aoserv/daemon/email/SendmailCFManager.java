@@ -39,8 +39,6 @@ import java.util.logging.Level;
 /**
  * Builds the sendmail.mc and sendmail.cf files as necessary.
  *
- * TODO: Firewalld config once sendmail.mc finished for CentOS 7
- *
  * TODO: SELinux to support nonstandard ports.
  *
  * @author  AO Industries, Inc.
@@ -727,7 +725,7 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl # Do not add the hostname to incorrectly formatted headers\n"
 				+ "dnl #\n"
 				+ "FEATURE(`nocanonify')dnl\n"
-				+ "define(`confBIND_OPTS',`-DNSRCH -DEFNAMES')dnl\n"
+				+ "define(`confBIND_OPTS', `-DNSRCH -DEFNAMES')dnl\n"
 				+ "dnl #\n"
 				+ "dnl # This allows sendmail to use a keyfile that is shared with OpenLDAP's\n"
 				+ "dnl # slapd, which requires the file to be readble by group ldap\n"
@@ -750,6 +748,7 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl # Disable IDENT\n"
 				+ "dnl #\n"
 				+ "define(`confTO_IDENT', `0')dnl\n"
+				+ "dnl #\n"
 				+ "dnl # If you're operating in a DSCP/RFC-4594 environment with QoS\n"
 				+ "dnl define(`confINET_QOS', `AF11')dnl\n"
 				+ "FEATURE(`delay_checks')dnl\n" // AO Enabled
@@ -873,8 +872,8 @@ final public class SendmailCFManager extends BuilderThread {
 					.print(ip.isUnspecified()?thisAoServer.getHostname():ia.getHostname())
 					.print("-MSA, Modifiers=")
 				;
-				if(ip.isUnspecified()) out.print("Eah");
-				else out.print("Eabh");
+				if(ip.isUnspecified()) out.print("Eh"); // TODO: Eah once monitoring supports authentication
+				else out.print("Ebh"); // TODO: Eabh once monitoring supports authentication
 				out.print("')dnl\n"); // AO added
 			}
 		}
@@ -959,10 +958,10 @@ final public class SendmailCFManager extends BuilderThread {
 					+ "dnl # so this is used in conjunction with outgoing NAT on the routers to make connections\n"
 					+ "dnl # appear to come from ports >= 1024.\n"
 					+ "dnl #\n"
-					+ "MODIFY_MAILER_FLAGS(`SMTP',`+R')dnl\n"
-					+ "MODIFY_MAILER_FLAGS(`ESMTP',`+R')dnl\n"
-					+ "MODIFY_MAILER_FLAGS(`SMTP8',`+R')dnl\n"
-					+ "MODIFY_MAILER_FLAGS(`DSMTP',`+R')dnl\n"
+					+ "MODIFY_MAILER_FLAGS(`SMTP', `+R')dnl\n"
+					+ "MODIFY_MAILER_FLAGS(`ESMTP', `+R')dnl\n"
+					+ "MODIFY_MAILER_FLAGS(`SMTP8', `+R')dnl\n"
+					+ "MODIFY_MAILER_FLAGS(`DSMTP', `+R')dnl\n"
 					+ "dnl #\n");
 		}
 		out.print("MAILER(smtp)dnl\n"
@@ -971,7 +970,7 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "LOCAL_CONFIG\n"
 				// From http://serverfault.com/questions/700655/sendmail-rejecting-some-connections-with-handshake-failure-ssl-alert-number-40
 				+ "O CipherList=HIGH:!ADH\n"
-				+ "O DHParameters=/etc/ssl/sendmail/dhparams.pem\n"
+				+ "O DHParameters=/etc/pki/sendmail/dhparams.pem\n"
 				+ "O ServerSSLOptions=+SSL_OP_NO_SSLv2 +SSL_OP_NO_SSLv3 +SSL_OP_CIPHER_SERVER_PREFERENCE\n"
 				+ "O ClientSSLOptions=+SSL_OP_NO_SSLv2 +SSL_OP_NO_SSLv3\n"
 				// Add envelop header recipient
@@ -1012,20 +1011,28 @@ final public class SendmailCFManager extends BuilderThread {
 					// This is set to true when needed and a single reload will be performed after all config files are updated
 					boolean[] needsReload = {false};
 					if(sendmailEnabled) {
-						// Make sure package installed
-						PackageManager.installPackage(
-							PackageManager.PackageName.SENDMAIL,
-							() -> needsReload[0] = true
-						);
-						PackageManager.installPackage(
-							PackageManager.PackageName.SENDMAIL_CF,
-							() -> needsReload[0] = true
-						);
+						// Make sure packages installed
 						if(
 							osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
 							|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 						) {
 							// No aoserv-sendmail-config package
+							PackageManager.installPackage(
+								PackageManager.PackageName.SENDMAIL,
+								() -> needsReload[0] = true
+							);
+							PackageManager.installPackage(
+								PackageManager.PackageName.SENDMAIL_CF,
+								() -> needsReload[0] = true
+							);
+							PackageManager.installPackage(
+								PackageManager.PackageName.CYRUS_SASL,
+								() -> needsReload[0] = true
+							);
+							PackageManager.installPackage(
+								PackageManager.PackageName.CYRUS_SASL_PLAIN,
+								() -> needsReload[0] = true
+							);
 						} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 							// Install aoserv-sendmail-config package if missing
 							PackageManager.installPackage(
