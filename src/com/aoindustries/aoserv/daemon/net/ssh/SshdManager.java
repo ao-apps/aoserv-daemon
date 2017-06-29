@@ -71,7 +71,7 @@ final public class SshdManager extends BuilderThread {
 	 * build any config file with more than 16 <code>net_binds</code>.
 	 * </p>
 	 */
-	private static final int MAX_LISTEN_SOCKS = 16; // Matches the value defined in sshd.c
+	// We're buildng our own RPM again: private static final int MAX_LISTEN_SOCKS = 16; // Matches the value defined in sshd.c
 
 	private static SshdManager sshdManager;
 
@@ -373,9 +373,9 @@ final public class SshdManager extends BuilderThread {
 						}
 					}
 				}
-				if(nbs.size() > MAX_LISTEN_SOCKS) {
-					throw new IOException("Refusing to build sshd_config with more than MAX_LISTEN_SOCKS(" + MAX_LISTEN_SOCKS + ") ListenAddress directives: " + nbs.size());
-				}
+				//if(nbs.size() > MAX_LISTEN_SOCKS) {
+				//	throw new IOException("Refusing to build sshd_config with more than MAX_LISTEN_SOCKS(" + MAX_LISTEN_SOCKS + ") ListenAddress directives: " + nbs.size());
+				//}
 				// Restart only when something changed
 				boolean[] needsRestart = {false};
 				// Install openssh-server package if missing (when there is at least one port)
