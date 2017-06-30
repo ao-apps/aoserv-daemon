@@ -154,7 +154,8 @@ public final class ProcmailManager extends BuilderThread {
 						// Setting here because RPM updates will change permissions
 						if(
 							osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-							|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
+							// Note: CentOS 7 permissions now set at service start:
+							// || osvId == OperatingSystemVersion.CENTOS_7_X86_64
 						) {
 							Stat deliverStat = cyrusDeliverCentOs.getStat();
 							if(deliverStat.getUid() != UnixFile.ROOT_UID || deliverStat.getGid() != mailGid) {
