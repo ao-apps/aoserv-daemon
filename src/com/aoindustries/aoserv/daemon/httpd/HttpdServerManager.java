@@ -81,6 +81,11 @@ public class HttpdServerManager {
 	private static final Pattern HTTPD_N_CONF_REGEXP = Pattern.compile("^httpd-[0-9]+\\.conf$");
 
 	/**
+	 * The pattern matching secondary php[-#] config directories.
+	 */
+	private static final Pattern PHP_N_REGEXP = Pattern.compile("^php-[0-9]+$");
+
+	/**
 	 * The pattern matching secondary workers[-#].properties files.
 	 */
 	private static final Pattern WORKERS_N_PROPERTIES_REGEXP = Pattern.compile("^workers-[0-9]+\\.properties$");
@@ -941,7 +946,7 @@ public class HttpdServerManager {
 			// Rebuild the httpd.conf file
 			if(
 				DaemonFileUtils.writeIfNeeded(
-					buildHttpdConf(hs, sites, bout),
+					buildHttpdConf(hs, sites, httpdConfFilenames, bout),
 					null,
 					httpdConf,
 					UnixFile.ROOT_UID,
@@ -991,8 +996,11 @@ public class HttpdServerManager {
 				if(
 					!httpdConfFilenames.contains(filename)
 					&& (
-						"workers.properties".equals(filename)
+						// Note: httpd.conf is never deleted
+						"php".equals(filename)
+						|| "workers.properties".equals(filename)
 						|| HTTPD_N_CONF_REGEXP.matcher(filename).matches()
+						|| PHP_N_REGEXP.matcher(filename).matches()
 						|| WORKERS_N_PROPERTIES_REGEXP.matcher(filename).matches()
 					)
 				) {
@@ -1001,14 +1009,13 @@ public class HttpdServerManager {
 					deleteFileList.add(toDelete);
 				}
 			}
-			
 		}
 	}
 
 	/**
 	 * Builds the httpd#.conf file for CentOS 5
 	 */
-	private static byte[] buildHttpdConfCentOs5(HttpdServer hs, List<HttpdSite> sites, ByteArrayOutputStream bout) throws IOException, SQLException {
+	private static byte[] buildHttpdConfCentOs5(HttpdServer hs, List<HttpdSite> sites, Set<String> httpdConfFilenames, ByteArrayOutputStream bout) throws IOException, SQLException {
 		final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		if(osConfig != HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) throw new AssertionError("This method is for CentOS 5 only");
 		final int serverNum = hs.getNumber();
@@ -1018,6 +1025,7 @@ public class HttpdServerManager {
 			boolean isEnabled = !lsa.isDisabled();
 			// The version of PHP module to run
 			TechnologyVersion phpVersion = hs.getModPhpVersion();
+			if(phpVersion != null) httpdConfFilenames.add("php" + serverNum);
 			out.print("ServerRoot \""+SERVER_ROOT+"\"\n"
 					+ "Include conf/modules_conf/core\n"
 					+ "PidFile /var/run/httpd").print(serverNum).print(".pid\n"
@@ -1147,7 +1155,7 @@ public class HttpdServerManager {
 				if(!hasSsl) out.print('#');
 				out.print("LoadModule ssl_module modules/mod_ssl.so\n");
 			}
-			if(isEnabled && phpVersion!=null) {
+			if(isEnabled && phpVersion != null) {
 				String version = phpVersion.getVersion();
 				String phpMinorVersion = getMinorPhpVersion(version);
 				String phpMajorVersion = getMajorPhpVersion(version);
@@ -1242,7 +1250,7 @@ public class HttpdServerManager {
 	/**
 	 * Builds the httpd[-#].conf file for CentOS 7
 	 */
-	private static byte[] buildHttpdConfCentOs7(HttpdServer hs, List<HttpdSite> sites, ByteArrayOutputStream bout) throws IOException, SQLException {
+	private static byte[] buildHttpdConfCentOs7(HttpdServer hs, List<HttpdSite> sites, Set<String> httpdConfFilenames, ByteArrayOutputStream bout) throws IOException, SQLException {
 		final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		if(osConfig != HttpdOperatingSystemConfiguration.CENTOS_7_X86_64) throw new AssertionError("This method is for CentOS 7 only");
 		PackageManager.installPackages(
@@ -1279,7 +1287,9 @@ public class HttpdServerManager {
 			if(serverNum != 1) out.print('-').print(serverNum);
 			out.print("\n"
 					+ "# ListenBacklog 511\n"
-					//+ "PidFile /var/run/httpd").print(serverNum).print(".pid\n"
+					+ "PidFile /run/httpd");
+			if(serverNum != 1) out.print('-').print(serverNum);
+			out.print("/httpd.pid\n"
 					+ "<IfModule mpm_prefork_module>\n"
 					+ "    MaxRequestWorkers ").print(hs.getMaxConcurrency()).print("\n"
 					+ "    ServerLimit ").print(hs.getMaxConcurrency()).print("\n"
@@ -1509,9 +1519,9 @@ public class HttpdServerManager {
 					+ "</IfModule>\n");
 			if(hasSsl || isModSslInstalled) {
 				out.print("<IfModule ssl_module>\n"
-						+ "    SSLSessionCache shmcb:/run/httpd/sslcache");
+						+ "    SSLSessionCache shmcb:/run/httpd");
 				if(serverNum != 1) out.print('-').print(serverNum);
-				out.print("(512000)\n"
+				out.print("/sslcache(512000)\n"
 						+ "</IfModule>\n");
 			}
 			// Use apache if the account is disabled
@@ -1524,21 +1534,17 @@ public class HttpdServerManager {
 						+ "    Group "+LinuxGroup.APACHE+"\n");
 			}
 			out.print("</IfModule>\n");
-			if(isEnabled && phpVersion != null) {
+			if(phpVersion != null) {
 				String version = phpVersion.getVersion();
 				String phpMinorVersion = getMinorPhpVersion(version);
-				String phpMajorVersion = getMajorPhpVersion(version);
-				out.print("\n"
-						+ "#\n"
-						+ "# Enable mod_php\n"
-						+ "#\n"
-						+ "LoadModule php").print(phpMajorVersion).print("_module /opt/php-").print(phpMinorVersion).print("/lib/apache/").print(getPhpLib(phpVersion)).print("\n");
 				// Create initial PHP config directory
 				UnixFile phpIniDir;
 				if(serverNum == 1) {
 					phpIniDir = new UnixFile(CONF_DIRECTORY + "/php");
+					httpdConfFilenames.add("php");
 				} else {
 					phpIniDir = new UnixFile(CONF_DIRECTORY + "/php-" + serverNum);
+					httpdConfFilenames.add("php-" + serverNum);
 				}
 				DaemonFileUtils.mkdir(phpIniDir, 0750, UnixFile.ROOT_UID, hs.getLinuxServerGroup().getGid().getId());
 				UnixFile phpIni = new UnixFile(phpIniDir, "php.ini", true);
@@ -1558,14 +1564,21 @@ public class HttpdServerManager {
 						phpIni.symLink(expectedTarget);
 					}
 				}
-				// TODO: auto cleanup of old php config directories once no longer used
-				out.print("<IfModule php5_module>\n"
-						+ "    PHPIniDir \"").print(phpIniDir).print("\"\n"
-						+ "    <IfModule mime_module>\n"
-						+ "        AddType application/x-httpd-php .php\n"
-						+ "        AddType application/x-httpd-php-source .phps\n"
-						+ "    </IfModule>\n"
-						+ "</IfModule>\n");
+				if(isEnabled) {
+					String phpMajorVersion = getMajorPhpVersion(version);
+					out.print("\n"
+							+ "#\n"
+							+ "# Enable mod_php\n"
+							+ "#\n"
+							+ "LoadModule php").print(phpMajorVersion).print("_module /opt/php-").print(phpMinorVersion).print("/lib/apache/").print(getPhpLib(phpVersion)).print("\n"
+							+ "<IfModule php5_module>\n"
+							+ "    PHPIniDir \"").print(phpIniDir).print("\"\n"
+							+ "    <IfModule mime_module>\n"
+							+ "        AddType application/x-httpd-php .php\n"
+							+ "        AddType application/x-httpd-php-source .phps\n"
+							+ "    </IfModule>\n"
+							+ "</IfModule>\n");
+				}
 			}
 
 			// List of binds
@@ -1613,11 +1626,11 @@ public class HttpdServerManager {
 	/**
 	 * Builds the httpd[[-]#].conf file contents for the provided HttpdServer.
 	 */
-	private static byte[] buildHttpdConf(HttpdServer hs, List<HttpdSite> sites, ByteArrayOutputStream bout) throws IOException, SQLException {
+	private static byte[] buildHttpdConf(HttpdServer hs, List<HttpdSite> sites, Set<String> httpdConfFilenames, ByteArrayOutputStream bout) throws IOException, SQLException {
 		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		switch(osConfig) {
-			case CENTOS_5_I686_AND_X86_64 : return buildHttpdConfCentOs5(hs, sites, bout);
-			case CENTOS_7_X86_64          : return buildHttpdConfCentOs7(hs, sites, bout);
+			case CENTOS_5_I686_AND_X86_64 : return buildHttpdConfCentOs5(hs, sites, httpdConfFilenames, bout);
+			case CENTOS_7_X86_64          : return buildHttpdConfCentOs7(hs, sites, httpdConfFilenames, bout);
 			default                       : throw new AssertionError("Unexpected value for osConfig: "+osConfig);
 		}
 	}
