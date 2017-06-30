@@ -2046,31 +2046,31 @@ public class HttpdServerManager {
 									out.print('\n');
 									break;
 								case "5.2":
-									requiredPackage = PackageManager.PackageName.PHP_5_2;
+									requiredPackage = PackageManager.PackageName.PHP_5_2_I686;
 									out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
 									out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
 									out.print('\n');
 									break;
 								case "5.3":
-									requiredPackage = PackageManager.PackageName.PHP_5_3;
+									requiredPackage = PackageManager.PackageName.PHP_5_3_I686;
 									out.print(". /opt/mysql-5.1-i686/setenv.sh\n");
 									out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
 									out.print('\n');
 									break;
 								case "5.4":
-									requiredPackage = PackageManager.PackageName.PHP_5_4;
+									requiredPackage = PackageManager.PackageName.PHP_5_4_I686;
 									out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
 									out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
 									out.print('\n');
 									break;
 								case "5.5":
-									requiredPackage = PackageManager.PackageName.PHP_5_5;
+									requiredPackage = PackageManager.PackageName.PHP_5_5_I686;
 									out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
 									out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
 									out.print('\n');
 									break;
 								case "5.6":
-									requiredPackage = PackageManager.PackageName.PHP_5_6;
+									requiredPackage = PackageManager.PackageName.PHP_5_6_I686;
 									out.print(". /opt/mysql-5.7-i686/setenv.sh\n");
 									out.print(". /opt/postgresql-9.4-i686/setenv.sh\n");
 									out.print('\n');

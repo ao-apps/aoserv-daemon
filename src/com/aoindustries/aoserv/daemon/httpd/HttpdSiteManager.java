@@ -518,38 +518,66 @@ public abstract class HttpdSiteManager {
 			try (ChainWriter out = new ChainWriter(bout)) {
 				String phpMinorVersion;
 				out.print("#!/bin/sh\n");
-				if(phpVersion.startsWith("4.4.")) {
-					phpMinorVersion = "4.4";
-					requiredPackage = null;
-					out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
-					out.print(". /opt/postgresql-7.3-i686/setenv.sh\n");
-				} else if(phpVersion.startsWith("5.2.")) {
-					phpMinorVersion = "5.2";
-					requiredPackage = PackageManager.PackageName.PHP_5_2;
-					out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
-					out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
-				} else if(phpVersion.startsWith("5.3.")) {
-					phpMinorVersion = "5.3";
-					requiredPackage = PackageManager.PackageName.PHP_5_3;
-					out.print(". /opt/mysql-5.1-i686/setenv.sh\n");
-					out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
-				} else if(phpVersion.startsWith("5.4.")) {
-					phpMinorVersion = "5.4";
-					requiredPackage = PackageManager.PackageName.PHP_5_4;
-					out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
-					out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
-				} else if(phpVersion.startsWith("5.5.")) {
-					phpMinorVersion = "5.5";
-					requiredPackage = PackageManager.PackageName.PHP_5_5;
-					out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
-					out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
-				} else if(phpVersion.startsWith("5.6.")) {
-					phpMinorVersion = "5.6";
-					requiredPackage = PackageManager.PackageName.PHP_5_6;
-					out.print(". /opt/mysql-5.7-i686/setenv.sh\n");
-					out.print(". /opt/postgresql-9.4-i686/setenv.sh\n");
+				if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+					if(phpVersion.startsWith("4.4.")) {
+						phpMinorVersion = "4.4";
+						requiredPackage = null;
+						out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
+						out.print(". /opt/postgresql-7.3-i686/setenv.sh\n");
+					} else if(phpVersion.startsWith("5.2.")) {
+						phpMinorVersion = "5.2";
+						requiredPackage = PackageManager.PackageName.PHP_5_2_I686;
+						out.print(". /opt/mysql-5.0-i686/setenv.sh\n");
+						out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
+					} else if(phpVersion.startsWith("5.3.")) {
+						phpMinorVersion = "5.3";
+						requiredPackage = PackageManager.PackageName.PHP_5_3_I686;
+						out.print(". /opt/mysql-5.1-i686/setenv.sh\n");
+						out.print(". /opt/postgresql-8.3-i686/setenv.sh\n");
+					} else if(phpVersion.startsWith("5.4.")) {
+						phpMinorVersion = "5.4";
+						requiredPackage = PackageManager.PackageName.PHP_5_4_I686;
+						out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
+						out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
+					} else if(phpVersion.startsWith("5.5.")) {
+						phpMinorVersion = "5.5";
+						requiredPackage = PackageManager.PackageName.PHP_5_5_I686;
+						out.print(". /opt/mysql-5.6-i686/setenv.sh\n");
+						out.print(". /opt/postgresql-9.2-i686/setenv.sh\n");
+					} else if(phpVersion.startsWith("5.6.")) {
+						phpMinorVersion = "5.6";
+						requiredPackage = PackageManager.PackageName.PHP_5_6_I686;
+						out.print(". /opt/mysql-5.7-i686/setenv.sh\n");
+						out.print(". /opt/postgresql-9.4-i686/setenv.sh\n");
+					} else {
+						throw new SQLException("Unexpected version for php: " + phpVersion);
+					}
+				} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+					if(phpVersion.startsWith("5.3.")) {
+						phpMinorVersion = "5.3";
+						requiredPackage = PackageManager.PackageName.PHP_5_3;
+						out.print(". /opt/mysql-5.1/setenv.sh\n");
+						out.print(". /opt/postgresql-8.3/setenv.sh\n");
+					} else if(phpVersion.startsWith("5.4.")) {
+						phpMinorVersion = "5.4";
+						requiredPackage = PackageManager.PackageName.PHP_5_4;
+						out.print(". /opt/mysql-5.6/setenv.sh\n");
+						out.print(". /opt/postgresql-9.2/setenv.sh\n");
+					} else if(phpVersion.startsWith("5.5.")) {
+						phpMinorVersion = "5.5";
+						requiredPackage = PackageManager.PackageName.PHP_5_5;
+						out.print(". /opt/mysql-5.6/setenv.sh\n");
+						out.print(". /opt/postgresql-9.2/setenv.sh\n");
+					} else if(phpVersion.startsWith("5.6.")) {
+						phpMinorVersion = "5.6";
+						requiredPackage = PackageManager.PackageName.PHP_5_6;
+						out.print(". /opt/mysql-5.7/setenv.sh\n");
+						out.print(". /opt/postgresql-9.4/setenv.sh\n");
+					} else {
+						throw new SQLException("Unexpected version for php: " + phpVersion);
+					}
 				} else {
-					throw new SQLException("Unexpected version for php: " + phpVersion);
+					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 				}
 				out.print("exec ").print(HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getPhpCgiPath(phpMinorVersion)).print(" \"$@\"\n");
 			}
