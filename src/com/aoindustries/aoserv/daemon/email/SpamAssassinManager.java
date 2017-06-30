@@ -677,7 +677,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 								+ "SPAMDOPTIONS=\"-d -c -m" + MAX_CHILDREN + " -H");
 							if(spamdInetAddress != null) {
 								// Listen address
-								newOut.print("-i ");
+								newOut.print(" -i ");
 								if(
 									osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
 									|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
