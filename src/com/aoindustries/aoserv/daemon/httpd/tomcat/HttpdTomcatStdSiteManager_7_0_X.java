@@ -73,10 +73,10 @@ class HttpdTomcatStdSiteManager_7_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/work", 0750, uid, gid);
-		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/bin/bootstrap.jar", siteDir+"/bin/bootstrap.jar", uid, gid);
-		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/bin/catalina.sh", siteDir+"/bin/catalina.sh", uid, gid);
-		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/bin/commons-daemon.jar", siteDir+"/bin/commons-daemon.jar", uid, gid);
-		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/bin/digest.sh", siteDir+"/bin/digest.sh", uid, gid);
+		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-7.0/bin/bootstrap.jar", siteDir+"/bin/bootstrap.jar", uid, gid);
+		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-7.0/bin/catalina.sh", siteDir+"/bin/catalina.sh", uid, gid);
+		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-7.0/bin/commons-daemon.jar", siteDir+"/bin/commons-daemon.jar", uid, gid);
+		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-7.0/bin/digest.sh", siteDir+"/bin/digest.sh", uid, gid);
 
 		/*
 		 * Set up the bash profile source
@@ -183,7 +183,7 @@ class HttpdTomcatStdSiteManager_7_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 		} finally {
 			out.close();
 		}
-		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/bin/setclasspath.sh", siteDir+"/bin/setclasspath.sh", uid, gid);
+		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-7.0/bin/setclasspath.sh", siteDir+"/bin/setclasspath.sh", uid, gid);
 
 		out=new ChainWriter(new UnixFile(siteDir+"/bin/shutdown.sh").getSecureOutputStream(uid, gid, 0700, true, uid_min, gid_min));
 		try {
@@ -201,13 +201,13 @@ class HttpdTomcatStdSiteManager_7_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 			out.close();
 		}
 
-		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/bin/tomcat-juli.jar", siteDir+"/bin/tomcat-juli.jar", uid, gid);
-		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/bin/tool-wrapper.sh", siteDir+"/bin/tool-wrapper.sh", uid, gid);
-		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-8.0/bin/version.sh", siteDir+"/bin/version.sh", uid, gid);
+		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-7.0/bin/tomcat-juli.jar", siteDir+"/bin/tomcat-juli.jar", uid, gid);
+		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-7.0/bin/tool-wrapper.sh", siteDir+"/bin/tool-wrapper.sh", uid, gid);
+		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-7.0/bin/version.sh", siteDir+"/bin/version.sh", uid, gid);
 
 		// Create the lib directory and all contents
 		DaemonFileUtils.mkdir(siteDir+"/lib", 0770, uid, gid);
-		DaemonFileUtils.lnAll("../" + optSlash + "apache-tomcat-8.0/lib/", siteDir+"/lib/", uid, gid);
+		DaemonFileUtils.lnAll("../" + optSlash + "apache-tomcat-7.0/lib/", siteDir+"/lib/", uid, gid);
 
 		//if(postgresServerMinorVersion!=null) {
 		//    String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
