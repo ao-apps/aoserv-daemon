@@ -829,11 +829,11 @@ final public class DistroManager implements Runnable {
 						// Check for ...
 						if(isHidden(name)) {
 							addResult(
-							   results,
-							   verboseOut,
-							   DistroReportType.HIDDEN,
-							   uf
-						   );
+								results,
+								verboseOut,
+								DistroReportType.HIDDEN,
+								uf
+							);
 						}
 
 						// Stat here for use below

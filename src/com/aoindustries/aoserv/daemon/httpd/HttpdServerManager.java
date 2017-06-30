@@ -161,21 +161,22 @@ public class HttpdServerManager {
 	 */
 	static void doRebuild(
 		List<File> deleteFileList,
-		Set<HttpdServer> serversNeedingReloaded
+		Set<HttpdServer> serversNeedingReloaded,
+		Set<UnixFile> restorecon
 	) throws IOException, SQLException {
 		// Used below
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
 		AOServer aoServer = AOServDaemon.getThisAOServer();
 
 		// Rebuild /etc/httpd/conf/hosts/ or /etc/httpd/sites-available and /etc/httpd/sites-enabled files
-		doRebuildConfHosts(aoServer, bout, deleteFileList, serversNeedingReloaded);
+		doRebuildConfHosts(aoServer, bout, deleteFileList, serversNeedingReloaded, restorecon);
 
 		// Rebuild /etc/httpd/conf/ files
 		Set<Port> enabledAjpPorts = new HashSet<>();
-		doRebuildConf(aoServer, bout, deleteFileList, serversNeedingReloaded, enabledAjpPorts);
+		doRebuildConf(aoServer, bout, deleteFileList, serversNeedingReloaded, enabledAjpPorts, restorecon);
 
 		// Control the /etc/rc.d/init.d/httpd* files or /etc/systemd/system/httpd[-#].service
-		doRebuildInitScripts(aoServer, bout, deleteFileList, serversNeedingReloaded);
+		doRebuildInitScripts(aoServer, bout, deleteFileList, serversNeedingReloaded, restorecon);
 
 		// Configure SELinux
 		doReuildSELinux(aoServer, serversNeedingReloaded, enabledAjpPorts);
@@ -192,7 +193,8 @@ public class HttpdServerManager {
 		AOServer thisAoServer,
 		ByteArrayOutputStream bout,
 		List<File> deleteFileList,
-		Set<HttpdServer> serversNeedingReloaded
+		Set<HttpdServer> serversNeedingReloaded,
+		Set<UnixFile> restorecon
 	) throws IOException, SQLException {
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
@@ -222,15 +224,14 @@ public class HttpdServerManager {
 					final UnixFile sharedFile = new UnixFile(CONF_HOSTS, siteName);
 					if(!manager.httpdSite.isManual() || !sharedFile.getStat().exists()) {
 						if(
-							DaemonFileUtils.writeIfNeeded(
-								buildHttpdSiteSharedFile(manager, bout),
-								null,
+							DaemonFileUtils.atomicWrite(
 								sharedFile,
+								buildHttpdSiteSharedFile(manager, bout),
+								0640,
 								UnixFile.ROOT_UID,
 								lsgGID,
-								0640,
-								uid_min,
-								gid_min
+								null,
+								restorecon
 							)
 						) {
 							// File changed, all servers that use this site need restarted
@@ -284,16 +285,15 @@ public class HttpdServerManager {
 							}
 							// Write only when missing or modified
 							if(
-								DaemonFileUtils.writeIfNeeded(
-									newContent,
-									null,
+								DaemonFileUtils.atomicWrite(
 									bindFile,
+									newContent,
+									0640,
 									UnixFile.ROOT_UID,
 									lsgGID,
-									0640,
-									uid_min,
-									gid_min
-							   )
+									null,
+									restorecon
+								)
 							) {
 								// Reload server if the file is modified
 								serversNeedingReloaded.add(httpdBind.getHttpdServer());
@@ -337,15 +337,14 @@ public class HttpdServerManager {
 					final UnixFile sharedFile = new UnixFile(SITES_AVAILABLE, sharedFilename);
 					if(!manager.httpdSite.isManual() || !sharedFile.getStat().exists()) {
 						if(
-							DaemonFileUtils.writeIfNeeded(
-								buildHttpdSiteSharedFile(manager, bout),
-								null,
+							DaemonFileUtils.atomicWrite(
 								sharedFile,
+								buildHttpdSiteSharedFile(manager, bout),
+								0640,
 								UnixFile.ROOT_UID,
 								lsgGID,
-								0640,
-								uid_min,
-								gid_min
+								null,
+								restorecon
 							)
 						) {
 							// File changed, all servers that use this site need restarted
@@ -399,16 +398,15 @@ public class HttpdServerManager {
 							}
 							// Write only when missing or modified
 							if(
-								DaemonFileUtils.writeIfNeeded(
-									newContent,
-									null,
+								DaemonFileUtils.atomicWrite(
 									bindFile,
+									newContent,
+									0640,
 									UnixFile.ROOT_UID,
 									lsgGID,
-									0640,
-									uid_min,
-									gid_min
-							   )
+									null,
+									restorecon
+								)
 							) {
 								// Reload server if the file is modified
 								serversNeedingReloaded.add(httpdBind.getHttpdServer());
@@ -932,11 +930,10 @@ public class HttpdServerManager {
 		ByteArrayOutputStream bout,
 		List<File> deleteFileList,
 		Set<HttpdServer> serversNeedingReloaded,
-		Set<Port> enabledAjpPorts
+		Set<Port> enabledAjpPorts,
+		Set<UnixFile> restorecon
 	) throws IOException, SQLException {
 		Set<String> httpdConfFilenames = new HashSet<>();
-		int uid_min = thisAoServer.getUidMin().getId();
-		int gid_min = thisAoServer.getGidMin().getId();
 		// Rebuild per-server files
 		for(HttpdServer hs : thisAoServer.getHttpdServers()) {
 			List<HttpdSite> sites = hs.getHttpdSites();
@@ -945,15 +942,14 @@ public class HttpdServerManager {
 			httpdConfFilenames.add(httpdConfFilename);
 			// Rebuild the httpd.conf file
 			if(
-				DaemonFileUtils.writeIfNeeded(
-					buildHttpdConf(hs, sites, httpdConfFilenames, bout),
-					null,
+				DaemonFileUtils.atomicWrite(
 					httpdConf,
+					buildHttpdConf(hs, sites, httpdConfFilenames, bout, restorecon),
+					0644,
 					UnixFile.ROOT_UID,
 					UnixFile.ROOT_GID,
-					0644,
-					uid_min,
-					gid_min
+					null,
+					restorecon
 				)
 			) {
 				serversNeedingReloaded.add(hs);
@@ -974,15 +970,14 @@ public class HttpdServerManager {
 				UnixFile workersFile = new UnixFile(CONF_DIRECTORY, workersFilename);
 				httpdConfFilenames.add(workersFilename);
 				if(
-					DaemonFileUtils.writeIfNeeded(
-						buildWorkersFile(hs, bout, enabledAjpPorts),
-						null,
+					DaemonFileUtils.atomicWrite(
 						workersFile,
+						buildWorkersFile(hs, bout, enabledAjpPorts),
+						0644,
 						UnixFile.ROOT_UID,
 						UnixFile.ROOT_GID,
-						0644,
-						uid_min,
-						gid_min
+						null,
+						restorecon
 					)
 				) {
 					serversNeedingReloaded.add(hs);
@@ -1250,7 +1245,7 @@ public class HttpdServerManager {
 	/**
 	 * Builds the httpd[-#].conf file for CentOS 7
 	 */
-	private static byte[] buildHttpdConfCentOs7(HttpdServer hs, List<HttpdSite> sites, Set<String> httpdConfFilenames, ByteArrayOutputStream bout) throws IOException, SQLException {
+	private static byte[] buildHttpdConfCentOs7(HttpdServer hs, List<HttpdSite> sites, Set<String> httpdConfFilenames, ByteArrayOutputStream bout, Set<UnixFile> restorecon) throws IOException, SQLException {
 		final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		if(osConfig != HttpdOperatingSystemConfiguration.CENTOS_7_X86_64) throw new AssertionError("This method is for CentOS 7 only");
 		PackageManager.installPackages(
@@ -1552,6 +1547,7 @@ public class HttpdServerManager {
 				Stat phpIniStat = phpIni.getStat();
 				if(!phpIniStat.exists()) {
 					phpIni.symLink(expectedTarget);
+					restorecon.add(phpIni);
 				} else if(phpIniStat.isSymLink()) {
 					// Replace symlink if goes to a different PHP version?
 					String actualTarget = phpIni.readLink();
@@ -1562,6 +1558,7 @@ public class HttpdServerManager {
 						// Update link
 						phpIni.delete();
 						phpIni.symLink(expectedTarget);
+						restorecon.add(phpIni);
 					}
 				}
 				if(isEnabled) {
@@ -1626,11 +1623,11 @@ public class HttpdServerManager {
 	/**
 	 * Builds the httpd[[-]#].conf file contents for the provided HttpdServer.
 	 */
-	private static byte[] buildHttpdConf(HttpdServer hs, List<HttpdSite> sites, Set<String> httpdConfFilenames, ByteArrayOutputStream bout) throws IOException, SQLException {
+	private static byte[] buildHttpdConf(HttpdServer hs, List<HttpdSite> sites, Set<String> httpdConfFilenames, ByteArrayOutputStream bout, Set<UnixFile> restorecon) throws IOException, SQLException {
 		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		switch(osConfig) {
 			case CENTOS_5_I686_AND_X86_64 : return buildHttpdConfCentOs5(hs, sites, httpdConfFilenames, bout);
-			case CENTOS_7_X86_64          : return buildHttpdConfCentOs7(hs, sites, httpdConfFilenames, bout);
+			case CENTOS_7_X86_64          : return buildHttpdConfCentOs7(hs, sites, httpdConfFilenames, bout, restorecon);
 			default                       : throw new AssertionError("Unexpected value for osConfig: "+osConfig);
 		}
 	}
@@ -2021,9 +2018,13 @@ public class HttpdServerManager {
 	 * Rebuilds /etc/rc.d/init.d/httpd* init scripts
 	 * or /etc/systemd/system/httpd[-#].service files.
 	 */
-	private static void doRebuildInitScripts(AOServer thisAoServer, ByteArrayOutputStream bout, List<File> deleteFileList, Set<HttpdServer> serversNeedingReloaded) throws IOException, SQLException {
-		int uid_min = thisAoServer.getUidMin().getId();
-		int gid_min = thisAoServer.getGidMin().getId();
+	private static void doRebuildInitScripts(
+		AOServer thisAoServer,
+		ByteArrayOutputStream bout,
+		List<File> deleteFileList,
+		Set<HttpdServer> serversNeedingReloaded,
+		Set<UnixFile> restorecon
+	) throws IOException, SQLException {
 		List<HttpdServer> hss = thisAoServer.getHttpdServers();
 		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
@@ -2101,15 +2102,14 @@ public class HttpdServerManager {
 					String filename = "httpd"+num;
 					dontDeleteFilenames.add(filename);
 					if(
-						DaemonFileUtils.writeIfNeeded(
-							bout.toByteArray(),
-							null,
+						DaemonFileUtils.atomicWrite(
 							new UnixFile(INIT_DIRECTORY+"/"+filename),
+							bout.toByteArray(),
+							0700,
 							UnixFile.ROOT_UID,
 							UnixFile.ROOT_GID,
-							0700,
-							uid_min,
-							gid_min
+							null,
+							restorecon
 						)
 					) {
 						// Make start at boot

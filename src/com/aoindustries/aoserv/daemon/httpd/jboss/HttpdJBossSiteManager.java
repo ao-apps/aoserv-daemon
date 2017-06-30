@@ -28,40 +28,40 @@ import java.util.Set;
  */
 public abstract class HttpdJBossSiteManager<TC extends TomcatCommon> extends HttpdTomcatSiteManager<TC> {
 
-    /**
-     * Gets the specific manager for one type of web site.
-     */
-    public static HttpdJBossSiteManager<? extends TomcatCommon> getInstance(HttpdJBossSite jbossSite) throws IOException, SQLException {
-        AOServConnector connector=AOServDaemon.getConnector();
-        String jbossVersion = jbossSite.getHttpdJBossVersion().getTechnologyVersion(connector).getVersion();
-        if(jbossVersion.equals("2.2.2")) return new HttpdJBossSiteManager_2_2_2(jbossSite);
-        throw new SQLException("Unsupported version of standard JBoss: "+jbossVersion+" on "+jbossSite);
-    }
+	/**
+	 * Gets the specific manager for one type of web site.
+	 */
+	public static HttpdJBossSiteManager<? extends TomcatCommon> getInstance(HttpdJBossSite jbossSite) throws IOException, SQLException {
+		AOServConnector connector=AOServDaemon.getConnector();
+		String jbossVersion = jbossSite.getHttpdJBossVersion().getTechnologyVersion(connector).getVersion();
+		if(jbossVersion.equals("2.2.2")) return new HttpdJBossSiteManager_2_2_2(jbossSite);
+		throw new SQLException("Unsupported version of standard JBoss: "+jbossVersion+" on "+jbossSite);
+	}
 
-    final protected HttpdJBossSite jbossSite;
-    
-    HttpdJBossSiteManager(HttpdJBossSite jbossSite) throws SQLException, IOException {
-        super(jbossSite.getHttpdTomcatSite());
-        this.jbossSite = jbossSite;
-    }
+	final protected HttpdJBossSite jbossSite;
 
-	@Override
-    public UnixFile getPidFile() throws IOException, SQLException {
-        return new UnixFile(
-            HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
-            + "/"
-            + httpdSite.getSiteName()
-            + "/var/run/jboss.pid"
-        );
-    }
+	HttpdJBossSiteManager(HttpdJBossSite jbossSite) throws SQLException, IOException {
+		super(jbossSite.getHttpdTomcatSite());
+		this.jbossSite = jbossSite;
+	}
 
 	@Override
-    public boolean isStartable() {
-        return !httpdSite.isDisabled();
-    }
-    
+	public UnixFile getPidFile() throws IOException, SQLException {
+		return new UnixFile(
+			HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
+			+ "/"
+			+ httpdSite.getSiteName()
+			+ "/var/run/jboss.pid"
+		);
+	}
+
 	@Override
-    public UnixPath getStartStopScriptPath() throws IOException, SQLException {
+	public boolean isStartable() {
+		return !httpdSite.isDisabled();
+	}
+
+	@Override
+	public UnixPath getStartStopScriptPath() throws IOException, SQLException {
 		try {
 			return UnixPath.valueOf(
 				HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
@@ -72,15 +72,15 @@ public abstract class HttpdJBossSiteManager<TC extends TomcatCommon> extends Htt
 		} catch(ValidationException e) {
 			throw new IOException(e);
 		}
-    }
+	}
 
 	@Override
-    public UserId getStartStopScriptUsername() throws IOException, SQLException {
-        return httpdSite.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername();
-    }
+	public UserId getStartStopScriptUsername() throws IOException, SQLException {
+		return httpdSite.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername();
+	}
 
 	@Override
-    protected void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) {
-        sitesNeedingRestarted.add(httpdSite);
-    }
+	protected void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) {
+		sitesNeedingRestarted.add(httpdSite);
+	}
 }

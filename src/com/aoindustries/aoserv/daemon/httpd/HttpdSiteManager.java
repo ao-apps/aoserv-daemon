@@ -105,7 +105,8 @@ public abstract class HttpdSiteManager {
 	static void doRebuild(
 		List<File> deleteFileList,
 		Set<HttpdSite> sitesNeedingRestarted,
-		Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted
+		Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted,
+		Set<UnixFile> restorecon
 	) throws IOException, SQLException {
 		try {
 			// Get values used in the rest of the method.
@@ -138,7 +139,8 @@ public abstract class HttpdSiteManager {
 					siteDirectory,
 					optSlash,
 					sitesNeedingRestarted,
-					sharedTomcatsNeedingRestarted
+					sharedTomcatsNeedingRestarted,
+					restorecon
 				);
 				wwwRemoveList.remove(siteName);
 			}
@@ -438,7 +440,7 @@ public abstract class HttpdSiteManager {
 	 *   <li>Otherwise, make necessary config changes or upgrades while adhering to the manual flag</li>
 	 * </ol>
 	 */
-	protected abstract void buildSiteDirectory(UnixFile siteDirectory, String optSlash, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException;
+	protected abstract void buildSiteDirectory(UnixFile siteDirectory, String optSlash, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted, Set<UnixFile> restorecon) throws IOException, SQLException;
 
 	/**
 	 * Determines if should have anonymous FTP area.
@@ -503,7 +505,7 @@ public abstract class HttpdSiteManager {
 	 * If CGI is disabled or PHP is disabled, removes any php script.
 	 * Any existing file will be overwritten, even when in manual mode.
 	 */
-	protected void createCgiPhpScript(UnixFile cgibinDirectory) throws IOException, SQLException {
+	protected void createCgiPhpScript(UnixFile cgibinDirectory, Set<UnixFile> restorecon) throws IOException, SQLException {
 		UnixFile phpFile = new UnixFile(cgibinDirectory, "php", false);
 		// TODO: If every server this site runs as uses mod_php, then don't make the script?
 		if(enableCgi() && enablePhp()) {
@@ -593,15 +595,14 @@ public abstract class HttpdSiteManager {
 			if(!parent.getStat().exists()) parent.mkdir(true, 0775, uid, gid);
 			// Create cgi-bin if missing
 			DaemonFileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
-			DaemonFileUtils.writeIfNeeded(
-				bout.toByteArray(),
-				null,
+			DaemonFileUtils.atomicWrite(
 				phpFile,
+				bout.toByteArray(),
+				mode,
 				uid,
 				gid,
-				mode,
-				thisAoServer.getUidMin().getId(),
-				thisAoServer.getGidMin().getId()
+				null,
+				restorecon
 			);
 			// Make sure permissions correct
 			Stat phpStat = phpFile.getStat();

@@ -155,11 +155,11 @@ final public class PostgresUserManager extends BuilderThread {
 										)
 										.append(username)
 										//.append(
-										//    (
-										//        version.startsWith(PostgresVersion.VERSION_7_1+'.')
-										//    )
-										//    ? " PASSWORD '"
-										//    : " UNENCRYPTED PASSWORD '"
+										//	(
+										//		version.startsWith(PostgresVersion.VERSION_7_1+'.')
+										//	)
+										//	? " PASSWORD '"
+										//	: " UNENCRYPTED PASSWORD '"
 										//)
 										//.append(PostgresUser.NO_PASSWORD_DB_VALUE)
 										//.append("' ")

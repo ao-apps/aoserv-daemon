@@ -18,11 +18,14 @@ import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdSharedTomcatManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
+import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
+import com.aoindustries.io.unix.UnixFile;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -44,27 +47,36 @@ final public class HttpdManager extends BuilderThread {
 	protected boolean doRebuild() {
 		try {
 			synchronized(rebuildLock) {
-				// Get some variables that will be used throughout the method
-				List<File> deleteFileList=new ArrayList<>();
-				Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted = new HashSet<>();
-				Set<HttpdSite> sitesNeedingRestarted = new HashSet<>();
-				Set<HttpdServer> serversNeedingReloaded = new HashSet<>();
+				Set<UnixFile> restorecon = new LinkedHashSet<>();
+				try {
+					// Get some variables that will be used throughout the method
+					List<File> deleteFileList = new ArrayList<>();
+					Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted = new HashSet<>();
+					Set<HttpdSite> sitesNeedingRestarted = new HashSet<>();
+					Set<HttpdServer> serversNeedingReloaded = new HashSet<>();
 
-				// Rebuild file system objects
-				HttpdLogManager.doRebuild(deleteFileList, serversNeedingReloaded);
-				HttpdSharedTomcatManager.doRebuild(deleteFileList, sharedTomcatsNeedingRestarted);
-				HttpdSiteManager.doRebuild(deleteFileList, sitesNeedingRestarted, sharedTomcatsNeedingRestarted);
-				HttpdServerManager.doRebuild(deleteFileList, serversNeedingReloaded);
+					// Rebuild file system objects
+					HttpdLogManager.doRebuild(deleteFileList, serversNeedingReloaded, restorecon);
+					HttpdSharedTomcatManager.doRebuild(deleteFileList, sharedTomcatsNeedingRestarted);
+					HttpdSiteManager.doRebuild(deleteFileList, sitesNeedingRestarted, sharedTomcatsNeedingRestarted, restorecon);
+					HttpdServerManager.doRebuild(deleteFileList, serversNeedingReloaded, restorecon);
 
-				// stop, disable, enable, start, and restart necessary processes
-				HttpdSharedTomcatManager.stopStartAndRestart(sharedTomcatsNeedingRestarted);
-				HttpdSiteManager.stopStartAndRestart(sitesNeedingRestarted);
+					// restorecon before using any new files
+					DaemonFileUtils.restorecon(restorecon);
+					restorecon.clear();
 
-				// Reload the Apache server configs
-				HttpdServerManager.reloadConfigs(serversNeedingReloaded);
+					// stop, disable, enable, start, and restart necessary processes
+					HttpdSharedTomcatManager.stopStartAndRestart(sharedTomcatsNeedingRestarted);
+					HttpdSiteManager.stopStartAndRestart(sitesNeedingRestarted);
 
-				// Back-up and delete the files scheduled for removal
-				BackupManager.backupAndDeleteFiles(deleteFileList);
+					// Reload the Apache server configs
+					HttpdServerManager.reloadConfigs(serversNeedingReloaded);
+
+					// Back-up and delete the files scheduled for removal
+					BackupManager.backupAndDeleteFiles(deleteFileList);
+				} finally {
+					DaemonFileUtils.restorecon(restorecon);
+				}
 			}
 			return true;
 		} catch(ThreadDeath TD) {

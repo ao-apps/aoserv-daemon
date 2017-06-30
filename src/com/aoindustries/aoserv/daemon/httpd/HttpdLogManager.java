@@ -71,7 +71,8 @@ class HttpdLogManager {
 	 */
 	static void doRebuild(
 		List<File> deleteFileList,
-		Set<HttpdServer> serversNeedingReloaded
+		Set<HttpdServer> serversNeedingReloaded,
+		Set<UnixFile> restorecon
 	) throws IOException, SQLException {
 		// Used below
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -81,7 +82,7 @@ class HttpdLogManager {
 		doRebuildLogs(aoServer, deleteFileList, serversNeedingReloaded);
 
 		// Rebuild /etc/logrotate.d or /etc/httpd/conf/logrotate.(d|sites|servers) files
-		doRebuildLogrotate(aoServer, deleteFileList, bout);
+		doRebuildLogrotate(aoServer, deleteFileList, bout, restorecon);
 
 		// Rebuild /var/log/httpd
 		doRebuildVarLogHttpd(aoServer, deleteFileList);
@@ -222,7 +223,8 @@ class HttpdLogManager {
 	private static void doRebuildLogrotate(
 		AOServer thisAoServer,
 		List<File> deleteFileList,
-		ByteArrayOutputStream byteOut
+		ByteArrayOutputStream byteOut,
+		Set<UnixFile> restorecon
 	) throws IOException, SQLException {
 		final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		final String siteLogRotationDir;
@@ -286,18 +288,16 @@ class HttpdLogManager {
 							 + "    rotate 379\n"
 							 + "}\n");
 				chainOut.flush();
-				byte[] newFileContent=byteOut.toByteArray();
 
 				// Write to disk if file missing or doesn't match
-				DaemonFileUtils.writeIfNeeded(
-					newFileContent,
-					null,
+				DaemonFileUtils.atomicWrite(
 					new UnixFile(siteLogRotationDir, site.getSiteName()),
+					byteOut.toByteArray(),
+					0640,
 					UnixFile.ROOT_UID,
 					site.getLinuxServerGroup().getGid().getId(),
-					0640,
-					uid_min,
-					gid_min
+					null,
+					restorecon
 				);
 
 				// Make sure the newly created or replaced log rotation file is not removed
@@ -368,15 +368,14 @@ class HttpdLogManager {
 						isFirst = false;
 					}
 				}
-				DaemonFileUtils.writeIfNeeded(
-					byteOut.toByteArray(),
-					null,
+				DaemonFileUtils.atomicWrite(
 					new UnixFile(serverLogRotationDir+"/"+filename),
+					byteOut.toByteArray(),
+					0600,
 					UnixFile.ROOT_UID,
 					UnixFile.ROOT_GID,
-					0600,
-					uid_min,
-					gid_min
+					null,
+					restorecon
 				);
 			}
 

@@ -88,6 +88,8 @@ public class DaemonFileUtils {
     /**
      * Creates a directory, if needed.  If already exists makes sure it is a directory.
      * Also sets or resets the ownership and permissions.
+	 *
+	 * @return  {@code true} if any modification was made
      */
     public static void mkdir(String dirName, int mode, int uid, int gid) throws IOException {
         mkdir(new UnixFile(dirName), mode, uid, gid);
@@ -96,15 +98,26 @@ public class DaemonFileUtils {
     /**
      * Creates a directory, if needed.  If already exists makes sure it is a directory.
      * Also sets or resets the ownership and permissions.
+	 *
+	 * @return  {@code true} if any modification was made
      */
-    public static void mkdir(UnixFile uf, int mode, int uid, int gid) throws IOException {
+    public static boolean mkdir(UnixFile uf, int mode, int uid, int gid) throws IOException {
+		boolean modified = false;
         Stat ufStat = uf.getStat();
         if(!ufStat.exists()) {
             uf.mkdir();
             ufStat = uf.getStat();
+			modified = true;
         } else if(!ufStat.isDirectory()) throw new IOException("File exists and is not a directory: " + uf.getPath());
-        if(ufStat.getMode() != mode) uf.setMode(mode);
-        if(ufStat.getUid() != uid || ufStat.getGid() != gid) uf.chown(uid, gid);
+        if(ufStat.getMode() != mode) {
+			uf.setMode(mode);
+			modified = true;
+		}
+        if(ufStat.getUid() != uid || ufStat.getGid() != gid) {
+			uf.chown(uid, gid);
+			modified = true;
+		}
+		return modified;
     }
 
     /**
@@ -158,72 +171,6 @@ public class DaemonFileUtils {
         }
     }
 
-    /**
-	 * <p>
-     * Overwrites a file only when missing or not equal to the provided
-     * content.  Will first create a new file into <code>tempFile</code>,
-     * set the ownership and permissions, and then rename over any
-     * existing files.  If <code>tempFile</code> exists and <code>file</code>
-     * has to be written, <code>tempFile</code> will be overwritten.
-     * If file is a symlink, will be removed first.
-	 * </p>
-	 * <p>
-	 * TODO: Is this redundant with {@link #atomicWrite(com.aoindustries.io.unix.UnixFile, byte[], long, int, int, com.aoindustries.io.unix.UnixFile, java.util.Set)}?
-	 * TODO: Is atomic one better?
-	 * </p>
-     *
-     * @param  tempFile  if <code>null</code>, a randomly-generated filename will
-     *                   be used
-     *
-     * @return  <code>true</code> if the file was created or overwritten,
-     *          <code>false</code> when no changes were made
-     */
-    public static boolean writeIfNeeded(
-        byte[] newContents,
-        UnixFile tempFile,
-        UnixFile file,
-        int uid,
-        int gid,
-        int mode,
-		int uid_min,
-		int gid_min
-    ) throws IOException {
-        Stat fileStat = file.getStat();
-        if(fileStat.exists() && fileStat.isSymLink()) {
-            file.delete();
-            fileStat = file.getStat();
-        }
-        if(
-            !fileStat.exists()
-            || !file.contentEquals(newContents)
-        ) {
-            // Create temp file if none provided
-            if(tempFile==null) tempFile = UnixFile.mktemp(file.getPath()+".", false);
-            try {
-                try (
-					FileOutputStream newOut = tempFile.getSecureOutputStream(
-						uid,
-						gid,
-						mode,
-						true,
-						uid_min,
-						gid_min
-					)
-				) {
-                    newOut.write(newContents);
-                }
-                tempFile.renameTo(file);
-            } finally {
-                // If newFile still exists there was a problem and it should be
-                // cleaned-up
-                if(tempFile.getStat().exists()) tempFile.delete();
-            }
-            return true;
-        } else {
-            return false;
-        }
-    }
-
 	/**
 	 * Atomically replaces a file.  The file will always exist and will always
 	 * be either the old of new version.
@@ -248,6 +195,7 @@ public class DaemonFileUtils {
 		Stat fileStat = file.getStat();
 		if(
 			!fileStat.exists()
+			// TODO: Find some way to avoid race condition and redirects while not doing funny file permission changes
 			|| !file.contentEquals(newContents)
 		) {
 			UnixFile backupTemp;
@@ -288,6 +236,7 @@ public class DaemonFileUtils {
 			// Write the new contents into a temp file
 			UnixFile fileTemp = UnixFile.mktemp(file.getPath(), false);
 			if(logger.isLoggable(Level.FINE)) logger.fine("mktemp \"" + file + "\" -> \"" + fileTemp + '"');
+			// TODO: Find some way to avoid race condition and redirects while not doing funny file permission changes
 			try (FileOutputStream out = new FileOutputStream(fileTemp.getFile())) {
 				out.write(newContents);
 			}

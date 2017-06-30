@@ -15,6 +15,7 @@ import com.aoindustries.io.unix.UnixFile;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Set;
 
 /**
  * Manages HttpdTomcatSharedSite version 8.0.X configurations.
@@ -86,7 +87,7 @@ class HttpdTomcatSharedSiteManager_8_0_X extends HttpdTomcatSharedSiteManager<To
 	}
 
 	@Override
-	protected boolean rebuildConfigFiles(UnixFile siteDirectory) {
+	protected boolean rebuildConfigFiles(UnixFile siteDirectory, Set<UnixFile> restorecon) {
 		// No configs to rebuild
 		return false;
 	}

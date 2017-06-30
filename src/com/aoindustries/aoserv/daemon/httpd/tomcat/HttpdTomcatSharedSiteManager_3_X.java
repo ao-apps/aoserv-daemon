@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Manages HttpdTomcatSharedSite version 3.X configurations.
@@ -281,7 +282,7 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
 	protected abstract byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException;
 
 	@Override
-	protected boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException {
+	protected boolean rebuildConfigFiles(UnixFile siteDirectory, Set<UnixFile> restorecon) throws IOException, SQLException {
 		final String siteDir = siteDirectory.getPath();
 		boolean needsRestart = false;
 		String autoWarning = getAutoWarningXml();
@@ -296,15 +297,14 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
 		if(!httpdSite.isManual() || !confServerXMLFile.getStat().exists()) {
 			// Only write to the actual file when missing or changed
 			if(
-				DaemonFileUtils.writeIfNeeded(
-					buildServerXml(siteDirectory, autoWarning),
-					null,
+				DaemonFileUtils.atomicWrite(
 					confServerXMLFile,
+					buildServerXml(siteDirectory, autoWarning),
+					0660,
 					httpdSite.getLinuxServerAccount().getUid().getId(),
 					httpdSite.getLinuxServerGroup().getGid().getId(),
-					0660,
-					uid_min,
-					gid_min
+					null,
+					restorecon
 				)
 			) {
 				// Flag as needing restarted

@@ -474,7 +474,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 	}
 
 	@Override
-	protected boolean rebuildConfigFiles(UnixFile siteDirectory) throws IOException, SQLException {
+	protected boolean rebuildConfigFiles(UnixFile siteDirectory, Set<UnixFile> restorecon) throws IOException, SQLException {
 		final String siteDir = siteDirectory.getPath();
 		boolean needsRestart = false;
 		String autoWarning = getAutoWarningXml();
@@ -489,15 +489,14 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		if(!httpdSite.isManual() || !confServerXMLFile.getStat().exists()) {
 			// Only write to the actual file when missing or changed
 			if(
-				DaemonFileUtils.writeIfNeeded(
-					buildServerXml(siteDirectory, autoWarning),
-					null,
+				DaemonFileUtils.atomicWrite(
 					confServerXMLFile,
+					buildServerXml(siteDirectory, autoWarning),
+					0660,
 					httpdSite.getLinuxServerAccount().getUid().getId(),
 					httpdSite.getLinuxServerGroup().getGid().getId(),
-					0660,
-					uid_min,
-					gid_min
+					null,
+					restorecon
 				)
 			) {
 				// Flag as needing restarted
