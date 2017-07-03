@@ -69,11 +69,12 @@ final public class HttpdManager extends BuilderThread {
 					HttpdSharedTomcatManager.stopStartAndRestart(sharedTomcatsNeedingRestarted);
 					HttpdSiteManager.stopStartAndRestart(sitesNeedingRestarted);
 
+					// Back-up and delete the files scheduled for removal
+					// This is done before Apache reload because config files might have been removed
+					BackupManager.backupAndDeleteFiles(deleteFileList);
+
 					// Reload the Apache server configs
 					HttpdServerManager.reloadConfigs(serversNeedingReloaded);
-
-					// Back-up and delete the files scheduled for removal
-					BackupManager.backupAndDeleteFiles(deleteFileList);
 				} finally {
 					DaemonFileUtils.restorecon(restorecon);
 				}

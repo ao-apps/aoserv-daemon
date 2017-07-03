@@ -91,8 +91,8 @@ public class DaemonFileUtils {
 	 *
 	 * @return  {@code true} if any modification was made
      */
-    public static void mkdir(String dirName, int mode, int uid, int gid) throws IOException {
-        mkdir(new UnixFile(dirName), mode, uid, gid);
+    public static boolean mkdir(String dirName, int mode, int uid, int gid) throws IOException {
+        return mkdir(new UnixFile(dirName), mode, uid, gid);
     }
 
     /**
