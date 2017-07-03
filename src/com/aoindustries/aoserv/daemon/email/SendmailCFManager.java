@@ -967,8 +967,8 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "MAILER(procmail)dnl\n"
 				+ "dnl MAILER(cyrusv2)dnl\n"
 				+ "LOCAL_CONFIG\n"
-				// From http://serverfault.com/questions/700655/sendmail-rejecting-some-connections-with-handshake-failure-ssl-alert-number-40
-				+ "O CipherList=HIGH:!ADH\n"
+				// From https://access.redhat.com/articles/1467453 on 2017-07-03
+				+ "O CipherList=kEECDH:+kEECDH+SHA:kEDH:+kEDH+SHA:+kEDH+CAMELLIA:kECDH:+kECDH+SHA:kRSA:+kRSA+SHA:+kRSA+CAMELLIA:!aNULL:!eNULL:!SSLv2:!RC4:!MD5:!DES:!EXP:!SEED:!IDEA:!3DES\n"
 				+ "O DHParameters=/etc/pki/sendmail/dhparams.pem\n"
 				+ "O ServerSSLOptions=+SSL_OP_NO_SSLv2 +SSL_OP_NO_SSLv3 +SSL_OP_CIPHER_SERVER_PREFERENCE\n"
 				+ "O ClientSSLOptions=+SSL_OP_NO_SSLv2 +SSL_OP_NO_SSLv3\n"
