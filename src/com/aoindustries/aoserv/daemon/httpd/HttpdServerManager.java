@@ -185,13 +185,15 @@ public class HttpdServerManager {
 
 		// Rebuild /etc/httpd/conf/ files
 		Set<Port> enabledAjpPorts = new HashSet<>();
-		doRebuildConf(aoServer, bout, deleteFileList, serversNeedingReloaded, enabledAjpPorts, restorecon);
+		boolean[] hasAnyCgi = {false};
+		boolean[] hasAnyModPhp = {false};
+		doRebuildConf(aoServer, bout, deleteFileList, serversNeedingReloaded, enabledAjpPorts, restorecon, hasAnyCgi, hasAnyModPhp);
 
 		// Control the /etc/rc.d/init.d/httpd* files or /etc/systemd/system/httpd[-#].service
 		doRebuildInitScripts(aoServer, bout, deleteFileList, serversNeedingReloaded, restorecon);
 
 		// Configure SELinux
-		doRebuildSELinux(aoServer, serversNeedingReloaded, enabledAjpPorts);
+		doRebuildSELinux(aoServer, serversNeedingReloaded, enabledAjpPorts, hasAnyCgi[0], hasAnyModPhp[0]);
 
 		// Other filesystem fixes related to logging
 		fixFilesystem(deleteFileList);
@@ -208,15 +210,12 @@ public class HttpdServerManager {
 		Set<HttpdServer> serversNeedingReloaded,
 		Set<UnixFile> restorecon
 	) throws IOException, SQLException {
-		int uid_min = thisAoServer.getUidMin().getId();
-		int gid_min = thisAoServer.getGidMin().getId();
-
 		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		switch(osvId) {
 			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 : {
 				// The config directory should only contain files referenced in the database, or "disabled"
-				String[] list=new File(CONF_HOSTS).list();
+				String[] list = new File(CONF_HOSTS).list();
 				Set<String> extraFiles = new HashSet<>(list.length*4/3+1);
 				extraFiles.addAll(Arrays.asList(list));
 
@@ -943,7 +942,9 @@ public class HttpdServerManager {
 		List<File> deleteFileList,
 		Set<HttpdServer> serversNeedingReloaded,
 		Set<Port> enabledAjpPorts,
-		Set<UnixFile> restorecon
+		Set<UnixFile> restorecon,
+		boolean[] hasAnyCgi,
+		boolean[] hasAnyModPhp
 	) throws IOException, SQLException {
 		int osvId = thisAoServer.getServer().getOperatingSystemVersion().getPkey();
 		List<HttpdServer> hss = thisAoServer.getHttpdServers();
@@ -963,7 +964,7 @@ public class HttpdServerManager {
 			if(
 				DaemonFileUtils.atomicWrite(
 					httpdConf,
-					buildHttpdConf(hs, sites, httpdConfFilenames, bout, restorecon),
+					buildHttpdConf(hs, sites, httpdConfFilenames, bout, restorecon, hasAnyCgi, hasAnyModPhp),
 					0644,
 					UnixFile.ROOT_UID,
 					UnixFile.ROOT_GID,
@@ -1142,7 +1143,14 @@ public class HttpdServerManager {
 	/**
 	 * Builds the httpd#.conf file for CentOS 5
 	 */
-	private static byte[] buildHttpdConfCentOs5(HttpdServer hs, List<HttpdSite> sites, Set<String> httpdConfFilenames, ByteArrayOutputStream bout) throws IOException, SQLException {
+	private static byte[] buildHttpdConfCentOs5(
+		HttpdServer hs,
+		List<HttpdSite> sites,
+		Set<String> httpdConfFilenames,
+		ByteArrayOutputStream bout,
+		boolean[] hasAnyCgi,
+		boolean[] hasAnyModPhp
+	) throws IOException, SQLException {
 		final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		if(osConfig != HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) throw new AssertionError("This method is for CentOS 5 only");
 		final int serverNum = hs.getNumber();
@@ -1245,6 +1253,7 @@ public class HttpdServerManager {
 				HttpdSiteManager manager = HttpdSiteManager.getInstance(site);
 				if(manager.enableCgi()) {
 					hasCgi = true;
+					hasAnyCgi[0] = true;
 					break;
 				}
 			}
@@ -1283,6 +1292,7 @@ public class HttpdServerManager {
 				out.print("LoadModule ssl_module modules/mod_ssl.so\n");
 			}
 			if(isEnabled && phpVersion != null) {
+				hasAnyModPhp[0] = true;
 				String version = phpVersion.getVersion();
 				String phpMinorVersion = getMinorPhpVersion(version);
 				String phpMajorVersion = getMajorPhpVersion(version);
@@ -1377,7 +1387,15 @@ public class HttpdServerManager {
 	/**
 	 * Builds the httpd[-#].conf file for CentOS 7
 	 */
-	private static byte[] buildHttpdConfCentOs7(HttpdServer hs, List<HttpdSite> sites, Set<String> httpdConfFilenames, ByteArrayOutputStream bout, Set<UnixFile> restorecon) throws IOException, SQLException {
+	private static byte[] buildHttpdConfCentOs7(
+		HttpdServer hs,
+		List<HttpdSite> sites,
+		Set<String> httpdConfFilenames,
+		ByteArrayOutputStream bout,
+		Set<UnixFile> restorecon,
+		boolean[] hasAnyCgi,
+		boolean[] hasAnyModPhp
+	) throws IOException, SQLException {
 		final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		if(osConfig != HttpdOperatingSystemConfiguration.CENTOS_7_X86_64) throw new AssertionError("This method is for CentOS 7 only");
 		PackageManager.installPackages(
@@ -1482,6 +1500,7 @@ public class HttpdServerManager {
 				HttpdSiteManager manager = HttpdSiteManager.getInstance(site);
 				if(manager.enableCgi()) {
 					hasCgi = true;
+					hasAnyCgi[0] = true;
 					break;
 				}
 			}
@@ -1694,6 +1713,7 @@ public class HttpdServerManager {
 					}
 				}
 				if(isEnabled) {
+					hasAnyModPhp[0] = true;
 					String phpMajorVersion = getMajorPhpVersion(version);
 					out.print("\n"
 							+ "#\n"
@@ -1755,11 +1775,19 @@ public class HttpdServerManager {
 	/**
 	 * Builds the httpd[[-]#].conf file contents for the provided HttpdServer.
 	 */
-	private static byte[] buildHttpdConf(HttpdServer hs, List<HttpdSite> sites, Set<String> httpdConfFilenames, ByteArrayOutputStream bout, Set<UnixFile> restorecon) throws IOException, SQLException {
+	private static byte[] buildHttpdConf(
+		HttpdServer hs,
+		List<HttpdSite> sites,
+		Set<String> httpdConfFilenames,
+		ByteArrayOutputStream bout,
+		Set<UnixFile> restorecon,
+		boolean[] hasAnyCgi,
+		boolean[] hasAnyModPhp
+	) throws IOException, SQLException {
 		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		switch(osConfig) {
-			case CENTOS_5_I686_AND_X86_64 : return buildHttpdConfCentOs5(hs, sites, httpdConfFilenames, bout);
-			case CENTOS_7_X86_64          : return buildHttpdConfCentOs7(hs, sites, httpdConfFilenames, bout, restorecon);
+			case CENTOS_5_I686_AND_X86_64 : return buildHttpdConfCentOs5(hs, sites, httpdConfFilenames, bout, hasAnyCgi, hasAnyModPhp);
+			case CENTOS_7_X86_64          : return buildHttpdConfCentOs7(hs, sites, httpdConfFilenames, bout, restorecon, hasAnyCgi, hasAnyModPhp);
 			default                       : throw new AssertionError("Unexpected value for osConfig: "+osConfig);
 		}
 	}
@@ -2302,10 +2330,15 @@ public class HttpdServerManager {
 	/**
 	 * Manages SELinux.
 	 */
-	private static void doRebuildSELinux(AOServer aoServer, Set<HttpdServer> serversNeedingReloaded, Set<Port> enabledAjpPorts) throws IOException, SQLException {
+	private static void doRebuildSELinux(
+		AOServer aoServer,
+		Set<HttpdServer> serversNeedingReloaded,
+		Set<Port> enabledAjpPorts,
+		boolean hasAnyCgi,
+		boolean hasAnyModPhp
+	) throws IOException, SQLException {
 		OperatingSystemVersion osv = aoServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
-		// Manage SELinux:
 		switch(osvId) {
 			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
 				// SELinux left in Permissive state, not configured here
@@ -2328,10 +2361,35 @@ public class HttpdServerManager {
 				if(SEManagePort.configure(enabledAjpPorts, AJP_SELINUX_TYPE)) {
 					serversNeedingReloaded.addAll(hss);
 				}
+				// Control SELinux booleans
+				setSeBool("httpd_enable_cgi", hasAnyCgi);
+				setSeBool("httpd_can_network_connect_db", hasAnyModPhp);
 				break;
 			}
 			default :
 				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+		}
+	}
+
+	private static class SeBoolLock {
+	};
+
+	private static final SeBoolLock seBoolLock = new SeBoolLock();
+
+	private static void setSeBool(String bool, boolean value) throws IOException {
+		synchronized(seBoolLock) {
+			boolean current;
+			{
+				String result = AOServDaemon.execAndCapture("/usr/sbin/getsebool", bool);
+				if(result.equals(bool + " --> on\n")) current = true;
+				else if(result.equals(bool + " --> off\n")) current = false;
+				else throw new IOException("Unexpected result from getsebool: " + result);
+			}
+			if(current != value) {
+				String strVal = value ? "on" : "off";
+				if(logger.isLoggable(Level.INFO)) logger.info("Setting SELinux boolean: " + bool + " --> " + strVal);
+				AOServDaemon.exec("/usr/sbin/setsebool", "-P", bool, strVal);
+			}
 		}
 	}
 }
