@@ -1044,6 +1044,7 @@ public class LinuxAccountManager extends BuilderThread {
 					conn.getLinuxGroupAccounts().addTableListener(linuxAccountManager, 0);
 					conn.getLinuxServerAccounts().addTableListener(linuxAccountManager, 0);
 					conn.getLinuxServerGroups().addTableListener(linuxAccountManager, 0);
+					PackageManager.addPackageListener(linuxAccountManager); // React to users and groups added by RPMs
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);
