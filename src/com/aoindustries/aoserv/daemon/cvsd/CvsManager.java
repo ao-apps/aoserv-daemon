@@ -17,6 +17,7 @@ import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
+import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.File;
@@ -55,6 +56,7 @@ final public class CvsManager extends BuilderThread {
 
 			synchronized(rebuildLock) {
 				List<CvsRepository> cvsRepositories = thisAoServer.getCvsRepositories();
+				boolean cvsInstalled;
 				// Install RPM when at least one CVS repository is configured
 				if(
 					!cvsRepositories.isEmpty()
@@ -65,15 +67,28 @@ final public class CvsManager extends BuilderThread {
 				) {
 					// Install any required RPMs
 					PackageManager.installPackage(PackageManager.PackageName.CVS);
+					cvsInstalled = true;
+				} else {
+					cvsInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.CVS) != null;
 				}
-
-				// Get a list of all the directories in /var/cvs
 				File cvsDir = new File(CvsRepository.DEFAULT_CVS_DIRECTORY.toString());
-				if(!cvsDir.exists()) new UnixFile(cvsDir).mkdir(false, 0755, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
-				String[] list = cvsDir.list();
-				int listLen = list.length;
-				Set<String> existing = new HashSet<>(listLen);
-				for(int c = 0; c < listLen; c++) existing.add(CvsRepository.DEFAULT_CVS_DIRECTORY + "/" + list[c]);
+				// Create /var/cvs if missing
+				if(
+					(cvsInstalled || !cvsRepositories.isEmpty())
+					&& !cvsDir.exists()
+				) new UnixFile(cvsDir).mkdir(false, 0755, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
+				// Get a list of all the directories in /var/cvs
+				Set<String> existing;
+				{
+					String[] list = cvsDir.list();
+					if(list != null) {
+						int listLen = list.length;
+						existing = new HashSet<>(listLen*4/3+1);
+						for(int c = 0; c < listLen; c++) existing.add(CvsRepository.DEFAULT_CVS_DIRECTORY + "/" + list[c]);
+					} else {
+						existing = new HashSet<>();
+					}
+				}
 
 				// Add each directory that doesn't exist, fix permissions and ownerships, too
 				// while removing existing directories from existing
@@ -121,6 +136,11 @@ final public class CvsManager extends BuilderThread {
 					for(String deleteFilename : existing) deleteFileList.add(new File(deleteFilename));
 					BackupManager.backupAndDeleteFiles(deleteFileList);
 				}
+				// Remove /var/cvs if empty
+				if(!cvsInstalled && cvsDir.exists()) {
+					String[] list = cvsDir.list();
+					if(list == null || list.length == 0) FileUtils.delete(cvsDir);
+				}
 			}
 			return true;
 		} catch(ThreadDeath TD) {
@@ -158,6 +178,7 @@ final public class CvsManager extends BuilderThread {
 					conn.getCvsRepositories().addTableListener(cvsManager, 0);
 					conn.getLinuxServerAccounts().addTableListener(cvsManager, 0);
 					conn.getLinuxServerGroups().addTableListener(cvsManager, 0);
+					PackageManager.addPackageListener(cvsManager);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);
