@@ -40,6 +40,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -410,78 +411,141 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		}
 	}
 
-	public static void getTableStatus(UnixPath failoverRoot, int nestedOperatingSystemVersion, Port port, MySQLDatabaseName databaseName, CompressedDataOutputStream out) throws IOException, SQLException {
-		List<MySQLDatabase.TableStatus> tableStatuses = new ArrayList<>();
-		try (
-			Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, port);
-			Statement stmt = conn.createStatement()
+	private static class TableStatusConcurrencyKey {
+
+		private final UnixPath failoverRoot;
+		private final Port port;
+		private final MySQLDatabaseName databaseName;
+		private final int hash;
+
+		private TableStatusConcurrencyKey(
+			UnixPath failoverRoot,
+			Port port,
+			MySQLDatabaseName databaseName
 		) {
-			boolean isMySQL40;
-			try (ResultSet results = stmt.executeQuery("SELECT version()")) {
-				if(!results.next()) throw new SQLException("No row returned");
-				isMySQL40 = results.getString(1).startsWith(MySQLServer.VERSION_4_0_PREFIX);
-			}
-			try (ResultSet results = stmt.executeQuery("SHOW TABLE STATUS FROM "+databaseName)) {
-				while(results.next()) {
-					String engine = results.getString(isMySQL40 ? "Type" : "Engine");
-					Integer version;
-					if(isMySQL40) {
-						version = null;
-					} else {
-						version = results.getInt("Version");
-						if(results.wasNull()) version = null;
+			this.failoverRoot = failoverRoot;
+			this.port = port;
+			this.databaseName = databaseName;
+			int newHash = ObjectUtils.hashCode(failoverRoot);
+			newHash = newHash * 31 + port.hashCode();
+			newHash = newHash * 31 + databaseName.hashCode();
+			this.hash = newHash;
+		}
+
+		@Override
+		public int hashCode() {
+			return hash;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if(!(obj instanceof TableStatusConcurrencyKey)) return false;
+			TableStatusConcurrencyKey other = (TableStatusConcurrencyKey)obj;
+			return
+				// hash check shortcut
+				hash == other.hash
+				// == fields
+				&& port==other.port
+				// .equals fields
+				&& ObjectUtils.equals(failoverRoot, other.failoverRoot)
+				&& databaseName.equals(other.databaseName)
+			;
+		}
+	}
+
+	private static final ConcurrencyLimiter<TableStatusConcurrencyKey,List<MySQLDatabase.TableStatus>> tableStatusLimiter = new ConcurrencyLimiter<>();
+
+	public static void getTableStatus(UnixPath failoverRoot, int nestedOperatingSystemVersion, Port port, MySQLDatabaseName databaseName, CompressedDataOutputStream out) throws IOException, SQLException {
+		List<MySQLDatabase.TableStatus> tableStatuses;
+		try {
+			tableStatuses = tableStatusLimiter.executeSerialized(
+				new TableStatusConcurrencyKey(
+					failoverRoot,
+					port,
+					databaseName
+				),
+				() -> {
+					List<MySQLDatabase.TableStatus> statuses = new ArrayList<>();
+					try (
+						Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, port);
+						Statement stmt = conn.createStatement()
+						) {
+						boolean isMySQL40;
+						try (ResultSet results = stmt.executeQuery("SELECT version()")) {
+							if(!results.next()) throw new SQLException("No row returned");
+							isMySQL40 = results.getString(1).startsWith(MySQLServer.VERSION_4_0_PREFIX);
+						}
+						try (ResultSet results = stmt.executeQuery("SHOW TABLE STATUS FROM "+databaseName)) {
+							while(results.next()) {
+								String engine = results.getString(isMySQL40 ? "Type" : "Engine");
+								Integer version;
+								if(isMySQL40) {
+									version = null;
+								} else {
+									version = results.getInt("Version");
+									if(results.wasNull()) version = null;
+								}
+								String rowFormat = results.getString("Row_format");
+								Long rows = results.getLong("Rows");
+								if(results.wasNull()) rows = null;
+								Long avgRowLength = results.getLong("Avg_row_length");
+								if(results.wasNull()) avgRowLength = null;
+								Long dataLength = results.getLong("Data_length");
+								if(results.wasNull()) dataLength = null;
+								Long maxDataLength = results.getLong("Max_data_length");
+								if(results.wasNull()) maxDataLength = null;
+								Long indexLength = results.getLong("Index_length");
+								if(results.wasNull()) indexLength = null;
+								Long dataFree = results.getLong("Data_free");
+								if(results.wasNull()) dataFree = null;
+								Long autoIncrement = results.getLong("Auto_increment");
+								if(results.wasNull()) autoIncrement = null;
+								String collation;
+								if(isMySQL40) {
+									collation = null;
+								} else {
+									collation = results.getString("Collation");
+								}
+								try {
+									statuses.add(
+										new MySQLDatabase.TableStatus(
+											MySQLTableName.valueOf(results.getString("Name")),
+											engine==null ? null : MySQLDatabase.Engine.valueOf(engine),
+											version,
+											rowFormat==null ? null : MySQLDatabase.TableStatus.RowFormat.valueOf(rowFormat),
+											rows,
+											avgRowLength,
+											dataLength,
+											maxDataLength,
+											indexLength,
+											dataFree,
+											autoIncrement,
+											results.getString("Create_time"),
+											isMySQL40 ? null : results.getString("Update_time"),
+											results.getString("Check_time"),
+											collation==null ? null : MySQLDatabase.TableStatus.Collation.valueOf(collation),
+											isMySQL40 ? null : results.getString("Checksum"),
+											results.getString("Create_options"),
+											results.getString("Comment")
+										)
+									);
+								} catch(ValidationException e) {
+									throw new SQLException(e);
+								} catch(IllegalArgumentException err) {
+									throw new IOException(err);
+								}
+							}
+						}
 					}
-					String rowFormat = results.getString("Row_format");
-					Long rows = results.getLong("Rows");
-					if(results.wasNull()) rows = null;
-					Long avgRowLength = results.getLong("Avg_row_length");
-					if(results.wasNull()) avgRowLength = null;
-					Long dataLength = results.getLong("Data_length");
-					if(results.wasNull()) dataLength = null;
-					Long maxDataLength = results.getLong("Max_data_length");
-					if(results.wasNull()) maxDataLength = null;
-					Long indexLength = results.getLong("Index_length");
-					if(results.wasNull()) indexLength = null;
-					Long dataFree = results.getLong("Data_free");
-					if(results.wasNull()) dataFree = null;
-					Long autoIncrement = results.getLong("Auto_increment");
-					if(results.wasNull()) autoIncrement = null;
-					String collation;
-					if(isMySQL40) {
-						collation = null;
-					} else {
-						collation = results.getString("Collation");
-					}
-					try {
-						tableStatuses.add(
-							new MySQLDatabase.TableStatus(
-								MySQLTableName.valueOf(results.getString("Name")),
-								engine==null ? null : MySQLDatabase.Engine.valueOf(engine),
-								version,
-								rowFormat==null ? null : MySQLDatabase.TableStatus.RowFormat.valueOf(rowFormat),
-								rows,
-								avgRowLength,
-								dataLength,
-								maxDataLength,
-								indexLength,
-								dataFree,
-								autoIncrement,
-								results.getString("Create_time"),
-								isMySQL40 ? null : results.getString("Update_time"),
-								results.getString("Check_time"),
-								collation==null ? null : MySQLDatabase.TableStatus.Collation.valueOf(collation),
-								isMySQL40 ? null : results.getString("Checksum"),
-								results.getString("Create_options"),
-								results.getString("Comment")
-							)
-						);
-					} catch(ValidationException e) {
-						throw new SQLException(e);
-					} catch(IllegalArgumentException err) {
-						throw new IOException(err);
-					}
+					return Collections.unmodifiableList(statuses);
 				}
-			}
+			);
+		} catch(InterruptedException e) {
+			// Restore the interrupted status
+			Thread.currentThread().interrupt();
+			throw new SQLException(e);
+		} catch(ExecutionException e) {
+			throw new SQLException(e);
 		}
 		out.write(AOServDaemonProtocol.NEXT);
 		int size = tableStatuses.size();
