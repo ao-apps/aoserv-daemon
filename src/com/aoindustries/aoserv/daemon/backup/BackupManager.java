@@ -217,6 +217,10 @@ final public class BackupManager {
 	}
 */
 
+	/**
+	 * TODO: Only auto-delete from oldaccounts when all configured and enabled backups have had a full, successful pass that starts after the file was created.
+	 *       This way we know the files have been carried off the server before deleting this auto-backup.
+	 */
 	static void cleanVarOldaccounts() {
 		try {
 			UnixFile oldaccountsDir = getOldaccountsDir();
