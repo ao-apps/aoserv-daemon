@@ -1984,7 +1984,7 @@ public class HttpdServerManager {
 								+ "        RewriteCond %{HTTP_HOST} !=").print(ipAddress).print("\n"
 								+ "        RewriteRule ^(.*)$ ").print(primaryHSU.getURLNoSlash()).print("$1 [L,R=permanent]\n"
 								+ "    </IfModule>\n"
-								+ "    \n");
+								+ "\n");
 					}
 					out.print("    Include sites-available/").print(siteInclude).print("\n"
 							+ "\n"
