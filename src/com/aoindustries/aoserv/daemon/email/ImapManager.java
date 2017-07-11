@@ -133,6 +133,8 @@ import javax.mail.StoreClosedException;
  * TODO: allow lmtp-only config to support receiving-only server (without any POP3/IMAP)
  * TODO:   This might be a server configured with Sieve port only.
  *
+ * TODO: Auto-backup directory in /var/spool/imap before removing inbox.
+ *
  * @author  AO Industries, Inc.
  */
 final public class ImapManager extends BuilderThread {
