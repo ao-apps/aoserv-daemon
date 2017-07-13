@@ -263,7 +263,7 @@ public final class ProcmailManager extends BuilderThread {
 											if(portNum != SpamAssassinManager.DEFAULT_SPAMD_PORT) {
 												out.print(" -p ").print(portNum);
 											}
-											out.print(" --connect-retries=6 --retry-sleep=10 --headers\n" // -s " + (SPAMC_SKIP_THRESHOLD * 2)
+											out.print(" --connect-retries=6 --retry-sleep=10 --headers -s " + (SPAMC_SKIP_THRESHOLD * 2) + "\n"
 													+ "  \n"
 													+ "  # If spamassassin failed, return a temporary failure code to sendmail\n"
 													+ "  :0\n"
