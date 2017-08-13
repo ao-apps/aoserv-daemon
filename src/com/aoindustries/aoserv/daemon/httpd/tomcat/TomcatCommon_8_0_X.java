@@ -168,6 +168,35 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_0_44) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
+			} else if(rpmVersion.equals("8.0.45")) {
+				 // Upgrade from Tomcat 8.0.44 to 8.0.45
+				UpgradeSymlink[] upgradeSymlinks_8_0_45 = {
+					// mysql-connector-java-5.1.42-bin.jar -> mysql-connector-java-5.1.43-bin.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-5.1.42-bin.jar",
+						"../" + optSlash + "apache-tomcat-8.0/lib/mysql-connector-java-5.1.42-bin.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-5.1.43-bin.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.0/lib/mysql-connector-java-5.1.43-bin.jar"
+					),
+					// postgresql-42.1.1.jar -> postgresql-42.1.4.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.1.1.jar",
+						"../" + optSlash + "apache-tomcat-8.0/lib/postgresql-42.1.1.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.1.4.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.0/lib/postgresql-42.1.4.jar"
+					)
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_0_45) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
 			} else {
 				throw new IllegalStateException("Unexpected version of Tomcat: " + rpmVersion);
 			}
