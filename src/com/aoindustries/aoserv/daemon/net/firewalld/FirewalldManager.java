@@ -7,10 +7,12 @@ package com.aoindustries.aoserv.daemon.net.firewalld;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.FirewalldZone;
 import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Protocol;
 import com.aoindustries.aoserv.client.Server;
+import com.aoindustries.aoserv.client.validator.FirewalldZoneName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -44,17 +46,17 @@ final public class FirewalldManager extends BuilderThread {
 	private static final Logger logger = Logger.getLogger(FirewalldManager.class.getName());
 
 	/**
-	 * The zones for SSH.
+	 * The zones for SSH, used as a fail-safe if SSH not added to any zone.
 	 */
-	private static final Set<String> sshZones = Collections.unmodifiableSet(
-		new LinkedHashSet<String>(
+	private static final Set<FirewalldZoneName> sshFailsafeZones = Collections.unmodifiableSet(
+		new LinkedHashSet<FirewalldZoneName>(
 			Arrays.asList(
-				"dmz",
-				"external",
-				"home",
-				"internal",
-				"public",
-				"work"
+				FirewalldZone.DMZ,
+				FirewalldZone.EXTERNAL,
+				FirewalldZone.HOME,
+				FirewalldZone.INTERNAL,
+				FirewalldZone.PUBLIC,
+				FirewalldZone.WORK
 			)
 		)
 	);
@@ -62,7 +64,7 @@ final public class FirewalldManager extends BuilderThread {
 	/**
 	 * The public zone.
 	 */
-	private static final Set<String> publicZone = Collections.singleton("public");
+	private static final Set<FirewalldZoneName> publicZone = Collections.singleton(FirewalldZone.PUBLIC);
 
 	private static FirewalldManager firewalldManager;
 
@@ -86,6 +88,23 @@ final public class FirewalldManager extends BuilderThread {
 				)
 			);
 		}
+	}
+
+	private static Set<String> toStringSet(Set<FirewalldZoneName> firewalldZones) {
+		int size = firewalldZones.size();
+		if(size == 0) {
+			return Collections.emptySet();
+		}
+		if(size == 1) {
+			return Collections.singleton(
+				firewalldZones.iterator().next().toString()
+			);
+		}
+		Set<String> strings = new LinkedHashSet<>(size*4/3+1);
+		for(FirewalldZoneName firewalldZone : firewalldZones) {
+			if(!strings.add(firewalldZone.toString())) throw new AssertionError();
+		}
+		return strings;
 	}
 
 	private static final Object rebuildLock = new Object();
@@ -114,7 +133,7 @@ final public class FirewalldManager extends BuilderThread {
 							}
 						}
 						if(logger.isLoggable(Level.FINE)) logger.fine("ssh targets: " + targets);
-						ServiceSet.createOptimizedServiceSet("ssh", targets).commit(sshZones);
+						ServiceSet.createOptimizedServiceSet("ssh", targets).commit(toStringSet(sshFailsafeZones));
 						// TODO: Include rate-limiting from public zone, as well as a zone for monitoring
 					}
 					// All the services that are in the regular public zone
@@ -312,7 +331,7 @@ final public class FirewalldManager extends BuilderThread {
 						publicServiceSets.add(ServiceSet.createOptimizedServiceSet("vnc-server", targets));
 					}
 					// Commit all public service sets
-					ServiceSet.commit(publicServiceSets, publicZone);
+					ServiceSet.commit(publicServiceSets, toStringSet(publicZone));
 				}
 			}
 			return true;
