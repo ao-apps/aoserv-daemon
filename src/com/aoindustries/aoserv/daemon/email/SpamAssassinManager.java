@@ -1115,7 +1115,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 									if(removed) {
 										int uid = lsa.getUid().getId();
 										int gid = lsa.getPrimaryLinuxServerGroup().getGid().getId();
-										UnixFile tempFile = UnixFile.mktemp(razorAgentLog.getPath() + '.', false);
+										UnixFile tempFile = UnixFile.mktemp(razorAgentLog.getPath() + '.');
 										try {
 											try (PrintWriter out = new PrintWriter(new BufferedOutputStream(tempFile.getSecureOutputStream(uid, gid, 0644, true, uid_min, gid_min)))) {
 												while(!queuedLines.isEmpty()) out.println(queuedLines.remove());

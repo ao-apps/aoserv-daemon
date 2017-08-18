@@ -152,7 +152,7 @@ public class DaemonFileUtils {
                     SB.append((char)ch);
                 }
                 if(SB.toString().equals(prefix)) {
-                    newUF=UnixFile.mktemp(uf.getPath()+'.', false);
+                    newUF=UnixFile.mktemp(uf.getPath()+'.');
                     try (OutputStream out = new BufferedOutputStream(
 						newUF.getSecureOutputStream(
 							ufStat.getUid(),
@@ -201,7 +201,7 @@ public class DaemonFileUtils {
 			UnixFile backupTemp;
 			if(backupFile != null && fileStat.exists()) {
 				// Create temp backup
-				backupTemp = UnixFile.mktemp(backupFile.getPath(), false);
+				backupTemp = UnixFile.mktemp(backupFile.getPath());
 				if(logger.isLoggable(Level.FINE)) logger.fine("mktemp \"" + backupFile + "\" -> \"" + backupTemp + '"');
 				long numBytes = FileUtils.copy(file.getFile(), backupTemp.getFile());
 				if(logger.isLoggable(Level.FINE)) logger.fine("cp \"" + file + "\" \"" + backupTemp + "\", " + numBytes + " bytes copied");
@@ -234,7 +234,7 @@ public class DaemonFileUtils {
 				backupTemp = null;
 			}
 			// Write the new contents into a temp file
-			UnixFile fileTemp = UnixFile.mktemp(file.getPath(), false);
+			UnixFile fileTemp = UnixFile.mktemp(file.getPath());
 			if(logger.isLoggable(Level.FINE)) logger.fine("mktemp \"" + file + "\" -> \"" + fileTemp + '"');
 			// TODO: Find some way to avoid race condition and redirects while not doing funny file permission changes
 			try (FileOutputStream out = new FileOutputStream(fileTemp.getFile())) {

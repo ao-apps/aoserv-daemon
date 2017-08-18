@@ -117,7 +117,7 @@ final public class EmailListManager {
 		}
 
 		// TODO: Atomic write and restorecon
-		UnixFile tempUF = UnixFile.mktemp(path+".new.", false);
+		UnixFile tempUF = UnixFile.mktemp(path+".new.");
 		try (
 			Writer out = new OutputStreamWriter(
 				tempUF.getSecureOutputStream(uid, gid, mode, true, uid_min, gid_min),

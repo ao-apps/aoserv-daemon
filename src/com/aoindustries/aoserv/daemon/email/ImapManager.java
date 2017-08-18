@@ -344,7 +344,7 @@ final public class ImapManager extends BuilderThread {
 			if(!passwordBackup.getStat().exists()) {
 				log(logOut, Level.FINE, username, "Backing-up password");
 				String encryptedPassword = LinuxAccountManager.getEncryptedPassword(username).getElement1();
-				UnixFile tempFile = UnixFile.mktemp(passwordBackup.getPath() + ".", false);
+				UnixFile tempFile = UnixFile.mktemp(passwordBackup.getPath() + ".");
 				try (PrintWriter out = new PrintWriter(new FileOutputStream(tempFile.getFile()))) {
 					out.println(encryptedPassword);
 				}
@@ -1218,7 +1218,7 @@ final public class ImapManager extends BuilderThread {
 		// Backup file
 		if(!backupFile.getStat().exists()) {
 			log(logOut, Level.FINE, username, "Backing-up \"" + folderName + "\" to \"" + backupFile.getPath() + "\"");
-			UnixFile tempFile = UnixFile.mktemp(backupFile.getPath() + ".", false);
+			UnixFile tempFile = UnixFile.mktemp(backupFile.getPath() + ".");
 			file.copyTo(tempFile, true);
 			tempFile.chown(UnixFile.ROOT_UID, UnixFile.ROOT_GID).setMode(0600).renameTo(backupFile);
 		}
@@ -1567,7 +1567,7 @@ final public class ImapManager extends BuilderThread {
 											UnixFile mailBoxListBackup = new UnixFile(userBackupDirectory, "mailboxlist", false);
 											if(!mailBoxListBackup.getStat().exists()) {
 												log(logOut, Level.FINE, laUsername, "Backing-up mailboxlist");
-												UnixFile tempFile = UnixFile.mktemp(mailBoxListBackup.getPath() + ".", false);
+												UnixFile tempFile = UnixFile.mktemp(mailBoxListBackup.getPath() + ".");
 												mailBoxListFile.copyTo(tempFile, true);
 												tempFile.chown(UnixFile.ROOT_UID, UnixFile.ROOT_GID).setMode(0600).renameTo(mailBoxListBackup);
 											}

@@ -627,7 +627,7 @@ public abstract class HttpdSiteManager {
 			HttpdSiteURL primaryHsu = httpdSite.getPrimaryHttpdSiteURL();
 			String primaryUrl = primaryHsu==null ? httpdSite.getSiteName() : primaryHsu.getHostname().toString();
 			// Write to temp file first
-			UnixFile tempFile = UnixFile.mktemp(indexFile.getPath()+".", false);
+			UnixFile tempFile = UnixFile.mktemp(indexFile.getPath()+".");
 			try {
 				try (ChainWriter out = new ChainWriter(new FileOutputStream(tempFile.getFile()))) {
 					out.print("<html>\n"

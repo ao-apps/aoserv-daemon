@@ -496,7 +496,7 @@ public final class ProcmailManager extends BuilderThread {
 									byte[] newBytes = bout.toByteArray();
 									if(!procmailrcStat.exists() || !procmailrc.contentEquals(newBytes)) {
 										// Create the new autoresponder config
-										UnixFile tempUF = UnixFile.mktemp(home + "/.procmailrc.", false);
+										UnixFile tempUF = UnixFile.mktemp(home + "/.procmailrc.");
 										try (
 											FileOutputStream fout = tempUF.getSecureOutputStream(
 												lsa.getUid().getId(),

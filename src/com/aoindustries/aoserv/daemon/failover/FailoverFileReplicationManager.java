@@ -467,7 +467,7 @@ final public class FailoverFileReplicationManager {
 		UnixFile templateUF = name.length() > 64 ? new UnixFile(uf.getParent(), name.substring(0, 64), false) : uf;
 		String tempPath = templateUF.getPath()+'.';
 		activity.update("file: mktemp: ", tempPath);
-		return UnixFile.mktemp(tempPath, false);
+		return UnixFile.mktemp(tempPath);
 	}
 
 	private static void delete(Activity activity, UnixFile uf) throws IOException {
