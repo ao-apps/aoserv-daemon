@@ -226,6 +226,7 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl Enable IDENT lookups\n"
 				// TO_IDENT set to 10s was causing normally 1 second email to become 30 second email on www.keepandshare.com
 				+ "define(`confTO_IDENT',`0s')dnl\n");
+		// TODO: Implement this in a way that does not require NAT on the routers
 		if(thisAoServer.getServer().getServerFarm().useRestrictedSmtpPort()) {
 			out.print("MODIFY_MAILER_FLAGS(`SMTP',`+R')dnl\n"
 					+ "MODIFY_MAILER_FLAGS(`ESMTP',`+R')dnl\n"
