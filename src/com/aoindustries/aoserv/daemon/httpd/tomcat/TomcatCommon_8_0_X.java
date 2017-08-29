@@ -168,8 +168,11 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_0_44) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
-			} else if(rpmVersion.equals("8.0.45")) {
-				 // Upgrade from Tomcat 8.0.44 to 8.0.45
+			} else if(
+				rpmVersion.equals("8.0.45")
+				|| rpmVersion.equals("8.0.46")
+			) {
+				 // Upgrade from Tomcat 8.0.44 to 8.0.45/8.0.46
 				UpgradeSymlink[] upgradeSymlinks_8_0_45 = {
 					// mysql-connector-java-5.1.42-bin.jar -> mysql-connector-java-5.1.43-bin.jar
 					new UpgradeSymlink(
