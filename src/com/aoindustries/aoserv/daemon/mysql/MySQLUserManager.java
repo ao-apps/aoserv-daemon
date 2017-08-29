@@ -489,7 +489,11 @@ final public class MySQLUserManager extends BuilderThread {
 												|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
 												|| version.startsWith(MySQLServer.VERSION_5_7_PREFIX)
 											) pstmt.setInt(pos++, msu.getMaxUserConnections());
-											boolean locked = msu.isDisabled();
+											boolean locked =
+												username.equals(MySQLUser.MYSQL_SESSION)
+												|| username.equals(MySQLUser.MYSQL_SYS)
+												|| msu.isDisabled()
+											;
 											if(version.startsWith(MySQLServer.VERSION_5_7_PREFIX)) {
 												pstmt.setString(pos++, locked?"Y":"N");
 											}
@@ -647,6 +651,7 @@ final public class MySQLUserManager extends BuilderThread {
 											MySQLUserId user=key.getElement2();
 											if(
 												user.equals(MySQLUser.ROOT)
+												|| user.equals(MySQLUser.MYSQL_SESSION)
 												|| user.equals(MySQLUser.MYSQL_SYS)
 											) {
 												LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, new SQLException("Refusing to remove the " + user + " user for host " + host + ", please remove manually."));

@@ -78,6 +78,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 						) {
 							// None
 						} else if(version.startsWith(MySQLServer.VERSION_5_7_PREFIX)) {
+							systemDbUsers.add(new Tuple2<>(MySQLDatabase.PERFORMANCE_SCHEMA, MySQLUser.MYSQL_SESSION));
 							systemDbUsers.add(new Tuple2<>(MySQLDatabase.SYS, MySQLUser.MYSQL_SYS));
 						} else {
 							throw new SQLException("Unsupported version of MySQL: " + version);
@@ -163,7 +164,9 @@ final public class MySQLDBUserManager extends BuilderThread {
 										Tuple2<MySQLDatabaseName,MySQLUserId> key = new Tuple2<>(db, user);
 										if(!existing.remove(key)) {
 											// Add the db entry
-											String host = user.equals(MySQLUser.MYSQL_SYS)
+											String host = 
+												user.equals(MySQLUser.MYSQL_SESSION)
+												|| user.equals(MySQLUser.MYSQL_SYS)
 												? "localhost"
 												: MySQLServerUser.ANY_HOST;
 											pstmt.setString(1, host);
