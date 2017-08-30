@@ -784,7 +784,7 @@ public class HttpdServerManager {
 							}
 							if(hsal.getRequire().length()>0) {
 								out.print(
-									"        <IfModule mod_authz_core>\n"
+									"        <IfModule authz_core_module>\n"
 									+ "            Require ").print(hsal.getRequire()).print("\n"
 									+ "        </IfModule>\n");
 							}
