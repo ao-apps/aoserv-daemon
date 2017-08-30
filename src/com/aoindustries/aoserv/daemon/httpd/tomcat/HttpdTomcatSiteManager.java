@@ -179,6 +179,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 				settings.add(new JkSetting(true, path+"/*.do", jkCode));
 				settings.add(new JkSetting(true, path+"/*.jsp", jkCode));
 				settings.add(new JkSetting(true, path+"/*.jspa", jkCode));
+				settings.add(new JkSetting(true, path+"/*.jspx", jkCode));
 				settings.add(new JkSetting(true, path+"/*.vm", jkCode));
 				settings.add(new JkSetting(true, path+"/*.xml", jkCode));
 			}
