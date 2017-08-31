@@ -13,6 +13,7 @@ import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
 import com.aoindustries.aoserv.client.HttpdSiteAuthenticatedLocation;
 import com.aoindustries.aoserv.client.HttpdSiteBind;
+import com.aoindustries.aoserv.client.HttpdSiteBindRedirect;
 import com.aoindustries.aoserv.client.HttpdSiteURL;
 import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
 import com.aoindustries.aoserv.client.HttpdTomcatSite;
@@ -1913,8 +1914,30 @@ public class HttpdServerManager {
 								+ "    RewriteEngine on\n"
 								+ "    RewriteCond %{HTTP_HOST} !=").print(primaryHostname).print(" [NC]\n"
 								+ "    RewriteCond %{HTTP_HOST} !=").print(ipAddress).print("\n"
-								+ "    RewriteRule ^(.*)$ ").print(primaryHSU.getURLNoSlash()).print("$1 [L,R=permanent]\n"
-								+ "    \n");
+								+ "    RewriteRule \"^(.*)$\" \"").print(primaryHSU.getURLNoSlash()).print("$1\" [L,R=permanent]\n"
+								+ "\n");
+					}
+					List<HttpdSiteBindRedirect> redirects = bind.getHttpdSiteBindRedirects();
+					if(!redirects.isEmpty()) {
+						out.print("    # Redirects\n"
+								+ "    RewriteEngine on\n");
+						for(HttpdSiteBindRedirect redirect : redirects) {
+							String comment = redirect.getComment();
+							if(comment != null) {
+								// TODO: Check comment formatting before full automation
+								out.print("    # ").print(comment).print('\n');
+							}
+							out
+								.print("    RewriteRule \"")
+								// TODO: Check pattern formatting before full automation
+								.print(redirect.getPattern())
+								.print("\" \"")
+								// TODO: Check substitution formatting before full automation
+								.print(redirect.getSubstitution())
+								.print("\" [L,R=permanent]\n"
+							);
+						}
+						out.print("\n");
 					}
 					out.print("    Include conf/hosts/").print(siteInclude).print("\n"
 							+ "\n"
@@ -1982,8 +2005,32 @@ public class HttpdServerManager {
 								+ "        RewriteEngine on\n"
 								+ "        RewriteCond %{HTTP_HOST} !=").print(primaryHostname).print(" [NC]\n"
 								+ "        RewriteCond %{HTTP_HOST} !=").print(ipAddress).print("\n"
-								+ "        RewriteRule ^(.*)$ ").print(primaryHSU.getURLNoSlash()).print("$1 [L,R=permanent]\n"
+								+ "        RewriteRule \"^(.*)$\" \"").print(primaryHSU.getURLNoSlash()).print("$1\" [L,R=permanent]\n"
 								+ "    </IfModule>\n"
+								+ "\n");
+					}
+					List<HttpdSiteBindRedirect> redirects = bind.getHttpdSiteBindRedirects();
+					if(!redirects.isEmpty()) {
+						out.print("    # Redirects\n"
+								+ "    <IfModule rewrite_module>\n"
+								+ "        RewriteEngine on\n");
+						for(HttpdSiteBindRedirect redirect : redirects) {
+							String comment = redirect.getComment();
+							if(comment != null) {
+								// TODO: Check comment formatting before full automation
+								out.print("        # ").print(comment).print('\n');
+							}
+							out
+								.print("        RewriteRule \"")
+								// TODO: Check pattern formatting before full automation
+								.print(redirect.getPattern())
+								.print("\" \"")
+								// TODO: Check substitution formatting before full automation
+								.print(redirect.getSubstitution())
+								.print("\" [L,R=permanent]\n"
+							);
+						}
+						out.print("    </IfModule>\n"
 								+ "\n");
 					}
 					out.print("    Include sites-available/").print(siteInclude).print("\n"
