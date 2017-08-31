@@ -8,6 +8,7 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
 import com.aoindustries.aoserv.client.HttpdJBossSite;
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
+import com.aoindustries.aoserv.client.HttpdSiteBind;
 import com.aoindustries.aoserv.client.HttpdTomcatContext;
 import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
 import com.aoindustries.aoserv.client.HttpdTomcatSite;
@@ -189,7 +190,14 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 			for(HttpdTomcatContext context : tomcatSite.getHttpdTomcatContexts()) {
 				String path=context.getPath();
 				if(enableCgi()) settings.add(new JkSetting(false, path+"/cgi-bin/*", jkCode));
-				if(enablePhp()) settings.add(new JkSetting(false, path+"/*.php", jkCode));
+				boolean isInModPhp = false;
+				for(HttpdSiteBind hsb : httpdSite.getHttpdSiteBinds()) {
+					if(hsb.getHttpdBind().getHttpdServer().getModPhpVersion() != null) {
+						isInModPhp = true;
+						break;
+					}
+				}
+				if(enablePhp() || isInModPhp) settings.add(new JkSetting(false, path+"/*.php", jkCode));
 			}
 		}
 		return settings;

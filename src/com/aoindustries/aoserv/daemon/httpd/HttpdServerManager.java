@@ -825,7 +825,14 @@ public class HttpdServerManager {
 										+ "                DirectoryIndex index.shtml\n"
 										+ "            </IfModule>\n");
 							}
-							if(manager.enablePhp()) {
+							boolean isInModPhp = false;
+							for(HttpdSiteBind hsb : httpdSite.getHttpdSiteBinds()) {
+								if(hsb.getHttpdBind().getHttpdServer().getModPhpVersion() != null) {
+									isInModPhp = true;
+									break;
+								}
+							}
+							if(manager.enablePhp() || isInModPhp) {
 								out.print("            DirectoryIndex index.php\n");
 							}
 							out.print("            DirectoryIndex index.html\n"
