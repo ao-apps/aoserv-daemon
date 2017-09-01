@@ -1934,15 +1934,20 @@ public class HttpdServerManager {
 								// TODO: Check comment formatting before full automation
 								out.print("    # ").print(comment).print('\n');
 							}
+							String substitution = redirect.getSubstitution();
 							out
 								.print("    RewriteRule \"")
 								// TODO: Check pattern formatting before full automation
 								.print(redirect.getPattern())
-								.print("\" \"")
-								// TODO: Check substitution formatting before full automation
-								.print(redirect.getSubstitution())
-								.print("\" [L,R=permanent]\n"
-							);
+								.print("\" ");
+							if(substitution.equals("-")) {
+								out.print("- [L]\n");
+							} else {
+								out.print('"')
+									// TODO: Check substitution formatting before full automation
+									.print(substitution)
+									.print("\" [L,R=permanent]\n");
+							}
 						}
 						out.print("\n");
 					}
@@ -2027,15 +2032,20 @@ public class HttpdServerManager {
 								// TODO: Check comment formatting before full automation
 								out.print("        # ").print(comment).print('\n');
 							}
+							String substitution = redirect.getSubstitution();
 							out
 								.print("        RewriteRule \"")
 								// TODO: Check pattern formatting before full automation
 								.print(redirect.getPattern())
-								.print("\" \"")
-								// TODO: Check substitution formatting before full automation
-								.print(redirect.getSubstitution())
-								.print("\" [L,R=permanent]\n"
-							);
+								.print("\" ");
+							if(substitution.equals("-")) {
+								out.print("- [L]\n");
+							} else {
+								out.print('"')
+									// TODO: Check substitution formatting before full automation
+									.print(substitution)
+									.print("\" [L,R=permanent]\n");
+							}
 						}
 						out.print("    </IfModule>\n"
 								+ "\n");
@@ -2417,7 +2427,8 @@ public class HttpdServerManager {
 				}
 				// Control SELinux booleans
 				setSeBool("httpd_enable_cgi", hasAnyCgi);
-				setSeBool("httpd_can_network_connect_db", hasAnyModPhp);
+				setSeBool("httpd_can_network_connect_db", hasAnyCgi || hasAnyModPhp);
+				setSeBool("httpd_setrlimit", hasAnyCgi || hasAnyModPhp);
 				break;
 			}
 			default :
