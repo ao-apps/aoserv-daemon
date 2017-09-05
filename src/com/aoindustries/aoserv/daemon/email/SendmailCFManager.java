@@ -849,8 +849,8 @@ final public class SendmailCFManager extends BuilderThread {
 					.print(ip.isUnspecified()?thisAoServer.getHostname():ia.getHostname())
 					.print("-MSA, Modifiers=")
 				;
-				if(ip.isUnspecified()) out.print("Eh"); // TODO: Eah once monitoring supports authentication
-				else out.print("Ebh"); // TODO: Eabh once monitoring supports authentication
+				if(ip.isUnspecified()) out.print("Eah");
+				else out.print("Eabh");
 				out.print("')dnl\n"); // AO added
 			}
 		}
