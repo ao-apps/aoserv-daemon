@@ -226,7 +226,6 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl Enable IDENT lookups\n"
 				// TO_IDENT set to 10s was causing normally 1 second email to become 30 second email on www.keepandshare.com
 				+ "define(`confTO_IDENT',`0s')dnl\n");
-		// TODO: Implement this in a way that does not require NAT on the routers
 		if(thisAoServer.getServer().getServerFarm().useRestrictedSmtpPort()) {
 			out.print("MODIFY_MAILER_FLAGS(`SMTP',`+R')dnl\n"
 					+ "MODIFY_MAILER_FLAGS(`ESMTP',`+R')dnl\n"
@@ -926,7 +925,12 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl MASQUERADE_DOMAIN(localhost)dnl\n"
 				+ "dnl MASQUERADE_DOMAIN(localhost.localdomain)dnl\n"
 				+ "dnl MASQUERADE_DOMAIN(mydomainalias.com)dnl\n"
-				+ "dnl MASQUERADE_DOMAIN(mydomain.lan)dnl\n");
+				+ "dnl MASQUERADE_DOMAIN(mydomain.lan)dnl\n"
+		/*
+			We are now blocking using egress filtering with firewalld direct.
+			This means no special interaction with the firewalls - no outgoing NAT.
+			A local root compromise could still bypass aoserv-jilter and send spam, but this was true before.
+
 		if(thisAoServer.getServer().getServerFarm().useRestrictedSmtpPort()) {
 			out.print("dnl #\n"
 					+ "dnl # Establish outgoing connections from reserved ports (0-1023).\n"
@@ -942,7 +946,8 @@ final public class SendmailCFManager extends BuilderThread {
 					+ "MODIFY_MAILER_FLAGS(`DSMTP', `+R')dnl\n"
 					+ "dnl #\n");
 		}
-		out.print("MAILER(smtp)dnl\n"
+		 */
+				+ "MAILER(smtp)dnl\n"
 				+ "MAILER(procmail)dnl\n"
 				+ "dnl MAILER(cyrusv2)dnl\n"
 				+ "LOCAL_CONFIG\n"
