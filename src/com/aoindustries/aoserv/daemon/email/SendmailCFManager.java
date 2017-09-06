@@ -585,22 +585,28 @@ final public class SendmailCFManager extends BuilderThread {
 					.print(ip.isUnspecified()?thisAoServer.getHostname():ia.getHostname())
 					.print("-MSA, Modifiers=")
 				;
-				if(ip.isUnspecified()) out.print("Eh");
-				else out.print("Ebh");
+				if(ip.isUnspecified()) out.print("Eah");
+				else out.print("Eabh");
 				out.print("')dnl\n"); // AO added
 			}
 		}
 		out.print("dnl\n"
 				+ "dnl Enable IDENT lookups\n"
 				// TO_IDENT set to 10s was causing normally 1 second email to become 30 second email on www.keepandshare.com
-				+ "define(`confTO_IDENT',`0s')dnl\n");
+				+ "define(`confTO_IDENT',`0s')dnl\n"
+		/*
+			We are now blocking using egress filtering with iptables in /etc/opt/aoserv-daemon/route.
+			This means no special interaction with the firewalls - no outgoing NAT.
+			A local root compromise could still bypass aoserv-jilter and send spam, but this was true before.
+
 		if(thisAoServer.getServer().getServerFarm().useRestrictedSmtpPort()) {
 			out.print("MODIFY_MAILER_FLAGS(`SMTP',`+R')dnl\n"
 					+ "MODIFY_MAILER_FLAGS(`ESMTP',`+R')dnl\n"
 					+ "MODIFY_MAILER_FLAGS(`SMTP8',`+R')dnl\n"
 					+ "MODIFY_MAILER_FLAGS(`DSMTP',`+R')dnl\n");
 		}
-		out.print("MAILER(smtp)dnl\n"
+		 */
+				+ "MAILER(smtp)dnl\n"
 				+ "MAILER(procmail)dnl\n"
 				+ "LOCAL_CONFIG\n"
 				// From http://serverfault.com/questions/700655/sendmail-rejecting-some-connections-with-handshake-failure-ssl-alert-number-40
