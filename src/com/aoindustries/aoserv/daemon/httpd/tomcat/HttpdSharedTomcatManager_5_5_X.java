@@ -460,6 +460,7 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 						}
 						HttpdTomcatSite tomcatSite=hs.getHttpdTomcatSite();
 						for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
+							if(!htc.isServerXmlConfigured()) out.print("        <!--\n");
 							out.print("        <Context\n");
 							if(htc.getClassName()!=null) out.print("          className=\"").encodeXmlAttribute(htc.getClassName()).print("\"\n");
 							out.print("          cookies=\"").encodeXmlAttribute(htc.useCookies()).print("\"\n"
@@ -489,6 +490,7 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 								}
 								out.print("        </Context>\n");
 							}
+							if(!htc.isServerXmlConfigured()) out.print("        -->\n");
 						}
 						out.print("      </Host>\n");
 					}

@@ -365,6 +365,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
 					+ "        xmlNamespaceAware=\"false\"\n"
 					+ "      >\n");
 			for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
+				if(!htc.isServerXmlConfigured()) out.print("        <!--\n");
 				out.print("        <Context\n");
 				if(htc.getClassName()!=null) out.print("          className=\"").encodeXmlAttribute(htc.getClassName()).print("\"\n");
 				out.print("          cookies=\"").encodeXmlAttribute(htc.useCookies()).print("\"\n"
@@ -394,6 +395,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
 					}
 					out.print("        </Context>\n");
 				}
+				if(!htc.isServerXmlConfigured()) out.print("        -->\n");
 			}
 			out.print("      </Host>\n"
 					+ "    </Engine>\n"
