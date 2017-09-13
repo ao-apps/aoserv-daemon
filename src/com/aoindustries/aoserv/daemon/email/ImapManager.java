@@ -937,6 +937,7 @@ final public class ImapManager extends BuilderThread {
 		boolean isDebug = logger.isLoggable(Level.FINE);
 		// Determine the username
 		String username = domain.equals("default") ? user : (user + '@' + domain);
+		if(isDebug) logger.fine(folder.getFullName() + ": Getting ACL: " + username);
 
 		ACL userAcl = null;
 		for(ACL acl : folder.getACL()) {
