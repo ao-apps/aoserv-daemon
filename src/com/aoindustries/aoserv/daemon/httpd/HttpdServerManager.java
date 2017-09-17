@@ -621,8 +621,7 @@ public class HttpdServerManager {
 							// Is webapp/alias
 							out.print("\n"
 									+ "    # Set up the ").print(path).print(" webapp\n"
-									+ "    Alias \"").print(path).print("/\" \"").print(docBase).print("/\"\n"
-									+ "    AliasMatch \"^").print(path).print("$\" \"").print(docBase).print("\"\n"
+									+ "    Alias \"").print(path).print("\" \"").print(docBase).print("\"\n"
 									+ "    <Directory \"").print(docBase).print("\">\n"
 									+ "        Allow from All\n"
 									+ "        AllowOverride ").print(settings.getAllowOverride()).print("\n"
@@ -636,7 +635,7 @@ public class HttpdServerManager {
 									+ "        <IfModule mod_ssl.c>\n"
 									+ "            SSLOptions +StdEnvVars\n"
 									+ "        </IfModule>\n"
-									+ "        Options ExecCGI\n"
+									+ "        Options ").print(settings.getCgiOptions()).print("\n"
 									+ "        SetHandler cgi-script\n"
 									+ "    </Directory>\n");
 							/*
@@ -875,7 +874,7 @@ public class HttpdServerManager {
 										+ "        <IfModule ssl_module>\n"
 										+ "            SSLOptions +StdEnvVars\n"
 										+ "        </IfModule>\n"
-										+ "        Options ExecCGI\n"
+										+ "        Options ").print(settings.getCgiOptions()).print("\n"
 										+ "        SetHandler cgi-script\n"
 										+ "    </Directory>\n");
 							}
@@ -884,8 +883,7 @@ public class HttpdServerManager {
 							out.print("\n"
 									+ "    # Set up the ").print(path).print(" webapp\n"
 									+ "    <IfModule alias_module>\n"
-									+ "        Alias \"").print(path).print("/\" \"").print(docBase).print("/\"\n"
-									+ "        AliasMatch \"^").print(path).print("$\" \"").print(docBase).print("\"\n"
+									+ "        Alias \"").print(path).print("\" \"").print(docBase).print("\"\n"
 									+ "        <Directory \"").print(docBase).print("\">\n"
 									+ "            <IfModule authz_core_module>\n"
 									+ "                Require all granted\n"
@@ -899,7 +897,7 @@ public class HttpdServerManager {
 										+ "            <IfModule ssl_module>\n"
 										+ "                SSLOptions +StdEnvVars\n"
 										+ "            </IfModule>\n"
-										+ "            Options ExecCGI\n"
+										+ "            Options ").print(settings.getCgiOptions()).print("\n"
 										+ "            SetHandler cgi-script\n"
 										+ "        </Directory>\n");
 							}

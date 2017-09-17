@@ -760,9 +760,24 @@ public abstract class HttpdSiteManager {
 	private static final SortedMap<String,String> standardPermanentRewriteRules = new TreeMap<>();
 	private static final SortedMap<String,String> unmodifiableStandardPermanentRewriteRules = Collections.unmodifiableSortedMap(standardPermanentRewriteRules);
 	static {
-		// TODO: Benchmark faster with single or multiple rules
+		// emacs / kwrite
 		standardPermanentRewriteRules.put("^(.*)~$", "$1");
 		standardPermanentRewriteRules.put("^(.*)~/(.*)$", "$1/$2");
+
+		// vi / vim
+		// .test.php.swp
+		standardPermanentRewriteRules.put("^(.*/)\\.([^/]+)\\.swp$", "$1$2");
+		standardPermanentRewriteRules.put("^(.*/)\\.([^/]+)\\.swp/(.*)$", "$1$2/$3");
+
+		// Some other kind (seen as left-over #wp-config.php# in web root)
+		// #wp-config.php#
+		standardPermanentRewriteRules.put("^(.*/)#([^/]+)#$", "$1$2");
+		standardPermanentRewriteRules.put("^(.*/)#([^/]+)#/(.*)$", "$1$2/$3");
+
+		// TODO: nano .save files? https://askubuntu.com/questions/601985/what-are-save-files
+
+		// Should we report these in the distro scans instead of using these rules?
+
 		//standardPermanentRewriteRules.put("^(.*)\\.do~$", "$1.do");
 		//standardPermanentRewriteRules.put("^(.*)\\.do~/(.*)$", "$1.do/$2");
 		//standardPermanentRewriteRules.put("^(.*)\\.jsp~$", "$1.jsp");
@@ -898,18 +913,36 @@ public abstract class HttpdSiteManager {
 			}
 		}
 
+		/** https://httpd.apache.org/docs/2.4/mod/core.html#options */
+		public static String generateCgiOptions(
+			boolean enableCgi,
+			boolean enableFollowSymlinks
+		) {
+			if(enableCgi) {
+				if(enableFollowSymlinks) {
+					return "ExecCGI FollowSymLinks";
+				} else {
+					return "ExecCGI";
+				}
+			} else {
+				return "None";
+			}
+		}
+
 		private final UnixPath docBase;
 		private final String allowOverride;
 		private final String options;
 		private final boolean enableSsi;
 		private final boolean enableCgi;
+		private final String cgiOptions;
 
-		public WebAppSettings(UnixPath docBase, String allowOverride, String options, boolean enableSsi, boolean enableCgi) {
+		public WebAppSettings(UnixPath docBase, String allowOverride, String options, boolean enableSsi, boolean enableCgi, String cgiOptions) {
 			this.docBase = docBase;
 			this.allowOverride = allowOverride;
 			this.options = options;
 			this.enableSsi = enableSsi;
 			this.enableCgi = enableCgi;
+			this.cgiOptions = cgiOptions;
 		}
 
 		public WebAppSettings(
@@ -925,7 +958,8 @@ public abstract class HttpdSiteManager {
 				allowOverride,
 				generateOptions(enableSsi, enableIndexes, enableFollowSymlinks),
 				enableSsi,
-				enableCgi
+				enableCgi,
+				generateCgiOptions(enableCgi, enableFollowSymlinks)
 			);
 		}
 
@@ -947,6 +981,10 @@ public abstract class HttpdSiteManager {
 
 		public boolean enableCgi() {
 			return enableCgi;
+		}
+
+		public String getCgiOptions() {
+			return cgiOptions;
 		}
 	}
 
