@@ -8,6 +8,7 @@ package com.aoindustries.aoserv.daemon.email;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.EmailSpamAssassinIntegrationMode;
+import com.aoindustries.aoserv.client.FailoverFileReplication;
 import com.aoindustries.aoserv.client.LinuxAccount;
 import com.aoindustries.aoserv.client.LinuxServerAccount;
 import com.aoindustries.aoserv.client.NetBind;
@@ -25,6 +26,7 @@ import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
+import com.aoindustries.io.FilesystemIteratorRule;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.ObjectUtils;
@@ -133,7 +135,7 @@ import javax.mail.StoreClosedException;
  * TODO: allow lmtp-only config to support receiving-only server (without any POP3/IMAP)
  * TODO:   This might be a server configured with Sieve port only.
  *
- * TODO: Auto-backup directory in /var/spool/imap before removing inbox.
+ * TODO: Auto-backup directories in /var/lib/imap and /var/spool/imap before removing inbox.
  *
  * @author  AO Industries, Inc.
  */
@@ -2248,5 +2250,62 @@ ad OK Completed
 			|| !thisServer.getNetBinds(conn.getProtocols().get(Protocol.SPOP3)).isEmpty()
 			|| !thisServer.getNetBinds(conn.getProtocols().get(Protocol.SIEVE)).isEmpty()
 		;
+	}
+
+	/**
+	 * Configures backups for cyrus-imapd
+	 */
+	public static void addFilesystemIteratorRules(FailoverFileReplication ffr, Map<String,FilesystemIteratorRule> filesystemRules) throws IOException, SQLException {
+		AOServer thisServer = AOServDaemon.getThisAOServer();
+		OperatingSystemVersion osv = thisServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
+		if(
+			osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
+		) {
+			filesystemRules.put("/var/lib/imap/proc/", FilesystemIteratorRule.SKIP);
+			filesystemRules.put("/var/lib/imap/socket/", FilesystemIteratorRule.SKIP);
+			filesystemRules.put("/var/lock/subsys/cyrus-imapd", FilesystemIteratorRule.SKIP);
+			filesystemRules.put("/var/run/cyrus-master.pid", FilesystemIteratorRule.SKIP);
+			// See http://cyrusimap.web.cmu.edu/old/docs/cyrus-imapd/2.4.6/internal/var_directory_structure.php
+			filesystemRules.put("/var/spool/imap/stage.", FilesystemIteratorRule.SKIP);
+			filesystemRules.put("/var/spool/imap/sync.", FilesystemIteratorRule.SKIP);
+			// Automatically exclude all Junk filters
+			for(final LinuxServerAccount lsa : thisServer.getLinuxServerAccounts()) {
+				LinuxAccount la = lsa.getLinuxAccount();
+				final UnixPath homePath = lsa.getHome();
+				if(la.getType().isEmail() && homePath.toString().startsWith("/home/")) {
+					// Split into user and domain
+					final UserId laUsername = la.getUsername().getUsername();
+					String user = getUser(laUsername);
+					String domain = getDomain(laUsername);
+					if("default".equals(domain)) {
+						// /var/spool/imap/(u)/user/(user^name)/Junk
+						filesystemRules.put(
+							"/var/spool/imap/"
+							+ user.charAt(0)
+							+ "/user/"
+							+ user.replace('.', '^')
+							+ "/Junk",
+							FilesystemIteratorRule.SKIP
+						);
+					} else {
+						// /var/spool/imap/domain/(d)/(domain.com)/(u)/user/(user^name)/Junk
+						filesystemRules.put(
+							"/var/spool/imap/domain/"
+							+ domain.charAt(0)
+							+ "/"
+							+ domain
+							+ "/"
+							+ user.charAt(0)
+							+ "/user/"
+							+ user.replace('.', '^')
+							+ "/Junk",
+							FilesystemIteratorRule.SKIP
+						);
+					}
+				}
+			}
+		}
 	}
 }
