@@ -15,10 +15,13 @@ import com.aoindustries.aoserv.client.FailoverMySQLReplication;
 import com.aoindustries.aoserv.client.HttpdServer;
 import com.aoindustries.aoserv.client.MySQLServer;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.PostgresServer;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.client.validator.MySQLServerName;
+import com.aoindustries.aoserv.client.validator.PostgresServerName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
+import com.aoindustries.aoserv.daemon.email.ImapManager;
 import com.aoindustries.io.FileExistsRule;
 import com.aoindustries.io.FilesystemIteratorRule;
 import com.aoindustries.net.DomainName;
@@ -46,7 +49,6 @@ import java.util.logging.Logger;
  * TODO: Or, just dump to disk and remove when completed?  (Backups only)
  * 
  * TODO: Adhere to the d attribute?  man chattr
- * TODO: Skip Trash and Junk IMAP folders.
  *
  * @see  AOServer
  *
@@ -236,10 +238,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		filesystemRules.put("/usr/tmp/", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/apache-mm/", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/backup/", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/backup1/", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/backup2/", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/backup3/", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/backup4/", FilesystemIteratorRule.SKIP);
+		
 		filesystemRules.put("/var/failover/", FilesystemIteratorRule.SKIP);
 		filesystemRules.put(
 			CvsRepository.DEFAULT_CVS_DIRECTORY + "/",
@@ -261,23 +260,38 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 			)
 		);
 		filesystemRules.put("/var/lib/mysql/.journal", FilesystemIteratorRule.SKIP);
+		filesystemRules.put("/var/lib/mysql/lost+found", FilesystemIteratorRule.SKIP); // TODO: just iterate all mounts points and exclude lost+found instead?
 		final DomainName hostname = thisServer.getHostname();
-		filesystemRules.put("/var/lib/mysql/4.0/"+hostname+".pid", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lib/mysql/4.1/"+hostname+".pid", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lib/mysql/5.0/"+hostname+".pid", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lib/mysql/5.1/"+hostname+".pid", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lib/mysql/5.6/"+hostname+".pid", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lib/mysql/5.7/"+hostname+".pid", FilesystemIteratorRule.SKIP);
-		if(retention==1) {
-			// Skip files for any MySQL Server that is being replicated through MySQL replication
+		List<MySQLServer> mysqlServers = thisServer.getMySQLServers();
+		for(MySQLServer mysqlServer : mysqlServers)  {
+			MySQLServerName name = mysqlServer.getName();
+			if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+				// Skip /var/lib/mysql/(name)/(hostname).pid
+				filesystemRules.put("/var/lib/mysql/" + name + "/" + hostname + ".pid", FilesystemIteratorRule.SKIP);
+				// Skip /var/lock/subsys/mysql-(name)
+				filesystemRules.put("/var/lock/subsys/mysql-" + name, FilesystemIteratorRule.SKIP);
+			} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+				// Skip /var/lib/mysql/tmp/(name)/
+				filesystemRules.put(
+					"/var/lib/mysql/tmp/" + mysqlServer.getName() + "/",
+					FilesystemIteratorRule.SKIP
+				);
+			} else {
+				throw new SQLException("MySQLServer found on unexpected operating system: " + osv);
+			}
+		}
+		if(retention == 1) {
+			// Failover-over mode
 			List<MySQLServerName> replicatedMySQLServers;
 			synchronized(replicatedMySQLServerses) {
 				replicatedMySQLServers = replicatedMySQLServerses.get(ffr);
 			}
+			// Skip files for any MySQL Server that is being replicated through MySQL replication
 			for(MySQLServerName name : replicatedMySQLServers) {
-				String path = "/var/lib/mysql/"+name.toString();
-				filesystemRules.put(path, FilesystemIteratorRule.SKIP);
-				//if(log.isDebugEnabled()) log.debug("runFailoverCopy to "+toServer+", added skip rule for "+path);
+				// Skip /var/lib/mysql/(name)
+				filesystemRules.put("/var/lib/mysql/" + name, FilesystemIteratorRule.SKIP);
+				// Skip /var/log/mysql-(name)/
+				filesystemRules.put("/var/log/mysql-" + name + "/", FilesystemIteratorRule.SKIP);
 			}
 		}
 		if(
@@ -296,13 +310,21 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 			)
 		);
 		filesystemRules.put("/var/lib/pgsql/.journal", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lib/pgsql/7.1/postmaster.pid", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lib/pgsql/7.2/postmaster.pid", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lib/pgsql/7.3/postmaster.pid", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lib/pgsql/8.0/postmaster.pid", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lib/pgsql/8.1/postmaster.pid", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lib/pgsql/8.3/postmaster.pid", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lib/pgsql/9.2/postmaster.pid", FilesystemIteratorRule.SKIP);
+		filesystemRules.put("/var/lib/pgsql/lost+found", FilesystemIteratorRule.SKIP); // TODO: just iterate all mounts points and exclude lost+found instead?
+		List<PostgresServer> postgresServers = thisServer.getPostgresServers();
+		for(PostgresServer postgresServer : postgresServers)  {
+			PostgresServerName name = postgresServer.getName();
+			// Skip /var/lib/pgsql/(name)/postmaster.pid
+			filesystemRules.put("/var/lib/pgsql/" + name + "/postmaster.pid", FilesystemIteratorRule.SKIP);
+			if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+				// Skip /var/lock/subsys/postgresql-(name)
+				filesystemRules.put("/var/lock/subsys/postgresql-" + name, FilesystemIteratorRule.SKIP);
+			} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+				// Nothing to skip
+			} else {
+				throw new SQLException("PostgresServer found on unexpected operating system: " + osv);
+			}
+		}
 		filesystemRules.put("/var/lib/sasl2/saslauthd.pid", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lib/sasl2/mux.accept", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lock/subsys/aoserv-daemon", FilesystemIteratorRule.SKIP);
@@ -313,31 +335,11 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		filesystemRules.put("/var/lock/subsys/daemons", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lock/subsys/kheader", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lock/subsys/httpd", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lock/subsys/httpd1", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lock/subsys/httpd2", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lock/subsys/httpd3", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lock/subsys/httpd4", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lock/subsys/httpd5", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lock/subsys/httpd6", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lock/subsys/httpd7", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lock/subsys/httpd8", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lock/subsys/identd", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lock/subsys/local", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lock/subsys/messagebus", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lock/subsys/mysql-4.0", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lock/subsys/mysql-4.1", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lock/subsys/mysql-5.0", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lock/subsys/mysql-5.1", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lock/subsys/mysql-5.6", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lock/subsys/network", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lock/subsys/numlock", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lock/subsys/postgresql-7.1", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lock/subsys/postgresql-7.2", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lock/subsys/postgresql-7.3", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lock/subsys/postgresql-8.0", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lock/subsys/postgresql-8.1", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lock/subsys/postgresql-8.3", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lock/subsys/postgresql-9.2", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lock/subsys/proftpd", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lock/subsys/route", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lock/subsys/saslauthd", FilesystemIteratorRule.SKIP);
@@ -353,8 +355,14 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 
 		List<HttpdServer> httpdServers = thisServer.getHttpdServers();
 		for(HttpdServer hs : httpdServers) {
-			filesystemRules.put("/var/log/httpd"+hs.getNumber()+"/ssl_scache.sem", FilesystemIteratorRule.SKIP);
+			int num = hs.getNumber();
+			filesystemRules.put("/var/log/httpd" + num + "/ssl_scache.sem", FilesystemIteratorRule.SKIP);
+			filesystemRules.put("/var/lock/subsys/httpd" + num, FilesystemIteratorRule.SKIP);
+			filesystemRules.put("/var/run/httpd" + num + ".pid", FilesystemIteratorRule.SKIP);
 		}
+		filesystemRules.put("/var/opt/aoserv-daemon/aoserv-daemon-java.pid", FilesystemIteratorRule.SKIP);
+		filesystemRules.put("/var/opt/aoserv-daemon/aoserv-daemon.log", FilesystemIteratorRule.SKIP);
+		filesystemRules.put("/var/opt/aoserv-daemon/aoserv-daemon.pid", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/opt/aoserv-daemon/oldaccounts/", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/run/aoserv-daemon-java.pid", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/run/aoserv-daemon.pid", FilesystemIteratorRule.SKIP);
@@ -364,9 +372,6 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		filesystemRules.put("/var/run/dbus/system_bus_socket", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/run/gssproxy.pid", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/run/gssproxy.sock", FilesystemIteratorRule.SKIP);
-		for(HttpdServer hs : httpdServers) {
-			filesystemRules.put("/var/run/httpd"+hs.getNumber()+".pid", FilesystemIteratorRule.SKIP);
-		}
 		filesystemRules.put("/var/run/identd.pid", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/run/klogd.pid", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/run/lock/subsys/", FilesystemIteratorRule.SKIP);
@@ -413,22 +418,22 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		filesystemRules.put("/www/lost+found", FilesystemIteratorRule.SKIP);
 		// Do not replicate the backup directories
 		for(BackupPartition bp : thisServer.getBackupPartitions()) {
-			filesystemRules.put(bp.getPath().toString()+'/', FilesystemIteratorRule.SKIP);
+			filesystemRules.put(bp.getPath().toString() + '/', FilesystemIteratorRule.SKIP);
 		}
+		// Manager-provided additional rules
+		ImapManager.addFilesystemIteratorRules(ffr, filesystemRules);
 		return filesystemRules;
 	}
 
 	@Override
 	protected Map<String,FilesystemIteratorRule> getFilesystemIteratorPrefixRules(FailoverFileReplication ffr) throws IOException, SQLException {
-		Map<String,FilesystemIteratorRule> filesystemPrefixRules=new HashMap<>();
-		filesystemPrefixRules.put("/var/lib/mysql/5.0/mysql-bin.", FilesystemIteratorRule.SKIP);
-		filesystemPrefixRules.put("/var/lib/mysql/5.0/relay-log.", FilesystemIteratorRule.SKIP);
-		filesystemPrefixRules.put("/var/lib/mysql/5.1/mysql-bin.", FilesystemIteratorRule.SKIP);
-		filesystemPrefixRules.put("/var/lib/mysql/5.1/relay-log.", FilesystemIteratorRule.SKIP);
-		filesystemPrefixRules.put("/var/lib/mysql/5.6/mysql-bin.", FilesystemIteratorRule.SKIP);
-		filesystemPrefixRules.put("/var/lib/mysql/5.6/relay-log.", FilesystemIteratorRule.SKIP);
-		filesystemPrefixRules.put("/var/lib/mysql/5.7/mysql-bin.", FilesystemIteratorRule.SKIP);
-		filesystemPrefixRules.put("/var/lib/mysql/5.7/relay-log.", FilesystemIteratorRule.SKIP);
+		final AOServer thisServer = AOServDaemon.getThisAOServer();
+		Map<String,FilesystemIteratorRule> filesystemPrefixRules = new HashMap<>();
+		for(MySQLServer mysqlServer : thisServer.getMySQLServers()) {
+			MySQLServerName name = mysqlServer.getName();
+			filesystemPrefixRules.put("/var/lib/mysql/" + name + "/mysql-bin.", FilesystemIteratorRule.SKIP);
+			filesystemPrefixRules.put("/var/lib/mysql/" + name + "/relay-log.", FilesystemIteratorRule.SKIP);
+		}
 		return filesystemPrefixRules;
 	}
 

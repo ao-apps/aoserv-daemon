@@ -343,6 +343,7 @@ final public class FailoverFileReplicationManager {
 			&& !postPassChecklist.restartMySQLs
 			&& (
 				relativePath.startsWith("/etc/rc.d/init.d/mysql-")
+				|| relativePath.startsWith("/etc/sysconfig/mysql-")
 				|| relativePath.startsWith("/opt/mysql-")
 			)
 		) {
@@ -2002,16 +2003,36 @@ final public class FailoverFileReplicationManager {
 						String message = "Restarting MySQL "+mysqlServer+" in \""+toPath+'"';
 						activity.update("logic: ", message);
 						if(isFine) logger.fine(message);
-						String[] command = {
-							"/usr/sbin/chroot",
-							toPath,
-							"/etc/rc.d/init.d/mysql-"+mysqlServer,
-							"restart"
-						};
+
+						String[] command;
+						{
+							String serviceName = fromServer + "-mysql-" + mysqlServer + ".service";
+							File serviceFile = new File("/etc/systemd/system/" + serviceName);
+							if(serviceFile.exists()) {
+								// Run via systemctl
+								command = new String[] {
+									"/usr/bin/systemctl",
+									"try-restart", // Do not start if not currently running
+									serviceName
+								};
+							} else {
+								String initPath = "/etc/rc.d/init.d/mysql-" + mysqlServer;
+								File initFile = new File(toPath + initPath);
+								if(initFile.exists()) {
+									// Run via chroot /etc/rc.d/init.d
+									command = new String[] {
+										"/usr/sbin/chroot",
+										toPath,
+										initPath,
+										"restart"
+									};
+								} else {
+									throw new IOException("Unable to restart MySQL via either \"" + serviceFile + "\" or \"" + initFile + "\"");
+								}
+							}
+						}
 						try {
-							AOServDaemon.exec(
-								command
-							);
+							AOServDaemon.exec(command);
 						} catch(IOException err) {
 							logger.log(Level.SEVERE, AOServDaemon.getCommandString(command), err);
 						}
