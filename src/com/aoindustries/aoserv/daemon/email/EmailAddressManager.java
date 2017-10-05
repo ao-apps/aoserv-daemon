@@ -178,7 +178,7 @@ final public class EmailAddressManager extends BuilderThread {
 								ex_nouser="\"/bin/sh -c 'exit 67'\"";
 							} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 								// Code for EX_NOUSER in /usr/include/sysexits.h
-								ex_nouser="\"/usr/bin/sh -c 'exit 67'\"";
+								ex_nouser="\"exit 67\"";
 							} else {
 								throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 							}
