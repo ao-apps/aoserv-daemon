@@ -34,6 +34,10 @@ public enum OperatingSystemConfiguration {
 			}
 		}
 		@Override
+		public UnixPath getOpensslDefaultChainFile() {
+			return null;
+		}
+		@Override
 		public UnixPath getReplaceCommand() {
 			try {
 				return UnixPath.valueOf("/opt/mysql-5.0/bin/replace");
@@ -90,6 +94,14 @@ public enum OperatingSystemConfiguration {
 		public UnixPath getOpensslDefaultCaFile() {
 			try {
 				return UnixPath.valueOf("/etc/pki/tls/certs/ca-bundle.crt");
+			} catch(ValidationException e) {
+				throw new WrappedException(e);
+			}
+		}
+		@Override
+		public UnixPath getOpensslDefaultChainFile() {
+			try {
+				return UnixPath.valueOf("/etc/pki/tls/certs/server-chain.crt");
 			} catch(ValidationException e) {
 				throw new WrappedException(e);
 			}
@@ -156,6 +168,10 @@ public enum OperatingSystemConfiguration {
 			return CENTOS_5_I686_AND_X86_64.getOpensslDefaultCaFile();
 		}
 		@Override
+		public UnixPath getOpensslDefaultChainFile() {
+			return CENTOS_5_I686_AND_X86_64.getOpensslDefaultChainFile();
+		}
+		@Override
 		public UnixPath getReplaceCommand() {
 			return CENTOS_5_I686_AND_X86_64.getReplaceCommand();
 		}
@@ -194,6 +210,10 @@ public enum OperatingSystemConfiguration {
 		@Override
 		public UnixPath getOpensslDefaultCaFile() {
 			return CENTOS_5_I686_AND_X86_64.getOpensslDefaultCaFile();
+		}
+		@Override
+		public UnixPath getOpensslDefaultChainFile() {
+			return CENTOS_5_I686_AND_X86_64.getOpensslDefaultChainFile();
 		}
 		@Override
 		public UnixPath getReplaceCommand() {
@@ -235,6 +255,14 @@ public enum OperatingSystemConfiguration {
 		public UnixPath getOpensslDefaultCaFile() {
 			try {
 				return UnixPath.valueOf("/etc/pki/tls/certs/ca-bundle.crt");
+			} catch(ValidationException e) {
+				throw new WrappedException(e);
+			}
+		}
+		@Override
+		public UnixPath getOpensslDefaultChainFile() {
+			try {
+				return UnixPath.valueOf("/etc/pki/tls/certs/server-chain.crt");
 			} catch(ValidationException e) {
 				throw new WrappedException(e);
 			}
@@ -299,6 +327,10 @@ public enum OperatingSystemConfiguration {
 		@Override
 		public UnixPath getOpensslDefaultCaFile() {
 			return CENTOS_7_X86_64.getOpensslDefaultCaFile();
+		}
+		@Override
+		public UnixPath getOpensslDefaultChainFile() {
+			return CENTOS_7_X86_64.getOpensslDefaultChainFile();
 		}
 		@Override
 		public UnixPath getReplaceCommand() {
@@ -371,6 +403,12 @@ public enum OperatingSystemConfiguration {
 	 * Gets the default certificate authority file for OpenSSL.
 	 */
 	public abstract UnixPath getOpensslDefaultCaFile();
+
+	/**
+	 * Gets the default certificate chain file for OpenSSL, if any.
+	 * This file may be not exist even when this returns non-null.
+	 */
+	public abstract UnixPath getOpensslDefaultChainFile();
 
 	/**
 	 * Gets the full path to the replace command or <code>null</code>

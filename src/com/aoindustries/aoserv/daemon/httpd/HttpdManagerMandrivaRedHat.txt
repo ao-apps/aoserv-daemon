@@ -3893,11 +3893,11 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
 			}
 			out.print("    ErrorLog ").print(bind.getErrorLog()).print("\n"
 					+ "\n");
-			String sslCert=bind.getSSLCertFile();
+			String sslCert = bind.getSslCertFile();
 			if(sslCert!=null) {
 				out.print("    <IfModule mod_ssl.c>\n"
 						+ "        SSLCertificateFile ").print(sslCert).print("\n"
-						+ "        SSLCertificateKeyFile ").print(bind.getSSLCertKeyFile()).print("\n");
+						+ "        SSLCertificateKeyFile ").print(bind.getSslCertKeyFile()).print("\n");
 				if(osv!=OperatingSystemVersion.REDHAT_ES_4_X86_64) {
 					out.print("        SSLCACertificateFile /etc/ssl/CA/ca.txt\n");
 				}
