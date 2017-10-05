@@ -34,6 +34,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -41,7 +42,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -757,22 +757,36 @@ public abstract class HttpdSiteManager {
 		return unmodifiableStandardRejectedLocations;
 	}
 
-	private static final SortedMap<String,String> standardPermanentRewriteRules = new TreeMap<>();
-	private static final SortedMap<String,String> unmodifiableStandardPermanentRewriteRules = Collections.unmodifiableSortedMap(standardPermanentRewriteRules);
+	public static class PermanentRewriteRule {
+		public final String pattern;
+		public final String substitution;
+		public final boolean noEscape;
+		private PermanentRewriteRule(String pattern, String substitution, boolean noEscape) {
+			this.pattern = pattern;
+			this.substitution = substitution;
+			this.noEscape = noEscape;
+		}
+		private PermanentRewriteRule(String pattern, String substitution) {
+			this(pattern, substitution, false);
+		}
+	}
+
+	private static final List<PermanentRewriteRule> standardPermanentRewriteRules = new ArrayList<>();
+	private static final List<PermanentRewriteRule> unmodifiableStandardPermanentRewriteRules = Collections.unmodifiableList(standardPermanentRewriteRules);
 	static {
 		// emacs / kwrite
-		standardPermanentRewriteRules.put("^(.*)~$", "$1");
-		standardPermanentRewriteRules.put("^(.*)~/(.*)$", "$1/$2");
+		standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*)~$", "$1"));
+		standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*)~/(.*)$", "$1/$2"));
 
 		// vi / vim
 		// .test.php.swp
-		standardPermanentRewriteRules.put("^(.*/)\\.([^/]+)\\.swp$", "$1$2");
-		standardPermanentRewriteRules.put("^(.*/)\\.([^/]+)\\.swp/(.*)$", "$1$2/$3");
+		standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)\\.([^/]+)\\.swp$", "$1$2"));
+		standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)\\.([^/]+)\\.swp/(.*)$", "$1$2/$3"));
 
 		// Some other kind (seen as left-over #wp-config.php# in web root)
 		// #wp-config.php#
-		standardPermanentRewriteRules.put("^(.*/)#([^/]+)#$", "$1$2");
-		standardPermanentRewriteRules.put("^(.*/)#([^/]+)#/(.*)$", "$1$2/$3");
+		standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)#([^/]+)#$", "$1$2")); // TODO [NE]? % encoded?
+		standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)#([^/]+)#/(.*)$", "$1$2/$3")); // TODO [NE]? % encoded?
 
 		// TODO: nano .save files? https://askubuntu.com/questions/601985/what-are-save-files
 
@@ -805,7 +819,7 @@ public abstract class HttpdSiteManager {
 	 * automatic backups of common file extensions that contain server-side
 	 * code that should not be externally visible.
 	 */
-	public SortedMap<String,String> getPermanentRewriteRules() {
+	public List<PermanentRewriteRule> getPermanentRewriteRules() {
 		return unmodifiableStandardPermanentRewriteRules;
 	}
 

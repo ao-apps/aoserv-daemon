@@ -38,6 +38,7 @@ import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.ObjectUtils;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.Port;
 import com.aoindustries.selinux.SEManagePort;
@@ -509,7 +510,7 @@ public class HttpdServerManager {
 			int osvId = osv.getPkey();
 			switch(osvId) {
 				case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 : {
-					out.print("    ServerAdmin ").print(httpdSite.getServerAdmin()).print("\n");
+					out.print("    ServerAdmin ").print(httpdSite.getServerAdmin()).print('\n');
 
 					// Enable CGI PHP option if the site supports CGI and PHP
 					if(manager.enablePhp() && manager.enableCgi()) {
@@ -568,15 +569,22 @@ public class HttpdServerManager {
 					}
 
 					// Rewrite rules
-					SortedMap<String,String> permanentRewrites = manager.getPermanentRewriteRules();
+					List<HttpdSiteManager.PermanentRewriteRule> permanentRewrites = manager.getPermanentRewriteRules();
 					if(!permanentRewrites.isEmpty()) {
 						// Write the standard restricted URL patterns
 						out.print("\n"
 								+ "    # Rewrite rules\n"
 								+ "    <IfModule mod_rewrite.c>\n"
 								+ "        RewriteEngine on\n");
-						for(Map.Entry<String,String> entry : permanentRewrites.entrySet()) {
-							out.print("        RewriteRule ").print(entry.getKey()).print(' ').print(entry.getValue()).print(" [L,R=permanent]\n");
+						for(HttpdSiteManager.PermanentRewriteRule permanentRewrite : permanentRewrites) {
+							out
+								.print("        RewriteRule ")
+								.print(permanentRewrite.pattern)
+								.print(' ')
+								.print(permanentRewrite.substitution)
+								.print(" [L");
+							if(permanentRewrite.noEscape) out.print(",NE");
+							out.print(",R=permanent]\n");
 						}
 						out.print("    </IfModule>\n");
 					}
@@ -678,7 +686,7 @@ public class HttpdServerManager {
 					break;
 				}
 				case OperatingSystemVersion.CENTOS_7_X86_64 : {
-					out.print("    ServerAdmin ").print(httpdSite.getServerAdmin()).print("\n");
+					out.print("    ServerAdmin ").print(httpdSite.getServerAdmin()).print('\n');
 
 					// Enable CGI PHP option if the site supports CGI and PHP
 					if(manager.enablePhp() && manager.enableCgi()) {
@@ -741,15 +749,22 @@ public class HttpdServerManager {
 					}
 
 					// Rewrite rules
-					SortedMap<String,String> permanentRewrites = manager.getPermanentRewriteRules();
+					List<HttpdSiteManager.PermanentRewriteRule> permanentRewrites = manager.getPermanentRewriteRules();
 					if(!permanentRewrites.isEmpty()) {
 						// Write the standard restricted URL patterns
 						out.print("\n"
 								+ "    # Rewrite rules\n"
 								+ "    <IfModule rewrite_module>\n"
 								+ "        RewriteEngine on\n");
-						for(Map.Entry<String,String> entry : permanentRewrites.entrySet()) {
-							out.print("        RewriteRule ").print(entry.getKey()).print(' ').print(entry.getValue()).print(" [L,R=permanent]\n");
+						for(HttpdSiteManager.PermanentRewriteRule permanentRewrite : permanentRewrites) {
+							out
+								.print("        RewriteRule ")
+								.print(permanentRewrite.pattern)
+								.print(' ')
+								.print(permanentRewrite.substitution)
+								.print(" [END");
+							if(permanentRewrite.noEscape) out.print(",NE");
+							out.print(",R=permanent]\n");
 						}
 						out.print("    </IfModule>\n");
 					}
@@ -1284,7 +1299,7 @@ public class HttpdServerManager {
 			HAS_SSL :
 			for(HttpdSite site : sites) {
 				for(HttpdSiteBind hsb : site.getHttpdSiteBinds(hs)) {
-					if(hsb.getSSLCertFile() != null) {
+					if(hsb.getSslCertFile() != null) {
 						hasSsl = true;
 						break HAS_SSL;
 					}
@@ -1338,10 +1353,10 @@ public class HttpdServerManager {
 			// Use apache if the account is disabled
 			if(isEnabled) {
 				out.print("User ").print(lsa.getLinuxAccount().getUsername().getUsername()).print("\n"
-						+ "Group ").print(hs.getLinuxServerGroup().getLinuxGroup().getName()).print("\n");
+						+ "Group ").print(hs.getLinuxServerGroup().getLinuxGroup().getName()).print('\n');
 			} else {
-				out.print("User "+LinuxAccount.APACHE+"\n"
-						+ "Group "+LinuxGroup.APACHE+"\n");
+				out.print("User " + LinuxAccount.APACHE + "\n"
+						+ "Group " + LinuxGroup.APACHE + "\n");
 			}
 			out.print("\n"
 					+ "ServerName ").print(hs.getAOServer().getHostname()).print("\n"
@@ -1374,7 +1389,7 @@ public class HttpdServerManager {
 			// The list of sites to include
 			for(int d=0;d<2;d++) {
 				boolean listFirst=d==0;
-				out.print("\n");
+				out.print('\n');
 				for(HttpdSite site : sites) {
 					if(site.listFirst()==listFirst) {
 						for(HttpdSiteBind bind : site.getHttpdSiteBinds(hs)) {
@@ -1616,7 +1631,7 @@ public class HttpdServerManager {
 			HAS_SSL :
 			for(HttpdSite site : sites) {
 				for(HttpdSiteBind hsb : site.getHttpdSiteBinds(hs)) {
-					if(hsb.getSSLCertFile() != null) {
+					if(hsb.getSslCertFile() != null) {
 						hasSsl = true;
 						break HAS_SSL;
 					}
@@ -1680,10 +1695,10 @@ public class HttpdServerManager {
 			out.print("<IfModule unixd_module>\n");
 			if(isEnabled) {
 				out.print("    User ").print(lsa.getLinuxAccount().getUsername().getUsername()).print("\n"
-						+ "    Group ").print(hs.getLinuxServerGroup().getLinuxGroup().getName()).print("\n");
+						+ "    Group ").print(hs.getLinuxServerGroup().getLinuxGroup().getName()).print('\n');
 			} else {
-				out.print("    User "+LinuxAccount.APACHE+"\n"
-						+ "    Group "+LinuxGroup.APACHE+"\n");
+				out.print("    User " + LinuxAccount.APACHE + "\n"
+						+ "    Group " + LinuxGroup.APACHE + "\n");
 			}
 			out.print("</IfModule>\n");
 			if(phpVersion != null) {
@@ -1754,7 +1769,7 @@ public class HttpdServerManager {
 				} else {
 					throw new SQLException("Unexpected app protocol: " + appProtocol);
 				}
-				out.print("\n");
+				out.print('\n');
 			}
 			out.print("\n"
 					+ "#\n"
@@ -1880,20 +1895,37 @@ public class HttpdServerManager {
 							+ "    CustomLog ").print(bind.getAccessLog()).print(" combined\n"
 							+ "    ErrorLog ").print(bind.getErrorLog()).print("\n"
 							+ "\n");
-					UnixPath sslCert=bind.getSSLCertFile();
-					if(sslCert!=null) {
+					UnixPath sslCert = bind.getSslCertFile();
+					if(sslCert != null) {
 						String sslCertStr = sslCert.toString();
-						// If a .ca file exists with the same name as the certificate, use it instead of the OS default
-						String sslCa = osConfig.getOpensslDefaultCaFile().toString();
-						if(sslCertStr.endsWith(".cert")) {
-							String possibleCa = sslCertStr.substring(0, sslCertStr.length()-5) + ".ca";
-							if(new File(possibleCa).exists()) sslCa = possibleCa;
+						// Use any directly configured chain file
+						String sslChain = ObjectUtils.toString(bind.getSslCertChainFile());
+						if(sslChain == null) {
+							// Find os default chain file, if exists
+							String possibleDefaultChain = osConfig.getOpensslDefaultChainFile().toString();
+							if(new File(possibleDefaultChain).exists()) {
+								sslChain = possibleDefaultChain;
+							}
+							// TODO: Remove this auto config once all servers explicitely set in httpd_site_binds table configuration
+							if(sslCertStr.endsWith(".cert")) {
+								// Look for any *.chain file and automatically use
+								String possibleChain = sslCertStr.substring(0, sslCertStr.length() - ".cert".length()) + ".chain";
+								if(new File(possibleChain).exists()) {
+									sslChain = possibleChain;
+								} else {
+									// Look for any *.ca file and automatically use
+									// TODO: These should all be named *.chain, preferrably set manually
+									String possibleCa = sslCertStr.substring(0, sslCertStr.length() - ".cert".length()) + ".ca";
+									if(new File(possibleCa).exists()) sslChain = possibleCa;
+								}
+							}
 						}
-
 						out.print("    <IfModule mod_ssl.c>\n"
 								+ "        SSLCertificateFile ").print(sslCert).print("\n"
-								+ "        SSLCertificateKeyFile ").print(bind.getSSLCertKeyFile()).print("\n"
-								+ "        SSLCACertificateFile ").print(sslCa).print("\n");
+								+ "        SSLCertificateKeyFile ").print(bind.getSslCertKeyFile()).print('\n');
+						if(sslChain != null) {
+							out.print("        SSLCertificateChainFile ").print(sslChain).print('\n');
+						}
 						boolean enableCgi = manager.enableCgi();
 						boolean enableSsi = manager.httpdSite.getEnableSsi();
 						if(enableCgi && enableSsi) {
@@ -1919,7 +1951,7 @@ public class HttpdServerManager {
 								+ "    RewriteEngine on\n"
 								+ "    RewriteCond %{HTTP_HOST} !=").print(primaryHostname).print(" [NC]\n"
 								+ "    RewriteCond %{HTTP_HOST} !=").print(ipAddress).print("\n"
-								+ "    RewriteRule \"^(.*)$\" \"").print(primaryHSU.getURLNoSlash()).print("$1\" [L,R=permanent]\n"
+								+ "    RewriteRule ^ \"").print(primaryHSU.getURLNoSlash()).print("%{REQUEST_URI}\" [L,NE,R=permanent]\n"
 								+ "\n");
 					}
 					List<HttpdSiteBindRedirect> redirects = bind.getHttpdSiteBindRedirects();
@@ -1939,15 +1971,20 @@ public class HttpdServerManager {
 								.print(redirect.getPattern())
 								.print("\" ");
 							if(substitution.equals("-")) {
-								out.print("- [L]\n");
+								out.print("- [L");
+								if(redirect.isNoEscape()) out.print(",NE");
+								out.print("]\n");
 							} else {
 								out.print('"')
 									// TODO: Check substitution formatting before full automation
 									.print(substitution)
-									.print("\" [L,R=permanent]\n");
+									// TODO: Support NE
+									.print("\" [L");
+								if(redirect.isNoEscape()) out.print(",NE");
+								out.print(",R=permanent]\n");
 							}
 						}
-						out.print("\n");
+						out.print('\n');
 					}
 					out.print("    Include conf/hosts/").print(siteInclude).print("\n"
 							+ "\n"
@@ -1972,19 +2009,37 @@ public class HttpdServerManager {
 							+ "    </IfModule>\n"
 							+ "    ErrorLog \"").print(bind.getErrorLog()).print("\"\n"
 							+ "\n");
-					UnixPath sslCert=bind.getSSLCertFile();
+					UnixPath sslCert = bind.getSslCertFile();
 					if(sslCert != null) {
 						String sslCertStr = sslCert.toString();
-						// If a .ca file exists with the same name as the certificate, use it instead of the OS default
-						String sslCa = osConfig.getOpensslDefaultCaFile().toString();
-						if(sslCertStr.endsWith(".cert")) {
-							String possibleCa = sslCertStr.substring(0, sslCertStr.length()-5) + ".ca";
-							if(new File(possibleCa).exists()) sslCa = possibleCa;
+						// Use any directly configured chain file
+						String sslChain = ObjectUtils.toString(bind.getSslCertChainFile());
+						if(sslChain == null) {
+							// Find os default chain file, if exists
+							String possibleDefaultChain = osConfig.getOpensslDefaultChainFile().toString();
+							if(new File(possibleDefaultChain).exists()) {
+								sslChain = possibleDefaultChain;
+							}
+							// TODO: Remove this auto config once all servers explicitely set in httpd_site_binds table configuration
+							if(sslCertStr.endsWith(".cert")) {
+								// Look for any *.chain file and automatically use
+								String possibleChain = sslCertStr.substring(0, sslCertStr.length() - ".cert".length()) + ".chain";
+								if(new File(possibleChain).exists()) {
+									sslChain = possibleChain;
+								} else {
+									// Look for any *.ca file and automatically use
+									// TODO: These should all be named *.chain, preferrably set manually
+									String possibleCa = sslCertStr.substring(0, sslCertStr.length() - ".cert".length()) + ".ca";
+									if(new File(possibleCa).exists()) sslChain = possibleCa;
+								}
+							}
 						}
 						out.print("    <IfModule ssl_module>\n"
 								+ "        SSLCertificateFile ").print(sslCert).print("\n"
-								+ "        SSLCertificateKeyFile ").print(bind.getSSLCertKeyFile()).print("\n"
-								+ "        SSLCACertificateFile ").print(sslCa).print("\n");
+								+ "        SSLCertificateKeyFile ").print(bind.getSslCertKeyFile()).print('\n');
+						if(sslChain != null) {
+							out.print("        SSLCertificateChainFile ").print(sslChain).print('\n');
+						}
 						boolean enableCgi = manager.enableCgi();
 						boolean enableSsi = manager.httpdSite.getEnableSsi();
 						if(enableCgi && enableSsi) {
@@ -2015,7 +2070,7 @@ public class HttpdServerManager {
 								+ "        RewriteEngine on\n"
 								+ "        RewriteCond %{HTTP_HOST} !=").print(primaryHostname).print(" [NC]\n"
 								+ "        RewriteCond %{HTTP_HOST} !=").print(ipAddress).print("\n"
-								+ "        RewriteRule \"^(.*)$\" \"").print(primaryHSU.getURLNoSlash()).print("$1\" [L,R=permanent]\n"
+								+ "        RewriteRule ^ \"").print(primaryHSU.getURLNoSlash()).print("%{REQUEST_URI}\" [END,NE,R=permanent]\n"
 								+ "    </IfModule>\n"
 								+ "\n");
 					}
@@ -2037,12 +2092,17 @@ public class HttpdServerManager {
 								.print(redirect.getPattern())
 								.print("\" ");
 							if(substitution.equals("-")) {
-								out.print("- [L]\n");
+								out.print("- [L");
+								if(redirect.isNoEscape()) out.print(",NE");
+								out.print("]\n");
 							} else {
 								out.print('"')
 									// TODO: Check substitution formatting before full automation
 									.print(substitution)
-									.print("\" [L,R=permanent]\n");
+									// TODO: Support NE
+									.print("\" [END");
+								if(redirect.isNoEscape()) out.print(",NE");
+								out.print(",R=permanent]\n");
 							}
 						}
 						out.print("    </IfModule>\n"
