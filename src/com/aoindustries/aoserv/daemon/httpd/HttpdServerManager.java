@@ -1978,7 +1978,6 @@ public class HttpdServerManager {
 								out.print('"')
 									// TODO: Check substitution formatting before full automation
 									.print(substitution)
-									// TODO: Support NE
 									.print("\" [L");
 								if(redirect.isNoEscape()) out.print(",NE");
 								out.print(",R=permanent]\n");
@@ -2099,7 +2098,6 @@ public class HttpdServerManager {
 								out.print('"')
 									// TODO: Check substitution formatting before full automation
 									.print(substitution)
-									// TODO: Support NE
 									.print("\" [END");
 								if(redirect.isNoEscape()) out.print(",NE");
 								out.print(",R=permanent]\n");
