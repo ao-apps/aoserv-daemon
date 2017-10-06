@@ -258,6 +258,7 @@ public class HttpdServerManager {
 						final boolean isManual = bind.isManual();
 						final boolean isDisabled = bind.isDisabled();
 						final String predisableConfig = bind.getPredisableConfig();
+						// TODO: predisable_config and disabled state do not interact well.  When disabled, the predisable_config keeps getting used instead of any newly generated file.
 						final HttpdBind httpdBind = bind.getHttpdBind();
 						final NetBind nb = httpdBind.getNetBind();
 
@@ -371,6 +372,7 @@ public class HttpdServerManager {
 						final boolean isManual = bind.isManual();
 						final boolean isDisabled = bind.isDisabled();
 						final String predisableConfig = bind.getPredisableConfig();
+						// TODO: predisable_config and disabled state do not interact well.  When disabled, the predisable_config keeps getting used instead of any newly generated file.
 						final HttpdBind httpdBind = bind.getHttpdBind();
 						final NetBind nb = httpdBind.getNetBind();
 
