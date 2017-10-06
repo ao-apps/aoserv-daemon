@@ -34,11 +34,12 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -679,15 +680,21 @@ public abstract class HttpdSiteManager {
 		return uid;
 	}
 
-	private static final SortedSet<Location> standardRejectedLocations = new TreeSet<>();
-	private static final SortedSet<Location> unmodifiableStandardRejectedLocations = Collections.unmodifiableSortedSet(standardRejectedLocations);
+	private static final Map<String,List<Location>> standardRejectedLocations = new LinkedHashMap<>();
+	private static final Map<String,List<Location>> unmodifiableStandardRejectedLocations = Collections.unmodifiableMap(standardRejectedLocations);
 	static {
 		// TODO: Benchmark faster with single or multiple rules
-
-		// Protect CVS files http://www.bsd.net.au/article.php?story=2003031221495562
-		standardRejectedLocations.add(new Location(true, "/\\.#"));
-		standardRejectedLocations.add(new Location(true, ".*/CVS/.*"));
-		standardRejectedLocations.add(new Location(true, ".*/CVSROOT/.*"));
+		standardRejectedLocations.put(
+			"Protect CVS files",
+			Collections.unmodifiableList(
+				Arrays.asList(
+					new Location(true, ".*/\\.#.*"),
+					new Location(true, ".*/CVS(/.*|$)"),
+					new Location(true, ".*/CVSROOT(/.*|$)"),
+					new Location(true, ".*/\\.cvsignore(/.*|$)")
+				)
+			)
+		);
 		//standardRejectedLocations.add(new Location(true, "/CVS/Attic"));
 		//standardRejectedLocations.add(new Location(true, "/CVS/Entries"));
 		// Already covered by Entries: standardRejectedLocations.add(new Location(true, "/CVS/Entries\\.Static"));
@@ -695,12 +702,42 @@ public abstract class HttpdSiteManager {
 		//standardRejectedLocations.add(new Location(true, "/CVS/RevisionCache"));
 		//standardRejectedLocations.add(new Location(true, "/CVS/Root"));
 		//standardRejectedLocations.add(new Location(true, "/CVS/\\.#merg"));
-
-		// Protect .git directories
-		standardRejectedLocations.add(new Location(true, ".*/\\.git/.*"));
-
-		// Protect core dumps
-		standardRejectedLocations.add(new Location(true, ".*/core\\.[0-9]{1,5}"));
+		standardRejectedLocations.put(
+			"Protect Subversion files",
+			Collections.unmodifiableList(
+				Arrays.asList(
+					new Location(true, ".*/\\.svn(/.*|$)"),
+					new Location(true, ".*/\\.svnignore(/.*|$)")
+				)
+			)
+		);
+		standardRejectedLocations.put(
+			"Protect Git files",
+			Collections.unmodifiableList(
+				Arrays.asList(
+					new Location(true, ".*/\\.git(/.*|$)"),
+					new Location(true, ".*/\\.gitignore(/.*|$)")
+				)
+			)
+		);
+		standardRejectedLocations.put(
+			"Protect core dumps",
+			Collections.singletonList(new Location(true, ".*/core\\.[0-9]{1,5}(/.*|$)"))
+		);
+		standardRejectedLocations.put(
+			"Protect emacs / kwrite auto-backups",
+			Collections.unmodifiableList(
+				Arrays.asList(
+					new Location(true, ".*/[^/]+~(/.*|$)"),
+					new Location(true, ".*/#[^/]+#(/.*|$)")
+				)
+			)
+		);
+		standardRejectedLocations.put(
+			"Protect vi / vim auto-backups",
+			Collections.singletonList(new Location(true, ".*/\\.[^/]+\\.swp(/.*|$)"))
+		);
+		// TODO: nano .save files? https://askubuntu.com/questions/601985/what-are-save-files
 	}
 
 	public static class Location implements Comparable<Location> {
@@ -751,9 +788,9 @@ public abstract class HttpdSiteManager {
 	}
 
 	/**
-	 * Gets an unmodifable set of URL patterns that should be rejected.
+	 * Gets an unmodifable map of URL patterns that should be rejected.
 	 */
-	public SortedSet<Location> getRejectedLocations() throws IOException, SQLException {
+	public Map<String,List<Location>> getRejectedLocations() throws IOException, SQLException {
 		return unmodifiableStandardRejectedLocations;
 	}
 
@@ -771,22 +808,22 @@ public abstract class HttpdSiteManager {
 		}
 	}
 
-	private static final List<PermanentRewriteRule> standardPermanentRewriteRules = new ArrayList<>();
-	private static final List<PermanentRewriteRule> unmodifiableStandardPermanentRewriteRules = Collections.unmodifiableList(standardPermanentRewriteRules);
-	static {
+	//private static final List<PermanentRewriteRule> standardPermanentRewriteRules = new ArrayList<>();
+	//private static final List<PermanentRewriteRule> unmodifiableStandardPermanentRewriteRules = Collections.unmodifiableList(standardPermanentRewriteRules);
+	//static {
 		// emacs / kwrite
-		standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*)~$", "$1"));
-		standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*)~/(.*)$", "$1/$2"));
+		// Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*)~$", "$1"));
+		// Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*)~/(.*)$", "$1/$2"));
 
 		// vi / vim
 		// .test.php.swp
-		standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)\\.([^/]+)\\.swp$", "$1$2"));
-		standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)\\.([^/]+)\\.swp/(.*)$", "$1$2/$3"));
+		// Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)\\.([^/]+)\\.swp$", "$1$2"));
+		// Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)\\.([^/]+)\\.swp/(.*)$", "$1$2/$3"));
 
 		// Some other kind (seen as left-over #wp-config.php# in web root)
 		// #wp-config.php#
-		standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)#([^/]+)#$", "$1$2")); // TODO [NE]? % encoded?
-		standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)#([^/]+)#/(.*)$", "$1$2/$3")); // TODO [NE]? % encoded?
+		// Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)#([^/]+)#$", "$1$2")); // TODO [NE]? % encoded?
+		// Moved to rejected patterns: standardPermanentRewriteRules.add(new PermanentRewriteRule("^(.*/)#([^/]+)#/(.*)$", "$1$2/$3")); // TODO [NE]? % encoded?
 
 		// TODO: nano .save files? https://askubuntu.com/questions/601985/what-are-save-files
 
@@ -812,7 +849,7 @@ public abstract class HttpdSiteManager {
 		//standardPermanentRewriteRules.put("^(.*)\\.vm~/(.*)$", "$1.vm/$2");
 		//standardPermanentRewriteRules.put("^(.*)\\.xml~$", "$1.xml");
 		//standardPermanentRewriteRules.put("^(.*)\\.xml~/(.*)$", "$1.xml/$2");
-	}
+	//}
 
 	/**
 	 * Gets the set of permanent rewrite rules.  By default, this protects
@@ -820,7 +857,8 @@ public abstract class HttpdSiteManager {
 	 * code that should not be externally visible.
 	 */
 	public List<PermanentRewriteRule> getPermanentRewriteRules() {
-		return unmodifiableStandardPermanentRewriteRules;
+		//return unmodifiableStandardPermanentRewriteRules;
+		return Collections.emptyList();
 	}
 
 	/**

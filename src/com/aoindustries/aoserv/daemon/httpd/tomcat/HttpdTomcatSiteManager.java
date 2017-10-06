@@ -28,7 +28,11 @@ import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -74,22 +78,31 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 	 * paths.
 	 */
 	@Override
-	public SortedSet<Location> getRejectedLocations() throws IOException, SQLException {
-		SortedSet<Location> standardRejectedLocations = super.getRejectedLocations();
+	public Map<String,List<Location>> getRejectedLocations() throws IOException, SQLException {
+		Map<String,List<Location>> standardRejectedLocations = super.getRejectedLocations();
 
 		// Tomcats may now be disabled separately from the sites, and when disabled
 		// Apache will serve content directly.
 		// Always protect at the Apache level to not expose sensitive information
 		// If not using Apache, let Tomcat do its own protection
 		//if(!tomcatSite.getUseApache()) return standardRejectedLocations;
-
-		SortedSet<Location> rejectedLocations = new TreeSet<>(standardRejectedLocations);
-		for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
-			String path=htc.getPath();
-			rejectedLocations.add(new Location(false, path+"/META-INF/"));
-			rejectedLocations.add(new Location(false, path+"/WEB-INF/"));
+		List<HttpdTomcatContext> htcs = tomcatSite.getHttpdTomcatContexts();
+		if(htcs.isEmpty()) {
+			return standardRejectedLocations;
+		} else {
+			Map<String,List<Location>> rejectedLocations = new LinkedHashMap<>((standardRejectedLocations.size()+1)*4/3+1);
+			List<Location> locations = new ArrayList<>(htcs.size() * 2);
+			for(HttpdTomcatContext htc : htcs) {
+				String path = htc.getPath();
+				locations.add(new Location(false, path + "/META-INF/"));
+				locations.add(new Location(false, path + "/WEB-INF/"));
+			}
+			rejectedLocations.put(
+				"Protect Tomcat webapps",
+				Collections.unmodifiableList(locations)
+			);
+			return Collections.unmodifiableMap(rejectedLocations);
 		}
-		return Collections.unmodifiableSortedSet(rejectedLocations);
 	}
 
 	/**
