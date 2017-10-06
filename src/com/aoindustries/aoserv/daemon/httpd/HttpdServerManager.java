@@ -1899,30 +1899,10 @@ public class HttpdServerManager {
 					if(sslCert != null) {
 						String sslCertStr = sslCert.toString();
 						// Use any directly configured chain file
-						String sslChain = ObjectUtils.toString(bind.getSslCertChainFile());
-						if(sslChain == null) {
-							// Find os default chain file, if exists
-							String possibleDefaultChain = osConfig.getOpensslDefaultChainFile().toString();
-							if(new File(possibleDefaultChain).exists()) {
-								sslChain = possibleDefaultChain;
-							}
-							// TODO: Remove this auto config once all servers explicitely set in httpd_site_binds table configuration
-							if(sslCertStr.endsWith(".cert")) {
-								// Look for any *.chain file and automatically use
-								String possibleChain = sslCertStr.substring(0, sslCertStr.length() - ".cert".length()) + ".chain";
-								if(new File(possibleChain).exists()) {
-									sslChain = possibleChain;
-								} else {
-									// Look for any *.ca file and automatically use
-									// TODO: These should all be named *.chain, preferrably set manually
-									String possibleCa = sslCertStr.substring(0, sslCertStr.length() - ".cert".length()) + ".ca";
-									if(new File(possibleCa).exists()) sslChain = possibleCa;
-								}
-							}
-						}
 						out.print("    <IfModule mod_ssl.c>\n"
 								+ "        SSLCertificateFile ").print(sslCert).print("\n"
 								+ "        SSLCertificateKeyFile ").print(bind.getSslCertKeyFile()).print('\n');
+						String sslChain = ObjectUtils.toString(bind.getSslCertChainFile());
 						if(sslChain != null) {
 							out.print("        SSLCertificateChainFile ").print(sslChain).print('\n');
 						}
@@ -2012,30 +1992,10 @@ public class HttpdServerManager {
 					if(sslCert != null) {
 						String sslCertStr = sslCert.toString();
 						// Use any directly configured chain file
-						String sslChain = ObjectUtils.toString(bind.getSslCertChainFile());
-						if(sslChain == null) {
-							// Find os default chain file, if exists
-							String possibleDefaultChain = osConfig.getOpensslDefaultChainFile().toString();
-							if(new File(possibleDefaultChain).exists()) {
-								sslChain = possibleDefaultChain;
-							}
-							// TODO: Remove this auto config once all servers explicitely set in httpd_site_binds table configuration
-							if(sslCertStr.endsWith(".cert")) {
-								// Look for any *.chain file and automatically use
-								String possibleChain = sslCertStr.substring(0, sslCertStr.length() - ".cert".length()) + ".chain";
-								if(new File(possibleChain).exists()) {
-									sslChain = possibleChain;
-								} else {
-									// Look for any *.ca file and automatically use
-									// TODO: These should all be named *.chain, preferrably set manually
-									String possibleCa = sslCertStr.substring(0, sslCertStr.length() - ".cert".length()) + ".ca";
-									if(new File(possibleCa).exists()) sslChain = possibleCa;
-								}
-							}
-						}
 						out.print("    <IfModule ssl_module>\n"
 								+ "        SSLCertificateFile ").print(sslCert).print("\n"
 								+ "        SSLCertificateKeyFile ").print(bind.getSslCertKeyFile()).print('\n');
+						String sslChain = ObjectUtils.toString(bind.getSslCertChainFile());
 						if(sslChain != null) {
 							out.print("        SSLCertificateChainFile ").print(sslChain).print('\n');
 						}
