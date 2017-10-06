@@ -90,13 +90,14 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 		if(htcs.isEmpty()) {
 			return standardRejectedLocations;
 		} else {
-			Map<String,List<Location>> rejectedLocations = new LinkedHashMap<>((standardRejectedLocations.size()+1)*4/3+1);
 			List<Location> locations = new ArrayList<>(htcs.size() * 2);
 			for(HttpdTomcatContext htc : htcs) {
 				String path = htc.getPath();
 				locations.add(new Location(false, path + "/META-INF/"));
 				locations.add(new Location(false, path + "/WEB-INF/"));
 			}
+			Map<String,List<Location>> rejectedLocations = new LinkedHashMap<>((standardRejectedLocations.size()+1)*4/3+1);
+			rejectedLocations.putAll(standardRejectedLocations);
 			rejectedLocations.put(
 				"Protect Tomcat webapps",
 				Collections.unmodifiableList(locations)
