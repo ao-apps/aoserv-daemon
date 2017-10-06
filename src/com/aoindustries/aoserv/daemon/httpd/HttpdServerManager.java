@@ -1883,13 +1883,14 @@ public class HttpdServerManager {
 			switch(osConfig) {
 				case CENTOS_5_I686_AND_X86_64 : {
 					out.print("<VirtualHost ").print(ipAddress.toBracketedString()).print(':').print(port).print(">\n"
-							+ "    ServerName ").print(primaryHostname).print('\n'
+							+ "    ServerName \\\n"
+							+ "        ").print(primaryHostname).print('\n'
 					);
 					List<HttpdSiteURL> altURLs=bind.getAltHttpdSiteURLs();
 					if(!altURLs.isEmpty()) {
 						out.print("    ServerAlias");
 						for(HttpdSiteURL altURL : altURLs) {
-							out.print(' ').print(altURL.getHostname().toString());
+							out.print(" \\\n        ").print(altURL.getHostname().toString());
 						}
 						out.print('\n');
 					}
@@ -1974,13 +1975,14 @@ public class HttpdServerManager {
 				}
 				case CENTOS_7_X86_64 : {
 					out.print("<VirtualHost ").print(ipAddress.toBracketedString()).print(':').print(port).print(">\n"
-							+ "    ServerName ").print(primaryHostname).print('\n'
+							+ "    ServerName \\\n"
+							+ "        ").print(primaryHostname).print('\n'
 					);
 					List<HttpdSiteURL> altURLs=bind.getAltHttpdSiteURLs();
 					if(!altURLs.isEmpty()) {
 						out.print("    ServerAlias");
 						for(HttpdSiteURL altURL : altURLs) {
-							out.print(' ').print(altURL.getHostname().toString());
+							out.print(" \\\n        ").print(altURL.getHostname().toString());
 						}
 						out.print('\n');
 					}
