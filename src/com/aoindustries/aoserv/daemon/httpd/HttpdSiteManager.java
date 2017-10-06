@@ -767,7 +767,7 @@ public abstract class HttpdSiteManager {
 			this.noEscape = noEscape;
 		}
 		private PermanentRewriteRule(String pattern, String substitution) {
-			this(pattern, substitution, false);
+			this(pattern, substitution, true);
 		}
 	}
 
