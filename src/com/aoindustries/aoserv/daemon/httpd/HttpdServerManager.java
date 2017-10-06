@@ -548,24 +548,22 @@ public class HttpdServerManager {
 
 					// Rejected URLs
 					Map<String,List<HttpdSiteManager.Location>> rejectedLocations = manager.getRejectedLocations();
-					if(!rejectedLocations.isEmpty()) {
-						out.print('\n');
-						for(Map.Entry<String,List<HttpdSiteManager.Location>> entry : rejectedLocations.entrySet()) {
-							out.print("    # ").print(entry.getKey()).print('\n');
-							for(HttpdSiteManager.Location location : entry.getValue()) {
-								if(location.isRegularExpression()) {
-									out.print("    <LocationMatch \"").print(location.getLocation()).print("\">\n"
-											+ "        Order deny,allow\n"
-											+ "        Deny from All\n"
-											+ "    </LocationMatch>\n"
-									);
-								} else {
-									out.print("    <Location \"").print(location.getLocation()).print("\">\n"
-											+ "        Order deny,allow\n"
-											+ "        Deny from All\n"
-											+ "    </Location>\n"
-									);
-								}
+					for(Map.Entry<String,List<HttpdSiteManager.Location>> entry : rejectedLocations.entrySet()) {
+						out.print("\n"
+								+ "    # ").print(entry.getKey()).print('\n');
+						for(HttpdSiteManager.Location location : entry.getValue()) {
+							if(location.isRegularExpression()) {
+								out.print("    <LocationMatch \"").print(location.getLocation()).print("\">\n"
+										+ "        Order deny,allow\n"
+										+ "        Deny from All\n"
+										+ "    </LocationMatch>\n"
+								);
+							} else {
+								out.print("    <Location \"").print(location.getLocation()).print("\">\n"
+										+ "        Order deny,allow\n"
+										+ "        Deny from All\n"
+										+ "    </Location>\n"
+								);
 							}
 						}
 					}
@@ -728,26 +726,24 @@ public class HttpdServerManager {
 
 					// Rejected URLs
 					Map<String,List<HttpdSiteManager.Location>> rejectedLocations = manager.getRejectedLocations();
-					if(!rejectedLocations.isEmpty()) {
-						out.print('\n');
-						for(Map.Entry<String,List<HttpdSiteManager.Location>> entry : rejectedLocations.entrySet()) {
-							out.print("    # ").print(entry.getKey()).print('\n');
-							for(HttpdSiteManager.Location location : entry.getValue()) {
-								if(location.isRegularExpression()) {
-									out.print("    <LocationMatch \"").print(location.getLocation()).print("\">\n"
-											+ "        <IfModule authz_core_module>\n"
-											+ "            Require all denied\n"
-											+ "        </IfModule>\n"
-											+ "    </LocationMatch>\n"
-									);
-								} else {
-									out.print("    <Location \"").print(location.getLocation()).print("\">\n"
-											+ "        <IfModule authz_core_module>\n"
-											+ "            Require all denied\n"
-											+ "        </IfModule>\n"
-											+ "    </Location>\n"
-									);
-								}
+					for(Map.Entry<String,List<HttpdSiteManager.Location>> entry : rejectedLocations.entrySet()) {
+						out.print("\n"
+								+ "    # ").print(entry.getKey()).print('\n');
+						for(HttpdSiteManager.Location location : entry.getValue()) {
+							if(location.isRegularExpression()) {
+								out.print("    <LocationMatch \"").print(location.getLocation()).print("\">\n"
+										+ "        <IfModule authz_core_module>\n"
+										+ "            Require all denied\n"
+										+ "        </IfModule>\n"
+										+ "    </LocationMatch>\n"
+								);
+							} else {
+								out.print("    <Location \"").print(location.getLocation()).print("\">\n"
+										+ "        <IfModule authz_core_module>\n"
+										+ "            Require all denied\n"
+										+ "        </IfModule>\n"
+										+ "    </Location>\n"
+								);
 							}
 						}
 					}
