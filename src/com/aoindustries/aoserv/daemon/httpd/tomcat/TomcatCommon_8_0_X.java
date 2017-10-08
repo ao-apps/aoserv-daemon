@@ -171,10 +171,11 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 			} else if(
 				rpmVersion.equals("8.0.45")
 				|| rpmVersion.equals("8.0.46")
+				|| rpmVersion.equals("8.0.47")
 			) {
-				 // Upgrade from Tomcat 8.0.44 to 8.0.45/8.0.46
+				 // Upgrade from Tomcat 8.0.44 to 8.0.45/8.0.46/8.0.47
 				UpgradeSymlink[] upgradeSymlinks_8_0_45 = {
-					// mysql-connector-java-5.1.42-bin.jar -> mysql-connector-java-5.1.44bin.jar
+					// mysql-connector-java-5.1.42-bin.jar -> mysql-connector-java-5.1.44-bin.jar
 					// mysql-connector-java-5.1.43-bin.jar -> mysql-connector-java-5.1.44-bin.jar
 					new UpgradeSymlink(
 						"lib/mysql-connector-java-5.1.42-bin.jar",
