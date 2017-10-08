@@ -570,7 +570,7 @@ public abstract class HttpdSiteManager {
 						phpMinorVersion = "5.5";
 						requiredPackage = PackageManager.PackageName.PHP_5_5;
 						out.print(". /opt/mysql-5.6/setenv.sh\n");
-						out.print(". /opt/postgresql-9.2/setenv.sh\n");
+						out.print(". /opt/postgresql-9.4/setenv.sh\n");
 					} else if(phpVersion.startsWith("5.6.")) {
 						phpMinorVersion = "5.6";
 						requiredPackage = PackageManager.PackageName.PHP_5_6;
