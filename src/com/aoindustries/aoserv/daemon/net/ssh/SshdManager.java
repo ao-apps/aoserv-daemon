@@ -147,7 +147,7 @@ final public class SshdManager extends BuilderThread {
 				+ "MaxStartups " + MAX_STARTUPS + "\n"
 				+ "X11Forwarding yes\n"
 				+ "UsePrivilegeSeparation yes\n"
-				+ "Subsystem sftp /usr/libexec/openssh/sftp-server");
+				+ "Subsystem sftp /usr/libexec/openssh/sftp-server -l VERBOSE");
 		long sftpUmask = thisAoServer.getSftpUmask();
 		if(sftpUmask != -1) out.print(" -u ").print(getSftpUmaskString(sftpUmask));
 		out.print('\n');
@@ -332,7 +332,7 @@ final public class SshdManager extends BuilderThread {
 				+ "AcceptEnv SCREEN_SESSION\n"
 				+ "\n"
 				+ "# override default of no subsystems\n"
-				+ "Subsystem\tsftp\t/usr/libexec/openssh/sftp-server");
+				+ "Subsystem\tsftp\t/usr/libexec/openssh/sftp-server -l VERBOSE");
 		long sftpUmask = thisAoServer.getSftpUmask();
 		if(sftpUmask != -1) out.print(" -u ").print(getSftpUmaskString(sftpUmask));
 		out.print("\n"
