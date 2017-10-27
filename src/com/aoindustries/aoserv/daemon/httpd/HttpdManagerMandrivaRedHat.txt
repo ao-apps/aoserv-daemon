@@ -542,15 +542,6 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
 		createCgiPhpScript(site);
 		createTestCGI(site);
 		createTestIndex(site);
-
-		/*
-		 * Create the test.php file.
-		 */
-		new ChainWriter(new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php")
-			.getSecureOutputStream(uid, gid, 0664, false))
-			.print("<?phpinfo()?>\n")
-			.flush()
-			.close();
 	}
 
 	/**
@@ -898,15 +889,6 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
 		createCgiPhpScript(site);
 		createTestCGI(site);
 		createTestIndex(site);
-
-		/*
-		 * Create the test.php file.
-		 */
-		new ChainWriter(new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php").getSecureOutputStream(uid, gid, 0664, false))
-			.print("<?phpinfo()?>\n")
-			.flush()
-			.close()
-		;
 	}
 
 	/**
@@ -1165,14 +1147,6 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
 		createCgiPhpScript(site);
 		createTestCGI(site);
 		createTestIndex(site);
-
-		/*
-		 * Create the test.php file.
-		 */
-		String testPHP=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php";
-		new ChainWriter(
-			new UnixFile(testPHP).getSecureOutputStream(uid, gid, 0664, false)
-		).print("<?phpinfo()?>\n").flush().close();
 	}
 
 	/**
@@ -1467,14 +1441,6 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
 		createCgiPhpScript(site);
 		createTestCGI(site);
 		createTestIndex(site);
-
-		/*
-		 * Create the test.php file.
-		 */
-		String testPHP=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php";
-		new ChainWriter(
-			new UnixFile(testPHP).getSecureOutputStream(uid, gid, 0664, false)
-		).print("<?phpinfo()?>\n").flush().close();
 	}
 
 	/**
@@ -1799,14 +1765,6 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
 		createCgiPhpScript(site);
 		createTestCGI(site);
 		createTestIndex(site);
-
-		/*
-		 * Create the test.php file.
-		 */
-		String testPHP=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php";
-		new ChainWriter(
-			new UnixFile(testPHP).getSecureOutputStream(uid, gid, 0664, false)
-		).print("<?phpinfo()?>\n").flush().close();
 	}
 
 	/**
@@ -2067,14 +2025,6 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
 		createCgiPhpScript(site);
 		createTestCGI(site);
 		createTestIndex(site);
-
-		/*
-		 * Create the test.php file.
-		 */
-		String testPHP=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php";
-		new ChainWriter(
-			new UnixFile(testPHP).getSecureOutputStream(uid, gid, 0664, false)
-		).print("<?phpinfo()?>\n").flush().close();
 	}
 
 	/**
@@ -2343,14 +2293,6 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
 		createCgiPhpScript(site);
 		createTestCGI(site);
 		createTestIndex(site);
-
-		/*
-		 * Create the test.php file.
-		 */
-		String testPHP=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php";
-		new ChainWriter(
-			new UnixFile(testPHP).getSecureOutputStream(uid, gid, 0664, false)
-		).print("<?phpinfo()?>\n").flush().close();
 	}
 
 	/**
@@ -2432,14 +2374,6 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
 		createCgiPhpScript(site);
 		createTestCGI(site);
 		createTestIndex(site);
-
-		/*
-		 * Create the test.php file.
-		 */
-		String testPHP=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php";
-		new ChainWriter(
-			new UnixFile(testPHP).getSecureOutputStream(uid, gid, 0664, false)
-		).print("<?phpinfo()?>\n").flush().close();
 	}
 
 	/**
@@ -2519,14 +2453,6 @@ final class HttpdManagerMandrivaRedHat extends BuilderThread {
 		createCgiPhpScript(site);
 		createTestCGI(site);
 		createTestIndex(site);
-
-		/*
-		 * Create the test.php file.
-		 */
-		String testPHP=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/test.php";
-		new ChainWriter(
-			new UnixFile(testPHP).getSecureOutputStream(uid, gid, 0664, false)
-		).print("<?phpinfo()?>\n").flush().close();
 	}
 
 	private static final void copyResource(String resource, OutputStream out) throws IOException {
