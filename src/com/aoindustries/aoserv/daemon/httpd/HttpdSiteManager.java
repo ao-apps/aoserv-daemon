@@ -680,65 +680,46 @@ public abstract class HttpdSiteManager {
 		return uid;
 	}
 
-	private static final Map<String,List<Location>> standardRejectedLocations = new LinkedHashMap<>();
-	private static final Map<String,List<Location>> unmodifiableStandardRejectedLocations = Collections.unmodifiableMap(standardRejectedLocations);
-	static {
-		// TODO: Benchmark faster with single or multiple rules
-		standardRejectedLocations.put(
-			"Protect CVS files",
-			Collections.unmodifiableList(
-				Arrays.asList(
-					new Location(true, ".*/\\.#.*"),
-					new Location(true, ".*/CVS(/.*|$)"),
-					new Location(true, ".*/CVSROOT(/.*|$)"),
-					new Location(true, ".*/\\.cvsignore(/.*|$)")
-				)
-			)
-		);
-		//standardRejectedLocations.add(new Location(true, "/CVS/Attic"));
-		//standardRejectedLocations.add(new Location(true, "/CVS/Entries"));
-		// Already covered by Entries: standardRejectedLocations.add(new Location(true, "/CVS/Entries\\.Static"));
-		//standardRejectedLocations.add(new Location(true, "/CVS/Repository"));
-		//standardRejectedLocations.add(new Location(true, "/CVS/RevisionCache"));
-		//standardRejectedLocations.add(new Location(true, "/CVS/Root"));
-		//standardRejectedLocations.add(new Location(true, "/CVS/\\.#merg"));
-		standardRejectedLocations.put(
-			"Protect Subversion files",
-			Collections.unmodifiableList(
-				Arrays.asList(
-					new Location(true, ".*/\\.svn(/.*|$)"),
-					new Location(true, ".*/\\.svnignore(/.*|$)")
-				)
-			)
-		);
-		standardRejectedLocations.put(
-			"Protect Git files",
-			Collections.unmodifiableList(
-				Arrays.asList(
-					new Location(true, ".*/\\.git(/.*|$)"),
-					new Location(true, ".*/\\.gitignore(/.*|$)")
-				)
-			)
-		);
-		standardRejectedLocations.put(
-			"Protect core dumps",
-			Collections.singletonList(new Location(true, ".*/core\\.[0-9]{1,5}(/.*|$)"))
-		);
-		standardRejectedLocations.put(
-			"Protect emacs / kwrite auto-backups",
-			Collections.unmodifiableList(
-				Arrays.asList(
-					new Location(true, ".*/[^/]+~(/.*|$)"),
-					new Location(true, ".*/#[^/]+#(/.*|$)")
-				)
-			)
-		);
-		standardRejectedLocations.put(
-			"Protect vi / vim auto-backups",
-			Collections.singletonList(new Location(true, ".*/\\.[^/]+\\.swp(/.*|$)"))
-		);
-		// TODO: nano .save files? https://askubuntu.com/questions/601985/what-are-save-files
-	}
+	private static final List<Location> cvsRejectedLocations = Collections.unmodifiableList(
+		Arrays.asList(
+			new Location(true, ".*/\\.#.*"),
+			new Location(true, ".*/CVS(/.*|$)"),
+			new Location(true, ".*/CVSROOT(/.*|$)"),
+			new Location(true, ".*/\\.cvsignore(/.*|$)")
+			//standardRejectedLocations.add(new Location(true, "/CVS/Attic"));
+			//standardRejectedLocations.add(new Location(true, "/CVS/Entries"));
+			// Already covered by Entries: standardRejectedLocations.add(new Location(true, "/CVS/Entries\\.Static"));
+			//standardRejectedLocations.add(new Location(true, "/CVS/Repository"));
+			//standardRejectedLocations.add(new Location(true, "/CVS/RevisionCache"));
+			//standardRejectedLocations.add(new Location(true, "/CVS/Root"));
+			//standardRejectedLocations.add(new Location(true, "/CVS/\\.#merg"));
+		)
+	);
+
+	private static final List<Location> subversionRejectedLocations = Collections.unmodifiableList(
+		Arrays.asList(
+			new Location(true, ".*/\\.svn(/.*|$)"),
+			new Location(true, ".*/\\.svnignore(/.*|$)")
+		)
+	);
+
+	private static final List<Location> gitRejectedLocations = Collections.unmodifiableList(
+		Arrays.asList(
+			new Location(true, ".*/\\.git(/.*|$)"),
+			new Location(true, ".*/\\.gitignore(/.*|$)")
+		)
+	);
+
+	private static final List<Location> coreDumpsRejectedLocations = Collections.singletonList(new Location(true, ".*/core\\.[0-9]{1,5}(/.*|$)"));
+
+	private static final List<Location> emacsRejectedLocations = Collections.unmodifiableList(
+		Arrays.asList(
+			new Location(true, ".*/[^/]+~(/.*|$)"),
+			new Location(true, ".*/#[^/]+#(/.*|$)")
+		)
+	);
+
+	private static final List<Location> vimRejectedLocations = Collections.singletonList(new Location(true, ".*/\\.[^/]+\\.swp(/.*|$)"));
 
 	public static class Location implements Comparable<Location> {
 
@@ -788,10 +769,24 @@ public abstract class HttpdSiteManager {
 	}
 
 	/**
-	 * Gets an unmodifable map of URL patterns that should be rejected.
+	 * Gets an unmodifiable map of URL patterns that should be rejected.
 	 */
 	public Map<String,List<Location>> getRejectedLocations() throws IOException, SQLException {
-		return unmodifiableStandardRejectedLocations;
+		Map<String,List<Location>> rejectedLocations = new LinkedHashMap<>();
+		if(httpdSite.getBlockScm()) {
+			rejectedLocations.put("Protect CVS files", cvsRejectedLocations);
+			rejectedLocations.put("Protect Subversion files", subversionRejectedLocations);
+			rejectedLocations.put("Protect Git files", gitRejectedLocations);
+		}
+		if(httpdSite.getBlockCoreDumps()) {
+			rejectedLocations.put("Protect core dumps", coreDumpsRejectedLocations);
+		}
+		if(httpdSite.getBlockEditorBackups()) {
+			rejectedLocations.put("Protect emacs / kwrite auto-backups", emacsRejectedLocations);
+			rejectedLocations.put("Protect vi / vim auto-backups", vimRejectedLocations);
+			// TODO: nano .save files? https://askubuntu.com/questions/601985/what-are-save-files
+		}
+		return Collections.unmodifiableMap(rejectedLocations);
 	}
 
 	public static class PermanentRewriteRule {
@@ -852,9 +847,7 @@ public abstract class HttpdSiteManager {
 	//}
 
 	/**
-	 * Gets the set of permanent rewrite rules.  By default, this protects
-	 * automatic backups of common file extensions that contain server-side
-	 * code that should not be externally visible.
+	 * Gets the set of permanent rewrite rules.  By default, no rules.
 	 */
 	public List<PermanentRewriteRule> getPermanentRewriteRules() {
 		//return unmodifiableStandardPermanentRewriteRules;
@@ -865,9 +858,11 @@ public abstract class HttpdSiteManager {
 	 * By default, sites will block all TRACE and TRACK requests.
 	 *
 	 * Seriously consider security ramifications before enabling TRACK and TRACE.
+	 *
+	 * @see  HttpdSite#getBlockTraceTrack()
 	 */
 	public boolean blockAllTraceAndTrackRequests() {
-		return true;
+		return httpdSite.getBlockTraceTrack();
 	}
 
 	public static class JkSetting implements Comparable<JkSetting> {

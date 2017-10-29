@@ -125,6 +125,7 @@ final public class HttpdManager extends BuilderThread {
 					connector.getHttpdTomcatContexts().addTableListener(httpdManager, 0);
 					connector.getHttpdTomcatDataSources().addTableListener(httpdManager, 0);
 					connector.getHttpdTomcatParameters().addTableListener(httpdManager, 0);
+					connector.getHttpdTomcatSiteJkMounts().addTableListener(httpdManager, 0);
 					connector.getHttpdTomcatSites().addTableListener(httpdManager, 0);
 					connector.getHttpdTomcatSharedSites().addTableListener(httpdManager, 0);
 					connector.getHttpdTomcatStdSites().addTableListener(httpdManager, 0);

@@ -8,10 +8,10 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
 import com.aoindustries.aoserv.client.HttpdJBossSite;
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
-import com.aoindustries.aoserv.client.HttpdSiteBind;
 import com.aoindustries.aoserv.client.HttpdTomcatContext;
 import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
 import com.aoindustries.aoserv.client.HttpdTomcatSite;
+import com.aoindustries.aoserv.client.HttpdTomcatSiteJkMount;
 import com.aoindustries.aoserv.client.HttpdTomcatStdSite;
 import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.client.validator.UnixPath;
@@ -86,15 +86,18 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 		// Always protect at the Apache level to not expose sensitive information
 		// If not using Apache, let Tomcat do its own protection
 		//if(!tomcatSite.getUseApache()) return standardRejectedLocations;
-		List<HttpdTomcatContext> htcs = tomcatSite.getHttpdTomcatContexts();
-		if(htcs.isEmpty()) {
+		List<HttpdTomcatContext> htcs;
+		if(
+			!tomcatSite.getBlockWebinf()
+			|| (htcs = tomcatSite.getHttpdTomcatContexts()).isEmpty()
+		) {
 			return standardRejectedLocations;
 		} else {
 			List<Location> locations = new ArrayList<>(htcs.size() * 2);
 			for(HttpdTomcatContext htc : htcs) {
 				String path = htc.getPath();
-				locations.add(new Location(false, path + "/META-INF/"));
-				locations.add(new Location(false, path + "/WEB-INF/"));
+				locations.add(new Location(false, path + "/META-INF"));
+				locations.add(new Location(false, path + "/WEB-INF"));
 			}
 			Map<String,List<Location>> rejectedLocations = new LinkedHashMap<>((standardRejectedLocations.size()+1)*4/3+1);
 			rejectedLocations.putAll(standardRejectedLocations);
@@ -117,7 +120,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 		if(pidFile.getStat().exists()) {
 			AOServDaemon.suexec(
 				getStartStopScriptUsername(),
-				getStartStopScriptPath()+" stop",
+				getStartStopScriptPath() + " stop",
 				0
 			);
 			if(pidFile.getStat().exists()) pidFile.delete();
@@ -133,7 +136,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 		if(!pidFile.getStat().exists()) {
 			AOServDaemon.suexec(
 				getStartStopScriptUsername(),
-				getStartStopScriptPath()+" start",
+				getStartStopScriptPath() + " start",
 				0
 			);
 			return true;
@@ -148,7 +151,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 					pidFile.delete();
 					AOServDaemon.suexec(
 						getStartStopScriptUsername(),
-						getStartStopScriptPath()+" start",
+						getStartStopScriptPath() + " start",
 						0
 					);
 					return true;
@@ -185,34 +188,8 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 		}
 		final String jkCode = getHttpdWorker().getCode().getCode();
 		SortedSet<JkSetting> settings = new TreeSet<>();
-		if(tomcatSite.getUseApache()) {
-			// Using Apache for static content, send specific requests to Tomcat
-			for(HttpdTomcatContext context : tomcatSite.getHttpdTomcatContexts()) {
-				String path=context.getPath();
-				settings.add(new JkSetting(true, path+"/j_security_check", jkCode));
-				settings.add(new JkSetting(true, path+"/servlet/*", jkCode));
-				settings.add(new JkSetting(true, path+"/*.do", jkCode));
-				settings.add(new JkSetting(true, path+"/*.jsp", jkCode));
-				settings.add(new JkSetting(true, path+"/*.jspa", jkCode));
-				settings.add(new JkSetting(true, path+"/*.jspx", jkCode));
-				settings.add(new JkSetting(true, path+"/*.vm", jkCode));
-				settings.add(new JkSetting(true, path+"/*.xml", jkCode));
-			}
-		} else {
-			// Not using Apache, send as much as possible to Tomcat
-			settings.add(new JkSetting(true, "/*", jkCode));
-			for(HttpdTomcatContext context : tomcatSite.getHttpdTomcatContexts()) {
-				String path=context.getPath();
-				if(enableCgi()) settings.add(new JkSetting(false, path+"/cgi-bin/*", jkCode));
-				boolean isInModPhp = false;
-				for(HttpdSiteBind hsb : httpdSite.getHttpdSiteBinds()) {
-					if(hsb.getHttpdBind().getHttpdServer().getModPhpVersion() != null) {
-						isInModPhp = true;
-						break;
-					}
-				}
-				if(enablePhp() || isInModPhp) settings.add(new JkSetting(false, path+"/*.php", jkCode));
-			}
+		for(HttpdTomcatSiteJkMount jkMount : tomcatSite.getJkMounts()) {
+			settings.add(new JkSetting(jkMount.isMount(), jkMount.getPath(), jkCode));
 		}
 		return settings;
 	}
