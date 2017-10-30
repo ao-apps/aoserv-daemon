@@ -817,6 +817,14 @@ public class HttpdServerManager {
 						HttpdSiteManager.WebAppSettings settings = entry.getValue();
 						UnixPath docBase = settings.getDocBase();
 
+						boolean isInModPhp = false;
+						for(HttpdSiteBind hsb : httpdSite.getHttpdSiteBinds()) {
+							if(hsb.getHttpdBind().getHttpdServer().getModPhpVersion() != null) {
+								isInModPhp = true;
+								break;
+							}
+						}
+
 						if(path.length()==0) {
 							foundRoot = true;
 							// DocumentRoot
@@ -840,13 +848,6 @@ public class HttpdServerManager {
 								out.print("            <IfModule include_module>\n"
 										+ "                DirectoryIndex index.shtml\n"
 										+ "            </IfModule>\n");
-							}
-							boolean isInModPhp = false;
-							for(HttpdSiteBind hsb : httpdSite.getHttpdSiteBinds()) {
-								if(hsb.getHttpdBind().getHttpdServer().getModPhpVersion() != null) {
-									isInModPhp = true;
-									break;
-								}
 							}
 							if(manager.enablePhp() || isInModPhp) {
 								out.print("            DirectoryIndex index.php\n");
@@ -907,6 +908,54 @@ public class HttpdServerManager {
 									+ "            </IfModule>\n"
 									+ "            AllowOverride ").print(settings.getAllowOverride()).print("\n"
 									+ "            Options ").print(settings.getOptions()).print("\n"
+									+ "            <IfModule dir_module>\n");
+							if(!jkSettings.isEmpty()) {
+								out.print("                <IfModule jk_module>\n"
+										+ "                    DirectoryIndex index.jsp\n"
+										+ "                </IfModule>\n");
+							}
+							out.print("                DirectoryIndex index.xml\n"); // This was Cocoon, enable Tomcat 3.* only?
+							if(settings.enableSsi()) {
+								out.print("                <IfModule include_module>\n"
+										+ "                    DirectoryIndex index.shtml\n"
+										+ "                </IfModule>\n");
+							}
+							if(manager.enablePhp() || isInModPhp) {
+								out.print("                DirectoryIndex index.php\n");
+							}
+							out.print("                DirectoryIndex index.html\n"
+									+ "                <IfModule negotiation_module>\n"
+									+ "                    DirectoryIndex index.html.var\n"
+									+ "                </IfModule>\n"
+									+ "                DirectoryIndex index.htm\n"
+									+ "                <IfModule negotiation_module>\n"
+									+ "                    DirectoryIndex index.htm.var\n"
+									+ "                </IfModule>\n");
+							if(manager.enableCgi()) {
+								out.print("                DirectoryIndex index.cgi\n");
+							}
+							out.print("                DirectoryIndex default.html\n"
+									+ "                <IfModule negotiation_module>\n"
+									+ "                    DirectoryIndex default.html.var\n"
+									+ "                </IfModule>\n");
+							if(!jkSettings.isEmpty()) {
+								out.print("                <IfModule jk_module>\n"
+										+ "                    DirectoryIndex default.jsp\n"
+										+ "                </IfModule>\n");
+							}
+							if(settings.enableSsi()) {
+								out.print("                <IfModule include_module>\n"
+										+ "                    DirectoryIndex default.shtml\n"
+										+ "                </IfModule>\n");
+							}
+							if(manager.enableCgi()) {
+								out.print("                DirectoryIndex default.cgi\n");
+							}
+							out.print("                DirectoryIndex Default.htm\n"
+									+ "                <IfModule negotiation_module>\n"
+									+ "                    DirectoryIndex Default.htm.var\n"
+									+ "                </IfModule>\n"
+									+ "            </IfModule>\n"
 									+ "        </Directory>\n");
 							if(settings.enableCgi()) {
 								if(!manager.enableCgi()) throw new SQLException("Unable to enable webapp CGI when site has CGI disabled");
