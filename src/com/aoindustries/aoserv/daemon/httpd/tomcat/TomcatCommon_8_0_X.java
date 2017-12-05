@@ -175,8 +175,9 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 			) {
 				 // Upgrade from Tomcat 8.0.44 to 8.0.45/8.0.46/8.0.47
 				UpgradeSymlink[] upgradeSymlinks_8_0_45 = {
-					// mysql-connector-java-5.1.42-bin.jar -> mysql-connector-java-5.1.44-bin.jar
-					// mysql-connector-java-5.1.43-bin.jar -> mysql-connector-java-5.1.44-bin.jar
+					// mysql-connector-java-5.1.42-bin.jar -> mysql-connector-java-5.1.45-bin.jar
+					// mysql-connector-java-5.1.43-bin.jar -> mysql-connector-java-5.1.45-bin.jar
+					// mysql-connector-java-5.1.44-bin.jar -> mysql-connector-java-5.1.45-bin.jar
 					new UpgradeSymlink(
 						"lib/mysql-connector-java-5.1.42-bin.jar",
 						"../" + optSlash + "apache-tomcat-8.0/lib/mysql-connector-java-5.1.42-bin.jar",
@@ -189,8 +190,13 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 					),
 					new UpgradeSymlink(
 						"lib/mysql-connector-java-5.1.44-bin.jar",
+						"../" + optSlash + "apache-tomcat-8.0/lib/mysql-connector-java-5.1.44-bin.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-5.1.45-bin.jar",
 						null,
-						"../" + optSlash + "apache-tomcat-8.0/lib/mysql-connector-java-5.1.44-bin.jar"
+						"../" + optSlash + "apache-tomcat-8.0/lib/mysql-connector-java-5.1.45-bin.jar"
 					),
 					// postgresql-42.1.1.jar -> postgresql-42.1.4.jar
 					new UpgradeSymlink(
