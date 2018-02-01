@@ -213,6 +213,24 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_77) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
+			} else if(rpmVersion.equals("7.0.84")) {
+				// Upgrade from Tomcat 7.0.82 to 7.0.84
+				UpgradeSymlink[] upgradeSymlinks_7_0_84 = {
+					// postgresql-42.2.0.jre6.jar -> postgresql-42.2.1.jre6.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.0.jre6.jar",
+						"../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.0.jre6.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.1.jre6.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.1.jre6.jar"
+					)
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_84) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
 			} else {
 				throw new IllegalStateException("Unexpected version of Tomcat: " + rpmVersion);
 			}
