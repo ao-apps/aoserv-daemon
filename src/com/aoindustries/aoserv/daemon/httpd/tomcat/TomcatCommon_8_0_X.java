@@ -220,8 +220,11 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_0_45) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
-			} else if(rpmVersion.equals("8.0.49")) {
-				 // Upgrade from Tomcat 8.0.48 to 8.0.49
+			} else if(
+				rpmVersion.equals("8.0.49")
+				|| rpmVersion.equals("8.0.50")
+			) {
+				 // Upgrade from Tomcat 8.0.48 to 8.0.49/8.0.50
 				UpgradeSymlink[] upgradeSymlinks_8_0_49 = {
 					// postgresql-42.2.0.jar -> postgresql-42.2.1.jar
 					new UpgradeSymlink(
