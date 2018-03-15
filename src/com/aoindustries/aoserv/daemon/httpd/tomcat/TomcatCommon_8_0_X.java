@@ -226,6 +226,17 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 			) {
 				 // Upgrade from Tomcat 8.0.48 to 8.0.49/8.0.50
 				UpgradeSymlink[] upgradeSymlinks_8_0_49 = {
+					// mysql-connector-java-5.1.45-bin.jar -> mysql-connector-java-5.1.46-bin.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-5.1.45-bin.jar",
+						"../" + optSlash + "apache-tomcat-8.0/lib/mysql-connector-java-5.1.45-bin.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-5.1.46-bin.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.0/lib/mysql-connector-java-5.1.46-bin.jar"
+					),
 					// postgresql-42.2.0.jar -> postgresql-42.2.1.jar
 					new UpgradeSymlink(
 						"lib/postgresql-42.2.0.jar",
