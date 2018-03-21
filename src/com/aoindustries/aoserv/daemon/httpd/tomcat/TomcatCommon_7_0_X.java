@@ -230,7 +230,8 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 						null,
 						"../" + optSlash + "apache-tomcat-7.0/lib/mysql-connector-java-5.1.46-bin.jar"
 					),
-					// postgresql-42.2.0.jre6.jar -> postgresql-42.2.1.jre6.jar
+					// postgresql-42.2.0.jre6.jar -> postgresql-42.2.2.jre6.jar
+					// postgresql-42.2.1.jre6.jar -> postgresql-42.2.1.jre6.jar
 					new UpgradeSymlink(
 						"lib/postgresql-42.2.0.jre6.jar",
 						"../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.0.jre6.jar",
@@ -238,8 +239,13 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 					),
 					new UpgradeSymlink(
 						"lib/postgresql-42.2.1.jre6.jar",
+						"../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.1.jre6.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.2.jre6.jar",
 						null,
-						"../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.1.jre6.jar"
+						"../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.2.jre6.jar"
 					)
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_84) {
