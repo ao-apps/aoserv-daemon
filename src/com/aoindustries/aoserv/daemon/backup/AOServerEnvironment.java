@@ -238,7 +238,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		filesystemRules.put("/usr/tmp/", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/apache-mm/", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/backup/", FilesystemIteratorRule.SKIP);
-		
+		filesystemRules.put("/var/backups/", FilesystemIteratorRule.SKIP); // CentOS 7 /var/backups is a default
 		filesystemRules.put("/var/failover/", FilesystemIteratorRule.SKIP);
 		filesystemRules.put(
 			CvsRepository.DEFAULT_CVS_DIRECTORY + "/",
