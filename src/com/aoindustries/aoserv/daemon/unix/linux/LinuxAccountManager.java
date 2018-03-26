@@ -665,7 +665,7 @@ public class LinuxAccountManager extends BuilderThread {
 								out.write("##\n"
 									+ "## Configured by ");
 								out.write(LinuxAccountManager.class.getName());
-								out.write(".\n"
+								out.write("\n"
 									+ "## \n"
 									+ "## See ");
 								out.write(LinuxServerAccount.class.getName());
