@@ -94,7 +94,7 @@ public class PackageManager {
 		SED("sed"),
 		SENDMAIL("sendmail"),
 		SENDMAIL_CF("sendmail-cf"),
-		SMARTMONTOOLS("smartmontools"),
+		// No longer needed since no more 3ware support: SMARTMONTOOLS("smartmontools"),
 		SPAMASSASSIN("spamassassin"),
 		SUDO("sudo"),
 		TAR("tar"),

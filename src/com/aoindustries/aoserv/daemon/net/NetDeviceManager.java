@@ -483,9 +483,8 @@ final public class NetDeviceManager extends BuilderThread {
 		if(
 			osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
 			|| osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-			|| osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 		) {
-			// Xen adds a "p" to the name, try that first
+			// Xen on CentOS 5 adds a "p" to the name, try that first
 			procFile = new File("/proc/net/bonding/p"+netDevice.getNetDeviceID().getName());
 			if(!procFile.exists()) procFile = new File("/proc/net/bonding/"+netDevice.getNetDeviceID().getName());
 		} else {

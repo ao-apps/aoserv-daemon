@@ -158,12 +158,12 @@ final public class ServerManager {
 	public static String getHddTempReport() throws IOException {
 		PackageManager.installPackages(
 			// Make sure /usr/sbin/hddtemp is installed as required by hddtemp
-			PackageManager.PackageName.HDDTEMP,
+			PackageManager.PackageName.HDDTEMP
 			// Make sure /usr/sbin/smartctl is installed as required by hddtemp
-			PackageManager.PackageName.SMARTMONTOOLS
+			// No longer needed since no more 3ware support: PackageManager.PackageName.SMARTMONTOOLS
 		);
 		return AOServDaemon.execAndCapture(
-			"/opt/aoserv-daemon/bin/hddtemp"
+			"/opt/aoserv-daemon/bin/aoserv-hddtemp"
 		);
 	}
 
