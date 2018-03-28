@@ -1,25 +1,32 @@
 /*
- * Copyright 2012-2013, 2014, 2017 by AO Industries, Inc.,
+ * Copyright 2012-2013, 2014, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.server;
 
+import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.VirtualServer;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.lang.ProcessResult;
 import com.aoindustries.util.StringUtility;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Type;
 import java.net.Socket;
+import java.net.SocketException;
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.List;
@@ -65,83 +72,123 @@ final public class VirtualServerManager {
 		private final int domid;
 		private final String uuid;
 		private final int vcpus;
-		private final float cpuWeight;
-		private final int memory;
-		private final int shadowMemory;
-		private final int maxmem;
-		// features is skipped
+		private final int cpuWeight;
+		private final long memory;
+		private final long shadowMemory;
+		private final long maxmem;
 		private final String name;
-		private final String onPoweroff;
 		private final String onReboot;
-		private final String onCrash;
-		// image is skipped
-		// devices are skipped
 		private final int state;
-		private final String shutdownReason;
-		private final double cpuTime;
-		private final int onlineCcpus;
-		private final double upTime;
-		private final double startTime;
-		//private final long storeMfn;
 
-		XmList(String serverName) throws ParseException, IOException {
-			XmListNode rootNode = XmListNode.parseResult(
-				AOServDaemon.execAndCapture(
-					"/usr/sbin/xm",
-					"list",
-					"-l",
-					serverName
-				)
-			);
-			// Should have one child
-			if(rootNode.size()!=1) throw new ParseException("Expected one child of the root node, got "+rootNode.size(), 0);
-			XmListNode domainNode = (XmListNode)rootNode.get(0);
-			if(!domainNode.getId().equals("domain")) throw new ParseException("Expected only child of the root node to have the id 'domain', got '"+domainNode.getId()+"'", 0);
-			domid = domainNode.getInt("domid");
-			uuid = domainNode.getString("uuid");
-			vcpus = domainNode.getInt("vcpus");
-			cpuWeight = domainNode.getFloat("cpu_weight");
-			memory = domainNode.getInt("memory");
-			shadowMemory = domainNode.getInt("shadow_memory");
-			maxmem = domainNode.getInt("maxmem");
-			name = domainNode.getString("name");
-			onPoweroff = domainNode.getString("on_poweroff");
-			onReboot = domainNode.getString("on_reboot");
-			onCrash = domainNode.getString("on_crash");
-			state = parseState(domainNode.getString("state"));
-			shutdownReason = domainNode.getString("shutdown_reason");
-			cpuTime = domainNode.getDouble("cpu_time");
-			onlineCcpus = domainNode.getInt("online_vcpus");
-			upTime = domainNode.getDouble("up_time");
-			startTime = domainNode.getDouble("start_time");
-			//storeMfn = domainNode.getLong("store_mfn");
+		XmList(String serverName) throws ParseException, IOException, SQLException {
+			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+			int osvId = osv.getPkey();
+			if(
+				osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
+				|| osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+			) {
+				XmListNode rootNode = XmListNode.parseResult(
+					AOServDaemon.execAndCapture(
+						"/usr/sbin/xm",
+						"list",
+						"-l",
+						serverName
+					)
+				);
+				// Should have one child
+				if(rootNode.size()!=1) throw new ParseException("Expected one child of the root node, got "+rootNode.size(), 0);
+				XmListNode domainNode = (XmListNode)rootNode.get(0);
+				if(!domainNode.getId().equals("domain")) throw new ParseException("Expected only child of the root node to have the id 'domain', got '"+domainNode.getId()+"'", 0);
+				domid = domainNode.getInt("domid");
+				uuid = domainNode.getString("uuid");
+				vcpus = domainNode.getInt("vcpus");
+				// cpu_cap is skipped
+				cpuWeight = domainNode.getInt("cpu_weight");
+				memory = domainNode.getLong("memory");
+				shadowMemory = domainNode.getLong("shadow_memory");
+				maxmem = domainNode.getLong("maxmem");
+				// features is skipped
+				name = domainNode.getString("name");
+				// on_poweroff is skipped
+				onReboot = domainNode.getString("on_reboot");
+				// on_crash is skipped
+				// image is skipped
+				// cpus is skipped
+				// devices are skipped
+				state = parseState(domainNode.getString("state"));
+				// shutdown_reason is skipped
+				// cpu_time is skipped
+				// online_vcpus is skipped
+				// up_time is skipped
+				// start_time is skipped
+				// store_mfn is skipped
+				// console_mfn is skipped
+			} else if(osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64) {
+				// https://stackoverflow.com/questions/21014407/json-array-in-hashmap-using-google-gson
+				Type type = new TypeToken<List<Map<String, Object>>>(){}.getType();
+				List<Map<String, Object>> rootList = new Gson().fromJson(
+					AOServDaemon.execAndCapture(
+						"/sbin/xl",
+						"list",
+						"--long",
+						serverName
+					),
+					type
+				);
+				// Should have one child
+				if(rootList.size()!=1) throw new ParseException("Expected one element in the root array, got "+rootList.size(), 0);
+				Map<String, Object> domainNode = rootList.get(0);
+				//for(Map.Entry<String,Object> entry : domainNode.entrySet()) {
+				//	System.out.println(entry.getKey() + ": (" + entry.getValue().getClass() + ") " + entry.getValue());
+				//}
+				domid = ((Double)domainNode.get("domid")).intValue();
+				@SuppressWarnings("unchecked")
+				Map<String, Object> configNode = (Map<String, Object>)domainNode.get("config");
+				@SuppressWarnings("unchecked")
+				Map<String, Object> cInfoNode = (Map<String, Object>)configNode.get("c_info");
+				uuid = (String)cInfoNode.get("uuid");
+				@SuppressWarnings("unchecked")
+				Map<String, Object> bInfoNode = (Map<String, Object>)configNode.get("b_info");
+				vcpus = ((Double)bInfoNode.get("max_vcpus")).intValue();
+				@SuppressWarnings("unchecked")
+				Map<String, Object> schedParamsNode = (Map<String, Object>)bInfoNode.get("sched_params");
+				cpuWeight = ((Double)schedParamsNode.get("weight")).intValue();
+				memory = ((Double)bInfoNode.get("target_memkb")).longValue();
+				shadowMemory = ((Double)bInfoNode.get("shadow_memkb")).longValue();
+				maxmem = ((Double)bInfoNode.get("max_memkb")).longValue();
+				name = (String)cInfoNode.get("name");
+				onReboot = (String)configNode.get("on_reboot");
+				state = 0; // TODO: state not in long listing parseState(domainNode.getString("state"));
+			} else {
+				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+			}
 		}
 
 		/**
 		 * @return the cpuWeight
 		 */
-		public float getCpuWeight() {
+		public int getCpuWeight() {
 			return cpuWeight;
 		}
 
 		/**
 		 * @return the memory
 		 */
-		public int getMemory() {
+		public long getMemory() {
 			return memory;
 		}
 
 		/**
 		 * @return the shadowMemory
 		 */
-		public int getShadowMemory() {
+		public long getShadowMemory() {
 			return shadowMemory;
 		}
 
 		/**
 		 * @return the maxmem
 		 */
-		public int getMaxmem() {
+		public long getMaxmem() {
 			return maxmem;
 		}
 
@@ -153,24 +200,10 @@ final public class VirtualServerManager {
 		}
 
 		/**
-		 * @return the onPoweroff
-		 */
-		public String getOnPoweroff() {
-			return onPoweroff;
-		}
-
-		/**
 		 * @return the onReboot
 		 */
 		public String getOnReboot() {
 			return onReboot;
-		}
-
-		/**
-		 * @return the onCrash
-		 */
-		public String getOnCrash() {
-			return onCrash;
 		}
 
 		/**
@@ -179,48 +212,6 @@ final public class VirtualServerManager {
 		public int getState() {
 			return state;
 		}
-
-		/**
-		 * @return the shutdownReason
-		 */
-		public String getShutdownReason() {
-			return shutdownReason;
-		}
-
-		/**
-		 * @return the cpuTime
-		 */
-		public double getCpuTime() {
-			return cpuTime;
-		}
-
-		/**
-		 * @return the onlineCcpus
-		 */
-		public int getOnlineCcpus() {
-			return onlineCcpus;
-		}
-
-		/**
-		 * @return the upTime
-		 */
-		public double getUpTime() {
-			return upTime;
-		}
-
-		/**
-		 * @return the startTime
-		 */
-		public double getStartTime() {
-			return startTime;
-		}
-
-		/**
-		 * @return the storeMfn
-		 */
-		//public long getStoreMfn() {
-		//    return storeMfn;
-		//}
 
 		/**
 		 * @return the domid
@@ -245,7 +236,7 @@ final public class VirtualServerManager {
 	}
 
 	/**
-	 * Finds a PID given its exact command line as found in /proc/.../cmdline
+	 * Finds a PID given its command line prefix as found in /proc/.../cmdline
 	 * Returns PID or <code>-1</code> if not found.
 	 */
 	public static int findPid(String cmdlinePrefix) throws IOException {
@@ -276,7 +267,7 @@ final public class VirtualServerManager {
 					}
 				} catch(IOException err) {
 					// Log as warning
-					LogFactory.getLogger(VirtualServerManager.class).log(Level.WARNING, null, err);
+					LogFactory.getLogger(VirtualServerManager.class).log(Level.FINE, null, err);
 				}
 			}
 		}
@@ -291,7 +282,7 @@ final public class VirtualServerManager {
 		final CompressedDataInputStream socketIn,
 		CompressedDataOutputStream socketOut,
 		String serverName
-	) throws IOException {
+	) throws IOException, SQLException {
 		try {
 			try {
 				try {
@@ -301,12 +292,16 @@ final public class VirtualServerManager {
 					int domid = xmList.getDomid();
 
 					// Find the PID of its qemu handler from its ID
+					// Xen 3.0.3 on CentOS 5:
 					int         pid = findPid("/usr/lib64/xen/bin/qemu-dm\u0000-d\u0000"+domid+"\u0000"); // Hardware virtualized
 					if(pid==-1) pid = findPid("/usr/lib64/xen/bin/qemu-dm\u0000-M\u0000xenpv\u0000-d\u0000"+domid+"\u0000"); // New Paravirtualized
 					if(pid==-1) pid = findPid("/usr/lib64/xen/bin/xen-vncfb\u0000--unused\u0000--listen\u0000127.0.0.1\u0000--domid\u0000"+domid+"\u0000"); // Old Paravirtualized
+					// Xen 4.6 on CentOS 7:
+					if(pid==-1) pid = findPid("/usr/lib64/xen/bin/qemu-system-i386\u0000-xen-domid\u0000"+domid+"\u0000"); // Paravirtualized
 					if(pid==-1) throw new IOException("Unable to find PID");
 
 					// Find its port from lsof given its PID
+					PackageManager.installPackage(PackageManager.PackageName.LSOF);
 					String lsof = AOServDaemon.execAndCapture(
 						"/usr/sbin/lsof",
 						"-n", // Numeric IP addresses
@@ -320,7 +315,7 @@ final public class VirtualServerManager {
 						"0pPnT"
 					);
 					List<String> values = StringUtility.splitString(lsof, '\u0000');
-					System.out.println("values.size()="+values.size());
+					//System.out.println("values.size()="+values.size());
 					if(
 						values.size()<7
 						|| (values.size()%5)!=2
@@ -345,7 +340,7 @@ final public class VirtualServerManager {
 							break;
 						}
 					}
-					System.out.println("vncPort="+vncPort);
+					//System.out.println("vncPort="+vncPort);
 					if(vncPort==Integer.MIN_VALUE) throw new ParseException("Unexpected output from lsof: "+lsof, 0);
 
 					// Connect to port and tunnel through all data until EOF
@@ -366,7 +361,11 @@ final public class VirtualServerManager {
 												vncOut.flush();
 											}
 										} finally {
-											vncSocket.close();
+											try {
+												vncSocket.close();
+											} catch(SocketException e) {
+												LogFactory.getLogger(VirtualServerManager.class).log(Level.FINE, null, e);
+											}
 										}
 									} catch(ThreadDeath TD) {
 										throw TD;
@@ -396,24 +395,44 @@ final public class VirtualServerManager {
 									//}
 								//}
 							} finally {
-								vncOut.close();
+								try {
+									vncOut.close();
+								} catch(SocketException e) {
+									LogFactory.getLogger(VirtualServerManager.class).log(Level.FINE, null, e);
+								}
 							}
 						} finally {
-							vncIn.close();
+							try {
+								vncIn.close();
+							} catch(SocketException e) {
+								LogFactory.getLogger(VirtualServerManager.class).log(Level.FINE, null, e);
+							}
 						}
 					} finally {
 						closeVncSocket(vncPort, vncSocket);
 					}
 				} finally {
-					socketIn.close();
+					try {
+						socketIn.close();
+					} catch(SocketException e) {
+						LogFactory.getLogger(VirtualServerManager.class).log(Level.FINE, null, e);
+					}
 				}
 			} finally {
-				socketOut.close();
+				try {
+					socketOut.close();
+				} catch(SocketException e) {
+					LogFactory.getLogger(VirtualServerManager.class).log(Level.FINE, null, e);
+				}
 			}
 		} catch(ParseException err) {
 			throw new IOException(err);
 		} finally {
-			socket.close();
+			try {
+				socket.close();
+			} catch(SocketException e) {
+				LogFactory.getLogger(VirtualServerManager.class).log(Level.FINE, null, e);
+			}
 		}
 	}
 
@@ -571,10 +590,11 @@ final public class VirtualServerManager {
 		}
 	}
 
-	public static int getVirtualServerStatus(String virtualServer) throws IOException {
+	public static int getVirtualServerStatus(String virtualServer) throws IOException, SQLException {
 		try {
 			// Find the ID of the server from xm list
 			XmList xmList = new XmList(virtualServer);
+			// TODO: This is no longer available in the --long list output on Xen 4.6
 			if(!virtualServer.equals(xmList.getName())) throw new AssertionError("virtualServer!=xmList.name");
 			return xmList.getState();
 		} catch(IOException e) {

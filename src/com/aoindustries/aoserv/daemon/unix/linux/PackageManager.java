@@ -1,5 +1,5 @@
 /*
- * Copyright 2013, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2013, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -72,6 +72,7 @@ public class PackageManager {
 		JDK17("jdk17"),
 		JDK17_I686("jdk17-i686"),
 		LIBPCAP("libpcap"),
+		LSOF("lsof"),
 		MAJORDOMO("majordomo"),
 		MOD_SSL("mod_ssl"),
 		MRTG("mrtg"),

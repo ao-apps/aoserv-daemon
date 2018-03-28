@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2013 by AO Industries, Inc.,
+ * Copyright 2012-2013, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -93,20 +93,26 @@ final public class XmListNode {
     public Object get(int index) {
         return list.get(index);
     }
-    public String getString(String childNodeName) throws ParseException {
+
+	public XmListNode getChild(String childNodeName) throws ParseException {
         for(Object child : list) {
             if(child instanceof XmListNode) {
                 XmListNode childNode = (XmListNode)child;
                 if(childNode.id.equals(childNodeName)) {
-                    // Should have a sublist of length 1
-                    if(childNode.list.size()!=1) throw new ParseException("child list must have length 1, got "+childNode.list.size(), 0);
-                    Object childNodeValue = childNode.list.get(0);
-                    if(!(childNodeValue instanceof String)) throw new ParseException("child node list element is not a String", 0);
-                    return (String)childNodeValue;
+					return childNode;
                 }
             }
         }
         throw new ParseException("No child node named '"+childNodeName+"' found", 0);
+    }
+
+	public String getString(String childNodeName) throws ParseException {
+		XmListNode childNode = getChild(childNodeName);
+		// Should have a sublist of length 1
+		if(childNode.list.size()!=1) throw new ParseException("child list must have length 1, got "+childNode.list.size(), 0);
+		Object childNodeValue = childNode.list.get(0);
+		if(!(childNodeValue instanceof String)) throw new ParseException("child node list element is not a String", 0);
+		return (String)childNodeValue;
     }
 
     public int getInt(String childNodeName) throws ParseException {
