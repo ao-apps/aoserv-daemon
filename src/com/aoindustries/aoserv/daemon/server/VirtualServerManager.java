@@ -242,27 +242,39 @@ final public class VirtualServerManager {
 	public static int findPid(String cmdlinePrefix) throws IOException {
 		File procFile = new File("/proc");
 		String[] list = procFile.list();
-		if(list!=null) {
+		if(list != null) {
 			for(String filename : list) {
 				try {
-					File dir = new File(procFile, filename);
-					if(dir.isDirectory()) {
-						try {
-							int pid = Integer.parseInt(filename);
+					boolean allDigits = true;
+					for(int i = 0, len = filename.length(); i < len; i++) {
+						char ch = filename.charAt(i);
+						if(ch < '0' || ch > '9') {
+							allDigits = false;
+							break;
+						}
+					}
+					// Is a PID directory
+					if(allDigits) {
+						File dir = new File(procFile, filename);
+						if(dir.isDirectory()) {
 							File cmdlineFile = new File(dir, "cmdline");
 							if(cmdlineFile.exists()) {
-								StringBuilder SB = new StringBuilder();
+								int pos = 0;
+								int prefixLen = cmdlinePrefix.length();
 								InputStream in = new BufferedInputStream(new FileInputStream(cmdlineFile), cmdlinePrefix.length());
 								try {
 									int b;
-									while((b=in.read())!=-1) SB.append((char)b);
+									while(pos < prefixLen && (b = in.read()) != -1) {
+										if((char)b != cmdlinePrefix.charAt(pos)) {
+											break;
+										}
+										pos++;
+									}
+									if(pos == prefixLen) return Integer.parseInt(filename);
 								} finally {
 									in.close();
 								}
-								if(SB.toString().startsWith(cmdlinePrefix)) return pid;
 							}
-						} catch(NumberFormatException err) {
-							// Not a PID directory
 						}
 					}
 				} catch(IOException err) {
@@ -292,13 +304,13 @@ final public class VirtualServerManager {
 					int domid = xmList.getDomid();
 
 					// Find the PID of its qemu handler from its ID
+					// Xen 4.6 on CentOS 7:
+					int         pid = findPid("/usr/lib64/xen/bin/qemu-system-i386\u0000-xen-domid\u0000"+domid+"\u0000"); // Paravirtualized
 					// Xen 3.0.3 on CentOS 5:
-					int         pid = findPid("/usr/lib64/xen/bin/qemu-dm\u0000-d\u0000"+domid+"\u0000"); // Hardware virtualized
+					if(pid==-1) pid = findPid("/usr/lib64/xen/bin/qemu-dm\u0000-d\u0000"+domid+"\u0000"); // Hardware virtualized
 					if(pid==-1) pid = findPid("/usr/lib64/xen/bin/qemu-dm\u0000-M\u0000xenpv\u0000-d\u0000"+domid+"\u0000"); // New Paravirtualized
 					if(pid==-1) pid = findPid("/usr/lib64/xen/bin/xen-vncfb\u0000--unused\u0000--listen\u0000127.0.0.1\u0000--domid\u0000"+domid+"\u0000"); // Old Paravirtualized
-					// Xen 4.6 on CentOS 7:
-					if(pid==-1) pid = findPid("/usr/lib64/xen/bin/qemu-system-i386\u0000-xen-domid\u0000"+domid+"\u0000"); // Paravirtualized
-					if(pid==-1) throw new IOException("Unable to find PID");
+					if(pid==-1) throw new IOException("Unable to find PID for " + serverName + " (id " + domid + ")");
 
 					// Find its port from lsof given its PID
 					PackageManager.installPackage(PackageManager.PackageName.LSOF);
