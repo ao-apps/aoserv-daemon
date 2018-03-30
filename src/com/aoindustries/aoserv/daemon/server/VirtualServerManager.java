@@ -32,6 +32,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * The <code>ServerManager</code> controls stuff at a server level.
@@ -43,31 +45,25 @@ final public class VirtualServerManager {
 	private VirtualServerManager() {
 	}
 
-	public static class XmList {
-
-		private static int parseState(String state) throws ParseException {
-			if(state.length()!=6) throw new ParseException("Unexpected state length: " + state, 0);
-			int flags = 0;
-			char r = state.charAt(0);
-			char b = state.charAt(1);
-			char p = state.charAt(2);
-			char s = state.charAt(3);
-			char c = state.charAt(4);
-			char d = state.charAt(5);
-			if(r=='r') flags |= VirtualServer.RUNNING;
-			else if(r != '-') throw new ParseException("Unexpected character for 'r': " + r, 0);
-			if(b=='b') flags |= VirtualServer.BLOCKED;
-			else if(b!='-') throw new ParseException("Unexpected character for 'b': "+b, 0);
-			if(p=='p') flags |= VirtualServer.PAUSED;
-			else if(p!='-') throw new ParseException("Unexpected character for 'p': "+p, 0);
-			if(s=='s') flags |= VirtualServer.SHUTDOWN;
-			else if(s!='-') throw new ParseException("Unexpected character for 's': "+s, 0);
-			if(c=='c') flags |= VirtualServer.CRASHED;
-			else if(c!='-') throw new ParseException("Unexpected character for 'c': "+c, 0);
-			if(d=='d') flags |= VirtualServer.DYING;
-			else if(d!='-') throw new ParseException("Unexpected character for 'd': "+d, 0);
-			return flags;
+	/**
+	 * Gets the xm/xl command used for this server.
+	 */
+	public static String getXmCommand() throws IOException, SQLException {
+		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
+		if(
+			osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
+			|| osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+		) {
+			return "/usr/sbin/xm";
+		} else if(osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64) {
+			return "/sbin/xl";
+		} else {
+			throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 		}
+	}
+
+	public static class XmList {
 
 		private final int domid;
 		private final String uuid;
@@ -78,7 +74,6 @@ final public class VirtualServerManager {
 		private final long maxmem;
 		private final String name;
 		private final String onReboot;
-		private final int state;
 
 		XmList(String serverName) throws ParseException, IOException, SQLException {
 			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
@@ -115,7 +110,7 @@ final public class VirtualServerManager {
 				// image is skipped
 				// cpus is skipped
 				// devices are skipped
-				state = parseState(domainNode.getString("state"));
+				// state is skipped
 				// shutdown_reason is skipped
 				// cpu_time is skipped
 				// online_vcpus is skipped
@@ -158,7 +153,6 @@ final public class VirtualServerManager {
 				maxmem = ((Double)bInfoNode.get("max_memkb")).longValue();
 				name = (String)cInfoNode.get("name");
 				onReboot = (String)configNode.get("on_reboot");
-				state = 0; // TODO: state not in long listing parseState(domainNode.getString("state"));
 			} else {
 				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 			}
@@ -204,13 +198,6 @@ final public class VirtualServerManager {
 		 */
 		public String getOnReboot() {
 			return onReboot;
-		}
-
-		/**
-		 * @return the state
-		 */
-		public int getState() {
-			return state;
 		}
 
 		/**
@@ -494,12 +481,13 @@ final public class VirtualServerManager {
 		}
 	}
 
-	public static String createVirtualServer(String virtualServer) throws IOException {
+	public static String createVirtualServer(String virtualServer) throws IOException, SQLException {
 		ProcessResult result = ProcessResult.exec(
 			new String[] {
-				"/usr/sbin/xm",
+				getXmCommand(),
 				"create",
-				"/etc/xen/guests/"+virtualServer+"/config"
+				// Now using auto directory to avoid starting wrong place: "/etc/xen/guests/"+virtualServer+"/config"
+				"/etc/xen/auto/" + virtualServer
 			}
 		);
 		String stderr = result.getStderr();
@@ -512,10 +500,10 @@ final public class VirtualServerManager {
 		}
 	}
 
-	public static String rebootVirtualServer(String virtualServer) throws IOException {
+	public static String rebootVirtualServer(String virtualServer) throws IOException, SQLException {
 		ProcessResult result = ProcessResult.exec(
 			new String[] {
-				"/usr/sbin/xm",
+				getXmCommand(),
 				"reboot",
 				virtualServer
 			}
@@ -530,10 +518,10 @@ final public class VirtualServerManager {
 		}
 	}
 
-	public static String shutdownVirtualServer(String virtualServer) throws IOException {
+	public static String shutdownVirtualServer(String virtualServer) throws IOException, SQLException {
 		ProcessResult result = ProcessResult.exec(
 			new String[] {
-				"/usr/sbin/xm",
+				getXmCommand(),
 				"shutdown",
 				virtualServer
 			}
@@ -548,10 +536,10 @@ final public class VirtualServerManager {
 		}
 	}
 
-	public static String destroyVirtualServer(String virtualServer) throws IOException {
+	public static String destroyVirtualServer(String virtualServer) throws IOException, SQLException {
 		ProcessResult result = ProcessResult.exec(
 			new String[] {
-				"/usr/sbin/xm",
+				getXmCommand(),
 				"destroy",
 				virtualServer
 			}
@@ -566,10 +554,10 @@ final public class VirtualServerManager {
 		}
 	}
 
-	public static String pauseVirtualServer(String virtualServer) throws IOException {
+	public static String pauseVirtualServer(String virtualServer) throws IOException, SQLException {
 		ProcessResult result = ProcessResult.exec(
 			new String[] {
-				"/usr/sbin/xm",
+				getXmCommand(),
 				"pause",
 				virtualServer
 			}
@@ -584,10 +572,10 @@ final public class VirtualServerManager {
 		}
 	}
 
-	public static String unpauseVirtualServer(String virtualServer) throws IOException {
+	public static String unpauseVirtualServer(String virtualServer) throws IOException, SQLException {
 		ProcessResult result = ProcessResult.exec(
 			new String[] {
-				"/usr/sbin/xm",
+				getXmCommand(),
 				"unpause",
 				virtualServer
 			}
@@ -602,13 +590,48 @@ final public class VirtualServerManager {
 		}
 	}
 
+	private static final Pattern xmListStatusPattern = Pattern.compile("^\\S+\\s+[0-9]+\\s+[0-9]+\\s+[0-9]+\\s+(\\S+)\\s+\\S+$");
+
+	private static int parseState(String state) throws ParseException {
+		if(state.length()!=6) throw new ParseException("Unexpected state length: " + state, 0);
+		int flags = 0;
+		char r = state.charAt(0);
+		char b = state.charAt(1);
+		char p = state.charAt(2);
+		char s = state.charAt(3);
+		char c = state.charAt(4);
+		char d = state.charAt(5);
+		if(r=='r') flags |= VirtualServer.RUNNING;
+		else if(r != '-') throw new ParseException("Unexpected character for 'r': " + r, 0);
+		if(b=='b') flags |= VirtualServer.BLOCKED;
+		else if(b!='-') throw new ParseException("Unexpected character for 'b': "+b, 0);
+		if(p=='p') flags |= VirtualServer.PAUSED;
+		else if(p!='-') throw new ParseException("Unexpected character for 'p': "+p, 0);
+		if(s=='s') flags |= VirtualServer.SHUTDOWN;
+		else if(s!='-') throw new ParseException("Unexpected character for 's': "+s, 0);
+		if(c=='c') flags |= VirtualServer.CRASHED;
+		else if(c!='-') throw new ParseException("Unexpected character for 'c': "+c, 0);
+		if(d=='d') flags |= VirtualServer.DYING;
+		else if(d!='-') throw new ParseException("Unexpected character for 'd': "+d, 0);
+		return flags;
+	}
+
 	public static int getVirtualServerStatus(String virtualServer) throws IOException, SQLException {
 		try {
-			// Find the ID of the server from xm list
-			XmList xmList = new XmList(virtualServer);
-			// TODO: This is no longer available in the --long list output on Xen 4.6
-			if(!virtualServer.equals(xmList.getName())) throw new AssertionError("virtualServer!=xmList.name");
-			return xmList.getState();
+			List<String> lines = StringUtility.splitLines(
+				AOServDaemon.execAndCapture(
+					getXmCommand(),
+					"list",
+					virtualServer
+				)
+			);
+			if(lines.size() != 2) throw new IOException("Expected two lines, got " + lines.size() + ": " + lines);
+			String header = lines.get(0);
+			if(!header.startsWith("Name ")) throw new IOException("Header doesn't start with \"Name \": " + header);
+			String status = lines.get(1);
+			Matcher matcher = xmListStatusPattern.matcher(status);
+			if(!matcher.find()) throw new IOException("Status line doesn't match expected pattern: " + status);
+			return parseState(matcher.group(1));
 		} catch(IOException e) {
 			String message = e.getMessage();
 			if(message!=null && message.endsWith(" does not exist.")) return VirtualServer.DESTROYED;
