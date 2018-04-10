@@ -68,7 +68,7 @@ final public class VirtualServerManager {
 		private final int domid;
 		private final String uuid;
 		private final int vcpus;
-		private final int cpuWeight;
+		private final double cpuWeight;
 		private final long memory;
 		private final long shadowMemory;
 		private final long maxmem;
@@ -98,7 +98,7 @@ final public class VirtualServerManager {
 				uuid = domainNode.getString("uuid");
 				vcpus = domainNode.getInt("vcpus");
 				// cpu_cap is skipped
-				cpuWeight = domainNode.getInt("cpu_weight");
+				cpuWeight = domainNode.getDouble("cpu_weight");
 				memory = domainNode.getLong("memory");
 				shadowMemory = domainNode.getLong("shadow_memory");
 				maxmem = domainNode.getLong("maxmem");
@@ -147,7 +147,7 @@ final public class VirtualServerManager {
 				vcpus = ((Double)bInfoNode.get("max_vcpus")).intValue();
 				@SuppressWarnings("unchecked")
 				Map<String, Object> schedParamsNode = (Map<String, Object>)bInfoNode.get("sched_params");
-				cpuWeight = ((Double)schedParamsNode.get("weight")).intValue();
+				cpuWeight = (Double)schedParamsNode.get("weight");
 				memory = ((Double)bInfoNode.get("target_memkb")).longValue();
 				shadowMemory = ((Double)bInfoNode.get("shadow_memkb")).longValue();
 				maxmem = ((Double)bInfoNode.get("max_memkb")).longValue();
@@ -161,7 +161,7 @@ final public class VirtualServerManager {
 		/**
 		 * @return the cpuWeight
 		 */
-		public int getCpuWeight() {
+		public double getCpuWeight() {
 			return cpuWeight;
 		}
 
