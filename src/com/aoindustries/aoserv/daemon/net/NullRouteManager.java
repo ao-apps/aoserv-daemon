@@ -1,5 +1,5 @@
 /*
- * Copyright 2013, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2013, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -16,14 +16,12 @@ import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.server.VirtualServerManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxProcess;
-import com.aoindustries.io.FileUtils;
+import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
+import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.AddressFamily;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.nio.charset.Charsets;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.sql.SQLException;
 import java.util.Iterator;
@@ -61,8 +59,10 @@ final public class NullRouteManager {
 	 */
 	private static final long REDUCE_LEVEL_QUIET_TIME = 60L * 60L * 1000L; // 1 hour
 
-	private static final File BIRD_NULL_CONFIG = new File("/etc/opt/aoserv-daemon/bird-null-auto.conf");
-	private static final File BIRD_NULL_CONFIG_NEW = new File("/etc/opt/aoserv-daemon/bird-null-auto.conf.new");
+	private static final UnixFile BIRD_NULL_CONFIG = new UnixFile("/etc/opt/bird-1/bird-null-auto.conf");
+
+	// TODO: Get this from linux_server_groups, name="bird" once LinuxAccountManager enabled on CentOS 7.dom0
+	private static final int BIRD_GID = 95;
 
 	volatile private static NullRouteManager instance;
 
@@ -88,6 +88,7 @@ final public class NullRouteManager {
 					// Only runs on Xen dom0 (firewalling done outside virtual servers)
 					osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
 					|| osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					BusinessAdministrator ba = conn.getThisBusinessAdministrator();
@@ -239,17 +240,39 @@ final public class NullRouteManager {
 										}
 										byte[] newBytes = newContents.toString().getBytes(Charsets.UTF_8.name()); // .name() only for JDK < 1.6 compatibility
 										// See if file has changed
-										if(!FileUtils.contentEquals(BIRD_NULL_CONFIG, newBytes)) {
-											try (OutputStream out = new FileOutputStream(BIRD_NULL_CONFIG_NEW)) {
-												out.write(newBytes);
-											}
-											FileUtils.rename(BIRD_NULL_CONFIG_NEW, BIRD_NULL_CONFIG);
-											// kill -HUP bird if updated
-											int pid = VirtualServerManager.findPid("/opt/bird/sbin/bird\u0000-u\u0000bird\u0000-g\u0000bird");
-											if(pid == -1) {
-												LogFactory.getLogger(NullRouteManager.class).log(Level.SEVERE, "bird not running");
+										if(
+											DaemonFileUtils.atomicWrite(
+												BIRD_NULL_CONFIG,
+												newBytes,
+												0640,
+												UnixFile.ROOT_UID,
+												BIRD_GID, // TODO: Enable LinuxAccountManager on CentOS 7.dom0 and get this from the existing "bird" linux_server_group
+												null,
+												null // SELinux disabled on dom0
+											)
+										) {
+											AOServer thisAOServer = AOServDaemon.getThisAOServer();
+											OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+											int osvId = osv.getPkey();
+											if(
+												osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
+												|| osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+											) {
+												// kill -HUP bird if updated
+												int pid = VirtualServerManager.findPid("/opt/bird/sbin/bird\u0000-u\u0000bird\u0000-g\u0000bird");
+												if(pid == -1) {
+													LogFactory.getLogger(NullRouteManager.class).log(Level.SEVERE, "bird not running");
+												} else {
+													new LinuxProcess(pid).signal("HUP");
+												}
+											} else if(osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64) {
+												try {
+													AOServDaemon.exec("/usr/bin/systemctl", "reload-or-try-restart", "bird-1.service");
+												} catch(IOException e) {
+													LogFactory.getLogger(NullRouteManager.class).log(Level.SEVERE, "Unable to reload bird configuration", e);
+												}
 											} else {
-												new LinuxProcess(pid).signal("HUP");
+												throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 											}
 										}
 										// Wait until more action to take
