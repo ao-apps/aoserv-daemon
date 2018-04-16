@@ -1,5 +1,5 @@
 /*
- * Copyright 2013, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -216,8 +216,9 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 			} else if(
 				rpmVersion.equals("7.0.84")
 				|| rpmVersion.equals("7.0.85")
+				|| rpmVersion.equals("7.0.86")
 			) {
-				// Upgrade from Tomcat 7.0.82 to 7.0.84/7.0.85
+				// Upgrade from Tomcat 7.0.82 to 7.0.84/7.0.85/7.0.86
 				UpgradeSymlink[] upgradeSymlinks_7_0_84 = {
 					// mysql-connector-java-5.1.45-bin.jar -> mysql-connector-java-5.1.46-bin.jar
 					new UpgradeSymlink(
