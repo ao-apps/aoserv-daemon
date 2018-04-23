@@ -1,5 +1,5 @@
 /*
- * Copyright 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -127,7 +127,7 @@ class HttpdSharedTomcatManager_8_0_X extends HttpdSharedTomcatManager<TomcatComm
 						  + "\n");
 
 				out.print(". /etc/profile\n"
-						+ ". ").print(osConfig.getDefaultJdkSetEnv()).print('\n');
+						+ ". ").print(osConfig.getDefaultJdkProfileSh()).print('\n');
 				//if(postgresServerMinorVersion!=null) {
 				//	out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
 				//}

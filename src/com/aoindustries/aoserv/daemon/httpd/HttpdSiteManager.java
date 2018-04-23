@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -564,18 +564,18 @@ public abstract class HttpdSiteManager {
 					} else if(phpVersion.startsWith("5.4.")) {
 						phpMinorVersion = "5.4";
 						requiredPackage = PackageManager.PackageName.PHP_5_4;
-						out.print(". /opt/mysql-5.6/setenv.sh\n");
+						out.print(". /opt/mysql-5.6/profile.sh\n");
 						out.print(". /opt/postgresql-9.2/setenv.sh\n");
 					} else if(phpVersion.startsWith("5.5.")) {
 						phpMinorVersion = "5.5";
 						requiredPackage = PackageManager.PackageName.PHP_5_5;
-						out.print(". /opt/mysql-5.6/setenv.sh\n");
-						out.print(". /opt/postgresql-9.4/setenv.sh\n");
+						out.print(". /opt/mysql-5.6/profile.sh\n");
+						out.print(". /opt/postgresql-9.4/profile.sh\n");
 					} else if(phpVersion.startsWith("5.6.")) {
 						phpMinorVersion = "5.6";
 						requiredPackage = PackageManager.PackageName.PHP_5_6;
-						out.print(". /opt/mysql-5.7/setenv.sh\n");
-						out.print(". /opt/postgresql-9.4/setenv.sh\n");
+						out.print(". /opt/mysql-5.7/profile.sh\n");
+						out.print(". /opt/postgresql-9.4/profile.sh\n");
 					} else {
 						throw new SQLException("Unexpected version for php: " + phpVersion);
 					}

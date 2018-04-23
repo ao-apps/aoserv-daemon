@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -97,7 +97,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
 			out.print("#!/bin/sh\n"
 					+ "\n"
 					+ ". /etc/profile\n"
-					+ ". ").print(osConfig.getJdk17SetEnv()).print('\n');
+					+ ". ").print(osConfig.getJdk17ProfileSh()).print('\n');
 			//if(enablePhp()) {
 			//	out.print(". /opt/php-").print(httpdConfig.getDefaultPhpMinorVersion()).print("-i686/setenv.sh\n");
 			//}

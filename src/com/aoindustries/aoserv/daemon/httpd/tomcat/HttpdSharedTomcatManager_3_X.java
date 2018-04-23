@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -103,7 +103,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 				out.print("#!/bin/sh\n"
 						+ "\n"
 						+ ". /etc/profile\n"
-						+ ". ").print(osConfig.getJdk17SetEnv()).print('\n'
+						+ ". ").print(osConfig.getJdk17ProfileSh()).print('\n'
 						+ ". /opt/jakarta-oro-2.0/setenv.sh\n"
 						+ ". /opt/jakarta-regexp-1/setenv.sh\n"
 						//+ ". /opt/jakarta-servletapi-").print(tomcatCommon.getServletApiVersion()).print("/setenv.sh\n"
