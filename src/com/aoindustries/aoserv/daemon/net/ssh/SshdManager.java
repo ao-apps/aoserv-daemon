@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -400,9 +400,9 @@ final public class SshdManager extends BuilderThread {
 							needsRestart[0] = true;
 						}
 					);
-					// Install aoserv-sshd-config package on CentOS 7 when needed
+					// Install sshd-after-network-online package on CentOS 7 when needed
 					if(hasSpecificAddress && osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-						PackageManager.installPackage(PackageManager.PackageName.AOSERV_SSHD_CONFIG);
+						PackageManager.installPackage(PackageManager.PackageName.SSHD_AFTER_NETWORK_ONLINE);
 					}
 				}
 				boolean isSshInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.OPENSSH_SERVER) != null;
@@ -525,13 +525,13 @@ final public class SshdManager extends BuilderThread {
 						} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 					}
 				}
-				// Uninstall aoserv-sshd-config package on CentOS 7 when not needed
+				// Uninstall sshd-after-network-online package on CentOS 7 when not needed
 				if(
 					!hasSpecificAddress
 					&& osvId == OperatingSystemVersion.CENTOS_7_X86_64
 					&& AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
 				) {
-					PackageManager.removePackage(PackageManager.PackageName.AOSERV_SSHD_CONFIG);
+					PackageManager.removePackage(PackageManager.PackageName.SSHD_AFTER_NETWORK_ONLINE);
 				}
 			}
 			return true;
