@@ -373,7 +373,8 @@ final public class SshdManager extends BuilderThread {
 								throw new IOException("Unsupported protocol for SSH: " + netProtocol);
 							}
 							nbs.add(nb);
-							if(!nb.getIPAddress().getInetAddress().isUnspecified()) hasSpecificAddress = true;
+							InetAddress ia = nb.getIPAddress().getInetAddress();
+							if(!ia.isLoopback() && !ia.isUnspecified()) hasSpecificAddress = true;
 						}
 					}
 				}

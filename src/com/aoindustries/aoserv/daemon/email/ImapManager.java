@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -422,6 +422,8 @@ final public class ImapManager extends BuilderThread {
 				synchronized(rebuildLock) {
 					Set<UnixFile> restorecon = new LinkedHashSet<>();
 					try {
+						boolean hasSpecificAddress = false;
+
 						// If there are no IMAP(S)/POP3(S) binds
 						if(imapBinds.isEmpty() && imapsBinds.isEmpty() && pop3Binds.isEmpty() && pop3sBinds.isEmpty()) {
 							// Should not have any sieve binds
@@ -543,8 +545,10 @@ final public class ImapManager extends BuilderThread {
 												String serviceName = generateServiceName("imap", "imap", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
-												out.print("\tcmd=\"imapd\" listen=\"[").print(imapBind.getIPAddress().getInetAddress().toString()).print("]:").print(imapBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=").print(prefork).print('\n');
+												InetAddress ia = imapBind.getIPAddress().getInetAddress();
+												out.print("\tcmd=\"imapd\" listen=\"[").print(ia.toString()).print("]:").print(imapBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=").print(prefork).print('\n');
 												tlsServices.put(serviceName, imapBind);
+												if(!ia.isLoopback() && !ia.isUnspecified()) hasSpecificAddress = true;
 											}
 										}
 									}
@@ -562,8 +566,10 @@ final public class ImapManager extends BuilderThread {
 												String serviceName = generateServiceName("imaps", "imaps", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
-												out.print("\tcmd=\"imapd -s\" listen=\"[").print(imapsBind.getIPAddress().getInetAddress().toString()).print("]:").print(imapsBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=").print(prefork).print('\n');
+												InetAddress ia = imapsBind.getIPAddress().getInetAddress();
+												out.print("\tcmd=\"imapd -s\" listen=\"[").print(ia.toString()).print("]:").print(imapsBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=").print(prefork).print('\n');
 												tlsServices.put(serviceName, imapsBind);
+												if(!ia.isLoopback() && !ia.isUnspecified()) hasSpecificAddress = true;
 											}
 										}
 									}
@@ -581,8 +587,10 @@ final public class ImapManager extends BuilderThread {
 												String serviceName = generateServiceName("pop3", "pop3n", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
-												out.print("\tcmd=\"pop3d\" listen=\"[").print(pop3Bind.getIPAddress().getInetAddress().toString()).print("]:").print(pop3Bind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=").print(prefork).print('\n');
+												InetAddress ia = pop3Bind.getIPAddress().getInetAddress();
+												out.print("\tcmd=\"pop3d\" listen=\"[").print(ia.toString()).print("]:").print(pop3Bind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=").print(prefork).print('\n');
 												tlsServices.put(serviceName, pop3Bind);
+												if(!ia.isLoopback() && !ia.isUnspecified()) hasSpecificAddress = true;
 											}
 										}
 									}
@@ -600,8 +608,10 @@ final public class ImapManager extends BuilderThread {
 												String serviceName = generateServiceName("pop3s", "pop3s", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
-												out.print("\tcmd=\"pop3d -s\" listen=\"[").print(pop3sBind.getIPAddress().getInetAddress().toString()).print("]:").print(pop3sBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=").print(prefork).print('\n');
+												InetAddress ia = pop3sBind.getIPAddress().getInetAddress();
+												out.print("\tcmd=\"pop3d -s\" listen=\"[").print(ia.toString()).print("]:").print(pop3sBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=").print(prefork).print('\n');
 												tlsServices.put(serviceName, pop3sBind);
+												if(!ia.isLoopback() && !ia.isUnspecified()) hasSpecificAddress = true;
 											}
 										}
 									}
@@ -615,7 +625,9 @@ final public class ImapManager extends BuilderThread {
 												String serviceName = generateServiceName("sieve", "sieve", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
-												out.print("\tcmd=\"timsieved\" listen=\"[").print(sieveBind.getIPAddress().getInetAddress().toString()).print("]:").print(sieveBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=0\n");
+												InetAddress ia = sieveBind.getIPAddress().getInetAddress();
+												out.print("\tcmd=\"timsieved\" listen=\"[").print(ia.toString()).print("]:").print(sieveBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=0\n");
+												if(!ia.isLoopback() && !ia.isUnspecified()) hasSpecificAddress = true;
 											}
 										}
 									}
@@ -887,9 +899,22 @@ final public class ImapManager extends BuilderThread {
 								} else {
 									AOServDaemon.exec("/usr/bin/systemctl", "start", "cyrus-imapd.service");
 								}
+								// Install cyrus-imapd-after-network-online package on CentOS 7 when needed
+								if(hasSpecificAddress) {
+									PackageManager.installPackage(PackageManager.PackageName.CYRUS_IMAPD_AFTER_NETWORK_ONLINE);
+								}
 							} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 							rebuildUsers();
+
+						}
+						// Uninstall cyrus-imapd-after-network-online package on CentOS 7 when not needed
+						if(
+							!hasSpecificAddress
+							&& osvId == OperatingSystemVersion.CENTOS_7_X86_64
+							&& AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
+						) {
+							PackageManager.removePackage(PackageManager.PackageName.CYRUS_IMAPD_AFTER_NETWORK_ONLINE);
 						}
 					} finally {
 						DaemonFileUtils.restorecon(restorecon);

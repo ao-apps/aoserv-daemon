@@ -58,6 +58,7 @@ public class PackageManager {
 		CACHING_NAMESERVER("caching-nameserver"), // This is a distinct package in CentOS 5, but provided by "bind" in CentOS 7
 		CVS("cvs"),
 		CYRUS_IMAPD("cyrus-imapd"),
+		CYRUS_IMAPD_AFTER_NETWORK_ONLINE("cyrus-imapd-after-network-online"),
 		CYRUS_SASL("cyrus-sasl"),
 		CYRUS_SASL_PLAIN("cyrus-sasl-plain"),
 		FIREWALLD("firewalld"),
