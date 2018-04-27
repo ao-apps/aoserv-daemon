@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -984,6 +984,8 @@ final public class SendmailCFManager extends BuilderThread {
 			synchronized(rebuildLock) {
 				Set<UnixFile> restorecon = new LinkedHashSet<>();
 				try {
+					boolean hasSpecificAddress = false;
+
 					// Get the values used by different files once for internal consistency on dynamic data
 					List<NetBind> smtpNetBinds = thisServer.getNetBinds(conn.getProtocols().get(Protocol.SMTP));
 					List<NetBind> smtpsNetBinds = thisServer.getNetBinds(conn.getProtocols().get(Protocol.SMTPS));
@@ -1033,6 +1035,32 @@ final public class SendmailCFManager extends BuilderThread {
 						}
 						sendmailInstalled = true;
 						sendmailCfInstalled = true;
+						// Resolve hasSpecificAddress
+						for(NetBind nb : smtpNetBinds) {
+							InetAddress ia = nb.getIPAddress().getInetAddress();
+							if(!ia.isLoopback() && !ia.isUnspecified()) {
+								hasSpecificAddress = true;
+								break;
+							}
+						}
+						if(!hasSpecificAddress) {
+							for(NetBind nb : smtpsNetBinds) {
+								InetAddress ia = nb.getIPAddress().getInetAddress();
+								if(!ia.isLoopback() && !ia.isUnspecified()) {
+									hasSpecificAddress = true;
+									break;
+								}
+							}
+						}
+						if(!hasSpecificAddress) {
+							for(NetBind nb : submissionNetBinds) {
+								InetAddress ia = nb.getIPAddress().getInetAddress();
+								if(!ia.isLoopback() && !ia.isUnspecified()) {
+									hasSpecificAddress = true;
+									break;
+								}
+							}
+						}
 					} else {
 						sendmailInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.SENDMAIL) != null;
 						sendmailCfInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.SENDMAIL_CF) != null;
@@ -1304,7 +1332,19 @@ final public class SendmailCFManager extends BuilderThread {
 								} else {
 									AOServDaemon.exec("/usr/bin/systemctl", "start", "sendmail.service");
 								}
+								// Install sendmail-after-network-online package on CentOS 7 when needed
+								if(hasSpecificAddress) {
+									PackageManager.installPackage(PackageManager.PackageName.SENDMAIL_AFTER_NETWORK_ONLINE);
+								}
 							} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+						}
+						// Uninstall sendmail-after-network-online package on CentOS 7 when not needed
+						if(
+							!hasSpecificAddress
+							&& osvId == OperatingSystemVersion.CENTOS_7_X86_64
+							&& AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
+						) {
+							PackageManager.removePackage(PackageManager.PackageName.SENDMAIL_AFTER_NETWORK_ONLINE);
 						}
 					}
 				} finally {

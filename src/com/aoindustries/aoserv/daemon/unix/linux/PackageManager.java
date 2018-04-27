@@ -95,6 +95,7 @@ public class PackageManager {
 		SED("sed"),
 		SENDMAIL("sendmail"),
 		SENDMAIL_CF("sendmail-cf"),
+		SENDMAIL_AFTER_NETWORK_ONLINE("sendmail-after-network-online"),
 		// No longer needed since no more 3ware support: SMARTMONTOOLS("smartmontools"),
 		SPAMASSASSIN("spamassassin"),
 		SSHD_AFTER_NETWORK_ONLINE("sshd-after-network-online"),
