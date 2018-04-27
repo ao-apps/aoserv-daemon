@@ -1,5 +1,5 @@
 /*
- * Copyright 2005-2013, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2005-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -625,6 +625,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 			synchronized(rebuildLock) {
 				Set<UnixFile> restorecon = new LinkedHashSet<>();
 				try {
+					boolean hasSpecificAddress = false;
+
 					final NetBind spamdBind = getSpamdBind();
 					final boolean spamdInstalled;
 					boolean[] restartRequired = {false};
@@ -634,20 +636,6 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 							PackageManager.PackageName.SPAMASSASSIN,
 							() -> restartRequired[0] = true
 						);
-						if(
-							osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-							|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-						) {
-							// No aoserv-spamassassin-config package
-						} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-							// Install aoserv-spamassassin-config package if missing
-							PackageManager.installPackage(
-								PackageManager.PackageName.AOSERV_SPAMASSASSIN_CONFIG,
-								() -> restartRequired[0] = true
-							);
-						} else {
-							throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-						}
 						spamdInstalled = true;
 					} else {
 						spamdInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.SPAMASSASSIN) != null;
@@ -676,6 +664,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 								+ "# Options to spamd\n"
 								+ "SPAMDOPTIONS=\"-d -c -m" + MAX_CHILDREN + " -H");
 							if(spamdInetAddress != null) {
+								if(!spamdInetAddress.isLoopback() && !spamdInetAddress.isUnspecified()) hasSpecificAddress = true;
 								// Listen address
 								newOut.print(" -i ");
 								if(
@@ -961,7 +950,19 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 								} else {
 									AOServDaemon.exec("/usr/bin/systemctl", "start", "spamassassin.service");
 								}
+								// Install spamassassin-after-network-online package on CentOS 7 when needed
+								if(hasSpecificAddress) {
+									PackageManager.installPackage(PackageManager.PackageName.SPAMASSASSIN_AFTER_NETWORK_ONLINE);
+								}
 							} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+						}
+						// Uninstall spamassassin-after-network-online package on CentOS 7 when not needed
+						if(
+							!hasSpecificAddress
+							&& osvId == OperatingSystemVersion.CENTOS_7_X86_64
+							&& AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
+						) {
+							PackageManager.removePackage(PackageManager.PackageName.SPAMASSASSIN_AFTER_NETWORK_ONLINE);
 						}
 					}
 
