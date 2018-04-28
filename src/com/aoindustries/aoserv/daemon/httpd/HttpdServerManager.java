@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -31,6 +31,7 @@ import com.aoindustries.aoserv.client.validator.GroupId;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
@@ -1027,6 +1028,9 @@ public class HttpdServerManager {
 		Set<String> etcTmpfilesFilenames = new HashSet<>(hss.size()*4/3+1);
 		// The files that should exist in /run/httpd[-#]
 		Set<String> runFilenames = new HashSet<>(hss.size()*4/3+1);
+		// Track which httpd[-n]-after-network-online packages are needed
+		boolean hasSpecificAddress = false;
+		boolean hasSpecificAddressN = false;
 		// Rebuild per-server files
 		for(HttpdServer hs : hss) {
 			List<HttpdSite> sites = hs.getHttpdSites();
@@ -1046,6 +1050,23 @@ public class HttpdServerManager {
 				)
 			) {
 				serversNeedingReloaded.add(hs);
+			}
+			if(hs.getNumber() == 1) {
+				for(HttpdBind hb : hs.getHttpdBinds()) {
+					InetAddress ia = hb.getNetBind().getIPAddress().getInetAddress();
+					if(!ia.isLoopback() && !ia.isUnspecified()) {
+						hasSpecificAddress = true;
+						break;
+					}
+				}
+			} else if(!hasSpecificAddressN) {
+				for(HttpdBind hb : hs.getHttpdBinds()) {
+					InetAddress ia = hb.getNetBind().getIPAddress().getInetAddress();
+					if(!ia.isLoopback() && !ia.isUnspecified()) {
+						hasSpecificAddressN = true;
+						break;
+					}
+				}
 			}
 
 			// Rebuild the workers.properties file
@@ -1209,6 +1230,19 @@ public class HttpdServerManager {
 						deleteFileList.add(toDelete);
 					}
 				}
+			}
+		}
+		if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+			// Install httpd-after-network-online package on CentOS 7 when needed
+			if(hasSpecificAddress) {
+				PackageManager.installPackage(PackageManager.PackageName.HTTPD_AFTER_NETWORK_ONLINE);
+			}
+			// Uninstall httpd-after-network-online package on CentOS 7 when not needed
+			else if(AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) {
+				PackageManager.removePackage(PackageManager.PackageName.HTTPD_AFTER_NETWORK_ONLINE);
+			}
+			if(hasSpecificAddressN) {
+				// TODO: httpd-n-after-network-online once secondary httpd instances are in a separate package
 			}
 		}
 	}

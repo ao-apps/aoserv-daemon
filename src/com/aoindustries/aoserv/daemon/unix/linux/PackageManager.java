@@ -64,6 +64,7 @@ public class PackageManager {
 		GZIP("gzip"),
 		HDDTEMP("hddtemp"),
 		HTTPD("httpd"),
+		HTTPD_AFTER_NETWORK_ONLINE("httpd-after-network-online"),
 		HTTPD_TOOLS("httpd-tools"),
 		JBOSS_2_2_2("jboss_2_2_2"),
 		JDK1("jdk1"),
