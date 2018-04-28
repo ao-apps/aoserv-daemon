@@ -32,7 +32,6 @@ import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
@@ -82,27 +81,42 @@ public class HttpdServerManager {
 	static final String CONF_DIRECTORY = SERVER_ROOT + "/conf";
 
 	/**
-	 * The pattern matching secondary httpd-#.conf files.
+	 * The pattern matching secondary httpd#.conf files.
 	 */
-	private static final Pattern HTTPD_N_CONF_REGEXP = Pattern.compile("^httpd-[0-9]+\\.conf$");
+	private static final Pattern HTTPD_N_CONF_REGEXP = Pattern.compile("^httpd[0-9]+\\.conf$");
 
 	/**
-	 * The pattern matching secondary httpd-# files.
+	 * The pattern matching secondary httpd@&lt;name&gt;.conf files.
 	 */
-	private static final Pattern HTTPD_N_REGEXP = Pattern.compile("^httpd-[0-9]+$");
+	private static final Pattern HTTPD_NAME_CONF_REGEXP = Pattern.compile("^httpd@.+\\.conf$");
 
 	/**
-	 * The pattern matching secondary php-# config directories.
+	 * The pattern matching secondary httpd@&lt;name&gt; files.
 	 */
-	private static final Pattern PHP_N_REGEXP = Pattern.compile("^php-[0-9]+$");
+	private static final Pattern HTTPD_NAME_REGEXP = Pattern.compile("^httpd@.+$");
 
 	/**
-	 * The pattern matching secondary workers-#.properties files.
+	 * The pattern matching secondary php# config directories.
 	 */
-	private static final Pattern WORKERS_N_PROPERTIES_REGEXP = Pattern.compile("^workers-[0-9]+\\.properties$");
+	private static final Pattern PHP_N_REGEXP = Pattern.compile("^php[0-9]+$");
 
 	/**
-	 * The directory that tmpfiles.d/httpd[-#].conf files are located in (/etc/tmpfiles.d).
+	 * The pattern matching secondary php@&lt;name&gt; config directories.
+	 */
+	private static final Pattern PHP_NAME_REGEXP = Pattern.compile("^php@.+$");
+
+	/**
+	 * The pattern matching secondary workers#.properties files.
+	 */
+	private static final Pattern WORKERS_N_PROPERTIES_REGEXP = Pattern.compile("^workers[0-9]+\\.properties$");
+
+	/**
+	 * The pattern matching secondary workers@&lt;name&gt;.properties files.
+	 */
+	private static final Pattern WORKERS_NAME_PROPERTIES_REGEXP = Pattern.compile("^workers@.+\\.properties$");
+
+	/**
+	 * The directory that tmpfiles.d/httpd[@&lt;name&gt;].conf files are located in (/etc/tmpfiles.d).
 	 */
 	static final String ETC_TMPFILES_D = "/etc/tmpfiles.d";
 
@@ -127,6 +141,21 @@ public class HttpdServerManager {
 	private static final String INIT_DIRECTORY = "/etc/rc.d/init.d";
 
 	/**
+	 * The pattern matching secondary httpd# files.
+	 */
+	private static final Pattern HTTPD_N_REGEXP = Pattern.compile("^httpd[0-9]+$");
+
+	/**
+	 * The systemd multi-user.target.wants directory where enabled/disabled httpd.service and httpd@.service instances are found.
+	 */
+	private static final String MULTI_USER_WANTS_DIRECTORY = "/etc/systemd/system/multi-user.target.wants";
+
+	/**
+	 * The pattern matching service httpd@&lt;name&gt;.service files.
+	 */
+	private static final Pattern HTTPD_NAME_SERVICE_REGEXP = Pattern.compile("^httpd@.+\\.service$");
+
+	/**
 	 * The SELinux type for httpd.
 	 */
 	private static final String SELINUX_TYPE = "http_port_t";
@@ -137,36 +166,38 @@ public class HttpdServerManager {
 	private static final String AJP_SELINUX_TYPE = "ajp_port_t";
 
 	/**
-	 * Gets the workers[[-]#].properties file path.
+	 * Gets the workers#.properties or workers[@&lt;name&gt;].properties file path.
 	 */
 	private static String getWorkersFile(HttpdServer hs) throws IOException, SQLException {
-		int num = hs.getNumber();
 		OperatingSystemVersion osv = hs.getAOServer().getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		switch(osvId) {
 			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
+				String name = hs.getName();
+				int num = (name == null) ? 1 : Integer.parseInt(name);
 				return "workers" + num + ".properties";
 			case OperatingSystemVersion.CENTOS_7_X86_64 :
-				if(num == 1) return "workers.properties";
-				else return "workers-" + num + ".properties";
+				String escapedName = hs.getSystemdEscapedName();
+				return (escapedName == null) ? "workers.properties" : ("workers-" + escapedName + ".properties");
 			default :
 				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 		}
 	}
 
 	/**
-	 * Gets the httpd[-[#]].conf file name.
+	 * Gets the httpd#.conf or httpd[@&lt;name&gt;].conf file name.
 	 */
 	private static String getHttpdConfFile(HttpdServer hs) throws IOException, SQLException {
-		int num = hs.getNumber();
 		OperatingSystemVersion osv = hs.getAOServer().getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		switch(osvId) {
 			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
+				String name = hs.getName();
+				int num = (name == null) ? 1 : Integer.parseInt(name);
 				return "httpd" + num + ".conf";
 			case OperatingSystemVersion.CENTOS_7_X86_64 :
-				if(num == 1) return "httpd.conf";
-				else return "httpd-" + num+".conf";
+				String escapedName = hs.getSystemdEscapedName();
+				return (escapedName == null) ? "httpd.conf" : ("httpd@" + escapedName + ".conf");
 			default :
 				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 		}
@@ -193,7 +224,7 @@ public class HttpdServerManager {
 		boolean[] hasAnyModPhp = {false};
 		doRebuildConf(aoServer, bout, deleteFileList, serversNeedingReloaded, enabledAjpPorts, restorecon, hasAnyCgi, hasAnyModPhp);
 
-		// Control the /etc/rc.d/init.d/httpd* files or /etc/systemd/system/httpd[-#].service
+		// Control the /etc/rc.d/init.d/httpd# files or /etc/systemd/system/multi-user.target.wants/httpd[@<name>].service links
 		doRebuildInitScripts(aoServer, bout, deleteFileList, serversNeedingReloaded, restorecon);
 
 		// Configure SELinux
@@ -1020,14 +1051,17 @@ public class HttpdServerManager {
 		boolean[] hasAnyCgi,
 		boolean[] hasAnyModPhp
 	) throws IOException, SQLException {
-		int osvId = thisAoServer.getServer().getOperatingSystemVersion().getPkey();
+		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
 		List<HttpdServer> hss = thisAoServer.getHttpdServers();
 		// The files that should exist in /etc/httpd/conf
 		Set<String> httpdConfFilenames = new HashSet<>(hss.size()*4/3+1);
-		// The files that should exist in /etc/tmpfiles.d/httpd[-#].conf
+		// The files that should exist in /etc/tmpfiles.d/httpd[@<name>].conf
 		Set<String> etcTmpfilesFilenames = new HashSet<>(hss.size()*4/3+1);
-		// The files that should exist in /run/httpd[-#]
+		// The files that should exist in /run/httpd[@<name>]
 		Set<String> runFilenames = new HashSet<>(hss.size()*4/3+1);
+		// Track if has any alternate (named) instances
+		boolean hasAlternateInstance = false;
 		// Track which httpd[-n]-after-network-online packages are needed
 		boolean hasSpecificAddress = false;
 		boolean hasSpecificAddressN = false;
@@ -1051,7 +1085,7 @@ public class HttpdServerManager {
 			) {
 				serversNeedingReloaded.add(hs);
 			}
-			if(hs.getNumber() == 1) {
+			if(hs.getName() == null) {
 				for(HttpdBind hb : hs.getHttpdBinds()) {
 					InetAddress ia = hb.getNetBind().getIPAddress().getInetAddress();
 					if(!ia.isLoopback() && !ia.isUnspecified()) {
@@ -1059,12 +1093,15 @@ public class HttpdServerManager {
 						break;
 					}
 				}
-			} else if(!hasSpecificAddressN) {
-				for(HttpdBind hb : hs.getHttpdBinds()) {
-					InetAddress ia = hb.getNetBind().getIPAddress().getInetAddress();
-					if(!ia.isLoopback() && !ia.isUnspecified()) {
-						hasSpecificAddressN = true;
-						break;
+			} else {
+				hasAlternateInstance = true;
+				if(!hasSpecificAddressN) {
+					for(HttpdBind hb : hs.getHttpdBinds()) {
+						InetAddress ia = hb.getNetBind().getIPAddress().getInetAddress();
+						if(!ia.isLoopback() && !ia.isUnspecified()) {
+							hasSpecificAddressN = true;
+							break;
+						}
 					}
 				}
 			}
@@ -1098,7 +1135,7 @@ public class HttpdServerManager {
 				}
 			}
 			if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-				int serverNum = hs.getNumber();
+				String escapedName = hs.getSystemdEscapedName();
 				LinuxServerAccount lsa = hs.getLinuxServerAccount();
 				LinuxServerGroup lsg = hs.getLinuxServerGroup();
 				UserId user = lsa.getLinuxAccount().getUsername().getUsername();
@@ -1107,23 +1144,23 @@ public class HttpdServerManager {
 				int gid = lsg.getGid().getId();
 				String tmpFilesFilename;
 				String runFilename;
-				if(serverNum == 1) {
+				if(escapedName == null) {
 					// First in standard location
 					tmpFilesFilename = "httpd.conf";
 					runFilename = "httpd";
 				} else {
 					// Secondary Apache instances
-					tmpFilesFilename = "httpd-" + serverNum + ".conf";
-					runFilename = "httpd-" + serverNum;
+					tmpFilesFilename = "httpd@" + escapedName + ".conf";
+					runFilename = "httpd@" + escapedName;
 				}
-				// Server #1 with user apache and group apache uses the default at /usr/lib/tmpfiles.d/httpd.conf
+				// Default server with user apache and group apache uses the default at /usr/lib/tmpfiles.d/httpd.conf
 				if(
-					serverNum != 1
+					escapedName != null
 					|| !user.equals(LinuxAccount.APACHE)
 					|| !group.equals(LinuxGroup.APACHE)
 				) {
 					etcTmpfilesFilenames.add(tmpFilesFilename);
-					// Custom entry in /etc/tmpfiles.d/httpd[-#].conf
+					// Custom entry in /etc/tmpfiles.d/httpd[@<name>].conf
 					byte[] newContent;
 					{
 						bout.reset();
@@ -1151,7 +1188,7 @@ public class HttpdServerManager {
 						serversNeedingReloaded.add(hs);
 					}
 				}
-				// Create/update /run/httpd[-#](/.*)?
+				// Create/update /run/httpd[@<name>](/.*)?
 				runFilenames.add(runFilename);
 				UnixFile runDirUF = new UnixFile("/run", runFilename);
 				if(
@@ -1180,16 +1217,36 @@ public class HttpdServerManager {
 		// Delete extra httpdConfFilenames
 		String[] list = new File(CONF_DIRECTORY).list();
 		if(list != null) {
+			String phpDefault;
+			String workersDefault;
+			Pattern httpdConfPattern;
+			Pattern phpPattern;
+			Pattern workersPattern;
+			if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+				phpDefault = null;
+				workersDefault = null;
+				httpdConfPattern = HTTPD_N_CONF_REGEXP;
+				phpPattern = PHP_N_REGEXP;
+				workersPattern = WORKERS_N_PROPERTIES_REGEXP;
+			} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+				phpDefault = "php";
+				workersDefault = "workers.properties";
+				httpdConfPattern = HTTPD_NAME_CONF_REGEXP;
+				phpPattern = PHP_NAME_REGEXP;
+				workersPattern = WORKERS_NAME_PROPERTIES_REGEXP;
+			} else {
+				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+			}
 			for(String filename : list) {
 				if(
 					!httpdConfFilenames.contains(filename)
 					&& (
 						// Note: httpd.conf is never deleted
-						"php".equals(filename)
-						|| "workers.properties".equals(filename)
-						|| HTTPD_N_CONF_REGEXP.matcher(filename).matches()
-						|| PHP_N_REGEXP.matcher(filename).matches()
-						|| WORKERS_N_PROPERTIES_REGEXP.matcher(filename).matches()
+						filename.equals(phpDefault)
+						|| filename.equals(workersDefault)
+						|| httpdConfPattern.matcher(filename).matches()
+						|| phpPattern.matcher(filename).matches()
+						|| workersPattern.matcher(filename).matches()
 					)
 				) {
 					File toDelete = new File(CONF_DIRECTORY, filename);
@@ -1199,7 +1256,7 @@ public class HttpdServerManager {
 			}
 		}
 		if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-			// Schedule remove extra /etc/tmpfiles.d/httpd*.conf
+			// Schedule remove extra /etc/tmpfiles.d/httpd[@<name>].conf
 			list = new File(ETC_TMPFILES_D).list();
 			if(list != null) {
 				for(String filename : list) {
@@ -1207,7 +1264,7 @@ public class HttpdServerManager {
 						!etcTmpfilesFilenames.contains(filename)
 						&& (
 							"httpd.conf".equals(filename)
-							|| HTTPD_N_CONF_REGEXP.matcher(filename).matches()
+							|| HTTPD_NAME_CONF_REGEXP.matcher(filename).matches()
 						)
 					) {
 						File toDelete = new File(ETC_TMPFILES_D, filename);
@@ -1216,14 +1273,14 @@ public class HttpdServerManager {
 					}
 				}
 			}
-			// Schedule remove extra /run/httpd-.. directories
+			// Schedule remove extra /run/httpd@<name> directories
 			list = new File("/run").list();
 			if(list != null) {
 				for(String filename : list) {
 					if(
 						!runFilenames.contains(filename)
 						// Note: /run/httpd is not deleted since it is part of the standard RPM
-						&& HTTPD_N_REGEXP.matcher(filename).matches()
+						&& HTTPD_NAME_REGEXP.matcher(filename).matches()
 					) {
 						File toDelete = new File("/run", filename);
 						if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
@@ -1241,8 +1298,17 @@ public class HttpdServerManager {
 			else if(AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) {
 				PackageManager.removePackage(PackageManager.PackageName.HTTPD_AFTER_NETWORK_ONLINE);
 			}
+			// Install httpd-n package on CentOS 7 when needed
+			if(hasAlternateInstance) {
+				PackageManager.installPackage(PackageManager.PackageName.HTTPD_N);
+			}
+			// Install httpd-n-after-network-online package on CentOS 7 when needed
 			if(hasSpecificAddressN) {
-				// TODO: httpd-n-after-network-online once secondary httpd instances are in a separate package
+				PackageManager.installPackage(PackageManager.PackageName.HTTPD_N_AFTER_NETWORK_ONLINE);
+			}
+			// Uninstall httpd-n-after-network-online package on CentOS 7 when not needed
+			else if(AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) {
+				PackageManager.removePackage(PackageManager.PackageName.HTTPD_N_AFTER_NETWORK_ONLINE);
 			}
 		}
 	}
@@ -1260,7 +1326,11 @@ public class HttpdServerManager {
 	) throws IOException, SQLException {
 		final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		if(osConfig != HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) throw new AssertionError("This method is for CentOS 5 only");
-		final int serverNum = hs.getNumber();
+		final int serverNum;
+		{
+			String name = hs.getName();
+			serverNum = (name == null) ? 1 : Integer.parseInt(name);
+		}
 		bout.reset();
 		try (ChainWriter out = new ChainWriter(bout)) {
 			LinuxServerAccount lsa = hs.getLinuxServerAccount();
@@ -1492,7 +1562,7 @@ public class HttpdServerManager {
 	}
 
 	/**
-	 * Builds the httpd[-#].conf file for CentOS 7
+	 * Builds the httpd[@&lt;name&gt;].conf file for CentOS 7
 	 */
 	private static byte[] buildHttpdConfCentOs7(
 		HttpdServer hs,
@@ -1509,7 +1579,7 @@ public class HttpdServerManager {
 			PackageManager.PackageName.HTTPD,
 			PackageManager.PackageName.AOSERV_HTTPD_CONFIG
 		);
-		final int serverNum = hs.getNumber();
+		final String escapedName = hs.getSystemdEscapedName();
 		bout.reset();
 		try (ChainWriter out = new ChainWriter(bout)) {
 			LinuxServerAccount lsa = hs.getLinuxServerAccount();
@@ -1522,7 +1592,7 @@ public class HttpdServerManager {
 					+ "ServerRoot \"" + SERVER_ROOT + "\"\n"
 					+ "Include aoserv.conf.d/core.conf\n"
 					+ "ErrorLog \"/var/log/httpd");
-			if(serverNum != 1) out.print('-').print(serverNum);
+			if(escapedName != null) out.print('@').print(escapedName);
 			out.print("/error_log\"\n"
 					+ "ServerAdmin root@").print(hs.getAOServer().getHostname()).print("\n"
 					+ "ServerName ").print(hs.getAOServer().getHostname()).print("\n"
@@ -1536,11 +1606,11 @@ public class HttpdServerManager {
 					+ "# LoadModule mpm_worker_module modules/mod_mpm_worker.so\n"
 					+ "Include aoserv.conf.d/mpm_*.conf\n"
 					+ "CoreDumpDirectory /var/log/httpd");
-			if(serverNum != 1) out.print('-').print(serverNum);
+			if(escapedName != null) out.print('@').print(escapedName);
 			out.print("\n"
 					+ "# ListenBacklog 511\n"
 					+ "PidFile /run/httpd");
-			if(serverNum != 1) out.print('-').print(serverNum);
+			if(escapedName != null) out.print('@').print(escapedName);
 			out.print("/httpd.pid\n"
 					+ "<IfModule mpm_prefork_module>\n"
 					+ "    MaxRequestWorkers ").print(hs.getMaxConcurrency()).print("\n"
@@ -2009,31 +2079,31 @@ public class HttpdServerManager {
 					+ "Include aoserv.conf.d/mod_*.conf\n"
 					+ "<IfModule dav_fs_module>\n"
 					+ "    DavLockDB /var/lib/dav");
-			if(serverNum != 1) out.print('-').print(serverNum);
+			if(escapedName != null) out.print('@').print(escapedName);
 			out.print("/lockdb\n"
 					+ "</IfModule>\n");
 			if(mod_jk || isModJkInstalled) {
 				out.print("<IfModule jk_module>\n"
 						+ "    JkWorkersFile \"conf/workers");
-				if(serverNum != 1) out.print('-').print(serverNum);
+				if(escapedName != null) out.print('@').print(escapedName);
 				out.print(".properties\"\n"
 						+ "    JkShmFile \"/var/log/httpd");
-				if(serverNum != 1) out.print('-').print(serverNum);
+				if(escapedName != null) out.print('@').print(escapedName);
 				out.print("/jk-runtime-status\"\n"
 						+ "    JkLogFile \"/var/log/httpd");
-				if(serverNum != 1) out.print('-').print(serverNum);
+				if(escapedName != null) out.print('@').print(escapedName);
 				out.print("/mod_jk.log\"\n"
 						+ "</IfModule>\n");
 			}
 			out.print("<IfModule log_config_module>\n"
 					+ "    CustomLog \"/var/log/httpd");
-			if(serverNum != 1) out.print('-').print(serverNum);
+			if(escapedName != null) out.print('@').print(escapedName);
 			out.print("/access_log\" combined\n"
 					+ "</IfModule>\n");
 			if(mod_ssl || isModSslInstalled) {
 				out.print("<IfModule ssl_module>\n"
 						+ "    SSLSessionCache shmcb:/run/httpd");
-				if(serverNum != 1) out.print('-').print(serverNum);
+				if(escapedName != null) out.print('@').print(escapedName);
 				out.print("/sslcache(512000)\n"
 						+ "</IfModule>\n");
 			}
@@ -2052,12 +2122,12 @@ public class HttpdServerManager {
 				String phpMinorVersion = getMinorPhpVersion(version);
 				// Create initial PHP config directory
 				UnixFile phpIniDir;
-				if(serverNum == 1) {
+				if(escapedName == null) {
 					phpIniDir = new UnixFile(CONF_DIRECTORY + "/php");
 					httpdConfFilenames.add("php");
 				} else {
-					phpIniDir = new UnixFile(CONF_DIRECTORY + "/php-" + serverNum);
-					httpdConfFilenames.add("php-" + serverNum);
+					phpIniDir = new UnixFile(CONF_DIRECTORY + "/php@" + escapedName);
+					httpdConfFilenames.add("php@" + escapedName);
 				}
 				DaemonFileUtils.mkdir(phpIniDir, 0750, UnixFile.ROOT_UID, hs.getLinuxServerGroup().getGid().getId());
 				UnixFile phpIni = new UnixFile(phpIniDir, "php.ini", true);
@@ -2364,7 +2434,7 @@ public class HttpdServerManager {
 						}
 						// See https://unix.stackexchange.com/questions/162478/how-to-disable-sslv3-in-apache
 						// TODO: Test if required in our Apache 2.4
-						// TODO:     Test with: https://www.tinfoilsecurity.com/poodle
+						// TODO:     Test with: https://www.tinfoilsecurity.com/poodle (make a routine task to test this site yearly?)
 						out.print("        SSLProtocol all -SSLv2 -SSLv3\n"
 								+ "        SSLEngine On\n"
 								+ "    </IfModule>\n"
@@ -2435,32 +2505,28 @@ public class HttpdServerManager {
 
 	private static final Object processControlLock = new Object();
 	private static void reloadConfigs(HttpdServer hs) throws IOException, SQLException {
-		int num = hs.getNumber();
 		OperatingSystemVersion osv = hs.getAOServer().getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		synchronized(processControlLock) {
 			switch(osvId) {
-				case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
+				case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 : {
+					String name = hs.getName();
+					int num = (name == null) ? 1 : Integer.parseInt(name);
 					AOServDaemon.exec(
 						"/etc/rc.d/init.d/httpd" + num,
 						"reload" // Should this be restart for SSL changes?
 					);
 					break;
-				case OperatingSystemVersion.CENTOS_7_X86_64 :
-					if(num == 1) {
-						AOServDaemon.exec(
-							"/usr/bin/systemctl",
-							"reload-or-restart",
-							"httpd.service"
-						);
-					} else {
-						AOServDaemon.exec(
-							"/usr/bin/systemctl",
-							"reload-or-restart",
-							"httpd-" + num + ".service"
-						);
-					}
+				}
+				case OperatingSystemVersion.CENTOS_7_X86_64 : {
+					String escapedName = hs.getSystemdEscapedName();
+					AOServDaemon.exec(
+						"/usr/bin/systemctl",
+						"reload-or-restart",
+						(escapedName == null) ? "httpd.service" : ("httpd@" + escapedName + ".service")
+					);
 					break;
+				}
 				default :
 					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 			}
@@ -2477,28 +2543,22 @@ public class HttpdServerManager {
 			switch(osvId) {
 				case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
 					for(HttpdServer hs : AOServDaemon.getThisAOServer().getHttpdServers()) {
+						String name = hs.getName();
+						int num = (name == null) ? 1 : Integer.parseInt(name);
 						AOServDaemon.exec(
-							"/etc/rc.d/init.d/httpd" + hs.getNumber(),
+							"/etc/rc.d/init.d/httpd" + num,
 							command
 						);
 					}
 					break;
 				case OperatingSystemVersion.CENTOS_7_X86_64 :
 					for(HttpdServer hs : AOServDaemon.getThisAOServer().getHttpdServers()) {
-						int num = hs.getNumber();
-						if(num == 1) {
-							AOServDaemon.exec(
-								"/usr/bin/systemctl",
-								command,
-								"httpd.service"
-							);
-						} else {
-							AOServDaemon.exec(
-								"/usr/bin/systemctl",
-								command,
-								"httpd-" + num + ".service"
-							);
-						}
+						String escapedName = hs.getSystemdEscapedName();
+						AOServDaemon.exec(
+							"/usr/bin/systemctl",
+							command,
+							(escapedName == null) ? "httpd.service" : ("httpd@" + escapedName + ".service")
+						);
 					}
 					break;
 				default :
@@ -2603,8 +2663,9 @@ public class HttpdServerManager {
 	}
 
 	/**
-	 * Rebuilds /etc/rc.d/init.d/httpd* init scripts
-	 * or /etc/systemd/system/httpd[-#].service files.
+	 * Rebuilds /etc/rc.d/init.d/httpd# init scripts
+	 * or /etc/systemd/system/multi-user.target.wants/httpd[@&lt;name&gt;].service links.
+	 * Also stops and disables instances that should no longer exist.
 	 */
 	private static void doRebuildInitScripts(
 		AOServer thisAoServer,
@@ -2620,7 +2681,8 @@ public class HttpdServerManager {
 			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 : {
 				Set<String> dontDeleteFilenames = new HashSet<>(hss.size()*4/3+1);
 				for(HttpdServer hs : hss) {
-					int num = hs.getNumber();
+					String name = hs.getName();
+					int num = (name == null) ? 1 : Integer.parseInt(name);
 					bout.reset();
 					try (ChainWriter out = new ChainWriter(bout)) {
 						out.print("#!/bin/bash\n"
@@ -2691,7 +2753,7 @@ public class HttpdServerManager {
 					dontDeleteFilenames.add(filename);
 					if(
 						DaemonFileUtils.atomicWrite(
-							new UnixFile(INIT_DIRECTORY+"/"+filename),
+							new UnixFile(INIT_DIRECTORY, filename),
 							bout.toByteArray(),
 							0700,
 							UnixFile.ROOT_UID,
@@ -2715,39 +2777,91 @@ public class HttpdServerManager {
 						serversNeedingReloaded.add(hs);
 					}
 				}
-				for(String filename : new File(INIT_DIRECTORY).list()) {
-					if(filename.startsWith("httpd")) {
-						String suffix = filename.substring(5);
-						try {
-							// Parse to make sure is a httpd# filename
-							int num = Integer.parseInt(suffix);
-							if(!dontDeleteFilenames.contains(filename)) {
-								// chkconfig off
-								AOServDaemon.exec(
-									"/sbin/chkconfig",
-									filename,
-									"off"
-								);
-								// stop
-								String fullPath = INIT_DIRECTORY+"/"+filename;
-								AOServDaemon.exec(
-									fullPath,
-									"stop"
-								);
-								File toDelete = new File(fullPath);
-								if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
-								deleteFileList.add(toDelete);
-							}
-						} catch(NumberFormatException err) {
-							LogFactory.getLogger(HttpdServerManager.class).log(Level.WARNING, null, err);
+				String[] list = new File(INIT_DIRECTORY).list();
+				if(list != null) {
+					for(String filename : list) {
+						if(
+							!dontDeleteFilenames.contains(filename)
+							&& HTTPD_N_REGEXP.matcher(filename).matches()
+						) {
+							// chkconfig off
+							AOServDaemon.exec(
+								"/sbin/chkconfig",
+								filename,
+								"off"
+							);
+							// stop
+							String fullPath = INIT_DIRECTORY + '/' + filename;
+							AOServDaemon.exec(
+								fullPath,
+								"stop"
+							);
+							File toDelete = new File(fullPath);
+							if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+							deleteFileList.add(toDelete);
 						}
 					}
 				}
 				break;
 			}
 			case OperatingSystemVersion.CENTOS_7_X86_64 : {
-				// TODO
-				// TODO: Disable when doesn't have any active httpd_binds
+				boolean hasAlternateInstance = false;
+				Set<String> dontDeleteFilenames = new HashSet<>(hss.size()*4/3+1);
+				for(HttpdServer hs : hss) {
+					String escapedName = hs.getSystemdEscapedName();
+					if(escapedName != null) hasAlternateInstance = true;
+					if(hs.getHttpdBinds().isEmpty()) {
+						// Disable when doesn't have any active httpd_binds
+						serversNeedingReloaded.remove(hs);
+					} else {
+						String filename = (escapedName == null) ? "httpd.service" : ("httpd@" + escapedName + ".service");
+						dontDeleteFilenames.add(filename);
+						UnixFile link = new UnixFile(MULTI_USER_WANTS_DIRECTORY, filename);
+						if(!link.getStat().exists()) {
+							// Make start at boot
+							AOServDaemon.exec(
+								"/usr/bin/systemctl",
+								"enable",
+								filename
+							);
+							if(!link.getStat().exists()) throw new AssertionError("Link does not exist after systemctl enable: " + link);
+							// Make reload
+							serversNeedingReloaded.add(hs);
+						}
+					}
+				}
+				String[] list = new File(MULTI_USER_WANTS_DIRECTORY).list();
+				if(list != null) {
+					for(String filename : list) {
+						if(
+							!dontDeleteFilenames.contains(filename)
+							&& (
+								"httpd.service".equals(filename)
+								|| HTTPD_NAME_SERVICE_REGEXP.matcher(filename).matches()
+							)
+						) {
+							// Note: It seems OK to send escaped service filename, so we're not unescaping back to the original service name
+							// stop
+							AOServDaemon.exec(
+								"/usr/bin/systemctl",
+								"stop",
+								filename
+							);
+							// disable
+							AOServDaemon.exec(
+								"/usr/bin/systemctl",
+								"disable",
+								filename
+							);
+							UnixFile link = new UnixFile(MULTI_USER_WANTS_DIRECTORY, filename);
+							if(link.getStat().exists()) throw new AssertionError("Link exists after systemctl disable: " + link);
+						}
+					}
+				}
+				// Uninstall httpd-n package on CentOS 7 when not needed
+				if(!hasAlternateInstance && AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) {
+					PackageManager.removePackage(PackageManager.PackageName.HTTPD_N);
+				}
 				break;
 			}
 			default :

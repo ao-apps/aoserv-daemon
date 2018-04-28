@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -62,7 +62,7 @@ class HttpdLogManager {
 	 */
 	private static final UnixFile serverLogDirOld = new UnixFile("/var/log/httpd");
 
-	private static final Pattern HTTPD_N_REGEXP = Pattern.compile("^httpd-[0-9]+$");
+	private static final Pattern HTTPD_NAME_REGEXP = Pattern.compile("^httpd@.+$");
 
 	/**
 	 * Responsible for control of all things in /logs and /etc/httpd/conf/logrotate.d
@@ -322,7 +322,8 @@ class HttpdLogManager {
 
 			boolean isFirst = true;
 			for(HttpdServer hs : thisAoServer.getHttpdServers()) {
-				int num = hs.getNumber();
+				String name = hs.getName();
+				int num = name==null ? 1 : Integer.parseInt(name);
 				String filename = HTTPD_SERVER_PREFIX_OLD + num;
 				logRotationFiles.remove(filename);
 
@@ -389,7 +390,7 @@ class HttpdLogManager {
 	}
 
 	/**
-	 * Rebuilds the /var/log/httpd[-#] directories
+	 * Rebuilds the /var/log/httpd# or /var/log/httpd[@&lt;name&gt;] directories
 	 */
 	private static void doRebuildVarLogHttpd(AOServer aoServer, List<File> deleteFileList) throws IOException, SQLException {
 		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
@@ -406,7 +407,9 @@ class HttpdLogManager {
 			List<HttpdServer> hss = aoServer.getHttpdServers();
 			Set<String> keepFilenames = new HashSet<>(hss.size()*4/3+1);
 			for(HttpdServer hs : hss) {
-				String dirname = "httpd"+hs.getNumber();
+				String name = hs.getName();
+				int num = name==null ? 1 : Integer.parseInt(name);
+				String dirname = "httpd" + num;
 				keepFilenames.add(dirname);
 				DaemonFileUtils.mkdir(new UnixFile(serverLogDirOld, dirname, false), 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
 			}
@@ -422,22 +425,22 @@ class HttpdLogManager {
 				}
 			}
 		} else if(osConfig == HttpdOperatingSystemConfiguration.CENTOS_7_X86_64) {
-			// Create all /var/log/httpd[-#] directories
+			// Create all /var/log/httpd[@<name>] directories
 			List<HttpdServer> hss = aoServer.getHttpdServers();
 			Set<String> keepFilenames = new HashSet<>(hss.size()*4/3+1);
 			for(HttpdServer hs : hss) {
-				int num = hs.getNumber();
-				String dirname = num == 1 ? "httpd" : ("httpd-" + num);
+				String escapedName = hs.getSystemdEscapedName();
+				String dirname = escapedName == null ? "httpd" : ("httpd@" + escapedName);
 				keepFilenames.add(dirname);
 				DaemonFileUtils.mkdir(new UnixFile(varLogDir, dirname, true), 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
 			}
 
-			// Remove any extra /var/log/httpd-# directories.
+			// Remove any extra /var/log/httpd@<name> directories.
 			// Note: /var/log/httpd will always be left in-place because it is part of the stock httpd RPM.
 			for(String filename : varLogDir.list()) {
 				if(
 					!keepFilenames.contains(filename)
-					&& HTTPD_N_REGEXP.matcher(filename).matches()
+					&& HTTPD_NAME_REGEXP.matcher(filename).matches()
 				) {
 					File toDelete = new UnixFile(varLogDir, filename, false).getFile();
 					if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
