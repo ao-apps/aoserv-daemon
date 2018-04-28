@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2017 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -352,13 +352,21 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		filesystemRules.put("/var/lock/subsys/xfs", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lock/subsys/xinetd", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lock/subsys/xvfb", FilesystemIteratorRule.SKIP);
-
 		List<HttpdServer> httpdServers = thisServer.getHttpdServers();
-		for(HttpdServer hs : httpdServers) {
-			int num = hs.getNumber();
-			filesystemRules.put("/var/log/httpd" + num + "/ssl_scache.sem", FilesystemIteratorRule.SKIP);
-			filesystemRules.put("/var/lock/subsys/httpd" + num, FilesystemIteratorRule.SKIP);
-			filesystemRules.put("/var/run/httpd" + num + ".pid", FilesystemIteratorRule.SKIP);
+		if(!httpdServers.isEmpty()) {
+			if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+				for(HttpdServer hs : httpdServers) {
+					String name = hs.getName();
+					int num = name==null ? 1 : Integer.parseInt(name);
+					filesystemRules.put("/var/log/httpd" + num + "/ssl_scache.sem", FilesystemIteratorRule.SKIP);
+					filesystemRules.put("/var/lock/subsys/httpd" + num, FilesystemIteratorRule.SKIP);
+					filesystemRules.put("/var/run/httpd" + num + ".pid", FilesystemIteratorRule.SKIP);
+				}
+			} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+				// Nothing to skip - Apache transient files in /run
+			} else {
+				throw new SQLException("HttpdServer found on unexpected operating system: " + osv);
+			}
 		}
 		filesystemRules.put("/var/opt/aoserv-daemon/aoserv-daemon-java.pid", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/opt/aoserv-daemon/aoserv-daemon.log", FilesystemIteratorRule.SKIP);
