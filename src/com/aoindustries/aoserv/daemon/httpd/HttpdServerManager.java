@@ -178,7 +178,7 @@ public class HttpdServerManager {
 				return "workers" + num + ".properties";
 			case OperatingSystemVersion.CENTOS_7_X86_64 :
 				String escapedName = hs.getSystemdEscapedName();
-				return (escapedName == null) ? "workers.properties" : ("workers-" + escapedName + ".properties");
+				return (escapedName == null) ? "workers.properties" : ("workers@" + escapedName + ".properties");
 			default :
 				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 		}
@@ -1037,8 +1037,8 @@ public class HttpdServerManager {
 	/**
 	 * Rebuilds the files in /etc/httpd/conf/
 	 * <ul>
-	 *   <li>/etc/httpd/conf/httpd[[-]#].conf</li>
-	 *   <li>/etc/httpd/conf/workers[[-]#].properties</li>
+	 *   <li>/etc/httpd/conf/httpd#.conf or /etc/httpd/conf/httpd[@&lt;name&gt;].conf</li>
+	 *   <li>/etc/httpd/conf/workers#.properties or /etc/httpd/conf/workers[@&lt;name&gt;].properties</li>
 	 * </ul>
 	 */
 	private static void doRebuildConf(
@@ -2228,7 +2228,7 @@ public class HttpdServerManager {
 	}
 
 	/**
-	 * Builds the workers#.properties file contents for the provided HttpdServer.
+	 * Builds the workers#.properties or workers[@&lt;name&gt;].properties file contents for the provided HttpdServer.
 	 */
 	private static byte[] buildWorkersFile(HttpdServer hs, ByteArrayOutputStream bout, Set<Port> enabledAjpPorts) throws IOException, SQLException {
 		AOServConnector conn = AOServDaemon.getConnector();
