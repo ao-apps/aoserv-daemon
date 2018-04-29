@@ -1064,7 +1064,6 @@ public class HttpdServerManager {
 		boolean hasAlternateInstance = false;
 		// Track which httpd[-n]-after-network-online packages are needed
 		boolean hasSpecificAddress = false;
-		boolean hasSpecificAddressN = false;
 		// Rebuild per-server files
 		for(HttpdServer hs : hss) {
 			List<HttpdSite> sites = hs.getHttpdSites();
@@ -1095,15 +1094,6 @@ public class HttpdServerManager {
 				}
 			} else {
 				hasAlternateInstance = true;
-				if(!hasSpecificAddressN) {
-					for(HttpdBind hb : hs.getHttpdBinds()) {
-						InetAddress ia = hb.getNetBind().getIPAddress().getInetAddress();
-						if(!ia.isLoopback() && !ia.isUnspecified()) {
-							hasSpecificAddressN = true;
-							break;
-						}
-					}
-				}
 			}
 
 			// Rebuild the workers.properties file
@@ -1301,14 +1291,6 @@ public class HttpdServerManager {
 			// Install httpd-n package on CentOS 7 when needed
 			if(hasAlternateInstance) {
 				PackageManager.installPackage(PackageManager.PackageName.HTTPD_N);
-			}
-			// Install httpd-n-after-network-online package on CentOS 7 when needed
-			if(hasSpecificAddressN) {
-				PackageManager.installPackage(PackageManager.PackageName.HTTPD_N_AFTER_NETWORK_ONLINE);
-			}
-			// Uninstall httpd-n-after-network-online package on CentOS 7 when not needed
-			else if(AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) {
-				PackageManager.removePackage(PackageManager.PackageName.HTTPD_N_AFTER_NETWORK_ONLINE);
 			}
 		}
 	}

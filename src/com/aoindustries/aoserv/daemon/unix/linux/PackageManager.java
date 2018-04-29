@@ -66,7 +66,6 @@ public class PackageManager {
 		HTTPD("httpd"),
 		HTTPD_AFTER_NETWORK_ONLINE("httpd-after-network-online"),
 		HTTPD_N("httpd-n"),
-		HTTPD_N_AFTER_NETWORK_ONLINE("httpd-n-after-network-online"),
 		HTTPD_TOOLS("httpd-tools"),
 		JBOSS_2_2_2("jboss_2_2_2"),
 		JDK1("jdk1"),
