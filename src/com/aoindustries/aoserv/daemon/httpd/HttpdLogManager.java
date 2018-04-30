@@ -85,7 +85,7 @@ class HttpdLogManager {
 		doRebuildLogrotate(aoServer, deleteFileList, bout, restorecon);
 
 		// Rebuild /var/log/httpd
-		doRebuildVarLogHttpd(aoServer, deleteFileList);
+		doRebuildVarLogHttpd(aoServer, deleteFileList, restorecon);
 	}
 
 	/**
@@ -392,7 +392,11 @@ class HttpdLogManager {
 	/**
 	 * Rebuilds the /var/log/httpd# or /var/log/httpd[@&lt;name&gt;] directories
 	 */
-	private static void doRebuildVarLogHttpd(AOServer aoServer, List<File> deleteFileList) throws IOException, SQLException {
+	private static void doRebuildVarLogHttpd(
+		AOServer aoServer,
+		List<File> deleteFileList,
+		Set<UnixFile> restorecon
+	) throws IOException, SQLException {
 		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		if(osConfig == HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) {
 
@@ -432,7 +436,10 @@ class HttpdLogManager {
 				String escapedName = hs.getSystemdEscapedName();
 				String dirname = escapedName == null ? "httpd" : ("httpd@" + escapedName);
 				keepFilenames.add(dirname);
-				DaemonFileUtils.mkdir(new UnixFile(varLogDir, dirname, true), 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
+				UnixFile varLogDirUF = new UnixFile(varLogDir, dirname, true);
+				if(DaemonFileUtils.mkdir(varLogDirUF, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID)) {
+					restorecon.add(varLogDirUF);
+				}
 			}
 
 			// Remove any extra /var/log/httpd@<name> directories.
