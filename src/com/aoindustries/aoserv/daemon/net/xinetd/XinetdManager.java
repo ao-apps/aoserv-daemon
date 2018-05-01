@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -692,8 +692,6 @@ public final class XinetdManager extends BuilderThread {
 									Thread.sleep(1000);
 								} catch(InterruptedException err2) {
 									LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err2);
-									// Restore the interrupted status
-									Thread.currentThread().interrupt();
 								}
 								AOServDaemon.exec(
 									"/etc/rc.d/init.d/xinetd",

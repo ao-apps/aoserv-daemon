@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2013, 2017 by AO Industries, Inc.,
+ * Copyright 2006-2013, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -96,8 +96,6 @@ final public class DhcpManager implements Runnable {
 					try {
 						Thread.sleep(POLL_INTERVAL);
 					} catch(InterruptedException err) {
-						LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
-						// Restore the interrupted status
 						Thread.currentThread().interrupt();
 					}
 					for(NetDevice nd : AOServDaemon.getThisAOServer().getServer().getNetDevices()) {
@@ -118,8 +116,6 @@ final public class DhcpManager implements Runnable {
 					Thread.sleep(POLL_INTERVAL);
 				} catch(InterruptedException err) {
 					LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
-					// Restore the interrupted status
-					Thread.currentThread().interrupt();
 				}
 			}
 		}

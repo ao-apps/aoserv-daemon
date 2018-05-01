@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2009, 2017 by AO Industries, Inc.,
+ * Copyright 2000-2009, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -66,8 +66,6 @@ abstract public class UnixProcess {
 				Thread.sleep(2000);
 			} catch(InterruptedException err) {
 				LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
-				// Restore the interrupted status
-				Thread.currentThread().interrupt();
 			}
 		}
 		if(isRunning()) {

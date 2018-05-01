@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2014, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -874,8 +874,6 @@ final public class DistroGenerator {
 											int retCode = P.waitFor();
 											if(retCode != 0) throw new IOException("Non-zero response from command: " + AOServDaemon.getCommandString(prelinkVerifyCommand));
 										} catch(InterruptedException err) {
-											// Restore the interrupted status
-											Thread.currentThread().interrupt();
 											IOException ioErr = new InterruptedIOException();
 											ioErr.initCause(err);
 											throw ioErr;

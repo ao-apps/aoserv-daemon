@@ -1668,8 +1668,6 @@ final public class ImapManager extends BuilderThread {
 								deleteMe.add(lsa);
 							} catch(InterruptedException err) {
 								logger.log(Level.WARNING, "lsa = " + lsa, err);
-								// Restore the interrupted status
-								Thread.currentThread().interrupt();
 								// Will retry on next loop
 							} catch(ExecutionException err) {
 								String extraInfo;
@@ -2094,8 +2092,6 @@ final public class ImapManager extends BuilderThread {
 						Thread.sleep(100);
 					} catch(InterruptedException err) {
 						logger.log(Level.WARNING, null, err);
-						// Restore the interrupted status
-						Thread.currentThread().interrupt();
 					}
 				}
 			}

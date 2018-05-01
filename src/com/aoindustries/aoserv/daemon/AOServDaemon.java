@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2015, 2017 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -266,8 +266,6 @@ final public class AOServDaemon {
 					Thread.sleep(60000);
 				} catch(InterruptedException err) {
 					logger.log(Level.WARNING, null, err);
-					// Restore the interrupted status
-					Thread.currentThread().interrupt();
 				}
 			}
 		}
@@ -313,8 +311,6 @@ final public class AOServDaemon {
 		try {
 			P.waitFor();
 		} catch (InterruptedException err) {
-			// Restore the interrupted status
-			Thread.currentThread().interrupt();
 			InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
 			ioErr.initCause(err);
 			throw ioErr;
@@ -353,8 +349,6 @@ final public class AOServDaemon {
 				int retCode = P.waitFor();
 				if(retCode!=0) throw new IOException("Non-zero exit status from '"+getCommandString(command)+"': "+retCode+", standard error was: "+errorString);
 			} catch(InterruptedException err) {
-				// Restore the interrupted status
-				Thread.currentThread().interrupt();
 				InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
 				ioErr.initCause(err);
 				throw ioErr;
@@ -384,8 +378,6 @@ final public class AOServDaemon {
 				int retCode = P.waitFor();
 				if(retCode!=0) throw new IOException("Non-zero exit status from '"+getCommandString(command)+"': "+retCode+", standard error was: "+errorString);
 			} catch(InterruptedException err) {
-				// Restore the interrupted status
-				Thread.currentThread().interrupt();
 				InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
 				ioErr.initCause(err);
 				throw ioErr;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2012, 2017 by AO Industries, Inc.,
+ * Copyright 2002-2012, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -74,8 +74,6 @@ abstract public class BuilderThread implements TableListener, PackageManager.Pac
 										isSleeping=true;
 										sleep(getRandomDelay());
 									} catch (InterruptedException err) {
-										// Restore the interrupted status
-										Thread.currentThread().interrupt();
 										// Interrupted by waitForRebuild call
 									}
 									isSleeping=false;
@@ -100,8 +98,6 @@ abstract public class BuilderThread implements TableListener, PackageManager.Pac
 												Thread.sleep(getRandomDelay());
 											} catch(InterruptedException err) {
 												logger.logp(Level.WARNING, BuilderThread.this.getClass().getName(), "run", null, err);
-												// Restore the interrupted status
-												Thread.currentThread().interrupt();
 											}
 											isSleeping=false;
 										}
@@ -122,8 +118,6 @@ abstract public class BuilderThread implements TableListener, PackageManager.Pac
 										Thread.sleep(getRandomDelay());
 									} catch(InterruptedException err) {
 										logger.logp(Level.WARNING, BuilderThread.this.getClass().getName(), "run", null, err);
-										// Restore the interrupted status
-										Thread.currentThread().interrupt();
 									}
 									isSleeping=false;
 								}
@@ -164,8 +158,6 @@ abstract public class BuilderThread implements TableListener, PackageManager.Pac
 						wait();
 					} catch(InterruptedException err) {
 						LogFactory.getLogger(getClass()).log(Level.WARNING, null, err);
-						// Restore the interrupted status
-						Thread.currentThread().interrupt();
 					}
 				}
 			} finally {

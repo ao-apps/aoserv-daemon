@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -282,8 +282,6 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 						Thread.sleep(REFRESH_PERIOD);
 					} catch(InterruptedException err) {
 						LogFactory.getLogger(SmtpRelayManager.class).log(Level.WARNING, null, err);
-						// Restore the interrupted status
-						Thread.currentThread().interrupt();
 					}
 					long time = System.currentTimeMillis();
 					boolean needRebuild = false;
@@ -309,8 +307,6 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 					Thread.sleep(REFRESH_PERIOD);
 				} catch(InterruptedException err) {
 					LogFactory.getLogger(SmtpRelayManager.class).log(Level.WARNING, null, err);
-					// Restore the interrupted status
-					Thread.currentThread().interrupt();
 				}
 			}
 		}

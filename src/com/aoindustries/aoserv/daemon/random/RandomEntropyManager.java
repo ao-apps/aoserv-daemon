@@ -1,5 +1,5 @@
 /*
- * Copyright 2004-2013, 2017 by AO Industries, Inc.,
+ * Copyright 2004-2013, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -146,8 +146,6 @@ public final class RandomEntropyManager implements Runnable {
 						Thread.sleep(sleepyTime);
 					} catch(InterruptedException err) {
 						LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
-						// Restore the interrupted status
-						Thread.currentThread().interrupt();
 					}
 				}
 			} catch(ThreadDeath TD) {
@@ -158,8 +156,6 @@ public final class RandomEntropyManager implements Runnable {
 					Thread.sleep(ERROR_DELAY);
 				} catch(InterruptedException err) {
 					LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
-					// Restore the interrupted status
-					Thread.currentThread().interrupt();
 				}
 			}
 		}

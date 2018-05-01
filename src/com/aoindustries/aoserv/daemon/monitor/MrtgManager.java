@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2013, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2006-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -711,9 +712,9 @@ final public class MrtgManager extends BuilderThread {
 				int retCode = P.waitFor();
 				if(retCode != 0) throw new IOException("Non-zero return value from list_partitions: " + retCode);
 			} catch(InterruptedException err) {
-				LogFactory.getLogger(MrtgManager.class).log(Level.WARNING, null, err);
-				// Restore the interrupted status
-				Thread.currentThread().interrupt();
+				InterruptedIOException ioErr = new InterruptedIOException();
+				ioErr.initCause(err);
+				throw ioErr;
 			}
 		}
 

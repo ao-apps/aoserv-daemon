@@ -295,8 +295,6 @@ final public class NullRouteManager {
 								sleep(1000);
 							} catch (InterruptedException err) {
 								LogFactory.getLogger(NullRouteManager.class).log(Level.WARNING, null, err);
-								// Restore the interrupted status
-								Thread.currentThread().interrupt();
 							}
 						}
 					}

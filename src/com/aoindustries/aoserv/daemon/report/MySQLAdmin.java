@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -21,84 +21,82 @@ import java.io.InterruptedIOException;
  */
 final public class MySQLAdmin extends DBReportData {
 
-    final public int questions;
-    final public int slow_queries;
-    final public int opens;
-    final public int flush_tables;
-    final public int open_tables;
-    final public float queries_per_second;
+	final public int questions;
+	final public int slow_queries;
+	final public int opens;
+	final public int flush_tables;
+	final public int open_tables;
+	final public float queries_per_second;
 
-    public MySQLAdmin() throws IOException {
-        String user= AOServDaemonConfiguration.getMySqlUser();
-        String password=AOServDaemonConfiguration.getMySqlPassword();
-        if(user!=null && user.length()>0 && password!=null && password.length()>0) {
-            String[] cmd={
-                "/usr/bin/mysqladmin",
-                "-h",
-                IPAddress.LOOPBACK_IP,
-                "-u",
-                user,
-                "--password="+password,
-                "status"
-            };
-            String line;
-            Process P=Runtime.getRuntime().exec(cmd);
-            try {
-                P.getOutputStream().close();
-                BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
-                try {
-                    line=in.readLine();
-                } finally {
-                    in.close();
-                }
-            } finally {
-                try {
-                    int retCode=P.waitFor();
-                    if(retCode!=0) throw new IOException("/usr/bin/mysqladmin returned with non-zero status: "+retCode);
-                } catch(InterruptedException err) {
-					// Restore the interrupted status
-					Thread.currentThread().interrupt();
-                    InterruptedIOException ioErr=new InterruptedIOException();
-                    ioErr.initCause(err);
-                    throw ioErr;
-                }
-            }
+	public MySQLAdmin() throws IOException {
+		String user= AOServDaemonConfiguration.getMySqlUser();
+		String password=AOServDaemonConfiguration.getMySqlPassword();
+		if(user!=null && user.length()>0 && password!=null && password.length()>0) {
+			String[] cmd={
+				"/usr/bin/mysqladmin",
+				"-h",
+				IPAddress.LOOPBACK_IP,
+				"-u",
+				user,
+				"--password="+password,
+				"status"
+			};
+			String line;
+			Process P=Runtime.getRuntime().exec(cmd);
+			try {
+				P.getOutputStream().close();
+				BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
+				try {
+					line=in.readLine();
+				} finally {
+					in.close();
+				}
+			} finally {
+				try {
+					int retCode=P.waitFor();
+					if(retCode!=0) throw new IOException("/usr/bin/mysqladmin returned with non-zero status: "+retCode);
+				} catch(InterruptedException err) {
+					InterruptedIOException ioErr=new InterruptedIOException();
+					ioErr.initCause(err);
+					throw ioErr;
+				}
+			}
 
-            // Parse out the number of users
-            String[] words = StringUtility.splitString(line);
-            numUsers=Integer.parseInt(words[3]);
-            questions=Integer.parseInt(words[5]);
-            slow_queries=Integer.parseInt(words[8]);
-            opens=Integer.parseInt(words[10]);
-            flush_tables=Integer.parseInt(words[13]);
-            open_tables=Integer.parseInt(words[16]);
-            queries_per_second=Float.parseFloat(words[21]);
-        } else {
-            numUsers=questions=slow_queries=opens=flush_tables=open_tables=0;
-            queries_per_second=0;
-        }
-    }
+			// Parse out the number of users
+			String[] words = StringUtility.splitString(line);
+			numUsers=Integer.parseInt(words[3]);
+			questions=Integer.parseInt(words[5]);
+			slow_queries=Integer.parseInt(words[8]);
+			opens=Integer.parseInt(words[10]);
+			flush_tables=Integer.parseInt(words[13]);
+			open_tables=Integer.parseInt(words[16]);
+			queries_per_second=Float.parseFloat(words[21]);
+		} else {
+			numUsers=questions=slow_queries=opens=flush_tables=open_tables=0;
+			queries_per_second=0;
+		}
+	}
 
-    public static void main(String[] args) {
-        try {
-            System.err.println(new MySQLAdmin());
-            System.exit(0);
-        } catch(IOException err) {
-            ErrorPrinter.printStackTraces(err);
-            System.exit(1);
-        }
-    }
+	public static void main(String[] args) {
+		try {
+			System.err.println(new MySQLAdmin());
+			System.exit(0);
+		} catch(IOException err) {
+			ErrorPrinter.printStackTraces(err);
+			System.exit(1);
+		}
+	}
 
 	@Override
-    public String toString() {
-        return
-            super.toString()
-            + "&questions="+questions
-            + "&slow_queries="+slow_queries
-            + "&opens="+opens
-            + "&flush_tables="+flush_tables
-            + "&open_tables="+open_tables
-            + "&queries_per_second="+queries_per_second
-        ;
-    }
+	public String toString() {
+		return
+			super.toString()
+			+ "&questions="+questions
+			+ "&slow_queries="+slow_queries
+			+ "&opens="+opens
+			+ "&flush_tables="+flush_tables
+			+ "&open_tables="+open_tables
+			+ "&queries_per_second="+queries_per_second
+		;
+	}
 }

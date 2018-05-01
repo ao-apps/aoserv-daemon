@@ -1,5 +1,5 @@
 /*
- * Copyright 2013, 2014, 2017 by AO Industries, Inc.,
+ * Copyright 2013, 2014, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -609,8 +609,6 @@ final public class NetworkMonitor {
 							sleep(controllingNullRoutes ? 1000 : 10000);
 						} catch (InterruptedException err) {
 							LogFactory.getLogger(NetworkMonitor.class).log(Level.WARNING, null, err);
-							// Restore the interrupted status
-							Thread.currentThread().interrupt();
 						}
 					}
 				}
