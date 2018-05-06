@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013, 2014, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2014, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -37,11 +37,6 @@ final public class ServerManager {
 	public static void controlProcess(String process, String command) throws IOException, SQLException {
 		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
-		if(
-			osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-			&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
-			&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 		Object lock;
 		synchronized(processLocks) {
@@ -49,10 +44,20 @@ final public class ServerManager {
 			if(lock==null) processLocks.put(process, lock=new Object());
 		}
 		synchronized(lock) {
-			AOServDaemon.exec(
-				"/etc/rc.d/init.d/" + process,
-				command
-			);
+			if(
+				osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
+				|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
+				|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			) {
+				AOServDaemon.exec(
+					"/etc/rc.d/init.d/" + process,
+					command
+				);
+			} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+				AOServDaemon.exec("/usr/bin/systemctl", command, process + ".service");
+			} else {
+				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+			}
 		}
 	}
 
