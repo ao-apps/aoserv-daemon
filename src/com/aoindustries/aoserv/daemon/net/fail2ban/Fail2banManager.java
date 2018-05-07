@@ -20,6 +20,7 @@ import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.InetAddress;
+import com.aoindustries.net.Port;
 import com.aoindustries.util.AoCollections;
 import com.aoindustries.util.StringUtility;
 import java.io.ByteArrayOutputStream;
@@ -151,9 +152,13 @@ final public class Fail2banManager extends BuilderThread {
 							if(!ip.isLoopback()) {
 								for(Jail jail : jails) {
 									if(jail.getProtocols().contains(nb.getAppProtocol().getProtocol())) {
-										SortedSet<Integer> ports = jailPorts.get(jail);
-										if(ports == null) jailPorts.put(jail, ports = new TreeSet<>());
-										ports.add(nb.getPort().getPort());
+										Port port = nb.getPort();
+										// TCP only
+										if(com.aoindustries.net.Protocol.TCP.equals(port.getProtocol())) {
+											SortedSet<Integer> ports = jailPorts.get(jail);
+											if(ports == null) jailPorts.put(jail, ports = new TreeSet<>());
+											ports.add(port.getPort());
+										}
 									}
 								}
 							}
