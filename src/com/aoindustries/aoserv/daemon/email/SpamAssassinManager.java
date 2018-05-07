@@ -935,12 +935,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 									}
 								}
 							} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-								try {
-									AOServDaemon.exec("/usr/bin/systemctl", "is-enabled", "--quiet", "spamassassin.service");
-								} catch(IOException e) {
-									// Non-zero response indicates not enabled
-									AOServDaemon.exec("/usr/bin/systemctl", "enable", "spamassassin.service");
-								}
+								AOServDaemon.exec("/usr/bin/systemctl", "enable", "spamassassin.service");
 								if(restartRequired[0]) {
 									AOServDaemon.exec("/usr/bin/systemctl", "restart", "spamassassin.service");
 								} else {

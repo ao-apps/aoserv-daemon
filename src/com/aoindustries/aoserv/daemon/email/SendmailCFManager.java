@@ -1321,12 +1321,7 @@ final public class SendmailCFManager extends BuilderThread {
 									}
 								}
 							} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-								try {
-									AOServDaemon.exec("/usr/bin/systemctl", "is-enabled", "--quiet", "sendmail.service");
-								} catch(IOException e) {
-									// Non-zero response indicates not enabled
-									AOServDaemon.exec("/usr/bin/systemctl", "enable", "sendmail.service");
-								}
+								AOServDaemon.exec("/usr/bin/systemctl", "enable", "sendmail.service");
 								if(needsReload[0]) {
 									AOServDaemon.exec("/usr/bin/systemctl", "reload-or-restart", "sendmail.service");
 								} else {

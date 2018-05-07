@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 by AO Industries, Inc.,
+ * Copyright 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -100,12 +100,7 @@ final public class SaslauthdManager extends BuilderThread {
 						) {
 							// Enable when sendmail or cyrus-imapd expected to be running
 							logger.fine("Enabling " + SERVICE);
-							try {
-								AOServDaemon.exec(SYSTEMCTL, "is-enabled", "--quiet", SERVICE);
-							} catch(IOException e) {
-								// Non-zero response indicates not enabled
-								AOServDaemon.exec(SYSTEMCTL, "enable", SERVICE);
-							}
+							AOServDaemon.exec(SYSTEMCTL, "enable", SERVICE);
 							// Reload/start when changed
 							if(changed) {
 								logger.fine("Reloading or restarting " + SERVICE);

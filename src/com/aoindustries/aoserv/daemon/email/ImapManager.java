@@ -888,12 +888,7 @@ final public class ImapManager extends BuilderThread {
 									}
 								}
 							} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-								try {
-									AOServDaemon.exec("/usr/bin/systemctl", "is-enabled", "--quiet", "cyrus-imapd.service");
-								} catch(IOException e) {
-									// Non-zero response indicates not enabled
-									AOServDaemon.exec("/usr/bin/systemctl", "enable", "cyrus-imapd.service");
-								}
+								AOServDaemon.exec("/usr/bin/systemctl", "enable", "cyrus-imapd.service");
 								if(needsReload[0]) {
 									AOServDaemon.exec("/usr/bin/systemctl", "reload-or-restart", "cyrus-imapd.service");
 								} else {
