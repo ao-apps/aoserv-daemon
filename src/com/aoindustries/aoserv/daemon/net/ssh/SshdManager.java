@@ -15,6 +15,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
+import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.AddressFamily;
@@ -28,7 +29,9 @@ import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -354,183 +357,181 @@ final public class SshdManager extends BuilderThread {
 			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 
-			int uid_min = thisAoServer.getUidMin().getId();
-			int gid_min = thisAoServer.getGidMin().getId();
-
-
 			AOServConnector conn = AOServDaemon.getConnector();
 			synchronized(rebuildLock) {
-				// Find all the ports that should be bound to
-				List<NetBind> nbs = new ArrayList<>();
-				boolean hasSpecificAddress = false;
-				{
-					Protocol sshProtocol = conn.getProtocols().get(Protocol.SSH);
-					if(sshProtocol == null) throw new SQLException("Protocol not found: " + Protocol.SSH);
-					for(NetBind nb : thisAoServer.getServer().getNetBinds(sshProtocol)) {
-						if(nb.getNetTcpRedirect() == null) {
-							com.aoindustries.net.Protocol netProtocol = nb.getPort().getProtocol();
-							if(netProtocol != com.aoindustries.net.Protocol.TCP) {
-								throw new IOException("Unsupported protocol for SSH: " + netProtocol);
+				Set<UnixFile> restorecon = new LinkedHashSet<>();
+				try {
+					// Find all the ports that should be bound to
+					List<NetBind> nbs = new ArrayList<>();
+					boolean hasSpecificAddress = false;
+					{
+						Protocol sshProtocol = conn.getProtocols().get(Protocol.SSH);
+						if(sshProtocol == null) throw new SQLException("Protocol not found: " + Protocol.SSH);
+						for(NetBind nb : thisAoServer.getServer().getNetBinds(sshProtocol)) {
+							if(nb.getNetTcpRedirect() == null) {
+								com.aoindustries.net.Protocol netProtocol = nb.getPort().getProtocol();
+								if(netProtocol != com.aoindustries.net.Protocol.TCP) {
+									throw new IOException("Unsupported protocol for SSH: " + netProtocol);
+								}
+								nbs.add(nb);
+								InetAddress ia = nb.getIPAddress().getInetAddress();
+								if(!ia.isLoopback() && !ia.isUnspecified()) hasSpecificAddress = true;
 							}
-							nbs.add(nb);
-							InetAddress ia = nb.getIPAddress().getInetAddress();
-							if(!ia.isLoopback() && !ia.isUnspecified()) hasSpecificAddress = true;
 						}
 					}
-				}
-				//if(nbs.size() > MAX_LISTEN_SOCKS) {
-				//	throw new IOException("Refusing to build sshd_config with more than MAX_LISTEN_SOCKS(" + MAX_LISTEN_SOCKS + ") ListenAddress directives: " + nbs.size());
-				//}
-				// Restart only when something changed
-				boolean[] needsRestart = {false};
-				// Install openssh-server package if missing (when there is at least one port)
-				if(!nbs.isEmpty()) {
-					PackageManager.installPackage(
-						PackageManager.PackageName.OPENSSH_SERVER,
-						() -> {
-							// Enable service after package installation
-							try {
-								if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-									AOServDaemon.exec("/sbin/chkconfig", "sshd", "on");
-								} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-									AOServDaemon.exec("/usr/bin/systemctl", "enable", "sshd.service");
-								} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-							} catch(IOException e) {
-								throw new WrappedException(e);
+					//if(nbs.size() > MAX_LISTEN_SOCKS) {
+					//	throw new IOException("Refusing to build sshd_config with more than MAX_LISTEN_SOCKS(" + MAX_LISTEN_SOCKS + ") ListenAddress directives: " + nbs.size());
+					//}
+					// Restart only when something changed
+					boolean[] needsRestart = {false};
+					// Install openssh-server package if missing (when there is at least one port)
+					if(!nbs.isEmpty()) {
+						PackageManager.installPackage(
+							PackageManager.PackageName.OPENSSH_SERVER,
+							() -> {
+								// Enable service after package installation
+								try {
+									if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+										AOServDaemon.exec("/sbin/chkconfig", "sshd", "on");
+									} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+										AOServDaemon.exec("/usr/bin/systemctl", "enable", "sshd.service");
+									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+								} catch(IOException e) {
+									throw new WrappedException(e);
+								}
+								needsRestart[0] = true;
 							}
+						);
+						// Install sshd-after-network-online package on CentOS 7 when needed
+						if(hasSpecificAddress && osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+							PackageManager.installPackage(PackageManager.PackageName.SSHD_AFTER_NETWORK_ONLINE);
+						}
+					}
+					boolean isSshInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.OPENSSH_SERVER) != null;
+					if(!nbs.isEmpty() && !isSshInstalled) throw new AssertionError(PackageManager.PackageName.OPENSSH_SERVER + " not installed");
+					// Write/rewrite config when ssh server installed
+					if(isSshInstalled) {
+						// If there are not SSH ports, this will still build the config if the SSH daemon is installed.
+						// In this case, the SSH daemon will be configured with no ListenAddress, which will default to
+						// listening on all IPs should sshd be re-enable by the administrator.
+
+						// Build the new config file to RAM
+						byte[] newConfig;
+						{
+							ByteArrayOutputStream bout = new ByteArrayOutputStream();
+							try (ChainWriter out = new ChainWriter(bout)) {
+								if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+									writeConfigFileCentOS5(thisAoServer, nbs, out);
+								} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+									writeConfigFileCentOS7(thisAoServer, nbs, out);
+								} else {
+									throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+								}
+							}
+							newConfig = bout.toByteArray();
+						}
+
+						// Write the new file only when file changed
+						if(
+							DaemonFileUtils.atomicWrite(
+								new UnixFile("/etc/ssh/sshd_config"),
+								newConfig,
+								0600,
+								UnixFile.ROOT_UID,
+								UnixFile.ROOT_GID,
+								null,
+								restorecon
+							)
+						) {
 							needsRestart[0] = true;
 						}
-					);
-					// Install sshd-after-network-online package on CentOS 7 when needed
-					if(hasSpecificAddress && osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-						PackageManager.installPackage(PackageManager.PackageName.SSHD_AFTER_NETWORK_ONLINE);
 					}
-				}
-				boolean isSshInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.OPENSSH_SERVER) != null;
-				if(!nbs.isEmpty() && !isSshInstalled) throw new AssertionError(PackageManager.PackageName.OPENSSH_SERVER + " not installed");
-				// Write/rewrite config when ssh server installed
-				if(isSshInstalled) {
-					// If there are not SSH ports, this will still build the config if the SSH daemon is installed.
-					// In this case, the SSH daemon will be configured with no ListenAddress, which will default to
-					// listening on all IPs should sshd be re-enable by the administrator.
 
-					// Build the new config file to RAM
-					byte[] newConfig;
-					{
-						ByteArrayOutputStream bout = new ByteArrayOutputStream();
-						try (ChainWriter out = new ChainWriter(bout)) {
+					// SELinux before next steps
+					DaemonFileUtils.restorecon(restorecon);
+					restorecon.clear();
+
+					// Manage SELinux:
+					if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+						// SELinux left in Permissive state, not configured here
+					} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+						// Note: SELinux configuration exists even without the openssh-server package installed.
+						//       SELinux policies are provided independent of specific packages.
+						//       Thus, we manage this even when the server not installed.
+
+						// See https://bugzilla.redhat.com/show_bug.cgi?id=653579
+						// Install /usr/bin/semanage if missing
+						PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
+						// Find the set of distinct ports used by SSH server
+						SortedSet<Port> sshPorts = new TreeSet<>();
+						for(NetBind nb : nbs) {
+							sshPorts.add(nb.getPort());
+						}
+						// Reconfigure SELinux ports
+						if(SEManagePort.configure(sshPorts, SELINUX_TYPE)) {
+							needsRestart[0] = true;
+						}
+					} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+
+					// Stop / restart after SELinux changes so ports may be opened
+					if(isSshInstalled) {
+						if(nbs.isEmpty()) {
+							// Disable and shutdown service since there are no net_binds
+							// openssh-server RPM is left installed
 							if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-								writeConfigFileCentOS5(thisAoServer, nbs, out);
+								AOServDaemon.exec("/sbin/chkconfig", "sshd", "off");
+								AOServDaemon.exec("/etc/rc.d/init.d/sshd", "stop");
 							} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-								writeConfigFileCentOS7(thisAoServer, nbs, out);
-							} else {
-								throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-							}
-						}
-						newConfig = bout.toByteArray();
-					}
-
-					// Write the new file only when file changed
-					UnixFile configFile = new UnixFile("/etc/ssh/sshd_config");
-					if(
-						!configFile.getStat().exists()
-						|| !configFile.contentEquals(newConfig)
-					) {
-						// Write to temp file
-						UnixFile newConfigFile = new UnixFile("/etc/ssh/sshd_config.new");
-						try (OutputStream newConfigOut = newConfigFile.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true, uid_min, gid_min)) {
-							newConfigOut.write(newConfig);
-						}
-
-						// Atomically move into place
-						newConfigFile.renameTo(configFile);
-
-						needsRestart[0] = true;
-					}
-				}
-				// Manage SELinux:
-				if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-					// SELinux left in Permissive state, not configured here
-				} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-					// Note: SELinux configuration exists even without the openssh-server package installed.
-					//       SELinux policies are provided independent of specific packages.
-					//       Thus, we manage this even when the server not installed.
-
-					// See https://bugzilla.redhat.com/show_bug.cgi?id=653579
-					// Install /usr/bin/semanage if missing
-					PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
-					// Find the set of distinct ports used by SSH server
-					SortedSet<Port> sshPorts = new TreeSet<>();
-					for(NetBind nb : nbs) {
-						sshPorts.add(nb.getPort());
-					}
-					// Reconfigure SELinux ports
-					if(SEManagePort.configure(sshPorts, SELINUX_TYPE)) {
-						needsRestart[0] = true;
-					}
-				} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-
-				// Stop / restart after SELinux changes so ports may be opened
-				if(isSshInstalled) {
-					if(nbs.isEmpty()) {
-						// Disable and shutdown service since there are no net_binds
-						// openssh-server RPM is left installed
-						if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-							AOServDaemon.exec("/sbin/chkconfig", "sshd", "off");
-							AOServDaemon.exec("/etc/rc.d/init.d/sshd", "stop");
-						} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-							AOServDaemon.exec("/usr/bin/systemctl", "disable", "sshd.service");
-							AOServDaemon.exec("/usr/bin/systemctl", "stop", "sshd.service");
-						} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-					} else if(needsRestart[0]) {
-						if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-							// Try reload config first
-							try {
-								AOServDaemon.exec(
-									"/etc/rc.d/init.d/sshd",
-									"reload"
-								);
-							} catch(IOException err) {
-								LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, err);
-
-								// Try more forceful stop/start
+								AOServDaemon.exec("/usr/bin/systemctl", "disable", "sshd.service");
+								AOServDaemon.exec("/usr/bin/systemctl", "stop", "sshd.service");
+							} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+						} else if(needsRestart[0]) {
+							if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+								// Try reload config first
 								try {
 									AOServDaemon.exec(
 										"/etc/rc.d/init.d/sshd",
-										"stop"
+										"reload"
 									);
-								} catch(IOException err2) {
-									LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, err2);
+								} catch(IOException err) {
+									LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, err);
+
+									// Try more forceful stop/start
+									try {
+										AOServDaemon.exec(
+											"/etc/rc.d/init.d/sshd",
+											"stop"
+										);
+									} catch(IOException err2) {
+										LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, err2);
+									}
+									try {
+										Thread.sleep(1000);
+									} catch(InterruptedException err2) {
+										LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err2);
+									}
+									AOServDaemon.exec(
+										"/etc/rc.d/init.d/sshd",
+										"start"
+									);
 								}
-								try {
-									Thread.sleep(1000);
-								} catch(InterruptedException err2) {
-									LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err2);
-								}
-								AOServDaemon.exec(
-									"/etc/rc.d/init.d/sshd",
-									"start"
-								);
-							}
-						} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-							try {
-								AOServDaemon.exec("/usr/bin/systemctl", "is-enabled", "--quiet", "sshd.service");
-							} catch(IOException e) {
-								// Non-zero response indicates not enabled
+							} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 								AOServDaemon.exec("/usr/bin/systemctl", "enable", "sshd.service");
-							}
-							// TODO: Should this be reload-or-restart?
-							AOServDaemon.exec("/usr/bin/systemctl", "restart", "sshd.service");
-						} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+								// TODO: Should this be reload-or-restart?
+								AOServDaemon.exec("/usr/bin/systemctl", "restart", "sshd.service");
+							} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+						}
 					}
-				}
-				// Uninstall sshd-after-network-online package on CentOS 7 when not needed
-				if(
-					!hasSpecificAddress
-					&& osvId == OperatingSystemVersion.CENTOS_7_X86_64
-					&& AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
-				) {
-					PackageManager.removePackage(PackageManager.PackageName.SSHD_AFTER_NETWORK_ONLINE);
+					// Uninstall sshd-after-network-online package on CentOS 7 when not needed
+					if(
+						!hasSpecificAddress
+						&& osvId == OperatingSystemVersion.CENTOS_7_X86_64
+						&& AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
+					) {
+						PackageManager.removePackage(PackageManager.PackageName.SSHD_AFTER_NETWORK_ONLINE);
+					}
+				} finally {
+					DaemonFileUtils.restorecon(restorecon);
 				}
 			}
 			return true;
