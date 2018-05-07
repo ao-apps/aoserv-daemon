@@ -60,6 +60,8 @@ public class PackageManager {
 		CYRUS_IMAPD_AFTER_NETWORK_ONLINE("cyrus-imapd-after-network-online"),
 		CYRUS_SASL("cyrus-sasl"),
 		CYRUS_SASL_PLAIN("cyrus-sasl-plain"),
+		FAIL2BAN_FIREWALLD("fail2ban-firewalld"),
+		FAIL2BAN_SERVER("fail2ban-server"),
 		FIREWALLD("firewalld"),
 		GZIP("gzip"),
 		HDDTEMP("hddtemp"),

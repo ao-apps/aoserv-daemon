@@ -41,6 +41,7 @@ import com.aoindustries.aoserv.daemon.mysql.MySQLUserManager;
 import com.aoindustries.aoserv.daemon.net.DhcpManager;
 import com.aoindustries.aoserv.daemon.net.NetDeviceManager;
 import com.aoindustries.aoserv.daemon.net.NullRouteManager;
+import com.aoindustries.aoserv.daemon.net.fail2ban.Fail2banManager;
 import com.aoindustries.aoserv.daemon.net.firewalld.FirewalldManager;
 import com.aoindustries.aoserv.daemon.net.ssh.SshdManager;
 import com.aoindustries.aoserv.daemon.net.xinetd.XinetdManager;
@@ -228,6 +229,8 @@ final public class AOServDaemon {
 				DhcpManager.start();
 				NetDeviceManager.start();
 				NullRouteManager.start();
+				// net.fail2ban
+				Fail2banManager.start();
 				// net.firewalld
 				FirewalldManager.start();
 				// net.ssh
