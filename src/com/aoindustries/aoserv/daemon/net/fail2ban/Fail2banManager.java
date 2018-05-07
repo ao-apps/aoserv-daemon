@@ -7,6 +7,7 @@ package com.aoindustries.aoserv.daemon.net.fail2ban;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.FirewalldZone;
 import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Protocol;
@@ -138,6 +139,8 @@ final public class Fail2banManager extends BuilderThread {
 				Set<UnixFile> restorecon = new LinkedHashSet<>();
 				try {
 					if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+						boolean firewalldInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.FIREWALLD) != null;
+
 						Jail[] jails = Jail.values();
 						if(logger.isLoggable(Level.FINE)) logger.fine("jails: " + Arrays.asList(jails));
 
@@ -151,9 +154,25 @@ final public class Fail2banManager extends BuilderThread {
 							if(!ip.isLoopback()) {
 								for(Jail jail : jails) {
 									if(jail.getProtocols().contains(nb.getAppProtocol().getProtocol())) {
-										SortedSet<Integer> ports = jailPorts.get(jail);
-										if(ports == null) jailPorts.put(jail, ports = new TreeSet<>());
-										ports.add(nb.getPort().getPort());
+										// Must be part of at least one fail2ban firewalld zone
+										boolean fail2ban;
+										if(firewalldInstalled) {
+											fail2ban = false;
+											for(FirewalldZone zone : nb.getFirewalldZones()) {
+												if(zone.getFail2ban()) {
+													fail2ban = true;
+													break;
+												}
+											}
+										} else {
+											// Firewalld is not installed, fail2ban all ports
+											fail2ban = true;
+										}
+										if(fail2ban) {
+											SortedSet<Integer> ports = jailPorts.get(jail);
+											if(ports == null) jailPorts.put(jail, ports = new TreeSet<>());
+											ports.add(nb.getPort().getPort());
+										}
 									}
 								}
 							}
@@ -163,7 +182,6 @@ final public class Fail2banManager extends BuilderThread {
 						boolean[] updated = {false};
 
 						// Install any missing packages
-						boolean firewalldInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.FIREWALLD) != null;
 						boolean fail2banInstalled;
 						if(jailPorts.isEmpty()) {
 							fail2banInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.FAIL2BAN_SERVER) != null;
