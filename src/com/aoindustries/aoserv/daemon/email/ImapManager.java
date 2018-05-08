@@ -445,8 +445,8 @@ final public class ImapManager extends BuilderThread {
 										if(cyrusRcFile.getStat().exists()) throw new IOException(cyrusRcFile.getPath()+" still exists after chkconfig off");
 									}
 								} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-									AOServDaemon.exec("/usr/bin/systemctl", "stop", "cyrus-imapd.service");
-									AOServDaemon.exec("/usr/bin/systemctl", "disable", "cyrus-imapd.service");
+									AOServDaemon.exec("/usr/bin/systemctl", "stop", "cyrus-imapd.service", "cyrus-imapd-set-deliver-permissions.service");
+									AOServDaemon.exec("/usr/bin/systemctl", "disable", "cyrus-imapd.service", "cyrus-imapd-set-deliver-permissions.service");
 								} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 								// Delete config files if exist
@@ -888,11 +888,11 @@ final public class ImapManager extends BuilderThread {
 									}
 								}
 							} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-								AOServDaemon.exec("/usr/bin/systemctl", "enable", "cyrus-imapd.service");
+								AOServDaemon.exec("/usr/bin/systemctl", "enable", "cyrus-imapd-set-deliver-permissions.service", "cyrus-imapd.service");
 								if(needsReload[0]) {
-									AOServDaemon.exec("/usr/bin/systemctl", "reload-or-restart", "cyrus-imapd.service");
+									AOServDaemon.exec("/usr/bin/systemctl", "reload-or-restart", "cyrus-imapd-set-deliver-permissions.service", "cyrus-imapd.service");
 								} else {
-									AOServDaemon.exec("/usr/bin/systemctl", "start", "cyrus-imapd.service");
+									AOServDaemon.exec("/usr/bin/systemctl", "start", "cyrus-imapd-set-deliver-permissions.service", "cyrus-imapd.service");
 								}
 								// Install cyrus-imapd-after-network-online package on CentOS 7 when needed
 								if(hasSpecificAddress) {
