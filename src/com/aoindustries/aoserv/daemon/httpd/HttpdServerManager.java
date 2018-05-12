@@ -2878,6 +2878,13 @@ public class HttpdServerManager {
 						httpdPorts.add(hb.getNetBind().getPort());
 					}
 				}
+				// Add any other local HTTP server (such as proxied user-space applications)
+				for(NetBind nb : aoServer.getServer().getNetBinds()) {
+					String protocol = nb.getAppProtocol().getProtocol();
+					if(Protocol.HTTP.equals(protocol) || Protocol.HTTPS.equals(protocol)) {
+						httpdPorts.add(nb.getPort());
+					}
+				}
 				// Reconfigure SELinux ports
 				if(SEManagePort.configure(httpdPorts, SELINUX_TYPE)) {
 					serversNeedingReloaded.addAll(hss);
