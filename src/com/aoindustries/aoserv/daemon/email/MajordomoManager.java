@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -51,10 +51,7 @@ final public class MajordomoManager extends BuilderThread {
 			AOServer thisAoServer = AOServDaemon.getThisAOServer();
 			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
-			if(
-				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+			if(osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 			int uid_min = thisAoServer.getUidMin().getId();
 			int gid_min = thisAoServer.getGidMin().getId();
@@ -113,9 +110,7 @@ final public class MajordomoManager extends BuilderThread {
 					) {
 						// Add a new install
 						String sharedPath;
-						if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-							sharedPath="../../../../usr/majordomo/"+version;
-						} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+						if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 							sharedPath="../../../../opt/majordomo-"+version;
 						} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
@@ -473,9 +468,7 @@ final public class MajordomoManager extends BuilderThread {
 
 						// Compile, install, and remove the wrapper
 						String source;
-						if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-							source = "/usr/aoserv/bin/majordomo-wrapper-"+version+".c";
-						} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+						if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 							source = "/opt/majordomo-"+version+"/src/majordomo-wrapper.c";
 						} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 						AOServDaemon.exec(
@@ -996,10 +989,7 @@ final public class MajordomoManager extends BuilderThread {
 			) {
 				System.out.print("Starting MajordomoManager: ");
 				// Must be a supported operating system
-				if(
-					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-				) {
+				if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					majordomoManager = new MajordomoManager();
 					conn.getMajordomoLists().addTableListener(majordomoManager, 0);

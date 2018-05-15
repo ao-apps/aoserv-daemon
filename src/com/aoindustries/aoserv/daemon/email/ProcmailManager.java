@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -75,10 +75,7 @@ public final class ProcmailManager extends BuilderThread {
 
 	private static ProcmailManager procmailManager;
 
-	private static final UnixFile
-		cyrusDeliverCentOs = new UnixFile("/usr/lib/cyrus-imapd/deliver"),
-		cyrusDeliverRedHat = new UnixFile("/usr/lib64/cyrus-imapd/deliver")
-	;
+	private static final UnixFile cyrusDeliver = new UnixFile("/usr/lib/cyrus-imapd/deliver");
 
 	/**
 	 * The minimum message size that will not be passed through spamc, since
@@ -99,9 +96,7 @@ public final class ProcmailManager extends BuilderThread {
 			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
-				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
@@ -115,11 +110,7 @@ public final class ProcmailManager extends BuilderThread {
 
 						String catPath, bashPath, sedPath;
 						// Capture return-path header if needed
-						if(
-							osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-							|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-							|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-						) {
+						if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 							catPath = "/bin/cat";
 							bashPath = "/bin/bash";
 							sedPath = "/bin/sed";
@@ -157,22 +148,13 @@ public final class ProcmailManager extends BuilderThread {
 							// Note: CentOS 7 permissions now set at service start:
 							// || osvId == OperatingSystemVersion.CENTOS_7_X86_64
 						) {
-							Stat deliverStat = cyrusDeliverCentOs.getStat();
+							Stat deliverStat = cyrusDeliver.getStat();
 							if(deliverStat.getUid() != UnixFile.ROOT_UID || deliverStat.getGid() != mailGid) {
-								cyrusDeliverCentOs.chown(UnixFile.ROOT_UID, mailGid);
-								deliverStat = cyrusDeliverCentOs.getStat();
+								cyrusDeliver.chown(UnixFile.ROOT_UID, mailGid);
+								deliverStat = cyrusDeliver.getStat();
 							}
 							if(deliverStat.getMode() != 02755) {
-								cyrusDeliverCentOs.setMode(02755);
-							}
-						} else if(osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-							Stat deliverStat = cyrusDeliverRedHat.getStat();
-							if(deliverStat.getUid() != UnixFile.ROOT_UID || deliverStat.getGid() != mailGid) {
-								cyrusDeliverRedHat.chown(UnixFile.ROOT_UID, mailGid);
-								deliverStat = cyrusDeliverRedHat.getStat();
-							}
-							if(deliverStat.getMode() != 02755) {
-								cyrusDeliverRedHat.setMode(02755);
+								cyrusDeliver.setMode(02755);
 							}
 						}
 
@@ -407,82 +389,38 @@ public final class ProcmailManager extends BuilderThread {
 
 										if(lsa.useInbox()) {
 											// Capture return-path header if needed
-											if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-												// Nothing special needed
-											} else if(
-												osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-												|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-												|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
-											) {
-												// Make sure sed installed
-												PackageManager.installPackage(PackageManager.PackageName.SED);
-												out.print("\n"
-														+ "# Capture the current Return-path to pass to deliver\n"
-														+ ":0 h\n"
-														+ "RETURN_PATH=| ").print(sedPath).print(" -n 's/^Return-Path: <\\(.*\\)>.*$/\\1/p' | /usr/bin/head -n 1\n");
-											} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+											// Make sure sed installed
+											PackageManager.installPackage(PackageManager.PackageName.SED);
+											out.print("\n"
+													+ "# Capture the current Return-path to pass to deliver\n"
+													+ ":0 h\n"
+													+ "RETURN_PATH=| ").print(sedPath).print(" -n 's/^Return-Path: <\\(.*\\)>.*$/\\1/p' | /usr/bin/head -n 1\n");
 
 											// Only move to Junk folder when the inbox is enabled and in IMAP mode
 											if(spamAssassinMode.equals(EmailSpamAssassinIntegrationMode.IMAP)) {
 												out.print("\n"
-														+ "# Place any flagged spam in the Junk folder\n");
-												if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-													out.print(":0:\n"
-															+ "* ^X-Spam-Status: Yes\n"
-															+ "Mail/Junk\n");
-												} else if(
-													osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-													|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
-												) {
-													out.print(":0\n"
-															+ "* ^X-Spam-Status: Yes\n"
-															+ "{\n"
-															+ "  :0 w\n"
-															+ "  | /usr/bin/tail -n +2 | ").print(cyrusDeliverCentOs.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n"
-															+ "\n"
-															+ "  # Delivery failed, return EX_TEMPFAIL to have sendmail retry delivery\n"
-															+ "  EXITCODE=75\n"
-															+ "  HOST\n"
-															+ "}\n");
-												} else if(osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-													out.print(":0\n"
-															+ "* ^X-Spam-Status: Yes\n"
-															+ "{\n"
-															+ "  :0 w\n"
-															+ "  | /usr/bin/tail -n +2 | ").print(cyrusDeliverRedHat.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n"
-															+ "\n"
-															+ "  # Delivery failed, return EX_TEMPFAIL to have sendmail retry delivery\n"
-															+ "  EXITCODE=75\n"
-															+ "  HOST\n"
-															+ "}\n");
-												} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+														+ "# Place any flagged spam in the Junk folder\n"
+														+ ":0\n"
+														+ "* ^X-Spam-Status: Yes\n"
+														+ "{\n"
+														+ "  :0 w\n"
+														+ "  | /usr/bin/tail -n +2 | ").print(cyrusDeliver.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print("/Junk@").print(domain).print("\"\n"
+														+ "\n"
+														+ "  # Delivery failed, return EX_TEMPFAIL to have sendmail retry delivery\n"
+														+ "  EXITCODE=75\n"
+														+ "  HOST\n"
+														+ "}\n");
 											}
 
 											// Deliver to INBOX
-											if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-												// Nothing special needed
-											} else if(
-												osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-												|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
-											) {
-												out.print("\n"
-														+ ":0 w\n"
-														//+ "| /usr/bin/formail -I\"From \" | /usr/lib/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
-														+ "| /usr/bin/tail -n +2 | ").print(cyrusDeliverCentOs.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n"
-														+ "\n"
-														+ "# Delivery failed, return EX_TEMPFAIL to have sendmail retry delivery\n"
-														+ "EXITCODE=75\n"
-														+ "HOST\n");
-											} else if(osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-												out.print("\n"
-														+ ":0 w\n"
-														//+ "| /usr/bin/formail -I\"From \" | /usr/lib64/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
-														+ "| /usr/bin/tail -n +2 | ").print(cyrusDeliverRedHat.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n"
-														+ "\n"
-														+ "# Delivery failed, return EX_TEMPFAIL to have sendmail retry delivery\n"
-														+ "EXITCODE=75\n"
-														+ "HOST\n");
-											} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+											out.print("\n"
+													+ ":0 w\n"
+													//+ "| /usr/bin/formail -I\"From \" | /usr/lib/cyrus-imapd/deliver -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n");
+													+ "| /usr/bin/tail -n +2 | ").print(cyrusDeliver.getPath()).print(" -a \"").print(user).print('@').print(domain).print("\" -r \"$RETURN_PATH\" \"").print(user).print('@').print(domain).print("\"\n"
+													+ "\n"
+													+ "# Delivery failed, return EX_TEMPFAIL to have sendmail retry delivery\n"
+													+ "EXITCODE=75\n"
+													+ "HOST\n");
 										} else {
 											// Discard the email if configured to not use the inbox or Junk folders
 											out.print("\n"
@@ -590,9 +528,7 @@ public final class ProcmailManager extends BuilderThread {
 				System.out.print("Starting ProcmailManager: ");
 				// Must be a supported operating system
 				if(
-					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();

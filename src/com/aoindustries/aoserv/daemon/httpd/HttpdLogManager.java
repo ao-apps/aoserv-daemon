@@ -43,7 +43,6 @@ class HttpdLogManager {
 	/**
 	 * The directory that contains the log rotation scripts.
 	 */
-	private static final String LOG_ROTATION_DIR_REDHAT = HttpdServerManager.CONF_DIRECTORY + "/logrotate.d";
 	private static final String LOG_ROTATION_DIR_CENTOS_5 = HttpdServerManager.CONF_DIRECTORY + "/logrotate.sites";
 	private static final String SERVER_LOG_ROTATION_DIR_CENTOS_5 = HttpdServerManager.CONF_DIRECTORY + "/logrotate.servers";
 
@@ -230,10 +229,6 @@ class HttpdLogManager {
 		final String siteLogRotationDir;
 		final String serverLogRotationDir;
 		switch(osConfig) {
-			case REDHAT_ES_4_X86_64 :
-				siteLogRotationDir = LOG_ROTATION_DIR_REDHAT;
-				serverLogRotationDir = null;
-				break;
 			case CENTOS_5_I686_AND_X86_64 :
 				siteLogRotationDir = LOG_ROTATION_DIR_CENTOS_5;
 				serverLogRotationDir = SERVER_LOG_ROTATION_DIR_CENTOS_5;

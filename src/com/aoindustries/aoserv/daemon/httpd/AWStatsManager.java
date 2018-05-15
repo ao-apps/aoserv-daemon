@@ -29,7 +29,6 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.CompressedDataOutputStream;
-import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.util.BufferManager;
@@ -41,7 +40,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
-import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -685,9 +683,7 @@ final public class AWStatsManager extends BuilderThread {
 				System.out.print("Starting AWStatsManager: ");
 				// Must be a supported operating system
 				if(
-					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
@@ -720,9 +716,7 @@ final public class AWStatsManager extends BuilderThread {
 		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
-			osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-			&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
-			&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
@@ -750,12 +744,7 @@ final public class AWStatsManager extends BuilderThread {
 				)
 			) {
 				String runascgi;
-				if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-					runascgi = "/var/lib/awstats/hosts/" + siteName + "/runascgi.sh";
-				} else if(
-					osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-				) {
+				if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 					runascgi = "/var/opt/awstats-6/hosts/" + siteName + "/runascgi.sh";
 				} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 					runascgi = "/var/opt/awstats/hosts/" + siteName + "/runascgi.sh";

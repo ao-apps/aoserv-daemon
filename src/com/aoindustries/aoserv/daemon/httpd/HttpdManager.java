@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -106,8 +106,7 @@ final public class HttpdManager extends BuilderThread {
 				System.out.print("Starting HttpdManager: ");
 				// Must be a supported operating system
 				if(
-					osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 				) {
 					AOServConnector connector = AOServDaemon.getConnector();

@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -49,9 +49,7 @@ public final class EmailDomainManager extends BuilderThread {
 			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
-				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
@@ -121,12 +119,7 @@ public final class EmailDomainManager extends BuilderThread {
 		synchronized(reloadLock) {
 			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
-			if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-				AOServDaemon.exec("/usr/bin/killall", "-HUP", "sendmail.sendmail");
-			} else if(
-				osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-				|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-			) {
+			if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 				PackageManager.installPackage(PackageManager.PackageName.PSMISC);
 				AOServDaemon.exec("/usr/bin/killall", "-HUP", "sendmail");
 			} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
@@ -165,9 +158,7 @@ public final class EmailDomainManager extends BuilderThread {
 				System.out.print("Starting EmailDomainManager: ");
 				// Must be a supported operating system
 				if(
-					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();

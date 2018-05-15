@@ -144,9 +144,7 @@ final public class SaslauthdManager extends BuilderThread {
 
 		synchronized(System.out) {
 			if(
-				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 				&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
 				&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
 				&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64

@@ -155,19 +155,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 					lastStartTime = System.currentTimeMillis();
 
 					// Process incoming messages
-					AOServer thisAOServer = AOServDaemon.getThisAOServer();
-					OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
-					int osvId = osv.getPkey();
-					if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-						processIncomingMessagesMandriva();
-					} else if(
-						osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-						|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
-					) {
-						processIncomingMessagesCentOs();
-					} else {
-						throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-					}
+					processIncomingMessages();
 				}
 			} catch(ThreadDeath TD) {
 				throw TD;
@@ -200,8 +188,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 				System.out.print("Starting SpamAssassinManager: ");
 				// Must be a supported operating system
 				if(
-					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
@@ -247,139 +234,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 		return true;
 	}
 
-	private synchronized static void processIncomingMessagesMandriva() throws IOException, SQLException {
-		String[] fileList = incomingDirectory.list();
-		if(fileList != null && fileList.length > 0) {
-			// Get the list of UnixFile's of all messages that are at least one minute old or one minute in the future
-			List<UnixFile> readyList = new ArrayList<>(fileList.length);
-			for (String filename : fileList) {
-				if(filename.startsWith("ham_") || filename.startsWith("spam_")) {
-					// Must be a directory
-					UnixFile uf = new UnixFile(incomingDirectory, filename, false);
-					Stat ufStat = uf.getStat();
-					if(ufStat.isDirectory()) {
-						long mtime = ufStat.getModifyTime();
-						if(mtime == -1) {
-							LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectory = " + incomingDirectory.getPath() + ", filename = " + filename, new IOException("getModifyTime() returned -1"));
-						} else {
-							long currentTime = System.currentTimeMillis();
-							if(
-								(mtime - currentTime) > 60000
-								|| (currentTime - mtime) > 60000
-							) {
-								if(isFilenameOk(filename)) {
-									readyList.add(uf);
-								} else {
-									LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectory = " + incomingDirectory.getPath() + ", filename = " + filename, new IOException("Invalid directory name"));
-								}
-							}
-						}
-					} else {
-						LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectory = " + incomingDirectory.getPath() + ", filename = " + filename, new IOException("Not a directory"));
-					}
-				} else {
-					LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectory = " + incomingDirectory.getPath()+", filename = " + filename, new IOException("Unexpected filename, should start with spam_ or ham_"));
-				}
-			}
-			if(!readyList.isEmpty()) {
-				// Sort the list by oldest time first
-				Collections.sort(readyList, (UnixFile uf1, UnixFile uf2) -> {
-					try {
-						long mtime1 = uf1.getStat().getModifyTime();
-						long mtime2 = uf2.getStat().getModifyTime();
-						return
-							mtime1 < mtime2 ? -1
-							: mtime1 > mtime2 ? 1
-							: 0
-						;
-					} catch(IOException err) {
-						throw new WrappedException(
-							err,
-							new Object[] {
-								"uf1 = " + uf1.getPath(),
-								"uf2 = " + uf2.getPath()
-							}
-						);
-					}
-				});
-
-				// Work through the list from oldest to newest, and for each user batching as many spam or ham directories together as possible
-				AOServer aoServer = AOServDaemon.getThisAOServer();
-				StringBuilder tempSB = new StringBuilder();
-				List<UnixFile> thisPass = new ArrayList<>();
-				while(!readyList.isEmpty()) {
-					thisPass.clear();
-					UnixFile currentUF = readyList.get(0);
-					int currentUID = currentUF.getStat().getUid();
-					boolean currentIsHam = currentUF.getFile().getName().startsWith("ham_");
-					thisPass.add(currentUF);
-					readyList.remove(0);
-					for(int c = 0; c < readyList.size(); c++) {
-						UnixFile other = readyList.get(c);
-						// Only consider batching/terminating batching for same UID
-						if(other.getStat().getUid() == currentUID) {
-							boolean otherIsHam = other.getFile().getName().startsWith("ham_");
-							if(currentIsHam == otherIsHam) {
-								// If both spam or both ham, batch to one call and remove from later processing
-								thisPass.add(other);
-								readyList.remove(c);
-								c--;
-							} else {
-								// Mode for that user switched, termination batching loop
-								break;
-							}
-						}
-					}
-
-					// Find the account based on UID
-					LinuxServerAccount lsa;
-					try {
-						lsa = aoServer.getLinuxServerAccount(LinuxId.valueOf(currentUID));
-					} catch(ValidationException e) {
-						throw new IOException(e);
-					}
-					if(lsa == null) {
-						LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "aoServer = " + aoServer.getHostname() + ", currentUID = " + currentUID, new SQLException("Unable to find LinuxServerAccount"));
-					} else {
-						UserId username = lsa.getLinuxAccount().getUsername().getUsername();
-
-						// Only train SpamAssassin when integration mode not set to none
-						EmailSpamAssassinIntegrationMode integrationMode = lsa.getEmailSpamAssassinIntegrationMode();
-						if(!integrationMode.getName().equals(EmailSpamAssassinIntegrationMode.NONE)) {
-							// Make sure sa-learn is installed
-							PackageManager.installPackage(PackageManager.PackageName.SPAMASSASSIN);
-							// Call sa-learn for this pass
-							tempSB.setLength(0);
-							tempSB.append("/usr/bin/sa-learn ").append(currentIsHam ? "--ham" : "--spam").append(" --dir");
-							for (UnixFile uf : thisPass) {
-								tempSB.append(' ').append(uf.getPath());
-							}
-							AOServDaemon.suexec(
-								username,
-								tempSB.toString(),
-								15
-							);
-						}
-
-						// Remove the files processed (or not processed based on integration mode) in this pass
-						for(UnixFile uf : thisPass) {
-							// Change the ownership and mode to make sure directory entries are not replaced during delete
-							uf.chown(UnixFile.ROOT_UID, UnixFile.ROOT_GID).setMode(0700);
-							String[] list = uf.list();
-							if(list != null) {
-								for(String filename : list) {
-									new UnixFile(uf, filename, false).delete();
-								}
-							}
-							uf.delete();
-						}
-					}
-				}
-			}
-		}
-	}
-
-	private synchronized static void processIncomingMessagesCentOs() throws IOException, SQLException {
+	private synchronized static void processIncomingMessages() throws IOException, SQLException {
 		try {
 			// Only process incoming messages when the incoming directory exists
 			if(incomingDirectory.getStat().exists()) {
@@ -610,8 +465,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 			OperatingSystemVersion osv = thisServer.getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
-				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
@@ -663,10 +517,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 								if(!spamdInetAddress.isLoopback() && !spamdInetAddress.isUnspecified()) hasSpecificAddress = true;
 								// Listen address
 								newOut.print(" -i ");
-								if(
-									osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-									|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-								) {
+								if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 									newOut.print(spamdInetAddress.toString());
 								} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 									newOut.print(spamdInetAddress.toBracketedString());
@@ -674,10 +525,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 									throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 								}
 								// -4 or -6 switches for address family
-								if(
-									osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-									|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-								) {
+								if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 									// No -4 or -6 switches
 								} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 									switch(spamdInetAddress.getAddressFamily()) {
@@ -749,15 +597,12 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 								}
 							}
 							newOut.print("\"\n");
-							if(
-								osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-								|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-							) {
+							if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 								newOut.print("\n"
 									   + "# Run at nice level of 10\n"
 									   + "NICELEVEL=\"+10\"\n");
 							} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-								// Nice level is now set through the aoserv-spamassassin-config package
+								// Nice level no longer set with multi-core systems now the norm
 							} else {
 								throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 							}
@@ -782,10 +627,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 						 */
 						bout.reset();
 						try (ChainWriter newOut = new ChainWriter(bout)) {
-							if(
-								osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-								|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-							) {
+							if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 								newOut.print(
 									"#\n"
 									+ "# Generated by ").print(SpamAssassinManager.class.getName()).print("\n"

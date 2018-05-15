@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -21,60 +21,6 @@ import java.sql.SQLException;
  * @author  AO Industries, Inc.
  */
 public enum HttpdOperatingSystemConfiguration {
-	REDHAT_ES_4_X86_64 {
-		@Override
-		public OperatingSystemConfiguration getOperatingSystemConfiguration() {
-			return OperatingSystemConfiguration.REDHAT_ES_4_X86_64;
-		}
-		//public String getDefaultPhpPostgresMinorVersion() {
-		//    return "8.1";
-		//}
-		@Override
-		public UnixPath getPhpCgiPath(String minorVersion) {
-			try {
-				if(minorVersion.startsWith("5.")) return UnixPath.valueOf("/opt/php-5/bin/php-cgi");
-				else throw new AssertionError("Unexpected PHP version: "+minorVersion);
-			} catch(ValidationException e) {
-				throw new WrappedException(e);
-			}
-		}
-		@Override
-		public UnixPath getHttpdSitesDirectory() {
-			return OperatingSystemVersion.getHttpdSitesDirectory(OperatingSystemVersion.REDHAT_ES_4_X86_64);
-		}
-		@Override
-		public String getHttpdSitesOptSlash() {
-			return "../../opt/";
-		}
-		@Override
-		public UnixPath getHttpdSharedTomcatsDirectory() {
-			return OperatingSystemVersion.getHttpdSharedTomcatsDirectory(OperatingSystemVersion.REDHAT_ES_4_X86_64);
-		}
-		@Override
-		public String getHttpdSharedTomcatsOptSlash() {
-			return "../../opt/";
-		}
-		@Override
-		public PackageManager.PackageName getAwstatsPackageName() {
-			return null;
-		}
-		@Override
-		public UnixPath getAwstatsVarDirectory() {
-			try {
-				return UnixPath.valueOf("/var/opt/awstats-6");
-			} catch(ValidationException e) {
-				throw new WrappedException(e);
-			}
-		}
-		@Override
-		public UnixPath getAwstatsBinDirectory() {
-			try {
-				return UnixPath.valueOf("/opt/awstats-6");
-			} catch(ValidationException e) {
-				throw new WrappedException(e);
-			}
-		}
-	},
 	CENTOS_5_I686_AND_X86_64 {
 		@Override
 		public OperatingSystemConfiguration getOperatingSystemConfiguration() {
@@ -196,8 +142,6 @@ public enum HttpdOperatingSystemConfiguration {
 		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		switch(osvId) {
-			case OperatingSystemVersion.REDHAT_ES_4_X86_64 :
-				return REDHAT_ES_4_X86_64;
 			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
 				return CENTOS_5_I686_AND_X86_64;
 			case OperatingSystemVersion.CENTOS_7_X86_64:

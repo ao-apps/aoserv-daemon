@@ -20,71 +20,6 @@ import java.sql.SQLException;
  * @author  AO Industries, Inc.
  */
 public enum OperatingSystemConfiguration {
-	REDHAT_ES_4_X86_64 {
-		@Override
-		public HttpdOperatingSystemConfiguration getHttpdOperatingSystemConfiguration() {
-			return HttpdOperatingSystemConfiguration.REDHAT_ES_4_X86_64;
-		}
-		@Override
-		public UnixPath getOpensslDefaultCaFile() {
-			try {
-				return UnixPath.valueOf("/etc/ssl/CA/ca.txt");
-			} catch(ValidationException e) {
-				throw new WrappedException(e);
-			}
-		}
-		@Override
-		public UnixPath getOpensslDefaultChainFile() {
-			return null;
-		}
-		@Override
-		public UnixPath getReplaceCommand() {
-			try {
-				return UnixPath.valueOf("/opt/mysql-5.0/bin/replace");
-			} catch(ValidationException e) {
-				throw new WrappedException(e);
-			}
-		}
-		//@Override
-		//public UnixPath getAOServClientScriptInclude() {
-		//	return "/opt/aoserv-client/scripts/aoserv-client.sh";
-		//}
-		@Override
-		public UnixPath getPostgresPath(String minorVersion) {
-			try {
-				return UnixPath.valueOf("/opt/postgresql-"+minorVersion);
-			} catch(ValidationException e) {
-				throw new WrappedException(e);
-			}
-		}
-		//public UnixPath getMySQLConnectorJavaJarPath() {
-		//	return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
-		//}
-		@Override
-		public UnixPath getDefaultJdkProfileSh() {
-			try {
-				return UnixPath.valueOf("/opt/jdk1/setenv.sh");
-			} catch(ValidationException e) {
-				throw new WrappedException(e);
-			}
-		}
-		@Override
-		public PackageManager.PackageName getDefaultJdkPackageName() {
-			return PackageManager.PackageName.JDK1;
-		}
-		@Override
-		public UnixPath getJdk17ProfileSh() {
-			try {
-				return UnixPath.valueOf("/opt/jdk1.7/setenv.sh");
-			} catch(ValidationException e) {
-				throw new WrappedException(e);
-			}
-		}
-		@Override
-		public PackageManager.PackageName getJdk17PackageName() {
-			return PackageManager.PackageName.JDK17;
-		}
-	},
 	CENTOS_5_I686_AND_X86_64 {
 		@Override
 		public HttpdOperatingSystemConfiguration getHttpdOperatingSystemConfiguration() {
@@ -376,8 +311,6 @@ public enum OperatingSystemConfiguration {
 		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		switch(osvId) {
-			case OperatingSystemVersion.REDHAT_ES_4_X86_64 :
-				return REDHAT_ES_4_X86_64;
 			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
 				return CENTOS_5_I686_AND_X86_64;
 			case OperatingSystemVersion.CENTOS_5_DOM0_I686 :

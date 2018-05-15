@@ -99,9 +99,7 @@ final public class EmailAddressManager extends BuilderThread {
 			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
-				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
@@ -170,10 +168,7 @@ final public class EmailAddressManager extends BuilderThread {
 						// Block default username-based aliases, all are listed in /etc/mail/virtusertable
 						{
 							String ex_nouser;
-							if(
-								osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-								|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-							) {
+							if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 								//ex_nouser="/opt/aoserv-client/sbin/ex_nouser";
 								// Code for EX_NOUSER in /usr/include/sysexits.h
 								ex_nouser="\"/bin/sh -c 'exit 67'\"";
@@ -521,9 +516,7 @@ final public class EmailAddressManager extends BuilderThread {
 			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
-				osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-				|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-				|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 				|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 			) {
 				makemap = "/usr/sbin/makemap";
@@ -574,9 +567,7 @@ final public class EmailAddressManager extends BuilderThread {
 				System.out.print("Starting EmailAddressManager: ");
 				// Must be a supported operating system
 				if(
-					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();

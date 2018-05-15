@@ -73,9 +73,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 			OperatingSystemVersion osv = thisServer.getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
-				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
@@ -245,13 +243,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 		else {*/
 		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
-		if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-			AOServDaemon.exec("/usr/aoserv/daemon/bin/make_sendmail_access_map");
-			restorecon.add(ACCESS_DB);
-		} else if(
-			osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-			|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-		) {
+		if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 			// Make sure /usr/sbin/makemap is installed as required by make_sendmail_access_map
 			// access file only built when sendmail installed now: PackageManager.installPackage(PackageManager.PackageName.SENDMAIL);
 			String[] command = {"/usr/sbin/makemap", "hash", NEW_ACCESS_DB.getPath()};
@@ -330,9 +322,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 				System.out.print("Starting SmtpRelayManager: ");
 				// Must be a supported operating system
 				if(
-					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
