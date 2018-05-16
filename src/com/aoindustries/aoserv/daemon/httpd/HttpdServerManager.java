@@ -1661,12 +1661,7 @@ public class HttpdServerManager {
 					+ "#\n");
 
 			Boolean mod_access_compat = hs.getModAccessCompat();
-			if(mod_access_compat == null) {
-				// Enabled when aoserv-httpd-config-compat package is installed
-				// TODO: Manually set where this package is installed and no longer key off this package being installed
-				mod_access_compat = PackageManager.getInstalledPackage(PackageManager.PackageName.AOSERV_HTTPD_CONFIG_COMPAT) != null;
-			}
-			if(!mod_access_compat) out.print("# ");
+			if(mod_access_compat == null || !mod_access_compat) out.print("# ");
 			out.print("LoadModule access_compat_module modules/mod_access_compat.so\n");
 
 			Boolean mod_actions = hs.getModActions();

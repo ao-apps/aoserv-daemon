@@ -44,7 +44,6 @@ public class PackageManager {
 		APACHE_TOMCAT_8_0("apache-tomcat_8_0"),
 		AOSERV_FTP_SHELLS("aoserv-ftp-shells"),
 		AOSERV_HTTPD_CONFIG("aoserv-httpd-config"),
-		AOSERV_HTTPD_CONFIG_COMPAT("aoserv-httpd-config-compat"),
 		AOSERV_HTTPD_SITE_DISABLED("aoserv-httpd-site-disabled"),
 		AOSERV_IMAPD_CONFIG("aoserv-imapd-config"),
 		AOSERV_JILTER("aoserv-jilter"),
