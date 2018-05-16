@@ -33,6 +33,7 @@ import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
+import static com.aoindustries.aoserv.daemon.httpd.ApacheEscape.escape;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
@@ -44,6 +45,7 @@ import com.aoindustries.lang.ObjectUtils;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.Port;
 import com.aoindustries.selinux.SEManagePort;
+import com.aoindustries.util.StringUtility;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -546,59 +548,59 @@ public class HttpdServerManager {
 			int osvId = osv.getPkey();
 			switch(osvId) {
 				case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 : {
-					out.print("    ServerAdmin ").print(httpdSite.getServerAdmin()).print('\n');
+					out.print("ServerAdmin ${site.server_admin}\n");
 
 					// Enable CGI PHP option if the site supports CGI and PHP
 					if(manager.enablePhp() && manager.enableCgi()) {
 						out.print("\n"
-								+ "    # Use CGI-based PHP when not using mod_php\n"
-								+ "    <IfModule !sapi_apache2.c>\n"
-								+ "        <IfModule !mod_php5.c>\n"
-								+ "            Action php-script /cgi-bin/php\n"
+								+ "# Use CGI-based PHP when not using mod_php\n"
+								+ "<IfModule !sapi_apache2.c>\n"
+								+ "    <IfModule !mod_php5.c>\n"
+								+ "        Action php-script /cgi-bin/php\n"
 								// Avoid *.php.txt going to PHP: http://php.net/manual/en/install.unix.apache2.php
-								+ "            <FilesMatch \\.php$>\n"
-								+ "                SetHandler php-script\n"
-								+ "            </FilesMatch>\n"
-								//+ "            AddHandler php-script .php\n"
-								+ "        </IfModule>\n"
-								+ "    </IfModule>\n");
+								+ "        <FilesMatch \\.php$>\n"
+								+ "            SetHandler php-script\n"
+								+ "        </FilesMatch>\n"
+								//+ "        AddHandler php-script .php\n"
+								+ "    </IfModule>\n"
+								+ "</IfModule>\n");
 					}
 
 					// The CGI user info
 					out.print("\n"
-							+ "    # Use suexec when available\n"
-							+ "    <IfModule mod_suexec.c>\n"
-							+ "        SuexecUserGroup ").print(lsa.getLinuxAccount().getUsername()).print(' ').print(lsg.getLinuxGroup().getName()).print("\n"
-							+ "    </IfModule>\n");
+							+ "# Use suexec when available\n"
+							+ "<IfModule mod_suexec.c>\n"
+							+ "    SuexecUserGroup ${site.user} ${site.group}\n"
+							+ "</IfModule>\n");
 
 					// Protect against TRACE and TRACK
 					if(manager.blockAllTraceAndTrackRequests()) {
 						out.print("\n"
-								+ "    # Protect dangerous request methods\n"
-								+ "    <IfModule mod_rewrite.c>\n"
-								+ "        RewriteEngine on\n"
-								+ "        RewriteCond %{REQUEST_METHOD} ^(TRACE|TRACK)\n"
-								+ "        RewriteRule .* - [F]\n"
-								+ "    </IfModule>\n");
+								+ "# Protect dangerous request methods\n"
+								+ "<IfModule mod_rewrite.c>\n"
+								+ "    RewriteEngine on\n"
+								+ "    RewriteCond %{REQUEST_METHOD} ^(TRACE|TRACK)\n"
+								+ "    RewriteRule .* - [F]\n"
+								+ "</IfModule>\n");
 					}
 
 					// Rejected URLs
 					Map<String,List<HttpdSiteManager.Location>> rejectedLocations = manager.getRejectedLocations();
 					for(Map.Entry<String,List<HttpdSiteManager.Location>> entry : rejectedLocations.entrySet()) {
 						out.print("\n"
-								+ "    # ").print(entry.getKey()).print('\n');
+								+ "# ").print(entry.getKey()).print('\n');
 						for(HttpdSiteManager.Location location : entry.getValue()) {
 							if(location.isRegularExpression()) {
-								out.print("    <LocationMatch \"").print(location.getLocation()).print("\">\n"
-										+ "        Order deny,allow\n"
-										+ "        Deny from All\n"
-										+ "    </LocationMatch>\n"
+								out.print("<LocationMatch ").print(escape(location.getLocation())).print(">\n"
+										+ "    Order deny,allow\n"
+										+ "    Deny from All\n"
+										+ "</LocationMatch>\n"
 								);
 							} else {
-								out.print("    <Location \"").print(location.getLocation()).print("\">\n"
-										+ "        Order deny,allow\n"
-										+ "        Deny from All\n"
-										+ "    </Location>\n"
+								out.print("<Location ").print(escape(location.getLocation())).print(">\n"
+										+ "    Order deny,allow\n"
+										+ "    Deny from All\n"
+										+ "</Location>\n"
 								);
 							}
 						}
@@ -609,35 +611,44 @@ public class HttpdServerManager {
 					if(!permanentRewrites.isEmpty()) {
 						// Write the standard restricted URL patterns
 						out.print("\n"
-								+ "    # Rewrite rules\n"
-								+ "    <IfModule mod_rewrite.c>\n"
-								+ "        RewriteEngine on\n");
+								+ "# Rewrite rules\n"
+								+ "<IfModule mod_rewrite.c>\n"
+								+ "    RewriteEngine on\n");
 						for(HttpdSiteManager.PermanentRewriteRule permanentRewrite : permanentRewrites) {
 							out
-								.print("        RewriteRule ")
-								.print(permanentRewrite.pattern)
+								.print("    RewriteRule ")
+								.print(escape(permanentRewrite.pattern))
 								.print(' ')
-								.print(permanentRewrite.substitution)
+								.print(escape(permanentRewrite.substitution, false))
 								.print(" [L");
 							if(permanentRewrite.noEscape) out.print(",NE");
 							out.print(",R=permanent]\n");
 						}
-						out.print("    </IfModule>\n");
+						out.print("</IfModule>\n");
 					}
 
 					// Write the authenticated locations
 					List<HttpdSiteAuthenticatedLocation> hsals = httpdSite.getHttpdSiteAuthenticatedLocations();
 					if(!hsals.isEmpty()) {
 						out.print("\n"
-								+ "    # Authenticated Locations\n");
+								+ "# Authenticated Locations\n");
 						for(HttpdSiteAuthenticatedLocation hsal : hsals) {
-							out.print("    <").print(hsal.getIsRegularExpression()?"LocationMatch":"Location").print(" \"").print(hsal.getPath()).print("\">\n");
-							if(hsal.getAuthUserFile() != null) out.print("        AuthType Basic\n");
-							if(hsal.getAuthName().length()>0) out.print("        AuthName \"").print(hsal.getAuthName()).print("\"\n");
-							if(hsal.getAuthUserFile() != null) out.print("        AuthUserFile \"").print(hsal.getAuthUserFile()).print("\"\n");
-							if(hsal.getAuthGroupFile() != null) out.print("        AuthGroupFile \"").print(hsal.getAuthGroupFile()).print("\"\n");
-							if(hsal.getRequire().length()>0) out.print("        require ").print(hsal.getRequire()).print('\n');
-							out.print("    </").print(hsal.getIsRegularExpression()?"LocationMatch":"Location").print(">\n");
+							out.print(hsal.getIsRegularExpression()?"<LocationMatch ":"<Location ").print(escape(hsal.getPath())).print(">\n");
+							if(hsal.getAuthUserFile() != null) out.print("    AuthType Basic\n");
+							if(hsal.getAuthName().length() > 0) out.print("    AuthName ").print(escape(hsal.getAuthName())).print('\n');
+							if(hsal.getAuthUserFile() != null) out.print("    AuthUserFile ").print(getEscapedPrefixReplacement(hsal.getAuthUserFile().toString(), "/www/" + httpdSite.getSiteName() + "/", "/www/${site.name}/")).print('\n');
+							if(hsal.getAuthGroupFile() != null) out.print("    AuthGroupFile ").print(getEscapedPrefixReplacement(hsal.getAuthGroupFile().toString(), "/www/" + httpdSite.getSiteName() + "/", "/www/${site.name}/")).print('\n');
+							if(hsal.getRequire().length() > 0) {
+								out.print("    require");
+								// Split on space, escaping each term
+								for(String term : StringUtility.splitString(hsal.getRequire(), ' ')) {
+									if(!term.isEmpty()) {
+										out.print(' ').print(escape(term));
+									}
+								}
+								out.print('\n');
+							}
+							out.print(hsal.getIsRegularExpression()?"</LocationMatch>\n":"</Location>\n");
 						}
 					}
 
@@ -653,45 +664,35 @@ public class HttpdServerManager {
 							foundRoot = true;
 							// DocumentRoot
 							out.print("\n"
-									+ "    # Set up the default webapp\n"
-									+ "    DocumentRoot \"").print(docBase).print("\"\n"
-									+ "    <Directory \"").print(docBase).print("\">\n"
-									+ "        Allow from All\n"
-									+ "        AllowOverride ").print(settings.getAllowOverride()).print("\n"
-									+ "        Order allow,deny\n"
-									+ "        Options ").print(settings.getOptions()).print("\n"
-									+ "    </Directory>\n");
+									+ "# Set up the default webapp\n"
+									+ "DocumentRoot ").print(getEscapedPrefixReplacement(docBase.toString(), "/www/" + httpdSite.getSiteName() + "/", "/www/${site.name}/")).print("\n"
+									+ "<Directory ").print(getEscapedPrefixReplacement(docBase.toString(), "/www/" + httpdSite.getSiteName() + "/", "/www/${site.name}/")).print(">\n"
+									+ "    Allow from All\n"
+									+ "    AllowOverride ").print(settings.getAllowOverride()).print("\n"
+									+ "    Order allow,deny\n"
+									+ "    Options ").print(settings.getOptions()).print("\n"
+									+ "</Directory>\n");
 						} else {
 							// Is webapp/alias
 							out.print("\n"
-									+ "    # Set up the ").print(path).print(" webapp\n"
-									+ "    Alias \"").print(path).print("\" \"").print(docBase).print("\"\n"
-									+ "    <Directory \"").print(docBase).print("\">\n"
-									+ "        Allow from All\n"
-									+ "        AllowOverride ").print(settings.getAllowOverride()).print("\n"
-									+ "        Order allow,deny\n"
-									+ "        Options ").print(settings.getOptions()).print("\n"
-									+ "    </Directory>\n");
+									+ "# Set up the ").print(path).print(" webapp\n"
+									+ "Alias ").print(escape(path)).print(" ").print(getEscapedPrefixReplacement(docBase.toString(), "/www/" + httpdSite.getSiteName() + "/", "/www/${site.name}/")).print("\n"
+									+ "<Directory ").print(getEscapedPrefixReplacement(docBase.toString(), "/www/" + httpdSite.getSiteName() + "/", "/www/${site.name}/")).print(">\n"
+									+ "    Allow from All\n"
+									+ "    AllowOverride ").print(settings.getAllowOverride()).print("\n"
+									+ "    Order allow,deny\n"
+									+ "    Options ").print(settings.getOptions()).print("\n"
+									+ "</Directory>\n");
 						}
 						if(settings.enableCgi()) {
 							if(!manager.enableCgi()) throw new SQLException("Unable to enable webapp CGI when site has CGI disabled");
-							out.print("    <Directory \"").print(docBase).print("/cgi-bin\">\n"
-									+ "        <IfModule mod_ssl.c>\n"
-									+ "            SSLOptions +StdEnvVars\n"
-									+ "        </IfModule>\n"
-									+ "        Options ").print(settings.getCgiOptions()).print("\n"
-									+ "        SetHandler cgi-script\n"
-									+ "    </Directory>\n");
-							/*
-							out.print("    ScriptAlias \"").print(path).print("/cgi-bin/\" \"").print(docBase).print("/cgi-bin/\"\n"
-									+ "    <Directory \"").print(docBase).print("/cgi-bin\">\n"
-									+ "        Options ExecCGI\n"
-									+ "        <IfModule mod_ssl.c>\n"
-									+ "            SSLOptions +StdEnvVars\n"
-									+ "        </IfModule>\n"
-									+ "        Allow from All\n"
-									+ "        Order allow,deny\n"
-									+ "    </Directory>\n");*/
+							out.print("<Directory ").print(getEscapedPrefixReplacement(docBase.toString() + "/cgi-bin", "/www/" + httpdSite.getSiteName() + "/", "/www/${site.name}/")).print(">\n"
+									+ "    <IfModule mod_ssl.c>\n"
+									+ "        SSLOptions +StdEnvVars\n"
+									+ "    </IfModule>\n"
+									+ "    Options ").print(settings.getCgiOptions()).print("\n"
+									+ "    SetHandler cgi-script\n"
+									+ "</Directory>\n");
 						}
 					}
 					if(!foundRoot) throw new SQLException("No DocumentRoot found");
@@ -699,86 +700,96 @@ public class HttpdServerManager {
 					// Write any JkMount and JkUnmount directives
 					if(!jkSettings.isEmpty()) {
 						out.print("\n"
-								+ "    # Request patterns mapped through mod_jk\n"
-								+ "    <IfModule mod_jk.c>\n");
+								+ "# Request patterns mapped through mod_jk\n"
+								+ "<IfModule mod_jk.c>\n");
 						for(HttpdSiteManager.JkSetting setting : jkSettings) {
 							out
-								.print("        ")
+								.print("    ")
 								.print(setting.isMount() ? "JkMount" : "JkUnMount")
 								.print(' ')
-								.print(setting.getPath())
+								.print(escape(setting.getPath()))
 								.print(' ')
-								.print(setting.getJkCode())
+								.print(escape(setting.getJkCode()))
 								.print('\n');
 						}
 						out.print("\n"
-								+ "        # Remove jsessionid for non-jk requests\n"
-								+ "        <IfModule mod_rewrite.c>\n"
-								+ "            RewriteEngine On\n"
-								+ "            RewriteRule ^(.*);jsessionid=.*$ $1\n"
-								+ "        </IfModule>\n"
-								+ "    </IfModule>\n");
+								+ "    # Remove jsessionid for non-jk requests\n"
+								+ "    <IfModule mod_rewrite.c>\n"
+								+ "        RewriteEngine On\n"
+								+ "        RewriteRule ^(.*);jsessionid=.*$ $1\n"
+								+ "    </IfModule>\n"
+								+ "</IfModule>\n");
 					}
 					break;
 				}
 				case OperatingSystemVersion.CENTOS_7_X86_64 : {
-					out.print("    ServerAdmin ").print(httpdSite.getServerAdmin()).print('\n');
+					out.print("ServerAdmin ${site.server_admin}\n");
 
 					// Enable CGI PHP option if the site supports CGI and PHP
 					if(manager.enablePhp() && manager.enableCgi()) {
 						out.print("\n"
-								+ "    # Use CGI-based PHP when not using mod_php\n"
-								+ "    <IfModule !php5_module>\n"
-								+ "        <IfModule !php7_module>\n"
-								+ "            <IfModule actions_module>\n"
-								+ "                Action php-script /cgi-bin/php\n"
+								+ "# Use CGI-based PHP when not using mod_php\n"
+								+ "<IfModule !php5_module>\n"
+								+ "    <IfModule !php7_module>\n"
+								+ "        <IfModule actions_module>\n"
+								+ "            Action php-script /cgi-bin/php\n"
 								// Avoid *.php.txt going to PHP: http://php.net/manual/en/install.unix.apache2.php
-								+ "                <FilesMatch \\.php$>\n"
-								+ "                    SetHandler php-script\n"
-								+ "                </FilesMatch>\n"
-								//+ "                AddHandler php-script .php\n"
-								+ "            </IfModule>\n"
+								+ "            <FilesMatch \\.php$>\n"
+								+ "                SetHandler php-script\n"
+								+ "            </FilesMatch>\n"
+								//+ "            AddHandler php-script .php\n"
 								+ "        </IfModule>\n"
-								+ "    </IfModule>\n");
+								+ "    </IfModule>\n"
+								+ "</IfModule>\n");
 					}
 
 					// The CGI user info
 					out.print("\n"
-							+ "    # Use suexec when available\n"
-							+ "    <IfModule suexec_module>\n"
-							+ "        SuexecUserGroup ").print(lsa.getLinuxAccount().getUsername()).print(' ').print(lsg.getLinuxGroup().getName()).print("\n"
-							+ "    </IfModule>\n");
+							+ "# Use suexec when available\n"
+							+ "<IfModule suexec_module>\n"
+							+ "    SuexecUserGroup ${site.user} ${site.group}\n"
+							+ "</IfModule>\n");
 
-					// Protect against TRACE and TRACK
-					if(manager.blockAllTraceAndTrackRequests()) {
-						out.print("\n"
-								+ "    # Protect dangerous request methods\n"
-								+ "    <IfModule rewrite_module>\n"
-								+ "        RewriteEngine on\n"
-								+ "        RewriteCond %{REQUEST_METHOD} ^(TRACE|TRACK)\n"
-								+ "        RewriteRule .* - [F]\n"
-								+ "    </IfModule>\n");
+					if(
+						manager.blockAllTraceAndTrackRequests()
+						|| httpdSite.getBlockScm()
+						|| httpdSite.getBlockCoreDumps()
+						|| httpdSite.getBlockEditorBackups()
+					) {
+						out.print("# Site options\n");
+						if(manager.blockAllTraceAndTrackRequests()) {
+							out.print("Include site-options/block_trace_track.inc\n");
+						}
+						if(httpdSite.getBlockScm()) {
+							out.print("Include site-options/block_scm.inc\n");
+						}
+						if(httpdSite.getBlockCoreDumps()) {
+							out.print("Include site-options/block_core_dumps.inc\n");
+						}
+						if(httpdSite.getBlockEditorBackups()) {
+							out.print("Include site-options/block_editor_backups.inc\n");
+						}
 					}
 
 					// Rejected URLs
 					Map<String,List<HttpdSiteManager.Location>> rejectedLocations = manager.getRejectedLocations();
 					for(Map.Entry<String,List<HttpdSiteManager.Location>> entry : rejectedLocations.entrySet()) {
 						out.print("\n"
-								+ "    # ").print(entry.getKey()).print('\n');
+								+ "# ").print(entry.getKey()).print('\n');
 						for(HttpdSiteManager.Location location : entry.getValue()) {
 							if(location.isRegularExpression()) {
-								out.print("    <LocationMatch \"").print(location.getLocation()).print("\">\n"
-										+ "        <IfModule authz_core_module>\n"
-										+ "            Require all denied\n"
-										+ "        </IfModule>\n"
-										+ "    </LocationMatch>\n"
+								out.print("<LocationMatch ").print(escape(location.getLocation())).print(">\n"
+										+ "    <IfModule authz_core_module>\n"
+										+ "        Require all denied\n"
+										+ "    </IfModule>\n"
+										+ "</LocationMatch>\n"
 								);
 							} else {
-								out.print("    <Location \"").print(location.getLocation()).print("\">\n"
-										+ "        <IfModule authz_core_module>\n"
-										+ "            Require all denied\n"
-										+ "        </IfModule>\n"
-										+ "    </Location>\n"
+								out.print("<Location ").print(escape(location.getLocation())).print(">\n"
+										+ "    <IfModule authz_core_module>\n"
+										+ "        Require all denied\n"
+										+ "    </IfModule>\n"
+										+ "</Location>\n"
 								);
 							}
 						}
@@ -789,57 +800,64 @@ public class HttpdServerManager {
 					if(!permanentRewrites.isEmpty()) {
 						// Write the standard restricted URL patterns
 						out.print("\n"
-								+ "    # Rewrite rules\n"
-								+ "    <IfModule rewrite_module>\n"
-								+ "        RewriteEngine on\n");
+								+ "# Rewrite rules\n"
+								+ "<IfModule rewrite_module>\n"
+								+ "    RewriteEngine on\n");
 						for(HttpdSiteManager.PermanentRewriteRule permanentRewrite : permanentRewrites) {
 							out
-								.print("        RewriteRule ")
-								.print(permanentRewrite.pattern)
+								.print("    RewriteRule ")
+								.print(escape(permanentRewrite.pattern))
 								.print(' ')
-								.print(permanentRewrite.substitution)
+								.print(escape(permanentRewrite.substitution, false))
 								.print(" [END");
 							if(permanentRewrite.noEscape) out.print(",NE");
 							out.print(",R=permanent]\n");
 						}
-						out.print("    </IfModule>\n");
+						out.print("</IfModule>\n");
 					}
 
 					// Write the authenticated locations
 					List<HttpdSiteAuthenticatedLocation> hsals = httpdSite.getHttpdSiteAuthenticatedLocations();
 					if(!hsals.isEmpty()) {
 						out.print("\n"
-								+ "    # Authenticated Locations\n");
+								+ "# Authenticated Locations\n");
 						for(HttpdSiteAuthenticatedLocation hsal : hsals) {
-							out.print("    ").print(hsal.getIsRegularExpression()?"<LocationMatch ":"<Location ").print('"').print(hsal.getPath()).print("\">\n");
+							out.print(hsal.getIsRegularExpression()?"<LocationMatch ":"<Location ").print(escape(hsal.getPath())).print(">\n");
 							boolean includeAuthType = hsal.getAuthUserFile() != null;
 							boolean includeAuthName = hsal.getAuthName().length()>0;
 							if(includeAuthType || includeAuthName) {
-								out.print("        <IfModule authn_core_module>\n");
-								if(includeAuthType) out.print("            AuthType Basic\n");
-								if(includeAuthName) out.print("            AuthName \"").print(hsal.getAuthName()).print("\"\n");
-								out.print("        </IfModule>\n");
+								out.print("    <IfModule authn_core_module>\n");
+								if(includeAuthType) out.print("        AuthType Basic\n");
+								if(includeAuthName) out.print("        AuthName ").print(escape(hsal.getAuthName())).print("\n");
+								out.print("    </IfModule>\n");
 							}
 							if(hsal.getAuthUserFile() != null) {
 								PackageManager.installPackage(PackageManager.PackageName.HTTPD_TOOLS);
 								out.print(
-									"        <IfModule authn_file_module>\n"
-									+ "            AuthUserFile \"").print(hsal.getAuthUserFile()).print("\"\n"
-									+ "        </IfModule>\n");
+									"    <IfModule authn_file_module>\n"
+									+ "        AuthUserFile ").print(getEscapedPrefixReplacement(hsal.getAuthUserFile().toString(), "/var/www/" + httpdSite.getSiteName() + "/", "/var/www/${site.name}/")).print("\n"
+									+ "    </IfModule>\n");
 							}
 							if(hsal.getAuthGroupFile() != null) {
 								out.print(
-									"        <IfModule authz_groupfile_module>\n"
-									+ "            AuthGroupFile \"").print(hsal.getAuthGroupFile()).print("\"\n"
-									+ "        </IfModule>\n");
+									"    <IfModule authz_groupfile_module>\n"
+									+ "        AuthGroupFile ").print(getEscapedPrefixReplacement(hsal.getAuthGroupFile().toString(), "/var/www/" + httpdSite.getSiteName() + "/", "/var/www/${site.name}/")).print("\n"
+									+ "    </IfModule>\n");
 							}
 							if(hsal.getRequire().length()>0) {
 								out.print(
-									"        <IfModule authz_core_module>\n"
-									+ "            Require ").print(hsal.getRequire()).print("\n"
-									+ "        </IfModule>\n");
+									"    <IfModule authz_core_module>\n"
+									+ "        Require");
+								// Split on space, escaping each term
+								for(String term : StringUtility.splitString(hsal.getRequire(), ' ')) {
+									if(!term.isEmpty()) {
+										out.print(' ').print(escape(term));
+									}
+								}
+								out.print("\n"
+									+ "    </IfModule>\n");
 							}
-							out.print("    ").print(hsal.getIsRegularExpression()?"</LocationMatch>":"</Location>").print('\n');
+							out.print(hsal.getIsRegularExpression()?"</LocationMatch>\n":"</Location>\n");
 						}
 					}
 
@@ -863,9 +881,80 @@ public class HttpdServerManager {
 							foundRoot = true;
 							// DocumentRoot
 							out.print("\n"
-									+ "    # Set up the default webapp\n"
-									+ "    DocumentRoot \"").print(docBase).print("\"\n"
-									+ "    <Directory \"").print(docBase).print("\">\n"
+									+ "# Set up the default webapp\n"
+									+ "DocumentRoot ").print(getEscapedPrefixReplacement(docBase.toString(), "/var/www/" + httpdSite.getSiteName() + "/", "/var/www/${site.name}/")).print("\n"
+									+ "<Directory ").print(getEscapedPrefixReplacement(docBase.toString(), "/var/www/" + httpdSite.getSiteName() + "/", "/var/www/${site.name}/")).print(">\n"
+									+ "    <IfModule authz_core_module>\n"
+									+ "        Require all granted\n"
+									+ "    </IfModule>\n"
+									+ "    AllowOverride ").print(settings.getAllowOverride()).print("\n"
+									+ "    Options ").print(settings.getOptions()).print("\n"
+									+ "    <IfModule dir_module>\n");
+							if(!jkSettings.isEmpty()) {
+								out.print("        <IfModule jk_module>\n"
+										+ "            DirectoryIndex index.jsp\n"
+										+ "        </IfModule>\n");
+							}
+							out.print("        DirectoryIndex index.xml\n"); // This was Cocoon, enable Tomcat 3.* only?
+							if(settings.enableSsi()) {
+								out.print("        <IfModule include_module>\n"
+										+ "            DirectoryIndex index.shtml\n"
+										+ "        </IfModule>\n");
+							}
+							if(manager.enablePhp() || isInModPhp) {
+								out.print("        DirectoryIndex index.php\n");
+							}
+							out.print("        DirectoryIndex index.html\n"
+									+ "        <IfModule negotiation_module>\n"
+									+ "            DirectoryIndex index.html.var\n"
+									+ "        </IfModule>\n"
+									+ "        DirectoryIndex index.htm\n"
+									+ "        <IfModule negotiation_module>\n"
+									+ "            DirectoryIndex index.htm.var\n"
+									+ "        </IfModule>\n");
+							if(manager.enableCgi()) {
+								out.print("        DirectoryIndex index.cgi\n");
+							}
+							out.print("        DirectoryIndex default.html\n"
+									+ "        <IfModule negotiation_module>\n"
+									+ "            DirectoryIndex default.html.var\n"
+									+ "        </IfModule>\n");
+							if(!jkSettings.isEmpty()) {
+								out.print("        <IfModule jk_module>\n"
+										+ "            DirectoryIndex default.jsp\n"
+										+ "        </IfModule>\n");
+							}
+							if(settings.enableSsi()) {
+								out.print("        <IfModule include_module>\n"
+										+ "            DirectoryIndex default.shtml\n"
+										+ "        </IfModule>\n");
+							}
+							if(manager.enableCgi()) {
+								out.print("        DirectoryIndex default.cgi\n");
+							}
+							out.print("        DirectoryIndex Default.htm\n"
+									+ "        <IfModule negotiation_module>\n"
+									+ "            DirectoryIndex Default.htm.var\n"
+									+ "        </IfModule>\n"
+									+ "    </IfModule>\n"
+									+ "</Directory>\n");
+							if(settings.enableCgi()) {
+								if(!manager.enableCgi()) throw new SQLException("Unable to enable webapp CGI when site has CGI disabled");
+								out.print("<Directory ").print(getEscapedPrefixReplacement(docBase.toString() + "/cgi-bin", "/var/www/" + httpdSite.getSiteName() + "/", "/var/www/${site.name}/")).print(">\n"
+										+ "    <IfModule ssl_module>\n"
+										+ "        SSLOptions +StdEnvVars\n"
+										+ "    </IfModule>\n"
+										+ "    Options ").print(settings.getCgiOptions()).print("\n"
+										+ "    SetHandler cgi-script\n"
+										+ "</Directory>\n");
+							}
+						} else {
+							// Is webapp/alias
+							out.print("\n"
+									+ "# Set up the ").print(path).print(" webapp\n"
+									+ "<IfModule alias_module>\n"
+									+ "    Alias ").print(escape(path)).print(' ').print(getEscapedPrefixReplacement(docBase.toString(), "/var/www/" + httpdSite.getSiteName() + "/", "/var/www/${site.name}/")).print("\n"
+									+ "    <Directory ").print(getEscapedPrefixReplacement(docBase.toString(), "/var/www/" + httpdSite.getSiteName() + "/", "/var/www/${site.name}/")).print(">\n"
 									+ "        <IfModule authz_core_module>\n"
 									+ "            Require all granted\n"
 									+ "        </IfModule>\n"
@@ -922,7 +1011,7 @@ public class HttpdServerManager {
 									+ "    </Directory>\n");
 							if(settings.enableCgi()) {
 								if(!manager.enableCgi()) throw new SQLException("Unable to enable webapp CGI when site has CGI disabled");
-								out.print("    <Directory \"").print(docBase).print("/cgi-bin\">\n"
+								out.print("    <Directory ").print(escape(docBase.toString() + "/cgi-bin")).print(">\n"
 										+ "        <IfModule ssl_module>\n"
 										+ "            SSLOptions +StdEnvVars\n"
 										+ "        </IfModule>\n"
@@ -930,78 +1019,7 @@ public class HttpdServerManager {
 										+ "        SetHandler cgi-script\n"
 										+ "    </Directory>\n");
 							}
-						} else {
-							// Is webapp/alias
-							out.print("\n"
-									+ "    # Set up the ").print(path).print(" webapp\n"
-									+ "    <IfModule alias_module>\n"
-									+ "        Alias \"").print(path).print("\" \"").print(docBase).print("\"\n"
-									+ "        <Directory \"").print(docBase).print("\">\n"
-									+ "            <IfModule authz_core_module>\n"
-									+ "                Require all granted\n"
-									+ "            </IfModule>\n"
-									+ "            AllowOverride ").print(settings.getAllowOverride()).print("\n"
-									+ "            Options ").print(settings.getOptions()).print("\n"
-									+ "            <IfModule dir_module>\n");
-							if(!jkSettings.isEmpty()) {
-								out.print("                <IfModule jk_module>\n"
-										+ "                    DirectoryIndex index.jsp\n"
-										+ "                </IfModule>\n");
-							}
-							out.print("                DirectoryIndex index.xml\n"); // This was Cocoon, enable Tomcat 3.* only?
-							if(settings.enableSsi()) {
-								out.print("                <IfModule include_module>\n"
-										+ "                    DirectoryIndex index.shtml\n"
-										+ "                </IfModule>\n");
-							}
-							if(manager.enablePhp() || isInModPhp) {
-								out.print("                DirectoryIndex index.php\n");
-							}
-							out.print("                DirectoryIndex index.html\n"
-									+ "                <IfModule negotiation_module>\n"
-									+ "                    DirectoryIndex index.html.var\n"
-									+ "                </IfModule>\n"
-									+ "                DirectoryIndex index.htm\n"
-									+ "                <IfModule negotiation_module>\n"
-									+ "                    DirectoryIndex index.htm.var\n"
-									+ "                </IfModule>\n");
-							if(manager.enableCgi()) {
-								out.print("                DirectoryIndex index.cgi\n");
-							}
-							out.print("                DirectoryIndex default.html\n"
-									+ "                <IfModule negotiation_module>\n"
-									+ "                    DirectoryIndex default.html.var\n"
-									+ "                </IfModule>\n");
-							if(!jkSettings.isEmpty()) {
-								out.print("                <IfModule jk_module>\n"
-										+ "                    DirectoryIndex default.jsp\n"
-										+ "                </IfModule>\n");
-							}
-							if(settings.enableSsi()) {
-								out.print("                <IfModule include_module>\n"
-										+ "                    DirectoryIndex default.shtml\n"
-										+ "                </IfModule>\n");
-							}
-							if(manager.enableCgi()) {
-								out.print("                DirectoryIndex default.cgi\n");
-							}
-							out.print("                DirectoryIndex Default.htm\n"
-									+ "                <IfModule negotiation_module>\n"
-									+ "                    DirectoryIndex Default.htm.var\n"
-									+ "                </IfModule>\n"
-									+ "            </IfModule>\n"
-									+ "        </Directory>\n");
-							if(settings.enableCgi()) {
-								if(!manager.enableCgi()) throw new SQLException("Unable to enable webapp CGI when site has CGI disabled");
-								out.print("        <Directory \"").print(docBase).print("/cgi-bin\">\n"
-										+ "            <IfModule ssl_module>\n"
-										+ "                SSLOptions +StdEnvVars\n"
-										+ "            </IfModule>\n"
-										+ "            Options ").print(settings.getCgiOptions()).print("\n"
-										+ "            SetHandler cgi-script\n"
-										+ "        </Directory>\n");
-							}
-							out.print("    </IfModule>\n");
+							out.print("</IfModule>\n");
 						}
 					}
 					if(!foundRoot) throw new SQLException("No DocumentRoot found");
@@ -1009,22 +1027,22 @@ public class HttpdServerManager {
 					// Write any JkMount and JkUnmount directives
 					if(!jkSettings.isEmpty()) {
 						out.print("\n"
-								+ "    # Request patterns mapped through mod_jk\n"
-								+ "    <IfModule jk_module>\n");
+								+ "# Request patterns mapped through mod_jk\n"
+								+ "<IfModule jk_module>\n");
 						for(HttpdSiteManager.JkSetting setting : jkSettings) {
 							out
-								.print("        ")
+								.print("    ")
 								.print(setting.isMount() ? "JkMount" : "JkUnMount")
 								.print(' ')
-								.print(setting.getPath())
+								.print(escape(setting.getPath()))
 								.print(' ')
-								.print(setting.getJkCode())
+								.print(escape(setting.getJkCode()))
 								.print('\n');
 						}
 						out.print("\n"
-								+ "        # Remove jsessionid for non-jk requests\n"
-								+ "        JkStripSession On\n"
-								+ "    </IfModule>\n");
+								+ "    # Remove jsessionid for non-jk requests\n"
+								+ "    JkStripSession On\n"
+								+ "</IfModule>\n");
 					}
 					break;
 				}
@@ -1321,7 +1339,7 @@ public class HttpdServerManager {
 			// The version of PHP module to run
 			TechnologyVersion phpVersion = hs.getModPhpVersion();
 			if(phpVersion != null) httpdConfFilenames.add("php" + serverNum);
-			out.print("ServerRoot \""+SERVER_ROOT+"\"\n"
+			out.print("ServerRoot ").print(escape(SERVER_ROOT)).print("\n"
 					+ "Include conf/modules_conf/core\n"
 					+ "PidFile /var/run/httpd").print(serverNum).print(".pid\n"
 					+ "Timeout ").print(hs.getTimeOut()).print("\n"
@@ -1467,7 +1485,7 @@ public class HttpdServerManager {
 				String phpMajorVersion = getMajorPhpVersion(version);
 				out.print("\n"
 						+ "# Enable mod_php\n"
-						+ "LoadModule php").print(phpMajorVersion).print("_module /opt/php-").print(phpMinorVersion).print("-i686/lib/apache/").print(getPhpLib(phpVersion)).print("\n"
+						+ "LoadModule ").print(escape("php" + phpMajorVersion + "_module")).print(" ").print(escape("/opt/php-" + phpMinorVersion + "-i686/lib/apache/" + getPhpLib(phpVersion))).print("\n"
 						+ "AddType application/x-httpd-php .php\n"
 						+ "AddType application/x-httpd-php-source .phps\n");
 			}
@@ -1492,7 +1510,7 @@ public class HttpdServerManager {
 			// Only include mod_jk when at least one site has jk settings
 			if(hasJkSettings) out.print("Include conf/modules_conf/mod_jk\n");
 			out.print("\n"
-					+ "ServerAdmin root@").print(hs.getAOServer().getHostname()).print("\n"
+					+ "ServerAdmin ").print(escape("root@" + hs.getAOServer().getHostname())).print("\n"
 					+ "\n"
 					+ "<IfModule mod_ssl.c>\n"
 					+ "    SSLSessionCache shmcb:/var/cache/httpd/mod_ssl/ssl_scache").print(serverNum).print("(512000)\n"
@@ -1500,14 +1518,14 @@ public class HttpdServerManager {
 					+ "\n");
 			// Use apache if the account is disabled
 			if(isEnabled) {
-				out.print("User ").print(lsa.getLinuxAccount().getUsername().getUsername()).print("\n"
-						+ "Group ").print(hs.getLinuxServerGroup().getLinuxGroup().getName()).print('\n');
+				out.print("User ").print(escape(lsa.getLinuxAccount().getUsername().getUsername().toString())).print("\n"
+						+ "Group ").print(escape(hs.getLinuxServerGroup().getLinuxGroup().getName().toString())).print('\n');
 			} else {
-				out.print("User " + LinuxAccount.APACHE + "\n"
-						+ "Group " + LinuxGroup.APACHE + "\n");
+				out.print("User ").print(escape(LinuxAccount.APACHE.toString())).print("\n"
+						+ "Group ").print(escape(LinuxGroup.APACHE.toString())).print('\n');
 			}
 			out.print("\n"
-					+ "ServerName ").print(hs.getAOServer().getHostname()).print("\n"
+					+ "ServerName ").print(escape(hs.getAOServer().getHostname().toString())).print("\n"
 					+ "\n"
 					+ "ErrorLog /var/log/httpd/httpd").print(serverNum).print("/error_log\n"
 					+ "CustomLog /var/log/httpd/httpd").print(serverNum).print("/access_log combined\n"
@@ -1530,8 +1548,8 @@ public class HttpdServerManager {
 				NetBind nb=hb.getNetBind();
 				InetAddress ip=nb.getIPAddress().getInetAddress();
 				int port=nb.getPort().getPort();
-				out.print("Listen ").print(ip.toBracketedString()).print(':').print(port).print("\n"
-						+ "NameVirtualHost ").print(ip.toBracketedString()).print(':').print(port).print('\n');
+				out.print("Listen ").print(escape(ip.toBracketedString() + ":" + port)).print("\n"
+						+ "NameVirtualHost ").print(escape(ip.toBracketedString() + ":" + port)).print('\n');
 			}
 
 			// The list of sites to include
@@ -1544,7 +1562,7 @@ public class HttpdServerManager {
 							NetBind nb=bind.getHttpdBind().getNetBind();
 							InetAddress ipAddress=nb.getIPAddress().getInetAddress();
 							int port=nb.getPort().getPort();
-							out.print("Include conf/hosts/").print(site.getSiteName()).print('_').print(ipAddress).print('_').print(port).print('\n');
+							out.print("Include ").print(escape("conf/hosts/" + site.getSiteName() + "_" + ipAddress + "_" + port)).print('\n');
 						}
 					}
 				}
@@ -1581,13 +1599,17 @@ public class HttpdServerManager {
 			out.print("#\n"
 					+ "# core\n"
 					+ "#\n"
-					+ "ServerRoot \"" + SERVER_ROOT + "\"\n"
-					+ "Include aoserv.conf.d/core.conf\n"
-					+ "ErrorLog \"/var/log/httpd");
-			if(escapedName != null) out.print('@').print(escapedName);
-			out.print("/error_log\"\n"
-					+ "ServerAdmin root@").print(hs.getAOServer().getHostname()).print("\n"
-					+ "ServerName ").print(hs.getAOServer().getHostname()).print("\n"
+					+ "ServerRoot ").print(escape(SERVER_ROOT)).print("\n"
+					+ "Include aoserv.conf.d/core.conf\n");
+			final String errorLog;
+			if(escapedName != null) {
+				errorLog = "/var/log/httpd@" + escapedName + "/error_log";
+			} else {
+				errorLog = "/var/log/httpd/error_log";
+			}
+			out.print("ErrorLog ").print(escape(errorLog)).print("\n"
+					+ "ServerAdmin ").print(escape("root@" + hs.getAOServer().getHostname())).print("\n"
+					+ "ServerName ").print(escape(hs.getAOServer().getHostname().toString())).print("\n"
 					+ "TimeOut ").print(hs.getTimeOut()).print("\n"
 					+ "\n"
 					+ "#\n"
@@ -1596,14 +1618,22 @@ public class HttpdServerManager {
 					+ "# LoadModule mpm_event_module modules/mod_mpm_event.so\n"
 					+ "LoadModule mpm_prefork_module modules/mod_mpm_prefork.so\n"
 					+ "# LoadModule mpm_worker_module modules/mod_mpm_worker.so\n"
-					+ "Include aoserv.conf.d/mpm_*.conf\n"
-					+ "CoreDumpDirectory /var/log/httpd");
-			if(escapedName != null) out.print('@').print(escapedName);
-			out.print("\n"
-					+ "# ListenBacklog 511\n"
-					+ "PidFile /run/httpd");
-			if(escapedName != null) out.print('@').print(escapedName);
-			out.print("/httpd.pid\n"
+					+ "Include aoserv.conf.d/mpm_*.conf\n");
+			final String coreDumpDirectory;
+			if(escapedName != null) {
+				coreDumpDirectory = "/var/log/httpd@" + escapedName;
+			} else {
+				coreDumpDirectory = "/var/log/httpd";
+			}
+			out.print("CoreDumpDirectory ").print(escape(coreDumpDirectory)).print("\n"
+					+ "# ListenBacklog 511\n");
+			final String pidFile;
+			if(escapedName != null) {
+				pidFile = "/run/httpd@" + escapedName + "/httpd.pid";
+			} else {
+				pidFile = "/run/httpd/httpd.pid";
+			}
+			out.print("PidFile ").print(escape(pidFile)).print("\n"
 					+ "<IfModule mpm_prefork_module>\n"
 					+ "    MaxRequestWorkers ").print(hs.getMaxConcurrency()).print("\n"
 					+ "    ServerLimit ").print(hs.getMaxConcurrency()).print("\n"
@@ -2096,44 +2126,68 @@ public class HttpdServerManager {
 					+ "# Configure Modules\n"
 					+ "#\n"
 					+ "Include aoserv.conf.d/mod_*.conf\n"
-					+ "<IfModule dav_fs_module>\n"
-					+ "    DavLockDB /var/lib/dav");
-			if(escapedName != null) out.print('@').print(escapedName);
-			out.print("/lockdb\n"
+					+ "<IfModule dav_fs_module>\n");
+			final String davLockDB;
+			if(escapedName != null) {
+				davLockDB = "/var/lib/dav@" + escapedName + "/lockdb";
+			} else {
+				davLockDB = "/var/lib/dav/lockdb";
+			}
+			out.print("    DavLockDB ").print(escape(davLockDB)).print("\n"
 					+ "</IfModule>\n");
 			if(mod_jk || modJkInstalled) {
-				out.print("<IfModule jk_module>\n"
-						+ "    JkWorkersFile \"conf/workers");
-				if(escapedName != null) out.print('@').print(escapedName);
-				out.print(".properties\"\n"
-						+ "    JkShmFile \"/var/log/httpd");
-				if(escapedName != null) out.print('@').print(escapedName);
-				out.print("/jk-runtime-status\"\n"
-						+ "    JkLogFile \"/var/log/httpd");
-				if(escapedName != null) out.print('@').print(escapedName);
-				out.print("/mod_jk.log\"\n"
+				out.print("<IfModule jk_module>\n");
+				final String jkWorkersFile;
+				if(escapedName != null) {
+					jkWorkersFile = "conf/workers@" + escapedName + ".properties";
+				} else {
+					jkWorkersFile = "conf/workers.properties";
+				}
+				out.print("    JkWorkersFile ").print(escape(jkWorkersFile)).print('\n');
+				final String jkShmFile;
+				if(escapedName != null) {
+					jkShmFile = "/var/log/httpd@" + escapedName + "/jk-runtime-status";
+				} else {
+					jkShmFile = "/var/log/httpd/jk-runtime-status";
+				}
+				out.print("    JkShmFile ").print(escape(jkShmFile)).print('\n');
+				final String jkLogFile;
+				if(escapedName != null) {
+					jkLogFile = "/var/log/httpd@" + escapedName + "/mod_jk.log";
+				} else {
+					jkLogFile = "/var/log/httpd/mod_jk.log";
+				}
+				out.print("    JkLogFile ").print(escape(jkLogFile)).print("\n"
 						+ "</IfModule>\n");
 			}
-			out.print("<IfModule log_config_module>\n"
-					+ "    CustomLog \"/var/log/httpd");
-			if(escapedName != null) out.print('@').print(escapedName);
-			out.print("/access_log\" combined\n"
+			out.print("<IfModule log_config_module>\n");
+			final String customLog;
+			if(escapedName != null) {
+				customLog = "/var/log/httpd@" + escapedName + "/access_log";
+			} else {
+				customLog = "/var/log/httpd/access_log";
+			}
+			out.print("    CustomLog ").print(escape(customLog)).print(" combined\n"
 					+ "</IfModule>\n");
 			if(mod_ssl || modSslInstalled) {
-				out.print("<IfModule ssl_module>\n"
-						+ "    SSLSessionCache shmcb:/run/httpd");
-				if(escapedName != null) out.print('@').print(escapedName);
-				out.print("/sslcache(512000)\n"
+				out.print("<IfModule ssl_module>\n");
+				final String sslSessionCache;
+				if(escapedName != null) {
+					sslSessionCache = "shmcb:/run/httpd@" + escapedName + "/sslcache(512000)";
+				} else {
+					sslSessionCache = "shmcb:/run/httpd/sslcache(512000)";
+				}
+				out.print("    SSLSessionCache ").print(escape(sslSessionCache)).print("\n"
 						+ "</IfModule>\n");
 			}
 			// Use apache if the account is disabled
 			out.print("<IfModule unixd_module>\n");
 			if(isEnabled) {
-				out.print("    User ").print(lsa.getLinuxAccount().getUsername().getUsername()).print("\n"
-						+ "    Group ").print(hs.getLinuxServerGroup().getLinuxGroup().getName()).print('\n');
+				out.print("    User ").print(escape(lsa.getLinuxAccount().getUsername().getUsername().toString())).print("\n"
+						+ "    Group ").print(escape(hs.getLinuxServerGroup().getLinuxGroup().getName().toString())).print('\n');
 			} else {
-				out.print("    User " + LinuxAccount.APACHE + "\n"
-						+ "    Group " + LinuxGroup.APACHE + "\n");
+				out.print("    User ").print(escape(LinuxAccount.APACHE.toString())).print("\n"
+						+ "    Group ").print(escape(LinuxGroup.APACHE.toString())).print('\n');
 			}
 			out.print("</IfModule>\n");
 			if(phpVersion != null) {
@@ -2175,9 +2229,9 @@ public class HttpdServerManager {
 							+ "#\n"
 							+ "# Enable mod_php\n"
 							+ "#\n"
-							+ "LoadModule php").print(phpMajorVersion).print("_module /opt/php-").print(phpMinorVersion).print("/lib/apache/").print(getPhpLib(phpVersion)).print("\n"
+							+ "LoadModule ").print(escape("php" + phpMajorVersion + "_module")).print(' ').print(escape("/opt/php-" + phpMinorVersion + "/lib/apache/" + getPhpLib(phpVersion))).print("\n"
 							+ "<IfModule php5_module>\n"
-							+ "    PHPIniDir \"").print(phpIniDir).print("\"\n"
+							+ "    PHPIniDir ").print(escape(phpIniDir.toString())).print("\n"
 							+ "    <IfModule mime_module>\n"
 							+ "        AddType application/x-httpd-php .php\n"
 							+ "        AddType application/x-httpd-php-source .phps\n"
@@ -2195,7 +2249,7 @@ public class HttpdServerManager {
 				NetBind nb=hb.getNetBind();
 				InetAddress ip=nb.getIPAddress().getInetAddress();
 				int port = nb.getPort().getPort();
-				out.print("Listen ").print(ip.toBracketedString()).print(':').print(port);
+				out.print("Listen ").print(escape(ip.toBracketedString() + ":" + port));
 				String appProtocol = nb.getAppProtocol().getProtocol();
 				if(appProtocol.equals(Protocol.HTTP)) {
 					if(port != 80) out.print(" http");
@@ -2219,7 +2273,7 @@ public class HttpdServerManager {
 							NetBind nb = bind.getHttpdBind().getNetBind();
 							InetAddress ipAddress = nb.getIPAddress().getInetAddress();
 							int port=nb.getPort().getPort();
-							out.print("Include sites-enabled/").print(site.getSiteName()).print('_').print(ipAddress).print('_').print(port).print(".conf\n");
+							out.print("Include ").print(escape("sites-enabled/" + site.getSiteName() + "_" + ipAddress + "_" + port + ".conf")).print('\n');
 						}
 					}
 				}
@@ -2297,6 +2351,35 @@ public class HttpdServerManager {
 		return bout.toByteArray();
 	}
 
+	private static String getEscapedPrefixReplacement(String value, String expectedPrefix, String replacementPrefix) {
+		if(value.startsWith(expectedPrefix)) {
+			String suffix = value.substring(expectedPrefix.length());
+			if(!suffix.contains("${")) return escape(replacementPrefix + suffix, false);
+		}
+		return escape(value);
+	}
+
+	private static String getEscapedSslPath(UnixPath sslCert, String primaryHostname) {
+		// Let's Encrypt certificate
+		String sslCertStr = sslCert.toString();
+		{
+			String prefix = "/etc/letsencrypt/live/" + primaryHostname + "/";
+			if(sslCertStr.startsWith(prefix)) {
+				String suffix = sslCertStr.substring(prefix.length());
+				if(!suffix.contains("${")) return escape("/etc/letsencrypt/live/${bind.primary_hostname}/" + suffix, false);
+			}
+		}
+		// CentOS 5:
+		if(sslCertStr.equals("/etc/ssl/private/" + primaryHostname + ".key")) return "/etc/ssl/private/${bind.primary_hostname}.key";
+		if(sslCertStr.equals("/etc/ssl/certs/" + primaryHostname + ".cert")) return "/etc/ssl/certs/${bind.primary_hostname}.cert";
+		if(sslCertStr.equals("/etc/ssl/certs/" + primaryHostname + ".chain")) return "/etc/ssl/certs/${bind.primary_hostname}.chain";
+		// CentOS 7:
+		if(sslCertStr.equals("/etc/pki/tls/private/" + primaryHostname + ".key")) return "/etc/pki/tls/private/${bind.primary_hostname}.key";
+		if(sslCertStr.equals("/etc/pki/tls/certs/" + primaryHostname + ".cert")) return "/etc/pki/tls/certs/${bind.primary_hostname}.cert";
+		if(sslCertStr.equals("/etc/pki/tls/certs/" + primaryHostname + ".chain")) return "/etc/pki/tls/certs/${bind.primary_hostname}.chain";
+		return escape(sslCertStr);
+	}
+
 	/**
 	 * Builds the contents of a HttpdSiteBind file.
 	 */
@@ -2315,45 +2398,55 @@ public class HttpdServerManager {
 		try (ChainWriter out = new ChainWriter(bout)) {
 			switch(osConfig) {
 				case CENTOS_5_I686_AND_X86_64 : {
-					out.print("<VirtualHost ").print(ipAddress.toBracketedString()).print(':').print(port).print(">\n"
+					UnixPath sslCert = bind.getSslCertFile();
+					final String protocol = sslCert == null ? "http" : "https";
+					final String siteName = manager.httpdSite.getSiteName();
+					out.print("Define bind.pkey             ").print(bind.getPkey()).print("\n"
+							+ "Define bind.protocol         ").print(escape(protocol)).print("\n"
+							+ "Define bind.ip_address       ").print(escape(ipAddress.toBracketedString())).print("\n"
+							+ "Define bind.port             ").print(port).print("\n"
+							+ "Define bind.primary_hostname ").print(escape(primaryHostname)).print("\n"
+							+ "Define site.name             ").print(escape(siteName)).print("\n"
+							+ "Define site.user             ").print(escape(manager.httpdSite.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername().toString())).print("\n"
+							+ "Define site.group            ").print(escape(manager.httpdSite.getLinuxServerGroup().getLinuxGroup().getName().toString())).print("\n"
+							+ "Define site.server_admin     ").print(escape(manager.httpdSite.getServerAdmin())).print("\n"
+							+ "\n"
+							+ "<VirtualHost ${bind.ip_address}:${bind.port}>\n"
 							+ "    ServerName \\\n"
-							+ "        ").print(primaryHostname).print('\n'
-					);
+							+ "        ${bind.primary_hostname}\n");
 					List<HttpdSiteURL> altURLs=bind.getAltHttpdSiteURLs();
 					if(!altURLs.isEmpty()) {
 						out.print("    ServerAlias");
 						for(HttpdSiteURL altURL : altURLs) {
-							out.print(" \\\n        ").print(altURL.getHostname().toString());
+							out.print(" \\\n        ").print(escape(altURL.getHostname().toString()));
 						}
 						out.print('\n');
 					}
 					out.print("\n"
-							+ "    CustomLog ").print(bind.getAccessLog()).print(" combined\n"
-							+ "    ErrorLog ").print(bind.getErrorLog()).print("\n"
+							+ "    CustomLog ").print(getEscapedPrefixReplacement(bind.getAccessLog().toString(), "/logs/" + siteName + "/" + protocol + "/", "/logs/${site.name}/${bind.protocol}/")).print(" combined\n"
+							+ "    ErrorLog ").print(getEscapedPrefixReplacement(bind.getErrorLog().toString(), "/logs/" + siteName + "/" + protocol + "/", "/logs/${site.name}/${bind.protocol}/")).print("\n"
 							+ "\n");
-					UnixPath sslCert = bind.getSslCertFile();
 					if(sslCert != null) {
-						String sslCertStr = sslCert.toString();
 						// Use any directly configured chain file
 						out.print("    <IfModule mod_ssl.c>\n"
-								+ "        SSLCertificateFile ").print(sslCert).print("\n"
-								+ "        SSLCertificateKeyFile ").print(bind.getSslCertKeyFile()).print('\n');
-						String sslChain = ObjectUtils.toString(bind.getSslCertChainFile());
+								+ "        SSLCertificateFile ").print(getEscapedSslPath(sslCert, primaryHostname)).print("\n"
+								+ "        SSLCertificateKeyFile ").print(getEscapedSslPath(bind.getSslCertKeyFile(), primaryHostname)).print('\n');
+						UnixPath sslChain = bind.getSslCertChainFile();
 						if(sslChain != null) {
-							out.print("        SSLCertificateChainFile ").print(sslChain).print('\n');
+							out.print("        SSLCertificateChainFile ").print(getEscapedSslPath(sslChain, primaryHostname)).print('\n');
 						}
 						boolean enableCgi = manager.enableCgi();
 						boolean enableSsi = manager.httpdSite.getEnableSsi();
 						if(enableCgi && enableSsi) {
-							out.print("        <Files ~ \"\\.(cgi|shtml)$\">\n"
+							out.print("        <Files ~ \\.(cgi|shtml)$>\n"
 									+ "            SSLOptions +StdEnvVars\n"
 									+ "        </Files>\n");
 						} else if(enableCgi) {
-							out.print("        <Files ~ \"\\.cgi$\">\n"
+							out.print("        <Files ~ \\.cgi$>\n"
 									+ "            SSLOptions +StdEnvVars\n"
 									+ "        </Files>\n");
 						} else if(enableSsi) {
-							out.print("        <Files ~ \"\\.shtml$\">\n"
+							out.print("        <Files ~ \\.shtml$>\n"
 									+ "            SSLOptions +StdEnvVars\n"
 									+ "        </Files>\n");
 						}
@@ -2365,11 +2458,12 @@ public class HttpdServerManager {
 					if(bind.getRedirectToPrimaryHostname()) {
 						out.print("    # Redirect requests that are not to either the IP address or the primary hostname to the primary hostname\n"
 								+ "    RewriteEngine on\n"
-								+ "    RewriteCond %{HTTP_HOST} !=").print(primaryHostname).print(" [NC]\n"
-								+ "    RewriteCond %{HTTP_HOST} !=").print(ipAddress).print("\n"
-								+ "    RewriteRule ^ \"").print(primaryHSU.getURLNoSlash()).print("%{REQUEST_URI}\" [L,NE,R=permanent]\n"
+								+ "    RewriteCond %{HTTP_HOST} !=${bind.primary_hostname} [NC]\n"
+								+ "    RewriteCond %{HTTP_HOST} !=${bind.ip_address}\n"
+								+ "    RewriteRule ^ ").print(escape(primaryHSU.getURLNoSlash() + "%{REQUEST_URI}")).print(" [L,NE,R=permanent]\n"
 								+ "\n");
 					}
+					boolean hasRedirectAll = false;
 					List<HttpdSiteBindRedirect> redirects = bind.getHttpdSiteBindRedirects();
 					if(!redirects.isEmpty()) {
 						out.print("    # Redirects\n"
@@ -2377,77 +2471,122 @@ public class HttpdServerManager {
 						for(HttpdSiteBindRedirect redirect : redirects) {
 							String comment = redirect.getComment();
 							if(comment != null) {
-								// TODO: Check comment formatting before full automation
-								out.print("    # ").print(comment).print('\n');
+								// TODO: Maybe separate escapeComment method for this?
+								out.print("    # ").print(escape(comment)).print('\n');
 							}
 							String substitution = redirect.getSubstitution();
+							// Auto-detect a redirect-all bind
+							String pattern = redirect.getPattern();
+							if(
+								(
+									"^".equals(pattern)
+									|| "^(.*)$".equals(pattern)
+								) && !substitution.equals("-")
+							) {
+								hasRedirectAll = true;
+							}
 							out
-								.print("    RewriteRule \"")
-								// TODO: Check pattern formatting before full automation
-								.print(redirect.getPattern())
-								.print("\" ");
+								.print("    RewriteRule ")
+								.print(escape(pattern))
+								.print(' ');
 							if(substitution.equals("-")) {
 								out.print("- [L");
 								if(redirect.isNoEscape()) out.print(",NE");
 								out.print("]\n");
 							} else {
-								out.print('"')
-									// TODO: Check substitution formatting before full automation
-									.print(substitution)
-									.print("\" [L");
+								out.print(escape(substitution))
+									.print(" [L");
 								if(redirect.isNoEscape()) out.print(",NE");
 								out.print(",R=permanent]\n");
 							}
 						}
 						out.print('\n');
 					}
-					out.print("    Include conf/hosts/").print(siteInclude).print("\n"
+					final String escapedSiteInclude;
+					if(siteInclude.equals(siteName)) {
+						escapedSiteInclude = "conf/hosts/${site.name}";
+					} else {
+						escapedSiteInclude = escape("sites-available/" + siteInclude);
+					}
+					String includeSiteConfig = bind.getIncludeSiteConfig();
+					if(includeSiteConfig == null) {
+						if(hasRedirectAll) includeSiteConfig = "IfModule !rewrite_module";
+					}
+					if("false".equals(includeSiteConfig)) {
+						out.print("    # Include ").print(escapedSiteInclude).print("\n");
+					} else if(includeSiteConfig != null && includeSiteConfig.startsWith("IfModule ")) {
+						out.print("    <" + includeSiteConfig + ">\n"
+								+ "        Include ").print(escapedSiteInclude).print("\n"
+								+ "    </IfModule>\n");
+					} else {
+						out.print("    Include ").print(escapedSiteInclude).print("\n");
+					}
+					out.print("\n"
+							+ "</VirtualHost>\n"
 							+ "\n"
-							+ "</VirtualHost>\n");
+							+ "UnDefine bind.pkey\n"
+							+ "UnDefine bind.protocol\n"
+							+ "UnDefine bind.ip_address\n"
+							+ "UnDefine bind.port\n"
+							+ "UnDefine bind.primary_hostname\n"
+							+ "UnDefine site.name\n"
+							+ "UnDefine site.user\n"
+							+ "UnDefine site.group\n"
+							+ "UnDefine site.server_admin\n");
 					break;
 				}
 				case CENTOS_7_X86_64 : {
-					out.print("<VirtualHost ").print(ipAddress.toBracketedString()).print(':').print(port).print(">\n"
+					UnixPath sslCert = bind.getSslCertFile();
+					final String protocol = sslCert == null ? "http" : "https";
+					final String siteName = manager.httpdSite.getSiteName();
+					out.print("Define bind.pkey             ").print(bind.getPkey()).print("\n"
+							+ "Define bind.protocol         ").print(escape(protocol)).print("\n"
+							+ "Define bind.ip_address       ").print(escape(ipAddress.toBracketedString())).print("\n"
+							+ "Define bind.port             ").print(port).print("\n"
+							+ "Define bind.primary_hostname ").print(escape(primaryHostname)).print("\n"
+							+ "Define site.name             ").print(escape(siteName)).print("\n"
+							+ "Define site.user             ").print(escape(manager.httpdSite.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername().toString())).print("\n"
+							+ "Define site.group            ").print(escape(manager.httpdSite.getLinuxServerGroup().getLinuxGroup().getName().toString())).print("\n"
+							+ "Define site.server_admin     ").print(escape(manager.httpdSite.getServerAdmin())).print("\n"
+							+ "\n"
+							+ "<VirtualHost ${bind.ip_address}:${bind.port}>\n"
 							+ "    ServerName \\\n"
-							+ "        ").print(primaryHostname).print('\n'
-					);
+							+ "        ${bind.primary_hostname}\n");
 					List<HttpdSiteURL> altURLs=bind.getAltHttpdSiteURLs();
 					if(!altURLs.isEmpty()) {
 						out.print("    ServerAlias");
 						for(HttpdSiteURL altURL : altURLs) {
-							out.print(" \\\n        ").print(altURL.getHostname().toString());
+							out.print(" \\\n        ").print(escape(altURL.getHostname().toString()));
 						}
 						out.print('\n');
 					}
 					out.print("\n"
 							+ "    <IfModule log_config_module>\n"
-							+ "        CustomLog \"").print(bind.getAccessLog()).print("\" combined\n"
+							+ "        CustomLog ").print(getEscapedPrefixReplacement(bind.getAccessLog().toString(), "/var/log/httpd-sites/" + siteName + "/" + protocol + "/", "/var/log/httpd-sites/${site.name}/${bind.protocol}/")).print(" combined\n"
 							+ "    </IfModule>\n"
-							+ "    ErrorLog \"").print(bind.getErrorLog()).print("\"\n"
+							+ "    ErrorLog ").print(getEscapedPrefixReplacement(bind.getErrorLog().toString(), "/var/log/httpd-sites/" + siteName + "/" + protocol + "/", "/var/log/httpd-sites/${site.name}/${bind.protocol}/")).print("\n"
 							+ "\n");
-					UnixPath sslCert = bind.getSslCertFile();
 					if(sslCert != null) {
-						String sslCertStr = sslCert.toString();
 						// Use any directly configured chain file
 						out.print("    <IfModule ssl_module>\n"
-								+ "        SSLCertificateFile ").print(sslCert).print("\n"
-								+ "        SSLCertificateKeyFile ").print(bind.getSslCertKeyFile()).print('\n');
-						String sslChain = ObjectUtils.toString(bind.getSslCertChainFile());
+								+ "        SSLCertificateFile ").print(getEscapedSslPath(sslCert, primaryHostname)).print("\n"
+								+ "        SSLCertificateKeyFile ").print(getEscapedSslPath(bind.getSslCertKeyFile(), primaryHostname)).print('\n');
+						UnixPath sslChain = bind.getSslCertChainFile();
 						if(sslChain != null) {
-							out.print("        SSLCertificateChainFile ").print(sslChain).print('\n');
+							out.print("        SSLCertificateChainFile ").print(getEscapedSslPath(sslChain, primaryHostname)).print('\n');
 						}
 						boolean enableCgi = manager.enableCgi();
 						boolean enableSsi = manager.httpdSite.getEnableSsi();
 						if(enableCgi && enableSsi) {
-							out.print("        <Files ~ \"\\.(cgi|shtml)$\">\n"
+							out.print("        <Files ~ \\.(cgi|shtml)$>\n"
 									+ "            SSLOptions +StdEnvVars\n"
 									+ "        </Files>\n");
 						} else if(enableCgi) {
-							out.print("        <Files ~ \"\\.cgi$\">\n"
+							out.print("        <Files ~ \\.cgi$>\n"
 									+ "            SSLOptions +StdEnvVars\n"
 									+ "        </Files>\n");
 						} else if(enableSsi) {
-							out.print("        <Files ~ \"\\.shtml$\">\n"
+							out.print("        <Files ~ \\.shtml$>\n"
 									+ "            SSLOptions +StdEnvVars\n"
 									+ "        </Files>\n");
 						}
@@ -2461,15 +2600,11 @@ public class HttpdServerManager {
 						);
 					}
 					if(bind.getRedirectToPrimaryHostname()) {
-						out.print("    # Redirect requests that are not to either the IP address or the primary hostname to the primary hostname\n"
-								+ "    <IfModule rewrite_module>\n"
-								+ "        RewriteEngine on\n"
-								+ "        RewriteCond %{HTTP_HOST} !=").print(primaryHostname).print(" [NC]\n"
-								+ "        RewriteCond %{HTTP_HOST} !=").print(ipAddress).print("\n"
-								+ "        RewriteRule ^ \"").print(primaryHSU.getURLNoSlash()).print("%{REQUEST_URI}\" [END,NE,R=permanent]\n"
-								+ "    </IfModule>\n"
+						out.print("    # Bind options\n"
+								+ "    Include bind-options/redirect_to_primary_hostname.inc\n"
 								+ "\n");
 					}
+					boolean hasRedirectAll = false;
 					List<HttpdSiteBindRedirect> redirects = bind.getHttpdSiteBindRedirects();
 					if(!redirects.isEmpty()) {
 						out.print("    # Redirects\n"
@@ -2478,24 +2613,30 @@ public class HttpdServerManager {
 						for(HttpdSiteBindRedirect redirect : redirects) {
 							String comment = redirect.getComment();
 							if(comment != null) {
-								// TODO: Check comment formatting before full automation
-								out.print("        # ").print(comment).print('\n');
+								// TODO: Maybe separate escapeComment method for this?
+								out.print("    # ").print(escape(comment)).print('\n');
 							}
 							String substitution = redirect.getSubstitution();
+							// Auto-detect a redirect-all bind
+							String pattern = redirect.getPattern();
+							if(
+								(
+									"^".equals(pattern)
+									|| "^(.*)$".equals(pattern)
+								) && !substitution.equals("-")
+							) {
+								hasRedirectAll = true;
+							}
 							out
-								.print("        RewriteRule \"")
-								// TODO: Check pattern formatting before full automation
-								.print(redirect.getPattern())
-								.print("\" ");
+								.print("        RewriteRule ")
+								.print(escape(pattern))
+								.print(' ');
 							if(substitution.equals("-")) {
 								out.print("- [L");
 								if(redirect.isNoEscape()) out.print(",NE");
 								out.print("]\n");
 							} else {
-								out.print('"')
-									// TODO: Check substitution formatting before full automation
-									.print(substitution)
-									.print("\" [END");
+								out.print(escape(substitution)).print(" [END");
 								if(redirect.isNoEscape()) out.print(",NE");
 								out.print(",R=permanent]\n");
 							}
@@ -2503,9 +2644,37 @@ public class HttpdServerManager {
 						out.print("    </IfModule>\n"
 								+ "\n");
 					}
-					out.print("    Include sites-available/").print(siteInclude).print("\n"
+					final String escapedSiteInclude;
+					if(siteInclude.equals(siteName + ".inc")) {
+						escapedSiteInclude = "sites-available/${site.name}.inc";
+					} else {
+						escapedSiteInclude = escape("sites-available/" + siteInclude);
+					}
+					String includeSiteConfig = bind.getIncludeSiteConfig();
+					if(includeSiteConfig == null) {
+						if(hasRedirectAll) includeSiteConfig = "IfModule !rewrite_module";
+					}
+					if("false".equals(includeSiteConfig)) {
+						out.print("    # Include ").print(escapedSiteInclude).print("\n");
+					} else if(includeSiteConfig != null && includeSiteConfig.startsWith("IfModule ")) {
+						out.print("    <" + includeSiteConfig + ">\n"
+								+ "        Include ").print(escapedSiteInclude).print("\n"
+								+ "    </IfModule>\n");
+					} else {
+						out.print("    Include ").print(escapedSiteInclude).print("\n");
+					}
+					out.print("\n"
+							+ "</VirtualHost>\n"
 							+ "\n"
-							+ "</VirtualHost>\n");
+							+ "UnDefine bind.pkey\n"
+							+ "UnDefine bind.protocol\n"
+							+ "UnDefine bind.ip_address\n"
+							+ "UnDefine bind.port\n"
+							+ "UnDefine bind.primary_hostname\n"
+							+ "UnDefine site.name\n"
+							+ "UnDefine site.user\n"
+							+ "UnDefine site.group\n"
+							+ "UnDefine site.server_admin\n");
 					break;
 				}
 				default :

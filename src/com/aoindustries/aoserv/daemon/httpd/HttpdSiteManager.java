@@ -764,21 +764,31 @@ public abstract class HttpdSiteManager {
 	 * Gets an unmodifiable map of URL patterns that should be rejected.
 	 */
 	public Map<String,List<Location>> getRejectedLocations() throws IOException, SQLException {
-		Map<String,List<Location>> rejectedLocations = new LinkedHashMap<>();
-		if(httpdSite.getBlockScm()) {
-			rejectedLocations.put("Protect CVS files", cvsRejectedLocations);
-			rejectedLocations.put("Protect Subversion files", subversionRejectedLocations);
-			rejectedLocations.put("Protect Git files", gitRejectedLocations);
+		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		int osvId = osv.getPkey();
+		if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+			// Protection is built into the config files
+			Map<String,List<Location>> rejectedLocations = new LinkedHashMap<>();
+			if(httpdSite.getBlockScm()) {
+				rejectedLocations.put("Protect CVS files", cvsRejectedLocations);
+				rejectedLocations.put("Protect Subversion files", subversionRejectedLocations);
+				rejectedLocations.put("Protect Git files", gitRejectedLocations);
+			}
+			if(httpdSite.getBlockCoreDumps()) {
+				rejectedLocations.put("Protect core dumps", coreDumpsRejectedLocations);
+			}
+			if(httpdSite.getBlockEditorBackups()) {
+				rejectedLocations.put("Protect emacs / kwrite auto-backups", emacsRejectedLocations);
+				rejectedLocations.put("Protect vi / vim auto-backups", vimRejectedLocations);
+				// TODO: nano .save files? https://askubuntu.com/questions/601985/what-are-save-files
+			}
+			return Collections.unmodifiableMap(rejectedLocations);
+		} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+			// Protection has been moved to include files in aoserv-httpd-config package.
+			return Collections.emptyMap();
+		} else {
+			throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 		}
-		if(httpdSite.getBlockCoreDumps()) {
-			rejectedLocations.put("Protect core dumps", coreDumpsRejectedLocations);
-		}
-		if(httpdSite.getBlockEditorBackups()) {
-			rejectedLocations.put("Protect emacs / kwrite auto-backups", emacsRejectedLocations);
-			rejectedLocations.put("Protect vi / vim auto-backups", vimRejectedLocations);
-			// TODO: nano .save files? https://askubuntu.com/questions/601985/what-are-save-files
-		}
-		return Collections.unmodifiableMap(rejectedLocations);
 	}
 
 	public static class PermanentRewriteRule {
