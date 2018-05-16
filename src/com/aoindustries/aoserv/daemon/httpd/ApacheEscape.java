@@ -5,6 +5,8 @@
  */
 package com.aoindustries.aoserv.daemon.httpd;
 
+import com.aoindustries.aoserv.client.OperatingSystemVersion;
+
 /**
  * Escapes arbitrary values for use in Apache directives.
  *
@@ -23,10 +25,10 @@ class ApacheEscape {
 	 * This is set in the aoserv-httpd-config package, in <code>core.inc</code>.
 	 * </p>
 	 *
-	 * @see  #escape(java.lang.String, boolean)
+	 * @see  #escape(com.aoindustries.aoserv.client.OperatingSystemVersion, java.lang.String, boolean)
 	 */
-	static String escape(String value) {
-		return escape(value, true);
+	static String escape(OperatingSystemVersion osv, String value) {
+		return escape(osv, value, true);
 	}
 
 	/**
@@ -47,9 +49,9 @@ class ApacheEscape {
 	 *
 	 * @return  the escaped string or the original string when no escaping required
 	 *
-	 * @see  #escape(java.lang.String)
+	 * @see  #escape(com.aoindustries.aoserv.client.OperatingSystemVersion, java.lang.String)
 	 */
-	static String escape(String value, boolean escapeDollar) {
+	static String escape(OperatingSystemVersion osv, String value, boolean escapeDollar) {
 		int len = value.length();
 		StringBuilder sb = null; // Created when first needed
 		boolean quoted = false;
@@ -81,16 +83,21 @@ class ApacheEscape {
 				throw new IllegalArgumentException("Control character not allowed in Apache directives: " + (int)ch);
 			}
 			// Escape "$" when dollar escaping enabled and followed by '{'
+			// TODO: Do not escape when has no closing } or has a colon in the name (as used by RewriteCond)
 			else if(
 				ch == '$'
 				&& escapeDollar
 				&& i < (len - 1)
 				&& value.charAt(i + 1) == '{'
 			) {
+				if(osv.getPkey() == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+					throw new IllegalArgumentException("Unable to escape \"${\" on " + osv + ": " + value);
+				}
 				if(sb == null) sb = new StringBuilder(len * 2).append(value, 0, i);
 				sb.append("${$}"); // Relies on "Define $ $" set in configuration files.
 			}
 			// Characters that are backslash-escaped, enabled double-quoting
+			// TODO: Can we reliably allow backslashes to be used without quoting the value?
 			else if(
 				ch == '"'
 				|| ch == '\\'
