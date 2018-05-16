@@ -7,6 +7,8 @@ package com.aoindustries.aoserv.daemon.email;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.CyrusImapdBind;
+import com.aoindustries.aoserv.client.CyrusImapdServer;
 import com.aoindustries.aoserv.client.EmailSpamAssassinIntegrationMode;
 import com.aoindustries.aoserv.client.FailoverFileReplication;
 import com.aoindustries.aoserv.client.LinuxAccount;
@@ -30,6 +32,8 @@ import com.aoindustries.io.FilesystemIteratorRule;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.ObjectUtils;
+import com.aoindustries.net.AddressFamily;
+import com.aoindustries.net.DomainName;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.Port;
 import com.aoindustries.sql.SQLUtility;
@@ -57,6 +61,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -87,15 +92,6 @@ import javax.mail.StoreClosedException;
 /**
  * Any IMAP/Cyrus-specific features are here.
  *
- * Test account 1:
- *     hostname: 192.168.1.12
- *     username: cyrus.test@suspendo.aoindustries.com
- *     password: Clusk48Kulp
- * Test account 2:
- *     hostname: 192.168.1.12
- *     username: cyrus.test2
- *     password: Eflay43Klar
- *
  * TODO: Once conversion done:
  *     0) Look for any /home/?/???/MoveToCyrus folders (www2.kc.aoindustries.com:smurphy is one)
  *     1) Set WUIMAP_CONVERSION_ENABLED to false
@@ -116,7 +112,6 @@ import javax.mail.StoreClosedException;
  *         sieveshell:
  *             sieveshell --authname=cyrus.test@suspendo.aoindustries.com 192.168.1.12
  *             /bin/su -s /bin/bash -c "/usr/bin/sieveshell 192.168.1.12" cyrus.test@suspendo.aoindustries.com
- *         sieve only listen on primary IP only (for chroot failover)
  *         procmail migration script here: http://cyrusimap.web.cmu.edu/twiki/bin/view/Cyrus/MboxCyrusMigration
  *     Run chk_cyrus from NOC?
  *     Backups:
@@ -153,17 +148,7 @@ final public class ImapManager extends BuilderThread {
 	private static final UnixFile
 		cyrusRcFile = new UnixFile("/etc/rc.d/rc3.d/S65cyrus-imapd"),
 		cyrusConfFile = new UnixFile("/etc/cyrus.conf"),
-		imapdConfFile = new UnixFile("/etc/imapd.conf"),
-		pkiVostsDirectory = new UnixFile("/etc/pki/cyrus-imapd/vhosts")
-	;
-
-	/**
-	 * Default symbolic links for protocol-ip-port-specific certificate files.
-	 */
-	private static final String
-		DEFAULT_CERT_SYMLINK = "../cyrus-imapd.pem",
-		DEFAULT_KEY_SYMLINK  = "../cyrus-imapd.pem",
-		DEFAULT_CA_SYMLINK   = "../../tls/certs/ca-bundle.crt"
+		imapdConfFile = new UnixFile("/etc/imapd.conf")
 	;
 
 	private static final UnixFile wuBackupDirectory = new UnixFile("/var/opt/imap-2007d/backup");
@@ -226,21 +211,24 @@ final public class ImapManager extends BuilderThread {
 	 */
 	private static InetAddress getImapServerIPAddress() throws IOException, SQLException {
 		AOServer aoServer = AOServDaemon.getThisAOServer();
+		CyrusImapdServer cyrusServer = aoServer.getCyrusImapdServer();
+		if(cyrusServer == null) return null;
 		AOServConnector conn = AOServDaemon.getConnector();
 		Protocol imapProtocol = conn.getProtocols().get(Protocol.IMAP2);
 		if(imapProtocol == null) throw new SQLException("Protocol not found: " + Protocol.IMAP2);
 		Port imapPort = imapProtocol.getPort();
-		List<NetBind> netBinds = aoServer.getServer().getNetBinds(imapProtocol);
 		// Look for primary IP match
 		InetAddress primaryIp = aoServer.getPrimaryIPAddress().getInetAddress();
-		NetBind firstImap = null;
-		for(NetBind nb : netBinds) {
+		InetAddress firstImap = null;
+		for(CyrusImapdBind cib : cyrusServer.getCyrusImapdBinds()) {
+			NetBind nb = cib.getNetBind();
 			if(nb.getPort() == imapPort) {
-				if(nb.getIPAddress().getInetAddress().equals(primaryIp)) return primaryIp;
-				if(firstImap == null) firstImap = nb;
+				InetAddress ip = nb.getIPAddress().getInetAddress();
+				if(ip.equals(primaryIp)) return primaryIp;
+				if(firstImap == null) firstImap = ip;
 			}
 		}
-		return firstImap == null ? null : firstImap.getIPAddress().getInetAddress();
+		return firstImap;
 	}
 
 	/**
@@ -381,6 +369,25 @@ final public class ImapManager extends BuilderThread {
 		return base + number;
 	}
 
+	/**
+	 * Gets the Cyrus protocol for the given protocl and address family.
+	 */
+	private static String getCyrusProtocol(com.aoindustries.net.Protocol protocol, AddressFamily family) {
+		if(protocol == com.aoindustries.net.Protocol.TCP) {
+			switch(family) {
+				case INET: return "tcp4";
+				case INET6: return "tcp6";
+				default: throw new IllegalArgumentException("Unexpected family: " + family);
+			}
+		} else if(protocol == com.aoindustries.net.Protocol.UDP) {
+			switch(family) {
+				case INET: return "udp4";
+				case INET6: return "udp6";
+				default: throw new IllegalArgumentException("Unexpected family: " + family);
+			}
+		} else throw new IllegalArgumentException("Unexpected protocol: " + protocol);
+	}
+
 	private static final Object rebuildLock = new Object();
 	@Override
 	protected boolean doRebuild() {
@@ -396,38 +403,45 @@ final public class ImapManager extends BuilderThread {
 			) {
 				// Used inside synchronized block
 				ByteArrayOutputStream bout = new ByteArrayOutputStream();
-				AOServConnector conn = AOServDaemon.getConnector();
-				Server server = thisAOServer.getServer();
-
-				Protocol imapProtocol = conn.getProtocols().get(Protocol.IMAP2);
-				if(imapProtocol == null) throw new SQLException("Unable to find Protocol: " + Protocol.IMAP2);
-				List<NetBind> imapBinds = server.getNetBinds(imapProtocol);
-
-				Protocol imapsProtocol = conn.getProtocols().get(Protocol.SIMAP);
-				if(imapsProtocol == null) throw new SQLException("Unable to find Protocol: " + Protocol.SIMAP);
-				List<NetBind> imapsBinds = server.getNetBinds(imapsProtocol);
-
-				Protocol pop3Protocol = conn.getProtocols().get(Protocol.POP3);
-				if(pop3Protocol == null) throw new SQLException("Unable to find Protocol: " + Protocol.POP3);
-				List<NetBind> pop3Binds = server.getNetBinds(pop3Protocol);
-
-				Protocol pop3sProtocol = conn.getProtocols().get(Protocol.SPOP3);
-				if(pop3sProtocol == null) throw new SQLException("Unable to find Protocol: " + Protocol.SPOP3);
-				List<NetBind> pop3sBinds = server.getNetBinds(pop3sProtocol);
-
-				Protocol sieveProtocol = conn.getProtocols().get(Protocol.SIEVE);
-				if(sieveProtocol == null) throw new SQLException("Unable to find Protocol: " + Protocol.SIEVE);
-				List<NetBind> sieveBinds = server.getNetBinds(sieveProtocol);
 
 				synchronized(rebuildLock) {
+					CyrusImapdServer cyrusServer = thisAOServer.getCyrusImapdServer();
+
+					List<CyrusImapdBind> imapBinds;
+					List<CyrusImapdBind> imapsBinds;
+					List<CyrusImapdBind> pop3Binds;
+					List<CyrusImapdBind> pop3sBinds;
+					NetBind sieveBind;
+					if(cyrusServer == null) {
+						imapBinds = Collections.emptyList();
+						imapsBinds = Collections.emptyList();
+						pop3Binds = Collections.emptyList();
+						pop3sBinds = Collections.emptyList();
+						sieveBind = null;
+					} else {
+						imapBinds = new ArrayList<>();
+						imapsBinds = new ArrayList<>();
+						pop3Binds = new ArrayList<>();
+						pop3sBinds = new ArrayList<>();
+						for(CyrusImapdBind cib : cyrusServer.getCyrusImapdBinds()) {
+							String protocol = cib.getNetBind().getAppProtocol().getProtocol();
+							if(Protocol.IMAP2.equals(protocol)) imapBinds.add(cib);
+							else if(Protocol.SIMAP.equals(protocol)) imapsBinds.add(cib);
+							else if(Protocol.POP3.equals(protocol)) pop3Binds.add(cib);
+							else if(Protocol.SPOP3.equals(protocol)) pop3sBinds.add(cib);
+							else throw new AssertionError("Unexpected protocol for CyrusImapdBind #" + cib.getPkey() + ": " + protocol);
+						}
+						sieveBind = cyrusServer.getSieveNetBind();
+					}
+
 					Set<UnixFile> restorecon = new LinkedHashSet<>();
 					try {
 						boolean hasSpecificAddress = false;
 
-						// If there are no IMAP(S)/POP3(S) binds
+						// If there are no IMAP(S)/POP3(S) binds, do not run cyrus-imapd
 						if(imapBinds.isEmpty() && imapsBinds.isEmpty() && pop3Binds.isEmpty() && pop3sBinds.isEmpty()) {
 							// Should not have any sieve binds
-							if(!sieveBinds.isEmpty()) throw new SQLException("Should not have sieve without any imap, imaps, pop3, or pop3s");
+							if(sieveBind != null) throw new SQLException("Should not have sieve without any imap, imaps, pop3, or pop3s");
 
 							if(PackageManager.getInstalledPackage(PackageManager.PackageName.CYRUS_IMAPD) != null) {
 								if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
@@ -460,15 +474,17 @@ final public class ImapManager extends BuilderThread {
 								}
 							}
 						} else {
-							// Require sieve
-							if(sieveBinds.isEmpty()) throw new SQLException("sieve is required with any of imap, imaps, pop3, and pop3s");
+							assert cyrusServer != null;
 
 							// Required IMAP at least once on any default port
 							{
+								AOServConnector conn = AOServDaemon.getConnector();
+								Protocol imapProtocol = conn.getProtocols().get(Protocol.IMAP2);
+								if(imapProtocol == null) throw new SQLException("Protocol not found: " + Protocol.IMAP2);
 								Port defaultImapPort = imapProtocol.getPort();
 								boolean foundOnDefault = false;
-								for(NetBind nb : imapBinds) {
-									if(nb.getPort() == defaultImapPort) {
+								for(CyrusImapdBind cib : imapBinds) {
+									if(cib.getNetBind().getPort() == defaultImapPort) {
 										foundOnDefault = true;
 										break;
 									}
@@ -476,17 +492,8 @@ final public class ImapManager extends BuilderThread {
 								if(!foundOnDefault) throw new SQLException("imap is required on a default port with any of imap, imaps, pop3, and pop3s");
 							}
 
-							// The worst-case number of services, used to initialize storage to avoid rehash/resize
-							int maxServices =
-								imapBinds.size()
-								+ imapsBinds.size()
-								+ pop3Binds.size()
-								+ pop3sBinds.size()
-								+ sieveBinds.size()
-								+ 1 // lmtpunix
-							;
 							// All services that support TLS or SSL will be added here
-							Map<String,NetBind> tlsServices = new LinkedHashMap<>(maxServices*4/3+1);
+							Map<String,CyrusImapdBind> tlsServices = new LinkedHashMap<>();
 
 							boolean[] needsReload = {false};
 
@@ -540,14 +547,25 @@ final public class ImapManager extends BuilderThread {
 												IMAP_PREFORK_MIN
 											);
 											int counter = 1;
-											for(NetBind imapBind : imapBinds) {
-												if(imapBind.getPort().getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("imap requires TCP protocol");
+											for(CyrusImapdBind cib : imapBinds) {
+												NetBind imapBind = cib.getNetBind();
+												Port port = imapBind.getPort();
+												if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("imap requires TCP protocol");
 												String serviceName = generateServiceName("imap", "imap", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
 												InetAddress ia = imapBind.getIPAddress().getInetAddress();
-												out.print("\tcmd=\"imapd\" listen=\"[").print(ia.toString()).print("]:").print(imapBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=").print(prefork).print('\n');
-												tlsServices.put(serviceName, imapBind);
+												out
+													.print("\tcmd=\"imapd\" listen=\"[")
+													.print(ia.toString())
+													.print("]:")
+													.print(port.getPort())
+													.print("\" proto=\"")
+													.print(getCyrusProtocol(port.getProtocol(), ia.getAddressFamily()))
+													.print("\" prefork=")
+													.print(prefork)
+													.print('\n');
+												tlsServices.put(serviceName, cib);
 												if(!ia.isLoopback() && !ia.isUnspecified()) hasSpecificAddress = true;
 											}
 										}
@@ -561,14 +579,24 @@ final public class ImapManager extends BuilderThread {
 												IMAPS_PREFORK_MIN
 											);
 											int counter = 1;
-											for(NetBind imapsBind : imapsBinds) {
-												if(imapsBind.getPort().getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("imaps requires TCP protocol");
+											for(CyrusImapdBind cib : imapsBinds) {
+												NetBind imapsBind = cib.getNetBind();
+												Port port = imapsBind.getPort();
+												if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("imaps requires TCP protocol");
 												String serviceName = generateServiceName("imaps", "imaps", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
 												InetAddress ia = imapsBind.getIPAddress().getInetAddress();
-												out.print("\tcmd=\"imapd -s\" listen=\"[").print(ia.toString()).print("]:").print(imapsBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=").print(prefork).print('\n');
-												tlsServices.put(serviceName, imapsBind);
+												out
+													.print("\tcmd=\"imapd -s\" listen=\"[")
+													.print(ia.toString())
+													.print("]:").print(port.getPort())
+													.print("\" proto=\"")
+													.print(getCyrusProtocol(port.getProtocol(), ia.getAddressFamily()))
+													.print("\" prefork=")
+													.print(prefork)
+													.print('\n');
+												tlsServices.put(serviceName, cib);
 												if(!ia.isLoopback() && !ia.isUnspecified()) hasSpecificAddress = true;
 											}
 										}
@@ -582,14 +610,25 @@ final public class ImapManager extends BuilderThread {
 												POP3_PREFORK_MIN
 											);
 											int counter = 1;
-											for(NetBind pop3Bind : pop3Binds) {
-												if(pop3Bind.getPort().getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("pop3 requires TCP protocol");
+											for(CyrusImapdBind cib : pop3Binds) {
+												NetBind pop3Bind = cib.getNetBind();
+												Port port = pop3Bind.getPort();
+												if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("pop3 requires TCP protocol");
 												String serviceName = generateServiceName("pop3", "pop3n", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
 												InetAddress ia = pop3Bind.getIPAddress().getInetAddress();
-												out.print("\tcmd=\"pop3d\" listen=\"[").print(ia.toString()).print("]:").print(pop3Bind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=").print(prefork).print('\n');
-												tlsServices.put(serviceName, pop3Bind);
+												out
+													.print("\tcmd=\"pop3d\" listen=\"[")
+													.print(ia.toString())
+													.print("]:")
+													.print(port.getPort())
+													.print("\" proto=\"")
+													.print(getCyrusProtocol(port.getProtocol(), ia.getAddressFamily()))
+													.print("\" prefork=")
+													.print(prefork)
+													.print('\n');
+												tlsServices.put(serviceName, cib);
 												if(!ia.isLoopback() && !ia.isUnspecified()) hasSpecificAddress = true;
 											}
 										}
@@ -603,14 +642,25 @@ final public class ImapManager extends BuilderThread {
 												POP3S_PREFORK_MIN
 											);
 											int counter = 1;
-											for(NetBind pop3sBind : pop3sBinds) {
-												if(pop3sBind.getPort().getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("pop3s requires TCP protocol");
+											for(CyrusImapdBind cib : pop3sBinds) {
+												NetBind pop3sBind = cib.getNetBind();
+												Port port = pop3sBind.getPort();
+												if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("pop3s requires TCP protocol");
 												String serviceName = generateServiceName("pop3s", "pop3s", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
 												InetAddress ia = pop3sBind.getIPAddress().getInetAddress();
-												out.print("\tcmd=\"pop3d -s\" listen=\"[").print(ia.toString()).print("]:").print(pop3sBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=").print(prefork).print('\n');
-												tlsServices.put(serviceName, pop3sBind);
+												out
+													.print("\tcmd=\"pop3d -s\" listen=\"[")
+													.print(ia.toString())
+													.print("]:")
+													.print(port.getPort())
+													.print("\" proto=\"")
+													.print(getCyrusProtocol(port.getProtocol(), ia.getAddressFamily()))
+													.print("\" prefork=")
+													.print(prefork)
+													.print('\n');
+												tlsServices.put(serviceName, cib);
 												if(!ia.isLoopback() && !ia.isUnspecified()) hasSpecificAddress = true;
 											}
 										}
@@ -618,17 +668,23 @@ final public class ImapManager extends BuilderThread {
 									// sieve
 									{
 										out.print("#  sieve\t\tcmd=\"timsieved\" listen=\"sieve\" prefork=0\n");
-										if(!sieveBinds.isEmpty()) {
-											int counter = 1;
-											for(NetBind sieveBind : sieveBinds) {
-												if(sieveBind.getPort().getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("sieve requires TCP protocol");
-												String serviceName = generateServiceName("sieve", "sieve", counter++);
-												out.print("  ").print(serviceName);
-												if(serviceName.length() < 6) out.print('\t');
-												InetAddress ia = sieveBind.getIPAddress().getInetAddress();
-												out.print("\tcmd=\"timsieved\" listen=\"[").print(ia.toString()).print("]:").print(sieveBind.getPort().getPort()).print("\" proto=\"tcp4\" prefork=0\n");
-												if(!ia.isLoopback() && !ia.isUnspecified()) hasSpecificAddress = true;
-											}
+										if(sieveBind != null) {
+											Port port = sieveBind.getPort();
+											if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("sieve requires TCP protocol");
+											String serviceName = "sieve";
+											out.print("  ").print(serviceName);
+											if(serviceName.length() < 6) out.print('\t');
+											InetAddress ia = sieveBind.getIPAddress().getInetAddress();
+											out
+												.print("\tcmd=\"timsieved\" listen=\"[")
+												.print(ia.toString())
+												.print("]:")
+												.print(port.getPort())
+												.print("\" proto=\"")
+												.print(getCyrusProtocol(port.getProtocol(), ia.getAddressFamily()))
+												.print("\" prefork=0\n"
+											);
+											if(!ia.isLoopback() && !ia.isUnspecified()) hasSpecificAddress = true;
 										}
 									}
 									out.print("\n"
@@ -649,11 +705,72 @@ final public class ImapManager extends BuilderThread {
 											+ "  checkpoint\tcmd=\"ctl_cyrusdb -c\" period=30\n"
 											+ "\n"
 											+ "  # this is only necessary if using duplicate delivery suppression,\n"
-											+ "  # Sieve or NNTP\n"
-											+ "#  delprune\tcmd=\"cyr_expire -E 3\" at=0400\n"
-											+ "  # -X 3 added to allow 3 day \"unexpunge\" capability\n"
-											+ "  delprune\tcmd=\"cyr_expire -E 3 -X 3\" at=0400\n"
-											+ "\n"
+											+ "  # Sieve or NNTP\n");
+									if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+										if(!Float.isNaN(cyrusServer.getDeleteDuration())) {
+											throw new IllegalStateException("delete-duration not supported on " + osv);
+										}
+										int expireDays;
+										{
+											CyrusImapdServer.TimeUnit expireUnit = cyrusServer.getExpireDurationUnit();
+											if(expireUnit == null) expireUnit = CyrusImapdServer.TimeUnit.DAYS;
+											expireDays = expireUnit.getDays(cyrusServer.getExpireDuration());
+										}
+										out.print("  delprune\tcmd=\"cyr_expire -E ").print(expireDays);
+										float expungeDuration = cyrusServer.getExpungeDuration();
+										if(!Float.isNaN(expungeDuration)) {
+											int expungeDays;
+											{
+												CyrusImapdServer.TimeUnit expungeUnit = cyrusServer.getExpungeDurationUnit();
+												if(expungeUnit == null) expungeUnit = CyrusImapdServer.TimeUnit.DAYS;
+												expungeDays = expungeUnit.getDays(expungeDuration);
+											}
+											out.print(" -X ").print(expungeDays);
+										}
+										out.print("\" at=0400\n");
+									} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+										out.print("  delprune\tcmd=\"cyr_expire");
+										float deleteDuration = cyrusServer.getDeleteDuration();
+										if(!Float.isNaN(deleteDuration)) {
+											out.print(" -D ");
+											int deleteInt = Math.round(deleteDuration);
+											if(deleteDuration == deleteInt) {
+												out.print(deleteInt);
+											} else {
+												out.print(deleteDuration);
+											}
+											CyrusImapdServer.TimeUnit deleteUnit = cyrusServer.getDeleteDurationUnit();
+											if(deleteUnit != null) out.print(deleteUnit.getSuffix());
+										}
+
+										float expireDuration = cyrusServer.getExpireDuration();
+										out.print(" -E ");
+										int expireInt = Math.round(expireDuration);
+										if(expireDuration == expireInt) {
+											out.print(expireInt);
+										} else {
+											out.print(expireDuration);
+										}
+										CyrusImapdServer.TimeUnit expireUnit = cyrusServer.getExpireDurationUnit();
+										if(expireUnit != null) out.print(expireUnit.getSuffix());
+
+										float expungeDuration = cyrusServer.getExpungeDuration();
+										if(!Float.isNaN(expungeDuration)) {
+											out.print(" -X ");
+											int expungeInt = Math.round(expungeDuration);
+											if(expungeDuration == expungeInt) {
+												out.print(expungeInt);
+											} else {
+												out.print(expungeDuration);
+											}
+											CyrusImapdServer.TimeUnit expungeUnit = cyrusServer.getExpungeDurationUnit();
+											if(expungeUnit != null) out.print(expungeUnit.getSuffix());
+										}
+										out.print("\" at=0400\n");
+									} else {
+										throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+									}
+									out.print("\n"
 											+ "  # this is only necessary if caching TLS sessions\n"
 											+ "  tlsprune\tcmd=\"tls_prune\" at=0400\n"
 											+ "}\n");
@@ -673,9 +790,6 @@ final public class ImapManager extends BuilderThread {
 									needsReload[0] = true;
 								}
 							}
-
-							// Any files in /etc/pki/cyrus-imapd/vhosts that are not in this list are subject to removal
-							Set<String> vhostsFiles = new HashSet<>(3 * (maxServices*4/3+1)); // Three files per service
 
 							// Update /etc/imapd.conf
 							{
@@ -701,45 +815,28 @@ final public class ImapManager extends BuilderThread {
 									} else {
 										throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									}
-									out.print("sasl_minimum_layer: 0\n"
-											+ "allowplaintext: yes\n" // Was "no"
-											+ "allowplainwithouttls: yes\n"
-											+ "\n"
-											+ "# SSL/TLS\n"
-											+ "tls_cert_file: /etc/pki/cyrus-imapd/cyrus-imapd.pem\n"
-											+ "tls_key_file: /etc/pki/cyrus-imapd/cyrus-imapd.pem\n"
-											+ "tls_ca_file: /etc/pki/tls/certs/ca-bundle.crt\n");
-									// Make sure directory exists and has proper permissions
-									/* Not needed since now included in a config RPM:
-									{
-										Stat pkiVostsDirectoryStat = pkiVostsDirectory.getStat();
-										if(!pkiVostsDirectoryStat.exists()) {
-											if(isFine) logger.fine("Creating vhosts directory: " + pkiVostsDirectory.getPath());
-											pkiVostsDirectory.mkdir();
-											pkiVostsDirectoryStat = pkiVostsDirectory.getStat();
-										}
-										if(pkiVostsDirectoryStat.getMode() != 0750) {
-											if(isFine) logger.fine("Setting vhosts directory permissions: " + pkiVostsDirectory.getPath());
-											pkiVostsDirectory.setMode(0750);
-											pkiVostsDirectory.getStat(pkiVostsDirectoryStat);
-										}
-										if(
-											pkiVostsDirectoryStat.getUid() != UnixFile.ROOT_UID
-											|| pkiVostsDirectoryStat.getGid() != mailGid
-										) {
-											if(isFine) logger.fine("Setting vhosts directory owner: " + pkiVostsDirectory.getPath() + " " + UnixFile.ROOT_UID + ":" + mailGid);
-											pkiVostsDirectory.chown(UnixFile.ROOT_UID, mailGid);
-											// Not needed because last use: pkiVostsDirectory.getStat(pkiVostsDirectoryStat);
-										}
+									out.print("sasl_minimum_layer: 0\n");
+									if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+										out.print("allowplaintext: yes\n"
+												+ "allowplainwithouttls: ").print(cyrusServer.getAllowPlaintextAuth() ? "yes" : "no").print('\n');
+									} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+										out.print("allowplaintext: ").print(cyrusServer.getAllowPlaintextAuth() ? "yes" : "no").print('\n'); // Was "no"
+									} else {
+										throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									}
-									 */
+									out.print("\n"
+											+ "# SSL/TLS\n"
+											+ "tls_cert_file: ").print(cyrusServer.getTlsCertFile()).print("\n"
+											+ "tls_key_file: ").print(cyrusServer.getTlsKeyFile()).print("\n"
+											+ "tls_ca_file: ").print(cyrusServer.getTlsCaFile()).print("\n");
 									// service-specific certificates
 									//     file:///home/o/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
 									//     value of "disabled='disabled'" if the certificate file doesn't exist (or use server default)
 									//     openssl req -new -x509 -nodes -out cyrus-imapd.pem -keyout cyrus-imapd.pem -days 3650
-									for(Map.Entry<String,NetBind> entry : tlsServices.entrySet()) {
+									for(Map.Entry<String,CyrusImapdBind> entry : tlsServices.entrySet()) {
 										String serviceName = entry.getKey();
-										NetBind netBind = entry.getValue();
+										CyrusImapdBind cib = entry.getValue();
+										NetBind netBind = cib.getNetBind();
 										InetAddress ipAddress = netBind.getIPAddress().getInetAddress();
 										int port = netBind.getPort().getPort();
 										String protocol;
@@ -761,40 +858,61 @@ final public class ImapManager extends BuilderThread {
 												throw new SQLException("Unexpected Protocol: " + appProtocol);
 										}
 
-										// cert file
-										String certFilename = protocol + "_" + ipAddress.toString() + "_" + port + ".cert";
-										UnixFile certFile = new UnixFile(pkiVostsDirectory, certFilename, false);
-										if(!certFile.getStat().exists()) {
-											if(isFine) logger.fine("Creating default cert symlink: " + certFile.getPath() + "->" + DEFAULT_CERT_SYMLINK);
-											certFile.symLink(DEFAULT_CERT_SYMLINK);
+										UnixPath tlsCertFile = cib.getTlsCertFile();
+										if(tlsCertFile != null) {
+											out.print(serviceName).print("_tls_cert_file: ").print(tlsCertFile).print('\n');
 										}
-										vhostsFiles.add(certFilename);
-										out.print(serviceName).print("_tls_cert_file: ").print(certFile.getPath()).print('\n');
-
-										// key file
-										String keyFilename = protocol + "_" + ipAddress.toString() + "_" + port + ".key";
-										UnixFile keyFile = new UnixFile(pkiVostsDirectory, keyFilename, false);
-										if(!keyFile.getStat().exists()) {
-											if(isFine) logger.fine("Creating default key symlink: " + keyFile.getPath() + "->" + DEFAULT_KEY_SYMLINK);
-											keyFile.symLink(DEFAULT_KEY_SYMLINK);
+										UnixPath tlsKeyFile = cib.getTlsKeyFile();
+										if(tlsKeyFile != null) {
+											out.print(serviceName).print("_tls_key_file: ").print(tlsKeyFile).print('\n');
 										}
-										vhostsFiles.add(keyFilename);
-										out.print(serviceName).print("_tls_key_file: ").print(keyFile.getPath()).print('\n');
-
-										// ca file
-										String caFilename = protocol + "_" + ipAddress.toString() + "_" + port + ".ca";
-										UnixFile caFile = new UnixFile(pkiVostsDirectory, caFilename, false);
-										if(!caFile.getStat().exists()) {
-											if(isFine) logger.fine("Creating default ca symlink: " + caFile.getPath() + "->" + DEFAULT_CA_SYMLINK);
-											caFile.symLink(DEFAULT_CA_SYMLINK);
+										UnixPath tlsCaFile = cib.getTlsCaFile();
+										if(tlsCaFile != null) {
+											out.print(serviceName).print("_tls_ca_file: ").print(tlsCaFile).print('\n');
 										}
-										vhostsFiles.add(caFilename);
-										out.print(serviceName).print("_tls_ca_file: ").print(caFile.getPath()).print('\n');
+										DomainName servername = cib.getServername();
+										if(servername != null) {
+											out.print(serviceName).print("_servername: ").print(servername).print('\n');
+										}
+										Boolean allowPlaintextAuth = cib.getAllowPlaintextAuth();
+										if(allowPlaintextAuth != null) {
+											if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+												out.print(serviceName).print("_allowplainwithouttls: ").print(allowPlaintextAuth ? "yes" : "no").print('\n');
+											} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+												out.print(serviceName).print("_allowplaintext: ").print(allowPlaintextAuth ? "yes" : "no").print('\n');
+											} else {
+												throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+											}
+										}
 									}
 									out.print("\n"
-											+ "# Performance\n"
-											+ "expunge_mode: delayed\n"
-											+ "hashimapspool: true\n"
+											+ "# Performance\n");
+
+									float deleteDuration = cyrusServer.getDeleteDuration();
+									if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+										out.print("delete_mode: ").print(Float.isNaN(deleteDuration) ? "immediate" : "delayed").print('\n');
+									} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+										if(!Float.isNaN(deleteDuration)) throw new SQLException("Delayed delete is not supported on " + osv);
+									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+
+									float expungeDuration = cyrusServer.getExpungeDuration();
+									if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+										out.print("expunge_mode: ").print(Float.isNaN(expungeDuration) ? "default" : "delayed").print('\n');
+										if(!Float.isNaN(expungeDuration)) {
+											int expungeDays;
+											{
+												CyrusImapdServer.TimeUnit expungeUnit = cyrusServer.getExpungeDurationUnit();
+												if(expungeUnit == null) expungeUnit = CyrusImapdServer.TimeUnit.DAYS;
+												expungeDays = expungeUnit.getDays(expungeDuration);
+											}
+											if(expungeDays < 7) expungeDays = 7;
+											out.print("expunge_days: ").print(expungeDays).print('\n');
+										}
+									} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+										out.print("expunge_mode: ").print(Float.isNaN(expungeDuration) ? "immediate" : "delayed").print('\n');
+									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+
+									out.print("hashimapspool: true\n"
 											+ "\n"
 											+ "# Outlook compatibility\n"
 											+ "flushseenstate: yes\n"
@@ -813,7 +931,10 @@ final public class ImapManager extends BuilderThread {
 											+ "umask: 022\n"
 											+ "\n"
 											+ "# Proper hostname in chroot fail-over state\n"
-											+ "servername: ").print(thisAOServer.getHostname()).print("\n"
+											+ "servername: ");
+									DomainName servername = cyrusServer.getServername();
+									if(servername == null) servername = thisAOServer.getHostname();
+									out.print(servername).print("\n"
 											+ "\n"
 											+ "# Sieve\n"
 											+ "sievedir: /var/lib/imap/sieve\n"
@@ -833,34 +954,6 @@ final public class ImapManager extends BuilderThread {
 									)
 								) {
 									needsReload[0] = true;
-								}
-							}
-
-							// Remove default links in /etc/pki/cyrus-imapd/vhosts that are no longer used
-							String[] list = pkiVostsDirectory.list();
-							if(list != null) {
-								for(String filename : list) {
-									if(
-										!"README.txt".equals(filename)
-										&& !vhostsFiles.contains(filename)
-									) {
-										UnixFile vhostsFile = new UnixFile(pkiVostsDirectory, filename, false);
-										if(vhostsFile.getStat().isSymLink()) {
-											String target = vhostsFile.readLink();
-											if(
-												target.equals(DEFAULT_CERT_SYMLINK)
-												|| target.equals(DEFAULT_KEY_SYMLINK)
-												|| target.equals(DEFAULT_CA_SYMLINK)
-											) {
-												if(isFine) logger.fine("Deleting default symlink: " + vhostsFile.getPath() + "->" + target);
-												vhostsFile.delete();
-											} else {
-												// Warn here to help admin keep clean?
-											}
-										} else {
-											// Warn here to help admin keep clean?
-										}
-									}
 								}
 							}
 
@@ -1792,6 +1885,8 @@ final public class ImapManager extends BuilderThread {
 					AOServConnector conn = AOServDaemon.getConnector();
 					imapManager = new ImapManager();
 					conn.getAoServers().addTableListener(imapManager, 0);
+					conn.getCyrusImapdBinds().addTableListener(imapManager, 0);
+					conn.getCyrusImapdServers().addTableListener(imapManager, 0);
 					conn.getIpAddresses().addTableListener(imapManager, 0);
 					conn.getLinuxAccounts().addTableListener(imapManager, 0);
 					conn.getLinuxServerAccounts().addTableListener(imapManager, 0);
@@ -1818,19 +1913,7 @@ final public class ImapManager extends BuilderThread {
 		LinuxServerAccount lsa = thisAOServer.getLinuxServerAccount(username);
 		if(lsa == null) throw new SQLException("Unable to find LinuxServerAccount: " + username + " on " + thisAOServer);
 		long[] sizes = new long[folderNames.length];
-		if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-			for(int c = 0; c < folderNames.length; c++) {
-				String folderName = folderNames[c];
-				if(folderName.contains("..")) sizes[c] = -1;
-				else {
-					File folderFile;
-					if(folderName.equals("INBOX")) folderFile = new File(mailSpool, username.toString());
-					else folderFile = new File(new File(lsa.getHome().toString(), "Mail"), folderName);
-					if(folderFile.exists()) sizes[c] = folderFile.length();
-					else sizes[c] = -1;
-				}
-			}
-		} else if(
+		if(
 			osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 		) {
@@ -1846,56 +1929,6 @@ final public class ImapManager extends BuilderThread {
 			}
 		} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 		return sizes;
-	}
-
-	public static void setImapFolderSubscribed(UserId username, String folderName, boolean subscribed) throws IOException, SQLException {
-		AOServer thisAoServer = AOServDaemon.getThisAOServer();
-		int uid_min = thisAoServer.getUidMin().getId();
-		int gid_min = thisAoServer.getGidMin().getId();
-		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
-		int osvId = osv.getPkey();
-		LinuxServerAccount lsa = thisAoServer.getLinuxServerAccount(username);
-		if(lsa == null) throw new SQLException("Unable to find LinuxServerAccount: " + username + " on " + thisAoServer);
-		if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-			UnixFile mailboxlist = new UnixFile(lsa.getHome().toString(), ".mailboxlist");
-			List<String> lines = new ArrayList<>();
-			boolean currentlySubscribed = false;
-			if(mailboxlist.getStat().exists()) {
-				try (BufferedReader in = new BufferedReader(new InputStreamReader(mailboxlist.getSecureInputStream(uid_min, gid_min)))) {
-					String line;
-					while((line = in.readLine()) != null) {
-						lines.add(line);
-						if(line.equals(folderName)) currentlySubscribed = true;
-					}
-				}
-			}
-			if(subscribed != currentlySubscribed) {
-				try (PrintWriter out = new PrintWriter(mailboxlist.getSecureOutputStream(lsa.getUid().getId(), lsa.getPrimaryLinuxServerGroup().getGid().getId(), 0644, true, uid_min, gid_min))) {
-					for (String line : lines) {
-						if(subscribed || !line.equals(folderName)) {
-							// Only print if the folder still exists
-							if(
-								line.equals("INBOX")
-								|| line.equals("Drafts")
-								|| line.equals("Trash")
-								|| line.equals("Junk")
-							) {
-								out.println(line);
-							} else {
-								File folderFile = new File(new File(lsa.getHome().toString(), "Mail"), line);
-								if(folderFile.exists()) out.println(line);
-							}
-						}
-					}
-					if(subscribed) out.println(folderName);
-				}
-			}
-		} else if(
-			osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-			|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
-		) {
-			throw new SQLException("Cyrus folders should be subscribed/unsubscribed from IMAP directly because subscribe list is stored per user basis.");
-		} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 	}
 
 	static class Annotation {
@@ -2101,9 +2134,7 @@ final public class ImapManager extends BuilderThread {
 		AOServer thisAOServer=AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
-		if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-			return new File(mailSpool, username.toString()).length();
-		} else if(
+		if(
 			osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 		) {
@@ -2118,8 +2149,6 @@ ad GETANNOTATION user/cyrus.test/Junk@suspendo.aoindustries.com "*" "value.share
 * ANNOTATION "user/cyrus.test/Junk@suspendo.aoindustries.com" "/vendor/cmu/cyrus-imapd/partition" ("value.shared" "default")
 ad OK Completed
 */
-		} else if(osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-			return 0;
 		} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 	}
 
@@ -2127,9 +2156,7 @@ ad OK Completed
 		AOServer thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
-		if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-			return new File(mailSpool, username.toString()).lastModified();
-		} else if(
+		if(
 			osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 		) {
@@ -2239,9 +2266,6 @@ ad OK Completed
 				closeStore();
 				throw err;
 			}
-		} else if(osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64) {
-			// Not an IMAP server, consistent with File.lastModified() above
-			return 0L;
 		} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 	}
 
