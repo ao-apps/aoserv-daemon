@@ -888,17 +888,6 @@ final public class AOServDaemonServerThread extends Thread {
 								out.write(AOServDaemonProtocol.DONE);
 							}
 							break;
-						case AOServDaemonProtocol.SET_IMAP_FOLDER_SUBSCRIBED :
-							{
-								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing SET_IMAP_FOLDER_SUBSCRIBED, Thread="+toString());
-								UserId username=UserId.valueOf(in.readUTF());
-								String folderName=in.readUTF();
-								boolean subscribed=in.readBoolean();
-								if(daemonKey==null) throw new IOException("Only the master server may SET_IMAP_FOLDER_SUBSCRIBED");
-								ImapManager.setImapFolderSubscribed(username, folderName, subscribed);
-								out.write(AOServDaemonProtocol.DONE);
-							}
-							break;
 						case AOServDaemonProtocol.SET_LINUX_SERVER_ACCOUNT_PASSWORD :
 							{
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing SET_LINUX_SERVER_ACCOUNT_PASSWORD, Thread="+toString());
