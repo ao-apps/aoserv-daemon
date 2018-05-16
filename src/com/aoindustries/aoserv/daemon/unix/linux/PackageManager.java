@@ -78,6 +78,7 @@ public class PackageManager {
 		LSOF("lsof"),
 		MAJORDOMO("majordomo"),
 		MOD_SSL("mod_ssl"),
+		MOD_WSGI("mod_wsgi"),
 		MRTG("mrtg"),
 		NET_TOOLS("net-tools"),
 		OPENSSH_SERVER("openssh-server"),

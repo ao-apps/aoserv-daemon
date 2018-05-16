@@ -39,6 +39,7 @@ import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.NotImplementedException;
 import com.aoindustries.lang.ObjectUtils;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.Port;
@@ -1444,11 +1445,20 @@ public class HttpdServerManager {
 				}
 			}
 			// Install mod_ssl when first needed
-			if(hasSsl) PackageManager.installPackage(PackageManager.PackageName.MOD_SSL);
-			boolean isModSslInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.MOD_SSL) != null;
-			if(hasSsl || isModSslInstalled) {
+			final boolean modSslInstalled;
+			if(hasSsl) {
+				PackageManager.installPackage(PackageManager.PackageName.MOD_SSL);
+				modSslInstalled = true;
+			} else {
+				modSslInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.MOD_SSL) != null;
+			}
+			if(modSslInstalled) {
 				if(!hasSsl) out.print('#');
 				out.print("LoadModule ssl_module modules/mod_ssl.so\n");
+			}
+			Boolean mod_wsgi = hs.getModWsgi();
+			if(mod_wsgi != null && mod_wsgi) {
+				throw new NotImplementedException("mod_wsdl support is not implemented on CentOS 5");
 			}
 			if(isEnabled && phpVersion != null) {
 				hasAnyModPhp[0] = true;
@@ -1606,6 +1616,7 @@ public class HttpdServerManager {
 			Boolean mod_access_compat = hs.getModAccessCompat();
 			if(mod_access_compat == null) {
 				// Enabled when aoserv-httpd-config-compat package is installed
+				// TODO: Manually set where this package is installed and no longer key off this package being installed
 				mod_access_compat = PackageManager.getInstalledPackage(PackageManager.PackageName.AOSERV_HTTPD_CONFIG_COMPAT) != null;
 			}
 			if(!mod_access_compat) out.print("# ");
@@ -1870,9 +1881,14 @@ public class HttpdServerManager {
 				}
 				mod_jk = hasJkSettings;
 			}
-			if(mod_jk) PackageManager.installPackage(PackageManager.PackageName.TOMCAT_CONNECTORS);
-			boolean isModJkInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.TOMCAT_CONNECTORS) != null;
-			if(mod_jk || isModJkInstalled) {
+			final boolean modJkInstalled;
+			if(mod_jk) {
+				PackageManager.installPackage(PackageManager.PackageName.TOMCAT_CONNECTORS);
+				modJkInstalled = true;
+			} else {
+				modJkInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.TOMCAT_CONNECTORS) != null;
+			}
+			if(modJkInstalled) {
 				if(!mod_jk) out.print("# ");
 				out.print("LoadModule jk_module modules/mod_jk.so\n");
 			}
@@ -2029,9 +2045,14 @@ public class HttpdServerManager {
 			out.print("LoadModule socache_shmcb_module modules/mod_socache_shmcb.so\n"
 					+ "# LoadModule speling_module modules/mod_speling.so\n");
 
-			if(mod_ssl) PackageManager.installPackage(PackageManager.PackageName.MOD_SSL);
-			boolean isModSslInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.MOD_SSL) != null;
-			if(mod_ssl || isModSslInstalled) {
+			final boolean modSslInstalled;
+			if(mod_ssl) {
+				PackageManager.installPackage(PackageManager.PackageName.MOD_SSL);
+				modSslInstalled = true;
+			} else {
+				modSslInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.MOD_SSL) != null;
+			}
+			if(modSslInstalled) {
 				if(!mod_ssl) out.print("# ");
 				out.print("LoadModule ssl_module modules/mod_ssl.so\n");
 			}
@@ -2053,8 +2074,24 @@ public class HttpdServerManager {
 					+ "# LoadModule usertrack_module modules/mod_usertrack.so\n"
 					+ "# LoadModule version_module modules/mod_version.so\n"
 					+ "# LoadModule vhost_alias_module modules/mod_vhost_alias.so\n"
-					+ "# LoadModule watchdog_module modules/mod_watchdog.so\n"
-					+ "\n"
+					+ "# LoadModule watchdog_module modules/mod_watchdog.so\n");
+			final boolean modWsgiEnabled;
+			{
+				Boolean mod_wsgi = hs.getModWsgi();
+				modWsgiEnabled = mod_wsgi != null && mod_wsgi;
+			}
+			final boolean modWsgiInstalled;
+			if(modWsgiEnabled) {
+				PackageManager.installPackage(PackageManager.PackageName.MOD_WSGI);
+				modWsgiInstalled = true;
+			} else {
+				modWsgiInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.MOD_WSGI) != null;
+			}
+			if(modWsgiInstalled) {
+				if(!modWsgiEnabled) out.print("# ");
+				out.print("LoadModule wsgi_module modules/mod_wsgi.so\n");
+			}
+			out.print("\n"
 					+ "#\n"
 					+ "# Configure Modules\n"
 					+ "#\n"
@@ -2064,7 +2101,7 @@ public class HttpdServerManager {
 			if(escapedName != null) out.print('@').print(escapedName);
 			out.print("/lockdb\n"
 					+ "</IfModule>\n");
-			if(mod_jk || isModJkInstalled) {
+			if(mod_jk || modJkInstalled) {
 				out.print("<IfModule jk_module>\n"
 						+ "    JkWorkersFile \"conf/workers");
 				if(escapedName != null) out.print('@').print(escapedName);
@@ -2082,7 +2119,7 @@ public class HttpdServerManager {
 			if(escapedName != null) out.print('@').print(escapedName);
 			out.print("/access_log\" combined\n"
 					+ "</IfModule>\n");
-			if(mod_ssl || isModSslInstalled) {
+			if(mod_ssl || modSslInstalled) {
 				out.print("<IfModule ssl_module>\n"
 						+ "    SSLSessionCache shmcb:/run/httpd");
 				if(escapedName != null) out.print('@').print(escapedName);
