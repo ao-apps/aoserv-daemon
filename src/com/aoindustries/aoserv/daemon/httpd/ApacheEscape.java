@@ -5,8 +5,6 @@
  */
 package com.aoindustries.aoserv.daemon.httpd;
 
-import com.aoindustries.aoserv.client.OperatingSystemVersion;
-
 /**
  * Escapes arbitrary values for use in Apache directives.
  *
@@ -17,18 +15,17 @@ class ApacheEscape {
 	/**
 	 * Escapes arbitrary text to be used in an Apache directive.
 	 * Adds double quotes as-needed.  Please note that '$' is also
-	 * escaped, so this might not be appropriate in <code>RewriteRule</code>
-	 * or <code>${variable}</code> substitutions.
+	 * escaped when found in form <code>${variable}</code>, so this might not be
+	 * appropriate for <code>${variable}</code> substitutions.
 	 * <p>
 	 * Please note, the dollar escaping relies on Apache being configured with
-	 * <code>Define $ $</code>, as it is performed with a <code>${$}</code> hack.
-	 * This is set in the aoserv-httpd-config package, in <code>core.inc</code>.
+	 * <code>Define &lt;dollarVariable&gt; $</code>, as it is performed with a <code>${dollarVariable}</code> hack.
 	 * </p>
 	 *
-	 * @see  #escape(com.aoindustries.aoserv.client.OperatingSystemVersion, java.lang.String, boolean)
+	 * @see  #escape(java.lang.String, java.lang.String, boolean)
 	 */
-	static String escape(OperatingSystemVersion osv, String value) {
-		return escape(osv, value, true);
+	static String escape(String dollarVariable, String value) {
+		return escape(dollarVariable, value, false);
 	}
 
 	/**
@@ -49,9 +46,9 @@ class ApacheEscape {
 	 *
 	 * @return  the escaped string or the original string when no escaping required
 	 *
-	 * @see  #escape(com.aoindustries.aoserv.client.OperatingSystemVersion, java.lang.String)
+	 * @see  #escape(java.lang.String, java.lang.String)
 	 */
-	static String escape(OperatingSystemVersion osv, String value, boolean escapeDollar) {
+	static String escape(String dollarVariable, String value, boolean allowVariables) {
 		int len = value.length();
 		StringBuilder sb = null; // Created when first needed
 		boolean quoted = false;
@@ -83,25 +80,61 @@ class ApacheEscape {
 				throw new IllegalArgumentException("Control character not allowed in Apache directives: " + (int)ch);
 			}
 			// Escape "$" when dollar escaping enabled and followed by '{'
-			// TODO: Do not escape when has no closing } or has a colon in the name (as used by RewriteCond)
 			else if(
 				ch == '$'
-				&& escapeDollar
+				&& !allowVariables
 				&& i < (len - 1)
 				&& value.charAt(i + 1) == '{'
 			) {
-				if(osv.getPkey() == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-					throw new IllegalArgumentException("Unable to escape \"${\" on " + osv + ": " + value);
+				// Find name of variable
+				int endPos = value.indexOf('}', i + 2);
+				if(
+					// No closing } found, no escape needed
+					endPos == -1
+					// Empty variable name, no escape needed
+					|| endPos == (i + 2)
+				) {
+					if(sb != null) sb.append('$');
+				} else {
+					int colonPos = value.indexOf(':', i + 2);
+					if(colonPos != -1 && colonPos < endPos) {
+						// Colon in name, don't escape variable
+						if(sb != null) sb.append('$');
+					} else {
+						if(dollarVariable == null) {
+							throw new IllegalArgumentException("Unable to escape \"${\", no dollarVariable: " + value);
+						}
+						if(sb == null) sb = new StringBuilder(len * 2).append(value, 0, i);
+						sb.append("${").append(dollarVariable).append('}'); // Relies on "Define <dollarVariable> $" set in configuration files.
+					}
 				}
-				if(sb == null) sb = new StringBuilder(len * 2).append(value, 0, i);
-				sb.append("${$}"); // Relies on "Define $ $" set in configuration files.
 			}
-			// Characters that are backslash-escaped, enabled double-quoting
-			// TODO: Can we reliably allow backslashes to be used without quoting the value?
-			else if(
-				ch == '"'
-				|| ch == '\\'
-			) {
+			// Backslashes are only escaped when followed by another backslash, a double quote, or
+			// are at the end of the value.  Furthermore, when at the end, the value is double-quoted
+			// to avoid possible line continuation
+			else if(ch == '\\') {
+				if(i == (len - 1)) {
+					// Is the last character, double-quote and escape
+					if(sb == null) sb = new StringBuilder(len * 2).append(value, 0, i);
+					if(!quoted) {
+						sb.insert(0, '"');
+						quoted = true;
+					}
+					sb.append("\\\\");
+				} else {
+					char next = value.charAt(i + 1);
+					if(next == '\\' || next == '"') {
+						// Followed by \ or ", escape only
+						if(sb == null) sb = new StringBuilder(len * 2).append(value, 0, i);
+						sb.append("\\\\");
+					} else {
+						// No escape required
+						if(sb != null) sb.append(ch);
+					}
+				}
+			}
+			// Characters that are backslash-escaped, enables double-quoting
+			else if(ch == '"') {
 				if(sb == null) sb = new StringBuilder(len * 2).append(value, 0, i);
 				if(!quoted) {
 					sb.insert(0, '"');
