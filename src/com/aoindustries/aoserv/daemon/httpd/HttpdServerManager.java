@@ -26,6 +26,7 @@ import com.aoindustries.aoserv.client.LinuxServerGroup;
 import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Protocol;
+import com.aoindustries.aoserv.client.SslCertificate;
 import com.aoindustries.aoserv.client.TechnologyVersion;
 import com.aoindustries.aoserv.client.validator.GroupId;
 import com.aoindustries.aoserv.client.validator.UnixPath;
@@ -1470,7 +1471,7 @@ public class HttpdServerManager {
 			HAS_SSL :
 			for(HttpdSite site : sites) {
 				for(HttpdSiteBind hsb : site.getHttpdSiteBinds(hs)) {
-					if(hsb.getSslCertFile() != null) {
+					if(Protocol.HTTPS.equals(hsb.getHttpdBind().getNetBind().getAppProtocol().getProtocol())) {
 						hasSsl = true;
 						break HAS_SSL;
 					}
@@ -2057,7 +2058,7 @@ public class HttpdServerManager {
 				HAS_SSL :
 				for(HttpdSite site : sites) {
 					for(HttpdSiteBind hsb : site.getHttpdSiteBinds(hs)) {
-						if(hsb.getSslCertFile() != null) {
+						if(Protocol.HTTPS.equals(hsb.getHttpdBind().getNetBind().getAppProtocol().getProtocol())) {
 							hasSsl = true;
 							break HAS_SSL;
 						}
@@ -2423,13 +2424,14 @@ public class HttpdServerManager {
 							+ "    CustomLog ").print(escape(dollarVariable, bind.getAccessLog().toString())).print(" combined\n"
 							+ "    ErrorLog ").print(escape(dollarVariable, bind.getErrorLog().toString())).print("\n"
 							+ "\n");
-					UnixPath sslCert = bind.getSslCertFile();
-					if(sslCert != null) {
+					if(Protocol.HTTPS.equals(netBind.getAppProtocol().getProtocol())) {
+						SslCertificate sslCert = bind.getCertificate();
+						if(sslCert == null) throw new SQLException("SSLCertificate not found for HttpdSiteBind #" + bind.getPkey());
 						// Use any directly configured chain file
 						out.print("    <IfModule mod_ssl.c>\n"
-								+ "        SSLCertificateFile ").print(escape(dollarVariable, sslCert.toString())).print("\n"
-								+ "        SSLCertificateKeyFile ").print(escape(dollarVariable, bind.getSslCertKeyFile().toString())).print('\n');
-						UnixPath sslChain = bind.getSslCertChainFile();
+								+ "        SSLCertificateFile ").print(escape(dollarVariable, sslCert.getCertFile().toString())).print("\n"
+								+ "        SSLCertificateKeyFile ").print(escape(dollarVariable, sslCert.getKeyFile().toString())).print('\n');
+						UnixPath sslChain = sslCert.getChainFile();
 						if(sslChain != null) {
 							out.print("        SSLCertificateChainFile ").print(escape(dollarVariable, sslChain.toString())).print('\n');
 						}
@@ -2520,8 +2522,21 @@ public class HttpdServerManager {
 				}
 				case CENTOS_7_X86_64 : {
 					final String dollarVariable = CENTOS_7_DOLLAR_VARIABLE;
-					UnixPath sslCert = bind.getSslCertFile();
-					final String protocol = sslCert == null ? "http" : "https";
+					final SslCertificate sslCert;
+					final String protocol;
+					{
+						String appProtocol = netBind.getAppProtocol().getProtocol();
+						if(Protocol.HTTP.equals(appProtocol)) {
+							sslCert = null;
+							protocol = "http";
+						} else if(Protocol.HTTPS.equals(appProtocol)) {
+							sslCert = bind.getCertificate();
+							if(sslCert == null) throw new SQLException("SSLCertificate not found for HttpdSiteBind #" + bind.getPkey());
+							protocol = "https";
+						} else {
+							throw new SQLException("Unsupported protocol: " + appProtocol);
+						}
+					}
 					final String siteName = manager.httpdSite.getSiteName();
 					out.print("Define bind.pkey             ").print(bind.getPkey()).print("\n"
 							+ "Define bind.protocol         ").print(escape(dollarVariable, protocol)).print("\n"
@@ -2553,9 +2568,9 @@ public class HttpdServerManager {
 					if(sslCert != null) {
 						// Use any directly configured chain file
 						out.print("    <IfModule ssl_module>\n"
-								+ "        SSLCertificateFile ").print(getEscapedSslPath(dollarVariable, sslCert, primaryHostname)).print("\n"
-								+ "        SSLCertificateKeyFile ").print(getEscapedSslPath(dollarVariable, bind.getSslCertKeyFile(), primaryHostname)).print('\n');
-						UnixPath sslChain = bind.getSslCertChainFile();
+								+ "        SSLCertificateFile ").print(getEscapedSslPath(dollarVariable, sslCert.getCertFile(), primaryHostname)).print("\n"
+								+ "        SSLCertificateKeyFile ").print(getEscapedSslPath(dollarVariable, sslCert.getKeyFile(), primaryHostname)).print('\n');
+						UnixPath sslChain = sslCert.getChainFile();
 						if(sslChain != null) {
 							out.print("        SSLCertificateChainFile ").print(getEscapedSslPath(dollarVariable, sslChain, primaryHostname)).print('\n');
 						}

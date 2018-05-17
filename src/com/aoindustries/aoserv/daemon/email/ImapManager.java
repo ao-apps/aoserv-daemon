@@ -18,6 +18,7 @@ import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.PasswordGenerator;
 import com.aoindustries.aoserv.client.Protocol;
 import com.aoindustries.aoserv.client.Server;
+import com.aoindustries.aoserv.client.SslCertificate;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -824,11 +825,17 @@ final public class ImapManager extends BuilderThread {
 									} else {
 										throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									}
+									SslCertificate certificate = cyrusServer.getCertificate();
+									String chainFile = ObjectUtils.toString(certificate.getChainFile());
+									if(chainFile == null) {
+										// Use operating system default
+										chainFile = "/etc/pki/tls/certs/ca-bundle.crt";
+									}
 									out.print("\n"
 											+ "# SSL/TLS\n"
-											+ "tls_cert_file: ").print(cyrusServer.getTlsCertFile()).print("\n"
-											+ "tls_key_file: ").print(cyrusServer.getTlsKeyFile()).print("\n"
-											+ "tls_ca_file: ").print(cyrusServer.getTlsCaFile()).print("\n");
+											+ "tls_cert_file: ").print(certificate.getCertFile()).print("\n"
+											+ "tls_key_file: ").print(certificate.getKeyFile()).print("\n"
+											+ "tls_ca_file: ").print(chainFile).print("\n");
 									// service-specific certificates
 									//     file:///home/o/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
 									//     value of "disabled='disabled'" if the certificate file doesn't exist (or use server default)
@@ -858,17 +865,14 @@ final public class ImapManager extends BuilderThread {
 												throw new SQLException("Unexpected Protocol: " + appProtocol);
 										}
 
-										UnixPath tlsCertFile = cib.getTlsCertFile();
-										if(tlsCertFile != null) {
-											out.print(serviceName).print("_tls_cert_file: ").print(tlsCertFile).print('\n');
-										}
-										UnixPath tlsKeyFile = cib.getTlsKeyFile();
-										if(tlsKeyFile != null) {
-											out.print(serviceName).print("_tls_key_file: ").print(tlsKeyFile).print('\n');
-										}
-										UnixPath tlsCaFile = cib.getTlsCaFile();
-										if(tlsCaFile != null) {
-											out.print(serviceName).print("_tls_ca_file: ").print(tlsCaFile).print('\n');
+										SslCertificate cibCert = cib.getCertificate();
+										if(cibCert != null) {
+											out.print(serviceName).print("_tls_cert_file: ").print(cibCert.getCertFile()).print('\n');
+											out.print(serviceName).print("_tls_key_file: ").print(cibCert.getKeyFile()).print('\n');
+											UnixPath tlsCaFile = cibCert.getChainFile();
+											if(tlsCaFile != null) {
+												out.print(serviceName).print("_tls_ca_file: ").print(tlsCaFile).print('\n');
+											}
 										}
 										DomainName servername = cib.getServername();
 										if(servername != null) {

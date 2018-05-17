@@ -14,6 +14,7 @@ import com.aoindustries.aoserv.client.Protocol;
 import com.aoindustries.aoserv.client.SendmailBind;
 import com.aoindustries.aoserv.client.SendmailServer;
 import com.aoindustries.aoserv.client.Server;
+import com.aoindustries.aoserv.client.SslCertificate;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -25,6 +26,7 @@ import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.NotImplementedException;
+import com.aoindustries.lang.ObjectUtils;
 import com.aoindustries.net.DomainName;
 import com.aoindustries.net.InetAddress;
 import java.io.ByteArrayOutputStream;
@@ -118,13 +120,27 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl\n"
 				+ "dnl STARTTLS configuration\n"
 				+ "dnl extract from http://www.sendmail.org/~ca/email/starttls.html\n"
-				+ "dnl\n"
-				+ "define(`confCACERT_PATH', `").print(sendmailServer.getCacertPath()).print("')dnl\n"
-				+ "define(`confCACERT', `").print(sendmailServer.getCacert()).print("')dnl\n"
-				+ "define(`confSERVER_CERT', `").print(sendmailServer.getServerCert()).print("')dnl\n"
-				+ "define(`confSERVER_KEY', `").print(sendmailServer.getServerKey()).print("')dnl\n"
-				+ "define(`confCLIENT_CERT', `").print(sendmailServer.getClientCert()).print("')dnl\n"
-				+ "define(`confCLIENT_KEY', `").print(sendmailServer.getClientKey()).print("')dnl\n"
+				+ "dnl\n");
+		SslCertificate serverCertificate = sendmailServer.getServerCertificate();
+		String cacert = ObjectUtils.toString(serverCertificate.getChainFile());
+		String cacertPath;
+		if(cacert == null) {
+			// Use operating system defaults
+			cacertPath = "/etc/ssl/sendmail";
+			cacert = cacertPath + "/CAcert.pem";
+		} else {
+			int slashPos = cacert.lastIndexOf('/');
+			if(slashPos == -1) throw new SQLException("Unable to find slash (/) in cacert: " + cacert);
+			cacertPath = cacert.substring(0, slashPos);
+			if(cacertPath.isEmpty()) throw new SQLException("cacertPath is empty");
+		}
+		out.print("define(`confCACERT_PATH', `").print(cacertPath).print("')dnl\n"
+				+ "define(`confCACERT', `").print(cacert).print("')dnl\n"
+				+ "define(`confSERVER_CERT', `").print(serverCertificate.getCertFile()).print("')dnl\n"
+				+ "define(`confSERVER_KEY', `").print(serverCertificate.getKeyFile()).print("')dnl\n");
+		SslCertificate clientCertificate = sendmailServer.getClientCertificate();
+		out.print("define(`confCLIENT_CERT', `").print(clientCertificate.getCertFile()).print("')dnl\n"
+				+ "define(`confCLIENT_KEY', `").print(clientCertificate.getKeyFile()).print("')dnl\n"
 				+ "dnl\n"
 				+ "dnl Allow relatively high load averages\n");
 		int queueLA = sendmailServer.getQueueLA();
@@ -269,7 +285,15 @@ final public class SendmailCFManager extends BuilderThread {
 			}
 		}
 		IPAddress clientAddrInet = sendmailServer.getClientAddrInet();
+		if(clientAddrInet == null) {
+			// TODO: Automatic client inet address?
+			// TODO: Select primary address, or first if primary not found
+		}
 		IPAddress clientAddrInet6 = sendmailServer.getClientAddrInet6();
+		if(clientAddrInet6 == null) {
+			// TODO: Automatic client inet6 address?
+			// TODO: Select primary address, or first if primary not found
+		}
 		if(clientAddrInet != null || clientAddrInet6 != null) {
 			out.print("dnl\n"
 					+ "dnl Configure outgoing connections:\n");
@@ -409,13 +433,27 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl #     cd /etc/pki/tls/certs; make sendmail.pem\n"
 				+ "dnl # Complete usage:\n"
 				+ "dnl #     make -C /etc/pki/tls/certs usage\n"
-				+ "dnl #\n"
-				+ "define(`confCACERT_PATH', `").print(sendmailServer.getCacertPath()).print("')dnl\n"
-				+ "define(`confCACERT', `").print(sendmailServer.getCacert()).print("')dnl\n"
-				+ "define(`confSERVER_CERT', `").print(sendmailServer.getServerCert()).print("')dnl\n"
-				+ "define(`confSERVER_KEY', `").print(sendmailServer.getServerKey()).print("')dnl\n"
-				+ "define(`confCLIENT_CERT', `").print(sendmailServer.getClientCert()).print("')dnl\n"
-				+ "define(`confCLIENT_KEY', `").print(sendmailServer.getClientKey()).print("')dnl\n"
+				+ "dnl #\n");
+		SslCertificate serverCertificate = sendmailServer.getServerCertificate();
+		String cacert = ObjectUtils.toString(serverCertificate.getChainFile());
+		String cacertPath;
+		if(cacert == null) {
+			// Use operating system defaults
+			cacertPath = "/etc/pki/tls/certs";
+			cacert = cacertPath + "/ca-bundle.crt";
+		} else {
+			int slashPos = cacert.lastIndexOf('/');
+			if(slashPos == -1) throw new SQLException("Unable to find slash (/) in cacert: " + cacert);
+			cacertPath = cacert.substring(0, slashPos);
+			if(cacertPath.isEmpty()) throw new SQLException("cacertPath is empty");
+		}
+		out.print("define(`confCACERT_PATH', `").print(cacertPath).print("')dnl\n"
+				+ "define(`confCACERT', `").print(cacert).print("')dnl\n"
+				+ "define(`confSERVER_CERT', `").print(serverCertificate.getCertFile()).print("')dnl\n"
+				+ "define(`confSERVER_KEY', `").print(serverCertificate.getKeyFile()).print("')dnl\n");
+		SslCertificate clientCertificate = sendmailServer.getClientCertificate();
+		out.print("define(`confCLIENT_CERT', `").print(clientCertificate.getCertFile()).print("')dnl\n"
+				+ "define(`confCLIENT_KEY', `").print(clientCertificate.getKeyFile()).print("')dnl\n"
 				+ "dnl #\n"
 				+ "dnl # Do not add the hostname to incorrectly formatted headers\n"
 				+ "dnl #\n"
