@@ -27,6 +27,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -69,7 +70,9 @@ final public class Fail2banManager extends BuilderThread {
 				Protocol.IMAP2,
 				Protocol.SIMAP,
 				Protocol.SPOP3
-			)
+			),
+			true,
+			null
 		),
 		SENDMAIL_AUTH(
 			"sendmail-auth",
@@ -77,35 +80,59 @@ final public class Fail2banManager extends BuilderThread {
 				Protocol.SMTP,
 				Protocol.SMTPS,
 				Protocol.SUBMISSION
-			)
+			),
+			true,
+			null
+		),
+		SENDMAIL_DISCONNECT(
+			"sendmail-disconnect",
+			getSet(
+				Protocol.SMTP,
+				Protocol.SMTPS,
+				Protocol.SUBMISSION
+			),
+			false,
+			PackageManager.PackageName.FAIL2BAN_FILTER_SENDMAIL_DISCONNECT
 		),
 		SSHD(
 			"sshd",
-			getSet(Protocol.SSH)
+			getSet(Protocol.SSH),
+			true,
+			null
 		);
 
 		private final String name;
-		private final String jaildFilename;
 		private final Set<String> protocols;
+		private final String jaildFilename;
+		private final String removeOldJaildFilename;
+		private final PackageManager.PackageName filterPackage;
 
 		private Jail(
 			String name,
 			Set<String> protocols,
-			String jaildFilename
+			String jaildFilename,
+			String removeOldJaildFilename,
+			PackageManager.PackageName filterPackage
 		) {
 			this.name = name;
 			this.protocols = protocols;
 			this.jaildFilename = jaildFilename;
+			this.removeOldJaildFilename = removeOldJaildFilename;
+			this.filterPackage = filterPackage;
 		}
 
 		private Jail(
 			String name,
-			Set<String> protocols
+			Set<String> protocols,
+			boolean removeOldJaildFile,
+			PackageManager.PackageName filterPackage
 		) {
 			this(
 				name,
 				protocols,
-				"50-" + name + ".conf"
+				"50-" + name + ".local",
+				removeOldJaildFile ? "50-" + name + ".conf" : null,
+				filterPackage
 			);
 		}
 
@@ -125,7 +152,22 @@ final public class Fail2banManager extends BuilderThread {
 		String getJaildFilename() {
 			return jaildFilename;
 		}
+
+		/**
+		 * Used to remove old *.conf files that are now setup as *.local
+		 */
+		String getRemoveOldJaildFilename() {
+			return removeOldJaildFilename;
+		}
+
+		/**
+		 * Any package that needs to be installed to support this filter.
+		 */
+		PackageManager.PackageName getFilterPackage() {
+			return filterPackage;
+		}
 	}
+
 	private static final Object rebuildLock = new Object();
 	@Override
 	protected boolean doRebuild() {
@@ -201,8 +243,13 @@ final public class Fail2banManager extends BuilderThread {
 
 						// Update configuration files if installed
 						if(fail2banInstalled) {
+							// Tracks which additional packages are required by the activated jails
+							EnumSet<PackageManager.PackageName> allFilterPackages = EnumSet.noneOf(PackageManager.PackageName.class);
+							EnumSet<PackageManager.PackageName> requiredPackages = EnumSet.noneOf(PackageManager.PackageName.class);
 							ByteArrayOutputStream bout = new ByteArrayOutputStream();
 							for(Jail jail : jails) {
+								PackageManager.PackageName filterPackage = jail.getFilterPackage();
+								allFilterPackages.add(filterPackage);
 								UnixFile jailUF = new UnixFile(JAIL_D, jail.getJaildFilename(), true);
 								SortedSet<Integer> ports = jailPorts.get(jail);
 								if(ports == null) {
@@ -211,6 +258,13 @@ final public class Fail2banManager extends BuilderThread {
 										updated[0] = true;
 									}
 								} else {
+									// Install any required packages
+									if(filterPackage != null && requiredPackages.add(filterPackage)) {
+										PackageManager.installPackage(
+											filterPackage,
+											() -> updated[0] = true
+										);
+									}
 									bout.reset();
 									try (ChainWriter out = new ChainWriter(bout)) {
 										out.print("#\n");
@@ -235,6 +289,23 @@ final public class Fail2banManager extends BuilderThread {
 										)
 									) {
 										updated[0] = true;
+									}
+								}
+								// Remove any old file that was at *.conf and now moved to *.local
+								String removeOldJaildFilename = jail.getRemoveOldJaildFilename();
+								if(removeOldJaildFilename != null) {
+									UnixFile oldJailUF = new UnixFile(JAIL_D, removeOldJaildFilename, true);
+									if(oldJailUF.getStat().exists()) {
+										oldJailUF.delete();
+										updated[0] = true;
+									}
+								}
+							}
+							// Remove any filter packages that are no longer required
+							if(AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) {
+								for(PackageManager.PackageName filterPackage : allFilterPackages) {
+									if(!requiredPackages.contains(filterPackage)) {
+										PackageManager.removePackage(filterPackage);
 									}
 								}
 							}
