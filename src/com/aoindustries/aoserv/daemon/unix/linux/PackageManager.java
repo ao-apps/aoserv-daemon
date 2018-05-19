@@ -59,6 +59,7 @@ public class PackageManager {
 		CYRUS_IMAPD_AFTER_NETWORK_ONLINE("cyrus-imapd-after-network-online"),
 		CYRUS_SASL("cyrus-sasl"),
 		CYRUS_SASL_PLAIN("cyrus-sasl-plain"),
+		FAIL2BAN_FILTER_CYRUS_IMAP_MORE_SERVICES("fail2ban-filter-cyrus-imap-more-services"),
 		FAIL2BAN_FILTER_SENDMAIL_DISCONNECT("fail2ban-filter-sendmail-disconnect"),
 		FAIL2BAN_FIREWALLD("fail2ban-firewalld"),
 		FAIL2BAN_SERVER("fail2ban-server"),
@@ -602,10 +603,12 @@ public class PackageManager {
 	 * Removes the package with the provided name.  There must be only one
 	 * match for the provided name.  If the RPM is not installed, no action is
 	 * taken.  If more than one version is installed, an exception is thrown.
-	 * 
+	 *
+	 * @return  {@code true} when a package was removed
+	 *
 	 * @see RPM#remove() Call remove on a specific RPM when multiple version may be installed
 	 */
-	public static void removePackage(PackageName name) throws IOException {
+	public static boolean removePackage(PackageName name) throws IOException {
 		if(!AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) throw new IllegalStateException("Package uninstall is disabled in aoserv-daemon.properties");
 		synchronized(packagesLock) {
 			List<RPM> matches = new ArrayList<>();
@@ -615,6 +618,9 @@ public class PackageManager {
 			if(!matches.isEmpty()) {
 				if(matches.size() > 1) throw new IOException("More than one installed RPM matches, refusing to remove: " + name);
 				matches.get(0).remove();
+				return true;
+			} else {
+				return false;
 			}
 		}
 	}

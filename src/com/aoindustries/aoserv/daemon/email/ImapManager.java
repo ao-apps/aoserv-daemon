@@ -24,6 +24,7 @@ import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
+import com.aoindustries.aoserv.daemon.net.fail2ban.Fail2banManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
@@ -371,6 +372,24 @@ final public class ImapManager extends BuilderThread {
 	}
 
 	/**
+	 * Determines if the Cyrus configuration has any secondary service names.
+	 * This will trigger the installation of the {@link PackageManager.PackageName#FAIL2BAN_FILTER_CYRUS_IMAP_MORE_SERVICES}
+	 * package.
+	 *
+	 * @see  Fail2banManager
+	 */
+	public static boolean hasSecondaryService() throws IOException, SQLException {
+		CyrusImapdServer cyrusServer = AOServDaemon.getThisAOServer().getCyrusImapdServer();
+		if(cyrusServer != null) {
+			Set<Protocol> foundProtocols = new HashSet<>();
+			for(CyrusImapdBind cib : cyrusServer.getCyrusImapdBinds()) {
+				if(!foundProtocols.add(cib.getNetBind().getAppProtocol())) return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Gets the Cyrus protocol for the given protocl and address family.
 	 */
 	private static String getCyrusProtocol(com.aoindustries.net.Protocol protocol, AddressFamily family) {
@@ -552,7 +571,7 @@ final public class ImapManager extends BuilderThread {
 												NetBind imapBind = cib.getNetBind();
 												Port port = imapBind.getPort();
 												if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("imap requires TCP protocol");
-												String serviceName = generateServiceName("imap", "imap", counter++);
+												String serviceName = generateServiceName("imap", "imap_", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
 												InetAddress ia = imapBind.getIPAddress().getInetAddress();
@@ -584,7 +603,7 @@ final public class ImapManager extends BuilderThread {
 												NetBind imapsBind = cib.getNetBind();
 												Port port = imapsBind.getPort();
 												if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("imaps requires TCP protocol");
-												String serviceName = generateServiceName("imaps", "imaps", counter++);
+												String serviceName = generateServiceName("imaps", "imaps_", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
 												InetAddress ia = imapsBind.getIPAddress().getInetAddress();
@@ -615,7 +634,7 @@ final public class ImapManager extends BuilderThread {
 												NetBind pop3Bind = cib.getNetBind();
 												Port port = pop3Bind.getPort();
 												if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("pop3 requires TCP protocol");
-												String serviceName = generateServiceName("pop3", "pop3n", counter++);
+												String serviceName = generateServiceName("pop3", "pop3_", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
 												InetAddress ia = pop3Bind.getIPAddress().getInetAddress();
@@ -647,7 +666,7 @@ final public class ImapManager extends BuilderThread {
 												NetBind pop3sBind = cib.getNetBind();
 												Port port = pop3sBind.getPort();
 												if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("pop3s requires TCP protocol");
-												String serviceName = generateServiceName("pop3s", "pop3s", counter++);
+												String serviceName = generateServiceName("pop3s", "pop3s_", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
 												InetAddress ia = pop3sBind.getIPAddress().getInetAddress();

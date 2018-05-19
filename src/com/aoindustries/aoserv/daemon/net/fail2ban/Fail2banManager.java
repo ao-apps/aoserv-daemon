@@ -15,6 +15,7 @@ import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
+import com.aoindustries.aoserv.daemon.email.ImapManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
@@ -243,6 +244,8 @@ final public class Fail2banManager extends BuilderThread {
 
 						// Update configuration files if installed
 						if(fail2banInstalled) {
+							// Install package to handle secondary IMAP/POP3 services as-needed
+							boolean hasSecondaryCyrusImapService = false;
 							// Tracks which additional packages are required by the activated jails
 							EnumSet<PackageManager.PackageName> allFilterPackages = EnumSet.noneOf(PackageManager.PackageName.class);
 							EnumSet<PackageManager.PackageName> requiredPackages = EnumSet.noneOf(PackageManager.PackageName.class);
@@ -264,6 +267,15 @@ final public class Fail2banManager extends BuilderThread {
 											filterPackage,
 											() -> updated[0] = true
 										);
+									}
+									if(jail == Jail.CYRUS_IMAP) {
+										hasSecondaryCyrusImapService = ImapManager.hasSecondaryService();
+										if(hasSecondaryCyrusImapService) {
+											PackageManager.installPackage(
+												PackageManager.PackageName.FAIL2BAN_FILTER_CYRUS_IMAP_MORE_SERVICES,
+												() -> updated[0] = true
+											);
+										}
 									}
 									bout.reset();
 									try (ChainWriter out = new ChainWriter(bout)) {
@@ -305,8 +317,14 @@ final public class Fail2banManager extends BuilderThread {
 							if(AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) {
 								for(PackageManager.PackageName filterPackage : allFilterPackages) {
 									if(!requiredPackages.contains(filterPackage)) {
-										PackageManager.removePackage(filterPackage);
+										if(PackageManager.removePackage(filterPackage)) {
+											updated[0] = true;
+										}
 									}
+								}
+								// No secondary IMAP/POP3 services
+								if(!hasSecondaryCyrusImapService && PackageManager.removePackage(PackageManager.PackageName.FAIL2BAN_FILTER_CYRUS_IMAP_MORE_SERVICES)) {
+									updated[0] = true;
 								}
 							}
 						}
