@@ -16,6 +16,7 @@ import com.aoindustries.aoserv.client.NetDevice;
 import com.aoindustries.aoserv.client.PostgresDatabase;
 import com.aoindustries.aoserv.client.PostgresServer;
 import com.aoindustries.aoserv.client.PostgresServerUser;
+import com.aoindustries.aoserv.client.SslCertificate;
 import com.aoindustries.aoserv.client.validator.HashedPassword;
 import com.aoindustries.aoserv.client.validator.MySQLDatabaseName;
 import com.aoindustries.aoserv.client.validator.MySQLServerName;
@@ -46,6 +47,7 @@ import com.aoindustries.aoserv.daemon.postgres.PostgresUserManager;
 import com.aoindustries.aoserv.daemon.server.PhysicalServerManager;
 import com.aoindustries.aoserv.daemon.server.ServerManager;
 import com.aoindustries.aoserv.daemon.server.VirtualServerManager;
+import com.aoindustries.aoserv.daemon.ssl.SslCertificateManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.io.CompressedDataInputStream;
 import com.aoindustries.io.CompressedDataOutputStream;
@@ -79,6 +81,7 @@ final public class AOServDaemonServerThread extends Thread {
 	 * The set of supported versions, with the most preferred versions first.
 	 */
 	private static final AOServDaemonProtocol.Version[] SUPPORTED_VERSIONS = {
+		AOServDaemonProtocol.Version.VERSION_1_81_10,
 		AOServDaemonProtocol.Version.VERSION_1_80_1,
 		AOServDaemonProtocol.Version.VERSION_1_80_0,
 		AOServDaemonProtocol.Version.VERSION_1_77
@@ -527,6 +530,25 @@ final public class AOServDaemonServerThread extends Thread {
 								String result = NetDeviceManager.checkSmtpBlacklist(sourceIp, connectIp);
 								out.write(AOServDaemonProtocol.DONE);
 								out.writeUTF(result);
+							}
+							break;
+						case AOServDaemonProtocol.CHECK_SSL_CERTIFICATE :
+							{
+								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing CHECK_SSL_CERTIFICATE, Thread="+toString());
+								int pkey = in.readCompressedInt();
+								if(daemonKey==null) throw new IOException("Only the master server may CHECK_SSL_CERTIFICATE");
+								SslCertificate certificate = connector.getSslCertificates().get(pkey);
+								if(certificate == null) throw new SQLException("Unable to find SslCertificate: " + pkey);
+								List<SslCertificate.Check> results = SslCertificateManager.checkSslCertificate(certificate);
+								out.write(AOServDaemonProtocol.NEXT);
+								int size = results.size();
+								out.writeCompressedInt(size);
+								for(int i = 0; i < size; i++) {
+									SslCertificate.Check check = results.get(i);
+									out.writeUTF(check.getCheck());
+									out.writeUTF(check.getResult());
+									out.writeUTF(check.getAlertLevel().name());
+								}
 							}
 							break;
 						case AOServDaemonProtocol.GET_AO_SERVER_SYSTEM_TIME_MILLIS :
