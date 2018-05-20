@@ -28,6 +28,7 @@ import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.NotImplementedException;
 import com.aoindustries.lang.ObjectUtils;
+import com.aoindustries.net.AddressFamily;
 import com.aoindustries.net.DomainName;
 import com.aoindustries.net.InetAddress;
 import java.io.ByteArrayOutputStream;
@@ -207,13 +208,14 @@ final public class SendmailCFManager extends BuilderThread {
 		out.print("define(`confPROCESS_TITLE_PREFIX',`").print(hostname).print("')dnl\n"
 				+ "dnl\n");
 		// Look for the configured net bind for the jilter
+		IPAddress primaryIpAddress = thisAoServer.getPrimaryIPAddress();
 		NetBind jilterNetBind = JilterConfigurationWriter.getJilterNetBind();
 		// Only configure when the net bind has been found
 		if(jilterNetBind != null) {
 			out.print("dnl Enable Jilter\n"
 					+ "dnl\n");
 			InetAddress ip = jilterNetBind.getIPAddress().getInetAddress();
-			if(ip.isUnspecified()) ip = thisAoServer.getPrimaryIPAddress().getInetAddress();
+			if(ip.isUnspecified()) ip = primaryIpAddress.getInetAddress();
 			out
 				.print("INPUT_MAIL_FILTER(`jilter',`S=")
 				.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
@@ -303,15 +305,7 @@ final public class SendmailCFManager extends BuilderThread {
 			}
 		}
 		IPAddress clientAddrInet = sendmailServer.getClientAddrInet();
-		if(clientAddrInet == null) {
-			// TODO: Automatic client inet address?
-			// TODO: Select primary address, or first if primary not found
-		}
 		IPAddress clientAddrInet6 = sendmailServer.getClientAddrInet6();
-		if(clientAddrInet6 == null) {
-			// TODO: Automatic client inet6 address?
-			// TODO: Select primary address, or first if primary not found
-		}
 		if(clientAddrInet != null || clientAddrInet6 != null) {
 			out.print("dnl\n"
 					+ "dnl Configure outgoing connections:\n");
@@ -593,6 +587,7 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "FEATURE(`blacklist_recipients')dnl\n"
 				+ "EXPOSED_USER(`root')dnl\n");
 		// Look for the configured net bind for the jilter
+		IPAddress primaryIpAddress = thisAoServer.getPrimaryIPAddress();
 		NetBind jilterNetBind = JilterConfigurationWriter.getJilterNetBind();
 		// Only configure when the net bind has been found
 		if(jilterNetBind != null) {
@@ -600,7 +595,7 @@ final public class SendmailCFManager extends BuilderThread {
 					+ "dnl # Enable AOServ Jilter\n"
 					+ "dnl #\n");
 			InetAddress ip = jilterNetBind.getIPAddress().getInetAddress();
-			if(ip.isUnspecified()) ip = thisAoServer.getPrimaryIPAddress().getInetAddress();
+			if(ip.isUnspecified()) ip = primaryIpAddress.getInetAddress();
 			out
 				.print("INPUT_MAIL_FILTER(`jilter', `S=")
 				.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
@@ -733,28 +728,56 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl # enable both ipv6 and ipv4 in sendmail:\n"
 				+ "dnl #\n"
 				+ "dnl DAEMON_OPTIONS(`Name=MTA-v4, Family=inet, Name=MTA-v6, Family=inet6')\n");
-		IPAddress clientAddrInet = sendmailServer.getClientAddrInet();
-		IPAddress clientAddrInet6 = sendmailServer.getClientAddrInet6();
+		InetAddress clientAddrInet;
+		{
+			IPAddress clientIP = sendmailServer.getClientAddrInet();
+			if(clientIP != null) {
+				clientAddrInet = clientIP.getInetAddress();
+			} else {
+				// Automatic client inet address, based on port SMTP, Submission, then SMTPS
+				InetAddress primaryAddress = primaryIpAddress.getInetAddress();
+				if(primaryAddress.getAddressFamily() != AddressFamily.INET) primaryAddress = null;
+				clientAddrInet = findSmtpAddress(AddressFamily.INET, primaryAddress, smtpNetBinds, null);
+				if(clientAddrInet == null) findSmtpAddress(AddressFamily.INET, primaryAddress, submissionNetBinds, null);
+				if(clientAddrInet == null) findSmtpAddress(AddressFamily.INET, primaryAddress, smtpsNetBinds, null);
+				// Don't specify client when matches primary IP on this family
+				if(clientAddrInet != null && clientAddrInet.equals(primaryAddress)) clientAddrInet = null;
+			}
+		}
+		InetAddress clientAddrInet6;
+		{
+			IPAddress clientIP = sendmailServer.getClientAddrInet6();
+			if(clientIP != null) {
+				clientAddrInet6 = clientIP.getInetAddress();
+			} else {
+				// Automatic client inet6 address, based on port SMTP, Submission, then SMTPS
+				InetAddress primaryAddress = primaryIpAddress.getInetAddress();
+				if(primaryAddress.getAddressFamily() != AddressFamily.INET6) primaryAddress = null;
+				clientAddrInet6 = findSmtpAddress(AddressFamily.INET6, primaryAddress, smtpNetBinds, null);
+				if(clientAddrInet6 == null) findSmtpAddress(AddressFamily.INET6, primaryAddress, submissionNetBinds, null);
+				if(clientAddrInet6 == null) findSmtpAddress(AddressFamily.INET6, primaryAddress, smtpsNetBinds, null);
+				// Don't specify client when matches primary IP on this family
+				if(clientAddrInet6 != null && clientAddrInet6.equals(primaryAddress)) clientAddrInet6 = null;
+			}
+		}
 		if(clientAddrInet != null || clientAddrInet6 != null) {
 			out.print("dnl #\n"
 					+ "dnl # Configure outgoing connections:\n"
 					+ "dnl #\n");
 			if(clientAddrInet != null) {
-				InetAddress ip = clientAddrInet.getInetAddress();
 				out
 					.print("CLIENT_OPTIONS(`Addr=")
-					.print(ip.toString())
+					.print(clientAddrInet.toString())
 					.print(", Family=")
-					.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
+					.print(clientAddrInet.getAddressFamily().name().toLowerCase(Locale.ROOT))
 					.print("')dnl\n"); // AO added
 			}
 			if(clientAddrInet6 != null) {
-				InetAddress ip = clientAddrInet6.getInetAddress();
 				out
 					.print("CLIENT_OPTIONS(`Addr=")
-					.print(ip.toString())
+					.print(clientAddrInet6.toString())
 					.print(", Family=")
-					.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
+					.print(clientAddrInet6.getAddressFamily().name().toLowerCase(Locale.ROOT))
 					.print("')dnl\n"); // AO added
 			}
 		}
@@ -828,6 +851,49 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "Dm").print(fqdn.substring(dotPos+1)).print("\n"
 				+ "define(`confDOMAIN_NAME', `$w.$m')dnl\n" // AO added for control $j for multi-instance support
 				+ "\n");
+	}
+
+	/**
+	 * Gets an IP address that is listening on one of the provided ports.
+	 * Uses the primary IP, if found, or the first IP when primary not found.
+	 *
+	 * @param  family          the optional address family to search, or null for any family
+	 * @param  primaryAddress  the optional primary address or null for no primary on the given family.  Must match family when family is not null.
+	 * @param  smtpBinds       the set of binds to search
+	 * @param  requiredPort    the optional required port number
+	 *
+	 * @return  The IP or {@code null} if no matches.
+	 */
+	private static InetAddress findSmtpAddress(AddressFamily family, InetAddress primaryAddress, List<SendmailBind> smtpBinds, Integer requiredPort) throws IOException, SQLException {
+		if(primaryAddress != null) {
+			if(family != null && primaryAddress.getAddressFamily() != family) throw new IllegalArgumentException("Primary IP is not in family \"" + family + "\": " + primaryAddress);
+		} else {
+			primaryAddress = null;
+		}
+		InetAddress foundAddress = null;
+		for(SendmailBind smtpBind : smtpBinds) {
+			NetBind smtpNetBind = smtpBind.getNetBind();
+			if(requiredPort == null || smtpNetBind.getPort().getPort() == requiredPort) {
+				InetAddress smtpAddress = smtpNetBind.getIPAddress().getInetAddress();
+				if(family == null || smtpAddress.getAddressFamily() == family) {
+					if(smtpAddress.isUnspecified()) {
+						// Use primary IP
+						if(primaryAddress != null) {
+							foundAddress = primaryAddress;
+							break;
+						}
+					} else if(smtpAddress.equals(primaryAddress)) {
+						// Found primary
+						foundAddress = smtpAddress;
+						break;
+					} else if(foundAddress == null) {
+						// Remember first found candidate, but keep looking in case find primary
+						foundAddress = smtpAddress;
+					}
+				}
+			}
+		}
+		return foundAddress;
 	}
 
 	private static final Object rebuildLock = new Object();
@@ -1072,29 +1138,8 @@ final public class SendmailCFManager extends BuilderThread {
 											+ "define(`confPROCESS_TITLE_PREFIX',`").print(thisAoServer.getHostname()).print("')dnl\n");
 								} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 									// Find NetBind listing on SMTP on port 25, preferring primaryIpAddress
-									InetAddress primaryInetAddress = primaryIpAddress.getInetAddress();
-									InetAddress submitAddress = null;
-									for(SendmailBind smtpBind : smtpBinds) {
-										// Must be on port 25
-										NetBind smtpNetBind = smtpBind.getNetBind();
-										if(smtpNetBind.getPort().getPort() == 25) {
-											InetAddress smtpAddress = smtpNetBind.getIPAddress().getInetAddress();
-											if(smtpAddress.isUnspecified()) {
-												// Use primary IP if in the same address family
-												if(smtpAddress.getAddressFamily() == primaryInetAddress.getAddressFamily()) {
-													submitAddress = primaryInetAddress;
-													break;
-												}
-											} else if(smtpAddress.equals(primaryInetAddress)) {
-												// Found primary
-												submitAddress = smtpAddress;
-												break;
-											} else if(submitAddress == null) {
-												// Found candidate, but keep looking
-												submitAddress = smtpAddress;
-											}
-										}
-									}
+									InetAddress primaryAddress = primaryIpAddress.getInetAddress();
+									InetAddress submitAddress = findSmtpAddress(primaryAddress.getAddressFamily(), primaryAddress, smtpBinds, 25);
 									if(submitAddress == null && sendmailEnabled) {
 										// TODO: Could then try port 587?  Possibly not since it requires authentication?
 										throw new SQLException("Unable to find any SMTP on port 25 for submit.mc");
