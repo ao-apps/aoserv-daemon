@@ -24,6 +24,7 @@ import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
+import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.net.fail2ban.Fail2banManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
@@ -174,6 +175,45 @@ final public class ImapManager extends BuilderThread {
 	private static final int POP3S_PREFORK_MIN = 1;
 
 	private static ImapManager imapManager;
+
+	/**
+	 * The CA file used when none specified.
+	 */
+	private static final String DEFAULT_CA_FILE = "/etc/pki/tls/certs/ca-bundle.crt";
+
+	/**
+	 * The directory that Let's Encrypt certificates are copied to.
+	 * Matches the path in cyrus-imapd-copy-certificates
+	 */
+	private static final UnixFile CERTIFICATE_COPY_DIRECTORY = new UnixFile("/etc/pki/cyrus-imapd/copy");
+
+	/**
+	 * The filenames used for copies of certificates
+	 */
+	private static final String
+		CERTIFICATE_COPY_KEY = "key.pem",
+		CERTIFICATE_COPY_CERT = "cert.pem",
+		CERTIFICATE_COPY_CHAIN = "chain.pem";
+
+	/**
+	 * The prefix of Let's Encrypt links generated from a copy directory.
+	 *
+	 * @see  #CERTIFICATE_COPY_DIRECTORY
+	 */
+	private static final String LETS_ENCRYPT_SYMLINK_PREFIX = "../../../../letsencrypt/live/";
+
+	/**
+	 * The filenames used by Let's Encrypt certificates
+	 */
+	private static final String
+		LETS_ENCRYPT_KEY = "/privkey.pem",
+		LETS_ENCRYPT_CERT = "/" + CERTIFICATE_COPY_CERT,
+		LETS_ENCRYPT_CHAIN = "/" + CERTIFICATE_COPY_CHAIN;
+
+	/**
+	 * The suffix used for links to source files for cyrus-imapd-copy-certificates.
+	 */
+	private static final String SOURCE_SUFFIX = "-source";
 
 	private ImapManager() {
 	}
@@ -432,17 +472,20 @@ final public class ImapManager extends BuilderThread {
 					List<CyrusImapdBind> pop3Binds;
 					List<CyrusImapdBind> pop3sBinds;
 					NetBind sieveBind;
+					Set<String> certbotNames;
 					if(cyrusServer == null) {
 						imapBinds = Collections.emptyList();
 						imapsBinds = Collections.emptyList();
 						pop3Binds = Collections.emptyList();
 						pop3sBinds = Collections.emptyList();
 						sieveBind = null;
+						certbotNames = Collections.emptySet();
 					} else {
 						imapBinds = new ArrayList<>();
 						imapsBinds = new ArrayList<>();
 						pop3Binds = new ArrayList<>();
 						pop3sBinds = new ArrayList<>();
+						certbotNames = new HashSet<>();
 						for(CyrusImapdBind cib : cyrusServer.getCyrusImapdBinds()) {
 							String protocol = cib.getNetBind().getAppProtocol().getProtocol();
 							if(Protocol.IMAP2.equals(protocol)) imapBinds.add(cib);
@@ -450,12 +493,79 @@ final public class ImapManager extends BuilderThread {
 							else if(Protocol.POP3.equals(protocol)) pop3Binds.add(cib);
 							else if(Protocol.SPOP3.equals(protocol)) pop3sBinds.add(cib);
 							else throw new AssertionError("Unexpected protocol for CyrusImapdBind #" + cib.getPkey() + ": " + protocol);
+							String certbotName = cib.getCertificate().getCertbotName();
+							if(certbotName != null) certbotNames.add(certbotName);
 						}
 						sieveBind = cyrusServer.getSieveNetBind();
+						String certbotName = cyrusServer.getCertificate().getCertbotName();
+						if(certbotName != null) certbotNames.add(certbotName);
+					}
+
+					boolean[] needsReload = {false};
+					final boolean cyrusImapdInstalled;
+					// Install package if required
+					if(cyrusServer != null) {
+						if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+							PackageManager.installPackage(
+								PackageManager.PackageName.CYRUS_IMAPD,
+								() -> needsReload[0] = true
+							);
+							PackageManager.installPackage(
+								PackageManager.PackageName.CYRUS_SASL,
+								() -> needsReload[0] = true
+							);
+							PackageManager.installPackage(
+								PackageManager.PackageName.CYRUS_SASL_PLAIN,
+								() -> needsReload[0] = true
+							);
+						} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+							PackageManager.installPackage(
+								PackageManager.PackageName.AOSERV_IMAPD_CONFIG,
+								() -> needsReload[0] = true
+							);
+						} else {
+							throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+						}
+						cyrusImapdInstalled = true;
+					} else {
+						cyrusImapdInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.CYRUS_IMAPD) != null;
 					}
 
 					Set<UnixFile> restorecon = new LinkedHashSet<>();
 					try {
+						if(!certbotNames.isEmpty()) {
+							if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+								PackageManager.installPackage(PackageManager.PackageName.CYRUS_IMAPD_COPY_CERTIFICATES);
+							} else {
+								throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+							}
+							boolean needCopy = false;
+							// Create any missing directories or links
+							for(String name : certbotNames) {
+								UnixFile dir = new UnixFile(CERTIFICATE_COPY_DIRECTORY, name, true);
+								if(!dir.getStat().exists()) {
+									dir.mkdir();
+									needCopy = true;
+								}
+								UnixFile keySource = new UnixFile(dir, CERTIFICATE_COPY_KEY + SOURCE_SUFFIX, true);
+								if(!keySource.getStat().exists()) {
+									keySource.symLink(LETS_ENCRYPT_SYMLINK_PREFIX + name + LETS_ENCRYPT_KEY);
+									needCopy = true;
+								}
+								UnixFile certSource = new UnixFile(dir, CERTIFICATE_COPY_CERT + SOURCE_SUFFIX, true);
+								if(!certSource.getStat().exists()) {
+									certSource.symLink(LETS_ENCRYPT_SYMLINK_PREFIX + name + LETS_ENCRYPT_CERT);
+									needCopy = true;
+								}
+								UnixFile chainSource = new UnixFile(dir, CERTIFICATE_COPY_CHAIN + SOURCE_SUFFIX, true);
+								if(!chainSource.getStat().exists()) {
+									chainSource.symLink(LETS_ENCRYPT_SYMLINK_PREFIX + name + LETS_ENCRYPT_CHAIN);
+									needCopy = true;
+								}
+							}
+							if(needCopy) AOServDaemon.exec("/etc/pki/cyrus-imapd/copy/copy-certificates");
+						}
+
 						boolean hasSpecificAddress = false;
 
 						// If there are no IMAP(S)/POP3(S) binds, do not run cyrus-imapd
@@ -463,7 +573,7 @@ final public class ImapManager extends BuilderThread {
 							// Should not have any sieve binds
 							if(sieveBind != null) throw new SQLException("Should not have sieve without any imap, imaps, pop3, or pop3s");
 
-							if(PackageManager.getInstalledPackage(PackageManager.PackageName.CYRUS_IMAPD) != null) {
+							if(cyrusImapdInstalled) {
 								if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 									// Stop service if running
 									if(subsysLockFile.exists()) {
@@ -514,31 +624,6 @@ final public class ImapManager extends BuilderThread {
 
 							// All services that support TLS or SSL will be added here
 							Map<String,CyrusImapdBind> tlsServices = new LinkedHashMap<>();
-
-							boolean[] needsReload = {false};
-
-							// Install package if required
-							if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-								PackageManager.installPackage(
-									PackageManager.PackageName.CYRUS_IMAPD,
-									() -> needsReload[0] = true
-								);
-								PackageManager.installPackage(
-									PackageManager.PackageName.CYRUS_SASL,
-									() -> needsReload[0] = true
-								);
-								PackageManager.installPackage(
-									PackageManager.PackageName.CYRUS_SASL_PLAIN,
-									() -> needsReload[0] = true
-								);
-							} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-								PackageManager.installPackage(
-									PackageManager.PackageName.AOSERV_IMAPD_CONFIG,
-									() -> needsReload[0] = true
-								);
-							} else {
-								throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-							}
 
 							// Update /etc/cyrus.conf
 							{
@@ -844,16 +929,29 @@ final public class ImapManager extends BuilderThread {
 									} else {
 										throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									}
-									SslCertificate certificate = cyrusServer.getCertificate();
-									String chainFile = ObjectUtils.toString(certificate.getChainFile());
-									if(chainFile == null) {
-										// Use operating system default
-										chainFile = "/etc/pki/tls/certs/ca-bundle.crt";
+									String certFile, keyFile, chainFile;
+									{
+										SslCertificate certificate = cyrusServer.getCertificate();
+										String certbotName = certificate.getCertbotName();
+										if(certbotName != null) {
+											UnixFile dir = new UnixFile(CERTIFICATE_COPY_DIRECTORY, certbotName, true);
+											certFile  = new UnixFile(dir, CERTIFICATE_COPY_CERT,  true).getPath();
+											keyFile   = new UnixFile(dir, CERTIFICATE_COPY_KEY,   true).getPath();
+											chainFile = new UnixFile(dir, CERTIFICATE_COPY_CHAIN, true).getPath();
+										} else {
+											certFile = certificate.getCertFile().toString();
+											keyFile = certificate.getKeyFile().toString();
+											chainFile = ObjectUtils.toString(certificate.getChainFile());
+											if(chainFile == null) {
+												// Use operating system default
+												chainFile = DEFAULT_CA_FILE;
+											}
+										}
 									}
 									out.print("\n"
 											+ "# SSL/TLS\n"
-											+ "tls_cert_file: ").print(certificate.getCertFile()).print("\n"
-											+ "tls_key_file: ").print(certificate.getKeyFile()).print("\n"
+											+ "tls_cert_file: ").print(certFile).print("\n"
+											+ "tls_key_file: ").print(keyFile).print("\n"
 											+ "tls_ca_file: ").print(chainFile).print("\n");
 									// service-specific certificates
 									//     file:///home/o/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
@@ -884,14 +982,29 @@ final public class ImapManager extends BuilderThread {
 												throw new SQLException("Unexpected Protocol: " + appProtocol);
 										}
 
-										SslCertificate cibCert = cib.getCertificate();
-										if(cibCert != null) {
-											out.print(serviceName).print("_tls_cert_file: ").print(cibCert.getCertFile()).print('\n');
-											out.print(serviceName).print("_tls_key_file: ").print(cibCert.getKeyFile()).print('\n');
-											UnixPath tlsCaFile = cibCert.getChainFile();
-											if(tlsCaFile != null) {
-												out.print(serviceName).print("_tls_ca_file: ").print(tlsCaFile).print('\n');
+										SslCertificate cibCertificate = cib.getCertificate();
+										if(cibCertificate != null) {
+											String cibCertFile, cibKeyFile, cibChainFile;
+											{
+												String cibCertbotName = cibCertificate.getCertbotName();
+												if(cibCertbotName != null) {
+													UnixFile dir = new UnixFile(CERTIFICATE_COPY_DIRECTORY, cibCertbotName, true);
+													cibCertFile  = new UnixFile(dir, CERTIFICATE_COPY_CERT,  true).getPath();
+													cibKeyFile   = new UnixFile(dir, CERTIFICATE_COPY_KEY,   true).getPath();
+													cibChainFile = new UnixFile(dir, CERTIFICATE_COPY_CHAIN, true).getPath();
+												} else {
+													cibCertFile = cibCertificate.getCertFile().toString();
+													cibKeyFile = cibCertificate.getKeyFile().toString();
+													cibChainFile = ObjectUtils.toString(cibCertificate.getChainFile());
+													if(cibChainFile == null) {
+														// Use operating system default
+														cibChainFile = DEFAULT_CA_FILE;
+													}
+												}
 											}
+											out.print(serviceName).print("_tls_cert_file: ").print(cibCertFile).print('\n');
+											out.print(serviceName).print("_tls_key_file: ").print(cibKeyFile).print('\n');
+											out.print(serviceName).print("_tls_ca_file: ").print(cibChainFile).print('\n');
 										}
 										DomainName servername = cib.getServername();
 										if(servername != null) {
@@ -1026,6 +1139,29 @@ final public class ImapManager extends BuilderThread {
 							&& AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
 						) {
 							PackageManager.removePackage(PackageManager.PackageName.CYRUS_IMAPD_AFTER_NETWORK_ONLINE);
+						}
+						// Cleanup certificate copies
+						if(CERTIFICATE_COPY_DIRECTORY.getStat().isDirectory()) {
+							// Delete any extra directories
+							String[] list = CERTIFICATE_COPY_DIRECTORY.list();
+							if(list != null) {
+								List<File> deleteFileList = new ArrayList<>();
+								for(String filename : list) {
+									if(!certbotNames.contains(filename)) {
+										UnixFile uf = new UnixFile(CERTIFICATE_COPY_DIRECTORY, filename, true);
+										if(uf.getStat().isDirectory()) deleteFileList.add(uf.getFile());
+									}
+								}
+								BackupManager.backupAndDeleteFiles(deleteFileList);
+							}
+						}
+						// Remove package if not needed
+						if(
+							certbotNames.isEmpty()
+							&& AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
+							&& PackageManager.getInstalledPackage(PackageManager.PackageName.CYRUS_IMAPD_COPY_CERTIFICATES) != null
+						) {
+							PackageManager.removePackage(PackageManager.PackageName.CYRUS_IMAPD_COPY_CERTIFICATES);
 						}
 					} finally {
 						DaemonFileUtils.restorecon(restorecon);

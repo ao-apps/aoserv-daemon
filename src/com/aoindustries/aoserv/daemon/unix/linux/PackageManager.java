@@ -57,6 +57,7 @@ public class PackageManager {
 		CVS("cvs"),
 		CYRUS_IMAPD("cyrus-imapd"),
 		CYRUS_IMAPD_AFTER_NETWORK_ONLINE("cyrus-imapd-after-network-online"),
+		CYRUS_IMAPD_COPY_CERTIFICATES("cyrus-imapd-copy-certificates"),
 		CYRUS_SASL("cyrus-sasl"),
 		CYRUS_SASL_PLAIN("cyrus-sasl-plain"),
 		FAIL2BAN_FILTER_CYRUS_IMAP_MORE_SERVICES("fail2ban-filter-cyrus-imap-more-services"),
