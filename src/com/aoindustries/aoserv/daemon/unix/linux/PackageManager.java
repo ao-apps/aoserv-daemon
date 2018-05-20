@@ -102,6 +102,7 @@ public class PackageManager {
 		SENDMAIL("sendmail"),
 		SENDMAIL_CF("sendmail-cf"),
 		SENDMAIL_AFTER_NETWORK_ONLINE("sendmail-after-network-online"),
+		SENDMAIL_COPY_CERTIFICATES("sendmail-copy-certificates"),
 		// No longer needed since no more 3ware support: SMARTMONTOOLS("smartmontools"),
 		SPAMASSASSIN("spamassassin"),
 		SPAMASSASSIN_AFTER_NETWORK_ONLINE("spamassassin-after-network-online"),

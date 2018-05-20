@@ -18,6 +18,7 @@ import com.aoindustries.aoserv.client.SslCertificate;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
+import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.email.jilter.JilterConfigurationWriter;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
@@ -52,6 +53,24 @@ import java.util.logging.Level;
 final public class SendmailCFManager extends BuilderThread {
 
 	private static SendmailCFManager sendmailCFManager;
+
+	/**
+	 * The directory that Let's Encrypt certificates are copied to.
+	 * Matches the path in sendmail-copy-certificates
+	 */
+	private static final UnixFile CERTIFICATE_COPY_DIRECTORY = new UnixFile("/etc/pki/sendmail/copy");
+
+	/**
+	 * The prefix of Let's Encrypt links generated from a copy directory.
+	 *
+	 * @see  #CERTIFICATE_COPY_DIRECTORY
+	 */
+	private static final String LETS_ENCRYPT_SYMLINK_PREFIX = "../../../../letsencrypt/live/";
+
+	/**
+	 * The suffix used for links to source files for sendmail-copy-certificates.
+	 */
+	private static final String SOURCE_SUFFIX = "-source";
 
 	private static final UnixFile
 		sendmailMc = new UnixFile("/etc/mail/sendmail.mc"),
@@ -122,13 +141,11 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl extract from http://www.sendmail.org/~ca/email/starttls.html\n"
 				+ "dnl\n");
 		SslCertificate serverCertificate = sendmailServer.getServerCertificate();
+		if(serverCertificate.getCertbotName() != null) throw new SQLException("Certbot not supported on CentOS 5");
 		String cacert = ObjectUtils.toString(serverCertificate.getChainFile());
+		if(cacert == null) cacert = ImapManager.DEFAULT_CA_FILE;
 		String cacertPath;
-		if(cacert == null) {
-			// Use operating system defaults
-			cacertPath = "/etc/ssl/sendmail";
-			cacert = cacertPath + "/CAcert.pem";
-		} else {
+		{
 			int slashPos = cacert.lastIndexOf('/');
 			if(slashPos == -1) throw new SQLException("Unable to find slash (/) in cacert: " + cacert);
 			cacertPath = cacert.substring(0, slashPos);
@@ -139,6 +156,7 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "define(`confSERVER_CERT', `").print(serverCertificate.getCertFile()).print("')dnl\n"
 				+ "define(`confSERVER_KEY', `").print(serverCertificate.getKeyFile()).print("')dnl\n");
 		SslCertificate clientCertificate = sendmailServer.getClientCertificate();
+		if(clientCertificate.getCertbotName() != null) throw new SQLException("Certbot not supported on CentOS 5");
 		out.print("define(`confCLIENT_CERT', `").print(clientCertificate.getCertFile()).print("')dnl\n"
 				+ "define(`confCLIENT_KEY', `").print(clientCertificate.getKeyFile()).print("')dnl\n"
 				+ "dnl\n"
@@ -434,26 +452,51 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl # Complete usage:\n"
 				+ "dnl #     make -C /etc/pki/tls/certs usage\n"
 				+ "dnl #\n");
-		SslCertificate serverCertificate = sendmailServer.getServerCertificate();
-		String cacert = ObjectUtils.toString(serverCertificate.getChainFile());
+		String serverCert, serverKey, cacert;
+		{
+			SslCertificate certificate = sendmailServer.getServerCertificate();
+			String certbotName = certificate.getCertbotName();
+			if(certbotName != null) {
+				UnixFile dir = new UnixFile(CERTIFICATE_COPY_DIRECTORY, certbotName, true);
+				serverCert = new UnixFile(dir, ImapManager.CERTIFICATE_COPY_CERT,  true).getPath();
+				serverKey  = new UnixFile(dir, ImapManager.CERTIFICATE_COPY_KEY,   true).getPath();
+				cacert     = new UnixFile(dir, ImapManager.CERTIFICATE_COPY_CHAIN, true).getPath();
+			} else {
+				serverCert = certificate.getCertFile().toString();
+				serverKey = certificate.getKeyFile().toString();
+				cacert = ObjectUtils.toString(certificate.getChainFile());
+				if(cacert == null) {
+					// Use operating system default
+					cacert = ImapManager.DEFAULT_CA_FILE;
+				}
+			}
+		}
 		String cacertPath;
-		if(cacert == null) {
-			// Use operating system defaults
-			cacertPath = "/etc/pki/tls/certs";
-			cacert = cacertPath + "/ca-bundle.crt";
-		} else {
+		{
 			int slashPos = cacert.lastIndexOf('/');
 			if(slashPos == -1) throw new SQLException("Unable to find slash (/) in cacert: " + cacert);
-			cacertPath = cacert.substring(0, slashPos);
+			cacertPath = serverCert.substring(0, slashPos);
 			if(cacertPath.isEmpty()) throw new SQLException("cacertPath is empty");
 		}
 		out.print("define(`confCACERT_PATH', `").print(cacertPath).print("')dnl\n"
 				+ "define(`confCACERT', `").print(cacert).print("')dnl\n"
-				+ "define(`confSERVER_CERT', `").print(serverCertificate.getCertFile()).print("')dnl\n"
-				+ "define(`confSERVER_KEY', `").print(serverCertificate.getKeyFile()).print("')dnl\n");
-		SslCertificate clientCertificate = sendmailServer.getClientCertificate();
-		out.print("define(`confCLIENT_CERT', `").print(clientCertificate.getCertFile()).print("')dnl\n"
-				+ "define(`confCLIENT_KEY', `").print(clientCertificate.getKeyFile()).print("')dnl\n"
+				+ "define(`confSERVER_CERT', `").print(serverCert).print("')dnl\n"
+				+ "define(`confSERVER_KEY', `").print(serverKey).print("')dnl\n");
+		String clientCert, clientKey;
+		{
+			SslCertificate certificate = sendmailServer.getClientCertificate();
+			String certbotName = certificate.getCertbotName();
+			if(certbotName != null) {
+				UnixFile dir = new UnixFile(CERTIFICATE_COPY_DIRECTORY, certbotName, true);
+				clientCert = new UnixFile(dir, ImapManager.CERTIFICATE_COPY_CERT,  true).getPath();
+				clientKey  = new UnixFile(dir, ImapManager.CERTIFICATE_COPY_KEY,   true).getPath();
+			} else {
+				clientCert = certificate.getCertFile().toString();
+				clientKey = certificate.getKeyFile().toString();
+			}
+		}
+		out.print("define(`confCLIENT_CERT', `").print(clientCert).print("')dnl\n"
+				+ "define(`confCLIENT_KEY', `").print(clientKey).print("')dnl\n"
 				+ "dnl #\n"
 				+ "dnl # Do not add the hostname to incorrectly formatted headers\n"
 				+ "dnl #\n"
@@ -815,14 +858,17 @@ final public class SendmailCFManager extends BuilderThread {
 				List<SendmailBind> smtpBinds;
 				List<SendmailBind> smtpsBinds;
 				List<SendmailBind> submissionBinds;
+				Set<String> certbotNames;
 				if(sendmailServer == null) {
 					smtpBinds = Collections.emptyList();
 					smtpsBinds = Collections.emptyList();
 					submissionBinds = Collections.emptyList();
+					certbotNames = Collections.emptySet();
 				} else {
 					smtpBinds = new ArrayList<>();
 					smtpsBinds = new ArrayList<>();
 					submissionBinds = new ArrayList<>();
+					certbotNames = new HashSet<>();
 					for(SendmailBind sb : sendmailServer.getSendmailBinds()) {
 						String protocol = sb.getNetBind().getAppProtocol().getProtocol();
 						if(Protocol.SMTP.equals(protocol)) smtpBinds.add(sb);
@@ -830,7 +876,52 @@ final public class SendmailCFManager extends BuilderThread {
 						else if(Protocol.SUBMISSION.equals(protocol)) submissionBinds.add(sb);
 						else throw new AssertionError("Unexpected protocol for SendmailBind #" + sb.getPkey() + ": " + protocol);
 					}
+					String certbotName = sendmailServer.getServerCertificate().getCertbotName();
+					if(certbotName != null) certbotNames.add(certbotName);
+					certbotName = sendmailServer.getClientCertificate().getCertbotName();
+					if(certbotName != null) certbotNames.add(certbotName);
 				}
+
+				// This is set to true when needed and a single reload will be performed after all config files are updated
+				boolean[] needsReload = {false};
+				final boolean sendmailInstalled;
+				final boolean sendmailCfInstalled;
+				// Make sure packages installed
+				if(sendmailServer != null) {
+					if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+						// No aoserv-sendmail-config package
+						PackageManager.installPackage(
+							PackageManager.PackageName.SENDMAIL,
+							() -> needsReload[0] = true
+						);
+						PackageManager.installPackage(
+							PackageManager.PackageName.SENDMAIL_CF,
+							() -> needsReload[0] = true
+						);
+						PackageManager.installPackage(
+							PackageManager.PackageName.CYRUS_SASL,
+							() -> needsReload[0] = true
+						);
+						PackageManager.installPackage(
+							PackageManager.PackageName.CYRUS_SASL_PLAIN,
+							() -> needsReload[0] = true
+						);
+					} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+						// Install aoserv-sendmail-config package if missing
+						PackageManager.installPackage(
+							PackageManager.PackageName.AOSERV_SENDMAIL_CONFIG,
+							() -> needsReload[0] = true
+						);
+					} else {
+						throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+					}
+					sendmailInstalled = true;
+					sendmailCfInstalled = true;
+				} else {
+					sendmailInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.SENDMAIL) != null;
+					sendmailCfInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.SENDMAIL_CF) != null;
+				}
+
 				Set<UnixFile> restorecon = new LinkedHashSet<>();
 				try {
 					boolean hasSpecificAddress = false;
@@ -840,42 +931,8 @@ final public class SendmailCFManager extends BuilderThread {
 						|| !smtpsBinds.isEmpty()
 						|| !submissionBinds.isEmpty()
 					;
-					final boolean sendmailInstalled;
-					final boolean sendmailCfInstalled;
 
-					// This is set to true when needed and a single reload will be performed after all config files are updated
-					boolean[] needsReload = {false};
-					if(sendmailServer != null || sendmailEnabled) {
-						// Make sure packages installed
-						if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-							// No aoserv-sendmail-config package
-							PackageManager.installPackage(
-								PackageManager.PackageName.SENDMAIL,
-								() -> needsReload[0] = true
-							);
-							PackageManager.installPackage(
-								PackageManager.PackageName.SENDMAIL_CF,
-								() -> needsReload[0] = true
-							);
-							PackageManager.installPackage(
-								PackageManager.PackageName.CYRUS_SASL,
-								() -> needsReload[0] = true
-							);
-							PackageManager.installPackage(
-								PackageManager.PackageName.CYRUS_SASL_PLAIN,
-								() -> needsReload[0] = true
-							);
-						} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-							// Install aoserv-sendmail-config package if missing
-							PackageManager.installPackage(
-								PackageManager.PackageName.AOSERV_SENDMAIL_CONFIG,
-								() -> needsReload[0] = true
-							);
-						} else {
-							throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-						}
-						sendmailInstalled = true;
-						sendmailCfInstalled = true;
+					if(sendmailEnabled) {
 						// Resolve hasSpecificAddress
 						for(SendmailBind sb : smtpBinds) {
 							InetAddress ia = sb.getNetBind().getIPAddress().getInetAddress();
@@ -902,11 +959,40 @@ final public class SendmailCFManager extends BuilderThread {
 								}
 							}
 						}
-					} else {
-						sendmailInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.SENDMAIL) != null;
-						sendmailCfInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.SENDMAIL_CF) != null;
 					}
 					if(sendmailInstalled) {
+						if(!certbotNames.isEmpty()) {
+							if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+								PackageManager.installPackage(PackageManager.PackageName.SENDMAIL_COPY_CERTIFICATES);
+							} else {
+								throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+							}
+							boolean needCopy = false;
+							// Create any missing directories or links
+							for(String name : certbotNames) {
+								UnixFile dir = new UnixFile(CERTIFICATE_COPY_DIRECTORY, name, true);
+								if(!dir.getStat().exists()) {
+									dir.mkdir();
+									needCopy = true;
+								}
+								UnixFile keySource = new UnixFile(dir, ImapManager.CERTIFICATE_COPY_KEY + SOURCE_SUFFIX, true);
+								if(!keySource.getStat().exists()) {
+									keySource.symLink(LETS_ENCRYPT_SYMLINK_PREFIX + name + ImapManager.LETS_ENCRYPT_KEY);
+									needCopy = true;
+								}
+								UnixFile certSource = new UnixFile(dir, ImapManager.CERTIFICATE_COPY_CERT + SOURCE_SUFFIX, true);
+								if(!certSource.getStat().exists()) {
+									certSource.symLink(LETS_ENCRYPT_SYMLINK_PREFIX + name + ImapManager.LETS_ENCRYPT_CERT);
+									needCopy = true;
+								}
+								UnixFile chainSource = new UnixFile(dir, ImapManager.CERTIFICATE_COPY_CHAIN + SOURCE_SUFFIX, true);
+								if(!chainSource.getStat().exists()) {
+									chainSource.symLink(LETS_ENCRYPT_SYMLINK_PREFIX + name + ImapManager.LETS_ENCRYPT_CHAIN);
+									needCopy = true;
+								}
+							}
+							if(needCopy) AOServDaemon.exec("/etc/pki/sendmail/copy/copy-certificates");
+						}
 						// Build the new version of /etc/mail/sendmail.mc in RAM
 						boolean sendmailMcUpdated;
 						{
@@ -1150,6 +1236,32 @@ final public class SendmailCFManager extends BuilderThread {
 						) {
 							PackageManager.removePackage(PackageManager.PackageName.SENDMAIL_AFTER_NETWORK_ONLINE);
 						}
+					} else {
+						assert certbotNames.isEmpty();
+					}
+					// Cleanup certificate copies
+					if(PackageManager.getInstalledPackage(PackageManager.PackageName.SENDMAIL_COPY_CERTIFICATES) != null) {
+						if(CERTIFICATE_COPY_DIRECTORY.getStat().isDirectory()) {
+							// Delete any extra directories
+							String[] list = CERTIFICATE_COPY_DIRECTORY.list();
+							if(list != null) {
+								List<File> deleteFileList = new ArrayList<>();
+								for(String filename : list) {
+									if(!certbotNames.contains(filename)) {
+										UnixFile uf = new UnixFile(CERTIFICATE_COPY_DIRECTORY, filename, true);
+										if(uf.getStat().isDirectory()) deleteFileList.add(uf.getFile());
+									}
+								}
+								BackupManager.backupAndDeleteFiles(deleteFileList);
+							}
+						}
+						// Remove package if not needed
+						if(
+							certbotNames.isEmpty()
+							&& AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
+						) {
+							PackageManager.removePackage(PackageManager.PackageName.SENDMAIL_COPY_CERTIFICATES);
+						}
 					}
 				} finally {
 					DaemonFileUtils.restorecon(restorecon);
@@ -1193,6 +1305,7 @@ final public class SendmailCFManager extends BuilderThread {
 					conn.getSendmailBinds().addTableListener(sendmailCFManager, 0);
 					conn.getSendmailServers().addTableListener(sendmailCFManager, 0);
 					conn.getServers().addTableListener(sendmailCFManager, 0);
+					conn.getSslCertificates().addTableListener(sendmailCFManager, 0);
 					//conn.getServerFarms().addTableListener(sendmailCFManager, 0);
 					System.out.println("Done");
 				} else {

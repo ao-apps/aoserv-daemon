@@ -179,7 +179,7 @@ final public class ImapManager extends BuilderThread {
 	/**
 	 * The CA file used when none specified.
 	 */
-	private static final String DEFAULT_CA_FILE = "/etc/pki/tls/certs/ca-bundle.crt";
+	static final String DEFAULT_CA_FILE = "/etc/pki/tls/certs/ca-bundle.crt";
 
 	/**
 	 * The directory that Let's Encrypt certificates are copied to.
@@ -190,7 +190,7 @@ final public class ImapManager extends BuilderThread {
 	/**
 	 * The filenames used for copies of certificates
 	 */
-	private static final String
+	static final String
 		CERTIFICATE_COPY_KEY = "key.pem",
 		CERTIFICATE_COPY_CERT = "cert.pem",
 		CERTIFICATE_COPY_CHAIN = "chain.pem";
@@ -205,7 +205,7 @@ final public class ImapManager extends BuilderThread {
 	/**
 	 * The filenames used by Let's Encrypt certificates
 	 */
-	private static final String
+	static final String
 		LETS_ENCRYPT_KEY = "/privkey.pem",
 		LETS_ENCRYPT_CERT = "/" + CERTIFICATE_COPY_CERT,
 		LETS_ENCRYPT_CHAIN = "/" + CERTIFICATE_COPY_CHAIN;
@@ -2051,6 +2051,7 @@ final public class ImapManager extends BuilderThread {
 					conn.getLinuxServerAccounts().addTableListener(imapManager, 0);
 					conn.getNetBinds().addTableListener(imapManager, 0);
 					conn.getServers().addTableListener(imapManager, 0);
+					conn.getSslCertificates().addTableListener(imapManager, 0);
 					PackageManager.addPackageListener(imapManager);
 					System.out.println("Done");
 				} else {
