@@ -546,8 +546,9 @@ final public class AOServDaemonServerThread extends Thread {
 								for(int i = 0; i < size; i++) {
 									SslCertificate.Check check = results.get(i);
 									out.writeUTF(check.getCheck());
-									out.writeUTF(check.getResult());
+									out.writeUTF(check.getValue());
 									out.writeUTF(check.getAlertLevel().name());
+									out.writeNullUTF(check.getMessage());
 								}
 							}
 							break;

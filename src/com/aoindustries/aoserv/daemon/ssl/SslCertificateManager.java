@@ -46,7 +46,7 @@ final public class SslCertificateManager {
 
 		// Let's Encrypt certificate status
 		return Collections.singletonList(
-			new SslCertificate.Check("TODO", "Not Implemented", AlertLevel.MEDIUM)
+			new SslCertificate.Check("TODO", "Not Implemented", AlertLevel.MEDIUM, null)
 		);
 	}
 
