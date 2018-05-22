@@ -1285,28 +1285,28 @@ final public class SendmailCFManager extends BuilderThread {
 						assert certbotNames.isEmpty();
 					}
 					// Cleanup certificate copies
-					if(PackageManager.getInstalledPackage(PackageManager.PackageName.SENDMAIL_COPY_CERTIFICATES) != null) {
-						if(CERTIFICATE_COPY_DIRECTORY.getStat().isDirectory()) {
-							// Delete any extra directories
-							String[] list = CERTIFICATE_COPY_DIRECTORY.list();
-							if(list != null) {
-								List<File> deleteFileList = new ArrayList<>();
-								for(String filename : list) {
-									if(!certbotNames.contains(filename)) {
-										UnixFile uf = new UnixFile(CERTIFICATE_COPY_DIRECTORY, filename, true);
-										if(uf.getStat().isDirectory()) deleteFileList.add(uf.getFile());
-									}
+					Stat copyDirStat = CERTIFICATE_COPY_DIRECTORY.getStat();
+					if(copyDirStat.exists() && copyDirStat.isDirectory()) {
+						// Delete any extra directories
+						String[] list = CERTIFICATE_COPY_DIRECTORY.list();
+						if(list != null) {
+							List<File> deleteFileList = new ArrayList<>();
+							for(String filename : list) {
+								if(!certbotNames.contains(filename)) {
+									UnixFile uf = new UnixFile(CERTIFICATE_COPY_DIRECTORY, filename, true);
+									if(uf.getStat().isDirectory()) deleteFileList.add(uf.getFile());
 								}
-								BackupManager.backupAndDeleteFiles(deleteFileList);
 							}
+							BackupManager.backupAndDeleteFiles(deleteFileList);
 						}
-						// Remove package if not needed
-						if(
-							certbotNames.isEmpty()
-							&& AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
-						) {
-							PackageManager.removePackage(PackageManager.PackageName.SENDMAIL_COPY_CERTIFICATES);
-						}
+					}
+					// Remove package if not needed
+					if(
+						certbotNames.isEmpty()
+						&& AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
+						&& PackageManager.getInstalledPackage(PackageManager.PackageName.SENDMAIL_COPY_CERTIFICATES) != null
+					) {
+						PackageManager.removePackage(PackageManager.PackageName.SENDMAIL_COPY_CERTIFICATES);
 					}
 				} finally {
 					DaemonFileUtils.restorecon(restorecon);

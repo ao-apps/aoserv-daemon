@@ -1141,7 +1141,8 @@ final public class ImapManager extends BuilderThread {
 							PackageManager.removePackage(PackageManager.PackageName.CYRUS_IMAPD_AFTER_NETWORK_ONLINE);
 						}
 						// Cleanup certificate copies
-						if(CERTIFICATE_COPY_DIRECTORY.getStat().isDirectory()) {
+						Stat copyDirStat = CERTIFICATE_COPY_DIRECTORY.getStat();
+						if(copyDirStat.exists() && copyDirStat.isDirectory()) {
 							// Delete any extra directories
 							String[] list = CERTIFICATE_COPY_DIRECTORY.list();
 							if(list != null) {
