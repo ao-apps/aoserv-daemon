@@ -659,7 +659,7 @@ final public class ImapManager extends BuilderThread {
 												NetBind imapBind = cib.getNetBind();
 												Port port = imapBind.getPort();
 												if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("imap requires TCP protocol");
-												String serviceName = generateServiceName("imap", "imap_", counter++);
+												String serviceName = generateServiceName("imap", "imapd", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
 												InetAddress ia = imapBind.getIPAddress().getInetAddress();
@@ -691,7 +691,7 @@ final public class ImapManager extends BuilderThread {
 												NetBind imapsBind = cib.getNetBind();
 												Port port = imapsBind.getPort();
 												if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("imaps requires TCP protocol");
-												String serviceName = generateServiceName("imaps", "imaps_", counter++);
+												String serviceName = generateServiceName("imaps", "imaps", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
 												InetAddress ia = imapsBind.getIPAddress().getInetAddress();
@@ -722,7 +722,7 @@ final public class ImapManager extends BuilderThread {
 												NetBind pop3Bind = cib.getNetBind();
 												Port port = pop3Bind.getPort();
 												if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("pop3 requires TCP protocol");
-												String serviceName = generateServiceName("pop3", "pop3_", counter++);
+												String serviceName = generateServiceName("pop3", "pop3d", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
 												InetAddress ia = pop3Bind.getIPAddress().getInetAddress();
@@ -754,7 +754,7 @@ final public class ImapManager extends BuilderThread {
 												NetBind pop3sBind = cib.getNetBind();
 												Port port = pop3sBind.getPort();
 												if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("pop3s requires TCP protocol");
-												String serviceName = generateServiceName("pop3s", "pop3s_", counter++);
+												String serviceName = generateServiceName("pop3s", "pop3s", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
 												InetAddress ia = pop3sBind.getIPAddress().getInetAddress();
