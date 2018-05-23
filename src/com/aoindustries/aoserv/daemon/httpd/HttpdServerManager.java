@@ -2502,7 +2502,7 @@ public class HttpdServerManager {
 							}
 						}
 					}
-					final String escapedSiteInclude = escape(dollarVariable, "sites-available/" + siteInclude);
+					final String escapedSiteInclude = escape(dollarVariable, "conf/hosts/" + siteInclude);
 					String includeSiteConfig = bind.getIncludeSiteConfig();
 					if(includeSiteConfig == null) {
 						if(hasRedirectAll) includeSiteConfig = "IfModule !rewrite_module";
