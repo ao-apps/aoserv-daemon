@@ -134,7 +134,7 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl Next lines are for SMTP Authentication\n"
 				+ "define(`confAUTH_OPTIONS', `A");
 		if(sendmailServer != null && !sendmailServer.getAllowPlaintextAuth()) out.print(" p");
-		out.print("y')dnl\n"
+		out.print(" y')dnl\n"
 				+ "TRUST_AUTH_MECH(`EXTERNAL DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n"
 				+ "define(`confAUTH_MECHANISMS', `EXTERNAL GSSAPI DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n"
 				+ "dnl\n"
@@ -451,7 +451,7 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "define(`confPRIVACY_FLAGS', `authwarnings,goaway,novrfy,noexpn,restrictqrun,restrictmailq,restrictexpand')dnl\n" // AO Modified
 				+ "define(`confAUTH_OPTIONS', `A");
 		if(sendmailServer == null || !sendmailServer.getAllowPlaintextAuth()) out.print(" p");
-		out.print("y')dnl\n" // AO modified from `A'
+		out.print(" y')dnl\n" // AO modified from `A'
 				+ "dnl #\n"
 				+ "dnl # The following allows relaying if the user authenticates, and disallows\n"
 				+ "dnl # plaintext authentication (PLAIN/LOGIN) on non-TLS links\n"
@@ -503,7 +503,7 @@ final public class SendmailCFManager extends BuilderThread {
 		{
 			int slashPos = cacert.lastIndexOf('/');
 			if(slashPos == -1) throw new SQLException("Unable to find slash (/) in cacert: " + cacert);
-			cacertPath = serverCert.substring(0, slashPos);
+			cacertPath = cacert.substring(0, slashPos);
 			if(cacertPath.isEmpty()) throw new SQLException("cacertPath is empty");
 		}
 		out.print("define(`confCACERT_PATH', `").print(cacertPath).print("')dnl\n"
