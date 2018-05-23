@@ -768,7 +768,8 @@ public class HttpdServerManager {
 						|| httpdSite.getBlockCoreDumps()
 						|| httpdSite.getBlockEditorBackups()
 					) {
-						out.print("# Site options\n");
+						out.print("\n"
+								+ "# Site options\n");
 						if(manager.blockAllTraceAndTrackRequests()) {
 							out.print("Include site-options/block_trace_track.inc\n");
 						}
@@ -2422,13 +2423,13 @@ public class HttpdServerManager {
 					}
 					out.print("\n"
 							+ "    CustomLog ").print(escape(dollarVariable, bind.getAccessLog().toString())).print(" combined\n"
-							+ "    ErrorLog ").print(escape(dollarVariable, bind.getErrorLog().toString())).print("\n"
-							+ "\n");
+							+ "    ErrorLog ").print(escape(dollarVariable, bind.getErrorLog().toString())).print('\n');
 					if(Protocol.HTTPS.equals(netBind.getAppProtocol().getProtocol())) {
 						SslCertificate sslCert = bind.getCertificate();
 						if(sslCert == null) throw new SQLException("SSLCertificate not found for HttpdSiteBind #" + bind.getPkey());
 						// Use any directly configured chain file
-						out.print("    <IfModule mod_ssl.c>\n"
+						out.print("\n"
+								+ "    <IfModule mod_ssl.c>\n"
 								+ "        SSLCertificateFile ").print(escape(dollarVariable, sslCert.getCertFile().toString())).print("\n"
 								+ "        SSLCertificateKeyFile ").print(escape(dollarVariable, sslCert.getKeyFile().toString())).print('\n');
 						UnixPath sslChain = sslCert.getChainFile();
@@ -2452,21 +2453,21 @@ public class HttpdServerManager {
 						}
 						out.print("        SSLEngine On\n"
 								+ "    </IfModule>\n"
-								+ "\n"
 						);
 					}
 					if(bind.getRedirectToPrimaryHostname()) {
-						out.print("    # Redirect requests that are not to either the IP address or the primary hostname to the primary hostname\n"
+						out.print("\n"
+								+ "    # Redirect requests that are not to either the IP address or the primary hostname to the primary hostname\n"
 								+ "    RewriteEngine on\n"
 								+ "    RewriteCond %{HTTP_HOST} ").print(escape(dollarVariable, "!=" + primaryHostname)).print(" [NC]\n"
 								+ "    RewriteCond %{HTTP_HOST} ").print(escape(dollarVariable, "!=" + ipAddress)).print("\n"
-								+ "    RewriteRule ^ ").print(escape(dollarVariable, primaryHSU.getURLNoSlash() + "%{REQUEST_URI}")).print(" [L,NE,R=permanent]\n"
-								+ "\n");
+								+ "    RewriteRule ^ ").print(escape(dollarVariable, primaryHSU.getURLNoSlash() + "%{REQUEST_URI}")).print(" [L,NE,R=permanent]\n");
 					}
 					boolean hasRedirectAll = false;
 					List<HttpdSiteBindRedirect> redirects = bind.getHttpdSiteBindRedirects();
 					if(!redirects.isEmpty()) {
-						out.print("    # Redirects\n"
+						out.print("\n"
+								+ "    # Redirects\n"
 								+ "    RewriteEngine on\n");
 						for(HttpdSiteBindRedirect redirect : redirects) {
 							String comment = redirect.getComment();
@@ -2500,13 +2501,13 @@ public class HttpdServerManager {
 								out.print(",R=permanent]\n");
 							}
 						}
-						out.print('\n');
 					}
 					final String escapedSiteInclude = escape(dollarVariable, "sites-available/" + siteInclude);
 					String includeSiteConfig = bind.getIncludeSiteConfig();
 					if(includeSiteConfig == null) {
 						if(hasRedirectAll) includeSiteConfig = "IfModule !rewrite_module";
 					}
+					out.print('\n');
 					if("false".equals(includeSiteConfig)) {
 						out.print("    # Include ").print(escapedSiteInclude).print("\n");
 					} else if(includeSiteConfig != null && includeSiteConfig.startsWith("IfModule ")) {
@@ -2524,15 +2525,18 @@ public class HttpdServerManager {
 					final String dollarVariable = CENTOS_7_DOLLAR_VARIABLE;
 					final SslCertificate sslCert;
 					final String protocol;
+					final boolean isDefaultPort;
 					{
 						String appProtocol = netBind.getAppProtocol().getProtocol();
 						if(Protocol.HTTP.equals(appProtocol)) {
 							sslCert = null;
 							protocol = "http";
+							isDefaultPort = port == 80;
 						} else if(Protocol.HTTPS.equals(appProtocol)) {
 							sslCert = bind.getCertificate();
 							if(sslCert == null) throw new SQLException("SSLCertificate not found for HttpdSiteBind #" + bind.getPkey());
 							protocol = "https";
+							isDefaultPort = port == 443;
 						} else {
 							throw new SQLException("Unsupported protocol: " + appProtocol);
 						}
@@ -2563,11 +2567,11 @@ public class HttpdServerManager {
 							+ "    <IfModule log_config_module>\n"
 							+ "        CustomLog ").print(getEscapedPrefixReplacement(dollarVariable, bind.getAccessLog().toString(), "/var/log/httpd-sites/" + siteName + "/" + protocol + "/", "/var/log/httpd-sites/${site.name}/${bind.protocol}/")).print(" combined\n"
 							+ "    </IfModule>\n"
-							+ "    ErrorLog ").print(getEscapedPrefixReplacement(dollarVariable, bind.getErrorLog().toString(), "/var/log/httpd-sites/" + siteName + "/" + protocol + "/", "/var/log/httpd-sites/${site.name}/${bind.protocol}/")).print("\n"
-							+ "\n");
+							+ "    ErrorLog ").print(getEscapedPrefixReplacement(dollarVariable, bind.getErrorLog().toString(), "/var/log/httpd-sites/" + siteName + "/" + protocol + "/", "/var/log/httpd-sites/${site.name}/${bind.protocol}/")).print('\n');
 					if(sslCert != null) {
 						// Use any directly configured chain file
-						out.print("    <IfModule ssl_module>\n"
+						out.print("\n"
+								+ "    <IfModule ssl_module>\n"
 								+ "        SSLCertificateFile ").print(getEscapedSslPath(dollarVariable, sslCert.getCertFile(), primaryHostname)).print("\n"
 								+ "        SSLCertificateKeyFile ").print(getEscapedSslPath(dollarVariable, sslCert.getKeyFile(), primaryHostname)).print('\n');
 						UnixPath sslChain = sslCert.getChainFile();
@@ -2595,25 +2599,32 @@ public class HttpdServerManager {
 						out.print("        SSLProtocol all -SSLv2 -SSLv3\n"
 								+ "        SSLEngine On\n"
 								+ "    </IfModule>\n"
-								+ "\n"
 						);
 					}
 					if(bind.getRedirectToPrimaryHostname()) {
-						out.print("    # Bind options\n"
-								+ "    Include bind-options/redirect_to_primary_hostname.inc\n"
-								+ "\n");
+						out.print("\n"
+								+ "    # Redirect requests that are not to either the IP address or the primary hostname to the primary hostname\n"
+								+ "    <IfModule rewrite_module>\n"
+								+ "        RewriteEngine on\n"
+								+ "        RewriteCond %{HTTP_HOST} !=${bind.primary_hostname} [NC]\n"
+								+ "        RewriteCond %{HTTP_HOST} !=${bind.ip_address}\n"
+								+ "        RewriteRule ^ ${bind.protocol}://${bind.primary_hostname}");
+						if(!isDefaultPort) out.print(":%{bind.port}");
+						out.print("%{REQUEST_URI} [L,NE,R=permanent]\n"
+								+ "    </IfModule>\n");
 					}
 					boolean hasRedirectAll = false;
 					List<HttpdSiteBindRedirect> redirects = bind.getHttpdSiteBindRedirects();
 					if(!redirects.isEmpty()) {
-						out.print("    # Redirects\n"
+						out.print("\n"
+								+ "    # Redirects\n"
 								+ "    <IfModule rewrite_module>\n"
 								+ "        RewriteEngine on\n");
 						for(HttpdSiteBindRedirect redirect : redirects) {
 							String comment = redirect.getComment();
 							if(comment != null) {
 								// TODO: Maybe separate escapeComment method for this?
-								out.print("    # ").print(escape(dollarVariable, comment, true)).print('\n');
+								out.print("        # ").print(escape(dollarVariable, comment, true)).print('\n');
 							}
 							String substitution = redirect.getSubstitution();
 							// Auto-detect a redirect-all bind
@@ -2640,8 +2651,7 @@ public class HttpdServerManager {
 								out.print(",R=permanent]\n");
 							}
 						}
-						out.print("    </IfModule>\n"
-								+ "\n");
+						out.print("    </IfModule>\n");
 					}
 					final String escapedSiteInclude;
 					if(siteInclude.equals(siteName + ".inc")) {
@@ -2653,6 +2663,7 @@ public class HttpdServerManager {
 					if(includeSiteConfig == null) {
 						if(hasRedirectAll) includeSiteConfig = "IfModule !rewrite_module";
 					}
+					out.print('\n');
 					if("false".equals(includeSiteConfig)) {
 						out.print("    # Include ").print(escapedSiteInclude).print("\n");
 					} else if(includeSiteConfig != null && includeSiteConfig.startsWith("IfModule ")) {
