@@ -252,7 +252,7 @@ final public class Fail2banManager extends BuilderThread {
 							ByteArrayOutputStream bout = new ByteArrayOutputStream();
 							for(Jail jail : jails) {
 								PackageManager.PackageName filterPackage = jail.getFilterPackage();
-								allFilterPackages.add(filterPackage);
+								if(filterPackage != null) allFilterPackages.add(filterPackage);
 								UnixFile jailUF = new UnixFile(JAIL_D, jail.getJaildFilename(), true);
 								SortedSet<Integer> ports = jailPorts.get(jail);
 								if(ports == null) {
