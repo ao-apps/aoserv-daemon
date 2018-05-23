@@ -493,8 +493,11 @@ final public class ImapManager extends BuilderThread {
 							else if(Protocol.POP3.equals(protocol)) pop3Binds.add(cib);
 							else if(Protocol.SPOP3.equals(protocol)) pop3sBinds.add(cib);
 							else throw new AssertionError("Unexpected protocol for CyrusImapdBind #" + cib.getPkey() + ": " + protocol);
-							String certbotName = cib.getCertificate().getCertbotName();
-							if(certbotName != null) certbotNames.add(certbotName);
+							SslCertificate cibCertificate = cib.getCertificate();
+							if(cibCertificate != null) {
+								String certbotName = cibCertificate.getCertbotName();
+								if(certbotName != null) certbotNames.add(certbotName);
+							}
 						}
 						sieveBind = cyrusServer.getSieveNetBind();
 						String certbotName = cyrusServer.getCertificate().getCertbotName();
