@@ -2603,15 +2603,12 @@ public class HttpdServerManager {
 					}
 					if(bind.getRedirectToPrimaryHostname()) {
 						out.print("\n"
-								+ "    # Redirect requests that are not to either the IP address or the primary hostname to the primary hostname\n"
-								+ "    <IfModule rewrite_module>\n"
-								+ "        RewriteEngine on\n"
-								+ "        RewriteCond %{HTTP_HOST} !=${bind.primary_hostname} [NC]\n"
-								+ "        RewriteCond %{HTTP_HOST} !=${bind.ip_address}\n"
-								+ "        RewriteRule ^ ${bind.protocol}://${bind.primary_hostname}");
-						if(!isDefaultPort) out.print(":%{bind.port}");
-						out.print("%{REQUEST_URI} [L,NE,R=permanent]\n"
-								+ "    </IfModule>\n");
+								+ "    # Binds options\n");
+						if(isDefaultPort) {
+							out.print("    Include bind-options/redirect_to_primary_hostname_default_port.inc\n");
+						} else {
+							out.print("    Include bind-options/redirect_to_primary_hostname_other_port.inc\n");
+						}
 					}
 					boolean hasRedirectAll = false;
 					List<HttpdSiteBindRedirect> redirects = bind.getHttpdSiteBindRedirects();
