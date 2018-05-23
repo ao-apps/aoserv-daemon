@@ -133,7 +133,8 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl\n"
 				+ "dnl Next lines are for SMTP Authentication\n"
 				+ "define(`confAUTH_OPTIONS', `A");
-		if(sendmailServer != null && !sendmailServer.getAllowPlaintextAuth()) out.print(" p");
+		boolean allowPlaintextAuth = sendmailServer == null ? SendmailServer.DEFAULT_ALLOW_PLAINTEXT_AUTH : sendmailServer.getAllowPlaintextAuth();
+		if(!allowPlaintextAuth) out.print(" p");
 		out.print(" y')dnl\n"
 				+ "TRUST_AUTH_MECH(`EXTERNAL DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n"
 				+ "define(`confAUTH_MECHANISMS', `EXTERNAL GSSAPI DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl\n"
@@ -188,10 +189,10 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "define(`confCLIENT_KEY', `").print(clientKey).print("')dnl\n"
 				+ "dnl\n"
 				+ "dnl Allow relatively high load averages\n");
-		int queueLA = sendmailServer == null ? 50 : sendmailServer.getQueueLA();
+		int queueLA = sendmailServer == null ? SendmailServer.DEFAULT_QUEUE_LA : sendmailServer.getQueueLA();
 		if(queueLA == -1) out.print("dnl ");
 		out.print("define(`confQUEUE_LA', `").print(queueLA==-1 ? 0 : queueLA).print("')dnl\n");
-		int refuseLA = sendmailServer == null ? 80 : sendmailServer.getRefuseLA();
+		int refuseLA = sendmailServer == null ? SendmailServer.DEFAULT_REFUSE_LA : sendmailServer.getRefuseLA();
 		if(refuseLA == -1) out.print("dnl ");
 		out.print("define(`confREFUSE_LA', `").print(refuseLA==-1 ? 0 : refuseLA).print("')dnl\n"
 				+ "dnl\n"
@@ -205,28 +206,28 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "define(`confSMTP_LOGIN_MSG', `$j Sendmail; $b')dnl\n"
 				+ "dnl\n"
 				+ "dnl Additional features added AO Industries on 2005-04-22\n");
-		int badRcptThrottle = sendmailServer == null ? 10 : sendmailServer.getBadRcptThrottle();
+		int badRcptThrottle = sendmailServer == null ? SendmailServer.DEFAULT_BAD_RCPT_THROTTLE : sendmailServer.getBadRcptThrottle();
 		if(badRcptThrottle == -1) out.print("dnl ");
 		out.print("define(`confBAD_RCPT_THROTTLE',`").print(badRcptThrottle==-1 ? 0 : badRcptThrottle).print("')dnl\n");
-		int connectionRateThrottle = sendmailServer == null ? 100 : sendmailServer.getConnectionRateThrottle();
+		int connectionRateThrottle = sendmailServer == null ? SendmailServer.DEFAULT_CONNECTION_RATE_THROTTLE : sendmailServer.getConnectionRateThrottle();
 		if(connectionRateThrottle == -1) out.print("dnl ");
 		out.print("define(`confCONNECTION_RATE_THROTTLE',`").print(connectionRateThrottle==-1 ? 0 : connectionRateThrottle).print("')dnl\n");
-		int delayLA = sendmailServer == null ? 40 : sendmailServer.getDelayLA();
+		int delayLA = sendmailServer == null ? SendmailServer.DEFAULT_DELAY_LA : sendmailServer.getDelayLA();
 		if(delayLA == -1) out.print("dnl ");
 		out.print("define(`confDELAY_LA',`").print(delayLA==-1 ? 0 : delayLA).print("')dnl\n");
-		int maxDaemonChildren = sendmailServer == null ? 1000 : sendmailServer.getMaxDaemonChildren();
+		int maxDaemonChildren = sendmailServer == null ? SendmailServer.DEFAULT_MAX_DAEMON_CHILDREN : sendmailServer.getMaxDaemonChildren();
 		if(maxDaemonChildren == -1) out.print("dnl ");
 		out.print("define(`confMAX_DAEMON_CHILDREN',`").print(maxDaemonChildren==-1 ? 0 : maxDaemonChildren).print("')dnl\n");
-		int maxMessageSize = sendmailServer == null ? 100000000 : sendmailServer.getMaxMessageSize();
+		int maxMessageSize = sendmailServer == null ? SendmailServer.DEFAULT_MAX_MESSAGE_SIZE : sendmailServer.getMaxMessageSize();
 		if(maxMessageSize == -1) out.print("dnl ");
 		out.print("define(`confMAX_MESSAGE_SIZE',`").print(maxMessageSize==-1 ? 0 : maxMessageSize).print("')dnl\n");
-		int maxQueueChildren = sendmailServer == null ? 100 : sendmailServer.getMaxQueueChildren();
+		int maxQueueChildren = sendmailServer == null ? SendmailServer.DEFAULT_MAX_QUEUE_CHILDREN : sendmailServer.getMaxQueueChildren();
 		if(maxQueueChildren == -1) out.print("dnl ");
 		out.print("define(`confMAX_QUEUE_CHILDREN',`").print(maxQueueChildren==-1 ? 0 : maxQueueChildren).print("')dnl\n");
-		int minFreeBlocks = sendmailServer == null ? 65536 : sendmailServer.getMinFreeBlocks();
+		int minFreeBlocks = sendmailServer == null ? SendmailServer.DEFAULT_MIN_FREE_BLOCKS : sendmailServer.getMinFreeBlocks();
 		if(minFreeBlocks == -1) out.print("dnl ");
 		out.print("define(`confMIN_FREE_BLOCKS',`").print(minFreeBlocks==-1 ? 100 : minFreeBlocks).print("')dnl\n");
-		int niceQueueRun = sendmailServer == null ? 10 : sendmailServer.getNiceQueueRun();
+		int niceQueueRun = sendmailServer == null ? SendmailServer.DEFAULT_NICE_QUEUE_RUN : sendmailServer.getNiceQueueRun();
 		if(niceQueueRun == -1) out.print("dnl ");
 		out.print("define(`confNICE_QUEUE_RUN',`").print(niceQueueRun==-1 ? 0 : niceQueueRun).print("')dnl\n");
 		DomainName hostname = sendmailServer == null ? null : sendmailServer.getHostname();
@@ -450,7 +451,8 @@ final public class SendmailCFManager extends BuilderThread {
 				//+ "define(`confPRIVACY_FLAGS', `authwarnings,novrfy,noexpn,restrictqrun')dnl\n"
 				+ "define(`confPRIVACY_FLAGS', `authwarnings,goaway,novrfy,noexpn,restrictqrun,restrictmailq,restrictexpand')dnl\n" // AO Modified
 				+ "define(`confAUTH_OPTIONS', `A");
-		if(sendmailServer == null || !sendmailServer.getAllowPlaintextAuth()) out.print(" p");
+		boolean allowPlaintextAuth = sendmailServer == null ? SendmailServer.DEFAULT_ALLOW_PLAINTEXT_AUTH : sendmailServer.getAllowPlaintextAuth();
+		if(!allowPlaintextAuth) out.print(" p");
 		out.print(" y')dnl\n" // AO modified from `A'
 				+ "dnl #\n"
 				+ "dnl # The following allows relaying if the user authenticates, and disallows\n"
@@ -545,22 +547,22 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl #\n"
 				+ "dnl define(`confTO_QUEUEWARN', `4h')dnl\n"
 				+ "dnl define(`confTO_QUEUERETURN', `5d')dnl\n");
-		int maxQueueChildren = sendmailServer == null ? 100 : sendmailServer.getMaxQueueChildren();
+		int maxQueueChildren = sendmailServer == null ? SendmailServer.DEFAULT_MAX_QUEUE_CHILDREN : sendmailServer.getMaxQueueChildren();
 		if(maxQueueChildren == -1) out.print("dnl ");
 		out.print("define(`confMAX_QUEUE_CHILDREN', `").print(maxQueueChildren==-1 ? 0 : maxQueueChildren).print("')dnl\n");
-		int niceQueueRun = sendmailServer == null ? 10 : sendmailServer.getNiceQueueRun();
+		int niceQueueRun = sendmailServer == null ? SendmailServer.DEFAULT_NICE_QUEUE_RUN : sendmailServer.getNiceQueueRun();
 		if(niceQueueRun == -1) out.print("dnl ");
 		out.print("define(`confNICE_QUEUE_RUN', `").print(niceQueueRun==-1 ? 0 : niceQueueRun).print("')dnl\n"
 				+ "dnl #\n"
 				+ "dnl # Allow relatively high load averages\n"
 				+ "dnl #\n");
-		int delayLA = sendmailServer == null ? 40 : sendmailServer.getDelayLA();
+		int delayLA = sendmailServer == null ? SendmailServer.DEFAULT_DELAY_LA : sendmailServer.getDelayLA();
 		if(delayLA == -1) out.print("dnl ");
 		out.print("define(`confDELAY_LA', `").print(delayLA==-1 ? 0 : delayLA).print("')dnl\n"); // AO Added
-		int queueLA = sendmailServer == null ? 50 : sendmailServer.getQueueLA();
+		int queueLA = sendmailServer == null ? SendmailServer.DEFAULT_DELAY_LA : sendmailServer.getQueueLA();
 		if(queueLA == -1) out.print("dnl ");
 		out.print("define(`confQUEUE_LA', `").print(queueLA==-1 ? 0 : queueLA).print("')dnl\n"); // AO Enabled and modified from `12'
-		int refuseLA = sendmailServer == null ? 80 : sendmailServer.getRefuseLA();
+		int refuseLA = sendmailServer == null ? SendmailServer.DEFAULT_REFUSE_LA : sendmailServer.getRefuseLA();
 		if(refuseLA == -1) out.print("dnl ");
 		out.print("define(`confREFUSE_LA', `").print(refuseLA==-1 ? 0 : refuseLA).print("')dnl\n" // AO Enabled and modified from `18'
 				+ "dnl #\n"
@@ -585,7 +587,7 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl # incoming messages or process its message queues to 20.) sendmail refuses \n"
 				+ "dnl # to accept connections once it has reached its quota of child processes.\n"
 				+ "dnl #\n");
-		int maxDaemonChildren = sendmailServer == null ? 1000 : sendmailServer.getMaxDaemonChildren();
+		int maxDaemonChildren = sendmailServer == null ? SendmailServer.DEFAULT_MAX_DAEMON_CHILDREN : sendmailServer.getMaxDaemonChildren();
 		if(maxDaemonChildren == -1) out.print("dnl ");
 		out.print("define(`confMAX_DAEMON_CHILDREN', `").print(maxDaemonChildren==-1 ? 0 : maxDaemonChildren).print("')dnl\n" // AO Enabled and modified from `20'
 				+ "dnl #\n"
@@ -594,22 +596,22 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl # DoS attacks or barrages of spam. (As mentioned below, a per-IP address \n"
 				+ "dnl # limit would be useful but is not available as an option at this writing.)\n"
 				+ "dnl #\n");
-		int badRcptThrottle = sendmailServer == null ? 10 : sendmailServer.getBadRcptThrottle();
+		int badRcptThrottle = sendmailServer == null ? SendmailServer.DEFAULT_BAD_RCPT_THROTTLE : sendmailServer.getBadRcptThrottle();
 		if(badRcptThrottle == -1) out.print("dnl ");
 		out.print("define(`confBAD_RCPT_THROTTLE', `").print(badRcptThrottle==-1 ? 0 : badRcptThrottle).print("')dnl\n"); // AO added
-		int connectionRateThrottle = sendmailServer == null ? 100 : sendmailServer.getConnectionRateThrottle();
+		int connectionRateThrottle = sendmailServer == null ? SendmailServer.DEFAULT_CONNECTION_RATE_THROTTLE : sendmailServer.getConnectionRateThrottle();
 		if(connectionRateThrottle == -1) out.print("dnl ");
 		out.print("define(`confCONNECTION_RATE_THROTTLE', `").print(connectionRateThrottle==-1 ? 0 : connectionRateThrottle).print("')dnl\n" // AO enabled and modified from `3'
 				+ "dnl #\n"
 				+ "dnl # Allow large messages for big attachments.\n"
 				+ "dnl #\n");
-		int maxMessageSize = sendmailServer == null ? 100000000 : sendmailServer.getMaxMessageSize();
+		int maxMessageSize = sendmailServer == null ? SendmailServer.DEFAULT_MAX_MESSAGE_SIZE : sendmailServer.getMaxMessageSize();
 		if(maxMessageSize == -1) out.print("dnl ");
 		out.print("define(`confMAX_MESSAGE_SIZE', `").print(maxMessageSize==-1 ? 0 : maxMessageSize).print("')dnl\n"
 				+ "dnl #\n"
 				+ "dnl # Stop accepting mail when disk almost full.\n"
 				+ "dnl #\n");
-		int minFreeBlocks = sendmailServer == null ? 65536 : sendmailServer.getMinFreeBlocks();
+		int minFreeBlocks = sendmailServer == null ? SendmailServer.DEFAULT_MIN_FREE_BLOCKS : sendmailServer.getMinFreeBlocks();
 		if(minFreeBlocks == -1) out.print("dnl ");
 		out.print("define(`confMIN_FREE_BLOCKS', `").print(minFreeBlocks==-1 ? 100 : minFreeBlocks).print("')dnl\n"
 				+ "dnl #\n"
