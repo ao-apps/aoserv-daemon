@@ -41,6 +41,8 @@ import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.Port;
 import com.aoindustries.sql.SQLUtility;
 import com.aoindustries.util.StringUtility;
+import com.aoindustries.util.Tuple3;
+import com.aoindustries.validation.ValidationException;
 import com.sun.mail.iap.Argument;
 import com.sun.mail.iap.ProtocolException;
 import com.sun.mail.iap.Response;
@@ -218,98 +220,106 @@ final public class ImapManager extends BuilderThread {
 	private ImapManager() {
 	}
 
-	private static final Object _sessionLock = new Object();
-	private static Session _session;
+	private static final Map<Tuple3<InetAddress,Port,Boolean>,Session> _sessions = new HashMap<>();
 
 	/**
-	 * Gets the Session used for admin control.
+	 * Gets a cached Session
 	 */
-	private static Session getSession() throws IOException, SQLException {
-		synchronized(_sessionLock) {
-			if(_session == null) {
+	private static Session getSession(Tuple3<InetAddress,Port,Boolean> imapServer) throws IOException, SQLException {
+		synchronized(_sessions) {
+			Session session = _sessions.get(imapServer);
+			if(session == null) {
 				// Create and cache new session
 				Properties props = new Properties();
 				props.put("mail.store.protocol", "imap");
-				props.put("mail.transport.protocol", "smtp");
-				props.put("mail.smtp.auth", "true");
-				props.put("mail.from", "cyrus@" + AOServDaemon.getThisAOServer().getHostname());
-				_session = Session.getInstance(props, null);
-				//_session.setDebug(true);
+				props.put("mail.imap.host", imapServer.getElement1().toString());
+				props.put("mail.imap.port", Integer.toString(imapServer.getElement2().getPort()));
+				//props.put("mail.transport.protocol", "smtp");
+				//props.put("mail.smtp.auth", "true");
+				//props.put("mail.from", "cyrus@" + AOServDaemon.getThisAOServer().getHostname()); // Sendmail server name if used again
+				if(imapServer.getElement3()) {
+					props.put("mail.imap.starttls.enable", "true");
+					props.put("mail.imap.starttls.required", "true");
+				}
+				session = Session.getInstance(props, null);
+				// session.setDebug(true);
+				_sessions.put(imapServer, session);
 			}
-			return _session;
+			return session;
 		}
 	}
-
-	private static final Object _storeLock = new Object();
-	private static IMAPStore _store;
 
 	/**
 	 * Gets the IP address that should be used for admin access to the server.
 	 * It will first try to use the Primary IP address on the machine.  If that
-	 * doesn't have an IMAP server on port 143, then it will search all IP
-	 * addresses and use the first one with an IMAP server on port 143.
+	 * doesn't have an IMAP server, then it will search all IP
+	 * addresses and use the first one with an IMAP server.
 	 * 
-	 * @return  The IP address or <code>null</code> if not an IMAP server.
+	 * @return  The (IP address, port, starttls) or <code>null</code> if not an IMAP server.
 	 */
-	private static InetAddress getImapServerIPAddress() throws IOException, SQLException {
+	private static Tuple3<InetAddress,Port,Boolean> getImapServer() throws IOException, SQLException {
 		AOServer aoServer = AOServDaemon.getThisAOServer();
 		CyrusImapdServer cyrusServer = aoServer.getCyrusImapdServer();
 		if(cyrusServer == null) return null;
-		AOServConnector conn = AOServDaemon.getConnector();
-		Protocol imapProtocol = conn.getProtocols().get(Protocol.IMAP2);
-		if(imapProtocol == null) throw new SQLException("Protocol not found: " + Protocol.IMAP2);
-		Port imapPort = imapProtocol.getPort();
 		// Look for primary IP match
 		InetAddress primaryIp = aoServer.getPrimaryIPAddress().getInetAddress();
-		InetAddress firstImap = null;
+		Tuple3<InetAddress,Port,Boolean> firstImap = null;
 		for(CyrusImapdBind cib : cyrusServer.getCyrusImapdBinds()) {
 			NetBind nb = cib.getNetBind();
-			if(nb.getPort() == imapPort) {
+			if(nb.getAppProtocol().getProtocol().equals(Protocol.IMAP2)) {
 				InetAddress ip = nb.getIPAddress().getInetAddress();
-				if(ip.equals(primaryIp)) return primaryIp;
-				if(firstImap == null) firstImap = ip;
+				boolean tls;
+				{
+					Boolean allowPlaintextAuth = cib.getAllowPlaintextAuth();
+					if(allowPlaintextAuth == null) allowPlaintextAuth = cyrusServer.getAllowPlaintextAuth();
+					tls = !allowPlaintextAuth;
+				}
+				if(ip.equals(primaryIp)) return new Tuple3<>(primaryIp, nb.getPort(), tls);
+				if(firstImap == null) firstImap = new Tuple3<>(ip, nb.getPort(), tls);
 			}
 		}
 		return firstImap;
 	}
 
+	private static final Object _adminStoreLock = new Object();
+	private static Session _adminSession;
+	private static IMAPStore _adminStore;
+
 	/**
 	 * Gets the IMAPStore for admin control or <code>null</code> if not an IMAP server.
 	 */
-	private static IMAPStore getStore() throws IOException, SQLException, MessagingException {
-		synchronized(_storeLock) {
-			if(_store == null) {
-				// Get things that may failed externally before allocating session and store
-				InetAddress host = getImapServerIPAddress();
-				if(host == null) return null;
-				String user = LinuxAccount.CYRUS + "@default";
-				String password = AOServDaemonConfiguration.getCyrusPassword();
-
+	private static IMAPStore getAdminStore() throws IOException, SQLException, MessagingException {
+		// Get things that may failed externally before allocating session and store
+		Tuple3<InetAddress,Port,Boolean> imapServer = getImapServer();
+		if(imapServer == null) return null;
+		String user = LinuxAccount.CYRUS + "@default";
+		String password = AOServDaemonConfiguration.getCyrusPassword();
+		Session session = getSession(imapServer);
+		synchronized(_adminStoreLock) {
+			if(_adminSession != session || _adminStore == null) {
 				// Create and cache new store here
-				IMAPStore newStore = (IMAPStore)getSession().getStore();
-				newStore.connect(
-					host.toString(),
-					user,
-					password
-				);
-				_store = newStore;
+				IMAPStore newStore = (IMAPStore)session.getStore();
+				newStore.connect(user, password);
+				_adminSession = session;
+				_adminStore = newStore;
 			}
-			return _store;
+			return _adminStore;
 		}
 	}
 
 	/**
 	 * Closes IMAPStore.
 	 */
-	private static void closeStore() {
-		synchronized(_storeLock) {
-			if(_store != null) {
+	private static void closeAdminStore() {
+		synchronized(_adminStoreLock) {
+			if(_adminStore != null) {
 				try {
-					_store.close();
+					_adminStore.close();
 				} catch(MessagingException err) {
 					LogFactory.getLogger(ImapManager.class).log(Level.SEVERE, null, err);
 				}
-				_store = null;
+				_adminSession = null;
+				_adminStore = null;
 			}
 		}
 	}
@@ -323,10 +333,20 @@ final public class ImapManager extends BuilderThread {
 		String[] tempPassword,
 		UnixFile passwordBackup
 	) throws IOException, SQLException, MessagingException {
+		if(!WUIMAP_CONVERSION_ENABLED) throw new AssertionError();
+		Port wuPort;
+		try {
+			wuPort = Port.valueOf(8143, com.aoindustries.net.Protocol.TCP);
+		} catch(ValidationException e) {
+			throw new AssertionError("This hard-coded port must be valid", e);
+		}
 		return getUserStore(
 			logOut,
-			AOServDaemon.getThisAOServer().getPrimaryIPAddress().getInetAddress().toString(),
-			8143,
+			new Tuple3<>(
+				AOServDaemon.getThisAOServer().getPrimaryIPAddress().getInetAddress(),
+				wuPort,
+				false
+			),
 			username,
 			username.toString(),
 			tempPassword,
@@ -343,13 +363,13 @@ final public class ImapManager extends BuilderThread {
 		String[] tempPassword,
 		UnixFile passwordBackup
 	) throws IOException, SQLException, MessagingException {
-		InetAddress host = getImapServerIPAddress();
-		if(host == null) throw new IOException("Not an IMAP server");
+		if(!WUIMAP_CONVERSION_ENABLED) throw new AssertionError();
+		Tuple3<InetAddress,Port,Boolean> imapServer = getImapServer();
+		if(imapServer == null) throw new IOException("Not an IMAP server");
 		String usernameStr = username.toString();
 		return getUserStore(
 			logOut,
-			host.toString(),
-			143,
+			imapServer,
 			username,
 			usernameStr.indexOf('@') == -1 ? (usernameStr + "@default") : usernameStr,
 			tempPassword,
@@ -362,13 +382,13 @@ final public class ImapManager extends BuilderThread {
 	 */
 	private static IMAPStore getUserStore(
 		PrintWriter logOut,
-		String host,
-		int port,
+		Tuple3<InetAddress,Port,Boolean> imapServer,
 		UserId username,
 		String imapUsername,
 		String[] tempPassword,
 		UnixFile passwordBackup
 	) throws IOException, SQLException, MessagingException {
+		if(!WUIMAP_CONVERSION_ENABLED) throw new AssertionError();
 		// Reset the user password if needed
 		String password = tempPassword[0];
 		if(password == null) {
@@ -390,19 +410,11 @@ final public class ImapManager extends BuilderThread {
 		}
 
 		// Create the session
-		Properties props = new Properties();
-		props.put("mail.store.protocol", "imap");
-		props.put("mail.imap.port", Integer.toString(port));
-		Session session = Session.getInstance(props, null);
-		//session.setDebug(true);
+		Session session = getSession(imapServer);
 
 		// Create new store
 		IMAPStore store = (IMAPStore)session.getStore();
-		store.connect(
-			host,
-			imapUsername,
-			password
-		);
+		store.connect(imapUsername, password);
 		return store;
 	}
 
@@ -1718,7 +1730,7 @@ final public class ImapManager extends BuilderThread {
 			final Logger logger = LogFactory.getLogger(ImapManager.class);
 			final boolean isDebug = logger.isLoggable(Level.FINE);
 			final boolean isTrace = logger.isLoggable(Level.FINER);
-			IMAPStore store = getStore();
+			IMAPStore store = getAdminStore();
 			if(store == null) throw new SQLException("Not an IMAP server");
 			// Verify all email users - only users who have a home under /home/ are considered
 			List<LinuxServerAccount> lsas = AOServDaemon.getThisAOServer().getLinuxServerAccounts();
@@ -1991,7 +2003,7 @@ final public class ImapManager extends BuilderThread {
 				}
 			}
 		} catch(RuntimeException | IOException | SQLException | MessagingException err) {
-			closeStore();
+			closeAdminStore();
 			throw err;
 		}
 	}
@@ -2257,7 +2269,7 @@ final public class ImapManager extends BuilderThread {
 	private static long getCyrusFolderSize(String user, String folder, String domain, boolean notFoundOK) throws IOException, SQLException, MessagingException {
 		try {
 			// Connect to the store (will be null when not an IMAP server)
-			IMAPStore store = getStore();
+			IMAPStore store = getAdminStore();
 			if(store == null) {
 				if(!notFoundOK) throw new MessagingException("Not an IMAP server");
 				return 0;
@@ -2289,7 +2301,7 @@ final public class ImapManager extends BuilderThread {
 			}
 			throw new MessagingException("Unable to get folder size after " + (attempt - 1) + " attempts");
 		} catch(RuntimeException | IOException | SQLException | MessagingException err) {
-			closeStore();
+			closeAdminStore();
 			throw err;
 		}
 	}
@@ -2326,7 +2338,7 @@ ad OK Completed
 		) {
 			try {
 				// Connect to the store
-				IMAPStore store = getStore();
+				IMAPStore store = getAdminStore();
 				if(store == null) {
 					// Not an IMAP server, consistent with File.lastModified() above
 					return 0L;
@@ -2427,7 +2439,7 @@ ad OK Completed
 					if(inboxFolder.isOpen()) inboxFolder.close(false);
 				}
 			} catch(RuntimeException | IOException | SQLException | MessagingException err) {
-				closeStore();
+				closeAdminStore();
 				throw err;
 			}
 		} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
