@@ -217,8 +217,9 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 				rpmVersion.equals("7.0.84")
 				|| rpmVersion.equals("7.0.85")
 				|| rpmVersion.equals("7.0.86")
+				|| rpmVersion.equals("7.0.88")
 			) {
-				// Upgrade from Tomcat 7.0.82 to 7.0.84/7.0.85/7.0.86
+				// Upgrade from Tomcat 7.0.82 to 7.0.84/7.0.85/7.0.86/7.0.88
 				UpgradeSymlink[] upgradeSymlinks_7_0_84 = {
 					// mysql-connector-java-5.1.45-bin.jar -> mysql-connector-java-5.1.46-bin.jar
 					new UpgradeSymlink(
