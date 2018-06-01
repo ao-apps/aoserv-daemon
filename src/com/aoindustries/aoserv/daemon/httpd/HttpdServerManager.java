@@ -74,6 +74,15 @@ public class HttpdServerManager {
 	private HttpdServerManager() {}
 
 	/**
+	 * Reverts configurations for Let's Encrypt compatibility.
+	 * The recent change to extensive use of Apache directives to simplify Apache
+	 * configs is not completely compatible with the current implementation of the
+	 * Let's Encrypt certbot Apache plugin.  This can be revisited in the future
+	 * as Certbot matures.
+	 */
+	private static final boolean CERTBOT_COMPAT = true;
+
+	/**
 	 * The directory that all HTTPD configs are located in (/etc/httpd).
 	 */
 	static final String SERVER_ROOT = "/etc/httpd";
@@ -895,7 +904,11 @@ public class HttpdServerManager {
 							// DocumentRoot
 							out.print("\n"
 									+ "# Set up the default webapp\n"
-									+ "DocumentRoot ").print(getEscapedPrefixReplacement(dollarVariable, docBase.toString(), "/var/www/" + httpdSite.getSiteName() + "/", "/var/www/${site.name}/")).print("\n"
+									+ "DocumentRoot ")
+								.print(CERTBOT_COMPAT
+									? escape(dollarVariable, docBase.toString())
+									: getEscapedPrefixReplacement(dollarVariable, docBase.toString(), "/var/www/" + httpdSite.getSiteName() + "/", "/var/www/${site.name}/"))
+								.print("\n"
 									+ "<Directory ").print(getEscapedPrefixReplacement(dollarVariable, docBase.toString(), "/var/www/" + httpdSite.getSiteName() + "/", "/var/www/${site.name}/")).print(">\n"
 									+ "    <IfModule authz_core_module>\n"
 									+ "        Require all granted\n"
@@ -2542,9 +2555,10 @@ public class HttpdServerManager {
 						}
 					}
 					final String siteName = manager.httpdSite.getSiteName();
+					final String ipString = ipAddress.toBracketedString();
 					out.print("Define bind.pkey             ").print(bind.getPkey()).print("\n"
 							+ "Define bind.protocol         ").print(escape(dollarVariable, protocol)).print("\n"
-							+ "Define bind.ip_address       ").print(escape(dollarVariable, ipAddress.toBracketedString())).print("\n"
+							+ "Define bind.ip_address       ").print(escape(dollarVariable, ipString)).print("\n"
 							+ "Define bind.port             ").print(port).print("\n"
 							+ "Define bind.primary_hostname ").print(escape(dollarVariable, primaryHostname)).print("\n"
 							+ "Define site.name             ").print(escape(dollarVariable, siteName)).print("\n"
@@ -2552,9 +2566,15 @@ public class HttpdServerManager {
 							+ "Define site.group            ").print(escape(dollarVariable, manager.httpdSite.getLinuxServerGroup().getLinuxGroup().getName().toString())).print("\n"
 							+ "Define site.server_admin     ").print(escape(dollarVariable, manager.httpdSite.getServerAdmin())).print("\n"
 							+ "\n"
-							+ "<VirtualHost ${bind.ip_address}:${bind.port}>\n"
+							+ "<VirtualHost ")
+						.print(CERTBOT_COMPAT ? escape(dollarVariable, ipString) : "${bind.ip_address}")
+						.print(':')
+						.print(CERTBOT_COMPAT ? port : "${bind.port}")
+						.print(">\n"
 							+ "    ServerName \\\n"
-							+ "        ${bind.primary_hostname}\n");
+							+ "        ")
+						.print(CERTBOT_COMPAT ? escape(dollarVariable, primaryHostname) : "${bind.primary_hostname}")
+						.print('\n');
 					List<HttpdSiteURL> altURLs=bind.getAltHttpdSiteURLs();
 					if(!altURLs.isEmpty()) {
 						out.print("    ServerAlias");
@@ -2651,7 +2671,7 @@ public class HttpdServerManager {
 						out.print("    </IfModule>\n");
 					}
 					final String escapedSiteInclude;
-					if(siteInclude.equals(siteName + ".inc")) {
+					if(!CERTBOT_COMPAT && siteInclude.equals(siteName + ".inc")) {
 						escapedSiteInclude = "sites-available/${site.name}.inc";
 					} else {
 						escapedSiteInclude = escape(dollarVariable, "sites-available/" + siteInclude);
