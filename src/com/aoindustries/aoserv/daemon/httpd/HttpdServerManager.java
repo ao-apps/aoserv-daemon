@@ -1670,10 +1670,23 @@ public class HttpdServerManager {
 			} else {
 				pidFile = "/run/httpd/httpd.pid";
 			}
+			int maxConcurrency = hs.getMaxConcurrency();
+			// Scale maxSpare to 10 percent of maxConcurrency, but capped to Apache default of 10
+			int maxSpareServers = maxConcurrency / 10;
+			if(maxSpareServers > 10) maxSpareServers = 10;
+			// Scale minSpare to half of maxSpare, but capped to Apache default of 10
+			int minSpareServers = maxSpareServers / 2;
+			if(minSpareServers > 5) minSpareServers = 5; // This will not happen since max is capped to 10, but keeping as it shows we will not exceed default Apache settings
+			// Make sure there is at least one minSpare
+			if(minSpareServers < 1) minSpareServers = 1;
+			// Make sure maxSpace is greater than minSpare
+			if(maxSpareServers <= minSpareServers) maxSpareServers = minSpareServers + 1;
 			out.print("PidFile ").print(escape(dollarVariable, pidFile)).print("\n"
 					+ "<IfModule mpm_prefork_module>\n"
-					+ "    MaxRequestWorkers ").print(hs.getMaxConcurrency()).print("\n"
-					+ "    ServerLimit ").print(hs.getMaxConcurrency()).print("\n"
+					+ "    MaxSpareServers ").print(maxSpareServers).print("\n"
+					+ "    MinSpareServers ").print(minSpareServers).print("\n"
+					+ "    MaxRequestWorkers ").print(maxConcurrency).print("\n"
+					+ "    ServerLimit ").print(maxConcurrency).print("\n"
 					+ "</IfModule>\n"
 					+ "\n"
 					+ "#\n"
