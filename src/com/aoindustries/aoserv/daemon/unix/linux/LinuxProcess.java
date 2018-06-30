@@ -105,7 +105,7 @@ public class LinuxProcess extends UnixProcess {
 		} finally {
 			in.close();
 		}
-		if(sb.length() != 0) throw new IOException("cmdline not null terminated from " + cmdlineFile);
+		if(sb.length() != 0) split.add(sb.toString());
 		return split.toArray(new String[split.size()]);
 	}
 
