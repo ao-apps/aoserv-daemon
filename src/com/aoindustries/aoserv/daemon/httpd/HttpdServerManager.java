@@ -52,6 +52,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -61,6 +62,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -3167,71 +3169,100 @@ public class HttpdServerManager {
 	 * Gets the current concurrency for an Apache instance.
 	 */
 	public static int getHttpdServerConcurrency(int httpdServer) throws IOException, SQLException {
-		AOServConnector conn = AOServDaemon.getConnector();
-		HttpdServer hs = conn.getHttpdServers().get(httpdServer);
-		if(hs == null) throw new SQLException("HttpdServer not found: " + httpdServer);
-		String serviceName;
-		{
-			String systemdName = hs.getSystemdEscapedName();
-			if(systemdName == null) {
-				serviceName = "httpd.service";
-			} else {
-				serviceName = "httpd@" + systemdName + ".service";
-			}
-		}
-		// Get the parent PID from systemd
-		int ppid;
-		{
-			String pidLine = AOServDaemon.execAndCapture(
-				"/usr/bin/systemctl",
-				"show",
-				"--property=MainPID",
-				serviceName
-			);
-			int pos = pidLine.indexOf('=');
-			if(pos == -1) throw new IOException("No \"=\" in output from systemctl: " + pidLine);
-			ppid = Integer.parseInt(pidLine.substring(pos + 1));
-		}
-		// Count the number of processes that have the expected cmdline (to distiguish from mod_wsgi workers)
-		// and have the correct ppid
-		int count = 0;
-		{
-			File procDir = new File("/proc");
-			String[] procList = procDir.list();
-			if(procList == null) throw new IOException("Not a directory? " + procDir);
-			for(String filename : procList) {
-				int flen = filename.length();
-				boolean allNum = true;
-				for(int d = 0; d < flen; d++) {
-					char ch = filename.charAt(d);
-					if(ch<'0' || ch>'9') {
-						allNum = false;
-						break;
+		try {
+			return getHttpdServerConcurrencyLimiter.executeSerialized(
+				httpdServer,
+				() -> {
+					AOServConnector conn = AOServDaemon.getConnector();
+					AOServer thisAOServer = AOServDaemon.getThisAOServer();
+					OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+					int osvId = osv.getPkey();
+					HttpdServer hs = conn.getHttpdServers().get(httpdServer);
+					if(hs == null) throw new SQLException("HttpdServer not found: " + httpdServer);
+					int ppid;
+					{
+						if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+							ppid = Integer.parseInt(
+								FileUtils.readFileAsString(
+									new File("/var/run/httpd" + hs.getName() + ".pid")
+								).trim()
+							);
+						} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+							String serviceName;
+							{
+								String systemdName = hs.getSystemdEscapedName();
+								if(systemdName == null) {
+									serviceName = "httpd.service";
+								} else {
+									serviceName = "httpd@" + systemdName + ".service";
+								}
+							}
+							// Get the parent PID from systemd
+							String pidLine = AOServDaemon.execAndCapture(
+								"/usr/bin/systemctl",
+								"show",
+								"--property=MainPID",
+								serviceName
+							);
+							int pos = pidLine.indexOf('=');
+							if(pos == -1) throw new IOException("No \"=\" in output from systemctl: " + pidLine);
+							ppid = Integer.parseInt(pidLine.substring(pos + 1));
+						} else {
+							throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+						}
 					}
-				}
-				if(allNum) {
-					try {
-						int pid = Integer.parseInt(filename);
-						LinuxProcess process = new LinuxProcess(pid);
-						String[] cmdline = process.getCmdline();
-						if(
-							cmdline.length >= 2
-							&& "/usr/sbin/httpd".equals(cmdline[0])
-							&& "-DFOREGROUND".equals(cmdline[cmdline.length - 1])
-						) {
-							String statusPpid = process.getStatus("PPid");
-							if(statusPpid != null && Integer.parseInt(statusPpid) == ppid) {
-								count++;
+					// Count the number of processes that have the expected cmdline (to distiguish from mod_wsgi workers)
+					// and have the correct ppid
+					int count = 0;
+					{
+						File procDir = new File("/proc");
+						String[] procList = procDir.list();
+						if(procList == null) throw new IOException("Not a directory? " + procDir);
+						for(String filename : procList) {
+							int flen = filename.length();
+							boolean allNum = true;
+							for(int d = 0; d < flen; d++) {
+								char ch = filename.charAt(d);
+								if(ch<'0' || ch>'9') {
+									allNum = false;
+									break;
+								}
+							}
+							if(allNum) {
+								try {
+									int pid = Integer.parseInt(filename);
+									LinuxProcess process = new LinuxProcess(pid);
+									String[] cmdline = process.getCmdline();
+									if(
+										cmdline.length >= 1
+										&& "/usr/sbin/httpd".equals(cmdline[0])
+										// Not on CentOS 5: && "-DFOREGROUND".equals(cmdline[cmdline.length - 1])
+									) {
+										String statusPpid = process.getStatus("PPid");
+										if(statusPpid != null && Integer.parseInt(statusPpid) == ppid) {
+											count++;
+										}
+									}
+								} catch(FileNotFoundException err) {
+									if(logger.isLoggable(Level.FINE)) {
+										logger.log(Level.FINE, "It is normal that this is thrown if the process has already closed", err);
+									}
+								}
 							}
 						}
-					} catch(FileNotFoundException err) {
-						if(logger.isLoggable(Level.FINE)) {
-							logger.log(Level.FINE, "It is normal that this is thrown if the process has already closed", err);
-						}
 					}
+					return count;
 				}
-			}
+			);
+		} catch(InterruptedException e) {
+			InterruptedIOException ioErr = new InterruptedIOException(e.getMessage());
+			ioErr.initCause(e);
+			throw ioErr;
+		} catch(ExecutionException e) {
+			Throwable cause = e.getCause();
+			if(cause instanceof IOException) throw (IOException)cause;
+			if(cause instanceof SQLException) throw (SQLException)cause;
+			throw new IOException(e);
 		}
-		return count;
 	}
 }
