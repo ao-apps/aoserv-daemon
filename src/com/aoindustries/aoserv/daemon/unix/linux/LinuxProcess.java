@@ -90,7 +90,7 @@ public class LinuxProcess extends UnixProcess {
 	public String[] getCmdline() throws IOException {
 		List<String> split = new ArrayList<>();
 		StringBuilder sb = new StringBuilder();
-		File cmdlineFile = new File(proc, "cmdline");
+		File cmdlineFile = new File(getProc(), "cmdline");
 		Reader in = new FileReader(cmdlineFile);
 		try {
 			int ch;
@@ -116,7 +116,7 @@ public class LinuxProcess extends UnixProcess {
 	 * @see  #getStatus(java.lang.String)
 	 */
 	public Map<String,String> getStatus() throws IOException {
-		File statusFile = new File(proc, "status");
+		File statusFile = new File(getProc(), "status");
 		final int expectedMaxLength = 45; // "wc -l /proc/*/status" shows maximum 45 lines in kernel 3.10.0-514.16.1.el7.x86_64
 		Map<String,String> status = new LinkedHashMap<>(expectedMaxLength *4/3+1);
 		BufferedReader in = new BufferedReader(new FileReader(statusFile));
@@ -149,7 +149,7 @@ public class LinuxProcess extends UnixProcess {
 	 * @see  #getStatus()
 	 */
 	public String getStatus(String name) throws IOException {
-		File statusFile = new File(proc, "status");
+		File statusFile = new File(getProc(), "status");
 		BufferedReader in = new BufferedReader(new FileReader(statusFile));
 		try {
 			String line;
