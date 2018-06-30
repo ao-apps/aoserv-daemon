@@ -3182,9 +3182,11 @@ public class HttpdServerManager {
 					int ppid;
 					{
 						if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+							String name = hs.getName();
+							int num = (name == null ? 1 : Integer.parseInt(name));
 							ppid = Integer.parseInt(
 								FileUtils.readFileAsString(
-									new File("/var/run/httpd" + hs.getName() + ".pid")
+									new File("/var/run/httpd" + num + ".pid")
 								).trim()
 							);
 						} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
