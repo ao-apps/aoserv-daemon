@@ -35,6 +35,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import static com.aoindustries.aoserv.daemon.httpd.ApacheEscape.escape;
+import com.aoindustries.aoserv.daemon.unix.linux.LinuxProcess;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
@@ -46,8 +47,10 @@ import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.Port;
 import com.aoindustries.selinux.SEManagePort;
 import com.aoindustries.util.StringUtility;
+import com.aoindustries.util.concurrent.ConcurrencyLimiter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -3156,5 +3159,79 @@ public class HttpdServerManager {
 				AOServDaemon.exec("/usr/sbin/setsebool", "-P", bool, strVal);
 			}
 		}
+	}
+
+	private static final ConcurrencyLimiter<Integer,Integer> getHttpdServerConcurrencyLimiter = new ConcurrencyLimiter<>();
+
+	/**
+	 * Gets the current concurrency for an Apache instance.
+	 */
+	public static int getHttpdServerConcurrency(int httpdServer) throws IOException, SQLException {
+		AOServConnector conn = AOServDaemon.getConnector();
+		HttpdServer hs = conn.getHttpdServers().get(httpdServer);
+		if(hs == null) throw new SQLException("HttpdServer not found: " + httpdServer);
+		String serviceName;
+		{
+			String systemdName = hs.getSystemdEscapedName();
+			if(systemdName == null) {
+				serviceName = "httpd.service";
+			} else {
+				serviceName = "httpd@" + systemdName + ".service";
+			}
+		}
+		// Get the parent PID from systemd
+		int ppid;
+		{
+			String pidLine = AOServDaemon.execAndCapture(
+				"/usr/bin/systemctl",
+				"show",
+				"--property=MainPID",
+				serviceName
+			);
+			int pos = pidLine.indexOf('=');
+			if(pos == -1) throw new IOException("No \"=\" in output from systemctl: " + pidLine);
+			ppid = Integer.parseInt(pidLine.substring(pos + 1));
+		}
+		// Count the number of processes that have the expected cmdline (to distiguish from mod_wsgi workers)
+		// and have the correct ppid
+		int count = 0;
+		{
+			File procDir = new File("/proc");
+			String[] procList = procDir.list();
+			if(procList == null) throw new IOException("Not a directory? " + procDir);
+			for(String filename : procList) {
+				int flen = filename.length();
+				boolean allNum = true;
+				for(int d = 0; d < flen; d++) {
+					char ch = filename.charAt(d);
+					if(ch<'0' || ch>'9') {
+						allNum = false;
+						break;
+					}
+				}
+				if(allNum) {
+					try {
+						int pid = Integer.parseInt(filename);
+						LinuxProcess process = new LinuxProcess(pid);
+						String[] cmdline = process.getCmdline();
+						if(
+							cmdline.length >= 2
+							&& "/usr/sbin/httpd".equals(cmdline[0])
+							&& "-DFOREGROUND".equals(cmdline[cmdline.length - 1])
+						) {
+							String statusPpid = process.getStatus("PPid");
+							if(statusPpid != null && Integer.parseInt(statusPpid) == ppid) {
+								count++;
+							}
+						}
+					} catch(FileNotFoundException err) {
+						if(logger.isLoggable(Level.FINE)) {
+							logger.log(Level.FINE, "It is normal that this is thrown if the process has already closed", err);
+						}
+					}
+				}
+			}
+		}
+		return count;
 	}
 }

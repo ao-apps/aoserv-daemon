@@ -630,6 +630,16 @@ final public class AOServDaemonServerThread extends Thread {
 								out.writeUTF(encryptedPassword);
 							}
 							break;
+						case AOServDaemonProtocol.GET_HTTPD_SERVER_CONCURRENCY :
+							{
+								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_HTTPD_SERVER_CONCURRENCY, Thread="+toString());
+								int httpdServer = in.readCompressedInt();
+								if(daemonKey == null) throw new IOException("Only the master server may GET_HTTPD_SERVER_CONCURRENCY");
+								int concurrency = HttpdServerManager.getHttpdServerConcurrency(httpdServer);
+								out.write(AOServDaemonProtocol.DONE);
+								out.writeCompressedInt(concurrency);
+							}
+							break;
 						case AOServDaemonProtocol.GET_IMAP_FOLDER_SIZES :
 							{
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_IMAP_FOLDER_SIZES, Thread="+toString());
