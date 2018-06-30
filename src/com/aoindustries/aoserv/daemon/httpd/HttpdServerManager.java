@@ -3206,7 +3206,13 @@ public class HttpdServerManager {
 							);
 							int pos = pidLine.indexOf('=');
 							if(pos == -1) throw new IOException("No \"=\" in output from systemctl: " + pidLine);
-							ppid = Integer.parseInt(pidLine.substring(pos + 1));
+							try {
+								ppid = Integer.parseInt(pidLine.substring(pos + 1).trim());
+							} catch(NumberFormatException e) {
+								IOException ioErr = new IOException("Can't parse pidLine: " + pidLine);
+								ioErr.initCause(e);
+								throw ioErr;
+							}
 						} else {
 							throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 						}
