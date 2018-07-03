@@ -5,14 +5,18 @@
  */
 package com.aoindustries.aoserv.daemon.ssl;
 
-import static com.aoindustries.aoserv.client.AlertLevel.*;
+import static com.aoindustries.aoserv.client.AlertLevel.CRITICAL;
+import static com.aoindustries.aoserv.client.AlertLevel.HIGH;
+import static com.aoindustries.aoserv.client.AlertLevel.LOW;
+import static com.aoindustries.aoserv.client.AlertLevel.MEDIUM;
+import static com.aoindustries.aoserv.client.AlertLevel.NONE;
 import com.aoindustries.aoserv.client.CyrusImapdBind;
 import com.aoindustries.aoserv.client.CyrusImapdServer;
 import com.aoindustries.aoserv.client.HttpdSiteBind;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.SendmailServer;
 import com.aoindustries.aoserv.client.SslCertificate;
-import static com.aoindustries.aoserv.client.SslCertificate.Check;
+import com.aoindustries.aoserv.client.SslCertificate.Check;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.io.unix.Stat;
@@ -25,7 +29,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
@@ -43,7 +46,10 @@ final public class SslCertificateManager {
 
 	private static final String ALGORITHM = "SHA-256";
 
-	private static final long CERTBOT_CACHE_DURATION = 60L * 60 * 1000; // One hour
+	/**
+	 * @implNote  This is 5 minutes less than "NONE_SLEEP_DELAY" in noc-monitor/SslCertificateNodeWorker.java
+	 */
+	private static final long CERTBOT_CACHE_DURATION = 55L * 60 * 1000; // 55 minutes
 
 	private static final int CERTBOT_CRITICAL_DAYS = 0;
 	private static final int CERTBOT_HIGH_DAYS = 7;
@@ -409,11 +415,11 @@ final public class SslCertificateManager {
 					// TODO: subject alt names are as expected (case-sensitive) - low if matches case-insensitive
 
 					// TODO: Expiration date
-					// TODO: Let's Encrypt: low: 12 days, medium 10 days, high 7 days, critical expired
+					// TODO: Let's Encrypt: low: 12 days, medium 10 days, high 7 days, critical expired (defined above already)
 					// TODO: Others:        low: 30 days, medium 14 days, high 7 days, critical expired
 
 					// TODO: Self-signed as low
-					// TODO: Untrusted by openssl as high
+					// TODO: Untrusted by openssl as high (with chain and fullchain verified separately)
 
 					// TODO: Certificate max alert level setting? (with an "until" date?) - this used to cap in NOC or restrict statuses here?
 
@@ -497,6 +503,7 @@ final public class SslCertificateManager {
 		} catch(ExecutionException e) {
 			Throwable cause = e.getCause();
 			if(cause instanceof IOException) throw (IOException)cause;
+			if(cause instanceof SQLException) throw (SQLException)cause;
 			throw new IOException(cause);
 		}
 	}
