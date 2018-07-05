@@ -1312,7 +1312,9 @@ final public class SendmailCFManager extends BuilderThread {
 							} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 								AOServDaemon.exec("/usr/bin/systemctl", "enable", "sendmail.service");
 								if(needsReload[0]) {
-									AOServDaemon.exec("/usr/bin/systemctl", "reload-or-restart", "sendmail.service");
+									// Have been getting "Connection Refused" in monitoring after reconfigurations with "reload-or-restart"
+									// that require a manual restart.  Switched to "restart" only.
+									AOServDaemon.exec("/usr/bin/systemctl", "restart", "sendmail.service");
 								} else {
 									AOServDaemon.exec("/usr/bin/systemctl", "start", "sendmail.service");
 								}
