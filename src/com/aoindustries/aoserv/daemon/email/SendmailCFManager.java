@@ -26,8 +26,6 @@ import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.NotImplementedException;
-import com.aoindustries.lang.ObjectUtils;
 import com.aoindustries.net.AddressFamily;
 import com.aoindustries.net.DomainName;
 import com.aoindustries.net.InetAddress;
@@ -41,8 +39,10 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
+import org.apache.commons.lang3.NotImplementedException;
 
 /**
  * Builds the sendmail.mc and sendmail.cf files as necessary.
@@ -153,7 +153,7 @@ final public class SendmailCFManager extends BuilderThread {
 				if(certificate.getCertbotName() != null) throw new SQLException("Certbot not supported on CentOS 5");
 				serverCert = certificate.getCertFile().toString();
 				serverKey = certificate.getKeyFile().toString();
-				cacert = ObjectUtils.toString(certificate.getChainFile());
+				cacert = Objects.toString(certificate.getChainFile(), null);
 				if(cacert == null) {
 					// Use operating system default
 					cacert = ImapManager.DEFAULT_CA_FILE;
@@ -493,7 +493,7 @@ final public class SendmailCFManager extends BuilderThread {
 				} else {
 					serverCert = certificate.getCertFile().toString();
 					serverKey = certificate.getKeyFile().toString();
-					cacert = ObjectUtils.toString(certificate.getChainFile());
+					cacert = Objects.toString(certificate.getChainFile(), null);
 					if(cacert == null) {
 						// Use operating system default
 						cacert = ImapManager.DEFAULT_CA_FILE;
