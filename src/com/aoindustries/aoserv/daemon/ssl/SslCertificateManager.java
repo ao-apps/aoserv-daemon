@@ -24,10 +24,12 @@ import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.security.SmallIdentifier;
 import com.aoindustries.util.StringUtility;
 import com.aoindustries.util.Tuple2;
 import com.aoindustries.util.concurrent.ConcurrencyLimiter;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -175,17 +177,27 @@ final public class SslCertificateManager {
 			}
 			X509Certificate certificate;
 			if(certCanonical.equals(keyCanonical)) {
+				// Use openssl to convert .pem file to pkcs12 on-the-fly
+
+				// Generate a one-time random password (64-bit random, one-shot)
+				String passphrase = new SmallIdentifier().toString();
+				// TODO: Try without password
+				// Convert to PKCS12
+				byte[] pkcs12 = AOServDaemon.execAndCaptureBytes(
+					"openssl", "pkcs12", "-export", "-in", certCanonical.getPath(), "-passout", "pass:" + passphrase
+				);
+
 				// Key and cert together, load through Keystore
 				// See https://stackoverflow.com/questions/21794117/java-security-cert-certificateparsingexception-signed-fields-invalid
-				final String KEYSTORE_TYPE = "JKS";
+				final String KEYSTORE_TYPE = "PKCS12";
 				KeyStore ks;
 				try {
 					ks = KeyStore.getInstance(KEYSTORE_TYPE);
 				} catch(KeyStoreException e) {
 					throw new IOException(FACTORY_TYPE + ": Unable to get keystore instance of type \"" + KEYSTORE_TYPE + "\": " + e.toString(), e);
 				}
-				try (InputStream in = new FileInputStream(certCanonical.getFile())) {
-					ks.load(in, null); // Assumes no passphrase
+				try (InputStream in = new ByteArrayInputStream(pkcs12)) {
+					ks.load(in, passphrase.toCharArray()); // TODO: Try without passphrase
 				} catch(NoSuchAlgorithmException | CertificateException e) {
 					throw new IOException(FACTORY_TYPE + ": Unable to load keystore from \"" + certCanonical + "\": " + e.toString(), e);
 				}
