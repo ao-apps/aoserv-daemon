@@ -207,12 +207,22 @@ final public class SslCertificateManager {
 				} catch(KeyStoreException e) {
 					throw new IOException(FACTORY_TYPE + ": Unable to get keystore aliases from \"" + certCanonical + "\": " + e.toString(), e);
 				}
-				StringBuilder aliasesSB = new StringBuilder();
+				Set<String> aliasSet = new LinkedHashSet<>();
 				while(aliases.hasMoreElements()) {
-					if(aliasesSB.length() > 0) aliasesSB.append(", ");
-					aliasesSB.append(aliases.nextElement());
+					String alias = aliases.nextElement();
+					if(!aliasSet.add(alias)) throw new IOException(FACTORY_TYPE + ": Duplicate alias from pkcs12 conversion from \"" + certCanonical + "\": " + alias);
 				}
-				throw new IOException("TODO: Select a certificate from the aliases: " + aliasesSB);
+				if(aliasSet.isEmpty()) {
+					throw new IOException(FACTORY_TYPE + ": No aliases from pkcs12 conversion from \"" + certCanonical + "\"");
+				} else if(aliasSet.size() > 1) {
+					throw new IOException(FACTORY_TYPE + ": More than one alias from pkcs12 conversion from \"" + certCanonical + "\": " + StringUtils.join(aliasSet, ", "));
+				}
+				String alias = aliasSet.iterator().next();
+				try {
+					certificate = (X509Certificate)ks.getCertificate(alias);
+				} catch(KeyStoreException e) {
+					throw new IOException(FACTORY_TYPE + ": Unable to get certificate from pkcs12 conversion from \"" + certCanonical + "\": " + e.toString(), e);
+				}
 			} else {
 				// Cert alone, load directly
 				try (InputStream in = new FileInputStream(certCanonical.getFile())) {
