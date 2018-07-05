@@ -690,7 +690,7 @@ final public class SslCertificateManager {
 							)
 						);
 
-						final String CERTBOT_DOMAINS = "Certbot domains";
+						final String CERTBOT_DOMAINS = "Certbot Subject Alternative Name";
 						Set<String> domains = certbotStatus.getDomains();
 						if(domains.isEmpty()) {
 							results.add(
@@ -708,7 +708,7 @@ final public class SslCertificateManager {
 							boolean commonNameMatchesIgnoreCase = firstDomain.equalsIgnoreCase(commonName);
 							results.add(
 								new Check(
-									"Certbot first domain is CN",
+									"Certbot Subject CN",
 									firstDomain,
 									commonNameMatches ? NONE
 										: commonNameMatchesIgnoreCase ? MEDIUM : HIGH,
