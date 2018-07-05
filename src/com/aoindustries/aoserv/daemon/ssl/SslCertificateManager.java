@@ -487,7 +487,7 @@ final public class SslCertificateManager {
 							// The first domain should equal the common name
 							String commonName = certificate.getCommonName().getName();
 							String firstDomain = domains.iterator().next();
-							boolean commonNameMatches = firstDomain.equalsIgnoreCase(commonName);
+							boolean commonNameMatches = firstDomain.equals(commonName); // Case-sensitive to make sure our database represents actual configuration even to the specific case
 							results.add(
 								new Check(
 									"Certbot first domain is common name?",
