@@ -5,6 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.ssl;
 
+import com.aoindustries.aoserv.client.AOServer;
 import static com.aoindustries.aoserv.client.AlertLevel.CRITICAL;
 import static com.aoindustries.aoserv.client.AlertLevel.HIGH;
 import static com.aoindustries.aoserv.client.AlertLevel.LOW;
@@ -27,20 +28,33 @@ import com.aoindustries.util.Tuple2;
 import com.aoindustries.util.concurrent.ConcurrencyLimiter;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.StringReader;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.CertificateParsingException;
+import java.security.cert.X509Certificate;
 import java.sql.SQLException;
+import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import javax.naming.InvalidNameException;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
 import org.apache.commons.lang3.StringUtils;
 
 final public class SslCertificateManager {
@@ -60,6 +74,11 @@ final public class SslCertificateManager {
 	private static final int CERTBOT_HIGH_DAYS = 7;
 	private static final int CERTBOT_MEDIUM_DAYS = 10;
 	private static final int CERTBOT_LOW_DAYS = 12;
+
+	private static final int OTHER_CRITICAL_DAYS = 0;
+	private static final int OTHER_HIGH_DAYS = 7;
+	private static final int OTHER_MEDIUM_DAYS = 14;
+	private static final int OTHER_LOW_DAYS = 30;
 
 	private static final Map<Tuple2<UnixFile,String>,Tuple2<Long,String>> getHashedCache = new HashMap<>();
 
@@ -84,6 +103,128 @@ final public class SslCertificateManager {
 			}
 		} catch(NoSuchAlgorithmException e) {
 			throw new AssertionError(ALGORITHM + " is expected to exist", e);
+		}
+	}
+
+	private static class X509Status {
+		private final long certModifyTime;
+
+		private final Date notBefore;
+		private final Date notAfter;
+		private final String commonName;
+		private final Set<String> altNames;
+
+		private X509Status(
+			long certModifyTime,
+			Date notBefore,
+			Date notAfter,
+			String commonName,
+			Set<String> altNames
+		) {
+			this.certModifyTime = certModifyTime;
+			this.notBefore = notBefore;
+			this.notAfter = notAfter;
+			this.commonName = commonName;
+			this.altNames = altNames;
+		}
+
+		private Date getNotBefore() {
+			return notBefore;
+		}
+
+		private Date getNotAfter() {
+			return notAfter;
+		}
+
+		private String getCommonName() {
+			return commonName;
+		}
+
+		private Set<String> getAltNames() {
+			return altNames;
+		}
+	}
+
+	private static final String FACTORY_TYPE = "X.509";
+
+	private static final Map<UnixFile,X509Status> x509Cache = new HashMap<>();
+	/**
+	 * Gets the x509 status.
+	 */
+	private static X509Status getX509Status(UnixFile certCanonical) throws IOException {
+		synchronized(x509Cache) {
+			long certModifyTime = certCanonical.getStat().getModifyTime();
+
+			X509Status cached = x509Cache.get(certCanonical);
+			if(
+				cached != null
+				&& certModifyTime == cached.certModifyTime
+			) {
+				return cached;
+			}
+
+			CertificateFactory factory;
+			try {
+				factory = CertificateFactory.getInstance(FACTORY_TYPE);
+			} catch(CertificateException e) {
+				throw new IOException("Unable to load certificate factory: " + FACTORY_TYPE, e);
+			}
+			X509Certificate certificate;
+			try (InputStream in = new FileInputStream(certCanonical.getFile())) {
+				certificate = (X509Certificate)factory.generateCertificate(in);
+			} catch(CertificateException e) {
+				throw new IOException("Unable to generate certificate: " + certCanonical, e);
+			}
+			String commonName = null;
+			{
+				// See https://stackoverflow.com/questions/7933468/parsing-the-cn-out-of-a-certificate-dn
+				String x509Name = certificate.getSubjectX500Principal().getName();
+				LdapName ln;
+				try {
+					ln = new LdapName(x509Name); // Compatible: both getName() and new LdapName(...) are RFC 2253
+				} catch(InvalidNameException e) {
+					throw new IOException("Unable to parse common name: " + x509Name, e);
+				}
+				for(Rdn rdn : ln.getRdns()) {
+					if(rdn.getType().equalsIgnoreCase("CN")) {
+						commonName = rdn.getValue().toString();
+						break;
+					}
+				}
+				if(commonName == null) throw new IOException("No common name found: " + x509Name);
+			}
+			Set<String> altNames;
+			{
+				Collection<List<?>> sans;
+				try {
+					sans = certificate.getSubjectAlternativeNames();
+				} catch(CertificateParsingException e) {
+					throw new IOException("Unable to parse certificate: " + certCanonical, e);
+				}
+				if(sans == null) {
+					altNames = Collections.emptySet();
+				} else {
+					altNames = new LinkedHashSet<>(sans.size() *4/3+1);
+					for(List<?> san : sans) {
+						int type = (Integer)san.get(0);
+						if(type == 2 /* dNSName */) {
+							String altName = (String)san.get(1);
+							if(!altNames.add(altName)) throw new IOException("Duplicate subject alt name: " + altName);
+						} else {
+							throw new IOException("Unexpected subject alt name type code: " + type);
+						}
+					}
+				}
+			}
+			X509Status result = new X509Status(
+				certModifyTime,
+				certificate.getNotBefore(),
+				certificate.getNotAfter(),
+				commonName,
+				altNames
+			);
+			x509Cache.put(certCanonical, result);
+			return result;
 		}
 	}
 
@@ -265,7 +406,8 @@ final public class SslCertificateManager {
 
 	public static List<Check> checkSslCertificate(SslCertificate certificate) throws IOException, SQLException {
 		try {
-			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+			AOServer thisAOServer = AOServDaemon.getThisAOServer();
+			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			boolean isNewOpenssl;
 			switch(osvId) {
@@ -284,6 +426,24 @@ final public class SslCertificateManager {
 			return checkSslCertificateConcurrencyLimiter.executeSerialized(
 				certificate,
 				() -> {
+					long currentTime = System.currentTimeMillis();
+
+					String certbotName = certificate.getCertbotName();
+					String commonName = certificate.getCommonName().getName();
+					// Gets a lowercase set of alts names
+					Set<String> expectedAlts;
+					Set<String> expectedAltsLower;
+					{
+						List<SslCertificateName> altNames = certificate.getAltNames();
+						expectedAlts = new LinkedHashSet<>(altNames.size()*4/3+1);
+						expectedAltsLower = new LinkedHashSet<>(altNames.size()*4/3+1);
+						for(SslCertificateName altName : altNames) {
+							String name = altName.getName();
+							if(!expectedAlts.add(name)) throw new SQLException("Duplicate alt name: " + name);
+							String lower = name.toLowerCase(Locale.ROOT);
+							if(!expectedAltsLower.add(lower)) throw new SQLException("Duplicate lower alt name: " + lower);
+						}
+					}
 					List<Check> results = new ArrayList<>();
 
 					// First make sure all expected files exist
@@ -432,25 +592,104 @@ final public class SslCertificateManager {
 
 					// Configuration:
 					// TODO: DNS settings
-					// TODO: Hostnames match what is used by (case-insensitive match)
+					// TODO: Hostnames match what is used by (case-insensitive match), low if match but different case?
+					//       HttpdSiteBinds, CyrusServers, SendmailServers, ...
 					// TODO: No extra hostnames - low level warning if any found
-
-					// TODO: common name is exactly as expected (case-sensitive) - low if matches case-insensitive
-					// TODO: subject alt names are as expected (case-sensitive) - low if matches case-insensitive
-
-					// TODO: Expiration date
-					// TODO: Let's Encrypt: low: 12 days, medium 10 days, high 7 days, critical expired (defined above already)
-					// TODO: Others:        low: 30 days, medium 14 days, high 7 days, critical expired
 
 					// TODO: Self-signed as low
 					// TODO: Untrusted by openssl as high (with chain and fullchain verified separately)
+					//       or Java's Certificate.verify method?
 
 					// TODO: Certificate max alert level setting? (with an "until" date?) - this used to cap in NOC or restrict statuses here?
 
+					// x509 parsing
+					if(certCanonicalExists) {
+						DateFormat df = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.LONG);
+						df.setTimeZone(thisAOServer.getTimeZone().getTimeZone());
+
+						X509Status x509Status = getX509Status(certCanonical);
+						Date notBefore = x509Status.getNotBefore();
+						if(notBefore != null) {
+							results.add(
+								new Check(
+									FACTORY_TYPE + " Not Before",
+									df.format(notBefore),
+									currentTime < notBefore.getTime() ? HIGH : NONE,
+									null
+								)
+							);
+						}
+						Date notAfter = x509Status.getNotAfter();
+						if(notAfter != null) {
+							long daysLeft = (notAfter.getTime() - currentTime) / (24 * 60 * 60 * 1000);
+							results.add(
+								new Check(
+									FACTORY_TYPE + " Not After",
+									df.format(notAfter),
+									(daysLeft <= (certbotName != null ? CERTBOT_CRITICAL_DAYS : OTHER_CRITICAL_DAYS)) ? CRITICAL
+										: daysLeft <= (certbotName != null ? CERTBOT_HIGH_DAYS : OTHER_HIGH_DAYS) ? HIGH
+										: daysLeft <= (certbotName != null ? CERTBOT_MEDIUM_DAYS : OTHER_MEDIUM_DAYS) ? MEDIUM
+										: daysLeft <= (certbotName != null ? CERTBOT_LOW_DAYS : OTHER_LOW_DAYS) ? LOW
+										: NONE,
+									null
+								)
+							);
+						}
+						String x509CN = x509Status.getCommonName();
+						boolean commonNameMatches = x509CN.equals(commonName);
+						boolean commonNameMatchesIgnoreCase = x509CN.equalsIgnoreCase(commonName);
+						results.add(
+							new Check(
+								FACTORY_TYPE + " Subject CN",
+								x509CN,
+								commonNameMatches ? NONE
+									: commonNameMatchesIgnoreCase ? MEDIUM : HIGH,
+								commonNameMatches ? null : "Expected: " + commonName
+							)
+						);
+						// The set of alt names should match expected
+						Set<String> altNames = x509Status.getAltNames();
+						boolean altNamesMatch = expectedAlts.equals(altNames);
+						boolean altNamesMatchLower;
+						if(altNamesMatch) {
+							altNamesMatchLower = true;
+						} else {
+							Set<String> lowerAltnames = new LinkedHashSet<>(altNames.size() *4/3+1);
+							for(String altName : altNames) {
+								String lower = altName.toLowerCase(Locale.ROOT);
+								if(!lowerAltnames.add(lower)) throw new IOException("Duplicate lower alt name: " + lower);
+							}
+							altNamesMatchLower = expectedAltsLower.equals(lowerAltnames);
+						}
+						results.add(
+							new Check(
+								FACTORY_TYPE + " Subject Alternative Name",
+								StringUtils.join(altNames, ' '),
+								altNamesMatch ? NONE : altNamesMatchLower ? MEDIUM : HIGH,
+								altNamesMatch ? null : "Expected: " + StringUtils.join(expectedAlts, ' ')
+							)
+						);
+					}
+
 					// Let's Encrypt certificate status
-					String certbotName = certificate.getCertbotName();
 					if(certbotName != null) {
 						CertbotStatus certbotStatus = getCertbotStatus(certbotName);
+
+						String status = certbotStatus.getStatus();
+						results.add(new Check("Certbot status", status, "VALID".equals(status) ? NONE : CRITICAL, null));
+						int days = certbotStatus.getDays();
+						results.add(
+							new Check(
+								"Certbot days left",
+								days == -1 ? "EXPIRED" : Integer.toString(days),
+								days == -1 || days <= CERTBOT_CRITICAL_DAYS ? CRITICAL
+									: days <= CERTBOT_HIGH_DAYS ? HIGH
+									: days <= CERTBOT_MEDIUM_DAYS ? MEDIUM
+									: days <= CERTBOT_LOW_DAYS ? LOW
+									: NONE,
+								null
+							)
+						);
 
 						final String CERTBOT_DOMAINS = "Certbot domains";
 						Set<String> domains = certbotStatus.getDomains();
@@ -464,58 +703,43 @@ final public class SslCertificateManager {
 								)
 							);
 						} else {
-							// The set of domains should match Alt names
-							Set<String> expectedAlts;
-							{
-								List<SslCertificateName> altNames = certificate.getAltNames();
-								expectedAlts = new LinkedHashSet<>(altNames.size()*4/3+1);
-								for(SslCertificateName altName : altNames) {
-									String name = altName.getName();
-									if(!expectedAlts.add(name)) throw new SQLException("Duplicate alt name: " + name);
-								}
-							}
-							boolean altNamesMatch = expectedAlts.equals(domains);
-							results.add(
-								new Check(
-									CERTBOT_DOMAINS,
-									StringUtils.join(domains, ' '),
-									altNamesMatch ? NONE : HIGH,
-									altNamesMatch ? null : "Expected: " + StringUtils.join(expectedAlts, ' ')
-								)
-							);
-
 							// The first domain should equal the common name
-							String commonName = certificate.getCommonName().getName();
 							String firstDomain = domains.iterator().next();
-							boolean commonNameMatches = firstDomain.equals(commonName); // Case-sensitive to make sure our database represents actual configuration even to the specific case
+							boolean commonNameMatches = firstDomain.equals(commonName);
+							boolean commonNameMatchesIgnoreCase = firstDomain.equalsIgnoreCase(commonName);
 							results.add(
 								new Check(
 									"Certbot first domain is common name?",
 									firstDomain,
-									commonNameMatches ? NONE : HIGH,
+									commonNameMatches ? NONE
+										: commonNameMatchesIgnoreCase ? MEDIUM : HIGH,
 									commonNameMatches ? null : "Expected: " + commonName
 								)
 							);
+
+							// The set of domains should match Alt names
+							boolean altNamesMatch = expectedAlts.equals(domains);
+							boolean altNamesMatchLower;
+							if(altNamesMatch) {
+								altNamesMatchLower = true;
+							} else {
+								Set<String> lowerDomains = new LinkedHashSet<>(domains.size() *4/3+1);
+								for(String domain : domains) {
+									String lower = domain.toLowerCase(Locale.ROOT);
+									if(!lowerDomains.add(lower)) throw new IOException("Duplicate lower domain: " + lower);
+								}
+								altNamesMatchLower = expectedAltsLower.equals(lowerDomains);
+							}
+							results.add(
+								new Check(
+									CERTBOT_DOMAINS,
+									StringUtils.join(domains, ' '),
+									altNamesMatch ? NONE : altNamesMatchLower ? MEDIUM : HIGH,
+									altNamesMatch ? null : "Expected: " + StringUtils.join(expectedAlts, ' ')
+								)
+							);
 						}
-
-						String status = certbotStatus.getStatus();
-						results.add(new Check("Certbot status", status, "VALID".equals(status) ? NONE : CRITICAL, null));
-						int days = certbotStatus.getDays();
-						results.add(
-							new Check(
-								"Certbot days left",
-								days == -1 ? "EXPIRED" : Integer.toString(days),
-								days == -1 || days < CERTBOT_CRITICAL_DAYS ? CRITICAL
-									: days < CERTBOT_HIGH_DAYS ? HIGH
-									: days < CERTBOT_MEDIUM_DAYS ? MEDIUM
-									: days < CERTBOT_LOW_DAYS ? LOW
-									: NONE,
-								null
-							)
-						);
 					}
-
-					// TODO: Make sure copies up-to-date and with correct permissions and ownership (PostgreSQL, MySQL, Sendmail, Cyrus...)
 
 					// Low-level if certificate appears unused
 					List<CyrusImapdBind> cyrusBinds = certificate.getCyrusImapdBinds();
