@@ -585,7 +585,6 @@ final public class SslCertificateManager {
 							results.add(new Check("Cert " + ALGORITHM, certHash, CRITICAL, "Cert does not match Key"));
 						}
 					}
-					
 
 					// TODO: cyrus and sendmail copies match (for let's encrypt) (mysql, postgresql later)
 					// TODO: cyrus and sendmail permissions as expected (possibly on copy) (mysql, postgresql later)
@@ -709,7 +708,7 @@ final public class SslCertificateManager {
 							boolean commonNameMatchesIgnoreCase = firstDomain.equalsIgnoreCase(commonName);
 							results.add(
 								new Check(
-									"Certbot first domain is common name?",
+									"Certbot first domain is CN",
 									firstDomain,
 									commonNameMatches ? NONE
 										: commonNameMatchesIgnoreCase ? MEDIUM : HIGH,
