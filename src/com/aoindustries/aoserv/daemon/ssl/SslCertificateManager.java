@@ -17,6 +17,7 @@ import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.SendmailServer;
 import com.aoindustries.aoserv.client.SslCertificate;
 import com.aoindustries.aoserv.client.SslCertificate.Check;
+import com.aoindustries.aoserv.client.SslCertificateName;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.io.unix.Stat;
@@ -33,10 +34,14 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import org.apache.commons.lang3.StringUtils;
 
 final public class SslCertificateManager {
 
@@ -94,6 +99,7 @@ final public class SslCertificateManager {
 		private final long privkeyModifyTime;
 		private final long renewalModifyTime;
 
+		private final Set<String> domains;
 		private final String status;
 		private final int days;
 
@@ -108,6 +114,7 @@ final public class SslCertificateManager {
 			UnixFile privkeyCanonicalFile,
 			long privkeyModifyTime,
 			long renewalModifyTime,
+			Set<String> domains,
 			String status,
 			int days
 		) {
@@ -121,8 +128,13 @@ final public class SslCertificateManager {
 			this.privkeyCanonicalFile = privkeyCanonicalFile;
 			this.privkeyModifyTime = privkeyModifyTime;
 			this.renewalModifyTime = renewalModifyTime;
+			this.domains = domains;
 			this.status = status;
 			this.days = days;
+		}
+
+		private Set<String> getDomains() {
+			return domains;
 		}
 
 		private String getStatus() {
@@ -171,6 +183,7 @@ final public class SslCertificateManager {
 			) {
 				return cached;
 			}
+			Set<String> domains = Collections.emptySet();
 			String status = "UNKNOWN";
 			int days = -1;
 			try (
@@ -187,7 +200,16 @@ final public class SslCertificateManager {
 							throw new IOException("Unexpected certificate name: " + line);
 						}
 					}
-					// TODO: Parse Domains?
+					String domainsPrefix = "    Domains: ";
+					if(line.startsWith(domainsPrefix)) {
+						if(!domains.isEmpty()) throw new IOException("Domains already set: " + line);
+						String[] split = StringUtils.split(line.substring(domainsPrefix.length()), ' ');
+						if(split.length == 0) throw new IOException("No domains: " + line);
+						domains = new LinkedHashSet<>(split.length*4/3+1);
+						for(String domain : split) {
+							if(!domains.add(domain)) throw new IOException("Duplicate domain from certbot: " + line);
+						}
+					}
 					if(line.startsWith("    Expiry Date: ")) {
 						int leftPos = line.indexOf('(');
 						if(leftPos != -1) {
@@ -214,7 +236,6 @@ final public class SslCertificateManager {
 										days = -1;
 									}
 								}
-								break;
 							}
 						}
 					}
@@ -231,6 +252,7 @@ final public class SslCertificateManager {
 				privkeyCanonicalFile,
 				privkeyModifyTime,
 				renewalModifyTime,
+				domains,
 				status,
 				days
 			);
@@ -281,6 +303,7 @@ final public class SslCertificateManager {
 					results.add(new Check("Key exists?", Boolean.toString(keyExists), keyExists ? NONE : CRITICAL, keyFile.toString()));
 					boolean csrExists;
 					if(csrStat != null) {
+						assert csrFile != null;
 						csrExists = csrStat.exists();
 						results.add(new Check("CSR exists?", Boolean.toString(csrExists), csrExists ? NONE : MEDIUM, csrFile.toString()));
 					} else {
@@ -290,6 +313,7 @@ final public class SslCertificateManager {
 					results.add(new Check("Cert exists?", Boolean.toString(certExists), certExists ? NONE : CRITICAL, certFile.toString()));
 					boolean chainExists;
 					if(chainStat != null) {
+						assert chainFile != null;
 						chainExists = chainStat.exists();
 						results.add(new Check("Chain exists?", Boolean.toString(chainExists), chainExists ? NONE : CRITICAL, chainFile.toString()));
 					} else {
@@ -426,8 +450,54 @@ final public class SslCertificateManager {
 					// Let's Encrypt certificate status
 					String certbotName = certificate.getCertbotName();
 					if(certbotName != null) {
-						// TODO: Parse and compare Domains, too?
 						CertbotStatus certbotStatus = getCertbotStatus(certbotName);
+
+						final String CERTBOT_DOMAINS = "Certbot domains";
+						Set<String> domains = certbotStatus.getDomains();
+						if(domains.isEmpty()) {
+							results.add(
+								new Check(
+									CERTBOT_DOMAINS,
+									"(empty)",
+									HIGH,
+									"No domains from certbot"
+								)
+							);
+						} else {
+							// The set of domains should match Alt names
+							Set<String> expectedAlts;
+							{
+								List<SslCertificateName> altNames = certificate.getAltNames();
+								expectedAlts = new LinkedHashSet<>(altNames.size()*4/3+1);
+								for(SslCertificateName altName : altNames) {
+									String name = altName.getName();
+									if(!expectedAlts.add(name)) throw new SQLException("Duplicate alt name: " + name);
+								}
+							}
+							boolean altNamesMatch = expectedAlts.equals(domains);
+							results.add(
+								new Check(
+									CERTBOT_DOMAINS,
+									StringUtils.join(domains, ' '),
+									altNamesMatch ? NONE : HIGH,
+									altNamesMatch ? null : "Expected: " + StringUtils.join(expectedAlts, ' ')
+								)
+							);
+
+							// The first domain should equal the common name
+							String commonName = certificate.getCommonName().getName();
+							String firstDomain = domains.iterator().next();
+							boolean commonNameMatches = firstDomain.equalsIgnoreCase(commonName);
+							results.add(
+								new Check(
+									"Certbot first domain is common name?",
+									firstDomain,
+									commonNameMatches ? NONE : HIGH,
+									commonNameMatches ? null : "Expected: " + commonName
+								)
+							);
+						}
+
 						String status = certbotStatus.getStatus();
 						results.add(new Check("Certbot status", status, "VALID".equals(status) ? NONE : CRITICAL, null));
 						int days = certbotStatus.getDays();
