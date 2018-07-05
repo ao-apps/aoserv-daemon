@@ -6,6 +6,7 @@
 package com.aoindustries.aoserv.daemon.ssl;
 
 import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.AlertLevel;
 import static com.aoindustries.aoserv.client.AlertLevel.CRITICAL;
 import static com.aoindustries.aoserv.client.AlertLevel.HIGH;
 import static com.aoindustries.aoserv.client.AlertLevel.LOW;
@@ -33,6 +34,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.StringReader;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
@@ -45,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -151,7 +155,7 @@ final public class SslCertificateManager {
 	/**
 	 * Gets the x509 status.
 	 */
-	private static X509Status getX509Status(UnixFile certCanonical) throws IOException {
+	private static X509Status getX509Status(UnixFile certCanonical, UnixFile keyCanonical) throws IOException {
 		synchronized(x509Cache) {
 			long certModifyTime = certCanonical.getStat().getModifyTime();
 
@@ -170,10 +174,40 @@ final public class SslCertificateManager {
 				throw new IOException(FACTORY_TYPE + ": Unable to load certificate factory: " + e.toString(), e);
 			}
 			X509Certificate certificate;
-			try (InputStream in = new FileInputStream(certCanonical.getFile())) {
-				certificate = (X509Certificate)factory.generateCertificate(in);
-			} catch(CertificateException e) {
-				throw new IOException(FACTORY_TYPE + ": Unable to generate certificate: " + e.toString(), e);
+			if(certCanonical.equals(keyCanonical)) {
+				// Key and cert together, load through Keystore
+				// See https://stackoverflow.com/questions/21794117/java-security-cert-certificateparsingexception-signed-fields-invalid
+				final String KEYSTORE_TYPE = "JKS";
+				KeyStore ks;
+				try {
+					ks = KeyStore.getInstance(KEYSTORE_TYPE);
+				} catch(KeyStoreException e) {
+					throw new IOException(FACTORY_TYPE + ": Unable to get keystore instance of type \"" + KEYSTORE_TYPE + "\": " + e.toString(), e);
+				}
+				try (InputStream in = new FileInputStream(certCanonical.getFile())) {
+					ks.load(in, null); // Assumes no passphrase
+				} catch(NoSuchAlgorithmException | CertificateException e) {
+					throw new IOException(FACTORY_TYPE + ": Unable to load keystore from \"" + certCanonical + "\": " + e.toString(), e);
+				}
+				Enumeration<String> aliases;
+				try {
+					aliases = ks.aliases();
+				} catch(KeyStoreException e) {
+					throw new IOException(FACTORY_TYPE + ": Unable to get keystore aliases from \"" + certCanonical + "\": " + e.toString(), e);
+				}
+				StringBuilder aliasesSB = new StringBuilder();
+				while(aliases.hasMoreElements()) {
+					if(aliasesSB.length() > 0) aliasesSB.append(", ");
+					aliasesSB.append(aliases.nextElement());
+				}
+				throw new IOException("TODO: Select a certificate from the aliases: " + aliasesSB);
+			} else {
+				// Cert alone, load directly
+				try (InputStream in = new FileInputStream(certCanonical.getFile())) {
+					certificate = (X509Certificate)factory.generateCertificate(in);
+				} catch(CertificateException e) {
+					throw new IOException(FACTORY_TYPE + ": Unable to generate certificate from \"" + certCanonical + "\": " + e.toString(), e);
+				}
 			}
 			String commonName = null;
 			{
@@ -199,7 +233,7 @@ final public class SslCertificateManager {
 				try {
 					sans = certificate.getSubjectAlternativeNames();
 				} catch(CertificateParsingException e) {
-					throw new IOException(FACTORY_TYPE + ": Unable to parse certificate: " + e.toString(), e);
+					throw new IOException(FACTORY_TYPE + ": Unable to parse certificate subject alt names: " + e.toString(), e);
 				}
 				if(sans == null) {
 					altNames = Collections.emptySet();
@@ -606,7 +640,7 @@ final public class SslCertificateManager {
 						DateFormat df = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.LONG);
 						df.setTimeZone(thisAOServer.getTimeZone().getTimeZone());
 
-						X509Status x509Status = getX509Status(certCanonical);
+						X509Status x509Status = getX509Status(certCanonical, keyCanonical);
 						Date notBefore = x509Status.getNotBefore();
 						if(notBefore != null) {
 							results.add(
@@ -621,16 +655,23 @@ final public class SslCertificateManager {
 						Date notAfter = x509Status.getNotAfter();
 						if(notAfter != null) {
 							long daysLeft = (notAfter.getTime() - currentTime) / (24 * 60 * 60 * 1000);
-							results.add(
-								new Check(
-									FACTORY_TYPE + " Not After",
-									df.format(notAfter),
-									(daysLeft <= (certbotName != null ? CERTBOT_CRITICAL_DAYS : OTHER_CRITICAL_DAYS)) ? CRITICAL
+							String dateStr = df.format(notAfter);
+							AlertLevel alertLevel = (daysLeft <= (certbotName != null ? CERTBOT_CRITICAL_DAYS : OTHER_CRITICAL_DAYS)) ? CRITICAL
 										: daysLeft <= (certbotName != null ? CERTBOT_HIGH_DAYS : OTHER_HIGH_DAYS) ? HIGH
 										: daysLeft <= (certbotName != null ? CERTBOT_MEDIUM_DAYS : OTHER_MEDIUM_DAYS) ? MEDIUM
 										: daysLeft <= (certbotName != null ? CERTBOT_LOW_DAYS : OTHER_LOW_DAYS) ? LOW
-										: NONE,
-									null
+										: NONE;
+							results.add(
+								new Check(
+									FACTORY_TYPE + " Not After",
+									dateStr,
+									alertLevel,
+									alertLevel == NONE
+										? null
+										: (
+											(alertLevel == CRITICAL ? "Certificate expired " : "Certificates expires ")
+											+ dateStr
+										)
 								)
 							);
 						}
