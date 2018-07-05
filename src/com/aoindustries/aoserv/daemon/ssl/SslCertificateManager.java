@@ -167,13 +167,13 @@ final public class SslCertificateManager {
 			try {
 				factory = CertificateFactory.getInstance(FACTORY_TYPE);
 			} catch(CertificateException e) {
-				throw new IOException("Unable to load certificate factory: " + FACTORY_TYPE, e);
+				throw new IOException(FACTORY_TYPE + ": Unable to load certificate factory: " + e.toString(), e);
 			}
 			X509Certificate certificate;
 			try (InputStream in = new FileInputStream(certCanonical.getFile())) {
 				certificate = (X509Certificate)factory.generateCertificate(in);
 			} catch(CertificateException e) {
-				throw new IOException("Unable to generate certificate: " + certCanonical, e);
+				throw new IOException(FACTORY_TYPE + ": Unable to generate certificate: " + e.toString(), e);
 			}
 			String commonName = null;
 			{
@@ -183,7 +183,7 @@ final public class SslCertificateManager {
 				try {
 					ln = new LdapName(x509Name); // Compatible: both getName() and new LdapName(...) are RFC 2253
 				} catch(InvalidNameException e) {
-					throw new IOException("Unable to parse common name: " + x509Name, e);
+					throw new IOException(FACTORY_TYPE + ": Unable to parse common name \"" + x509Name + "\": " + e.toString(), e);
 				}
 				for(Rdn rdn : ln.getRdns()) {
 					if(rdn.getType().equalsIgnoreCase("CN")) {
@@ -191,7 +191,7 @@ final public class SslCertificateManager {
 						break;
 					}
 				}
-				if(commonName == null) throw new IOException("No common name found: " + x509Name);
+				if(commonName == null) throw new IOException(FACTORY_TYPE + ": No common name found: " + x509Name);
 			}
 			Set<String> altNames;
 			{
@@ -199,7 +199,7 @@ final public class SslCertificateManager {
 				try {
 					sans = certificate.getSubjectAlternativeNames();
 				} catch(CertificateParsingException e) {
-					throw new IOException("Unable to parse certificate: " + certCanonical, e);
+					throw new IOException(FACTORY_TYPE + ": Unable to parse certificate: " + e.toString(), e);
 				}
 				if(sans == null) {
 					altNames = Collections.emptySet();
@@ -209,9 +209,9 @@ final public class SslCertificateManager {
 						int type = (Integer)san.get(0);
 						if(type == 2 /* dNSName */) {
 							String altName = (String)san.get(1);
-							if(!altNames.add(altName)) throw new IOException("Duplicate subject alt name: " + altName);
+							if(!altNames.add(altName)) throw new IOException(FACTORY_TYPE + ": Duplicate subject alt name: " + altName);
 						} else {
-							throw new IOException("Unexpected subject alt name type code: " + type);
+							throw new IOException(FACTORY_TYPE + ": Unexpected subject alt name type code: " + type);
 						}
 					}
 				}
