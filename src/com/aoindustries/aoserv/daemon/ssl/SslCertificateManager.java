@@ -613,7 +613,7 @@ final public class SslCertificateManager {
 								new Check(
 									FACTORY_TYPE + " Not Before",
 									df.format(notBefore),
-									currentTime < notBefore.getTime() ? HIGH : NONE,
+									currentTime < notBefore.getTime() ? CRITICAL : NONE,
 									null
 								)
 							);
