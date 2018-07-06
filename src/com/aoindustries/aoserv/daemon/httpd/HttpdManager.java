@@ -132,6 +132,8 @@ final public class HttpdManager extends BuilderThread {
 					connector.getIpAddresses().addTableListener(httpdManager, 0);
 					connector.getLinuxServerAccounts().addTableListener(httpdManager, 0);
 					connector.getNetBinds().addTableListener(httpdManager, 0);
+					connector.getSslCertificates().addTableListener(httpdManager, 0);
+					connector.getSslCertificateNames().addTableListener(httpdManager, 0);
 					PackageManager.addPackageListener(httpdManager);
 					System.out.println("Done");
 				} else {
