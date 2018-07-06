@@ -705,7 +705,7 @@ final public class SslCertificateManager {
 								FACTORY_TYPE + " Subject CN",
 								x509CN,
 								commonNameMatches ? NONE
-									: commonNameMatchesIgnoreCase ? MEDIUM : HIGH,
+									: commonNameMatchesIgnoreCase ? LOW : HIGH,
 								commonNameMatches ? null : "Expected: " + commonName
 							)
 						);
@@ -727,7 +727,7 @@ final public class SslCertificateManager {
 							new Check(
 								FACTORY_TYPE + " Subject Alternative Name",
 								StringUtils.join(altNames, ' '),
-								altNamesMatch ? NONE : altNamesMatchLower ? MEDIUM : HIGH,
+								altNamesMatch ? NONE : altNamesMatchLower ? LOW : HIGH,
 								altNamesMatch ? null : "Expected: " + StringUtils.join(expectedAlts, ' ')
 							)
 						);
@@ -774,7 +774,7 @@ final public class SslCertificateManager {
 									"Certbot Subject CN",
 									firstDomain,
 									commonNameMatches ? NONE
-										: commonNameMatchesIgnoreCase ? MEDIUM : HIGH,
+										: commonNameMatchesIgnoreCase ? LOW : HIGH,
 									commonNameMatches ? null : "Expected: " + commonName
 								)
 							);
@@ -796,7 +796,7 @@ final public class SslCertificateManager {
 								new Check(
 									CERTBOT_DOMAINS,
 									StringUtils.join(domains, ' '),
-									altNamesMatch ? NONE : altNamesMatchLower ? MEDIUM : HIGH,
+									altNamesMatch ? NONE : altNamesMatchLower ? LOW : HIGH,
 									altNamesMatch ? null : "Expected: " + StringUtils.join(expectedAlts, ' ')
 								)
 							);
