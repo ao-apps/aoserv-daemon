@@ -17,7 +17,6 @@ import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.PasswordGenerator;
 import com.aoindustries.aoserv.client.Protocol;
-import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.client.SslCertificate;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.validator.UserId;
@@ -2447,7 +2446,9 @@ ad OK Completed
 
 	/**
 	 * Checks if cyrus-imapd is expected to be enabled on this server.
-	 * Cyrus IMAPD is enabled when it is configured to listen on a port IMAP2, SIMAP, POP3, SPOP3, or SIEVE.
+	 * <p>
+	 * This is used to know when to enable saslauthd (See {@link SaslauthdManager}.
+	 * </p>
 	 *
 	 * @see Protocol#IMAP2
 	 * @see Protocol#SIMAP
@@ -2456,16 +2457,7 @@ ad OK Completed
 	 * @see Protocol#SIEVE
 	 */
 	public static boolean isCyrusImapdEnabled() throws IOException, SQLException {
-		AOServConnector conn = AOServDaemon.getConnector();
-		AOServer thisAoServer = AOServDaemon.getThisAOServer();
-		Server thisServer = thisAoServer.getServer();
-		return
-			!thisServer.getNetBinds(conn.getProtocols().get(Protocol.IMAP2)).isEmpty()
-			|| !thisServer.getNetBinds(conn.getProtocols().get(Protocol.SIMAP)).isEmpty()
-			|| !thisServer.getNetBinds(conn.getProtocols().get(Protocol.POP3)).isEmpty()
-			|| !thisServer.getNetBinds(conn.getProtocols().get(Protocol.SPOP3)).isEmpty()
-			|| !thisServer.getNetBinds(conn.getProtocols().get(Protocol.SIEVE)).isEmpty()
-		;
+		return AOServDaemon.getThisAOServer().getCyrusImapdServer() != null;
 	}
 
 	/**

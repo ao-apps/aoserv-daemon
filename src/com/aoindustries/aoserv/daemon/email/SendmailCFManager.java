@@ -1418,20 +1418,15 @@ final public class SendmailCFManager extends BuilderThread {
 
 	/**
 	 * Checks if sendmail is expected to be enabled on this server.
-	 * Sendmail is enabled when it is configured to listen on a port SMTP, SMTPS, or SUBMISSION.
+	 * <p>
+	 * This is used to know when to enable saslauthd (See {@link SaslauthdManager}.
+	 * </p>
 	 *
 	 * @see Protocol#SMTP
 	 * @see Protocol#SMTPS
 	 * @see Protocol#SUBMISSION
 	 */
 	public static boolean isSendmailEnabled() throws IOException, SQLException {
-		AOServConnector conn = AOServDaemon.getConnector();
-		AOServer thisAoServer = AOServDaemon.getThisAOServer();
-		Server thisServer = thisAoServer.getServer();
-		return
-			!thisServer.getNetBinds(conn.getProtocols().get(Protocol.SMTP)).isEmpty()
-			|| !thisServer.getNetBinds(conn.getProtocols().get(Protocol.SMTPS)).isEmpty()
-			|| !thisServer.getNetBinds(conn.getProtocols().get(Protocol.SUBMISSION)).isEmpty()
-		;
+		return !AOServDaemon.getThisAOServer().getSendmailServers().isEmpty();
 	}
 }
