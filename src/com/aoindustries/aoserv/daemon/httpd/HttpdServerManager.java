@@ -165,10 +165,11 @@ public class HttpdServerManager {
 	/**
 	 * The systemd multi-user.target.wants directory where enabled/disabled httpd.service and httpd@.service instances are found.
 	 */
-	private static final String MULTI_USER_WANTS_DIRECTORY = "/etc/systemd/system/multi-user.target.wants";
+	public static final String MULTI_USER_WANTS_DIRECTORY = "/etc/systemd/system/multi-user.target.wants";
 
 	/**
 	 * The pattern matching service httpd@&lt;name&gt;.service files.
+	 * Used to clean old instances from {@link #MULTI_USER_WANTS_DIRECTORY}.
 	 */
 	private static final Pattern HTTPD_NAME_SERVICE_REGEXP = Pattern.compile("^httpd@.+\\.service$");
 

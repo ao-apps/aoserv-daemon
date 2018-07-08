@@ -20,6 +20,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.email.jilter.JilterConfigurationWriter;
+import com.aoindustries.aoserv.daemon.httpd.HttpdServerManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
@@ -44,6 +45,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 /**
  * Builds the sendmail.mc and sendmail.cf files as necessary.
@@ -55,6 +57,42 @@ import java.util.logging.Level;
 final public class SendmailCFManager extends BuilderThread {
 
 	private static SendmailCFManager sendmailCFManager;
+
+	/**
+	 * The pattern matching service sendmail@&lt;name&gt;.service files.
+	 * Used to clean old instances from {@link HttpdServerManager#MULTI_USER_WANTS_DIRECTORY}.
+	 */
+	private static final Pattern SENDMAIL_NAME_SERVICE_REGEXP = Pattern.compile("^sendmail@.+\\.service$");
+
+	/**
+	 * The pattern matching service statistics@&lt;name&gt; files.
+	 * Used to clean old instances from <code>/var/log/mail</code>.
+	 */
+	private static final Pattern STATISTICS_NAME_REGEXP = Pattern.compile("^statistics@.+$");
+
+	/**
+	 * The pattern matching service mqueue@&lt;name&gt; files.
+	 * Used to clean old instances from <code>/var/spool</code>.
+	 */
+	private static final Pattern MQUEUE_NAME_REGEXP = Pattern.compile("^mqueue@.+$");
+
+	/**
+	 * The pattern matching service sendmail@&lt;name&gt;.pid files.
+	 * Used to clean old instances from <code>/var/run</code>.
+	 */
+	private static final Pattern SENDMAIL_NAME_PID_REGEXP = Pattern.compile("^sendmail@.+\\.pid$");
+
+	/**
+	 * The pattern matching service sendmail@&lt;name&gt;.cf files.
+	 * Used to clean old instances from <code>/etc/mail</code>.
+	 */
+	private static final Pattern SENDMAIL_NAME_CF_REGEXP = Pattern.compile("^sendmail@.+\\.cf$");
+
+	/**
+	 * The pattern matching service sendmail@&lt;name&gt;.mc files.
+	 * Used to clean old instances from <code>/etc/mail</code>.
+	 */
+	private static final Pattern SENDMAIL_NAME_MC_REGEXP = Pattern.compile("^sendmail@.+\\.mc$");
 
 	/**
 	 * The directory that Let's Encrypt certificates are copied to.
@@ -429,7 +467,6 @@ final public class SendmailCFManager extends BuilderThread {
 	) throws IOException, SQLException {
 		UnixFile sendmailMc = getSendmailMc(sendmailServer);
 		UnixFile sendmailCf = getSendmailCf(sendmailServer);
-		String name = (sendmailServer == null) ? null : sendmailServer.getName();
 		String systemdName = (sendmailServer == null) ? null : sendmailServer.getSystemdEscapedName();
 		out.print("divert(-1)dnl\n"
 				+ "dnl #\n"
@@ -1370,14 +1407,13 @@ final public class SendmailCFManager extends BuilderThread {
 							}
 						}
 
-						// TODO: Stop, backup and delete secondary instances that no longer exist before any restarts
-
 						// SELinux before next steps
 						DaemonFileUtils.restorecon(restorecon);
 						restorecon.clear();
-						if(defaultServer == null) {
-							// Sendmail installed but disabled
-							if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+
+						if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+							if(defaultServer == null) {
+								// Sendmail installed but disabled
 								// Stop service if running
 								if(subsysLockFile.exists()) {
 									AOServDaemon.exec("/etc/rc.d/init.d/sendmail", "stop");
@@ -1388,13 +1424,8 @@ final public class SendmailCFManager extends BuilderThread {
 									AOServDaemon.exec("/sbin/chkconfig", "sendmail", "off");
 									if(sendmailRcFile.getStat().exists()) throw new IOException(sendmailRcFile.getPath() + " still exists after chkconfig off");
 								}
-							} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-								AOServDaemon.exec("/usr/bin/systemctl", "stop", "sendmail.service");
-								AOServDaemon.exec("/usr/bin/systemctl", "disable", "sendmail.service");
-							} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-						} else {
-							// Sendmail installed and enabled
-							if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+							} else {
+								// Sendmail installed and enabled
 								// chkconfig on if needed
 								if(!sendmailRcFile.getStat().exists()) {
 									AOServDaemon.exec("/sbin/chkconfig", "sendmail", "on");
@@ -1410,33 +1441,174 @@ final public class SendmailCFManager extends BuilderThread {
 										AOServDaemon.exec("/etc/rc.d/init.d/sendmail", "reload");
 									}
 								}
-							} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-								// TODO: Create any instances that should now exist but didn't already, flagged reload needed
-								// TODO: Compare to how we implemented httpd-n management
+							}
+						} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+							// Enable instances
+							Set<String> dontDeleteFilenames = new HashSet<>(sendmailServers.size()*4/3+1);
+							for(SendmailServer ss : sendmailServers) {
+								String escapedName = ss.getSystemdEscapedName();
+								String filename = (escapedName == null) ? "sendmail.service" : ("sendmail@" + escapedName + ".service");
+								dontDeleteFilenames.add(filename);
+								UnixFile link = new UnixFile(HttpdServerManager.MULTI_USER_WANTS_DIRECTORY, filename);
+								if(!link.getStat().exists()) {
+									// Make start at boot
+									AOServDaemon.exec(
+										"/usr/bin/systemctl",
+										"enable",
+										filename
+									);
+									if(!link.getStat().exists()) throw new AssertionError("Link does not exist after systemctl enable: " + link);
+									// Make reload
+									needsReload[0] = true;
+								}
+							}
 
-								AOServDaemon.exec("/usr/bin/systemctl", "enable", "sendmail.service");
+							// Stop and disable instances that should no longer exist
+							String[] list = new File(HttpdServerManager.MULTI_USER_WANTS_DIRECTORY).list();
+							if(list != null) {
+								for(String filename : list) {
+									if(
+										!dontDeleteFilenames.contains(filename)
+										&& (
+											"sendmail.service".equals(filename)
+											|| SENDMAIL_NAME_SERVICE_REGEXP.matcher(filename).matches()
+										)
+									) {
+										AOServDaemon.exec(
+											"/usr/bin/systemctl",
+											"stop",
+											filename
+										);
+										AOServDaemon.exec(
+											"/usr/bin/systemctl",
+											"disable",
+											filename
+										);
+										UnixFile link = new UnixFile(HttpdServerManager.MULTI_USER_WANTS_DIRECTORY, filename);
+										if(link.getStat().exists()) throw new AssertionError("Link exists after systemctl disable: " + link);
+									}
+								}
+							}
+							if(defaultServer != null) {
+								// Sendmail installed and enabled
 								if(needsReload[0]) {
-									// Stop all named instances, restart default, then start all named instances during reload, in case IPs moved between instances
-									for(SendmailServer namedServer : namedServers) {
-										AOServDaemon.exec("/usr/bin/systemctl", "stop", "sendmail@" + namedServer.getSystemdEscapedName() + ".service");
+									// Stop all named instances, restart default, then start all named instances during reload, in case IPs/ports moved between instances
+									if(!namedServers.isEmpty()) {
+										String[] command = new String[2 + namedServers.size()];
+										int i = 0;
+										command[i++] = "/usr/bin/systemctl";
+										command[i++] = "stop";
+										for(SendmailServer namedServer : namedServers) {
+											command[i++] = "sendmail@" + namedServer.getSystemdEscapedName() + ".service";
+										}
+										assert i == command.length;
+										AOServDaemon.exec(command);
 									}
 									AOServDaemon.exec("/usr/bin/systemctl", "restart", "sendmail.service");
-									for(SendmailServer namedServer : namedServers) {
-										AOServDaemon.exec("/usr/bin/systemctl", "start", "sendmail@" + namedServer.getSystemdEscapedName() + ".service");
+									if(!namedServers.isEmpty()) {
+										String[] command = new String[2 + namedServers.size()];
+										int i = 0;
+										command[i++] = "/usr/bin/systemctl";
+										command[i++] = "start";
+										for(SendmailServer namedServer : namedServers) {
+											command[i++] = "sendmail@" + namedServer.getSystemdEscapedName() + ".service";
+										}
+										assert i == command.length;
+										AOServDaemon.exec(command);
 									}
 								} else {
 									// Call "start" on all, just in case the service has failed or build process was previously interrupted
-									AOServDaemon.exec("/usr/bin/systemctl", "start", "sendmail.service");
+									String[] command = new String[3 + namedServers.size()];
+									int i = 0;
+									command[i++] = "/usr/bin/systemctl";
+									command[i++] = "start";
+									command[i++] = "sendmail.service";
 									for(SendmailServer namedServer : namedServers) {
-										AOServDaemon.exec("/usr/bin/systemctl", "start", "sendmail@" + namedServer.getSystemdEscapedName() + ".service");
+										command[i++] = "sendmail@" + namedServer.getSystemdEscapedName() + ".service";
 									}
+									assert i == command.length;
+									AOServDaemon.exec(command);
 								}
 								// Install sendmail-after-network-online package on CentOS 7 when needed
 								if(hasSpecificAddress) {
 									PackageManager.installPackage(PackageManager.PackageName.SENDMAIL_AFTER_NETWORK_ONLINE);
 								}
-							} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-						}
+							}
+							// Backup and delete secondary instances that no longer exist before any restarts
+							int initialCapacity = sendmailServers.size()*4/3+1;
+							Set<String> expectedSendmailCf = new LinkedHashSet<>(initialCapacity);
+							Set<String> expectedSendmailMc = new LinkedHashSet<>(initialCapacity);
+							Set<String> expectedSendmailPid = new LinkedHashSet<>(initialCapacity);
+							Set<String> expectedStatistics = new LinkedHashSet<>(initialCapacity);
+							Set<String> expectedMqueue = new LinkedHashSet<>(initialCapacity);
+							for(SendmailServer namedServer : namedServers) {
+								String systemdName = namedServer.getSystemdEscapedName();
+								expectedSendmailCf.add("sendmail@" + systemdName + ".cf");
+								expectedSendmailMc.add("sendmail@" + systemdName + ".mc");
+								expectedSendmailPid.add("sendmail@" + systemdName + ".pid");
+								expectedStatistics.add("statistics@" + systemdName);
+								expectedMqueue.add("mqueue@" + systemdName);
+							}
+							List<File> deleteFileList = new ArrayList<>();
+							// /etc/mail/sendmail@*.cf and /etc/mail/sendmail@*.mc
+							File etcMail = new File("/etc/mail");
+							list = etcMail.list();
+							if(list != null) {
+								for(String filename : list) {
+									if(
+										!expectedSendmailCf.contains(filename)
+										&& !expectedSendmailMc.contains(filename)
+										&& (
+											SENDMAIL_NAME_CF_REGEXP.matcher(filename).matches()
+											|| SENDMAIL_NAME_MC_REGEXP.matcher(filename).matches()
+										)
+									) {
+										deleteFileList.add(new File(etcMail, filename));
+									}
+								}
+							}
+							// /run/sendmail@*.pid (Unexpected should not exist - exception if does)
+							File run = new File("/run");
+							list = run.list();
+							if(list != null) {
+								for(String filename : list) {
+									if(
+										!expectedSendmailPid.contains(filename)
+										&& SENDMAIL_NAME_PID_REGEXP.matcher(filename).matches()
+									) {
+										File pidFile = new File(run, filename);
+										throw new IOException("Unexpected sendmail PID file exists: " + pidFile);
+									}
+								}
+							}
+							// /var/log/mail/statistics@*
+							File varLogMail = new File("/var/log/mail");
+							list = varLogMail.list();
+							if(list != null) {
+								for(String filename : list) {
+									if(
+										!expectedStatistics.contains(filename)
+										&& STATISTICS_NAME_REGEXP.matcher(filename).matches()
+									) {
+										deleteFileList.add(new File(varLogMail, filename));
+									}
+								}
+							}
+							// /var/spool/mqueue@*
+							File varSpool = new File("/var/spool");
+							list = varSpool.list();
+							if(list != null) {
+								for(String filename : list) {
+									if(
+										!expectedMqueue.contains(filename)
+										&& MQUEUE_NAME_REGEXP.matcher(filename).matches()
+									) {
+										deleteFileList.add(new File(varSpool, filename));
+									}
+								}
+							}
+							BackupManager.backupAndDeleteFiles(deleteFileList);
+						} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 						if(
 							osvId == OperatingSystemVersion.CENTOS_7_X86_64
 							&& AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
