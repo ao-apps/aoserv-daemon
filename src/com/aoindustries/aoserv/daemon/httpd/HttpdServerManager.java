@@ -42,7 +42,6 @@ import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.NotImplementedException;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.Port;
 import com.aoindustries.selinux.SEManagePort;
@@ -66,6 +65,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import org.apache.commons.lang3.NotImplementedException;
 
 /**
  * Manages HttpdServer configurations and control.
@@ -3224,9 +3224,7 @@ public class HttpdServerManager {
 							try {
 								ppid = Integer.parseInt(pidLine.substring(pos + 1).trim());
 							} catch(NumberFormatException e) {
-								IOException ioErr = new IOException("Can't parse pidLine: " + pidLine);
-								ioErr.initCause(e);
-								throw ioErr;
+								throw new IOException("Can't parse pidLine: " + pidLine, e);
 							}
 						} else {
 							throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
