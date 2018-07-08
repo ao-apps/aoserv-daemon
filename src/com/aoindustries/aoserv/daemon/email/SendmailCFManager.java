@@ -1387,7 +1387,7 @@ final public class SendmailCFManager extends BuilderThread {
 								|| submitCfStat.getModifyTime() < submitMcStat.getModifyTime()
 							) {
 								// Build to RAM to compare
-								byte[] cfNewBytes = AOServDaemon.execAndCaptureBytes("/usr/bin/m4", "/etc/mail/submit.mc");
+								byte[] cfNewBytes = AOServDaemon.execAndCaptureBytes("/usr/bin/m4", submitMc.getPath());
 								if(
 									DaemonFileUtils.atomicWrite(
 										submitCf,
