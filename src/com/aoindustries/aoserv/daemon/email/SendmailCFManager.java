@@ -752,11 +752,8 @@ final public class SendmailCFManager extends BuilderThread {
 					.print(", Port=")
 					.print(nb.getPort().getPort())
 					.print(", Name=")
-					.print(bindName)
-					.print(", Modifiers=")
-				;
-				if(ip.isUnspecified()) out.print("h");
-				else out.print("bh");
+					.print(bindName);
+				if(!ip.isUnspecified()) out.print(", Modifiers=b");
 				out.print("')dnl\n"); // AO added
 			}
 		}
@@ -786,10 +783,8 @@ final public class SendmailCFManager extends BuilderThread {
 					.print(nb.getPort().getPort())
 					.print(", Name=")
 					.print(bindName)
-					.print(", Modifiers=")
-				;
-				if(ip.isUnspecified()) out.print("Eah");
-				else out.print("Eabh");
+					.print(", Modifiers=Ea");
+				if(!ip.isUnspecified()) out.print('b');
 				out.print("')dnl\n"); // AO added
 			}
 		}
@@ -823,10 +818,8 @@ final public class SendmailCFManager extends BuilderThread {
 					.print(nb.getPort().getPort())
 					.print(", Name=")
 					.print(bindName)
-					.print(", Modifiers=")
-				;
-				if(ip.isUnspecified()) out.print("sh");
-				else out.print("sbh");
+					.print(", Modifiers=s");
+				if(!ip.isUnspecified()) out.print('b');
 				out.print("')dnl\n"); // AO added
 			}
 		}
