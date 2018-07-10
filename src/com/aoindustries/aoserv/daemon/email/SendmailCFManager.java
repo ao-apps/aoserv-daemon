@@ -15,6 +15,7 @@ import com.aoindustries.aoserv.client.SendmailBind;
 import com.aoindustries.aoserv.client.SendmailServer;
 import com.aoindustries.aoserv.client.Server;
 import com.aoindustries.aoserv.client.SslCertificate;
+import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -579,10 +580,14 @@ final public class SendmailCFManager extends BuilderThread {
 		}
 		String cacertPath;
 		{
-			int slashPos = cacert.lastIndexOf('/');
-			if(slashPos == -1) throw new SQLException("Unable to find slash (/) in cacert: " + cacert);
-			cacertPath = cacert.substring(0, slashPos);
-			if(cacertPath.isEmpty()) throw new SQLException("cacertPath is empty");
+			if(cacert.equals(ImapManager.DEFAULT_CA_FILE)) {
+				int slashPos = cacert.lastIndexOf('/');
+				if(slashPos == -1) throw new SQLException("Unable to find slash (/) in cacert: " + cacert);
+				cacertPath = cacert.substring(0, slashPos);
+				if(cacertPath.isEmpty()) throw new SQLException("cacertPath is empty");
+			} else {
+				cacertPath = "/etc/pki/ca-trust-hash/hash";
+			}
 		}
 		out.print("define(`confCACERT_PATH', `").print(cacertPath).print("')dnl\n"
 				+ "define(`confCACERT', `").print(cacert).print("')dnl\n"
@@ -1128,6 +1133,37 @@ final public class SendmailCFManager extends BuilderThread {
 					sendmailCfInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.SENDMAIL_CF) != null;
 				}
 
+				// Install ca-trust-hash as-needed
+				boolean caTrustHashSupported;
+				boolean caTrustHashNeeded;
+				if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+					caTrustHashSupported = false;
+					caTrustHashNeeded = false;
+				} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+					caTrustHashSupported = true;
+					caTrustHashNeeded = false;
+					for(SendmailServer ss : sendmailServers) {
+						SslCertificate serverCert = ss.getServerCertificate();
+						if(serverCert != null) {
+							if(serverCert.getCertbotName() != null) {
+								caTrustHashNeeded = true;
+								break;
+							}
+							UnixPath chain = serverCert.getChainFile();
+							if(chain != null && !ImapManager.DEFAULT_CA_FILE.equals(chain.toString())) {
+								caTrustHashNeeded = true;
+								break;
+							}
+						}
+					}
+				} else {
+					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+				}
+				if(caTrustHashNeeded) {
+					if(!caTrustHashSupported) throw new AssertionError(PackageManager.PackageName.CA_TRUST_HASH + " needed but not supported");
+					PackageManager.installPackage(PackageManager.PackageName.CA_TRUST_HASH);
+				}
+
 				Set<UnixFile> restorecon = new LinkedHashSet<>();
 				try {
 					boolean hasSpecificAddress = false;
@@ -1638,12 +1674,19 @@ final public class SendmailCFManager extends BuilderThread {
 					if(
 						certbotNames.isEmpty()
 						&& AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
-						&& PackageManager.getInstalledPackage(PackageManager.PackageName.SENDMAIL_COPY_CERTIFICATES) != null
 					) {
 						PackageManager.removePackage(PackageManager.PackageName.SENDMAIL_COPY_CERTIFICATES);
 					}
 				} finally {
 					DaemonFileUtils.restorecon(restorecon);
+				}
+				// Remove ca-trust-hash package if not needed
+				if(
+					caTrustHashSupported
+					&& !caTrustHashNeeded
+					&& AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
+				) {
+					PackageManager.removePackage(PackageManager.PackageName.CA_TRUST_HASH);
 				}
 			}
 			return true;

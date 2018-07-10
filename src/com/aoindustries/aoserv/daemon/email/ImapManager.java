@@ -1174,7 +1174,6 @@ final public class ImapManager extends BuilderThread {
 						if(
 							certbotNames.isEmpty()
 							&& AOServDaemonConfiguration.isPackageManagerUninstallEnabled()
-							&& PackageManager.getInstalledPackage(PackageManager.PackageName.CYRUS_IMAPD_COPY_CERTIFICATES) != null
 						) {
 							PackageManager.removePackage(PackageManager.PackageName.CYRUS_IMAPD_COPY_CERTIFICATES);
 						}

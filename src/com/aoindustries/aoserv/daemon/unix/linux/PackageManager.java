@@ -53,6 +53,7 @@ public class PackageManager {
 		AWSTATS_6("awstats_6"),
 		AWSTATS("awstats"),
 		BIND("bind"),
+		CA_TRUST_HASH("ca-trust-hash"),
 		CACHING_NAMESERVER("caching-nameserver"), // This is a distinct package in CentOS 5, but provided by "bind" in CentOS 7
 		CVS("cvs"),
 		CYRUS_IMAPD("cyrus-imapd"),
