@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 by AO Industries, Inc.,
+ * Copyright 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -247,10 +247,10 @@ final public class GroupFile {
 				boolean expectedIsSystem = expectedEntry.gid < gid_min || expectedEntry.gid > LinuxGroup.GID_MAX;
 				if(existingEntry.gid != expectedEntry.gid) {
 					if(existingIsSystem != expectedIsSystem) {
-						throw new IllegalArgumentException("Refusing to change group id between system and regular users; from " + existingEntry.gid + " to " + expectedEntry.gid + " for " + groupName);
+						throw new IllegalArgumentException("Refusing to change group id between system and regular users from " + existingEntry.gid + " to " + expectedEntry.gid + " for " + groupName);
 					}
 					if(existingIsSystem) {
-						throw new IllegalArgumentException("Refusing to change system group id; from " + existingEntry.gid + " to " + expectedEntry.gid + " for " + groupName);
+						throw new IllegalArgumentException("Refusing to change system group id from " + existingEntry.gid + " to " + expectedEntry.gid + " for " + groupName);
 					}
 				}
 				// Verify group members match

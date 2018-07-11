@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 by AO Industries, Inc.,
+ * Copyright 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -383,15 +383,15 @@ final public class PasswdFile {
 				boolean expectedIsSystem = expectedEntry.uid < uid_min || expectedEntry.uid > LinuxAccount.UID_MAX;
 				if(existingEntry.uid != expectedEntry.uid) {
 					if(existingIsSystem != expectedIsSystem) {
-						throw new IllegalArgumentException("Refusing to change user id between system and regular users; from " + existingEntry.uid + " to " + expectedEntry.uid + " for " + username);
+						throw new IllegalArgumentException("Refusing to change user id between system and regular users from " + existingEntry.uid + " to " + expectedEntry.uid + " for " + username);
 					}
 					if(existingIsSystem) {
-						throw new IllegalArgumentException("Refusing to change system user id; from " + existingEntry.uid + " to " + expectedEntry.uid + " for " + username);
+						throw new IllegalArgumentException("Refusing to change system user id from " + existingEntry.uid + " to " + expectedEntry.uid + " for " + username);
 					}
 				}
 				if(existingEntry.gid != expectedEntry.gid) {
 					if(existingIsSystem) {
-						throw new IllegalArgumentException("Refusing to change system group id; from " + existingEntry.gid + " to " + expectedEntry.gid + " for " + username);
+						throw new IllegalArgumentException("Refusing to change system group id from " + existingEntry.gid + " to " + expectedEntry.gid + " for " + username);
 					}
 				}
 
