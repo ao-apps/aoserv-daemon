@@ -691,7 +691,7 @@ final public class SslCertificateManager {
 									alertLevel == NONE
 										? null
 										: (
-											(alertLevel == CRITICAL ? "Certificate expired " : "Certificates expires ")
+											(alertLevel == CRITICAL ? "Certificate expired " : "Certificate expires ")
 											+ dateStr
 										)
 								)
