@@ -88,6 +88,7 @@ public enum HttpdOperatingSystemConfiguration {
 		public UnixPath getPhpCgiPath(String minorVersion) {
 			try {
 				if(minorVersion.startsWith("5.")) return UnixPath.valueOf("/opt/php-" + minorVersion + "/bin/php-cgi");
+				else if(minorVersion.startsWith("7.")) return UnixPath.valueOf("/opt/php-" + minorVersion + "/bin/php-cgi");
 				else throw new AssertionError("Unexpected PHP version: "+minorVersion);
 			} catch(ValidationException e) {
 				throw new WrappedException(e);

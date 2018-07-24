@@ -86,6 +86,12 @@ public abstract class HttpdSiteManager {
 	));
 
 	/**
+	 * The name of the PHP <a href="http://php.net/manual/en/configuration.file.php#configuration.file.scan">PHP_INI_SCAN_DIR</a>
+	 * when used as CGI: <code>/var/www/&lt;site_name&gt;/webapps/ROOT/cgi-bin/php.d</code>.
+	 */
+	private static final String CGI_PHP_D = "php.d";
+
+	/**
 	 * Gets the specific manager for one type of web site.
 	 */
 	public static HttpdSiteManager getInstance(HttpdSite site) throws IOException, SQLException {
@@ -500,7 +506,7 @@ public abstract class HttpdSiteManager {
 	 */
 	protected void createCgiPhpScript(UnixFile cgibinDirectory, Set<UnixFile> restorecon) throws IOException, SQLException {
 		UnixFile phpFile = new UnixFile(cgibinDirectory, "php", false);
-		// TODO: If every server this site runs as uses mod_php, then don't make the script?
+		// TODO: If every server this site runs as uses mod_php, then don't make the script? (and the config that refers to this script)
 		if(enableCgi() && enablePhp()) {
 			AOServer thisAoServer = AOServDaemon.getThisAOServer();
 			final OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
@@ -508,6 +514,7 @@ public abstract class HttpdSiteManager {
 
 			PackageManager.PackageName requiredPackage;
 			String phpVersion = httpdSite.getPhpVersion().getVersion();
+			UnixFile phpD;
 			// Build to RAM first
 			ByteArrayOutputStream bout = new ByteArrayOutputStream();
 			try (ChainWriter out = new ChainWriter(bout)) {
@@ -547,29 +554,39 @@ public abstract class HttpdSiteManager {
 					} else {
 						throw new SQLException("Unexpected version for php: " + phpVersion);
 					}
+					phpD = null; // No cgi-bin/php.d directory
 				} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 					if(phpVersion.startsWith("5.3.")) {
 						phpMinorVersion = "5.3";
 						requiredPackage = PackageManager.PackageName.PHP_5_3;
 						out.print(". /opt/mysql-5.1/setenv.sh\n");
 						out.print(". /opt/postgresql-8.3/setenv.sh\n");
+						phpD = null; // No cgi-bin/php.d directory
 					} else if(phpVersion.startsWith("5.4.")) {
 						phpMinorVersion = "5.4";
 						requiredPackage = PackageManager.PackageName.PHP_5_4;
 						out.print(". /opt/mysql-5.6/profile.sh\n");
 						out.print(". /opt/postgresql-9.2/setenv.sh\n");
+						phpD = null; // No cgi-bin/php.d directory
 					} else if(phpVersion.startsWith("5.5.")) {
 						phpMinorVersion = "5.5";
 						requiredPackage = PackageManager.PackageName.PHP_5_5;
 						out.print(". /opt/mysql-5.6/profile.sh\n");
 						out.print(". /opt/postgresql-9.4/profile.sh\n");
+						phpD = null; // No cgi-bin/php.d directory
 					} else if(phpVersion.startsWith("5.6.")) {
 						phpMinorVersion = "5.6";
 						requiredPackage = PackageManager.PackageName.PHP_5_6;
 						out.print(". /opt/mysql-5.7/profile.sh\n");
 						out.print(". /opt/postgresql-9.4/profile.sh\n");
+						phpD = null; // No cgi-bin/php.d directory
 					} else {
-						throw new SQLException("Unexpected version for php: " + phpVersion);
+						// All other versions 7+
+						phpMinorVersion = HttpdServerManager.getMinorPhpVersion(phpVersion);
+						requiredPackage = PackageManager.PackageName.valueOf("PHP_" + phpMinorVersion.replace('.', '_'));
+						// Support PHP_INI_SCAN_DIR
+						phpD = new UnixFile(cgibinDirectory, CGI_PHP_D, true);
+						out.print("export PHP_INI_SCAN_DIR=\"").print(phpD.getPath()).print("\"\n");
 					}
 				} else {
 					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -588,6 +605,16 @@ public abstract class HttpdSiteManager {
 			if(!parent.getStat().exists()) parent.mkdir(true, 0775, uid, gid);
 			// Create cgi-bin if missing
 			DaemonFileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
+			// Create cgi-bin/php.d directory if missing
+			if(phpD != null) {
+				DaemonFileUtils.mkdir(phpD, 0750, uid, gid);
+				// TODO: Create/update symlinks in php.d directory
+			} else {
+				// TODO: Remove auto symlinks from php.d if no longer needed
+				// TODO: Remove php.d directory if now empty
+			}
+			// TODO: Create/update a php.ini symlink in cgi-bin as a clean placeholder for where client can manage own config
+			//       (Maybe pass --php-ini in exec line?)
 			DaemonFileUtils.atomicWrite(
 				phpFile,
 				bout.toByteArray(),
@@ -605,7 +632,10 @@ public abstract class HttpdSiteManager {
 			if(phpFile.getStat().exists()) phpFile.delete();
 			// Remove any php.ini, too
 			UnixFile phpIniFile = new UnixFile(cgibinDirectory, "php.ini", false);
-			if(phpIniFile.getStat().exists()) phpIniFile.delete();
+			if(phpIniFile.getStat().exists()) {
+				// TODO: Backup-and-delete?
+				phpIniFile.delete();
+			}
 		}
 	}
 

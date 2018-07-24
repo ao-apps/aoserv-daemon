@@ -69,6 +69,13 @@ import org.apache.commons.lang3.NotImplementedException;
 
 /**
  * Manages HttpdServer configurations and control.
+ * <p>
+ * TODO: Install PHP packages as-needed on CentOS 7, including extensions and shared built-ins.
+ * </p>
+ * <p>
+ * TODO: Write/update /etc/sysconfig/httpd when the first instance of Apache runs PHP 7+ to include PHP_INI_SCAN_DIR=/etc/httpd/conf/php/conf.d.
+ * Or, could this be somehow added by the php_7_* packages?
+ * </p>
  *
  * @author  AO Industries, Inc.
  */
@@ -121,6 +128,12 @@ public class HttpdServerManager {
 	 * The pattern matching secondary php@&lt;name&gt; config directories.
 	 */
 	private static final Pattern PHP_NAME_REGEXP = Pattern.compile("^php@.+$");
+
+	/**
+	 * The name of the PHP <a href="http://php.net/manual/en/configuration.file.php#configuration.file.scan">PHP_INI_SCAN_DIR</a>
+	 * when used as <code>mod_php</code>: <code>/etc/httpd/conf/php[@&lt;name&gt;]/conf.d</code>.
+	 */
+	private static final String MOD_PHP_CONF_D = "conf.d";
 
 	/**
 	 * The pattern matching secondary workers#.properties files.
@@ -754,20 +767,43 @@ public class HttpdServerManager {
 
 					// Enable CGI PHP option if the site supports CGI and PHP
 					if(manager.enablePhp() && manager.enableCgi()) {
+						// Find all versions of mod_php on any Apache server that runs this site
+						SortedSet<Integer> phpMajorVersions = new TreeSet<>();
+						for(HttpdSiteBind hsb : httpdSite.getHttpdSiteBinds()) {
+							TechnologyVersion modPhpVersion = hsb.getHttpdBind().getHttpdServer().getModPhpVersion();
+							if(modPhpVersion != null) {
+								phpMajorVersions.add(
+									Integer.parseInt(
+										getMajorPhpVersion(
+											modPhpVersion.getVersion()
+										)
+									)
+								);
+							}
+						}
 						out.print("\n"
-								+ "# Use CGI-based PHP when not using mod_php\n"
-								+ "<IfModule !php5_module>\n"
-								+ "    <IfModule !php7_module>\n"
-								+ "        <IfModule actions_module>\n"
-								+ "            Action php-script /cgi-bin/php\n"
-								// Avoid *.php.txt going to PHP: http://php.net/manual/en/install.unix.apache2.php
-								+ "            <FilesMatch \\.php$>\n"
-								+ "                SetHandler php-script\n"
-								+ "            </FilesMatch>\n"
-								//+ "            AddHandler php-script .php\n"
-								+ "        </IfModule>\n"
-								+ "    </IfModule>\n"
-								+ "</IfModule>\n");
+								+ "# Use CGI-based PHP");
+						if(!phpMajorVersions.isEmpty()) out.print(" when not using mod_php");
+						out.print('\n');
+						String indent = "";
+						for(int phpMajorVersion : phpMajorVersions) {
+							out.print(indent).print("<IfModule !php").print(phpMajorVersion).print("_module>\n");
+							indent += "    ";
+						}
+						out
+							.print(indent).print("<IfModule actions_module>\n")
+							.print(indent).print("    Action php-script /cgi-bin/php\n")
+							// Avoid *.php.txt going to PHP: http://php.net/manual/en/install.unix.apache2.php
+							.print(indent).print("    <FilesMatch \\.php$>\n")
+							.print(indent).print("        SetHandler php-script\n")
+							.print(indent).print("    </FilesMatch>\n")
+							//+ "            AddHandler php-script .php\n"
+							.print(indent).print("</IfModule>\n");
+						for(int i=0; i<phpMajorVersions.size(); i++) {
+							indent = indent.substring(0, indent.length() - 4);
+							out.print(indent).print("</IfModule>\n");
+						}
+						assert indent.length() == 0;
 					}
 
 					// The CGI user info
@@ -1520,7 +1556,7 @@ public class HttpdServerManager {
 				String phpMajorVersion = getMajorPhpVersion(version);
 				out.print("\n"
 						+ "# Enable mod_php\n"
-						+ "LoadModule ").print(escape(dollarVariable, "php" + phpMajorVersion + "_module")).print(" ").print(escape(dollarVariable, "/opt/php-" + phpMinorVersion + "-i686/lib/apache/" + getPhpLib(phpVersion))).print("\n"
+						+ "LoadModule ").print(escape(dollarVariable, "php" + phpMajorVersion + "_module")).print(" ").print(escape(dollarVariable, "/opt/php-" + phpMinorVersion + "-i686/lib/apache/libphp" + phpMajorVersion + ".so")).print("\n"
 						+ "AddType application/x-httpd-php .php\n"
 						+ "AddType application/x-httpd-php-source .phps\n");
 			}
@@ -2248,9 +2284,27 @@ public class HttpdServerManager {
 					phpIniDir = new UnixFile(CONF_DIRECTORY + "/php@" + escapedName);
 					httpdConfFilenames.add("php@" + escapedName);
 				}
-				DaemonFileUtils.mkdir(phpIniDir, 0750, UnixFile.ROOT_UID, hs.getLinuxServerGroup().getGid().getId());
+				int gid = hs.getLinuxServerGroup().getGid().getId();
+				DaemonFileUtils.mkdir(phpIniDir, 0750, UnixFile.ROOT_UID, gid);
+				// Create the conf.d config directory for PHP 7+
+				String expectedTarget;
+				UnixFile confD;
+				if(phpVersion.getVersion().startsWith("5.")) {
+					expectedTarget = "../../../../opt/php-" + phpMinorVersion + "/lib/php.ini";
+					confD = null;
+				} else {
+					expectedTarget = "../../../opt/php-" + phpMinorVersion + "/php.ini";
+					confD = new UnixFile(phpIniDir, MOD_PHP_CONF_D, true);
+				}
+				if(confD != null) {
+					DaemonFileUtils.mkdir(confD, 0750, UnixFile.ROOT_UID, gid);
+					// TODO: Create and update symlinks in conf.d matching an AOServ-configured set of extensions
+				} else {
+					// TODO: Remove any auto symlinks in conf.d, if exists
+					// TODO: Remove conf.d is then empty
+				}
+				// Create or update php.ini symbolic link
 				UnixFile phpIni = new UnixFile(phpIniDir, "php.ini", true);
-				String expectedTarget = "../../../../opt/php-" + phpMinorVersion + "/lib/php.ini";
 				Stat phpIniStat = phpIni.getStat();
 				if(!phpIniStat.exists()) {
 					phpIni.symLink(expectedTarget);
@@ -2260,7 +2314,12 @@ public class HttpdServerManager {
 					String actualTarget = phpIni.readLink();
 					if(
 						!actualTarget.equals(expectedTarget)
-						&& actualTarget.startsWith("../../../../opt/php-")
+						&& (
+							// PHP 5
+							actualTarget.startsWith("../../../../opt/php-")
+							// PHP 7+
+							|| actualTarget.startsWith("../../../opt/php-")
+						)
 					) {
 						// Update link
 						phpIni.delete();
@@ -2275,8 +2334,8 @@ public class HttpdServerManager {
 							+ "#\n"
 							+ "# Enable mod_php\n"
 							+ "#\n"
-							+ "LoadModule ").print(escape(dollarVariable, "php" + phpMajorVersion + "_module")).print(' ').print(escape(dollarVariable, "/opt/php-" + phpMinorVersion + "/lib/apache/" + getPhpLib(phpVersion))).print("\n"
-							+ "<IfModule php5_module>\n"
+							+ "LoadModule ").print(escape(dollarVariable, "php" + phpMajorVersion + "_module")).print(' ').print(escape(dollarVariable, "/opt/php-" + phpMinorVersion + "/lib/apache/libphp" + phpMajorVersion + ".so")).print("\n"
+							+ "<IfModule php").print(phpMajorVersion).print("_module>\n"
 							+ "    PHPIniDir ").print(escape(dollarVariable, phpIniDir.toString())).print("\n"
 							+ "    <IfModule mime_module>\n"
 							+ "        AddType application/x-httpd-php .php\n"
@@ -2823,19 +2882,9 @@ public class HttpdServerManager {
 	}
 
 	/**
-	 * Gets the shared library name for the given version of PHP.
-	 */
-	private static String getPhpLib(TechnologyVersion phpVersion) {
-		String version=phpVersion.getVersion();
-		if(version.equals("4") || version.startsWith("4.")) return "libphp4.so";
-		if(version.equals("5") || version.startsWith("5.")) return "libphp5.so";
-		throw new RuntimeException("Unsupported PHP version: "+version);
-	}
-
-	/**
 	 * Gets the major (first number only) form of a PHP version.
 	 */
-	private static String getMajorPhpVersion(String version) {
+	static String getMajorPhpVersion(String version) {
 		int pos = version.indexOf('.');
 		return pos == -1 ? version : version.substring(0, pos);
 	}
@@ -2843,7 +2892,7 @@ public class HttpdServerManager {
 	/**
 	 * Gets the minor (first two numbers only) form of a PHP version.
 	 */
-	private static String getMinorPhpVersion(String version) {
+	static String getMinorPhpVersion(String version) {
 		int pos = version.indexOf('.');
 		if(pos == -1) return version;
 		pos = version.indexOf('.', pos+1);
