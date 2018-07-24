@@ -614,7 +614,6 @@ public abstract class HttpdSiteManager {
 				// TODO: Remove php.d directory if now empty
 			}
 			// TODO: Create/update a php.ini symlink in cgi-bin as a clean placeholder for where client can manage own config
-			//       (Maybe pass --php-ini in exec line?)
 			DaemonFileUtils.atomicWrite(
 				phpFile,
 				bout.toByteArray(),
