@@ -586,7 +586,7 @@ public abstract class HttpdSiteManager {
 						requiredPackage = PackageManager.PackageName.valueOf("PHP_" + phpMinorVersion.replace('.', '_'));
 						// Support PHP_INI_SCAN_DIR
 						phpD = new UnixFile(cgibinDirectory, CGI_PHP_D, true);
-						out.print("export PHP_INI_SCAN_DIR=\"").print(phpD.getPath()).print("\"\n");
+						out.print("export PHP_INI_SCAN_DIR='").print(phpD.getPath()).print("'\n");
 					}
 				} else {
 					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
