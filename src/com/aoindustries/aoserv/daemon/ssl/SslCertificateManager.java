@@ -86,6 +86,21 @@ final public class SslCertificateManager {
 	private static final int OTHER_MEDIUM_DAYS = 14;
 	private static final int OTHER_LOW_DAYS = 30;
 
+	/**
+	 * Wait on certbot lock instead of getting an error.
+	 * There is still a potential race condition as we are not locking.  This
+	 * reduces, but does not eliminate, the number of times we can a failure
+	 * about another instance of certbot running.
+	 * <p>
+	 * Because idempotent AOServ Client commands are retried, and with the
+	 * monitoring having built-in tolerance via incremental alert levels, this
+	 * should be sufficient to keep this issue off the radar.
+	 * </p>
+	 */
+	private static final UnixFile CERTBOT_LOCK = new UnixFile("/var/lib/letsencrypt/.certbot.lock");
+	private static final long CERTBOT_LOCKED_SLEEP = 6000;
+	private static final int CERTBOT_LOCKED_ATTEMPTS = 10;
+
 	private static final Map<Tuple2<UnixFile,String>,Tuple2<Long,String>> getHashedCache = new HashMap<>();
 
 	/**
@@ -383,6 +398,23 @@ final public class SslCertificateManager {
 			Set<String> domains = Collections.emptySet();
 			String status = "UNKNOWN";
 			int days = -1;
+			// Wait until lock file removed
+			{
+				int failures = 0;
+				while(CERTBOT_LOCK.getStat().exists()) {
+					failures++;
+					if(failures >= CERTBOT_LOCKED_ATTEMPTS) {
+						throw new IOException("certbot locked by " + CERTBOT_LOCK);
+					}
+					try {
+						Thread.sleep(CERTBOT_LOCKED_SLEEP);
+					} catch(InterruptedException e) {
+						InterruptedIOException ioErr = new InterruptedIOException("Interrupted waiting on " + CERTBOT_LOCK);
+						ioErr.initCause(e);
+						throw ioErr;
+					}
+				}
+			}
 			try (
 				BufferedReader in = new BufferedReader(
 					new StringReader(
