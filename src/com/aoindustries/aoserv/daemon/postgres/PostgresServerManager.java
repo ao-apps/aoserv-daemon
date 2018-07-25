@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -7,11 +7,13 @@ package com.aoindustries.aoserv.daemon.postgres;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.NetBind;
 import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.PostgresDatabase;
 import com.aoindustries.aoserv.client.PostgresServer;
 import com.aoindustries.aoserv.client.PostgresUser;
 import com.aoindustries.aoserv.client.PostgresVersion;
+import com.aoindustries.aoserv.client.Protocol;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -69,8 +71,15 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 				Set<Port> postgresqlPorts = new HashSet<>();
 				for(PostgresServer postgresServer : thisAOServer.getPostgresServers()) {
 					postgresqlPorts.add(postgresServer.getNetBind().getPort());
-				// TODO: Add and initialize any missing /var/lib/pgsql/name
-				// TODO: Add/update any /etc/rc.d/init.d/postgresql-name
+					// TODO: Add and initialize any missing /var/lib/pgsql/name
+					// TODO: Add/update any /etc/rc.d/init.d/postgresql-name
+				}
+				// Add any other local MySQL port (such as tunneled)
+				for(NetBind nb : thisAOServer.getServer().getNetBinds()) {
+					String protocol = nb.getAppProtocol().getProtocol();
+					if(Protocol.POSTGRESQL.equals(protocol)) {
+						postgresqlPorts.add(nb.getPort());
+					}
 				}
 
 				// Set postgresql_port_t SELinux ports.

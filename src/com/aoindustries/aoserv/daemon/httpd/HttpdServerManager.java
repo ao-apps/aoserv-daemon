@@ -3197,6 +3197,8 @@ public class HttpdServerManager {
 				setSeBool("httpd_enable_cgi", hasAnyCgi);
 				setSeBool("httpd_can_network_connect_db", hasAnyCgi || hasAnyModPhp);
 				setSeBool("httpd_setrlimit", hasAnyCgi || hasAnyModPhp);
+				// TODO: Auto-control setsebool -P httpd_can_network_memcache on  once per-Apache and per-Site PHP extensions are configured by AOServ.
+				//       It is enabled on app2.www.keepandshare.com manually now.
 				break;
 			}
 			default :
