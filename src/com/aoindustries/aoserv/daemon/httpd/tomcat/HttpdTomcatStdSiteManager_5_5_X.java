@@ -114,7 +114,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
 					+ "\n"
 					+ "export PATH=\"${PATH}:").print(siteDir).print("/bin\"\n"
 					+ "\n"
-					+ "export JAVA_OPTS='-server -Djava.awt.headless=true -Xmx128M'\n");
+					+ "export JAVA_OPTS='-server -Djava.awt.headless=true -Xmx128M -Djdk.disableLastUsageTracking=true'\n");
 		} finally {
 			out.close();
 		}

@@ -142,7 +142,7 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
 				out.print("\n"
 						+ "export PATH=\"${PATH}:").print(wwwGroupDir).print("/bin\"\n"
 						+ "\n"
-						+ "export JAVA_OPTS='-server -Djava.awt.headless=true -Xmx128M'\n"
+						+ "export JAVA_OPTS='-server -Djava.awt.headless=true -Xmx128M -Djdk.disableLastUsageTracking=true'\n"
 						+ "\n");
 				out.print(". ").print(wwwGroupDir).print("/bin/profile.sites\n"
 						+ "\n"

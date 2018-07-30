@@ -142,7 +142,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 						+ "\n"
 						+ "export PATH=\"${PATH}:").print(wwwGroupDir).print("/bin\"\n"
 						+ "\n"
-						+ "export JAVA_OPTS='-server -Djava.awt.headless=true -Xmx128M'\n"
+						+ "export JAVA_OPTS='-server -Djava.awt.headless=true -Xmx128M -Djdk.disableLastUsageTracking=true'\n"
 						+ "\n"
 						+ "# Add site group classes\n"
 						+ "CLASSPATH=\"${CLASSPATH}:").print(wwwGroupDir).print("/classes\"\n"
