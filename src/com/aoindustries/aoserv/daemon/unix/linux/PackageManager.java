@@ -73,7 +73,7 @@ public class PackageManager {
 		HTTPD_N("httpd-n"),
 		HTTPD_TOOLS("httpd-tools"),
 		JBOSS_2_2_2("jboss_2_2_2"),
-		JDK1("jdk1"),
+		JDK_LTS("jdk-lts"),
 		JDK1_I686("jdk1-i686"),
 		JDK17("jdk17"),
 		JDK17_I686("jdk17-i686"),

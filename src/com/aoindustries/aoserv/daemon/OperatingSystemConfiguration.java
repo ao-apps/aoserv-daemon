@@ -232,14 +232,14 @@ public enum OperatingSystemConfiguration {
 		@Override
 		public UnixPath getDefaultJdkProfileSh() {
 			try {
-				return UnixPath.valueOf("/opt/jdk1/profile.sh");
+				return UnixPath.valueOf("/opt/jdk-lts/profile.sh");
 			} catch(ValidationException e) {
 				throw new WrappedException(e);
 			}
 		}
 		@Override
 		public PackageManager.PackageName getDefaultJdkPackageName() {
-			return PackageManager.PackageName.JDK1;
+			return PackageManager.PackageName.JDK_LTS;
 		}
 		@Override
 		public UnixPath getJdk17ProfileSh() {
