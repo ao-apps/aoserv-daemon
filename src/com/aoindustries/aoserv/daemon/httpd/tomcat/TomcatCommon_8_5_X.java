@@ -78,10 +78,7 @@ class TomcatCommon_8_5_X extends TomcatCommon {
 		// TODO: This might be able to simply use the same lnAll as used to initially create the lib/ directory
 		boolean needsRestart = false;
 		OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
-		if(
-			osConfig == OperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64
-			|| osConfig == OperatingSystemConfiguration.CENTOS_7_X86_64
-		) {
+		if(osConfig == OperatingSystemConfiguration.CENTOS_7_X86_64) {
 			String rpmVersion = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_8_5).getVersion().toString();
 			if(rpmVersion.equals("8.5.32")) {
 				// Nothing to do
