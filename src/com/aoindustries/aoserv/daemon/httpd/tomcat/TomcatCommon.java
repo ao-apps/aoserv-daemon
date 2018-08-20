@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2015, 2017 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2015, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -9,8 +9,11 @@ import com.aoindustries.aoserv.client.HttpdTomcatDataSource;
 import com.aoindustries.aoserv.client.HttpdTomcatParameter;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.encoding.ChainWriter;
+import com.aoindustries.util.CalendarUtils;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.GregorianCalendar;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -20,7 +23,18 @@ import java.util.Set;
  */
 public abstract class TomcatCommon {
 
-    TomcatCommon() {
+	private static final String BACKUP_DATE_SEPARATOR = "-";
+	public static final String BACKUP_SEPARATOR = ".";
+	public static final String BACKUP_EXTENSION = ".bak";
+
+	/**
+	 * Gets the suffix to put after an existing file, but before the extension.
+	 */
+	public static String getBackupSuffix() {
+		return BACKUP_DATE_SEPARATOR + CalendarUtils.formatDate(new GregorianCalendar(Locale.ROOT));
+	}
+
+	TomcatCommon() {
 	}
 
 	/**

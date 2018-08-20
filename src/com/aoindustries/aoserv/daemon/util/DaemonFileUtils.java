@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2009, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2008-2009, 2014, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -39,121 +39,275 @@ public class DaemonFileUtils {
 	private DaemonFileUtils() {
 	}
 
-    /**
-     * Copies a resource to the provided output stream.
-     */
-    public static void copyResource(Class<?> clazz, String resource, OutputStream out) throws IOException {
-        try (InputStream in = clazz.getResourceAsStream(resource)) {
-            if(in==null) throw new IOException("Unable to find resource: "+resource);
+	/**
+	 * Copies a resource to the provided output stream.
+	 */
+	public static void copyResource(Class<?> clazz, String resource, OutputStream out) throws IOException {
+		try (InputStream in = clazz.getResourceAsStream(resource)) {
+			if(in==null) throw new IOException("Unable to find resource: "+resource);
 			IoUtils.copy(in, out);
-        }
-    }
-
-    /**
-     * Copies a resource to the provided filename, will not overwrite any existing file.
-     * 
-     * TODO: Copy to a temp file and rename into place.
-     */
-    public static void copyResource(Class<?> clazz, String resource, String filename, int uid, int gid, int mode, int uid_min, int gid_min) throws IOException {
-        try (OutputStream out = new UnixFile(filename).getSecureOutputStream(uid, gid, mode, false, uid_min, gid_min)) {
-            copyResource(clazz, resource, out);
-        }
-    }
-    
-    /**
-     * Creates a symbolic link.  To aid in debugging, writes the filename and target to System.err if
-     * an <code>IOException</code> occurs; exception is then rethrown.
-     */
-    public static void ln(String target, String filename, int uid, int gid) throws IOException {
-        try {
-            new UnixFile(filename).symLink(target).chown(uid, gid);
-        } catch (IOException e) {
-            System.err.println("ln: filename: "+filename+"   destination: "+target);
-            throw e;
-        }
-    }
-    
-    /**
-     * Creates symbolic links to all items in a directory.
-     * 
-     * @see  #ln(String,String,int,int)
-     */
-    public static void lnAll(String targetBase, String srcBase, int uid, int gid) throws IOException {
-        String[] destinations=new UnixFile(targetBase).list();
-		for (String destination : destinations) {
-			ln(targetBase + destination, srcBase + destination, uid, gid);
 		}
-    }
+	}
 
-    /**
-     * Creates a directory, if needed.  If already exists makes sure it is a directory.
-     * Also sets or resets the ownership and permissions.
+	/**
+	 * Copies a resource to the provided filename, will not overwrite any existing file.
+	 * 
+	 * TODO: Copy to a temp file and rename into place.
+	 */
+	public static void copyResource(Class<?> clazz, String resource, String filename, int uid, int gid, int mode, int uid_min, int gid_min) throws IOException {
+		try (OutputStream out = new UnixFile(filename).getSecureOutputStream(uid, gid, mode, false, uid_min, gid_min)) {
+			copyResource(clazz, resource, out);
+		}
+	}
+
+	/**
+	 * Creates a symbolic link.  If the link exists, verifies and updates the target, uid, and gid.
+	 * To aid in debugging, writes the filename and target to System.err if an <code>IOException</code> occurs;
+	 * exception is then rethrown.
 	 *
 	 * @return  {@code true} if any modification was made
-     */
-    public static boolean mkdir(String dirName, int mode, int uid, int gid) throws IOException {
-        return mkdir(new UnixFile(dirName), mode, uid, gid);
-    }
+	 */
+	public static boolean ln(String target, String filename, int uid, int gid) throws IOException {
+		return ln(target, new UnixFile(filename), uid, gid, null);
+	}
 
-    /**
-     * Creates a directory, if needed.  If already exists makes sure it is a directory.
-     * Also sets or resets the ownership and permissions.
+	/**
+	 * Creates a symbolic link.  If the link exists, verifies and updates the target, uid, and gid.
+	 * To aid in debugging, writes the filename and target to System.err if an <code>IOException</code> occurs;
+	 * exception is then rethrown.
+	 *
+	 * @param  backup  If exists but is not a symbolic link or has a mismatched target, the existing is renamed to backup
 	 *
 	 * @return  {@code true} if any modification was made
-     */
-    public static boolean mkdir(UnixFile uf, int mode, int uid, int gid) throws IOException {
+	 */
+	public static boolean ln(String target, String filename, int uid, int gid, UnixFile backup) throws IOException {
+		return ln(target, new UnixFile(filename), uid, gid, backup);
+	}
+
+	/**
+	 * Creates a symbolic link.  If the link exists, verifies and updates the target, uid, and gid.
+	 * To aid in debugging, writes the filename and target to System.err if an <code>IOException</code> occurs;
+	 * exception is then rethrown.
+	 *
+	 * @return  {@code true} if any modification was made
+	 */
+	public static boolean ln(String target, UnixFile uf, int uid, int gid) throws IOException {
+		return ln(target, uf, uid, gid, null);
+	}
+
+	/**
+	 * Creates a symbolic link.  If the link exists, verifies and updates the target, uid, and gid.
+	 * To aid in debugging, writes the filename and target to System.err if an <code>IOException</code> occurs;
+	 * exception is then rethrown.
+	 *
+	 * @param  backup  If exists but is not a symbolic link or has a mismatched target, the existing is renamed to backup
+	 *
+	 * @return  {@code true} if any modification was made
+	 */
+	public static boolean ln(String target, UnixFile uf, int uid, int gid, UnixFile backup) throws IOException {
+		try {
+			boolean modified = false;
+			Stat ufStat = uf.getStat();
+			if(!ufStat.exists()) {
+				uf.symLink(target);
+				ufStat = uf.getStat();
+				modified = true;
+			} else {
+				if(!ufStat.isSymLink()) {
+					if(backup == null) {
+						throw new IOException("File exists and is not a symbolic link: " + uf.getPath());
+					}
+					uf.renameTo(backup);
+					uf.symLink(target);
+					ufStat = uf.getStat();
+					modified = true;
+				} else if(!target.equals(uf.readLink())) {
+					if(backup == null) {
+						uf.delete();
+					} else {
+						uf.renameTo(backup);
+					}
+					uf.symLink(target);
+					ufStat = uf.getStat();
+					modified = true;
+				}
+			}
+			if(ufStat.getUid() != uid || ufStat.getGid() != gid) {
+				uf.chown(uid, gid);
+				modified = true;
+			}
+			return modified;
+		
+		} catch (IOException e) {
+			System.err.println("ln: filename: "+uf.getPath()+"   destination: "+target);
+			throw e;
+		}
+	}
+
+	/**
+	 * Creates symbolic links to all items in a directory, updating any existing link targets and ownership.
+	 *
+	 * @return  {@code true} if any modification was made
+	 *
+	 * @see  #ln(String,String,int,int)
+	 */
+	public static boolean lnAll(String targetBase, String srcBase, int uid, int gid) throws IOException {
 		boolean modified = false;
-        Stat ufStat = uf.getStat();
-        if(!ufStat.exists()) {
-            uf.mkdir();
-            ufStat = uf.getStat();
+		String[] destinations=new UnixFile(targetBase).list();
+		for (String destination : destinations) {
+			if(ln(targetBase + destination, srcBase + destination, uid, gid)) modified = true;
+		}
+		return modified;
+	}
+
+	/**
+	 * Creates symbolic links to all items in a directory, updating any existing link targets and ownership.
+	 * Also, any files that are not found in the target are also renamed to backup.
+	 *
+	 * @return  {@code true} if any modification was made
+	 *
+	 * @see  #ln(java.lang.String, com.aoindustries.io.unix.UnixFile, int, int, com.aoindustries.io.unix.UnixFile)
+	 */
+	public static boolean lnAll(String targetBase, UnixFile src, int uid, int gid, String backupSuffix, String backupSeparator, String backupExtension) throws IOException {
+		boolean modified = false;
+		String[] destinations = new UnixFile(targetBase).list();
+		for (String destination : destinations) {
+			UnixFile symlink = new UnixFile(src, destination, false);
+			if(
+				ln(
+					targetBase + destination,
+					symlink,
+					uid,
+					gid,
+					findUnusedBackup(symlink + backupSuffix, backupSeparator, backupExtension)
+				)
+			) modified = true;
+		}
+		// Find any files that are not a proper destination and are not already a backup extensions
+		for(String filename : src.list()) {
+			// Skip if is already a backup
+			if(!filename.endsWith(backupExtension)) {
+				boolean found = false;
+				for(String destination : destinations) {
+					if(filename.equals(destination)) {
+						found = true;
+						break;
+					}
+				}
+				// Skip if is an expected symlink
+				if(!found) {
+					UnixFile backmeup = new UnixFile(src, filename, false);
+					backmeup.renameTo(
+						findUnusedBackup(backmeup + backupSuffix, backupSeparator, backupExtension)
+					);
+					modified = true;
+				}
+			}
+		}
+		return modified;
+	}
+
+	/**
+	 * Creates a directory, if needed.  If already exists makes sure it is a directory.
+	 * Also sets or resets the ownership and permissions.
+	 *
+	 * @return  {@code true} if any modification was made
+	 */
+	public static boolean mkdir(String dirName, int mode, int uid, int gid) throws IOException {
+		return mkdir(new UnixFile(dirName), mode, uid, gid, null);
+	}
+
+	/**
+	 * Creates a directory, if needed.  If already exists makes sure it is a directory.
+	 * Also sets or resets the ownership and permissions.
+	 *
+	 * @param  backupName  If exists but is not a directory, the existing is renamed to backupName
+	 *
+	 * @return  {@code true} if any modification was made
+	 */
+	public static boolean mkdir(String dirName, int mode, int uid, int gid, String backupName) throws IOException {
+		return mkdir(new UnixFile(dirName), mode, uid, gid, (backupName == null) ? null : new UnixFile(backupName));
+	}
+
+	/**
+	 * Creates a directory, if needed.  If already exists makes sure it is a directory.
+	 * Also sets or resets the ownership and permissions.
+	 *
+	 * @return  {@code true} if any modification was made
+	 */
+	public static boolean mkdir(UnixFile uf, int mode, int uid, int gid) throws IOException {
+		return mkdir(uf, mode, uid, gid, null);
+	}
+
+	/**
+	 * Creates a directory, if needed.  If already exists makes sure it is a directory.
+	 * Also sets or resets the ownership and permissions.
+	 *
+	 * @param  backup  If exists but is not a directory, the existing is renamed to backup
+	 *
+	 * @return  {@code true} if any modification was made
+	 */
+	public static boolean mkdir(UnixFile uf, int mode, int uid, int gid, UnixFile backup) throws IOException {
+		boolean modified = false;
+		Stat ufStat = uf.getStat();
+		if(!ufStat.exists()) {
+			uf.mkdir();
+			ufStat = uf.getStat();
 			modified = true;
-        } else if(!ufStat.isDirectory()) throw new IOException("File exists and is not a directory: " + uf.getPath());
-        if(ufStat.getMode() != mode) {
+		} else if(!ufStat.isDirectory()) {
+			if(backup == null) {
+				throw new IOException("File exists and is not a directory: " + uf.getPath());
+			}
+			uf.renameTo(backup);
+			uf.mkdir();
+			ufStat = uf.getStat();
+			modified = true;
+		}
+		if(ufStat.getMode() != mode) {
 			uf.setMode(mode);
 			modified = true;
 		}
-        if(ufStat.getUid() != uid || ufStat.getGid() != gid) {
+		if(ufStat.getUid() != uid || ufStat.getGid() != gid) {
 			uf.chown(uid, gid);
 			modified = true;
 		}
 		return modified;
-    }
-
-    /**
-     * Creates an empty file, if needed.  If the file exists its contents are not altered.
-	 * If already exists makes sure it is a file.
-     * Also sets or resets the ownership and permissions.
-     */
-    public static void createEmptyFile(UnixFile uf, int mode, int uid, int gid) throws IOException {
-        Stat ufStat = uf.getStat();
-        if(!ufStat.exists()) {
-			new FileOutputStream(uf.getFile()).close();
-            ufStat = uf.getStat();
-        } else if(!ufStat.isRegularFile()) throw new IOException("File exists and is not a regular file: " + uf.getPath());
-        if(ufStat.getMode() != mode) uf.setMode(mode);
-        if(ufStat.getUid() != uid || ufStat.getGid() != gid) uf.chown(uid, gid);
-    }
+	}
 
 	/**
-     * If the file starts with the provided prefix, strips that prefix from the
-     * file.  A new temp file is created and then renamed over the old.
-     */
-    public static void stripFilePrefix(UnixFile uf, String prefix, int uid_min, int gid_min) throws IOException {
-        // Remove the auto warning if the site has recently become manual
-        int prefixLen=prefix.length();
-        Stat ufStat = uf.getStat();
-        if(ufStat.getSize()>=prefixLen) {
-            UnixFile newUF=null;
-            try (InputStream in = new BufferedInputStream(uf.getSecureInputStream(uid_min, gid_min))) {
-                StringBuilder SB=new StringBuilder(prefixLen);
-                int ch;
-                while(SB.length()<prefixLen && (ch=in.read())!=-1) {
-                    SB.append((char)ch);
-                }
-                if(SB.toString().equals(prefix)) {
-                    newUF=UnixFile.mktemp(uf.getPath()+'.');
-                    try (OutputStream out = new BufferedOutputStream(
+	 * Creates an empty file, if needed.  If the file exists its contents are not altered.
+	 * If already exists makes sure it is a file.
+	 * Also sets or resets the ownership and permissions.
+	 */
+	public static void createEmptyFile(UnixFile uf, int mode, int uid, int gid) throws IOException {
+		Stat ufStat = uf.getStat();
+		if(!ufStat.exists()) {
+			new FileOutputStream(uf.getFile()).close();
+			ufStat = uf.getStat();
+		} else if(!ufStat.isRegularFile()) throw new IOException("File exists and is not a regular file: " + uf.getPath());
+		if(ufStat.getMode() != mode) uf.setMode(mode);
+		if(ufStat.getUid() != uid || ufStat.getGid() != gid) uf.chown(uid, gid);
+	}
+
+	/**
+	 * If the file starts with the provided prefix, strips that prefix from the
+	 * file.  A new temp file is created and then renamed over the old.
+	 */
+	public static void stripFilePrefix(UnixFile uf, String prefix, int uid_min, int gid_min) throws IOException {
+		// Remove the auto warning if the site has recently become manual
+		int prefixLen=prefix.length();
+		Stat ufStat = uf.getStat();
+		if(ufStat.getSize()>=prefixLen) {
+			UnixFile newUF=null;
+			try (InputStream in = new BufferedInputStream(uf.getSecureInputStream(uid_min, gid_min))) {
+				StringBuilder SB=new StringBuilder(prefixLen);
+				int ch;
+				while(SB.length()<prefixLen && (ch=in.read())!=-1) {
+					SB.append((char)ch);
+				}
+				if(SB.toString().equals(prefix)) {
+					newUF=UnixFile.mktemp(uf.getPath()+'.');
+					try (OutputStream out = new BufferedOutputStream(
 						newUF.getSecureOutputStream(
 							ufStat.getUid(),
 							ufStat.getGid(),
@@ -164,12 +318,12 @@ public class DaemonFileUtils {
 						)
 					)) {
 						IoUtils.copy(in, out);
-                    }
-                }
-            }
-            if(newUF!=null) newUF.renameTo(uf);
-        }
-    }
+					}
+				}
+			}
+			if(newUF!=null) newUF.renameTo(uf);
+		}
+	}
 
 	/**
 	 * Atomically replaces a file.  The file will always exist and will always
@@ -324,5 +478,23 @@ public class DaemonFileUtils {
 					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 			}
 		}
+	}
+
+	/**
+	 * Finds an unused file, adding separator and "2" for second try, "3" for third, ...
+	 */
+	public static UnixFile findUnusedBackup(String prefix, String separator, String extension) throws IOException {
+		int i = 0;
+		while(++i > 0) {
+			UnixFile uf = new UnixFile(
+				(i == 1)
+					? (prefix + extension)
+					: (prefix + separator + i + extension)
+			);
+			if(!uf.getStat().exists()) {
+				return uf;
+			}
+		}
+		throw new IOException("All backup files between 1 and " + Integer.MAX_VALUE + " are used");
 	}
 }
