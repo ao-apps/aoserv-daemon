@@ -27,7 +27,6 @@ import com.aoindustries.util.SortedArrayList;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.logging.Logger;
 
 /**
  * Manages HttpdSharedTomcat version 8.5.X configurations.
