@@ -36,8 +36,6 @@ import java.util.logging.Logger;
  */
 class HttpdSharedTomcatManager_8_5_X extends VersionedSharedTomcatManager<TomcatCommon_8_5_X> {
 
-	private static final Logger logger = Logger.getLogger(HttpdSharedTomcatManager_8_5_X.class.getName());
-
 	HttpdSharedTomcatManager_8_5_X(HttpdSharedTomcat sharedTomcat) {
 		super(sharedTomcat);
 	}
