@@ -14,6 +14,7 @@ import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.ProfileScript;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.Symlink;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.SymlinkAll;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.util.UpgradeSymlink;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -60,9 +61,11 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 			new ProfileScript("bin/configtest.sh"),
 			new Symlink      ("bin/commons-daemon.jar"),
 			new Delete       ("bin/commons-logging-api.jar"), // Tomcat 5.5
+			// Skipped bin/daemon.sh
 			new ProfileScript("bin/digest.sh"),
 			new Delete       ("bin/jasper.sh"), // Tomcat 4.1
 			new Delete       ("bin/jspc.sh"), // Tomcat 4.1
+			// Skipped bin/makebase.sh
 			new Delete       ("bin/profile"), // Tomcat 4.1, Tomcat 5.5, Tomcat 6.0, Tomcat 7.0, Tomcat 8.0
 			new Mkdir        ("bin/profile.d", 0750),
 			new Generated    ("bin/profile.d/catalina.sh",                    0640, VersionedTomcatCommon::generateProfileCatalinaSh),
@@ -123,6 +126,20 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 			String rpmVersion = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_9_0).getVersion().toString();
 			if(rpmVersion.equals("9.0.10")) {
 				// Nothing to do
+			} else if(
+				rpmVersion.equals("9.0.11")
+			) {
+				UpgradeSymlink[] upgradeSymlinks_9_0_11 = {
+					// New lib/tomcat-i18n-ru.jar
+					new UpgradeSymlink(
+						"lib/tomcat-i18n-ru.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/tomcat-i18n-ru.jar"
+					)
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_11) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
 			} else {
 				throw new IllegalStateException("Unexpected version of Tomcat: " + rpmVersion);
 			}

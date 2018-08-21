@@ -76,7 +76,6 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 			if(rpmVersion.equals("8.0.30")) {
 				// Nothing to do
 			} else if(rpmVersion.equals("8.0.32")) {
-				// Upgrade from Tomcat 8.0.30 to 8.0.32
 				UpgradeSymlink[] upgradeSymlinks_8_0_32 = {
 					new UpgradeSymlink(
 						"lib/postgresql-9.4.1207.jar",
@@ -93,7 +92,6 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			} else if(rpmVersion.equals("8.0.43")) {
-				 // Upgrade from Tomcat 8.0.32 to 8.0.43
 				UpgradeSymlink[] upgradeSymlinks_8_0_43 = {
 					// ecj-4.4.2.jar -> ecj-4.6.1.jar
 					new UpgradeSymlink(
@@ -151,7 +149,6 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			} else if(rpmVersion.equals("8.0.44")) {
-				 // Upgrade from Tomcat 8.0.43 to 8.0.44
 				UpgradeSymlink[] upgradeSymlinks_8_0_44 = {
 					// ecj-4.6.1.jar -> ecj-4.6.3.jar
 					new UpgradeSymlink(
@@ -174,7 +171,6 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 				|| rpmVersion.equals("8.0.47")
 				|| rpmVersion.equals("8.0.48")
 			) {
-				 // Upgrade from Tomcat 8.0.44 to 8.0.45/8.0.46/8.0.47/8.0.48
 				UpgradeSymlink[] upgradeSymlinks_8_0_45 = {
 					// mysql-connector-java-5.1.42-bin.jar -> mysql-connector-java-5.1.45-bin.jar
 					// mysql-connector-java-5.1.43-bin.jar -> mysql-connector-java-5.1.45-bin.jar
@@ -226,7 +222,6 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 				|| rpmVersion.equals("8.0.51")
 				|| rpmVersion.equals("8.0.52")
 			) {
-				 // Upgrade from Tomcat 8.0.48 to 8.0.49/8.0.50/8.0.51/8.0.52
 				UpgradeSymlink[] upgradeSymlinks_8_0_49 = {
 					// mysql-connector-java-5.1.45-bin.jar -> mysql-connector-java-5.1.46-bin.jar
 					new UpgradeSymlink(
@@ -263,8 +258,18 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 			} else if(
 				rpmVersion.equals("8.0.53")
 			) {
-				 // Upgrade from Tomcat 8.0.53
 				UpgradeSymlink[] upgradeSymlinks_8_0_53 = {
+					// mysql-connector-java-5.1.46-bin.jar -> mysql-connector-java-5.1.47-bin.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-5.1.46-bin.jar",
+						"../" + optSlash + "apache-tomcat-8.0/lib/mysql-connector-java-5.1.46-bin.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-5.1.47-bin.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.0/lib/mysql-connector-java-5.1.47-bin.jar"
+					),
 					// postgresql-42.2.2.jar -> postgresql-42.2.4.jar
 					new UpgradeSymlink(
 						"lib/postgresql-42.2.2.jar",

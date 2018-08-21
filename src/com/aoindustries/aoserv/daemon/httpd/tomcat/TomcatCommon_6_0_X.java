@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -77,7 +77,6 @@ class TomcatCommon_6_0_X extends TomcatCommon {
 			if(rpmVersion.equals("6.0.37")) {
 				// Nothing to do
 			} else if(rpmVersion.equals("6.0.45")) {
-				// Upgrade from Tomcat 6.0.37 to 6.0.45
 				UpgradeSymlink[] upgradeSymlinks_6_0_45 = {
 					new UpgradeSymlink(
 						"lib/ecj-4.2.2.jar",
@@ -127,7 +126,6 @@ class TomcatCommon_6_0_X extends TomcatCommon {
 					if(results.length()>0) needsRestart = true;
 				}
 			} else if(rpmVersion.equals("6.0.53")) {
-				// Upgrade from Tomcat 6.0.45 to 6.0.53
 				UpgradeSymlink[] upgradeSymlinks_6_0_53 = {
 					// mysql-connector-java-5.1.38-bin.jar -> mysql-connector-java-5.1.42-bin.jar
 					// mysql-connector-java-5.1.41-bin.jar -> mysql-connector-java-5.1.42-bin.jar

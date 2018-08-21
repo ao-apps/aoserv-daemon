@@ -14,6 +14,7 @@ import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.ProfileScript;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.Symlink;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.SymlinkAll;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.util.UpgradeSymlink;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -123,6 +124,20 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 			String rpmVersion = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_8_5).getVersion().toString();
 			if(rpmVersion.equals("8.5.32")) {
 				// Nothing to do
+			} else if(
+				rpmVersion.equals("8.5.33")
+			) {
+				UpgradeSymlink[] upgradeSymlinks_8_5_33 = {
+					// New lib/tomcat-i18n-ru.jar
+					new UpgradeSymlink(
+						"lib/tomcat-i18n-ru.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.5/lib/tomcat-i18n-ru.jar"
+					)
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_5_33) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
 			} else {
 				throw new IllegalStateException("Unexpected version of Tomcat: " + rpmVersion);
 			}

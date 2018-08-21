@@ -77,7 +77,6 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 			if(rpmVersion.equals("7.0.42")) {
 				// Nothing to do
 			} else if(rpmVersion.equals("7.0.68")) {
-				// Upgrade from Tomcat 7.0.42 to 7.0.68
 				UpgradeSymlink[] upgradeSymlinks_7_0_68 = {
 					new UpgradeSymlink(
 						"lib/ecj-4.2.2.jar",
@@ -143,7 +142,6 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 				|| rpmVersion.equals("7.0.81")
 				|| rpmVersion.equals("7.0.82")
 			) {
-				// Upgrade from Tomcat 7.0.68 to 7.0.77/7.0.78/7.0.79/7.0.81/7.0.82
 				UpgradeSymlink[] upgradeSymlinks_7_0_77 = {
 					// mysql-connector-java-5.1.38-bin.jar -> mysql-connector-java-5.1.45-bin.jar
 					// mysql-connector-java-5.1.41-bin.jar -> mysql-connector-java-5.1.45-bin.jar
@@ -219,7 +217,6 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 				|| rpmVersion.equals("7.0.86")
 				|| rpmVersion.equals("7.0.88")
 			) {
-				// Upgrade from Tomcat 7.0.82 to 7.0.84/7.0.85/7.0.86/7.0.88
 				UpgradeSymlink[] upgradeSymlinks_7_0_84 = {
 					// mysql-connector-java-5.1.45-bin.jar -> mysql-connector-java-5.1.46-bin.jar
 					new UpgradeSymlink(
@@ -256,8 +253,18 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 			} else if(
 				rpmVersion.equals("7.0.90")
 			) {
-				// Upgrade from Tomcat 7.0.90
 				UpgradeSymlink[] upgradeSymlinks_7_0_90 = {
+					// mysql-connector-java-5.1.46-bin.jar -> mysql-connector-java-5.1.47-bin.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-5.1.46-bin.jar",
+						"../" + optSlash + "apache-tomcat-7.0/lib/mysql-connector-java-5.1.46-bin.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-5.1.47-bin.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-7.0/lib/mysql-connector-java-5.1.47-bin.jar"
+					),
 					// postgresql-42.2.2.jre6.jar -> postgresql-42.2.4.jre6.jar
 					new UpgradeSymlink(
 						"lib/postgresql-42.2.2.jre6.jar",
