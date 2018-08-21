@@ -32,7 +32,6 @@ import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.DomainName;
 import com.aoindustries.util.SortedArrayList;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -118,8 +117,20 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 				+ "      redirectPort=\"8443\"\n"
 				+ "      URIEncoding=\"UTF-8\"\n"
 				+ "    />\n"
-				+ "\n"
-				+ "    <Engine name=\"Catalina\" defaultHost=\"localhost\">\n"
+				+ "\n");
+		// Find the first host (same order as hosts added below)
+		String defaultHostPrimaryHostname = null;
+		FIND_FIRST :
+		for(boolean listFirst : new boolean[] {true, false}) {
+			for (HttpdTomcatSharedSite site : sites) {
+				HttpdSite hs = site.getHttpdTomcatSite().getHttpdSite();
+				if(hs.listFirst() == listFirst && !hs.isDisabled()) {
+					defaultHostPrimaryHostname = hs.getPrimaryHttpdSiteURL().getHostname().toLowerCase();
+					break FIND_FIRST;
+				}
+			}
+		}
+		out.print("    <Engine name=\"Catalina\" defaultHost=\"").print((defaultHostPrimaryHostname == null) ? "localhost" : defaultHostPrimaryHostname).print("\">\n"
 				+ "      <!-- Use the LockOutRealm to prevent attempts to guess user passwords\n"
 				+ "           via a brute-force attack -->\n"
 				+ "      <Realm className=\"org.apache.catalina.realm.LockOutRealm\">\n"
@@ -130,72 +141,74 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 				+ "        <Realm className=\"org.apache.catalina.realm.UserDatabaseRealm\"\n"
 				+ "               resourceName=\"UserDatabase\"/>\n"
 				+ "      </Realm>\n");
-		for (HttpdTomcatSharedSite site : sites) {
-			HttpdSite hs = site.getHttpdTomcatSite().getHttpdSite();
-			if(!hs.isDisabled()) {
-				DomainName primaryHostname = hs.getPrimaryHttpdSiteURL().getHostname();
-				out.print("\n"
-						+ "      <Host\n"
-						+ "        name=\"").encodeXmlAttribute(primaryHostname.toString()).print("\"\n"
-						+ "        appBase=\"").encodeXmlAttribute(wwwDirectory).print('/').encodeXmlAttribute(hs.getSiteName()).print("/webapps\"\n"
-						+ "        unpackWARs=\"").encodeXmlAttribute(sharedTomcat.getUnpackWARs()).print("\"\n"
-						+ "        autoDeploy=\"").encodeXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n"
-						+ "      >\n");
-				List<String> usedHostnames = new SortedArrayList<>();
-				usedHostnames.add(primaryHostname.toString());
-				List<HttpdSiteBind> binds = hs.getHttpdSiteBinds();
-				for (HttpdSiteBind bind : binds) {
-					for (HttpdSiteURL url : bind.getHttpdSiteURLs()) {
-						DomainName hostname = url.getHostname();
-						if(!usedHostnames.contains(hostname.toString())) {
-							out.print("        <Alias>").encodeXhtml(hostname).print("</Alias>\n");
-							usedHostnames.add(hostname.toString());
+		for(boolean listFirst : new boolean[] {true, false}) {
+			for (HttpdTomcatSharedSite site : sites) {
+				HttpdSite hs = site.getHttpdTomcatSite().getHttpdSite();
+				if(hs.listFirst() == listFirst && !hs.isDisabled()) {
+					String primaryHostname = hs.getPrimaryHttpdSiteURL().getHostname().toLowerCase();
+					out.print("\n"
+							+ "      <Host\n"
+							+ "        name=\"").encodeXmlAttribute(primaryHostname).print("\"\n"
+							+ "        appBase=\"").encodeXmlAttribute(wwwDirectory).print('/').encodeXmlAttribute(hs.getSiteName()).print("/webapps\"\n"
+							+ "        unpackWARs=\"").encodeXmlAttribute(sharedTomcat.getUnpackWARs()).print("\"\n"
+							+ "        autoDeploy=\"").encodeXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n"
+							+ "      >\n");
+					List<String> usedHostnames = new SortedArrayList<>();
+					usedHostnames.add(primaryHostname);
+					List<HttpdSiteBind> binds = hs.getHttpdSiteBinds();
+					for (HttpdSiteBind bind : binds) {
+						for (HttpdSiteURL url : bind.getHttpdSiteURLs()) {
+							String hostname = url.getHostname().toLowerCase();
+							if(!usedHostnames.contains(hostname)) {
+								out.print("        <Alias>").encodeXhtml(hostname).print("</Alias>\n");
+								usedHostnames.add(hostname);
+							}
+						}
+						// When listed first, also include the IP addresses as aliases
+						if(hs.listFirst()) {
+							String ip = bind.getHttpdBind().getNetBind().getIPAddress().getInetAddress().toString();
+							if(!usedHostnames.contains(ip)) {
+								out.print("        <Alias>").encodeXhtml(ip).print("</Alias>\n");
+								usedHostnames.add(ip);
+							}
 						}
 					}
-					// When listed first, also include the IP addresses as aliases
-					if(hs.listFirst()) {
-						String ip = bind.getHttpdBind().getNetBind().getIPAddress().getInetAddress().toString();
-						if(!usedHostnames.contains(ip)) {
-							out.print("        <Alias>").encodeXhtml(ip).print("</Alias>\n");
-							usedHostnames.add(ip);
+					HttpdTomcatSite tomcatSite = hs.getHttpdTomcatSite();
+					for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
+						if(!htc.isServerXmlConfigured()) out.print("        <!--\n");
+						out.print("        <Context\n");
+						if(htc.getClassName() != null) out.print("          className=\"").encodeXmlAttribute(htc.getClassName()).print("\"\n");
+						out.print("          cookies=\"").encodeXmlAttribute(htc.useCookies()).print("\"\n"
+								+ "          crossContext=\"").encodeXmlAttribute(htc.allowCrossContext()).print("\"\n"
+								+ "          docBase=\"").encodeXmlAttribute(htc.getDocBase()).print("\"\n"
+								+ "          override=\"").encodeXmlAttribute(htc.allowOverride()).print("\"\n"
+								+ "          path=\"").encodeXmlAttribute(htc.getPath()).print("\"\n"
+								+ "          privileged=\"").encodeXmlAttribute(htc.isPrivileged()).print("\"\n"
+								+ "          reloadable=\"").encodeXmlAttribute(htc.isReloadable()).print("\"\n"
+								+ "          useNaming=\"").encodeXmlAttribute(htc.useNaming()).print("\"\n");
+						if(htc.getWrapperClass() != null) out.print("          wrapperClass=\"").encodeXmlAttribute(htc.getWrapperClass()).print("\"\n");
+						// Not present in Tomcat 8.5+: out.print("          debug=\"").encodeXmlAttribute(htc.getDebugLevel()).print("\"\n");
+						if(htc.getWorkDir() != null) out.print("          workDir=\"").encodeXmlAttribute(htc.getWorkDir()).print("\"\n");
+						List<HttpdTomcatParameter> parameters = htc.getHttpdTomcatParameters();
+						List<HttpdTomcatDataSource> dataSources = htc.getHttpdTomcatDataSources();
+						if(parameters.isEmpty() && dataSources.isEmpty()) {
+							out.print("        />\n");
+						} else {
+							out.print("        >\n");
+							// Parameters
+							for(HttpdTomcatParameter parameter : parameters) {
+								tomcatCommon.writeHttpdTomcatParameter(parameter, out);
+							}
+							// Data Sources
+							for(HttpdTomcatDataSource dataSource : dataSources) {
+								tomcatCommon.writeHttpdTomcatDataSource(dataSource, out);
+							}
+							out.print("        </Context>\n");
 						}
+						if(!htc.isServerXmlConfigured()) out.print("        -->\n");
 					}
+					out.print("      </Host>\n");
 				}
-				HttpdTomcatSite tomcatSite = hs.getHttpdTomcatSite();
-				for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
-					if(!htc.isServerXmlConfigured()) out.print("        <!--\n");
-					out.print("        <Context\n");
-					if(htc.getClassName() != null) out.print("          className=\"").encodeXmlAttribute(htc.getClassName()).print("\"\n");
-					out.print("          cookies=\"").encodeXmlAttribute(htc.useCookies()).print("\"\n"
-							+ "          crossContext=\"").encodeXmlAttribute(htc.allowCrossContext()).print("\"\n"
-							+ "          docBase=\"").encodeXmlAttribute(htc.getDocBase()).print("\"\n"
-							+ "          override=\"").encodeXmlAttribute(htc.allowOverride()).print("\"\n"
-							+ "          path=\"").encodeXmlAttribute(htc.getPath()).print("\"\n"
-							+ "          privileged=\"").encodeXmlAttribute(htc.isPrivileged()).print("\"\n"
-							+ "          reloadable=\"").encodeXmlAttribute(htc.isReloadable()).print("\"\n"
-							+ "          useNaming=\"").encodeXmlAttribute(htc.useNaming()).print("\"\n");
-					if(htc.getWrapperClass() != null) out.print("          wrapperClass=\"").encodeXmlAttribute(htc.getWrapperClass()).print("\"\n");
-					// Not present in Tomcat 8.5+: out.print("          debug=\"").encodeXmlAttribute(htc.getDebugLevel()).print("\"\n");
-					if(htc.getWorkDir() != null) out.print("          workDir=\"").encodeXmlAttribute(htc.getWorkDir()).print("\"\n");
-					List<HttpdTomcatParameter> parameters = htc.getHttpdTomcatParameters();
-					List<HttpdTomcatDataSource> dataSources = htc.getHttpdTomcatDataSources();
-					if(parameters.isEmpty() && dataSources.isEmpty()) {
-						out.print("        />\n");
-					} else {
-						out.print("        >\n");
-						// Parameters
-						for(HttpdTomcatParameter parameter : parameters) {
-							tomcatCommon.writeHttpdTomcatParameter(parameter, out);
-						}
-						// Data Sources
-						for(HttpdTomcatDataSource dataSource : dataSources) {
-							tomcatCommon.writeHttpdTomcatDataSource(dataSource, out);
-						}
-						out.print("        </Context>\n");
-					}
-					if(!htc.isServerXmlConfigured()) out.print("        -->\n");
-				}
-				out.print("      </Host>\n");
 			}
 		}
 		out.print("    </Engine>\n"
