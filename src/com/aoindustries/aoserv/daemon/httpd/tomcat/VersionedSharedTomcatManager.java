@@ -273,7 +273,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 					+ "    if [ \"$SITES\" != '' ]; then\n"
 					+ "        cd \"$TOMCAT_HOME\"\n"
 					+ "        while [ 1 ]; do\n"
-					+ "            mv -f \"${TOMCAT_HOME}/var/log/tomcat_err\" \"${TOMCAT_HOME}/var/log/tomcat_err_$(date +%Y%m%d_%H%M%S)\"\n"
+					+ "            [ -e \"${TOMCAT_HOME}/var/log/tomcat_err\" ] && mv -f \"${TOMCAT_HOME}/var/log/tomcat_err\" \"${TOMCAT_HOME}/var/log/tomcat_err_$(date +%Y%m%d_%H%M%S)\"\n"
 					+ "            \"${TOMCAT_HOME}/bin/catalina.sh\" run >&\"${TOMCAT_HOME}/var/log/tomcat_err\" &\n"
 					+ "            echo \"$!\" >\"${TOMCAT_HOME}/var/run/java.pid\"\n"
 					+ "            wait\n"
