@@ -204,7 +204,7 @@ public abstract class Install {
 								+ "fi\n"
 								+ ". /etc/profile\n"
 								+ "\n"
-								+ "exec '/opt/").print(apacheTomcatDir).print('/').print(path).print("'\n");
+								+ "exec '/opt/").print(apacheTomcatDir).print('/').print(path).print("' \"$@\"\n");
 					}
 					return bout.toByteArray();
 				}
