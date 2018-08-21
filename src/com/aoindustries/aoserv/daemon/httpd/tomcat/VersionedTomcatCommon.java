@@ -88,7 +88,7 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 					+ "export CATALINA_HOME=\"").print(installDir).print("\"\n"
 					+ "export CATALINA_TEMP=\"").print(installDir).print("/temp\"\n"
 					+ "\n"
-					+ "export PATH=\"${PATH}:").print(installDir).print("/bin\"\n");
+					+ "export PATH=\"$PATH:").print(installDir).print("/bin\"\n");
 		}
 		return bout.toByteArray();
 	}
