@@ -30,19 +30,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Manages HttpdSharedTomcat version 8.5.X configurations.
+ * Manages HttpdSharedTomcat version 9.0.X configurations.
  *
  * @author  AO Industries, Inc.
  */
-class HttpdSharedTomcatManager_8_5_X extends VersionedSharedTomcatManager<TomcatCommon_8_5_X> {
+class HttpdSharedTomcatManager_9_0_X extends VersionedSharedTomcatManager<TomcatCommon_9_0_X> {
 
-	HttpdSharedTomcatManager_8_5_X(HttpdSharedTomcat sharedTomcat) {
+	HttpdSharedTomcatManager_9_0_X(HttpdSharedTomcat sharedTomcat) {
 		super(sharedTomcat);
 	}
 
 	@Override
-	TomcatCommon_8_5_X getTomcatCommon() {
-		return TomcatCommon_8_5_X.getInstance();
+	TomcatCommon_9_0_X getTomcatCommon() {
+		return TomcatCommon_9_0_X.getInstance();
 	}
 
 	@Override
@@ -51,7 +51,7 @@ class HttpdSharedTomcatManager_8_5_X extends VersionedSharedTomcatManager<Tomcat
 		HttpdSharedTomcat sharedTomcat,
 		List<HttpdTomcatSharedSite> sites
 	) throws IOException, SQLException {
-		final TomcatCommon_8_5_X tomcatCommon = getTomcatCommon();
+		final TomcatCommon_9_0_X tomcatCommon = getTomcatCommon();
 		final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
 		final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
 		final UnixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();

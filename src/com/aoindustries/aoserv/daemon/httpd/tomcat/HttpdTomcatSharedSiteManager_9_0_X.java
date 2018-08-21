@@ -10,18 +10,18 @@ import java.io.IOException;
 import java.sql.SQLException;
 
 /**
- * Manages HttpdTomcatSharedSite version 8.5.X configurations.
+ * Manages HttpdTomcatSharedSite version 9.0.X configurations.
  *
  * @author  AO Industries, Inc.
  */
-class HttpdTomcatSharedSiteManager_8_5_X extends VersionedTomcatSharedSiteManager<TomcatCommon_8_5_X> {
+class HttpdTomcatSharedSiteManager_9_0_X extends VersionedTomcatSharedSiteManager<TomcatCommon_9_0_X> {
 
-	HttpdTomcatSharedSiteManager_8_5_X(HttpdTomcatSharedSite tomcatSharedSite) throws SQLException, IOException {
+	HttpdTomcatSharedSiteManager_9_0_X(HttpdTomcatSharedSite tomcatSharedSite) throws SQLException, IOException {
 		super(tomcatSharedSite);
 	}
 
 	@Override
-	public TomcatCommon_8_5_X getTomcatCommon() {
-		return TomcatCommon_8_5_X.getInstance();
+	public TomcatCommon_9_0_X getTomcatCommon() {
+		return TomcatCommon_9_0_X.getInstance();
 	}
 }

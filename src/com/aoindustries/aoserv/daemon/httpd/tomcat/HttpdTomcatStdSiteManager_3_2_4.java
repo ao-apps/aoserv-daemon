@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2015, 2017 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2015, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -38,7 +38,6 @@ class HttpdTomcatStdSiteManager_3_2_4 extends HttpdTomcatStdSiteManager_3_X<Tomc
 
 	@Override
 	protected byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException {
-		//final TomcatCommon tomcatCommon = getTomcatCommon();
 		final String siteDir = siteDirectory.getPath();
 		AOServConnector conn = AOServDaemon.getConnector();
 		final HttpdTomcatVersion htv = tomcatSite.getHttpdTomcatVersion();

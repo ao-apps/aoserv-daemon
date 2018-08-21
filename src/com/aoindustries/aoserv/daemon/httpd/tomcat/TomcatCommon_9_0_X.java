@@ -23,31 +23,31 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Some common code for Tomcat 8.5.X
+ * Some common code for Tomcat 9.0.X
  *
  * @author  AO Industries, Inc.
  */
-class TomcatCommon_8_5_X extends VersionedTomcatCommon {
+class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 
-	private static final TomcatCommon_8_5_X instance = new TomcatCommon_8_5_X();
-	static TomcatCommon_8_5_X getInstance() {
+	private static final TomcatCommon_9_0_X instance = new TomcatCommon_9_0_X();
+	static TomcatCommon_9_0_X getInstance() {
 		return instance;
 	}
 
-	private TomcatCommon_8_5_X() {}
+	private TomcatCommon_9_0_X() {}
 
 	@Override
 	protected Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException {
 		return EnumSet.of(
 			OperatingSystemConfiguration.getOperatingSystemConfiguration().getDefaultJdkPackageName(),
 			PackageManager.PackageName.AOSERV_PROFILE_D,
-			PackageManager.PackageName.APACHE_TOMCAT_8_5
+			PackageManager.PackageName.APACHE_TOMCAT_9_0
 		);
 	}
 
 	@Override
 	protected String getApacheTomcatDir() {
-		return "apache-tomcat-8.5";
+		return "apache-tomcat-9.0";
 	}
 
 	@Override
@@ -56,7 +56,7 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 			new Mkdir        ("bin", 0770),
 			new Symlink      ("bin/bootstrap.jar"),
 			new ProfileScript("bin/catalina.sh"),
-			new Delete       ("bin/ciphers.sh"), // Tomcat 9.0
+			new ProfileScript("bin/ciphers.sh"),
 			new ProfileScript("bin/configtest.sh"),
 			new Symlink      ("bin/commons-daemon.jar"),
 			new Delete       ("bin/commons-logging-api.jar"), // Tomcat 5.5
@@ -110,7 +110,7 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 	}
 
 	/**
-	 * Upgrades the Tomcat 8.5.X installed in the provided directory.
+	 * Upgrades the Tomcat 9.0.X installed in the provided directory.
 	 *
 	 * @param optSlash  Relative path from the CATALINA_HOME to /opt/, including trailing slash, such as <code>../../opt/</code>.
 	 */
@@ -120,8 +120,8 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 		boolean needsRestart = false;
 		OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
 		if(osConfig == OperatingSystemConfiguration.CENTOS_7_X86_64) {
-			String rpmVersion = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_8_5).getVersion().toString();
-			if(rpmVersion.equals("8.5.32")) {
+			String rpmVersion = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_9_0).getVersion().toString();
+			if(rpmVersion.equals("9.0.10")) {
 				// Nothing to do
 			} else {
 				throw new IllegalStateException("Unexpected version of Tomcat: " + rpmVersion);

@@ -69,7 +69,7 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
 		final AOServer thisAoServer = AOServDaemon.getThisAOServer();
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
-		final TomcatCommon tomcatCommon = getTomcatCommon();
+		final TomcatCommon_6_0_X tomcatCommon = getTomcatCommon();
 		final LinuxServerAccount lsa = sharedTomcat.getLinuxServerAccount();
 		final int lsaUID = lsa.getUid().getId();
 		final LinuxServerGroup lsg = sharedTomcat.getLinuxServerGroup();
@@ -105,9 +105,6 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
 			workUF.mkdir().chown(lsaUID, lsgGID).setMode(0750);
 			DaemonFileUtils.mkdir(innerWorkUF.getPath(), 0750, lsaUID, lsgGID);
 
-			//PostgresServer postgresServer=aoServer.getPreferredPostgresServer();
-			//String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
-
 			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-6.0/bin/bootstrap.jar", wwwGroupDir+"/bin/bootstrap.jar", lsaUID, lsgGID);
 			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-6.0/bin/catalina.sh", wwwGroupDir+"/bin/catalina.sh", lsaUID, lsgGID);
 			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-6.0/bin/commons-daemon.jar", wwwGroupDir+"/bin/commons-daemon.jar", lsaUID, lsgGID);
@@ -128,10 +125,6 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
 
 				out.print(". /etc/profile\n"
 						+ ". ").print(osConfig.getDefaultJdkProfileSh()).print('\n');
-				//if(postgresServerMinorVersion!=null) {
-				//	out.print(". /opt/postgresql-"+postgresServerMinorVersion+"-i686/setenv.sh\n");
-				//}
-				//out.print(". ").print(osConfig.getAOServClientScriptInclude()).print("\n"
 				out.print("\n"
 						+ "umask 002\n"
 						+ "\n"
@@ -237,16 +230,6 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
 			// Create the lib directory and all contents
 			DaemonFileUtils.mkdir(wwwGroupDir+"/lib", 0770, lsaUID, lsgGID);
 			DaemonFileUtils.lnAll("../" + optSlash + "apache-tomcat-6.0/lib/", wwwGroupDir+"/lib/", lsaUID, lsgGID);
-
-			//if(postgresServerMinorVersion!=null) {
-			//    String postgresPath = osConfig.getPostgresPath(postgresServerMinorVersion);
-			//    if(postgresPath!=null) FileUtils.ln("../../.."+postgresPath+"/share/java/postgresql.jar", wwwGroupDir+"/lib/postgresql.jar", lsaUID, lsgGID);
-			//}
-			//String mysqlConnectorPath = osConfig.getMySQLConnectorJavaJarPath();
-			//if(mysqlConnectorPath!=null) {
-			//    String filename = new UnixFile(mysqlConnectorPath).getFile().getName();
-			//    FileUtils.ln("../../.."+mysqlConnectorPath, wwwGroupDir+"/lib/"+filename, lsaUID, lsgGID);
-			//}
 
 			{
 				UnixFile cp=new UnixFile(wwwGroupDir+"/conf/catalina.policy");

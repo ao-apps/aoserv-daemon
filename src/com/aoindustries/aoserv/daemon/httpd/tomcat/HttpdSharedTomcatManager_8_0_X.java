@@ -69,7 +69,7 @@ class HttpdSharedTomcatManager_8_0_X extends HttpdSharedTomcatManager<TomcatComm
 		final AOServer thisAoServer = AOServDaemon.getThisAOServer();
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
-		final TomcatCommon tomcatCommon = getTomcatCommon();
+		final TomcatCommon_8_0_X tomcatCommon = getTomcatCommon();
 		final LinuxServerAccount lsa = sharedTomcat.getLinuxServerAccount();
 		final int lsaUID = lsa.getUid().getId();
 		final LinuxServerGroup lsg = sharedTomcat.getLinuxServerGroup();

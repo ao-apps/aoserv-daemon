@@ -89,7 +89,6 @@ class HttpdTomcatStdSiteManager_4_1_X extends HttpdTomcatStdSiteManager<TomcatCo
 			)
 		);
 		try {
-			//final TomcatCommon_4_1_X tomcatCommon = getTomcatCommon();
 			out.print("#!/bin/sh\n"
 					+ "\n"
 					+ ". /etc/profile\n"
@@ -270,7 +269,7 @@ class HttpdTomcatStdSiteManager_4_1_X extends HttpdTomcatStdSiteManager<TomcatCo
 
 	@Override
 	protected byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException {
-		final TomcatCommon tomcatCommon = getTomcatCommon();
+		final TomcatCommon_4_1_X tomcatCommon = getTomcatCommon();
 		AOServConnector conn = AOServDaemon.getConnector();
 
 		// Build to RAM first

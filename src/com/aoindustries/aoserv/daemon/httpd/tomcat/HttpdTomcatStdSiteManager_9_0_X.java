@@ -10,18 +10,18 @@ import java.io.IOException;
 import java.sql.SQLException;
 
 /**
- * Manages HttpdTomcatStdSite version 8.5.X configurations.
+ * Manages HttpdTomcatStdSite version 9.0.X configurations.
  *
  * @author  AO Industries, Inc.
  */
-class HttpdTomcatStdSiteManager_8_5_X extends VersionedTomcatStdSiteManager<TomcatCommon_8_5_X> {
+class HttpdTomcatStdSiteManager_9_0_X extends VersionedTomcatStdSiteManager<TomcatCommon_9_0_X> {
 
-	HttpdTomcatStdSiteManager_8_5_X(HttpdTomcatStdSite tomcatStdSite) throws SQLException, IOException {
+	HttpdTomcatStdSiteManager_9_0_X(HttpdTomcatStdSite tomcatStdSite) throws SQLException, IOException {
 		super(tomcatStdSite);
 	}
 
 	@Override
-	public TomcatCommon_8_5_X getTomcatCommon() {
-		return TomcatCommon_8_5_X.getInstance();
+	public TomcatCommon_9_0_X getTomcatCommon() {
+		return TomcatCommon_9_0_X.getInstance();
 	}
 }

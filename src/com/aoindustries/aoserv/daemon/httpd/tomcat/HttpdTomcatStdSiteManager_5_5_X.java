@@ -43,7 +43,6 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
 	protected void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
 		// Resolve and allocate stuff used throughout the method
 		final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
-		//final TomcatCommon tomcatCommon = getTomcatCommon();
 		final String siteDir = siteDirectory.getPath();
 		final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
 		final int uid = lsa.getUid().getId();
@@ -303,7 +302,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
 
 	@Override
 	protected byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException {
-		final TomcatCommon tomcatCommon = getTomcatCommon();
+		final TomcatCommon_5_5_X tomcatCommon = getTomcatCommon();
 		AOServConnector conn = AOServDaemon.getConnector();
 
 		// Build to RAM first

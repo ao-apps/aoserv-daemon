@@ -74,6 +74,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 		if(htv.isTomcat7_0_X(connector)) return new HttpdSharedTomcatManager_7_0_X(sharedTomcat);
 		if(htv.isTomcat8_0_X(connector)) return new HttpdSharedTomcatManager_8_0_X(sharedTomcat);
 		if(htv.isTomcat8_5_X(connector)) return new HttpdSharedTomcatManager_8_5_X(sharedTomcat);
+		if(htv.isTomcat9_0_X(connector)) return new HttpdSharedTomcatManager_9_0_X(sharedTomcat);
 		throw new SQLException("Unsupported version of shared Tomcat: "+htv.getTechnologyVersion(connector).getVersion()+" on "+sharedTomcat);
 	}
 
