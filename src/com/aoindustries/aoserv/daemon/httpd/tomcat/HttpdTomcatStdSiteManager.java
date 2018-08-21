@@ -175,9 +175,16 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 					uid_min,
 					gid_min
 				);
+				// This will not be necessary once all are Tomcat 8.5 and newer
 				DaemonFileUtils.stripFilePrefix(
 					confServerXMLFile,
 					autoWarning,
+					uid_min,
+					gid_min
+				);
+				DaemonFileUtils.stripFilePrefix(
+					confServerXMLFile,
+					"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + autoWarning,
 					uid_min,
 					gid_min
 				);

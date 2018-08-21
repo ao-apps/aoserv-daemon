@@ -95,13 +95,13 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 					throw new SQLException("HttpdWorker #" + hw.getPkey() + " for HttpdTomcatStdSite #" + httpdSite.getPkey() + " must be AJP13 but it is " + hwProtocol);
 				}
 			}
-			if(!httpdSite.isManual()) out.print(autoWarning);
 			NetBind shutdownPort = tomcatStdSite.getTomcat4ShutdownPort();
 			if(shutdownPort == null) throw new SQLException("Unable to find shutdown port for HttpdTomcatStdSite=" + tomcatStdSite);
 			String shutdownKey = tomcatStdSite.getTomcat4ShutdownKey();
 			if(shutdownKey == null) throw new SQLException("Unable to find shutdown key for HttpdTomcatStdSite=" + tomcatStdSite);
-			out.print("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-					+ "<Server port=\"").encodeXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").encodeXmlAttribute(shutdownKey).print("\">\n"
+			out.print("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+			if(!httpdSite.isManual()) out.print(autoWarning);
+			out.print("<Server port=\"").encodeXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").encodeXmlAttribute(shutdownKey).print("\">\n"
 					+ "  <Listener className=\"org.apache.catalina.startup.VersionLoggerListener\" />\n"
 					+ "  <!-- Security listener. Documentation at /docs/config/listeners.html\n"
 					+ "  <Listener className=\"org.apache.catalina.security.SecurityListener\" />\n"
