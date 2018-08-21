@@ -115,7 +115,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		// always rebuild bin/profile.d/httpd-sites.sh
 		List<HttpdTomcatSharedSite> sites = sharedTomcat.getHttpdTomcatSharedSites();
 		bout.reset();
-		try (ChainWriter out = new ChainWriter(bout)) {
+		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
 			out.print("export SITES=\"");
 			boolean didOne = false;
 			for(HttpdTomcatSharedSite site : sites) {
