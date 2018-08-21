@@ -61,9 +61,11 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 			new ProfileScript("bin/configtest.sh"),
 			new Symlink      ("bin/commons-daemon.jar"),
 			new Delete       ("bin/commons-logging-api.jar"), // Tomcat 5.5
+			// Skipped bin/daemon.sh from Tomcat 9.0
 			new ProfileScript("bin/digest.sh"),
 			new Delete       ("bin/jasper.sh"), // Tomcat 4.1
 			new Delete       ("bin/jspc.sh"), // Tomcat 4.1
+			// Skipped bin/makebase.sh from Tomcat 9.0
 			new Delete       ("bin/profile"), // Tomcat 4.1, Tomcat 5.5, Tomcat 6.0, Tomcat 7.0, Tomcat 8.0
 			new Mkdir        ("bin/profile.d", 0750),
 			new Generated    ("bin/profile.d/catalina.sh",                    0640, VersionedTomcatCommon::generateProfileCatalinaSh),
