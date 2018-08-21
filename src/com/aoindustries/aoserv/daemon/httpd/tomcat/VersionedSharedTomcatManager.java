@@ -175,7 +175,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 							+ "          reloadable=\"").encodeXmlAttribute(htc.isReloadable()).print("\"\n"
 							+ "          useNaming=\"").encodeXmlAttribute(htc.useNaming()).print("\"\n");
 					if(htc.getWrapperClass() != null) out.print("          wrapperClass=\"").encodeXmlAttribute(htc.getWrapperClass()).print("\"\n");
-					out.print("          debug=\"").encodeXmlAttribute(htc.getDebugLevel()).print("\"\n");
+					// Not present in Tomcat 8.5+: out.print("          debug=\"").encodeXmlAttribute(htc.getDebugLevel()).print("\"\n");
 					if(htc.getWorkDir() != null) out.print("          workDir=\"").encodeXmlAttribute(htc.getWorkDir()).print("\"\n");
 					List<HttpdTomcatParameter> parameters = htc.getHttpdTomcatParameters();
 					List<HttpdTomcatDataSource> dataSources = htc.getHttpdTomcatDataSources();
