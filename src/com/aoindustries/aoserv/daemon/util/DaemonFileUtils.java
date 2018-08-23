@@ -348,6 +348,15 @@ public class DaemonFileUtils {
 		boolean updated;
 		Stat fileStat = file.getStat();
 		if(
+			backupFile != null
+			&& fileStat.exists()
+			&& !fileStat.isRegularFile()
+		) {
+			file.renameTo(backupFile);
+			fileStat = Stat.NOT_EXISTS;
+			updated = true;
+		}
+		if(
 			!fileStat.exists()
 			// TODO: Find some way to avoid race condition and redirects while not doing funny file permission changes
 			|| !file.contentEquals(newContents)
