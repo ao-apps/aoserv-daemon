@@ -37,6 +37,9 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 		return BACKUP_DATE_SEPARATOR + CalendarUtils.formatDate(new GregorianCalendar(Locale.ROOT));
 	}
 
+	public static final int KILL_DELAY_ATTEMPTS = 50;
+	public static final float KILL_DELAY_INTERVAL = 0.1f;
+
 	VersionedTomcatCommon() {
 	}
 
