@@ -21,9 +21,12 @@ import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.Generated;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.Mkdir;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
+import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
@@ -271,12 +274,31 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 
 	@Override
 	protected boolean upgradeSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
-		// The only thing that needs to be modified is the included Tomcat
-		return getTomcatCommon().upgradeTomcatDirectory(
+		TC tomcatCommon = getTomcatCommon();
+		int uid = httpdSite.getLinuxServerAccount().getUid().getId();
+		int gid = httpdSite.getLinuxServerGroup().getGid().getId();
+		String apacheTomcatDir = tomcatCommon.getApacheTomcatDir();
+		// Update the included Tomcat
+		boolean needsRestart = tomcatCommon.upgradeTomcatDirectory(
 			optSlash,
 			siteDirectory,
-			httpdSite.getLinuxServerAccount().getUid().getId(),
-			httpdSite.getLinuxServerGroup().getGid().getId()
+			uid,
+			gid
 		);
+		// Verify RELEASE-NOTES, looking for any update that doesn't change symlinks
+		UnixFile newReleaseNotes = new UnixFile(siteDirectory, "RELEASE-NOTES", true);
+		ByteArrayOutputStream bout = new ByteArrayOutputStream();
+		try (InputStream in = new FileInputStream("/opt/" + apacheTomcatDir + "/RELEASE-NOTES")) {
+			IoUtils.copy(in, bout);
+		}
+		if(
+			DaemonFileUtils.atomicWrite(
+				newReleaseNotes, bout.toByteArray(), 0440, uid, gid,
+				null, null
+			)
+		) {
+			needsRestart = true;
+		}
+		return needsRestart;
 	}
 }

@@ -30,12 +30,15 @@ import static com.aoindustries.aoserv.daemon.httpd.tomcat.VersionedTomcatCommon.
 import static com.aoindustries.aoserv.daemon.httpd.tomcat.VersionedTomcatCommon.BACKUP_SEPARATOR;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
+import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.util.SortedArrayList;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
@@ -462,5 +465,35 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		installFiles.add(new Delete   ("bin/profile.sites.old"));
 		installFiles.add(new Generated("bin/tomcat", 0700, VersionedSharedTomcatManager::generateTomcatScript));
 		return installFiles;
+	}
+
+	@Override
+	protected boolean upgradeSharedTomcatDirectory(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
+		TC tomcatCommon = getTomcatCommon();
+		int uid = sharedTomcat.getLinuxServerAccount().getUid().getId();
+		int gid = sharedTomcat.getLinuxServerGroup().getGid().getId();
+		String apacheTomcatDir = tomcatCommon.getApacheTomcatDir();
+		// Upgrade Tomcat
+		boolean needsRestart = getTomcatCommon().upgradeTomcatDirectory(
+			optSlash,
+			siteDirectory,
+			uid,
+			gid
+		);
+		// Verify RELEASE-NOTES, looking for any update that doesn't change symlinks
+		UnixFile newReleaseNotes = new UnixFile(siteDirectory, "RELEASE-NOTES", true);
+		ByteArrayOutputStream bout = new ByteArrayOutputStream();
+		try (InputStream in = new FileInputStream("/opt/" + apacheTomcatDir + "/RELEASE-NOTES")) {
+			IoUtils.copy(in, bout);
+		}
+		if(
+			DaemonFileUtils.atomicWrite(
+				newReleaseNotes, bout.toByteArray(), 0440, uid, gid,
+				null, null
+			)
+		) {
+			needsRestart = true;
+		}
+		return needsRestart;
 	}
 }

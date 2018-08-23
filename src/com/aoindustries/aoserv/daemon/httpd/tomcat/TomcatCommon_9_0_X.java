@@ -99,7 +99,7 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 			new Mkdir        ("lib", 0770),
 			new SymlinkAll   ("lib"),
 			new Symlink      ("logs", "var/log"),
-			new Copy         ("RELEASE-NOTES", 0440), // Used to detect version updates that do not change symlinks
+			new Delete       ("RELEASE-NOTES"), // Backup any existing, new will be created to detect version updates that do not change symlinks
 			new Delete       ("shared"), // Tomcat 4.1, Tomcat 5.5
 			new Delete       ("server"), // Tomcat 4.1, Tomcat 5.5
 			new Mkdir        ("temp", 0770),
