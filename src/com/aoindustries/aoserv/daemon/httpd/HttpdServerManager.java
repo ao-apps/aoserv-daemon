@@ -189,7 +189,7 @@ public class HttpdServerManager {
 	/**
 	 * The directory that contains PHP variable files.
 	 */
-	public static final String VAR_LIB_PHP_DIRECTORY = "/var/lib/php";
+	private static final UnixFile VAR_LIB_PHP_DIRECTORY = new UnixFile("/var/lib/php");
 
 	/**
 	 * The name of the PHP session folder for the default Apache instance.
@@ -1354,7 +1354,7 @@ public class HttpdServerManager {
 		}
 		// Delete extra varLibPhpFilenames
 		{
-			String[] list = new File(VAR_LIB_PHP_DIRECTORY).list();
+			String[] list = VAR_LIB_PHP_DIRECTORY.list();
 			if(list != null) {
 				for(String filename : list) {
 					if(
@@ -1364,7 +1364,7 @@ public class HttpdServerManager {
 							|| PHP_SESSION_REGEXP.matcher(filename).matches()
 						)
 					) {
-						File toDelete = new File(VAR_LIB_PHP_DIRECTORY, filename);
+						File toDelete = new File(VAR_LIB_PHP_DIRECTORY.getFile(), filename);
 						if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
 						deleteFileList.add(toDelete);
 					}
@@ -2325,7 +2325,9 @@ public class HttpdServerManager {
 					httpdConfFilenames.add("php@" + escapedName);
 				}
 				int gid = hs.getLinuxServerGroup().getGid().getId();
-				DaemonFileUtils.mkdir(phpIniDir, 0750, UnixFile.ROOT_UID, gid);
+				if(DaemonFileUtils.mkdir(phpIniDir, 0750, UnixFile.ROOT_UID, gid)) {
+					restorecon.add(phpIniDir);
+				}
 				// Create the conf.d config directory for PHP 7+
 				String expectedTarget;
 				UnixFile confD;
@@ -2337,7 +2339,9 @@ public class HttpdServerManager {
 					confD = new UnixFile(phpIniDir, MOD_PHP_CONF_D, true);
 				}
 				if(confD != null) {
-					DaemonFileUtils.mkdir(confD, 0750, UnixFile.ROOT_UID, gid);
+					if(DaemonFileUtils.mkdir(confD, 0750, UnixFile.ROOT_UID, gid)) {
+						restorecon.add(confD);
+					}
 					// TODO: Create and update symlinks in conf.d matching an AOServ-configured set of extensions
 				} else {
 					// TODO: Remove any auto symlinks in conf.d, if exists
@@ -2376,12 +2380,16 @@ public class HttpdServerManager {
 					} else {
 						sessionDirName = PHP_SESSION + "@" + escapedName;
 					}
-					sessionDir = new UnixFile(VAR_LIB_PHP_DIRECTORY, sessionDirName);
+					sessionDir = new UnixFile(VAR_LIB_PHP_DIRECTORY, sessionDirName, true);
 					varLibPhpFilenames.add(sessionDirName);
 				}
 				int uid = hs.getLinuxServerAccount().getUid().getId();
-				DaemonFileUtils.mkdir(VAR_LIB_PHP_DIRECTORY, 0755, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
-				DaemonFileUtils.mkdir(sessionDir, 0700, uid, gid);
+				if(DaemonFileUtils.mkdir(VAR_LIB_PHP_DIRECTORY, 0755, UnixFile.ROOT_UID, UnixFile.ROOT_GID)) {
+					restorecon.add(VAR_LIB_PHP_DIRECTORY);
+				}
+				if(DaemonFileUtils.mkdir(sessionDir, 0700, uid, gid)) {
+					restorecon.add(sessionDir);
+				}
 				if(isEnabled) {
 					hasAnyModPhp[0] = true;
 					String phpMajorVersion = getMajorPhpVersion(version);
