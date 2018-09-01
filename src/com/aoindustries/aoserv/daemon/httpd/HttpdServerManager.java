@@ -830,7 +830,8 @@ public class HttpdServerManager {
 
 					// Configure per-site PHP sessions for mod_php
 					if(!modPhpMajorVersions.isEmpty()) {
-						UnixFile varPhpDir = new UnixFile(HttpdOperatingSystemConfiguration.CENTOS_7_X86_64.getHttpdSitesDirectory().toString(), HttpdSiteManager.VAR_PHP);
+						UnixFile varDir = new UnixFile(HttpdOperatingSystemConfiguration.CENTOS_7_X86_64.getHttpdSitesDirectory().toString(), HttpdSiteManager.VAR);
+						UnixFile varPhpDir = new UnixFile(varDir, HttpdSiteManager.VAR_PHP, true);
 						UnixFile sessionDir = new UnixFile(varPhpDir, PHP_SESSION, true);
 						out.print("\n"
 								+ "# User per-site PHP session directory when using mod_php\n");
@@ -838,6 +839,10 @@ public class HttpdServerManager {
 							out.print("<IfModule php").print(modPhpMajorVersion).print("_module>\n"
 									+ "    php_value session.save_path ").print(escape(dollarVariable, sessionDir.toString())).print("\n"
 									+ "</IfModule>\n");
+						}
+						// Create var directory if missing
+						if(DaemonFileUtils.mkdir(varPhpDir, 0770, uid, gid)) {
+							restorecon.add(varPhpDir);
 						}
 						// Create var/php directory if missing
 						if(DaemonFileUtils.mkdir(varPhpDir, 0770, uid, gid)) {

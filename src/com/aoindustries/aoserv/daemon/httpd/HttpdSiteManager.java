@@ -93,11 +93,17 @@ public abstract class HttpdSiteManager {
 	private static final String CGI_PHP_D = "php.d";
 
 	/**
+	 * The per-site directory that contains variable data.
+	 */
+	static final String VAR = "var";
+
+	/**
 	 * The per-site directory that contains PHP variable data.
 	 *
+	 * @see  #VAR
 	 * @see  HttpdServerManager#PHP_SESSION
 	 */
-	static final String VAR_PHP = "var/php";
+	static final String VAR_PHP = "php";
 
 	/**
 	 * Gets the specific manager for one type of web site.
@@ -517,6 +523,7 @@ public abstract class HttpdSiteManager {
 			PackageManager.PackageName requiredPackage;
 			String phpVersion = httpdSite.getPhpVersion().getVersion();
 			UnixFile phpD;
+			UnixFile varDir;
 			UnixFile varPhpDir;
 			UnixFile sessionDir;
 			// Build to RAM first
@@ -559,6 +566,7 @@ public abstract class HttpdSiteManager {
 						throw new SQLException("Unexpected version for php: " + phpVersion);
 					}
 					phpD = null; // No cgi-bin/php.d directory
+					varDir = null; // No per-site PHP data
 					varPhpDir = null; // No per-site PHP data
 					sessionDir = null; // No per-site PHP sessions
 				} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
@@ -594,7 +602,8 @@ public abstract class HttpdSiteManager {
 						phpD = new UnixFile(cgibinDirectory, CGI_PHP_D, true);
 						out.print("export PHP_INI_SCAN_DIR='").print(phpD.getPath()).print("'\n");
 					}
-					varPhpDir = new UnixFile(siteDirectory, VAR_PHP, true);
+					varDir = new UnixFile(siteDirectory, VAR, true);
+					varPhpDir = new UnixFile(varDir, VAR_PHP, true);
 					sessionDir = new UnixFile(varPhpDir, PHP_SESSION, true);
 				} else {
 					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -603,7 +612,8 @@ public abstract class HttpdSiteManager {
 					.print("exec ")
 					.print(HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getPhpCgiPath(phpMinorVersion))
 					.print(" -d session.save_path=\"")
-					.print(" \"$@\"\n");
+					.print(sessionDir)
+					.print("\" \"$@\"\n");
 			}
 			// Make sure required RPM is installed
 			if(requiredPackage != null) PackageManager.installPackage(requiredPackage);
@@ -629,21 +639,27 @@ public abstract class HttpdSiteManager {
 				// TODO: Remove auto symlinks from php.d if no longer needed
 				// TODO: Remove php.d directory if now empty
 			}
-			// Create var/php directory if missing
-			if(varPhpDir != null) {
-				if(DaemonFileUtils.mkdir(varPhpDir, 0770, uid, gid)) {
-					restorecon.add(varPhpDir);
+			// Create var directory if missing
+			if(varDir != null) {
+				if(DaemonFileUtils.mkdir(varDir, 0770, uid, gid)) {
+					restorecon.add(varDir);
 				}
-				// Create var/php/session directory if missing
-				if(sessionDir != null) {
-					if(DaemonFileUtils.mkdir(sessionDir, 0770, uid, gid)) {
-						restorecon.add(sessionDir);
+				// Create var/php directory if missing
+				if(varPhpDir != null) {
+					if(DaemonFileUtils.mkdir(varPhpDir, 0770, uid, gid)) {
+						restorecon.add(varPhpDir);
+					}
+					// Create var/php/session directory if missing
+					if(sessionDir != null) {
+						if(DaemonFileUtils.mkdir(sessionDir, 0770, uid, gid)) {
+							restorecon.add(sessionDir);
+						}
+					} else {
+						// TODO: Remove unused session directory if exists (and not needed by mod_php)?
 					}
 				} else {
 					// TODO: Remove unused session directory if exists (and not needed by mod_php)?
 				}
-			} else {
-				// TODO: Remove unused session directory if exists (and not needed by mod_php)?
 			}
 			// TODO: Create/update a php.ini symlink in cgi-bin as a clean placeholder for where client can manage own config
 			DaemonFileUtils.atomicWrite(
