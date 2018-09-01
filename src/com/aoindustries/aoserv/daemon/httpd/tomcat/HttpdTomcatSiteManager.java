@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015, 2017 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -289,7 +289,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 		if(upgradeSiteDirectoryContents(optSlash, siteDirectory)) needsRestart = true;
 
 		// CGI-based PHP
-		createCgiPhpScript(cgibinDirectory, restorecon);
+		createCgiPhpScript(siteDirectory, cgibinDirectory, restorecon);
 
 		// Rebuild config files that need to be updated
 		if(rebuildConfigFiles(siteDirectory, restorecon)) needsRestart = true;

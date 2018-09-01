@@ -22,6 +22,7 @@ import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
+import static com.aoindustries.aoserv.daemon.httpd.HttpdServerManager.PHP_SESSION;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
@@ -90,6 +91,13 @@ public abstract class HttpdSiteManager {
 	 * when used as CGI: <code>/var/www/&lt;site_name&gt;/webapps/ROOT/cgi-bin/php.d</code>.
 	 */
 	private static final String CGI_PHP_D = "php.d";
+
+	/**
+	 * The per-site directory that contains PHP variable data.
+	 *
+	 * @see  HttpdServerManager#PHP_SESSION
+	 */
+	static final String VAR_PHP = "var/php";
 
 	/**
 	 * Gets the specific manager for one type of web site.
@@ -458,23 +466,17 @@ public abstract class HttpdSiteManager {
 	 * @see  #enableAnonymousFtp()
 	 * @see  FTPManager#doRebuildSharedFtpDirectory
 	 */
-	public void configureFtpDirectory(UnixFile ftpDirectory) throws IOException, SQLException {
+	public void configureFtpDirectory(UnixFile ftpDirectory, Set<UnixFile> restorecon) throws IOException, SQLException {
 		if(httpdSite.isDisabled()) {
 			// Disabled
-			DaemonFileUtils.mkdir(
-				ftpDirectory,
-				0700,
-				UnixFile.ROOT_UID,
-				UnixFile.ROOT_GID
-			);
+			if(DaemonFileUtils.mkdir(ftpDirectory, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID)) {
+				restorecon.add(ftpDirectory);
+			}
 		} else {
 			// Enabled
-			DaemonFileUtils.mkdir(
-				ftpDirectory,
-				0775,
-				httpdSite.getLinuxServerAccount().getUid().getId(),
-				httpdSite.getLinuxServerGroup().getGid().getId()
-			);
+			if(DaemonFileUtils.mkdir(ftpDirectory, 0775, httpdSite.getLinuxServerAccount().getUid().getId(), httpdSite.getLinuxServerGroup().getGid().getId())) {
+				restorecon.add(ftpDirectory);
+			}
 		}
 	}
 
@@ -504,7 +506,7 @@ public abstract class HttpdSiteManager {
 	 * If CGI is disabled or PHP is disabled, removes any php script.
 	 * Any existing file will be overwritten, even when in manual mode.
 	 */
-	protected void createCgiPhpScript(UnixFile cgibinDirectory, Set<UnixFile> restorecon) throws IOException, SQLException {
+	protected void createCgiPhpScript(UnixFile siteDirectory, UnixFile cgibinDirectory, Set<UnixFile> restorecon) throws IOException, SQLException {
 		UnixFile phpFile = new UnixFile(cgibinDirectory, "php", false);
 		// TODO: If every server this site runs as uses mod_php, then don't make the script? (and the config that refers to this script)
 		if(enableCgi() && enablePhp()) {
@@ -515,6 +517,8 @@ public abstract class HttpdSiteManager {
 			PackageManager.PackageName requiredPackage;
 			String phpVersion = httpdSite.getPhpVersion().getVersion();
 			UnixFile phpD;
+			UnixFile varPhpDir;
+			UnixFile sessionDir;
 			// Build to RAM first
 			ByteArrayOutputStream bout = new ByteArrayOutputStream();
 			try (ChainWriter out = new ChainWriter(bout)) {
@@ -555,6 +559,8 @@ public abstract class HttpdSiteManager {
 						throw new SQLException("Unexpected version for php: " + phpVersion);
 					}
 					phpD = null; // No cgi-bin/php.d directory
+					varPhpDir = null; // No per-site PHP data
+					sessionDir = null; // No per-site PHP sessions
 				} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 					if(phpVersion.startsWith("5.3.")) {
 						phpMinorVersion = "5.3";
@@ -588,10 +594,16 @@ public abstract class HttpdSiteManager {
 						phpD = new UnixFile(cgibinDirectory, CGI_PHP_D, true);
 						out.print("export PHP_INI_SCAN_DIR='").print(phpD.getPath()).print("'\n");
 					}
+					varPhpDir = new UnixFile(siteDirectory, VAR_PHP, true);
+					sessionDir = new UnixFile(varPhpDir, PHP_SESSION, true);
 				} else {
 					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 				}
-				out.print("exec ").print(HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getPhpCgiPath(phpMinorVersion)).print(" \"$@\"\n");
+				out
+					.print("exec ")
+					.print(HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getPhpCgiPath(phpMinorVersion))
+					.print(" -d session.save_path=\"")
+					.print(" \"$@\"\n");
 			}
 			// Make sure required RPM is installed
 			if(requiredPackage != null) PackageManager.installPackage(requiredPackage);
@@ -604,14 +616,34 @@ public abstract class HttpdSiteManager {
 			UnixFile parent = cgibinDirectory.getParent();
 			if(!parent.getStat().exists()) parent.mkdir(true, 0775, uid, gid);
 			// Create cgi-bin if missing
-			DaemonFileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
+			if(DaemonFileUtils.mkdir(cgibinDirectory, 0755, uid, gid)) {
+				restorecon.add(cgibinDirectory);
+			}
 			// Create cgi-bin/php.d directory if missing
 			if(phpD != null) {
-				DaemonFileUtils.mkdir(phpD, 0750, uid, gid);
+				if(DaemonFileUtils.mkdir(phpD, 0750, uid, gid)) {
+					restorecon.add(phpD);
+				}
 				// TODO: Create/update symlinks in php.d directory
 			} else {
 				// TODO: Remove auto symlinks from php.d if no longer needed
 				// TODO: Remove php.d directory if now empty
+			}
+			// Create var/php directory if missing
+			if(varPhpDir != null) {
+				if(DaemonFileUtils.mkdir(varPhpDir, 0770, uid, gid)) {
+					restorecon.add(varPhpDir);
+				}
+				// Create var/php/session directory if missing
+				if(sessionDir != null) {
+					if(DaemonFileUtils.mkdir(sessionDir, 0770, uid, gid)) {
+						restorecon.add(sessionDir);
+					}
+				} else {
+					// TODO: Remove unused session directory if exists (and not needed by mod_php)?
+				}
+			} else {
+				// TODO: Remove unused session directory if exists (and not needed by mod_php)?
 			}
 			// TODO: Create/update a php.ini symlink in cgi-bin as a clean placeholder for where client can manage own config
 			DaemonFileUtils.atomicWrite(

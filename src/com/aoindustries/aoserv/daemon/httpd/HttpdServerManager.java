@@ -192,9 +192,12 @@ public class HttpdServerManager {
 	private static final UnixFile VAR_LIB_PHP_DIRECTORY = new UnixFile("/var/lib/php");
 
 	/**
-	 * The name of the PHP session folder for the default Apache instance.
+	 * The name of the PHP session folder for the default Apache instance
+	 * and also the per-site PHP session folder.
+	 *
+	 * @see  HttpdSiteManager#VAR_PHP
 	 */
-	private static final String PHP_SESSION = "session";
+	static final String PHP_SESSION = "session";
 
 	/**
 	 * The pattern matching PHP session[@&lt;name&gt;] directories.
@@ -330,7 +333,7 @@ public class HttpdServerManager {
 						if(
 							DaemonFileUtils.atomicWrite(
 								sharedFile,
-								buildHttpdSiteSharedFile(manager, bout),
+								buildHttpdSiteSharedFile(manager, bout, restorecon),
 								0640,
 								UnixFile.ROOT_UID,
 								lsgGID,
@@ -443,7 +446,7 @@ public class HttpdServerManager {
 						if(
 							DaemonFileUtils.atomicWrite(
 								sharedFile,
-								buildHttpdSiteSharedFile(manager, bout),
+								buildHttpdSiteSharedFile(manager, bout, restorecon),
 								0640,
 								UnixFile.ROOT_UID,
 								lsgGID,
@@ -589,10 +592,12 @@ public class HttpdServerManager {
 	/**
 	 * Builds the contents for the shared part of a HttpdSite config.
 	 */
-	private static byte[] buildHttpdSiteSharedFile(HttpdSiteManager manager, ByteArrayOutputStream bout) throws IOException, SQLException {
+	private static byte[] buildHttpdSiteSharedFile(HttpdSiteManager manager, ByteArrayOutputStream bout, Set<UnixFile> restorecon) throws IOException, SQLException {
 		final HttpdSite httpdSite = manager.httpdSite;
 		final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
+		final int uid = lsa.getUid().getId();
 		final LinuxServerGroup lsg = httpdSite.getLinuxServerGroup();
+		final int gid = lsg.getGid().getId();
 		final SortedSet<HttpdSiteManager.JkSetting> jkSettings = manager.getJkSettings();
 
 		// Build to a temporary buffer
@@ -781,29 +786,30 @@ public class HttpdServerManager {
 					final String dollarVariable = CENTOS_7_DOLLAR_VARIABLE;
 					out.print("ServerAdmin ${site.server_admin}\n");
 
+					// Find all versions of mod_php on any Apache server that runs this site
+					SortedSet<Integer> modPhpMajorVersions = new TreeSet<>();
+					for(HttpdSiteBind hsb : httpdSite.getHttpdSiteBinds()) {
+						TechnologyVersion modPhpVersion = hsb.getHttpdBind().getHttpdServer().getModPhpVersion();
+						if(modPhpVersion != null) {
+							modPhpMajorVersions.add(
+								Integer.parseInt(
+									getMajorPhpVersion(
+										modPhpVersion.getVersion()
+									)
+								)
+							);
+						}
+					}
+
 					// Enable CGI PHP option if the site supports CGI and PHP
 					if(manager.enablePhp() && manager.enableCgi()) {
-						// Find all versions of mod_php on any Apache server that runs this site
-						SortedSet<Integer> phpMajorVersions = new TreeSet<>();
-						for(HttpdSiteBind hsb : httpdSite.getHttpdSiteBinds()) {
-							TechnologyVersion modPhpVersion = hsb.getHttpdBind().getHttpdServer().getModPhpVersion();
-							if(modPhpVersion != null) {
-								phpMajorVersions.add(
-									Integer.parseInt(
-										getMajorPhpVersion(
-											modPhpVersion.getVersion()
-										)
-									)
-								);
-							}
-						}
 						out.print("\n"
 								+ "# Use CGI-based PHP");
-						if(!phpMajorVersions.isEmpty()) out.print(" when not using mod_php");
+						if(!modPhpMajorVersions.isEmpty()) out.print(" when not using mod_php");
 						out.print('\n');
 						String indent = "";
-						for(int phpMajorVersion : phpMajorVersions) {
-							out.print(indent).print("<IfModule !php").print(phpMajorVersion).print("_module>\n");
+						for(int modPhpMajorVersion : modPhpMajorVersions) {
+							out.print(indent).print("<IfModule !php").print(modPhpMajorVersion).print("_module>\n");
 							indent += "    ";
 						}
 						out
@@ -815,11 +821,32 @@ public class HttpdServerManager {
 							.print(indent).print("    </FilesMatch>\n")
 							//+ "            AddHandler php-script .php\n"
 							.print(indent).print("</IfModule>\n");
-						for(int i=0; i<phpMajorVersions.size(); i++) {
+						for(int i=0; i<modPhpMajorVersions.size(); i++) {
 							indent = indent.substring(0, indent.length() - 4);
 							out.print(indent).print("</IfModule>\n");
 						}
 						assert indent.length() == 0;
+					}
+
+					// Configure per-site PHP sessions for mod_php
+					if(!modPhpMajorVersions.isEmpty()) {
+						UnixFile varPhpDir = new UnixFile(HttpdOperatingSystemConfiguration.CENTOS_7_X86_64.getHttpdSitesDirectory().toString(), HttpdSiteManager.VAR_PHP);
+						UnixFile sessionDir = new UnixFile(varPhpDir, PHP_SESSION, true);
+						out.print("\n"
+								+ "# User per-site PHP session directory when using mod_php\n");
+						for(int modPhpMajorVersion : modPhpMajorVersions) {
+							out.print("<IfModule php").print(modPhpMajorVersion).print("_module>\n"
+									+ "    php_value session.save_path ").print(escape(dollarVariable, sessionDir.toString())).print("\n"
+									+ "</IfModule>\n");
+						}
+						// Create var/php directory if missing
+						if(DaemonFileUtils.mkdir(varPhpDir, 0770, uid, gid)) {
+							restorecon.add(varPhpDir);
+						}
+						// Create var/php/session directory if missing
+						if(DaemonFileUtils.mkdir(sessionDir, 0770, uid, gid)) {
+							restorecon.add(sessionDir);
+						}
 					}
 
 					// The CGI user info

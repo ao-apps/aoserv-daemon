@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -23,6 +23,7 @@ import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.httpd.HttpdSiteManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
+import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.BufferedOutputStream;
@@ -34,6 +35,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -398,41 +400,46 @@ final public class FTPManager extends BuilderThread {
 	 * shared FTP space.
 	 */
 	private static void doRebuildSharedFtpDirectory() throws IOException, SQLException {
-		List<File> deleteFileList=new ArrayList<>();
+		Set<UnixFile> restorecon = new LinkedHashSet<>();
+		try {
+			List<File> deleteFileList=new ArrayList<>();
 
-		Set<String> ftpDirectories;
-		{
-			String[] list = sharedFtpDirectory.list();
-			if(list == null) {
-				ftpDirectories = new HashSet<>();
-			} else {
-				ftpDirectories = new HashSet<>(list.length*4/3+1);
-				ftpDirectories.addAll(Arrays.asList(list));
+			Set<String> ftpDirectories;
+			{
+				String[] list = sharedFtpDirectory.list();
+				if(list == null) {
+					ftpDirectories = new HashSet<>();
+				} else {
+					ftpDirectories = new HashSet<>(list.length*4/3+1);
+					ftpDirectories.addAll(Arrays.asList(list));
+				}
 			}
-		}
 
-		for(HttpdSite httpdSite : AOServDaemon.getThisAOServer().getHttpdSites()) {
-			HttpdSiteManager manager = HttpdSiteManager.getInstance(httpdSite);
+			for(HttpdSite httpdSite : AOServDaemon.getThisAOServer().getHttpdSites()) {
+				HttpdSiteManager manager = HttpdSiteManager.getInstance(httpdSite);
 
-			/*
-			 * Make the private FTP space, if needed.
-			 */
-			if(manager.enableAnonymousFtp()) {
-				String siteName = httpdSite.getSiteName();
-				manager.configureFtpDirectory(new UnixFile(sharedFtpDirectory, siteName, false));
-				ftpDirectories.remove(siteName);
+				/*
+				 * Make the private FTP space, if needed.
+				 */
+				if(manager.enableAnonymousFtp()) {
+					String siteName = httpdSite.getSiteName();
+					manager.configureFtpDirectory(new UnixFile(sharedFtpDirectory, siteName, false), restorecon);
+					ftpDirectories.remove(siteName);
+				}
 			}
-		}
 
-		File sharedFtpDirectoryFile = sharedFtpDirectory.getFile();
-		for(String filename : ftpDirectories) {
-			File toDelete = new File(sharedFtpDirectoryFile, filename);
-			if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
-			deleteFileList.add(toDelete);
-		}
+			File sharedFtpDirectoryFile = sharedFtpDirectory.getFile();
+			for(String filename : ftpDirectories) {
+				File toDelete = new File(sharedFtpDirectoryFile, filename);
+				if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+				deleteFileList.add(toDelete);
+			}
 
-		// Back-up and delete the files scheduled for removal
-		BackupManager.backupAndDeleteFiles(deleteFileList);
+			// Back-up and delete the files scheduled for removal
+			BackupManager.backupAndDeleteFiles(deleteFileList);
+		} finally {
+			DaemonFileUtils.restorecon(restorecon);
+		}
 	}
 
 	public static void start() throws IOException, SQLException {
