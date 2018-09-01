@@ -5,6 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
+import com.aoindustries.aoserv.client.AOSHCommand;
 import com.aoindustries.aoserv.client.AOServer;
 import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
@@ -480,6 +481,54 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 					+ "    exit 64 # EX_USAGE in /usr/include/sysexits.h\n"
 					+ "fi\n"
 			);
+		}
+		return bout.toByteArray();
+	}
+
+	/**
+	 * Generates the README.txt that is used to detect major version changes to rebuild the Tomcat installation.
+	 * 
+	 * TODO: Generate and use these readme.txt files to detect when version changed
+	 *
+	 * @see  VersionedTomcatStdSiteManager#generateReadmeTxt(java.lang.String, java.lang.String, com.aoindustries.io.unix.UnixFile)
+	 */
+	protected byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException, SQLException {
+		ByteArrayOutputStream bout = new ByteArrayOutputStream();
+		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
+			out.print(
+				  "Warning: This file is automatically created by VersionedSharedTomcatManager,\n"
+				+ "which is part of HttpdManager.\n"
+				+ "\n"
+				+ "This file is used to detect when a new version of Tomcat has been selected.\n"
+				+ "Alteration or removal of this file will trigger a major rebuild of this Tomcat\n"
+				+ "installation on the next configuration verification pass.\n"
+				+ "\n"
+				+ "To set the Tomcat major version, please use one of the following options:\n"
+				+ "\n"
+				+ "Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey=").print(sharedTomcat.getPkey()).print("\n"
+				+ "\n"
+				+ "AOSH: " + AOSHCommand.SET_HTTPD_SHARED_TOMCAT_VERSION + " ").print(sharedTomcat.getName()).print(' ').print(sharedTomcat.getAOServer().getHostname()).print(" {series}.{major}\n"
+				+ "\n"
+				+ "Changing the major version will trigger a full rebuild of this Tomcat\n"
+				+ "installation.  During the major rebuild, any file altered is backed-up with\n"
+				+ "an extension of \".bak\".  These *.bak files will not interfere with the\n"
+				+ "operation of the Tomcat installation.  Once the applications are thoroughly\n"
+				+ "tested with the new major Tomcat version, the backup files may be removed with\n"
+				+ "the following:\n"
+				+ "\n"
+				+ "find \"").print(installDir).print("\" -mindepth 1 \\( -name '*.bak' -or -path '*.bak/*' \\) -print -delete\n"
+				+ "\n"
+				+ "Minor version upgrades are performed on a regular basis as updates to Tomcat\n"
+				+ "become available.  A minor rebuild differs from a major rebuild in that it only\n"
+				+ "touches the specific files changed in that specific minor update, which is\n"
+				+ "typically only the replacement of symbolic links within the lib/ directory.\n"
+				+ "\n"
+				+ "support@aoindustries.com\n"
+				+ "(205) 454-2556\n"
+				+ "\n"
+				+ "\n"
+				+ "*** Change Detection ***\n"
+				+ "Source: /opt/").print(apacheTomcatDir).print('\n');
 		}
 		return bout.toByteArray();
 	}
