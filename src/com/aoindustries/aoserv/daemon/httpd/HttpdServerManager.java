@@ -2392,7 +2392,7 @@ public class HttpdServerManager {
 							+ "LoadModule ").print(escape(dollarVariable, "php" + phpMajorVersion + "_module")).print(' ').print(escape(dollarVariable, "/opt/php-" + phpMinorVersion + "/lib/apache/libphp" + phpMajorVersion + ".so")).print("\n"
 							+ "<IfModule php").print(phpMajorVersion).print("_module>\n"
 							+ "    PHPIniDir ").print(escape(dollarVariable, phpIniDir.toString())).print("\n"
-							+ "    php_value session.save_path ").print(escape(dollarVariable, sessionDir.toString())).print("\n" // TODO: Need to double-escape backslashes for PHP?
+							+ "    php_value session.save_path ").print(escape(dollarVariable, sessionDir.toString())).print("\n"
 							+ "    <IfModule mime_module>\n"
 							+ "        AddType application/x-httpd-php .php\n"
 							+ "        AddType application/x-httpd-php-source .phps\n"
