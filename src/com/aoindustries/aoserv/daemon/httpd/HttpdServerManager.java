@@ -187,6 +187,22 @@ public class HttpdServerManager {
 	private static final Pattern HTTPD_NAME_SERVICE_REGEXP = Pattern.compile("^httpd@.+\\.service$");
 
 	/**
+	 * The directory that contains PHP variable files.
+	 */
+	public static final String VAR_LIB_PHP_DIRECTORY = "/var/lib/php";
+
+	/**
+	 * The name of the PHP session folder for the default Apache instance.
+	 */
+	private static final String PHP_SESSION = "session";
+
+	/**
+	 * The pattern matching PHP session[@&lt;name&gt;] directories.
+	 * Used to clean old instances from {@link #VAR_LIB_PHP_DIRECTORY}.
+	 */
+	private static final Pattern PHP_SESSION_REGEXP = Pattern.compile("^" + PHP_SESSION + "@.+$");
+
+	/**
 	 * The SELinux type for httpd.
 	 */
 	private static final String SELINUX_TYPE = "http_port_t";
@@ -1143,6 +1159,8 @@ public class HttpdServerManager {
 		List<HttpdServer> hss = thisAoServer.getHttpdServers();
 		// The files that should exist in /etc/httpd/conf
 		Set<String> httpdConfFilenames = new HashSet<>(hss.size()*4/3+1);
+		// The files that whould exist in /var/lib/php
+		Set<String> varLibPhpFilenames = new HashSet<>(hss.size()*4/3+1);
 		// The files that should exist in /etc/tmpfiles.d/httpd[@<name>].conf
 		Set<String> etcTmpfilesFilenames = new HashSet<>(hss.size()*4/3+1);
 		// The files that should exist in /run/httpd[@<name>]
@@ -1161,7 +1179,7 @@ public class HttpdServerManager {
 			if(
 				DaemonFileUtils.atomicWrite(
 					httpdConf,
-					buildHttpdConf(hs, sites, httpdConfFilenames, bout, restorecon, hasAnyCgi, hasAnyModPhp),
+					buildHttpdConf(hs, sites, httpdConfFilenames, varLibPhpFilenames, bout, restorecon, hasAnyCgi, hasAnyModPhp),
 					0644,
 					UnixFile.ROOT_UID,
 					UnixFile.ROOT_GID,
@@ -1292,49 +1310,70 @@ public class HttpdServerManager {
 			}
 		}
 		// Delete extra httpdConfFilenames
-		String[] list = new File(CONF_DIRECTORY).list();
-		if(list != null) {
-			String phpDefault;
-			String workersDefault;
-			Pattern httpdConfPattern;
-			Pattern phpPattern;
-			Pattern workersPattern;
-			if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
-				phpDefault = null;
-				workersDefault = null;
-				httpdConfPattern = HTTPD_N_CONF_REGEXP;
-				phpPattern = PHP_N_REGEXP;
-				workersPattern = WORKERS_N_PROPERTIES_REGEXP;
-			} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-				phpDefault = "php";
-				workersDefault = "workers.properties";
-				httpdConfPattern = HTTPD_NAME_CONF_REGEXP;
-				phpPattern = PHP_NAME_REGEXP;
-				workersPattern = WORKERS_NAME_PROPERTIES_REGEXP;
-			} else {
-				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+		{
+			String[] list = new File(CONF_DIRECTORY).list();
+			if(list != null) {
+				String phpDefault;
+				String workersDefault;
+				Pattern httpdConfPattern;
+				Pattern phpPattern;
+				Pattern workersPattern;
+				if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+					phpDefault = null;
+					workersDefault = null;
+					httpdConfPattern = HTTPD_N_CONF_REGEXP;
+					phpPattern = PHP_N_REGEXP;
+					workersPattern = WORKERS_N_PROPERTIES_REGEXP;
+				} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
+					phpDefault = "php";
+					workersDefault = "workers.properties";
+					httpdConfPattern = HTTPD_NAME_CONF_REGEXP;
+					phpPattern = PHP_NAME_REGEXP;
+					workersPattern = WORKERS_NAME_PROPERTIES_REGEXP;
+				} else {
+					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+				}
+				for(String filename : list) {
+					if(
+						!httpdConfFilenames.contains(filename)
+						&& (
+							// Note: httpd.conf is never deleted
+							filename.equals(phpDefault)
+							|| filename.equals(workersDefault)
+							|| httpdConfPattern.matcher(filename).matches()
+							|| phpPattern.matcher(filename).matches()
+							|| workersPattern.matcher(filename).matches()
+						)
+					) {
+						File toDelete = new File(CONF_DIRECTORY, filename);
+						if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+						deleteFileList.add(toDelete);
+					}
+				}
 			}
-			for(String filename : list) {
-				if(
-					!httpdConfFilenames.contains(filename)
-					&& (
-						// Note: httpd.conf is never deleted
-						filename.equals(phpDefault)
-						|| filename.equals(workersDefault)
-						|| httpdConfPattern.matcher(filename).matches()
-						|| phpPattern.matcher(filename).matches()
-						|| workersPattern.matcher(filename).matches()
-					)
-				) {
-					File toDelete = new File(CONF_DIRECTORY, filename);
-					if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
-					deleteFileList.add(toDelete);
+		}
+		// Delete extra varLibPhpFilenames
+		{
+			String[] list = new File(VAR_LIB_PHP_DIRECTORY).list();
+			if(list != null) {
+				for(String filename : list) {
+					if(
+						!varLibPhpFilenames.contains(filename)
+						&& (
+							PHP_SESSION.equals(filename)
+							|| PHP_SESSION_REGEXP.matcher(filename).matches()
+						)
+					) {
+						File toDelete = new File(VAR_LIB_PHP_DIRECTORY, filename);
+						if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
+						deleteFileList.add(toDelete);
+					}
 				}
 			}
 		}
 		if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 			// Schedule remove extra /etc/tmpfiles.d/httpd[@<name>].conf
-			list = new File(ETC_TMPFILES_D).list();
+			String[] list = new File(ETC_TMPFILES_D).list();
 			if(list != null) {
 				for(String filename : list) {
 					if(
@@ -1649,6 +1688,7 @@ public class HttpdServerManager {
 		HttpdServer hs,
 		List<HttpdSite> sites,
 		Set<String> httpdConfFilenames,
+		Set<String> varLibPhpFilenames,
 		ByteArrayOutputStream bout,
 		Set<UnixFile> restorecon,
 		boolean[] hasAnyCgi,
@@ -2327,6 +2367,21 @@ public class HttpdServerManager {
 						restorecon.add(phpIni);
 					}
 				}
+				// Create session directory, if needed
+				UnixFile sessionDir;
+				{
+					String sessionDirName;
+					if(escapedName == null) {
+						sessionDirName = PHP_SESSION;
+					} else {
+						sessionDirName = PHP_SESSION + "@" + escapedName;
+					}
+					sessionDir = new UnixFile(VAR_LIB_PHP_DIRECTORY, sessionDirName);
+					varLibPhpFilenames.add(sessionDirName);
+				}
+				int uid = hs.getLinuxServerAccount().getUid().getId();
+				DaemonFileUtils.mkdir(VAR_LIB_PHP_DIRECTORY, 0755, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
+				DaemonFileUtils.mkdir(sessionDir, 0700, uid, gid);
 				if(isEnabled) {
 					hasAnyModPhp[0] = true;
 					String phpMajorVersion = getMajorPhpVersion(version);
@@ -2337,6 +2392,7 @@ public class HttpdServerManager {
 							+ "LoadModule ").print(escape(dollarVariable, "php" + phpMajorVersion + "_module")).print(' ').print(escape(dollarVariable, "/opt/php-" + phpMinorVersion + "/lib/apache/libphp" + phpMajorVersion + ".so")).print("\n"
 							+ "<IfModule php").print(phpMajorVersion).print("_module>\n"
 							+ "    PHPIniDir ").print(escape(dollarVariable, phpIniDir.toString())).print("\n"
+							+ "    php_value session.save_path ").print(escape(dollarVariable, sessionDir.toString())).print("\n" // TODO: Need to double-escape backslashes for PHP?
 							+ "    <IfModule mime_module>\n"
 							+ "        AddType application/x-httpd-php .php\n"
 							+ "        AddType application/x-httpd-php-source .phps\n"
@@ -2394,6 +2450,7 @@ public class HttpdServerManager {
 		HttpdServer hs,
 		List<HttpdSite> sites,
 		Set<String> httpdConfFilenames,
+		Set<String> varLibPhpFilenames,
 		ByteArrayOutputStream bout,
 		Set<UnixFile> restorecon,
 		boolean[] hasAnyCgi,
@@ -2402,7 +2459,7 @@ public class HttpdServerManager {
 		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		switch(osConfig) {
 			case CENTOS_5_I686_AND_X86_64 : return buildHttpdConfCentOs5(hs, sites, httpdConfFilenames, bout, hasAnyCgi, hasAnyModPhp);
-			case CENTOS_7_X86_64          : return buildHttpdConfCentOs7(hs, sites, httpdConfFilenames, bout, restorecon, hasAnyCgi, hasAnyModPhp);
+			case CENTOS_7_X86_64          : return buildHttpdConfCentOs7(hs, sites, httpdConfFilenames, varLibPhpFilenames, bout, restorecon, hasAnyCgi, hasAnyModPhp);
 			default                       : throw new AssertionError("Unexpected value for osConfig: "+osConfig);
 		}
 	}
