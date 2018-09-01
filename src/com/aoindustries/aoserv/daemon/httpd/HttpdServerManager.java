@@ -841,8 +841,8 @@ public class HttpdServerManager {
 									+ "</IfModule>\n");
 						}
 						// Create var directory if missing
-						if(DaemonFileUtils.mkdir(varPhpDir, 0770, uid, gid)) {
-							restorecon.add(varPhpDir);
+						if(DaemonFileUtils.mkdir(varDir, 0770, uid, gid)) {
+							restorecon.add(varDir);
 						}
 						// Create var/php directory if missing
 						if(DaemonFileUtils.mkdir(varPhpDir, 0770, uid, gid)) {
