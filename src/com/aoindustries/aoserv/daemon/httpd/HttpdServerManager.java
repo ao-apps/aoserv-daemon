@@ -830,7 +830,7 @@ public class HttpdServerManager {
 
 					// Configure per-site PHP sessions for mod_php
 					if(!modPhpMajorVersions.isEmpty()) {
-						UnixFile varDir = new UnixFile(HttpdOperatingSystemConfiguration.CENTOS_7_X86_64.getHttpdSitesDirectory().toString(), HttpdSiteManager.VAR);
+						UnixFile varDir = new UnixFile(HttpdOperatingSystemConfiguration.CENTOS_7_X86_64.getHttpdSitesDirectory().toString() + "/" + httpdSite.getSiteName() + "/" + HttpdSiteManager.VAR);
 						UnixFile varPhpDir = new UnixFile(varDir, HttpdSiteManager.VAR_PHP, true);
 						UnixFile sessionDir = new UnixFile(varPhpDir, PHP_SESSION, true);
 						out.print("\n"
