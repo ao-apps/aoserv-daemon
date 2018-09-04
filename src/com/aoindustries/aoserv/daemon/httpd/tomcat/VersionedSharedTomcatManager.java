@@ -261,7 +261,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 			|| sharedTomcatStat.getUid() == UnixFile.ROOT_GID;
 
 		// Perform upgrade in-place when not doing a full install and the README.txt file missing or changed
-		final byte[] readmeTxtContent = generateReadmeTxt(optSlash, apacheTomcatDir, daemon);
+		final byte[] readmeTxtContent = generateReadmeTxt(optSlash, apacheTomcatDir, sharedTomcatDirectory);
 		final UnixFile readmeTxt = new UnixFile(sharedTomcatDirectory, README_TXT, false);
 		final boolean isUpgrade;
 		{
