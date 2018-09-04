@@ -31,19 +31,24 @@ public class PackageManager {
 	private static final Logger logger = Logger.getLogger(PackageManager.class.getName());
 
 	/**
+	 * The name prefix used to match any Apache Tomcat package installations.
+	 */
+	public static final String APACHE_TOMCAT_PREFIX = "apache-tomcat_";
+
+	/**
 	 * The set of all managed package names.  This is specified as an enum
 	 * to avoid accidental removal of critical system RPMs from outside callers.
 	 */
 	public enum PackageName {
-		APACHE_TOMCAT_3_1("apache-tomcat_3_1"),
-		APACHE_TOMCAT_3_2("apache-tomcat_3_2"),
-		APACHE_TOMCAT_4_1("apache-tomcat_4_1"),
-		APACHE_TOMCAT_5_5("apache-tomcat_5_5"),
-		APACHE_TOMCAT_6_0("apache-tomcat_6_0"),
-		APACHE_TOMCAT_7_0("apache-tomcat_7_0"),
-		APACHE_TOMCAT_8_0("apache-tomcat_8_0"),
-		APACHE_TOMCAT_8_5("apache-tomcat_8_5"),
-		APACHE_TOMCAT_9_0("apache-tomcat_9_0"),
+		APACHE_TOMCAT_3_1(APACHE_TOMCAT_PREFIX + "3_1"),
+		APACHE_TOMCAT_3_2(APACHE_TOMCAT_PREFIX + "3_2"),
+		APACHE_TOMCAT_4_1(APACHE_TOMCAT_PREFIX + "4_1"),
+		APACHE_TOMCAT_5_5(APACHE_TOMCAT_PREFIX + "5_5"),
+		APACHE_TOMCAT_6_0(APACHE_TOMCAT_PREFIX + "6_0"),
+		APACHE_TOMCAT_7_0(APACHE_TOMCAT_PREFIX + "7_0"),
+		APACHE_TOMCAT_8_0(APACHE_TOMCAT_PREFIX + "8_0"),
+		APACHE_TOMCAT_8_5(APACHE_TOMCAT_PREFIX + "8_5"),
+		APACHE_TOMCAT_9_0(APACHE_TOMCAT_PREFIX + "9_0"),
 		AOSERV_FTP_SHELLS("aoserv-ftp-shells"),
 		AOSERV_HTTPD_CONFIG("aoserv-httpd-config"),
 		AOSERV_HTTPD_SITE_DISABLED("aoserv-httpd-site-disabled"),

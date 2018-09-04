@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -54,11 +55,12 @@ final public class HttpdManager extends BuilderThread {
 					Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted = new HashSet<>();
 					Set<HttpdSite> sitesNeedingRestarted = new HashSet<>();
 					Set<HttpdServer> serversNeedingReloaded = new HashSet<>();
+					Set<PackageManager.PackageName> usedPackages = EnumSet.noneOf(PackageManager.PackageName.class);
 
 					// Rebuild file system objects
 					HttpdLogManager.doRebuild(deleteFileList, serversNeedingReloaded, restorecon);
-					HttpdSharedTomcatManager.doRebuild(deleteFileList, sharedTomcatsNeedingRestarted);
-					HttpdSiteManager.doRebuild(deleteFileList, sitesNeedingRestarted, sharedTomcatsNeedingRestarted, restorecon);
+					HttpdSharedTomcatManager.doRebuild(deleteFileList, sharedTomcatsNeedingRestarted, usedPackages);
+					HttpdSiteManager.doRebuild(deleteFileList, sitesNeedingRestarted, sharedTomcatsNeedingRestarted, usedPackages, restorecon);
 					HttpdServerManager.doRebuild(deleteFileList, serversNeedingReloaded, restorecon);
 
 					// restorecon before using any new files
@@ -75,6 +77,18 @@ final public class HttpdManager extends BuilderThread {
 
 					// Reload the Apache server configs
 					HttpdServerManager.reloadConfigs(serversNeedingReloaded);
+
+					// Remove any Apache Tomcat packages that are installed an no longer needed
+					if(AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) {
+						for(PackageManager.PackageName name : PackageManager.PackageName.values()) {
+							if(
+								name.name().startsWith(PackageManager.APACHE_TOMCAT_PREFIX)
+								&& !usedPackages.contains(name)
+							) {
+								PackageManager.removePackage(name);
+							}
+						}
+					}
 				} finally {
 					DaemonFileUtils.restorecon(restorecon);
 				}

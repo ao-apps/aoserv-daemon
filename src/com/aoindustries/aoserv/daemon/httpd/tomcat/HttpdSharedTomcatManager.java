@@ -85,7 +85,8 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	 */
 	public static void doRebuild(
 		List<File> deleteFileList,
-		Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted
+		Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted,
+		Set<PackageManager.PackageName> usedPackages
 	) throws IOException, SQLException {
 		try {
 			// Get values used in the rest of the method.
@@ -109,7 +110,9 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 				final HttpdSharedTomcatManager<?> manager = getInstance(sharedTomcat);
 
 				// Install any required RPMs
-				PackageManager.installPackages(manager.getRequiredPackages());
+				Set<PackageManager.PackageName> requiredPackages = manager.getRequiredPackages();
+				PackageManager.installPackages(requiredPackages);
+				usedPackages.addAll(requiredPackages);
 
 				// Create and fill in any incomplete installations.
 				final String tomcatName = sharedTomcat.getName();

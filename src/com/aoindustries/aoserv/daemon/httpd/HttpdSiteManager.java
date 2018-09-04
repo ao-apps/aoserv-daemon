@@ -127,6 +127,7 @@ public abstract class HttpdSiteManager {
 		List<File> deleteFileList,
 		Set<HttpdSite> sitesNeedingRestarted,
 		Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted,
+		Set<PackageManager.PackageName> usedPackages,
 		Set<UnixFile> restorecon
 	) throws IOException, SQLException {
 		try {
@@ -151,7 +152,9 @@ public abstract class HttpdSiteManager {
 				final HttpdSiteManager manager = getInstance(httpdSite);
 
 				// Install any required RPMs
-				PackageManager.installPackages(manager.getRequiredPackages());
+				Set<PackageManager.PackageName> requiredPackages = manager.getRequiredPackages();
+				PackageManager.installPackages(requiredPackages);
+				usedPackages.addAll(requiredPackages);
 
 				// Create and fill in any incomplete installations.
 				final String siteName = httpdSite.getSiteName();
