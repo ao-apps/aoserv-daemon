@@ -122,10 +122,12 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 		if(!httpdSite.isDisabled()) {
 			// Enabled
 			if(!daemonSymlink.getStat().exists()) {
-				daemonSymlink.symLink("../bin/tomcat").chown(
-					httpdSite.getLinuxServerAccount().getUid().getId(),
-					httpdSite.getLinuxServerGroup().getGid().getId()
-				);
+				daemonSymlink
+					.symLink("../bin/tomcat")
+					.chown(
+						httpdSite.getLinuxServerAccount().getUid().getId(),
+						httpdSite.getLinuxServerGroup().getGid().getId()
+					);
 			}
 		} else {
 			// Disabled

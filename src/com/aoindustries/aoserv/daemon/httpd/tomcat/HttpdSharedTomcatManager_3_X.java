@@ -333,10 +333,9 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 		if(!sharedTomcat.isDisabled() && hasEnabledSite) {
 			// Enabled
 			if(!daemonSymlink.getStat().exists()) {
-				daemonSymlink.symLink("../bin/tomcat").chown(
-					lsaUID,
-					lsgGID
-				);
+				daemonSymlink
+					.symLink("../bin/tomcat")
+					.chown(lsaUID, lsgGID);
 			}
 			// Start if needed
 			if(needRestart) sharedTomcatsNeedingRestarted.add(sharedTomcat);

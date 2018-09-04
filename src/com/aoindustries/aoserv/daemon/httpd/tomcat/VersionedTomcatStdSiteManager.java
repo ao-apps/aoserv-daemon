@@ -288,7 +288,7 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 
 	/**
 	 * Generates the README.txt that is used to detect major version changes to rebuild the Tomcat installation.
-	 * 
+	 *
 	 * TODO: Generate and use these readme.txt files to detect when version changed
 	 *
 	 * @see  VersionedSharedTomcatManager#generateReadmeTxt(java.lang.String, java.lang.String, com.aoindustries.io.unix.UnixFile)

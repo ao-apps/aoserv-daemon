@@ -486,10 +486,9 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
 		if(!sharedTomcat.isDisabled() && hasEnabledSite) {
 			// Enabled
 			if(!daemonSymlink.getStat().exists()) {
-				daemonSymlink.symLink("../bin/tomcat").chown(
-					lsaUID,
-					lsgGID
-				);
+				daemonSymlink
+					.symLink("../bin/tomcat")
+					.chown(lsaUID, lsgGID);
 			}
 			// Start if needed
 			if(needRestart) sharedTomcatsNeedingRestarted.add(sharedTomcat);
