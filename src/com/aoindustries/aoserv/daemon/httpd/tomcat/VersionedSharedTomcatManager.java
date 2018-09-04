@@ -64,6 +64,11 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 	}
 
 	/**
+	 * The name of the file generated for version change detection.
+	 */
+	private static final String README_TXT = "README.txt";
+
+	/**
 	 * Writes the server.xml file.
 	 *
 	 * @param out  Is in UTF-8 encoding.
@@ -227,9 +232,6 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		 */
 		final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
 		final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
-		final AOServer thisAoServer = AOServDaemon.getThisAOServer();
-		int uid_min = thisAoServer.getUidMin().getId();
-		int gid_min = thisAoServer.getGidMin().getId();
 		final LinuxServerAccount lsa = sharedTomcat.getLinuxServerAccount();
 		final int lsaUID = lsa.getUid().getId();
 		final LinuxServerGroup lsg = sharedTomcat.getLinuxServerGroup();
@@ -253,20 +255,47 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		boolean needRestart = false;
 
 		// Create and fill in the directory if it does not exist or is owned by root.
-		Stat sharedTomcatStat = sharedTomcatDirectory.getStat();
-		if (!sharedTomcatStat.exists() || sharedTomcatStat.getUid() == UnixFile.ROOT_GID) {
+		final Stat sharedTomcatStat = sharedTomcatDirectory.getStat();
+		final boolean isInstall =
+			!sharedTomcatStat.exists()
+			|| sharedTomcatStat.getUid() == UnixFile.ROOT_GID;
+
+		// Perform upgrade in-place when not doing a full install and the README.txt file missing or changed
+		final byte[] readmeTxtContent = generateReadmeTxt(optSlash, apacheTomcatDir, daemon);
+		final UnixFile readmeTxt = new UnixFile(sharedTomcatDirectory, README_TXT, false);
+		final boolean isUpgrade;
+		{
+			final Stat readmeTxtStat;
+			isUpgrade =
+				!isInstall
+				&& !(
+					(readmeTxtStat = readmeTxt.getStat()).exists()
+					&& readmeTxtStat.isRegularFile()
+					&& readmeTxt.contentEquals(readmeTxtContent)
+				);
+		}
+		assert !(isInstall && isUpgrade);
+		if (isInstall || isUpgrade) {
 
 			// /var/opt/apache-tomcat/(name)/
-			if (!sharedTomcatStat.exists()) sharedTomcatDirectory.mkdir();
-			sharedTomcatDirectory.setMode(0770);
+			if(isInstall) {
+				if (!sharedTomcatStat.exists()) sharedTomcatDirectory.mkdir();
+				sharedTomcatDirectory.setMode(0770);
+			}
 
 			List<Install> installFiles = getInstallFiles(optSlash, sharedTomcatDirectory);
 			for(Install installFile : installFiles) {
 				installFile.install(optSlash, apacheTomcatDir, sharedTomcatDirectory, lsaUID, lsgGID, backupSuffix);
 			}
 
+			// Create or replace the README.txt
+			DaemonFileUtils.atomicWrite(
+				readmeTxt, readmeTxtContent, 0640, lsaUID, lsgGID,
+				null, null
+			);
+
 			// Set the ownership to avoid future rebuilds of this directory
-			sharedTomcatDirectory.chown(lsaUID, lsgGID);
+			if(isInstall) sharedTomcatDirectory.chown(lsaUID, lsgGID);
 
 			needRestart = true;
 		}
@@ -350,6 +379,9 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 			}
 		} else {
 			try {
+				AOServer thisAoServer = AOServDaemon.getThisAOServer();
+				int uid_min = thisAoServer.getUidMin().getId();
+				int gid_min = thisAoServer.getGidMin().getId();
 				DaemonFileUtils.stripFilePrefix(
 					serverXml,
 					autoWarningOld,
@@ -379,10 +411,9 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		if(!sharedTomcat.isDisabled() && hasEnabledSite) {
 			// Enabled
 			if(!daemonSymlink.getStat().exists()) {
-				daemonSymlink.symLink("../bin/tomcat").chown(
-					lsaUID,
-					lsgGID
-				);
+				daemonSymlink
+					.symLink("../bin/tomcat")
+					.chown(lsaUID, lsgGID);
 			}
 			// Start if needed
 			if(needRestart) sharedTomcatsNeedingRestarted.add(sharedTomcat);
@@ -487,10 +518,9 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 
 	/**
 	 * Generates the README.txt that is used to detect major version changes to rebuild the Tomcat installation.
-	 * 
-	 * TODO: Generate and use these readme.txt files to detect when version changed
 	 *
 	 * @see  VersionedTomcatStdSiteManager#generateReadmeTxt(java.lang.String, java.lang.String, com.aoindustries.io.unix.UnixFile)
+	 * @see  #README_TXT
 	 */
 	protected byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException, SQLException {
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
