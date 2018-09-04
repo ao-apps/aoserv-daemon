@@ -147,10 +147,6 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 		String autoWarning = getAutoWarningXml();
 		String autoWarningOld = getAutoWarningXmlOld();
 
-		AOServer thisAoServer = AOServDaemon.getThisAOServer();
-		int uid_min = thisAoServer.getUidMin().getId();
-		int gid_min = thisAoServer.getGidMin().getId();
-
 		String confServerXML=siteDir+"/conf/server.xml";
 		UnixFile confServerXMLFile=new UnixFile(confServerXML);
 		if(!httpdSite.isManual() || !confServerXMLFile.getStat().exists()) {
@@ -171,6 +167,9 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 			}
 		} else {
 			try {
+				AOServer thisAoServer = AOServDaemon.getThisAOServer();
+				int uid_min = thisAoServer.getUidMin().getId();
+				int gid_min = thisAoServer.getGidMin().getId();
 				DaemonFileUtils.stripFilePrefix(
 					confServerXMLFile,
 					autoWarningOld,
