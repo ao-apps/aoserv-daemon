@@ -82,7 +82,7 @@ final public class HttpdManager extends BuilderThread {
 					if(AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) {
 						for(PackageManager.PackageName name : PackageManager.PackageName.values()) {
 							if(
-								name.name().startsWith(PackageManager.APACHE_TOMCAT_PREFIX)
+								name.getRpmName().startsWith(PackageManager.APACHE_TOMCAT_PREFIX)
 								&& !usedPackages.contains(name)
 							) {
 								PackageManager.removePackage(name);
