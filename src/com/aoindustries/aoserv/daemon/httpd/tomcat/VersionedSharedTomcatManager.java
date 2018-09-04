@@ -290,7 +290,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 
 			// Create or replace the README.txt
 			DaemonFileUtils.atomicWrite(
-				readmeTxt, readmeTxtContent, 0640, lsaUID, lsgGID,
+				readmeTxt, readmeTxtContent, 0440, lsaUID, lsgGID,
 				null, null
 			);
 
