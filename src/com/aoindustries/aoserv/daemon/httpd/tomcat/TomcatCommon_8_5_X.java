@@ -135,6 +135,17 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 						"lib/tomcat-i18n-ru.jar",
 						null,
 						"../" + optSlash + "apache-tomcat-8.5/lib/tomcat-i18n-ru.jar"
+					),
+					// postgresql-42.2.4.jar -> postgresql-42.2.5.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.4.jar",
+						"../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.4.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.5.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.5.jar"
 					)
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_5_33) {
