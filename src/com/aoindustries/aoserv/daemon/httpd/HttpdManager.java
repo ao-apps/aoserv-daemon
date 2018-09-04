@@ -78,11 +78,12 @@ final public class HttpdManager extends BuilderThread {
 					// Reload the Apache server configs
 					HttpdServerManager.reloadConfigs(serversNeedingReloaded);
 
-					// Remove any Apache Tomcat packages that are installed an no longer needed
+					// Remove any Apache Tomcat packages that are installed and no longer needed
 					if(AOServDaemonConfiguration.isPackageManagerUninstallEnabled()) {
 						for(PackageManager.PackageName name : PackageManager.PackageName.values()) {
 							if(
 								name.getRpmName().startsWith(PackageManager.APACHE_TOMCAT_PREFIX)
+								// TODO: Remove any PHP packages that are installed and no longer needed
 								&& !usedPackages.contains(name)
 							) {
 								PackageManager.removePackage(name);
