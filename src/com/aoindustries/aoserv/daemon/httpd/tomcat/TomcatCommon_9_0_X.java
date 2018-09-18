@@ -128,6 +128,7 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 				// Nothing to do
 			} else if(
 				rpmVersion.equals("9.0.11")
+				|| rpmVersion.equals("9.0.12")
 			) {
 				UpgradeSymlink[] upgradeSymlinks_9_0_11 = {
 					// New lib/tomcat-i18n-ru.jar

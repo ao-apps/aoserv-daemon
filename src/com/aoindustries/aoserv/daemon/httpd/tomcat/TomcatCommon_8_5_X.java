@@ -128,6 +128,7 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 				// Nothing to do
 			} else if(
 				rpmVersion.equals("8.5.33")
+				|| rpmVersion.equals("8.5.34")
 			) {
 				UpgradeSymlink[] upgradeSymlinks_8_5_33 = {
 					// New lib/tomcat-i18n-ru.jar
