@@ -286,6 +286,19 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_90) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
+			} else if(
+				rpmVersion.equals("7.0.91")
+			) {
+				UpgradeSymlink[] upgradeSymlinks_7_0_91 = {
+					new UpgradeSymlink(
+						"lib/tomcat-i18n-ru.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-7.0/lib/tomcat-i18n-ru.jar"
+					)
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_91) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
 			} else {
 				throw new IllegalStateException("Unexpected version of Tomcat: " + rpmVersion);
 			}
