@@ -887,24 +887,20 @@ public class HttpdServerManager {
 					Map<String,List<HttpdSiteManager.Location>> rejectedLocations = manager.getRejectedLocations();
 					for(Map.Entry<String,List<HttpdSiteManager.Location>> entry : rejectedLocations.entrySet()) {
 						out.print("\n"
-								+ "# ").print(entry.getKey()).print('\n');
+								+ "# ").print(entry.getKey()).print('\n'
+								+ "<IfModule authz_core_module>\n");
 						for(HttpdSiteManager.Location location : entry.getValue()) {
 							if(location.isRegularExpression()) {
-								out.print("<LocationMatch ").print(escape(dollarVariable, location.getLocation())).print(">\n"
-										+ "    <IfModule authz_core_module>\n"
+								out.print("    <LocationMatch ").print(escape(dollarVariable, location.getLocation())).print(">\n"
 										+ "        Require all denied\n"
-										+ "    </IfModule>\n"
-										+ "</LocationMatch>\n"
-								);
+										+ "    </LocationMatch>\n");
 							} else {
-								out.print("<Location ").print(escape(dollarVariable, location.getLocation())).print(">\n"
-										+ "    <IfModule authz_core_module>\n"
+								out.print("    <Location ").print(escape(dollarVariable, location.getLocation())).print(">\n"
 										+ "        Require all denied\n"
-										+ "    </IfModule>\n"
-										+ "</Location>\n"
-								);
+										+ "    </Location>\n");
 							}
 						}
+						out.print("</IfModule>\n");
 					}
 
 					// Rewrite rules
