@@ -977,7 +977,7 @@ public class HttpdServerManager {
 							}
 							if(handler != null) {
 								out.print('\n')
-									.print(indent).print("    ").print(escape(dollarVariable, handler)).print('\n');
+									.print(indent).print("    SetHandler ").print(escape(dollarVariable, handler)).print('\n');
 								if(HttpdSiteAuthenticatedLocation.Handler.SERVER_STATUS.equals(handler)) {
 									// Limit server status to GET and POST
 									// See https://httpd.apache.org/docs/2.4/mod/core.html#limitexcept
