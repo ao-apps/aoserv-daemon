@@ -834,7 +834,7 @@ public class HttpdServerManager {
 						UnixFile varPhpDir = new UnixFile(varDir, HttpdSiteManager.VAR_PHP, true);
 						UnixFile sessionDir = new UnixFile(varPhpDir, PHP_SESSION, true);
 						out.print("\n"
-								+ "# User per-site PHP session directory when using mod_php\n");
+								+ "# Use per-site PHP session directory when using mod_php\n");
 						for(int modPhpMajorVersion : modPhpMajorVersions) {
 							out.print("<IfModule php").print(modPhpMajorVersion).print("_module>\n"
 									+ "    php_value session.save_path ").print(escape(dollarVariable, sessionDir.toString())).print("\n"
