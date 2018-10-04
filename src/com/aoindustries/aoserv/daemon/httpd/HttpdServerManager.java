@@ -693,6 +693,7 @@ public class HttpdServerManager {
 						out.print("\n"
 								+ "# Authenticated Locations\n");
 						for(HttpdSiteAuthenticatedLocation hsal : hsals) {
+							if(hsal.getHandler() != null) throw new NotImplementedException("SetHandler not implemented on " + osv);
 							out.print(hsal.getIsRegularExpression()?"<LocationMatch ":"<Location ").print(escape(dollarVariable, hsal.getPath())).print(">\n");
 							if(hsal.getAuthUserFile() != null) out.print("    AuthType Basic\n");
 							if(hsal.getAuthName().length() > 0) out.print("    AuthName ").print(escape(dollarVariable, hsal.getAuthName())).print('\n');
@@ -930,42 +931,68 @@ public class HttpdServerManager {
 						out.print("\n"
 								+ "# Authenticated Locations\n");
 						for(HttpdSiteAuthenticatedLocation hsal : hsals) {
-							out.print(hsal.getIsRegularExpression()?"<LocationMatch ":"<Location ").print(escape(dollarVariable, hsal.getPath())).print(">\n");
+							String handler = hsal.getHandler();
+							String indent;
+							if(HttpdSiteAuthenticatedLocation.Handler.SERVER_STATUS.equals(handler)) {
+								out.print("<IfModule status_module>\n");
+								indent = "    ";
+							} else {
+								// Other handler or no handler
+								indent = "";
+							}
+							out.print(indent).print(hsal.getIsRegularExpression()?"<LocationMatch ":"<Location ").print(escape(dollarVariable, hsal.getPath())).print(">\n");
 							boolean includeAuthType = hsal.getAuthUserFile() != null;
 							boolean includeAuthName = hsal.getAuthName().length()>0;
 							if(includeAuthType || includeAuthName) {
-								out.print("    <IfModule authn_core_module>\n");
-								if(includeAuthType) out.print("        AuthType Basic\n");
-								if(includeAuthName) out.print("        AuthName ").print(escape(dollarVariable, hsal.getAuthName())).print("\n");
-								out.print("    </IfModule>\n");
+								out.print(indent).print("    <IfModule authn_core_module>\n");
+								if(includeAuthType) out.print(indent).print("        AuthType Basic\n");
+								if(includeAuthName) out.print(indent).print("        AuthName ").print(escape(dollarVariable, hsal.getAuthName())).print("\n");
+								out.print(indent).print("    </IfModule>\n");
 							}
 							if(hsal.getAuthUserFile() != null) {
 								PackageManager.installPackage(PackageManager.PackageName.HTTPD_TOOLS);
-								out.print(
-									"    <IfModule authn_file_module>\n"
-									+ "        AuthUserFile ").print(getEscapedPrefixReplacement(dollarVariable, hsal.getAuthUserFile().toString(), "/var/www/" + httpdSite.getSiteName() + "/", "/var/www/${site.name}/")).print("\n"
-									+ "    </IfModule>\n");
+								out
+									.print(indent).print("    <IfModule authn_file_module>\n")
+									.print(indent).print("        AuthUserFile ").print(getEscapedPrefixReplacement(dollarVariable, hsal.getAuthUserFile().toString(), "/var/www/" + httpdSite.getSiteName() + "/", "/var/www/${site.name}/")).print('\n')
+									.print(indent).print("    </IfModule>\n");
 							}
 							if(hsal.getAuthGroupFile() != null) {
-								out.print(
-									"    <IfModule authz_groupfile_module>\n"
-									+ "        AuthGroupFile ").print(getEscapedPrefixReplacement(dollarVariable, hsal.getAuthGroupFile().toString(), "/var/www/" + httpdSite.getSiteName() + "/", "/var/www/${site.name}/")).print("\n"
-									+ "    </IfModule>\n");
+								out
+									.print(indent).print("    <IfModule authz_groupfile_module>\n")
+									.print(indent).print("        AuthGroupFile ").print(getEscapedPrefixReplacement(dollarVariable, hsal.getAuthGroupFile().toString(), "/var/www/" + httpdSite.getSiteName() + "/", "/var/www/${site.name}/")).print('\n')
+									.print(indent).print("    </IfModule>\n");
 							}
 							if(hsal.getRequire().length()>0) {
-								out.print(
-									"    <IfModule authz_core_module>\n"
-									+ "        Require");
+								out
+									.print(indent).print("    <IfModule authz_core_module>\n")
+									.print(indent).print("        Require");
 								// Split on space, escaping each term
 								for(String term : StringUtility.splitString(hsal.getRequire(), ' ')) {
 									if(!term.isEmpty()) {
 										out.print(' ').print(escape(dollarVariable, term));
 									}
 								}
-								out.print("\n"
-									+ "    </IfModule>\n");
+								out.print('\n')
+									.print(indent).print("    </IfModule>\n");
 							}
-							out.print(hsal.getIsRegularExpression()?"</LocationMatch>\n":"</Location>\n");
+							if(handler != null) {
+								out.print('\n')
+									.print(indent).print("    ").print(escape(dollarVariable, handler)).print('\n');
+								if(HttpdSiteAuthenticatedLocation.Handler.SERVER_STATUS.equals(handler)) {
+									// Limit server status to GET and POST
+									// See https://httpd.apache.org/docs/2.4/mod/core.html#limitexcept
+									out
+										.print(indent).print("    <IfModule authz_core_module>\n")
+										.print(indent).print("        <LimitExcept GET POST>\n")
+										.print(indent).print("            Require all denied\n")
+										.print(indent).print("        </LimitExcept>\n")
+										.print(indent).print("    </IfModule>\n");
+								}
+							}
+							out.print(indent).print(hsal.getIsRegularExpression()?"</LocationMatch>\n":"</Location>\n");
+							if(HttpdSiteAuthenticatedLocation.Handler.SERVER_STATUS.equals(handler)) {
+								out.print("</IfModule>\n");
+							}
 						}
 					}
 
@@ -2239,8 +2266,18 @@ public class HttpdServerManager {
 
 			Boolean mod_status = hs.getModStatus();
 			if(mod_status == null) {
-				// Disabled by default (unless explicitly enabled)
-				mod_status = false;
+				// Enabled when used by any "server-status" handler
+				boolean hasStatusHandler = false;
+				HAS_HANDLER :
+				for(HttpdSite site : sites) {
+					for(HttpdSiteAuthenticatedLocation hsal : site.getHttpdSiteAuthenticatedLocations()) {
+						if(HttpdSiteAuthenticatedLocation.Handler.SERVER_STATUS.equals(hsal.getHandler())) {
+							hasStatusHandler = true;
+							break HAS_HANDLER;
+						}
+					}
+				}
+				mod_status = hasStatusHandler;
 			}
 			if(!mod_status) out.print("# ");
 			out.print("LoadModule status_module modules/mod_status.so\n"
