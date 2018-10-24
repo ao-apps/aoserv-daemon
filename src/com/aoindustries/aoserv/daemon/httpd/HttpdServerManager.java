@@ -356,7 +356,15 @@ public class HttpdServerManager {
 						final HttpdBind httpdBind = bind.getHttpdBind();
 						final NetBind nb = httpdBind.getNetBind();
 						// Generate the filename
-						final String bindFilename = siteName+"_"+nb.getIPAddress().getInetAddress()+"_"+nb.getPort().getPort();
+						final String bindFilename;
+						{
+							String bindEscapedName = bind.getSystemdEscapedName();
+							if(bindEscapedName == null) {
+								bindFilename = siteName+"_"+nb.getIPAddress().getInetAddress()+"_"+nb.getPort().getPort();
+							} else {
+								bindFilename = siteName+"_"+nb.getIPAddress().getInetAddress()+"_"+nb.getPort().getPort()+"_"+bindEscapedName;
+							}
+						}
 						final UnixFile bindFile = new UnixFile(CONF_HOSTS, bindFilename);
 						final boolean exists = bindFile.getStat().exists();
 
@@ -470,7 +478,15 @@ public class HttpdServerManager {
 						final NetBind nb = httpdBind.getNetBind();
 
 						// Generate the filename
-						final String bindFilename = siteName+"_"+nb.getIPAddress().getInetAddress()+"_"+nb.getPort().getPort()+".conf";
+						final String bindFilename;
+						{
+							String bindEscapedName = bind.getSystemdEscapedName();
+							if(bindEscapedName == null) {
+								bindFilename = siteName+"_"+nb.getIPAddress().getInetAddress()+"_"+nb.getPort().getPort()+".conf";
+							} else {
+								bindFilename = siteName+"_"+nb.getIPAddress().getInetAddress()+"_"+nb.getPort().getPort()+"_"+bindEscapedName+".conf";
+							}
+						}
 						final UnixFile bindFile = new UnixFile(SITES_AVAILABLE, bindFilename);
 						final boolean exists = bindFile.getStat().exists();
 
@@ -553,7 +569,15 @@ public class HttpdServerManager {
 						final NetBind nb = httpdBind.getNetBind();
 
 						// Generate the filename
-						final String bindFilename = siteName+"_"+nb.getIPAddress().getInetAddress()+"_"+nb.getPort().getPort()+".conf";
+						final String bindFilename;
+						{
+							String bindEscapedName = bind.getSystemdEscapedName();
+							if(bindEscapedName == null) {
+								bindFilename = siteName+"_"+nb.getIPAddress().getInetAddress()+"_"+nb.getPort().getPort()+".conf";
+							} else {
+								bindFilename = siteName+"_"+nb.getIPAddress().getInetAddress()+"_"+nb.getPort().getPort()+"_"+bindEscapedName+".conf";
+							}
+						}
 						final String symlinkTarget = "../sites-available/" + bindFilename;
 
 						final UnixFile symlinkFile = new UnixFile(SITES_ENABLED, bindFilename);
@@ -1727,7 +1751,16 @@ public class HttpdServerManager {
 							NetBind nb=bind.getHttpdBind().getNetBind();
 							InetAddress ipAddress=nb.getIPAddress().getInetAddress();
 							int port=nb.getPort().getPort();
-							out.print("Include ").print(escape(dollarVariable, "conf/hosts/" + site.getSiteName() + "_" + ipAddress + "_" + port)).print('\n');
+							String includeFilename;
+							{
+								String bindEscapedName = bind.getSystemdEscapedName();
+								if(bindEscapedName == null) {
+									includeFilename = "conf/hosts/" + site.getSiteName()+"_"+ipAddress+"_"+port;
+								} else {
+									includeFilename = "conf/hosts/" + site.getSiteName()+"_"+ipAddress+"_"+port+"_"+bindEscapedName;
+								}
+							}
+							out.print("Include ").print(escape(dollarVariable, includeFilename)).print('\n');
 						}
 					}
 				}
@@ -2507,7 +2540,16 @@ public class HttpdServerManager {
 							NetBind nb = bind.getHttpdBind().getNetBind();
 							InetAddress ipAddress = nb.getIPAddress().getInetAddress();
 							int port=nb.getPort().getPort();
-							out.print("Include ").print(escape(dollarVariable, "sites-enabled/" + site.getSiteName() + "_" + ipAddress + "_" + port + ".conf")).print('\n');
+							String includeFilename;
+							{
+								String bindEscapedName = bind.getSystemdEscapedName();
+								if(bindEscapedName == null) {
+									includeFilename = "sites-enabled/" + site.getSiteName()+"_"+ipAddress+"_"+port + ".conf";
+								} else {
+									includeFilename = "sites-enabled/" + site.getSiteName()+"_"+ipAddress+"_"+port+"_"+bindEscapedName + ".conf";
+								}
+							}
+							out.print("Include ").print(escape(dollarVariable, includeFilename)).print('\n');
 						}
 					}
 				}
@@ -2743,6 +2785,7 @@ public class HttpdServerManager {
 					break;
 				}
 				case CENTOS_7_X86_64 : {
+					final String bindEscapedName = bind.getSystemdEscapedName();
 					final String dollarVariable = CENTOS_7_DOLLAR_VARIABLE;
 					final SslCertificate sslCert;
 					final String protocol;
@@ -2768,6 +2811,7 @@ public class HttpdServerManager {
 							+ "Define bind.protocol         ").print(escape(dollarVariable, protocol)).print("\n"
 							+ "Define bind.ip_address       ").print(escape(dollarVariable, ipString)).print("\n"
 							+ "Define bind.port             ").print(port).print("\n"
+							+ "Define bind.name             ").print(escape(dollarVariable, bindEscapedName==null ? "" : bindEscapedName)).print("\n"
 							+ "Define bind.primary_hostname ").print(escape(dollarVariable, primaryHostname)).print("\n"
 							+ "Define site.name             ").print(escape(dollarVariable, siteName)).print("\n"
 							+ "Define site.user             ").print(escape(dollarVariable, manager.httpdSite.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername().toString())).print("\n"
@@ -2792,10 +2836,18 @@ public class HttpdServerManager {
 						out.print('\n');
 					}
 					out.print("\n"
-							+ "    <IfModule log_config_module>\n"
-							+ "        CustomLog ").print(getEscapedPrefixReplacement(dollarVariable, bind.getAccessLog().toString(), "/var/log/httpd-sites/" + siteName + "/" + protocol + "/", "/var/log/httpd-sites/${site.name}/${bind.protocol}/")).print(" combined\n"
-							+ "    </IfModule>\n"
-							+ "    ErrorLog ").print(getEscapedPrefixReplacement(dollarVariable, bind.getErrorLog().toString(), "/var/log/httpd-sites/" + siteName + "/" + protocol + "/", "/var/log/httpd-sites/${site.name}/${bind.protocol}/")).print('\n');
+							+ "    <IfModule log_config_module>\n");
+					if(bindEscapedName == null) {
+						out.print("        CustomLog ").print(getEscapedPrefixReplacement(dollarVariable, bind.getAccessLog().toString(), "/var/log/httpd-sites/" + siteName + "/" + protocol + "/", "/var/log/httpd-sites/${site.name}/${bind.protocol}/")).print(" combined\n");
+					} else {
+						out.print("        CustomLog ").print(getEscapedPrefixReplacement(dollarVariable, bind.getAccessLog().toString(), "/var/log/httpd-sites/" + siteName + "/" + protocol + "-" + bindEscapedName + "/", "/var/log/httpd-sites/${site.name}/${bind.protocol}-${bind.name}/")).print(" combined\n");
+					}
+					out.print("    </IfModule>\n");
+					if(bindEscapedName == null) {
+						out.print("    ErrorLog ").print(getEscapedPrefixReplacement(dollarVariable, bind.getErrorLog().toString(), "/var/log/httpd-sites/" + siteName + "/" + protocol + "/", "/var/log/httpd-sites/${site.name}/${bind.protocol}/")).print('\n');
+					} else {
+						out.print("    ErrorLog ").print(getEscapedPrefixReplacement(dollarVariable, bind.getErrorLog().toString(), "/var/log/httpd-sites/" + siteName + "/" + protocol + "-" + bindEscapedName + "/", "/var/log/httpd-sites/${site.name}/${bind.protocol}-${bind.name}/")).print('\n');
+					}
 					if(sslCert != null) {
 						// Use any directly configured chain file
 						out.print("\n"
@@ -2905,6 +2957,7 @@ public class HttpdServerManager {
 							+ "UnDefine bind.protocol\n"
 							+ "UnDefine bind.ip_address\n"
 							+ "UnDefine bind.port\n"
+							+ "UnDefine bind.name\n"
 							+ "UnDefine bind.primary_hostname\n"
 							+ "UnDefine site.name\n"
 							+ "UnDefine site.user\n"

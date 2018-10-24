@@ -15,6 +15,11 @@ import org.junit.Test;
  */
 public class ApacheEscapeTest {
 
+	@Test
+    public void testEmptyIsQuoted() {
+		assertEquals("\"\"", escape(null, ""));
+    }
+
 	@Test(expected = IllegalArgumentException.class)
 	public void testNullNotAllowedInsideVariable() {
 		escape("$", "${test\0}");

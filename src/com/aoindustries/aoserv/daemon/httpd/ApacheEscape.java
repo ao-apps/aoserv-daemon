@@ -50,6 +50,8 @@ class ApacheEscape {
 	 */
 	static String escape(String dollarVariable, String value, boolean allowVariables) {
 		int len = value.length();
+		// Empty string as ""
+		if(len == 0) return "\"\"";
 		StringBuilder sb = null; // Created when first needed
 		boolean quoted = false;
 		for(int i = 0; i < len; i++) {
