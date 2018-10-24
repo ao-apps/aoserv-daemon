@@ -2837,16 +2837,20 @@ public class HttpdServerManager {
 					}
 					out.print("\n"
 							+ "    <IfModule log_config_module>\n");
-					if(bindEscapedName == null) {
-						out.print("        CustomLog ").print(getEscapedPrefixReplacement(dollarVariable, bind.getAccessLog().toString(), "/var/log/httpd-sites/" + siteName + "/" + protocol + "/", "/var/log/httpd-sites/${site.name}/${bind.protocol}/")).print(" combined\n");
+					String noNameLogPrefix = "/var/log/httpd-sites/" + siteName + "/" + protocol + "/";
+					String namedLogPrefix  = "/var/log/httpd-sites/" + siteName + "/" + protocol + "-" + bindEscapedName + "/";
+					String accessLog = bind.getAccessLog().toString();
+					if(bindEscapedName == null || accessLog.startsWith(noNameLogPrefix)) {
+						out.print("        CustomLog ").print(getEscapedPrefixReplacement(dollarVariable, accessLog, noNameLogPrefix, "/var/log/httpd-sites/${site.name}/${bind.protocol}/")).print(" combined\n");
 					} else {
-						out.print("        CustomLog ").print(getEscapedPrefixReplacement(dollarVariable, bind.getAccessLog().toString(), "/var/log/httpd-sites/" + siteName + "/" + protocol + "-" + bindEscapedName + "/", "/var/log/httpd-sites/${site.name}/${bind.protocol}-${bind.name}/")).print(" combined\n");
+						out.print("        CustomLog ").print(getEscapedPrefixReplacement(dollarVariable, accessLog, namedLogPrefix, "/var/log/httpd-sites/${site.name}/${bind.protocol}-${bind.name}/")).print(" combined\n");
 					}
 					out.print("    </IfModule>\n");
-					if(bindEscapedName == null) {
-						out.print("    ErrorLog ").print(getEscapedPrefixReplacement(dollarVariable, bind.getErrorLog().toString(), "/var/log/httpd-sites/" + siteName + "/" + protocol + "/", "/var/log/httpd-sites/${site.name}/${bind.protocol}/")).print('\n');
+					String errorLog = bind.getErrorLog().toString();
+					if(bindEscapedName == null || errorLog.startsWith(noNameLogPrefix)) {
+						out.print("    ErrorLog ").print(getEscapedPrefixReplacement(dollarVariable, errorLog, noNameLogPrefix, "/var/log/httpd-sites/${site.name}/${bind.protocol}/")).print('\n');
 					} else {
-						out.print("    ErrorLog ").print(getEscapedPrefixReplacement(dollarVariable, bind.getErrorLog().toString(), "/var/log/httpd-sites/" + siteName + "/" + protocol + "-" + bindEscapedName + "/", "/var/log/httpd-sites/${site.name}/${bind.protocol}-${bind.name}/")).print('\n');
+						out.print("    ErrorLog ").print(getEscapedPrefixReplacement(dollarVariable, errorLog, namedLogPrefix, "/var/log/httpd-sites/${site.name}/${bind.protocol}-${bind.name}/")).print('\n');
 					}
 					if(sslCert != null) {
 						// Use any directly configured chain file
