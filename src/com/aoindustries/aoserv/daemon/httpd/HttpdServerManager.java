@@ -13,6 +13,7 @@ import com.aoindustries.aoserv.client.HttpdSharedTomcat;
 import com.aoindustries.aoserv.client.HttpdSite;
 import com.aoindustries.aoserv.client.HttpdSiteAuthenticatedLocation;
 import com.aoindustries.aoserv.client.HttpdSiteBind;
+import com.aoindustries.aoserv.client.HttpdSiteBindHeader;
 import com.aoindustries.aoserv.client.HttpdSiteBindRedirect;
 import com.aoindustries.aoserv.client.HttpdSiteURL;
 import com.aoindustries.aoserv.client.HttpdTomcatContext;
@@ -28,13 +29,14 @@ import com.aoindustries.aoserv.client.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.Protocol;
 import com.aoindustries.aoserv.client.SslCertificate;
 import com.aoindustries.aoserv.client.TechnologyVersion;
+import com.aoindustries.aoserv.client.util.ApacheEscape;
+import static com.aoindustries.aoserv.client.util.ApacheEscape.escape;
 import com.aoindustries.aoserv.client.validator.GroupId;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
-import static com.aoindustries.aoserv.daemon.httpd.ApacheEscape.escape;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxProcess;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
@@ -224,7 +226,7 @@ public class HttpdServerManager {
 	 * Dollar escape as variable named "$" is set in the aoserv-httpd-config package
 	 * as <code>Define $ $</code> in <code>core.inc</code>, escaped as <code>${$}</code>.
 	 */
-	private static final String CENTOS_7_DOLLAR_VARIABLE = "$";
+	private static final String CENTOS_7_DOLLAR_VARIABLE = ApacheEscape.DEFAULT_DOLLAR_VARIABLE;
 
 	/**
 	 * Gets the workers#.properties or workers[@&lt;name&gt;].properties file path.
@@ -2083,9 +2085,17 @@ public class HttpdServerManager {
 
 			Boolean mod_headers = hs.getModHeaders();
 			if(mod_headers == null) {
-				// Disabled, no auto condition currently to turn it on
-				//   Might be needed for .htaccess or manual Header or RequestHeader
 				mod_headers = false;
+				HTTPD_SITES:
+				for(HttpdSite site : sites) {
+					for(HttpdSiteBind bind : site.getHttpdSiteBinds(hs)) {
+						// Enabled when has any httpd_site_bind_headers
+						if(!bind.getHttpdSiteBindHeaders().isEmpty()) {
+							mod_headers = true;
+							break HTTPD_SITES;
+						}
+					}
+				}
 			}
 			if(!mod_headers) out.print("# ");
 			out.print("LoadModule headers_module modules/mod_headers.so\n"
@@ -2765,6 +2775,19 @@ public class HttpdServerManager {
 							}
 						}
 					}
+					List<HttpdSiteBindHeader> headers = bind.getHttpdSiteBindHeaders();
+					if(!headers.isEmpty()) {
+						out.print("\n"
+								+ "    # Headers\n");
+						for(HttpdSiteBindHeader header : headers) {
+							String comment = header.getComment();
+							if(comment != null) {
+								// TODO: Maybe separate escapeComment method for this?
+								out.print("    # ").print(escape(dollarVariable, comment, true)).print('\n');
+							}
+							out.print("    ").print(header.getApacheDirective(dollarVariable)).print('\n');
+						}
+					}
 					final String escapedSiteInclude = escape(dollarVariable, "conf/hosts/" + siteInclude);
 					String includeSiteConfig = bind.getIncludeSiteConfig();
 					if(includeSiteConfig == null) {
@@ -2931,6 +2954,21 @@ public class HttpdServerManager {
 								if(redirect.isNoEscape()) out.print(",NE");
 								out.print(",R=permanent]\n");
 							}
+						}
+						out.print("    </IfModule>\n");
+					}
+					List<HttpdSiteBindHeader> headers = bind.getHttpdSiteBindHeaders();
+					if(!headers.isEmpty()) {
+						out.print("\n"
+								+ "    # Headers\n"
+								+ "    <IfModule headers_module>\n");
+						for(HttpdSiteBindHeader header : headers) {
+							String comment = header.getComment();
+							if(comment != null) {
+								// TODO: Maybe separate escapeComment method for this?
+								out.print("        # ").print(escape(dollarVariable, comment, true)).print('\n');
+							}
+							out.print("        ").print(header.getApacheDirective(dollarVariable)).print('\n');
 						}
 						out.print("    </IfModule>\n");
 					}
