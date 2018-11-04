@@ -305,4 +305,9 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 		}
 		return needsRestart;
 	}
+
+	@Override
+	protected String getApacheTomcatDir() {
+		return "apache-tomcat-7.0";
+	}
 }

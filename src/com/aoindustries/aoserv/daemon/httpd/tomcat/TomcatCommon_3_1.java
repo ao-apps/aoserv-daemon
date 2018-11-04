@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -60,5 +60,10 @@ class TomcatCommon_3_1 extends TomcatCommon_3_X {
 	@Override
 	String getTomcatApiVersion() {
 		return "3.1";
+	}
+
+	@Override
+	protected String getApacheTomcatDir() {
+		return "apache-tomcat-3.1";
 	}
 }

@@ -40,7 +40,8 @@ class HttpdTomcatStdSiteManager_6_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 	}
 
 	@Override
-	protected void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
+	protected void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException {
+		if(isUpgrade) throw new IllegalArgumentException("In-place upgrade not supported");
 		// Resolve and allocate stuff used throughout the method
 		final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
 		final String siteDir = siteDirectory.getPath();
@@ -384,5 +385,13 @@ class HttpdTomcatStdSiteManager_6_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 			httpdSite.getLinuxServerAccount().getUid().getId(),
 			httpdSite.getLinuxServerGroup().getGid().getId()
 		);
+	}
+
+	/**
+	 * Does not use any README.txt for change detection.
+	 */
+	@Override
+	protected byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException, SQLException {
+		return null;
 	}
 }

@@ -63,6 +63,11 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 		throw new SQLException("HttpdTomcatSite must be one of HttpdTomcatStdSite, HttpdJBossSite, or HttpdTomcatSharedSite: "+tomcatSite);
 	}
 
+	/**
+	 * The name of the file generated for version change detection.
+	 */
+	private static final String README_TXT = "README.txt";
+
 	final protected HttpdTomcatSite tomcatSite;
 
 	protected HttpdTomcatSiteManager(HttpdTomcatSite tomcatSite) throws IOException, SQLException {
@@ -252,34 +257,63 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 		// TODO: Consider unpackWARs setting for root directory existence and apache configs
 		// TODO: Also unpackwars=false incompatible cgi or php options (and htaccess, ssi?)
 		// TODO: Also unpackWARs=false would require use_apache=false
+
+		final TC tomcatCommon = getTomcatCommon();
+		final String apacheTomcatDir = tomcatCommon.getApacheTomcatDir();
+
 		final UnixFile rootDirectory = new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE);
 		final UnixFile cgibinDirectory = new UnixFile(rootDirectory, "cgi-bin", false);
 
-		// Create wwwDirectory if needed
-		Stat siteDirectoryStat = siteDirectory.getStat();
-		if(!siteDirectoryStat.exists()) {
-			siteDirectory.mkdir(false, 0700);
-			siteDirectoryStat = siteDirectory.getStat();
-		} else if(!siteDirectoryStat.isDirectory()) throw new IOException("Not a directory: "+siteDirectory);
-
-		// New if still owned by root
-		final boolean isNew = siteDirectoryStat.getUid() == UnixFile.ROOT_UID;
-
-		// Build directory contents if is new or incomplete
 		boolean needsRestart = false;
-		if(isNew) {
-			// Build the per-Tomcat-version unique values
-			buildSiteDirectoryContents(optSlash, siteDirectory);
 
-			// CGI
-			if(enableCgi()) {
-				DaemonFileUtils.mkdir(cgibinDirectory, 0755, uid, gid);
-				//FileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/cgi-bin", siteDir+"/cgi-bin", uid, gid);
+		// Create and fill in the directory if it does not exist or is owned by root.
+		Stat siteDirectoryStat = siteDirectory.getStat();
+		final boolean isInstall =
+			!siteDirectoryStat.exists()
+			|| siteDirectoryStat.getUid() == UnixFile.ROOT_UID;
+
+		// Perform upgrade in-place when not doing a full install and the README.txt file missing or changed
+		final byte[] readmeTxtContent = generateReadmeTxt(optSlash, apacheTomcatDir, siteDirectory);
+		// readmeTxt will be null when in-place upgrade not supported
+		final UnixFile readmeTxt = readmeTxtContent == null ? null : new UnixFile(siteDirectory, README_TXT, false);
+		final boolean isUpgrade;
+		{
+			final Stat readmeTxtStat;
+			isUpgrade =
+				!isInstall
+				&& readmeTxt != null
+				&& !(
+					(readmeTxtStat = readmeTxt.getStat()).exists()
+					&& readmeTxtStat.isRegularFile()
+					&& readmeTxt.contentEquals(readmeTxtContent)
+				);
+		}
+		assert !(isInstall && isUpgrade);
+		if (isInstall || isUpgrade) {
+
+			// /var/www/(site-name)/
+			if(isInstall) {
+				if (!siteDirectoryStat.exists()) siteDirectory.mkdir();
+				siteDirectory.setMode(0770);
+				siteDirectoryStat = siteDirectory.getStat();
 			}
 
-			// index.html
-			UnixFile indexFile = new UnixFile(rootDirectory, "index.html", false);
-			createTestIndex(indexFile);
+			// Build the per-Tomcat-version unique values
+			buildSiteDirectoryContents(optSlash, siteDirectory, isUpgrade);
+
+			if(isInstall) {
+				// index.html
+				UnixFile indexFile = new UnixFile(rootDirectory, "index.html", false);
+				createTestIndex(indexFile);
+			}
+
+			// Create or replace the README.txt
+			if(readmeTxt != null) {
+				DaemonFileUtils.atomicWrite(
+					readmeTxt, readmeTxtContent, 0440, uid, gid,
+					null, null
+				);
+			}
 
 			// Always cause restart when is new
 			needsRestart = true;
@@ -295,9 +329,8 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 		if(rebuildConfigFiles(siteDirectory, restorecon)) needsRestart = true;
 
 		// Complete, set permission and ownership
-		siteDirectoryStat = siteDirectory.getStat();
-		if(siteDirectoryStat.getMode()!=0770) siteDirectory.setMode(0770);
-		if(siteDirectoryStat.getUid()!=apacheUid || siteDirectoryStat.getGid()!=gid) siteDirectory.chown(apacheUid, gid);
+		if(siteDirectoryStat.getMode() != 0770) siteDirectory.setMode(0770);
+		if(siteDirectoryStat.getUid() != apacheUid || siteDirectoryStat.getGid() != gid) siteDirectory.chown(apacheUid, gid);
 
 		// Enable/disables now that all is setup (including proper permissions)
 		enableDisable(siteDirectory);
@@ -316,7 +349,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 	 *
 	 * @param optSlash  Relative path from the CATALINA_HOME to /opt/, including trailing slash, such as <code>../../opt/</code>.
 	 */
-	protected abstract void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException;
+	protected abstract void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException;
 
 	/**
 	 * Upgrades the site directory contents for an auto-upgrade.
@@ -345,4 +378,15 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 	 * Flags that the site needs restarted.
 	 */
 	protected abstract void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws SQLException, IOException;
+
+	/**
+	 * Generates the README.txt that is used to detect major version changes to rebuild the Tomcat installation.
+	 *
+	 * TODO: Generate and use these readme.txt files to detect when version changed
+	 *
+	 * @return  The README.txt file contents or {@code null} if no README.txt used for change detection
+	 *
+	 * @see  VersionedSharedTomcatManager#generateReadmeTxt(java.lang.String, java.lang.String, com.aoindustries.io.unix.UnixFile)
+	 */
+	protected abstract byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException, SQLException;
 }

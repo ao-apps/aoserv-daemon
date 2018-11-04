@@ -34,7 +34,8 @@ abstract class VersionedTomcatSharedSiteManager<TC extends VersionedTomcatCommon
 	 * TODO: Support upgrades in-place
 	 */
 	@Override
-	protected void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
+	protected void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException {
+		if(isUpgrade) throw new IllegalArgumentException("In-place upgrade not supported");
 		/*
 		 * Resolve and allocate stuff used throughout the method
 		 */

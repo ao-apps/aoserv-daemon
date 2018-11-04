@@ -168,11 +168,6 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 	}
 
 	/**
-	 * Gets the name of the Tomcat directory under <code>/opt/</code>.
-	 */
-	protected abstract String getApacheTomcatDir();
-
-	/**
 	 * Gets the set of files that are installed during install and upgrade/downgrade.
 	 * Each path is relative to CATALINA_HOME/CATALINA_BASE.
 	 */

@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -29,7 +29,8 @@ class HttpdTomcatSharedSiteManager_4_1_X extends HttpdTomcatSharedSiteManager<To
 	}
 
 	@Override
-	protected void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
+	protected void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException {
+		if(isUpgrade) throw new IllegalArgumentException("In-place upgrade not supported");
 		/*
 		 * Resolve and allocate stuff used throughout the method
 		 */

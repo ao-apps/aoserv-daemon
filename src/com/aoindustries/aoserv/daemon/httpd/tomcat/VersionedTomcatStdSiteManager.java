@@ -49,7 +49,7 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 	 * TODO: Support upgrades in-place
 	 */
 	@Override
-	protected void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory) throws IOException, SQLException {
+	protected void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException {
 		// Resolve and allocate stuff used throughout the method
 		final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
 		final int uid = lsa.getUid().getId();
@@ -63,7 +63,7 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 		/*
 		 * Create the skeleton of the site, the directories and links.
 		 */
-		List<Install> installFiles = getInstallFiles(optSlash, siteDirectory);
+		List<Install> installFiles = getInstallFiles(optSlash, siteDirectory, isUpgrade);
 		for(Install installFile : installFiles) {
 			installFile.install(optSlash, apacheTomcatDir, siteDirectory, uid, gid, backupSuffix);
 		}
@@ -286,13 +286,7 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 		return bout.toByteArray();
 	}
 
-	/**
-	 * Generates the README.txt that is used to detect major version changes to rebuild the Tomcat installation.
-	 *
-	 * TODO: Generate and use these readme.txt files to detect when version changed
-	 *
-	 * @see  VersionedSharedTomcatManager#generateReadmeTxt(java.lang.String, java.lang.String, com.aoindustries.io.unix.UnixFile)
-	 */
+	@Override
 	protected byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException, SQLException {
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
 		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
@@ -340,18 +334,19 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 	 *
 	 * @see  VersionedTomcatCommon#getInstallFiles(com.aoindustries.io.unix.UnixFile)
 	 */
-	protected List<Install> getInstallFiles(String optSlash, UnixFile installDir) throws IOException, SQLException {
+	protected List<Install> getInstallFiles(String optSlash, UnixFile installDir, boolean isUpgrade) throws IOException, SQLException {
 		List<Install> installFiles = new ArrayList<>();
 		installFiles.addAll(getTomcatCommon().getInstallFiles(optSlash, installDir, 0775)); // 0775 to allow Apache to read any passwd/group files in the conf/ directory
 		// bin/profile.sites is now bin/profile.d/httpd-sites.sh as of Tomcat 8.5
 		installFiles.add(new Generated("bin/tomcat", 0700, VersionedTomcatStdSiteManager::generateTomcatScript));
-		installFiles.add(new Mkdir    ("webapps", 0775));
-		installFiles.add(new Mkdir    ("webapps/" + HttpdTomcatContext.ROOT_DOC_BASE, 0775));
-		// TODO: Do no create these on upgrade:
-		installFiles.add(new Mkdir    ("webapps/" + HttpdTomcatContext.ROOT_DOC_BASE + "/WEB-INF", 0770));
-		installFiles.add(new Mkdir    ("webapps/" + HttpdTomcatContext.ROOT_DOC_BASE + "/WEB-INF/classes", 0770));
-		installFiles.add(new Mkdir    ("webapps/" + HttpdTomcatContext.ROOT_DOC_BASE + "/WEB-INF/lib", 0770));
-		installFiles.add(new Copy     ("webapps/" + HttpdTomcatContext.ROOT_DOC_BASE + "/WEB-INF/web.xml", 0660));
+		if(!isUpgrade) {
+			installFiles.add(new Mkdir    ("webapps", 0775));
+			installFiles.add(new Mkdir    ("webapps/" + HttpdTomcatContext.ROOT_DOC_BASE, 0775));
+			installFiles.add(new Mkdir    ("webapps/" + HttpdTomcatContext.ROOT_DOC_BASE + "/WEB-INF", 0770));
+			installFiles.add(new Mkdir    ("webapps/" + HttpdTomcatContext.ROOT_DOC_BASE + "/WEB-INF/classes", 0770));
+			installFiles.add(new Mkdir    ("webapps/" + HttpdTomcatContext.ROOT_DOC_BASE + "/WEB-INF/lib", 0770));
+			installFiles.add(new Copy     ("webapps/" + HttpdTomcatContext.ROOT_DOC_BASE + "/WEB-INF/web.xml", 0660));
+		}
 		return installFiles;
 	}
 

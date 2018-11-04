@@ -171,4 +171,9 @@ class TomcatCommon_6_0_X extends TomcatCommon {
 		}
 		return needsRestart;
 	}
+
+	@Override
+	protected String getApacheTomcatDir() {
+		return "apache-tomcat-6.0";
+	}
 }

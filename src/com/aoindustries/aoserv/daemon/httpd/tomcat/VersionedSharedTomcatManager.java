@@ -59,14 +59,14 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 
 	private static final Logger logger = Logger.getLogger(VersionedSharedTomcatManager.class.getName());
 
-	VersionedSharedTomcatManager(HttpdSharedTomcat sharedTomcat) {
-		super(sharedTomcat);
-	}
-
 	/**
 	 * The name of the file generated for version change detection.
 	 */
 	private static final String README_TXT = "README.txt";
+
+	VersionedSharedTomcatManager(HttpdSharedTomcat sharedTomcat) {
+		super(sharedTomcat);
+	}
 
 	/**
 	 * Writes the server.xml file.
@@ -258,7 +258,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		final Stat sharedTomcatStat = sharedTomcatDirectory.getStat();
 		final boolean isInstall =
 			!sharedTomcatStat.exists()
-			|| sharedTomcatStat.getUid() == UnixFile.ROOT_GID;
+			|| sharedTomcatStat.getUid() == UnixFile.ROOT_UID;
 
 		// Perform upgrade in-place when not doing a full install and the README.txt file missing or changed
 		final byte[] readmeTxtContent = generateReadmeTxt(optSlash, apacheTomcatDir, sharedTomcatDirectory);

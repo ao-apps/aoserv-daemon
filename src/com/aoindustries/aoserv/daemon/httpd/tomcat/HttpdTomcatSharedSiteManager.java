@@ -116,4 +116,12 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
 	protected void enableDisable(UnixFile siteDirectory) {
 		// Do nothing
 	}
+
+	/**
+	 * Does not use any README.txt for change detection.
+	 */
+	@Override
+	protected byte[] generateReadmeTxt(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException, SQLException {
+		return null;
+	}
 }

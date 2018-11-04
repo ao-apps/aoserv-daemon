@@ -44,4 +44,9 @@ public abstract class TomcatCommon {
      * Writes a single data source.
      */
     public abstract void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws IOException, SQLException;
+
+	/**
+	 * Gets the name of the Tomcat directory under <code>/opt/</code>.
+	 */
+	protected abstract String getApacheTomcatDir();
 }
