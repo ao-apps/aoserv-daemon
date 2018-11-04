@@ -29,21 +29,23 @@ public abstract class TomcatCommon {
 	protected abstract Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException;
 
 	/**
-     * Writes a single parameter.
-     */
-    public void writeHttpdTomcatParameter(HttpdTomcatParameter parameter, ChainWriter out) throws IOException {
-        out.print("          <Parameter\n"
-                + "            name=\"").encodeXmlAttribute(parameter.getName()).print("\"\n"
-                + "            value=\"").encodeXmlAttribute(parameter.getValue()).print("\"\n"
-                + "            override=\"").encodeXmlAttribute(parameter.getOverride()).print("\"\n");
-        if(parameter.getDescription()!=null) out.print("            description=\"").encodeXmlAttribute(parameter.getDescription()).print("\"\n");
-        out.print("          />\n");
-    }
+	 * Writes a single parameter.
+	 */
+	public void writeHttpdTomcatParameter(HttpdTomcatParameter parameter, ChainWriter out) throws IOException {
+		out.print("          <Parameter\n"
+				+ "            name=\"").encodeXmlAttribute(parameter.getName()).print("\"\n"
+				+ "            value=\"").encodeXmlAttribute(parameter.getValue()).print("\"\n");
+		boolean override = parameter.getOverride();
+		if(!override) out.print("            override=\"").encodeXmlAttribute(override).print("\"\n");
+		String description = parameter.getDescription();
+		if(description != null) out.print("            description=\"").encodeXmlAttribute(description).print("\"\n");
+		out.print("          />\n");
+	}
 
-    /**
-     * Writes a single data source.
-     */
-    public abstract void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws IOException, SQLException;
+	/**
+	 * Writes a single data source.
+	 */
+	public abstract void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws IOException, SQLException;
 
 	/**
 	 * Gets the name of the Tomcat directory under <code>/opt/</code>.
