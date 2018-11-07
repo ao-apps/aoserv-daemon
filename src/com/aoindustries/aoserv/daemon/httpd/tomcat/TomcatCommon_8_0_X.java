@@ -38,6 +38,9 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 		);
 	}
 
+	// TODO: This implementation is incorrect for DBCP2 included in Tomcat 8.0.
+	//       Tomcat 8.0 is end-of-life and we're migrating clients off it, so
+	//       we're not fixing this implementation.
 	@Override
 	public void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws SQLException, IOException {
 		out.print("          <Resource\n"

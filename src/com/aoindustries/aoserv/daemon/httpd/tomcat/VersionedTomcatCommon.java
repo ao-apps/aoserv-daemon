@@ -46,6 +46,7 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 	/**
 	 * See:
 	 * <ol>
+	 * <li><a href="https://commons.apache.org/proper/commons-dbcp/configuration.html">DBCP – BasicDataSource Configuration</a></li>
 	 * <li>Tomcat 8.5:
 	 *   <ol type="a">
 	 *   <li><a href="https://tomcat.apache.org/tomcat-8.5-doc/jndi-datasource-examples-howto.html">JNDI Datasource HOW-TO</a></li>
@@ -62,6 +63,7 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 	 */
 	@Override 
 	public void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws IOException, SQLException {
+		int maxActive = dataSource.getMaxActive();
 		out.print("          <Resource\n"
 				+ "            name=\"").encodeXmlAttribute(dataSource.getName()).print("\"\n"
 				+ "            auth=\"Container\"\n"
@@ -70,17 +72,30 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 				+ "            password=\"").encodeXmlAttribute(dataSource.getPassword()).print("\"\n"
 				+ "            driverClassName=\"").encodeXmlAttribute(dataSource.getDriverClassName()).print("\"\n"
 				+ "            url=\"").encodeXmlAttribute(dataSource.getUrl()).print("\"\n"
-				+ "            maxActive=\"").encodeXmlAttribute(dataSource.getMaxActive()).print("\"\n"
+				+ "            maxTotal=\"").encodeXmlAttribute(maxActive).print("\"\n"
 				+ "            maxIdle=\"").encodeXmlAttribute(dataSource.getMaxIdle()).print("\"\n"
-				+ "            maxWait=\"").encodeXmlAttribute(dataSource.getMaxWait()).print("\"\n");
+				+ "            maxWaitMillis=\"").encodeXmlAttribute(dataSource.getMaxWait()).print("\"\n");
 		if(dataSource.getValidationQuery()!=null) {
-			out.print("            testWhileIdle=\"true\"\n"
-					+ "            validationQuery=\"").encodeXmlAttribute(dataSource.getValidationQuery()).print("\"\n"
-					+ "            validationQueryTimeout=\"30\"\n");
+			out.print("            validationQuery=\"").encodeXmlAttribute(dataSource.getValidationQuery()).print("\"\n"
+					+ "            validationQueryTimeout=\"30\"\n"
+					+ "            testWhileIdle=\"true\"\n");
+					// The default is "true": + "            testOnBorrow=\"true\"\n");
 		}
-		out.print("            removeAbandoned=\"true\"\n"
-				+ "            removeAbandonedTimeout=\"300\"\n"
-				+ "            logAbandoned=\"true\"\n"
+		int timeBetweenEvictionRunsMillis = 30000; // Clean every 30 seconds
+		int numTestsPerEvictionRun;
+		if(maxActive > 0) {
+			numTestsPerEvictionRun = maxActive / 4; // Clean up to a quarter of the pool all at once
+			if(numTestsPerEvictionRun < 3) numTestsPerEvictionRun = 3; // 3 is the default
+		} else {
+			numTestsPerEvictionRun = 50;
+		}
+		
+		out.print("            timeBetweenEvictionRunsMillis=\"").encodeXmlAttribute(timeBetweenEvictionRunsMillis).print("\"\n"
+				+ "            numTestsPerEvictionRun=\"").encodeXmlAttribute(numTestsPerEvictionRun).print("\"\n"
+				+ "            removeAbandonedOnMaintenance=\"true\"\n"
+				+ "            removeAbandonedOnBorrow=\"true\"\n"
+				// The default is 300: + "            removeAbandonedTimeout=\"300\"\n"
+				// Disabled to avoid overhead: Default is "false": + "            logAbandoned=\"true\"\n"
 				+ "          />\n");
 	}
 
