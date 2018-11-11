@@ -67,11 +67,20 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 		out.print("          <Resource\n"
 				+ "            name=\"").encodeXmlAttribute(dataSource.getName()).print("\"\n"
 				+ "            auth=\"Container\"\n"
-				+ "            type=\"javax.sql.DataSource\"\n"
-				+ "            username=\"").encodeXmlAttribute(dataSource.getUsername()).print("\"\n"
-				+ "            password=\"").encodeXmlAttribute(dataSource.getPassword()).print("\"\n"
-				+ "            driverClassName=\"").encodeXmlAttribute(dataSource.getDriverClassName()).print("\"\n"
-				+ "            url=\"").encodeXmlAttribute(dataSource.getUrl()).print("\"\n"
+				+ "            type=\"javax.sql.DataSource\"\n");
+		String username = dataSource.getUsername();
+		if(username != null && !username.isEmpty()) {
+			out.print("            username=\"").encodeXmlAttribute(username).print("\"\n");
+		}
+		String password = dataSource.getPassword();
+		if(password != null && !password.isEmpty()) {
+			out.print("            password=\"").encodeXmlAttribute(password).print("\"\n");
+		}
+		String driverClassName = dataSource.getDriverClassName();
+		if(driverClassName != null && !driverClassName.isEmpty()) {
+			out.print("            driverClassName=\"").encodeXmlAttribute(driverClassName).print("\"\n");
+		}
+		out.print("            url=\"").encodeXmlAttribute(dataSource.getUrl()).print("\"\n"
 				+ "            maxTotal=\"").encodeXmlAttribute(maxActive).print("\"\n"
 				+ "            maxIdle=\"").encodeXmlAttribute(dataSource.getMaxIdle()).print("\"\n"
 				+ "            maxWaitMillis=\"").encodeXmlAttribute(dataSource.getMaxWait()).print("\"\n");
