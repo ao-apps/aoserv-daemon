@@ -20,6 +20,7 @@ import com.aoindustries.aoserv.client.SendmailServer;
 import com.aoindustries.aoserv.client.SslCertificate;
 import com.aoindustries.aoserv.client.SslCertificate.Check;
 import com.aoindustries.aoserv.client.SslCertificateName;
+import com.aoindustries.aoserv.client.SslCertificateOtherUse;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.io.unix.Stat;
@@ -841,6 +842,7 @@ final public class SslCertificateManager {
 					List<HttpdSiteBind> hsbs = certificate.getHttpdSiteBinds();
 					List<SendmailServer> sendmailServers = certificate.getSendmailServersByServerCertificate();
 					List<SendmailServer> sendmailClients = certificate.getSendmailServersByClientCertificate();
+					List<SslCertificateOtherUse> otherUses = certificate.getOtherUses();
 					int useCount = 0;
 					StringBuilder usedBy = new StringBuilder();
 					if(!cyrusBinds.isEmpty()) {
@@ -871,6 +873,12 @@ final public class SslCertificateManager {
 						int size = sendmailClients.size();
 						useCount += size;
 						usedBy.append(size).append(size == 1 ? " SendmailServer(Client)" : " SendmailServers(Client)");
+					}
+					for(SslCertificateOtherUse otherUse : otherUses) {
+						if(usedBy.length() > 0) usedBy.append(", ");
+						int count = otherUse.getCount();
+						useCount += count;
+						usedBy.append(otherUse.toString());
 					}
 					results.add(
 						new Check(
