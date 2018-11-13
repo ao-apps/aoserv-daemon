@@ -2134,6 +2134,7 @@ public class HttpdServerManager {
 			}
 			final boolean modJkInstalled;
 			if(mod_jk) {
+				// TODO: Uninstall tomcat_connectors when no longer needed
 				PackageManager.installPackage(PackageManager.PackageName.TOMCAT_CONNECTORS);
 				modJkInstalled = true;
 			} else {
