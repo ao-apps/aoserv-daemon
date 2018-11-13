@@ -1656,6 +1656,7 @@ public class HttpdServerManager {
 			// Install mod_ssl when first needed
 			final boolean modSslInstalled;
 			if(hasSsl) {
+				// TODO: Uninstall mod_ssl when no longer needed
 				PackageManager.installPackage(PackageManager.PackageName.MOD_SSL);
 				modSslInstalled = true;
 			} else {
@@ -2297,6 +2298,7 @@ public class HttpdServerManager {
 
 			final boolean modSslInstalled;
 			if(mod_ssl) {
+				// TODO: Uninstall mod_ssl when no longer needed
 				PackageManager.installPackage(PackageManager.PackageName.MOD_SSL);
 				modSslInstalled = true;
 			} else {
