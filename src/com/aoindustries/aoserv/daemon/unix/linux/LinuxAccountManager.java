@@ -176,7 +176,7 @@ public class LinuxAccountManager extends BuilderThread {
 							GroupId groupName = entry.getGroupName();
 							if(
 								entry.getGid() < gid_min
-								|| entry.getGid() > LinuxGroup.GID_MAX
+								|| entry.getGid() > 60000 // TODO: Get from linux_server_accounts.gid_max: LinuxGroup.GID_MAX
 								|| groupName.equals(LinuxGroup.AOADMIN)
 							) {
 								boolean found = false;
@@ -209,7 +209,7 @@ public class LinuxAccountManager extends BuilderThread {
 							UserId username = entry.getUsername();
 							if(
 								entry.getUid() < uid_min
-								|| entry.getUid() > LinuxAccount.UID_MAX
+								|| entry.getUid() > 60000 // TODO: Get from linux_server_accounts.uid_max: LinuxAccount.UID_MAX
 								|| username.equals(LinuxAccount.AOADMIN)
 							) {
 								boolean found = false;
