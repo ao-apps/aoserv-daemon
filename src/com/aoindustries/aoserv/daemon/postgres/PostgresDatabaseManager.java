@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -80,8 +80,8 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 					if(pds.isEmpty()) {
 						LogFactory.getLogger(PostgresDatabaseManager.class).severe("No databases; refusing to rebuild config: " + ps);
 					} else {
-						int port=ps.getNetBind().getPort().getPort();
-						PostgresVersion pv=ps.getPostgresVersion();
+						int port=ps.getBind().getPort().getPort();
+						PostgresVersion pv=ps.getVersion();
 						String version=pv.getTechnologyVersion(connector).getVersion();
 						String minorVersion=pv.getMinorVersion();
 
@@ -317,8 +317,8 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 		if(gzip) PackageManager.installPackage(PackageManager.PackageName.GZIP);
 		AOServDaemon.exec(
 			commandPath,
-			ps.getPostgresVersion().getMinorVersion(),
-			Integer.toString(ps.getNetBind().getPort().getPort()),
+			ps.getVersion().getMinorVersion(),
+			Integer.toString(ps.getBind().getPort().getPort()),
 			dbName.toString(),
 			output.getPath(),
 			Boolean.toString(gzip)
@@ -423,7 +423,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 			List<String> tableNames=new ArrayList<>();
 			List<String> schemas=new ArrayList<>();
 			for(PostgresServer postgresServer : AOServDaemon.getThisAOServer().getPostgresServers()) {
-				String postgresServerVersion=postgresServer.getPostgresVersion().getTechnologyVersion(aoservConn).getVersion();
+				String postgresServerVersion=postgresServer.getVersion().getTechnologyVersion(aoservConn).getVersion();
 				boolean postgresServerHasSchemas=
 					!postgresServerVersion.startsWith(PostgresVersion.VERSION_7_1+'.')
 					&& !postgresServerVersion.startsWith(PostgresVersion.VERSION_7_2+'.')

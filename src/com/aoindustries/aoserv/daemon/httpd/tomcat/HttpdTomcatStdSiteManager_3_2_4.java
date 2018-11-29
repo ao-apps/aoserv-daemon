@@ -68,7 +68,7 @@ class HttpdTomcatStdSiteManager_3_2_4 extends HttpdTomcatStdSiteManager_3_X<Tomc
 					+ "    <ContextInterceptor className=\"org.apache.tomcat.context.LoadOnStartupInterceptor\" />\n");
 
 			for(HttpdWorker worker : tomcatSite.getHttpdWorkers()) {
-				NetBind netBind=worker.getNetBind();
+				NetBind netBind=worker.getBind();
 				String protocol=worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
 
 				out.print("    <Connector className=\"org.apache.tomcat.service.PoolTcpConnector\">\n"
@@ -78,7 +78,7 @@ class HttpdTomcatStdSiteManager_3_2_4 extends HttpdTomcatStdSiteManager_3_X<Tomc
 				else throw new IllegalArgumentException("Unknown AJP version: "+htv);
 				out.print("\"/>\n"
 						+ "      <Parameter name=\"port\" value=\"").encodeXmlAttribute(netBind.getPort().getPort()).print("\"/>\n");
-				InetAddress ip=netBind.getIPAddress().getInetAddress();
+				InetAddress ip=netBind.getIpAddress().getInetAddress();
 				if(!ip.isUnspecified()) out.print("      <Parameter name=\"inet\" value=\"").encodeXmlAttribute(ip).print("\"/>\n");
 				out.print("      <Parameter name=\"max_threads\" value=\"30\"/>\n"
 						+ "      <Parameter name=\"max_spare_threads\" value=\"10\"/>\n"

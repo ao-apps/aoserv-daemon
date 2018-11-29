@@ -131,7 +131,7 @@ final public class AWStatsManager extends BuilderThread {
 						for(HttpdSite site : sites) {
 							List<HttpdSiteBind> binds = site.getHttpdSiteBinds();
 
-							String siteName = site.getSiteName();
+							String siteName = site.getName();
 							String configFilename = "awstats." + siteName + ".conf";
 							existingConfigFiles.remove(configFilename);
 							existingHostDirectories.remove(siteName);
@@ -171,11 +171,11 @@ final public class AWStatsManager extends BuilderThread {
 											}
 										}
 										// Add the IP address, skipping wildcard or loopback IP addresses
-										IPAddress ip=bind.getHttpdBind().getNetBind().getIPAddress();
+										IPAddress ip=bind.getHttpdBind().getNetBind().getIpAddress();
 										InetAddress ia = ip.getInetAddress();
 										if(
 											!ia.isUnspecified()
-											&& !ip.getNetDevice().getNetDeviceID().isLoopback()
+											&& !ip.getDevice().getDeviceId().isLoopback()
 										) {
 											String addr=ia.toString();
 											if(usedHostnames.add(addr)) {
@@ -388,11 +388,11 @@ final public class AWStatsManager extends BuilderThread {
 											}
 										}
 										// Add the IP address, skipping wildcard or loopback IP addresses
-										IPAddress ip=bind.getHttpdBind().getNetBind().getIPAddress();
+										IPAddress ip=bind.getHttpdBind().getNetBind().getIpAddress();
 										InetAddress ia = ip.getInetAddress();
 										if(
 											!ia.isUnspecified()
-											&& !ip.getNetDevice().getNetDeviceID().isLoopback()
+											&& !ip.getDevice().getDeviceId().isLoopback()
 										) {
 											String addr=ia.toString();
 											if(usedHostnames.add(addr)) {

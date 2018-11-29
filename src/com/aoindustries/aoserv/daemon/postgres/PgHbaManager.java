@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -68,7 +68,7 @@ public final class PgHbaManager extends BuilderThread {
 						if(pds.isEmpty()) {
 							LogFactory.getLogger(PgHbaManager.class).severe("No databases; refusing to rebuild config: " + ps);
 						} else {
-							String version=ps.getPostgresVersion().getTechnologyVersion(connector).getVersion();
+							String version=ps.getVersion().getTechnologyVersion(connector).getVersion();
 							int postgresUID=thisAOServer.getLinuxServerAccount(LinuxAccount.POSTGRES).getUid().getId();
 							int postgresGID=thisAOServer.getLinuxServerGroup(LinuxGroup.POSTGRES).getGid().getId();
 							PostgresServerName serverName=ps.getName();

@@ -274,7 +274,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 				if(!hs.isDisabled()) {
 					if(didOne) out.print(' ');
 					else didOne=true;
-					out.print(hs.getSiteName());
+					out.print(hs.getName());
 				}
 			}
 			out.print("\"\n");
@@ -300,7 +300,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 		for (HttpdTomcatSharedSite site : sites) {
 			HttpdSite hs = site.getHttpdTomcatSite().getHttpdSite();
 			if(!hs.isDisabled()) {
-				String subwork = hs.getSiteName();
+				String subwork = hs.getName();
 				workFiles.remove(subwork);
 				UnixFile workDir = new UnixFile(workUF, subwork, false);
 				if (!workDir.getStat().exists()) {

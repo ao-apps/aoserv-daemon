@@ -193,7 +193,7 @@ final public class Fail2banManager extends BuilderThread {
 						// Resolves the unique ports for each supported jail
 						Map<Jail,SortedSet<Integer>> jailPorts = new HashMap<>();
 						for(NetBind nb : netBinds) {
-							InetAddress ip = nb.getIPAddress().getInetAddress();
+							InetAddress ip = nb.getIpAddress().getInetAddress();
 							if(!ip.isLoopback()) {
 								for(Jail jail : jails) {
 									if(jail.getProtocols().contains(nb.getAppProtocol().getProtocol())) {

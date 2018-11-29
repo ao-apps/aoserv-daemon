@@ -70,7 +70,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 			synchronized(rebuildLock) {
 				Set<Port> postgresqlPorts = new HashSet<>();
 				for(PostgresServer postgresServer : thisAOServer.getPostgresServers()) {
-					postgresqlPorts.add(postgresServer.getNetBind().getPort());
+					postgresqlPorts.add(postgresServer.getBind().getPort());
 					// TODO: Add and initialize any missing /var/lib/pgsql/name
 					// TODO: Add/update any /etc/rc.d/init.d/postgresql-name
 				}
@@ -226,7 +226,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 		try {
 			AOServConnector conn = AOServDaemon.getConnector();
 			for(PostgresServer postgresServer : AOServDaemon.getThisAOServer().getPostgresServers()) {
-				String version=postgresServer.getPostgresVersion().getTechnologyVersion(conn).getVersion();
+				String version=postgresServer.getVersion().getTechnologyVersion(conn).getVersion();
 				if(
 					!version.startsWith(PostgresVersion.VERSION_7_1+'.')
 					&& !version.startsWith(PostgresVersion.VERSION_7_2+'.')

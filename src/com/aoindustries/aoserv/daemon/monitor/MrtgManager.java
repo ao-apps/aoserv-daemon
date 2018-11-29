@@ -195,7 +195,7 @@ final public class MrtgManager extends BuilderThread {
 						// Add the network devices
 						List<NetDevice> netDevices = thisServer.getNetDevices();
 						for(NetDevice netDevice : netDevices) {
-							out.print("  <a href=\"").encodeXmlAttribute(netDevice.getNetDeviceID().getName()).print(".html\">").encodeXhtml(netDevice.getDescription()).print("</a> |\n");
+							out.print("  <a href=\"").encodeXmlAttribute(netDevice.getDeviceId().getName()).print(".html\">").encodeXhtml(netDevice.getDescription()).print("</a> |\n");
 						}
 						out.print("  <a href=\"swap.html\">Swap</a> |\n");
 						for(HttpdServer httpdServer : httpdServers) {
@@ -208,7 +208,7 @@ final public class MrtgManager extends BuilderThread {
 								+ "\n"
 								+ "Interval: 5\n");
 						for(NetDevice netDevice : netDevices) {
-							String deviceId = netDevice.getNetDeviceID().getName();
+							String deviceId = netDevice.getDeviceId().getName();
 							out.print("\n"
 									+ "Target[").print(deviceId).print("]: `").print(aoservMrtgBin).print("/mrtg_net_device ").print(deviceId).print("`\n"
 									+ "Options[").print(deviceId).print("]: noinfo, growright, transparent");
@@ -522,7 +522,7 @@ final public class MrtgManager extends BuilderThread {
 						// Add the network devices
 						List<NetDevice> netDevices = thisServer.getNetDevices();
 						for(NetDevice netDevice : netDevices) {
-							out.print("          <a href=\"").encodeXmlAttribute(netDevice.getNetDeviceID().getName()).print(".html\">").encodeXhtml(netDevice.getDescription()).print("</a> |\n");
+							out.print("          <a href=\"").encodeXmlAttribute(netDevice.getDeviceId().getName()).print(".html\">").encodeXhtml(netDevice.getDescription()).print("</a> |\n");
 						}
 						out.print("          <a href=\"swap.html\">Swap</a> |\n");
 						for(HttpdServer httpdServer : httpdServers) {
@@ -560,7 +560,7 @@ final public class MrtgManager extends BuilderThread {
 								+ "        <a href=\"mem.html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"mem-day.png\" alt=\"mem\" /></a>\n"
 								+ "      </p>\n");
 						for(NetDevice netDevice : netDevices) {
-							String deviceId = netDevice.getNetDeviceID().getName();
+							String deviceId = netDevice.getDeviceId().getName();
 							out.print("      <hr />\n"
 									+ "      <h2>").encodeXhtml(netDevice.getDescription()).print(" traffic</h2>\n"
 									+ "      <p>\n"

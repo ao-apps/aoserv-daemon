@@ -320,7 +320,7 @@ public class HttpdServerManager {
 				// Iterate through each site
 				for(HttpdSite httpdSite : thisAoServer.getHttpdSites()) {
 					// Some values used below
-					final String siteName = httpdSite.getSiteName();
+					final String siteName = httpdSite.getName();
 					final HttpdSiteManager manager = HttpdSiteManager.getInstance(httpdSite);
 					final LinuxServerGroup lsg = httpdSite.getLinuxServerGroup();
 					final int lsgGID = lsg.getGid().getId();
@@ -362,9 +362,9 @@ public class HttpdServerManager {
 						{
 							String bindEscapedName = bind.getSystemdEscapedName();
 							if(bindEscapedName == null) {
-								bindFilename = siteName+"_"+nb.getIPAddress().getInetAddress()+"_"+nb.getPort().getPort();
+								bindFilename = siteName+"_"+nb.getIpAddress().getInetAddress()+"_"+nb.getPort().getPort();
 							} else {
-								bindFilename = siteName+"_"+nb.getIPAddress().getInetAddress()+"_"+nb.getPort().getPort()+"_"+bindEscapedName;
+								bindFilename = siteName+"_"+nb.getIpAddress().getInetAddress()+"_"+nb.getPort().getPort()+"_"+bindEscapedName;
 							}
 						}
 						final UnixFile bindFile = new UnixFile(CONF_HOSTS, bindFilename);
@@ -440,7 +440,7 @@ public class HttpdServerManager {
 				// Iterate through each site
 				for(HttpdSite httpdSite : thisAoServer.getHttpdSites()) {
 					// Some values used below
-					final String siteName = httpdSite.getSiteName();
+					final String siteName = httpdSite.getName();
 					final HttpdSiteManager manager = HttpdSiteManager.getInstance(httpdSite);
 					final LinuxServerGroup lsg = httpdSite.getLinuxServerGroup();
 					final int lsgGID = lsg.getGid().getId();
@@ -484,9 +484,9 @@ public class HttpdServerManager {
 						{
 							String bindEscapedName = bind.getSystemdEscapedName();
 							if(bindEscapedName == null) {
-								bindFilename = siteName+"_"+nb.getIPAddress().getInetAddress()+"_"+nb.getPort().getPort()+".conf";
+								bindFilename = siteName+"_"+nb.getIpAddress().getInetAddress()+"_"+nb.getPort().getPort()+".conf";
 							} else {
-								bindFilename = siteName+"_"+nb.getIPAddress().getInetAddress()+"_"+nb.getPort().getPort()+"_"+bindEscapedName+".conf";
+								bindFilename = siteName+"_"+nb.getIpAddress().getInetAddress()+"_"+nb.getPort().getPort()+"_"+bindEscapedName+".conf";
 							}
 						}
 						final UnixFile bindFile = new UnixFile(SITES_AVAILABLE, bindFilename);
@@ -563,7 +563,7 @@ public class HttpdServerManager {
 				// Iterate through each site
 				for(HttpdSite httpdSite : thisAoServer.getHttpdSites()) {
 					// Some values used below
-					final String siteName = httpdSite.getSiteName();
+					final String siteName = httpdSite.getName();
 					// Each of the binds
 					for(HttpdSiteBind bind : httpdSite.getHttpdSiteBinds()) {
 						// Some value used below
@@ -575,9 +575,9 @@ public class HttpdServerManager {
 						{
 							String bindEscapedName = bind.getSystemdEscapedName();
 							if(bindEscapedName == null) {
-								bindFilename = siteName+"_"+nb.getIPAddress().getInetAddress()+"_"+nb.getPort().getPort()+".conf";
+								bindFilename = siteName+"_"+nb.getIpAddress().getInetAddress()+"_"+nb.getPort().getPort()+".conf";
 							} else {
-								bindFilename = siteName+"_"+nb.getIPAddress().getInetAddress()+"_"+nb.getPort().getPort()+"_"+bindEscapedName+".conf";
+								bindFilename = siteName+"_"+nb.getIpAddress().getInetAddress()+"_"+nb.getPort().getPort()+"_"+bindEscapedName+".conf";
 							}
 						}
 						final String symlinkTarget = "../sites-available/" + bindFilename;
@@ -857,7 +857,7 @@ public class HttpdServerManager {
 
 					// Configure per-site PHP sessions for mod_php
 					if(!modPhpMajorVersions.isEmpty()) {
-						UnixFile varDir = new UnixFile(HttpdOperatingSystemConfiguration.CENTOS_7_X86_64.getHttpdSitesDirectory().toString() + "/" + httpdSite.getSiteName() + "/" + HttpdSiteManager.VAR);
+						UnixFile varDir = new UnixFile(HttpdOperatingSystemConfiguration.CENTOS_7_X86_64.getHttpdSitesDirectory().toString() + "/" + httpdSite.getName() + "/" + HttpdSiteManager.VAR);
 						UnixFile varPhpDir = new UnixFile(varDir, HttpdSiteManager.VAR_PHP, true);
 						UnixFile sessionDir = new UnixFile(varPhpDir, PHP_SESSION, true);
 						out.print("\n"
@@ -979,13 +979,13 @@ public class HttpdServerManager {
 								PackageManager.installPackage(PackageManager.PackageName.HTTPD_TOOLS);
 								out
 									.print(indent).print("    <IfModule authn_file_module>\n")
-									.print(indent).print("        AuthUserFile ").print(getEscapedPrefixReplacement(dollarVariable, hsal.getAuthUserFile().toString(), "/var/www/" + httpdSite.getSiteName() + "/", "/var/www/${site.name}/")).print('\n')
+									.print(indent).print("        AuthUserFile ").print(getEscapedPrefixReplacement(dollarVariable, hsal.getAuthUserFile().toString(), "/var/www/" + httpdSite.getName() + "/", "/var/www/${site.name}/")).print('\n')
 									.print(indent).print("    </IfModule>\n");
 							}
 							if(hsal.getAuthGroupFile() != null) {
 								out
 									.print(indent).print("    <IfModule authz_groupfile_module>\n")
-									.print(indent).print("        AuthGroupFile ").print(getEscapedPrefixReplacement(dollarVariable, hsal.getAuthGroupFile().toString(), "/var/www/" + httpdSite.getSiteName() + "/", "/var/www/${site.name}/")).print('\n')
+									.print(indent).print("        AuthGroupFile ").print(getEscapedPrefixReplacement(dollarVariable, hsal.getAuthGroupFile().toString(), "/var/www/" + httpdSite.getName() + "/", "/var/www/${site.name}/")).print('\n')
 									.print(indent).print("    </IfModule>\n");
 							}
 							if(hsal.getRequire().length()>0) {
@@ -1046,9 +1046,9 @@ public class HttpdServerManager {
 									+ "DocumentRoot ")
 								.print(CERTBOT_COMPAT
 									? escape(dollarVariable, docBase.toString())
-									: getEscapedPrefixReplacement(dollarVariable, docBase.toString(), "/var/www/" + httpdSite.getSiteName() + "/", "/var/www/${site.name}/"))
+									: getEscapedPrefixReplacement(dollarVariable, docBase.toString(), "/var/www/" + httpdSite.getName() + "/", "/var/www/${site.name}/"))
 								.print("\n"
-									+ "<Directory ").print(getEscapedPrefixReplacement(dollarVariable, docBase.toString(), "/var/www/" + httpdSite.getSiteName() + "/", "/var/www/${site.name}/")).print(">\n"
+									+ "<Directory ").print(getEscapedPrefixReplacement(dollarVariable, docBase.toString(), "/var/www/" + httpdSite.getName() + "/", "/var/www/${site.name}/")).print(">\n"
 									+ "    <IfModule authz_core_module>\n"
 									+ "        Require all granted\n"
 									+ "    </IfModule>\n"
@@ -1105,7 +1105,7 @@ public class HttpdServerManager {
 									+ "</Directory>\n");
 							if(settings.enableCgi()) {
 								if(!manager.enableCgi()) throw new SQLException("Unable to enable webapp CGI when site has CGI disabled");
-								out.print("<Directory ").print(getEscapedPrefixReplacement(dollarVariable, docBase.toString() + "/cgi-bin", "/var/www/" + httpdSite.getSiteName() + "/", "/var/www/${site.name}/")).print(">\n"
+								out.print("<Directory ").print(getEscapedPrefixReplacement(dollarVariable, docBase.toString() + "/cgi-bin", "/var/www/" + httpdSite.getName() + "/", "/var/www/${site.name}/")).print(">\n"
 										+ "    <IfModule ssl_module>\n"
 										+ "        SSLOptions +StdEnvVars\n"
 										+ "    </IfModule>\n"
@@ -1118,8 +1118,8 @@ public class HttpdServerManager {
 							out.print("\n"
 									+ "# Set up the ").print(path).print(" webapp\n"
 									+ "<IfModule alias_module>\n"
-									+ "    Alias ").print(escape(dollarVariable, path)).print(' ').print(getEscapedPrefixReplacement(dollarVariable, docBase.toString(), "/var/www/" + httpdSite.getSiteName() + "/", "/var/www/${site.name}/")).print("\n"
-									+ "    <Directory ").print(getEscapedPrefixReplacement(dollarVariable, docBase.toString(), "/var/www/" + httpdSite.getSiteName() + "/", "/var/www/${site.name}/")).print(">\n"
+									+ "    Alias ").print(escape(dollarVariable, path)).print(' ').print(getEscapedPrefixReplacement(dollarVariable, docBase.toString(), "/var/www/" + httpdSite.getName() + "/", "/var/www/${site.name}/")).print("\n"
+									+ "    <Directory ").print(getEscapedPrefixReplacement(dollarVariable, docBase.toString(), "/var/www/" + httpdSite.getName() + "/", "/var/www/${site.name}/")).print(">\n"
 									+ "        <IfModule authz_core_module>\n"
 									+ "            Require all granted\n"
 									+ "        </IfModule>\n"
@@ -1272,7 +1272,7 @@ public class HttpdServerManager {
 			}
 			if(hs.getName() == null) {
 				for(HttpdBind hb : hs.getHttpdBinds()) {
-					InetAddress ia = hb.getNetBind().getIPAddress().getInetAddress();
+					InetAddress ia = hb.getNetBind().getIpAddress().getInetAddress();
 					if(!ia.isLoopback() && !ia.isUnspecified()) {
 						hasSpecificAddress = true;
 						break;
@@ -1738,7 +1738,7 @@ public class HttpdServerManager {
 			// List of binds
 			for(HttpdBind hb : hs.getHttpdBinds()) {
 				NetBind nb=hb.getNetBind();
-				InetAddress ip=nb.getIPAddress().getInetAddress();
+				InetAddress ip=nb.getIpAddress().getInetAddress();
 				int port=nb.getPort().getPort();
 				out.print("Listen ").print(escape(dollarVariable, ip.toBracketedString() + ":" + port)).print("\n"
 						+ "NameVirtualHost ").print(escape(dollarVariable, ip.toBracketedString() + ":" + port)).print('\n');
@@ -1749,18 +1749,18 @@ public class HttpdServerManager {
 				boolean listFirst=d==0;
 				out.print('\n');
 				for(HttpdSite site : sites) {
-					if(site.listFirst()==listFirst) {
+					if(site.getListFirst()==listFirst) {
 						for(HttpdSiteBind bind : site.getHttpdSiteBinds(hs)) {
 							NetBind nb=bind.getHttpdBind().getNetBind();
-							InetAddress ipAddress=nb.getIPAddress().getInetAddress();
+							InetAddress ipAddress=nb.getIpAddress().getInetAddress();
 							int port=nb.getPort().getPort();
 							String includeFilename;
 							{
 								String bindEscapedName = bind.getSystemdEscapedName();
 								if(bindEscapedName == null) {
-									includeFilename = "conf/hosts/" + site.getSiteName()+"_"+ipAddress+"_"+port;
+									includeFilename = "conf/hosts/" + site.getName()+"_"+ipAddress+"_"+port;
 								} else {
-									includeFilename = "conf/hosts/" + site.getSiteName()+"_"+ipAddress+"_"+port+"_"+bindEscapedName;
+									includeFilename = "conf/hosts/" + site.getName()+"_"+ipAddress+"_"+port+"_"+bindEscapedName;
 								}
 							}
 							out.print("Include ").print(escape(dollarVariable, includeFilename)).print('\n');
@@ -2527,7 +2527,7 @@ public class HttpdServerManager {
 					+ "#\n");
 			for(HttpdBind hb : hs.getHttpdBinds()) {
 				NetBind nb=hb.getNetBind();
-				InetAddress ip=nb.getIPAddress().getInetAddress();
+				InetAddress ip=nb.getIpAddress().getInetAddress();
 				int port = nb.getPort().getPort();
 				out.print("Listen ").print(escape(dollarVariable, ip.toBracketedString() + ":" + port));
 				String appProtocol = nb.getAppProtocol().getProtocol();
@@ -2548,18 +2548,18 @@ public class HttpdServerManager {
 			for(int d = 0; d < 2; d++) {
 				boolean listFirst = (d == 0);
 				for(HttpdSite site : sites) {
-					if(site.listFirst() == listFirst) {
+					if(site.getListFirst() == listFirst) {
 						for(HttpdSiteBind bind : site.getHttpdSiteBinds(hs)) {
 							NetBind nb = bind.getHttpdBind().getNetBind();
-							InetAddress ipAddress = nb.getIPAddress().getInetAddress();
+							InetAddress ipAddress = nb.getIpAddress().getInetAddress();
 							int port=nb.getPort().getPort();
 							String includeFilename;
 							{
 								String bindEscapedName = bind.getSystemdEscapedName();
 								if(bindEscapedName == null) {
-									includeFilename = "sites-enabled/" + site.getSiteName()+"_"+ipAddress+"_"+port + ".conf";
+									includeFilename = "sites-enabled/" + site.getName()+"_"+ipAddress+"_"+port + ".conf";
 								} else {
-									includeFilename = "sites-enabled/" + site.getSiteName()+"_"+ipAddress+"_"+port+"_"+bindEscapedName + ".conf";
+									includeFilename = "sites-enabled/" + site.getName()+"_"+ipAddress+"_"+port+"_"+bindEscapedName + ".conf";
 								}
 							}
 							out.print("Include ").print(escape(dollarVariable, includeFilename)).print('\n');
@@ -2603,7 +2603,7 @@ public class HttpdServerManager {
 			// Does not have any enabled site
 			return false;
 		}
-		HttpdTomcatSite hts = worker.getHttpdTomcatSite();
+		HttpdTomcatSite hts = worker.getTomcatSite();
 		if(hts != null) return !hts.getHttpdSite().isDisabled();
 		throw new SQLException("worker is attached to neither HttpdSharedTomcat nor HttpdTomcatSite: " + worker);
 	}
@@ -2622,14 +2622,14 @@ public class HttpdServerManager {
 				if(isWorkerEnabled(worker)) {
 					if(didOne) out.print(',');
 					else didOne = true;
-					out.print(worker.getCode().getCode());
+					out.print(worker.getName().getCode());
 				}
 			}
 			out.print('\n');
 			for(HttpdWorker worker : workers) {
 				if(isWorkerEnabled(worker)) {
-					String code = worker.getCode().getCode();
-					Port port = worker.getNetBind().getPort();
+					String code = worker.getName().getCode();
+					Port port = worker.getBind().getPort();
 					out.print("\n"
 							+ "worker.").print(code).print(".type=").print(worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol()).print("\n"
 							+ "worker.").print(code).print(".host=127.0.0.1\n" // For use IPv4 on CentOS 7
@@ -2671,11 +2671,11 @@ public class HttpdServerManager {
 	 */
 	private static byte[] buildHttpdSiteBindFile(HttpdSiteManager manager, HttpdSiteBind bind, String siteInclude, ByteArrayOutputStream bout) throws IOException, SQLException {
 		OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
-		OperatingSystemVersion osv = manager.httpdSite.getAOServer().getServer().getOperatingSystemVersion();
+		OperatingSystemVersion osv = manager.httpdSite.getAoServer().getServer().getOperatingSystemVersion();
 		HttpdBind httpdBind = bind.getHttpdBind();
 		NetBind netBind = httpdBind.getNetBind();
 		int port = netBind.getPort().getPort();
-		InetAddress ipAddress = netBind.getIPAddress().getInetAddress();
+		InetAddress ipAddress = netBind.getIpAddress().getInetAddress();
 		HttpdSiteURL primaryHSU = bind.getPrimaryHttpdSiteURL();
 		String primaryHostname = primaryHSU.getHostname().toString();
 
@@ -2831,7 +2831,7 @@ public class HttpdServerManager {
 							throw new SQLException("Unsupported protocol: " + appProtocol);
 						}
 					}
-					final String siteName = manager.httpdSite.getSiteName();
+					final String siteName = manager.httpdSite.getName();
 					final String ipString = ipAddress.toBracketedString();
 					out.print("Define bind.pkey             ").print(bind.getPkey()).print("\n"
 							+ "Define bind.protocol         ").print(escape(dollarVariable, protocol)).print("\n"

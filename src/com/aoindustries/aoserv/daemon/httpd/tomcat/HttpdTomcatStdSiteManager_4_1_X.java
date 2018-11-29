@@ -318,7 +318,7 @@ class HttpdTomcatStdSiteManager_4_1_X extends HttpdTomcatStdSiteManager<TomcatCo
 					//+ "      useURIValidationHack=\"false\"\n"
 					//+ "      protocolHandlerClassName=\"org.apache.jk.server.JkCoyoteHandler\"\n"
 					+ "      className=\"org.apache.ajp.tomcat4.Ajp13Connector\"\n"
-					+ "      port=\"").encodeXmlAttribute(hw.getNetBind().getPort().getPort()).print("\"\n"
+					+ "      port=\"").encodeXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
 					+ "      minProcessors=\"2\"\n"
 					+ "      maxProcessors=\"200\"\n"
 					+ "      address=\"").encodeXmlAttribute(IPAddress.LOOPBACK_IP).print("\"\n"

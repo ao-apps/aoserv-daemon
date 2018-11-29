@@ -88,7 +88,7 @@ final public class SshdManager extends BuilderThread {
 		} else {
 			for(NetBind nb : nbs) {
 				out.print("ListenAddress ");
-				InetAddress ip = nb.getIPAddress().getInetAddress();
+				InetAddress ip = nb.getIpAddress().getInetAddress();
 				AddressFamily addressFamily = ip.getAddressFamily();
 				switch(addressFamily) {
 					case INET :
@@ -190,7 +190,7 @@ final public class SshdManager extends BuilderThread {
 			boolean hasIPv6 = false;
 			LOOP :
 			for(NetBind nb : nbs) {
-				InetAddress ip = nb.getIPAddress().getInetAddress();
+				InetAddress ip = nb.getIpAddress().getInetAddress();
 				AddressFamily addressFamily = ip.getAddressFamily();
 				switch(addressFamily) {
 					case INET :
@@ -373,7 +373,7 @@ final public class SshdManager extends BuilderThread {
 									throw new IOException("Unsupported protocol for SSH: " + netProtocol);
 								}
 								nbs.add(nb);
-								InetAddress ia = nb.getIPAddress().getInetAddress();
+								InetAddress ia = nb.getIpAddress().getInetAddress();
 								if(!ia.isLoopback() && !ia.isUnspecified()) hasSpecificAddress = true;
 							}
 						}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2014, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2014, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -269,7 +269,7 @@ final public class DNSManager extends BuilderThread {
 								Map<Integer,Set<InetAddress>> alreadyAddedIPs = new HashMap<>();
 								for(NetBind nb : netBinds) {
 									int port = nb.getPort().getPort();
-									InetAddress ip = nb.getIPAddress().getInetAddress();
+									InetAddress ip = nb.getIpAddress().getInetAddress();
 									Set<InetAddress> ips = alreadyAddedIPs.get(port);
 									if(ips==null) alreadyAddedIPs.put(port, ips = new HashSet<>());
 									if(ips.add(ip)) {
@@ -317,7 +317,7 @@ final public class DNSManager extends BuilderThread {
 								Map<Integer,Set<InetAddress>> ipsPerPortV6 = new HashMap<>();
 								for(NetBind nb : netBinds) {
 									int port = nb.getPort().getPort();
-									InetAddress ip = nb.getIPAddress().getInetAddress();
+									InetAddress ip = nb.getIpAddress().getInetAddress();
 									Map<Integer,Set<InetAddress>> ipsPerPort;
 									switch(ip.getAddressFamily()) {
 										case INET :

@@ -146,7 +146,7 @@ class HttpdLogManager {
 				int lsgGID = httpdSite.getLinuxServerGroup().getGid().getId();
 
 				// Create the /logs/<site_name> or /var/log/httpd-sites/<site_name> directory
-				String siteName = httpdSite.getSiteName();
+				String siteName = httpdSite.getName();
 				UnixFile logDirectory = new UnixFile(logDirUF, siteName, true);
 				Stat logStat = logDirectory.getStat();
 				if(!logStat.exists()) {
@@ -286,7 +286,7 @@ class HttpdLogManager {
 
 				// Write to disk if file missing or doesn't match
 				DaemonFileUtils.atomicWrite(
-					new UnixFile(siteLogRotationDir, site.getSiteName()),
+					new UnixFile(siteLogRotationDir, site.getName()),
 					byteOut.toByteArray(),
 					0640,
 					UnixFile.ROOT_UID,
@@ -296,7 +296,7 @@ class HttpdLogManager {
 				);
 
 				// Make sure the newly created or replaced log rotation file is not removed
-				logRotationFiles.remove(site.getSiteName());
+				logRotationFiles.remove(site.getName());
 			}
 		}
 

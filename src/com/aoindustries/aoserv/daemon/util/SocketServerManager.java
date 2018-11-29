@@ -73,7 +73,7 @@ abstract public class SocketServerManager {
 			}
 
 			for(NetBind nb : nbs) {
-				InetAddress nbIP = nb.getIPAddress().getInetAddress();
+				InetAddress nbIP = nb.getIpAddress().getInetAddress();
 				if(
 					!nbIP.isLoopback()
 					&& !nbIP.isUnspecified()

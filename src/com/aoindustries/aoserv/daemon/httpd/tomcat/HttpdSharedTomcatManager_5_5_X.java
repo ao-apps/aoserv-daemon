@@ -301,7 +301,7 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 				if(!hs.isDisabled()) {
 					if(didOne) out.print(' ');
 					else didOne=true;
-					out.print(hs.getSiteName());
+					out.print(hs.getName());
 				}
 			}
 			out.print("\"\n");
@@ -391,7 +391,7 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 						//+ "      connectionTimeout=\"20000\"\n"
 						//+ "      useURIValidationHack=\"false\"\n"
 						//+ "      protocolHandlerClassName=\"org.apache.jk.server.JkCoyoteHandler\"\n"
-						+ "      port=\"").encodeXmlAttribute(hw.getNetBind().getPort().getPort()).print("\"\n"
+						+ "      port=\"").encodeXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
 						+ "      enableLookups=\"false\"\n"
 						+ "      minProcessors=\"2\"\n"
 						+ "      maxProcessors=\"200\"\n"
@@ -411,7 +411,7 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 						out.print("      <Host\n"
 								+ "        name=\"").encodeXmlAttribute(primaryHostname).print("\"\n"
 								+ "        debug=\"0\"\n"
-								+ "        appBase=\"").encodeXmlAttribute(wwwDirectory).print('/').encodeXmlAttribute(hs.getSiteName()).print("/webapps\"\n"
+								+ "        appBase=\"").encodeXmlAttribute(wwwDirectory).print('/').encodeXmlAttribute(hs.getName()).print("/webapps\"\n"
 								+ "        unpackWARs=\"").encodeXmlAttribute(sharedTomcat.getUnpackWARs()).print("\"\n"
 								+ "        autoDeploy=\"").encodeXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n"
 								+ "        xmlValidation=\"false\"\n"
@@ -430,8 +430,8 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 								}
 							}
 							// When listed first, also include the IP addresses as aliases
-							if(hs.listFirst()) {
-								String ip=bind.getHttpdBind().getNetBind().getIPAddress().getInetAddress().toString();
+							if(hs.getListFirst()) {
+								String ip=bind.getHttpdBind().getNetBind().getIpAddress().getInetAddress().toString();
 								if(!usedHostnames.contains(ip)) {
 									out.print("        <Alias>").encodeXhtml(ip).print("</Alias>\n");
 									usedHostnames.add(ip);

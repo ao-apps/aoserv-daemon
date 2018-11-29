@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2014, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2014, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -68,7 +68,7 @@ final public class PostgresUserManager extends BuilderThread {
 			AOServConnector connector = AOServDaemon.getConnector();
 			synchronized (rebuildLock) {
 				for (PostgresServer ps : thisAOServer.getPostgresServers()) {
-					String version=ps.getPostgresVersion().getTechnologyVersion(connector).getVersion();
+					String version=ps.getVersion().getTechnologyVersion(connector).getVersion();
 
 					// Get the connection to work through
 					AOConnectionPool pool=PostgresServerManager.getPool(ps);
@@ -282,7 +282,7 @@ final public class PostgresUserManager extends BuilderThread {
 
 	public static String getPassword(PostgresServerUser psu) throws IOException, SQLException {
 		PostgresServer ps=psu.getPostgresServer();
-		String version=ps.getPostgresVersion().getTechnologyVersion(AOServDaemon.getConnector()).getVersion();
+		String version=ps.getVersion().getTechnologyVersion(AOServDaemon.getConnector()).getVersion();
 		AOConnectionPool pool=PostgresServerManager.getPool(ps);
 		Connection conn=pool.getConnection(true);
 		try {
@@ -318,7 +318,7 @@ final public class PostgresUserManager extends BuilderThread {
 		AOConnectionPool pool=PostgresServerManager.getPool(ps);
 		Connection conn = pool.getConnection(false);
 		try {
-			String version=ps.getPostgresVersion().getTechnologyVersion(aoservConn).getVersion();
+			String version=ps.getVersion().getTechnologyVersion(aoservConn).getVersion();
 			if(version.startsWith(PostgresVersion.VERSION_7_1+'.')) {
 				if(ObjectUtils.equals(password, PostgresUser.NO_PASSWORD)) {
 					// Remove the password

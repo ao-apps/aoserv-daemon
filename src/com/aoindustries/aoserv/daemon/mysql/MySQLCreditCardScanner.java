@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2017 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -109,7 +109,7 @@ final public class MySQLCreditCardScanner implements CronJob {
 					// Get connection to the database
 					Class.forName(AOServDaemonConfiguration.getMySqlDriver()).newInstance();
 					try (Connection conn = DriverManager.getConnection(
-						"jdbc:mysql://"+thisAOServer.getPrimaryIPAddress().getInetAddress().toBracketedString()+":"+database.getMySQLServer().getNetBind().getPort().getPort()+"/"+name,
+						"jdbc:mysql://"+thisAOServer.getPrimaryIPAddress().getInetAddress().toBracketedString()+":"+database.getMySQLServer().getBind().getPort().getPort()+"/"+name,
 						AOServDaemonConfiguration.getMySqlUser(),
 						AOServDaemonConfiguration.getMySqlPassword()
 					)) {

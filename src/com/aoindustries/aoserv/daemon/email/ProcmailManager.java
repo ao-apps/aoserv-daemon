@@ -128,7 +128,7 @@ public final class ProcmailManager extends BuilderThread {
 								spamcConnectAddress = null;
 								spamcConnectPort = null;
 							} else {
-								spamcConnectAddress = spamdBind.getIPAddress().getInetAddress();
+								spamcConnectAddress = spamdBind.getIpAddress().getInetAddress();
 								spamcConnectPort = spamdBind.getPort();
 								if(spamcConnectAddress.isUnspecified()) {
 									// Connect to primary IP when is unspecified

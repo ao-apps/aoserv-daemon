@@ -140,9 +140,11 @@ public class LinuxAccountManager extends BuilderThread {
 			&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
-		int uid_min = thisAoServer.getUidMin().getId();
-		int gid_min = thisAoServer.getGidMin().getId();
-		if(logger.isLoggable(Level.FINER)) logger.finer("uid_min=" + uid_min + ", gid_min=" + gid_min);
+		int uidMin = thisAoServer.getUidMin().getId();
+		int uidMax = thisAoServer.getUidMax().getId();
+		int gidMin = thisAoServer.getGidMin().getId();
+		int gidMax = thisAoServer.getGidMax().getId();
+		if(logger.isLoggable(Level.FINER)) logger.finer("uidMin=" + uidMin + ", uidMax=" + uidMax + ", gidMin=" + gidMin + ", gidMax=" + gidMax);
 
 		synchronized(rebuildLock) {
 			// Get the lists from the database
@@ -175,8 +177,8 @@ public class LinuxAccountManager extends BuilderThread {
 						for(GroupFile.Entry entry : groupFile.values()) {
 							GroupId groupName = entry.getGroupName();
 							if(
-								entry.getGid() < gid_min
-								|| entry.getGid() > 60000 // TODO: Get from linux_server_accounts.gid_max: LinuxGroup.GID_MAX
+								entry.getGid() < gidMin
+								|| entry.getGid() > gidMax
 								|| groupName.equals(LinuxGroup.AOADMIN)
 							) {
 								boolean found = false;
@@ -208,8 +210,8 @@ public class LinuxAccountManager extends BuilderThread {
 						for(PasswdFile.Entry entry : passwdFile.values()) {
 							UserId username = entry.getUsername();
 							if(
-								entry.getUid() < uid_min
-								|| entry.getUid() > 60000 // TODO: Get from linux_server_accounts.uid_max: LinuxAccount.UID_MAX
+								entry.getUid() < uidMin
+								|| entry.getUid() > uidMax
 								|| username.equals(LinuxAccount.AOADMIN)
 							) {
 								boolean found = false;
@@ -379,9 +381,9 @@ public class LinuxAccountManager extends BuilderThread {
 							synchronized(GroupFile.groupLock) {
 								synchronized(GShadowFile.gshadowLock) {
 									// Build new file contents
-									byte[] newPasswdContent  = PasswdFile .buildPasswdFile (passwdEntries, uid_min);
+									byte[] newPasswdContent  = PasswdFile .buildPasswdFile (passwdEntries, uidMin, uidMax);
 									byte[] newShadowContent  = ShadowFile .buildShadowFile (usernames);
-									byte[] newGroupContent   = GroupFile  .buildGroupFile  (groupEntries, gid_min);
+									byte[] newGroupContent   = GroupFile  .buildGroupFile  (groupEntries, gidMin, gidMax);
 									byte[] newGShadowContent = GShadowFile.buildGShadowFile(groups);
 									// Write any updates
 									PasswdFile .writePasswdFile (newPasswdContent,  restorecon);
@@ -417,8 +419,8 @@ public class LinuxAccountManager extends BuilderThread {
 									mailGroup.getGid().getId(),
 									0660,
 									false,
-									uid_min,
-									gid_min
+									uidMin,
+									gidMin
 								).close();
 							}
 						}

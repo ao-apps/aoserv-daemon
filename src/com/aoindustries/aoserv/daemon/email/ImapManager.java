@@ -266,7 +266,7 @@ final public class ImapManager extends BuilderThread {
 		for(CyrusImapdBind cib : cyrusServer.getCyrusImapdBinds()) {
 			NetBind nb = cib.getNetBind();
 			if(nb.getAppProtocol().getProtocol().equals(Protocol.IMAP2)) {
-				InetAddress ip = nb.getIPAddress().getInetAddress();
+				InetAddress ip = nb.getIpAddress().getInetAddress();
 				boolean tls;
 				{
 					Boolean allowPlaintextAuth = cib.getAllowPlaintextAuth();
@@ -673,7 +673,7 @@ final public class ImapManager extends BuilderThread {
 												String serviceName = generateServiceName("imap", "imapd", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
-												InetAddress ia = imapBind.getIPAddress().getInetAddress();
+												InetAddress ia = imapBind.getIpAddress().getInetAddress();
 												out
 													.print("\tcmd=\"imapd\" listen=\"[")
 													.print(ia.toString())
@@ -705,7 +705,7 @@ final public class ImapManager extends BuilderThread {
 												String serviceName = generateServiceName("imaps", "imaps", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
-												InetAddress ia = imapsBind.getIPAddress().getInetAddress();
+												InetAddress ia = imapsBind.getIpAddress().getInetAddress();
 												out
 													.print("\tcmd=\"imapd -s\" listen=\"[")
 													.print(ia.toString())
@@ -736,7 +736,7 @@ final public class ImapManager extends BuilderThread {
 												String serviceName = generateServiceName("pop3", "pop3d", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
-												InetAddress ia = pop3Bind.getIPAddress().getInetAddress();
+												InetAddress ia = pop3Bind.getIpAddress().getInetAddress();
 												out
 													.print("\tcmd=\"pop3d\" listen=\"[")
 													.print(ia.toString())
@@ -768,7 +768,7 @@ final public class ImapManager extends BuilderThread {
 												String serviceName = generateServiceName("pop3s", "pop3s", counter++);
 												out.print("  ").print(serviceName);
 												if(serviceName.length() < 6) out.print('\t');
-												InetAddress ia = pop3sBind.getIPAddress().getInetAddress();
+												InetAddress ia = pop3sBind.getIpAddress().getInetAddress();
 												out
 													.print("\tcmd=\"pop3d -s\" listen=\"[")
 													.print(ia.toString())
@@ -793,7 +793,7 @@ final public class ImapManager extends BuilderThread {
 											String serviceName = "sieve";
 											out.print("  ").print(serviceName);
 											if(serviceName.length() < 6) out.print('\t');
-											InetAddress ia = sieveBind.getIPAddress().getInetAddress();
+											InetAddress ia = sieveBind.getIpAddress().getInetAddress();
 											out
 												.print("\tcmd=\"timsieved\" listen=\"[")
 												.print(ia.toString())
@@ -975,7 +975,7 @@ final public class ImapManager extends BuilderThread {
 										String serviceName = entry.getKey();
 										CyrusImapdBind cib = entry.getValue();
 										NetBind netBind = cib.getNetBind();
-										InetAddress ipAddress = netBind.getIPAddress().getInetAddress();
+										InetAddress ipAddress = netBind.getIpAddress().getInetAddress();
 										int port = netBind.getPort().getPort();
 										String protocol;
 										String appProtocol = netBind.getAppProtocol().getProtocol();

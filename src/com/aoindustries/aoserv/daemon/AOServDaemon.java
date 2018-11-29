@@ -253,7 +253,7 @@ final public class AOServDaemon {
 				NetBind bind = getThisAOServer().getDaemonBind();
 				if(bind != null) {
 					AOServDaemonServer server = new AOServDaemonServer(
-						bind.getIPAddress().getInetAddress(),
+						bind.getIpAddress().getInetAddress(),
 						bind.getPort().getPort(),
 						bind.getAppProtocol().getProtocol()
 					);

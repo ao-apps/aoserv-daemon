@@ -119,7 +119,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 				+ "\n"
 				+ "  <Service name=\"Catalina\">\n"
 				+ "    <Connector\n"
-				+ "      port=\"").encodeXmlAttribute(hw.getNetBind().getPort().getPort()).print("\"\n"
+				+ "      port=\"").encodeXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
 				+ "      address=\"").encodeXmlAttribute(IPAddress.LOOPBACK_IP).print("\"\n"
 				+ "      maxPostSize=\"").encodeXmlAttribute(sharedTomcat.getMaxPostSize()).print("\"\n"
 				+ "      protocol=\"AJP/1.3\"\n"
@@ -133,7 +133,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		for(boolean listFirst : new boolean[] {true, false}) {
 			for (HttpdTomcatSharedSite site : sites) {
 				HttpdSite hs = site.getHttpdTomcatSite().getHttpdSite();
-				if(hs.listFirst() == listFirst && !hs.isDisabled()) {
+				if(hs.getListFirst() == listFirst && !hs.isDisabled()) {
 					defaultHostPrimaryHostname = hs.getPrimaryHttpdSiteURL().getHostname().toLowerCase();
 					break FIND_FIRST;
 				}
@@ -153,12 +153,12 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		for(boolean listFirst : new boolean[] {true, false}) {
 			for (HttpdTomcatSharedSite site : sites) {
 				HttpdSite hs = site.getHttpdTomcatSite().getHttpdSite();
-				if(hs.listFirst() == listFirst && !hs.isDisabled()) {
+				if(hs.getListFirst() == listFirst && !hs.isDisabled()) {
 					String primaryHostname = hs.getPrimaryHttpdSiteURL().getHostname().toLowerCase();
 					out.print("\n"
 							+ "      <Host\n"
 							+ "        name=\"").encodeXmlAttribute(primaryHostname).print("\"\n"
-							+ "        appBase=\"").encodeXmlAttribute(wwwDirectory).print('/').encodeXmlAttribute(hs.getSiteName()).print("/webapps\"\n"
+							+ "        appBase=\"").encodeXmlAttribute(wwwDirectory).print('/').encodeXmlAttribute(hs.getName()).print("/webapps\"\n"
 							+ "        unpackWARs=\"").encodeXmlAttribute(sharedTomcat.getUnpackWARs()).print("\"\n"
 							+ "        autoDeploy=\"").encodeXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n"
 							+ "      >\n");
@@ -174,8 +174,8 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 							}
 						}
 						// When listed first, also include the IP addresses as aliases
-						if(hs.listFirst()) {
-							String ip = bind.getHttpdBind().getNetBind().getIPAddress().getInetAddress().toString();
+						if(hs.getListFirst()) {
+							String ip = bind.getHttpdBind().getNetBind().getIpAddress().getInetAddress().toString();
 							if(!usedHostnames.contains(ip)) {
 								out.print("        <Alias>").encodeXhtml(ip).print("</Alias>\n");
 								usedHostnames.add(ip);
@@ -311,7 +311,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 				if(!hs.isDisabled()) {
 					if(didOne) out.print(' ');
 					else didOne = true;
-					out.print(hs.getSiteName());
+					out.print(hs.getName());
 				}
 			}
 			out.print("\"\n"

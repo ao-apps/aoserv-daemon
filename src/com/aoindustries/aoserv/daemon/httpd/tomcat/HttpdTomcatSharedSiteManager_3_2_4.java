@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2015, 2017 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2015, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -40,7 +40,7 @@ class HttpdTomcatSharedSiteManager_3_2_4 extends HttpdTomcatSharedSiteManager_3_
 
 	@Override
 	protected byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException {
-		final String siteName = httpdSite.getSiteName();
+		final String siteName = httpdSite.getName();
 		final String siteDir = siteDirectory.getPath();
 		AOServConnector conn = AOServDaemon.getConnector();
 		final HttpdTomcatVersion htv = tomcatSite.getHttpdTomcatVersion();
@@ -74,7 +74,7 @@ class HttpdTomcatSharedSiteManager_3_2_4 extends HttpdTomcatSharedSiteManager_3_
 					+ "    <ContextInterceptor className=\"org.apache.tomcat.context.LoadOnStartupInterceptor\" />\n");
 
 			for(HttpdWorker worker : tomcatSite.getHttpdWorkers()) {
-				NetBind netBind=worker.getNetBind();
+				NetBind netBind=worker.getBind();
 				String protocol=worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
 
 				out.print("    <Connector className=\"org.apache.tomcat.service.PoolTcpConnector\">\n"
@@ -91,7 +91,7 @@ class HttpdTomcatSharedSiteManager_3_2_4 extends HttpdTomcatSharedSiteManager_3_
 				}
 				out.print("\"/>\n"
 						+ "      <Parameter name=\"port\" value=\"").encodeXmlAttribute(netBind.getPort().getPort()).print("\"/>\n");
-				InetAddress ip=netBind.getIPAddress().getInetAddress();
+				InetAddress ip=netBind.getIpAddress().getInetAddress();
 				if(!ip.isUnspecified()) out.print("      <Parameter name=\"inet\" value=\"").encodeXmlAttribute(ip).print("\"/>\n");
 				out.print("      <Parameter name=\"max_threads\" value=\"30\"/>\n"
 						+ "      <Parameter name=\"max_spare_threads\" value=\"10\"/>\n"

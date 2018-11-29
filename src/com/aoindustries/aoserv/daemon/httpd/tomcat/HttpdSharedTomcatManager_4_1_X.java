@@ -289,7 +289,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 				if(!hs.isDisabled()) {
 					if(didOne) out.print(' ');
 					else didOne=true;
-					out.print(hs.getSiteName());
+					out.print(hs.getName());
 				}
 			}
 			out.print("\"\n");
@@ -386,7 +386,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 						//+ "      useURIValidationHack=\"false\"\n"
 						//+ "      protocolHandlerClassName=\"org.apache.jk.server.JkCoyoteHandler\"\n"
 						+ "      className=\"org.apache.ajp.tomcat4.Ajp13Connector\"\n"
-						+ "      port=\"").encodeXmlAttribute(hw.getNetBind().getPort().getPort()).print("\"\n"
+						+ "      port=\"").encodeXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
 						+ "      minProcessors=\"2\"\n"
 						+ "      maxProcessors=\"200\"\n"
 						+ "      address=\"").encodeXmlAttribute(IPAddress.LOOPBACK_IP).print("\"\n"
@@ -411,7 +411,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 						out.print("      <Host\n"
 								+ "        name=\"").encodeXmlAttribute(primaryHostname).print("\"\n"
 								+ "        debug=\"0\"\n"
-								+ "        appBase=\"").encodeXmlAttribute(wwwDirectory).print('/').encodeXmlAttribute(hs.getSiteName()).print("/webapps\"\n"
+								+ "        appBase=\"").encodeXmlAttribute(wwwDirectory).print('/').encodeXmlAttribute(hs.getName()).print("/webapps\"\n"
 								+ "        unpackWARs=\"").encodeXmlAttribute(sharedTomcat.getUnpackWARs()).print("\"\n");
 						out.print("        autoDeploy=\"").encodeXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n");
 						out.print("      >\n");
@@ -428,8 +428,8 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 								}
 							}
 							// When listed first, also include the IP addresses as aliases
-							if(hs.listFirst()) {
-								String ip=bind.getHttpdBind().getNetBind().getIPAddress().getInetAddress().toString();
+							if(hs.getListFirst()) {
+								String ip=bind.getHttpdBind().getNetBind().getIpAddress().getInetAddress().toString();
 								if(!usedHostnames.contains(ip)) {
 									out.print("        <Alias>").encodeXhtml(ip).print("</Alias>\n");
 									usedHostnames.add(ip);
@@ -438,7 +438,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 						}
 						out.print("        <Logger\n"
 								+ "          className=\"org.apache.catalina.logger.FileLogger\"\n"
-								+ "          directory=\"").encodeXmlAttribute(wwwDirectory).print('/').encodeXmlAttribute(hs.getSiteName()).print("/var/log\"\n"
+								+ "          directory=\"").encodeXmlAttribute(wwwDirectory).print('/').encodeXmlAttribute(hs.getName()).print("/var/log\"\n"
 								+ "          prefix=\"").encodeXmlAttribute(primaryHostname).print("_log.\"\n"
 								+ "          suffix=\".txt\"\n"
 								+ "          timestamp=\"true\"\n"

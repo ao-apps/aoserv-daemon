@@ -157,7 +157,7 @@ public abstract class HttpdSiteManager {
 				usedPackages.addAll(requiredPackages);
 
 				// Create and fill in any incomplete installations.
-				final String siteName = httpdSite.getSiteName();
+				final String siteName = httpdSite.getName();
 				UnixFile siteDirectory = new UnixFile(wwwDirectory, siteName, false);
 				manager.buildSiteDirectory(
 					siteDirectory,
@@ -308,7 +308,7 @@ public abstract class HttpdSiteManager {
 
 		HttpdSite httpdSite=conn.getHttpdSites().get(sitePKey);
 		AOServer thisAOServer = AOServDaemon.getThisAOServer();
-		if(!httpdSite.getAOServer().equals(thisAOServer)) return "HttpdSite #"+sitePKey+" has server of "+httpdSite.getAOServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')';
+		if(!httpdSite.getAoServer().equals(thisAOServer)) return "HttpdSite #"+sitePKey+" has server of "+httpdSite.getAoServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')';
 
 		HttpdSiteManager manager = getInstance(httpdSite);
 		if(manager instanceof StopStartable) {
@@ -343,7 +343,7 @@ public abstract class HttpdSiteManager {
 
 		HttpdSite httpdSite=conn.getHttpdSites().get(sitePKey);
 		AOServer thisAOServer = AOServDaemon.getThisAOServer();
-		if(!httpdSite.getAOServer().equals(thisAOServer)) return "HttpdSite #"+sitePKey+" has server of "+httpdSite.getAOServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')';
+		if(!httpdSite.getAoServer().equals(thisAOServer)) return "HttpdSite #"+sitePKey+" has server of "+httpdSite.getAoServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')';
 
 		HttpdSiteManager manager = getInstance(httpdSite);
 		if(manager instanceof StopStartable) {
@@ -379,7 +379,7 @@ public abstract class HttpdSiteManager {
 			+ "\n"
 			+ "  Control Panel: https://www.aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey="+httpdSite.getPkey()+"\n"
 			+ "\n"
-			+ "  AOSH: "+AOSHCommand.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getSiteName()+" "+httpdSite.getAOServer().getHostname()+" true\n"
+			+ "  AOSH: "+AOSHCommand.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getName()+" "+httpdSite.getAoServer().getHostname()+" true\n"
 			+ "\n"
 			+ "  support@aoindustries.com\n"
 			+ "  (205) 454-2556\n"
@@ -401,7 +401,7 @@ public abstract class HttpdSiteManager {
 			+ "\n"
 			+ "  Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey="+httpdSite.getPkey()+"\n"
 			+ "\n"
-			+ "  AOSH: "+AOSHCommand.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getSiteName()+" "+httpdSite.getAOServer().getHostname()+" true\n"
+			+ "  AOSH: "+AOSHCommand.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getName()+" "+httpdSite.getAoServer().getHostname()+" true\n"
 			+ "\n"
 			+ "  support@aoindustries.com\n"
 			+ "  (205) 454-2556\n"
@@ -423,7 +423,7 @@ public abstract class HttpdSiteManager {
 			+ "#\n"
 			+ "# Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey="+httpdSite.getPkey()+"\n"
 			+ "#\n"
-			+ "# AOSH: "+AOSHCommand.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getSiteName()+' '+httpdSite.getAOServer().getHostname()+" true\n"
+			+ "# AOSH: "+AOSHCommand.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getName()+' '+httpdSite.getAOServer().getHostname()+" true\n"
 			+ "#\n"
 			+ "# support@aoindustries.com\n"
 			+ "# (205) 454-2556\n"
@@ -698,7 +698,7 @@ public abstract class HttpdSiteManager {
 	protected void createTestIndex(UnixFile indexFile) throws IOException, SQLException {
 		if(!indexFile.getStat().exists()) {
 			HttpdSiteURL primaryHsu = httpdSite.getPrimaryHttpdSiteURL();
-			String primaryUrl = primaryHsu==null ? httpdSite.getSiteName() : primaryHsu.getHostname().toString();
+			String primaryUrl = primaryHsu==null ? httpdSite.getName() : primaryHsu.getHostname().toString();
 			// Write to temp file first
 			UnixFile tempFile = UnixFile.mktemp(indexFile.getPath()+".");
 			try {
@@ -731,7 +731,7 @@ public abstract class HttpdSiteManager {
 	 */
 	public int getApacheUid() throws IOException, SQLException {
 		int uid = -1;
-		if(!HttpdSite.DISABLED.equals(httpdSite.getSiteName())) {
+		if(!HttpdSite.DISABLED.equals(httpdSite.getName())) {
 			for(HttpdSiteBind hsb : httpdSite.getHttpdSiteBinds()) {
 				int hsUid = hsb.getHttpdBind().getHttpdServer().getLinuxServerAccount().getUid().getId();
 				if(uid==-1) {

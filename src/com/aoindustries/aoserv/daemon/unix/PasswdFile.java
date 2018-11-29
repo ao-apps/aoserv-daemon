@@ -367,7 +367,7 @@ final public class PasswdFile {
 	 *
 	 * Must hold {@link #passwdLock}
 	 */
-	public static byte[] buildPasswdFile(Map<UserId,Entry> expectedEntries, int uid_min) throws IOException {
+	public static byte[] buildPasswdFile(Map<UserId,Entry> expectedEntries, int uidMin, int uidMax) throws IOException {
 		assert Thread.holdsLock(passwdLock);
 		if(!expectedEntries.containsKey(LinuxAccount.ROOT)) throw new IllegalArgumentException(LinuxAccount.ROOT + " user not found");
 		Map<UserId,Entry> passwdEntries = readPasswdFile();
@@ -377,10 +377,10 @@ final public class PasswdFile {
 			Map.Entry<UserId,Entry> mapEntry = entryIter.next();
 			UserId username = mapEntry.getKey();
 			Entry existingEntry = mapEntry.getValue();
-			boolean existingIsSystem = existingEntry.uid < uid_min || existingEntry.uid > 60000; // TODO: Get from linux_server_accounts.uid_max: LinuxAccount.UID_MAX;
+			boolean existingIsSystem = existingEntry.uid < uidMin || existingEntry.uid > uidMax;
 			if(expectedEntries.containsKey(username)) {
 				Entry expectedEntry = expectedEntries.get(username);
-				boolean expectedIsSystem = expectedEntry.uid < uid_min || expectedEntry.uid > 60000; // TODO: Get from linux_server_accounts.uid_max: LinuxAccount.UID_MAX;
+				boolean expectedIsSystem = expectedEntry.uid < uidMin || expectedEntry.uid > uidMax;
 				if(existingEntry.uid != expectedEntry.uid) {
 					if(existingIsSystem != expectedIsSystem) {
 						throw new IllegalArgumentException("Refusing to change user id between system and regular users from " + existingEntry.uid + " to " + expectedEntry.uid + " for " + username);

@@ -502,7 +502,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 								spamdInetAddress = null;
 								spamdPort = null;
 							} else {
-								spamdInetAddress = spamdBind.getIPAddress().getInetAddress();
+								spamdInetAddress = spamdBind.getIpAddress().getInetAddress();
 								spamdPort = spamdBind.getPort();
 							}
 							// Build a new file in RAM
@@ -569,7 +569,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 										InetAddress addr = ip.getInetAddress();
 										if(
 											!addr.isUnspecified()
-											&& !ip.getNetDevice().getNetDeviceID().isLoopback()
+											&& !ip.getDevice().getDeviceId().isLoopback()
 											&& ip.getInetAddress().getAddressFamily() == spamdFamily
 											// TODO: Should we also filter by on the same NetDevice?  (consider dual NICs, one private, one not)
 										) {

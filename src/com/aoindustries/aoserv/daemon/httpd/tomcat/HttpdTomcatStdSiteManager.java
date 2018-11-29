@@ -81,7 +81,7 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 		return new UnixFile(
 			HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
 			+ "/"
-			+ httpdSite.getSiteName()
+			+ httpdSite.getName()
 			+ "/var/run/tomcat.pid"
 		);
 	}
@@ -97,7 +97,7 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 			return UnixPath.valueOf(
 				HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
 				+ "/"
-				+ httpdSite.getSiteName()
+				+ httpdSite.getName()
 				+ "/bin/tomcat"
 			);
 		} catch(ValidationException e) {

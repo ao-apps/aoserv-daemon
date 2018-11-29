@@ -73,7 +73,7 @@ final public class FirewalldManager extends BuilderThread {
 	 * Adds a target unless the net bind is on loopback device.
 	 */
 	private static void addTarget(NetBind nb, Collection<Target> targets, Set<FirewalldZoneName> zones, List<NetBind> firewalldNetBinds) throws SQLException, IOException, ValidationException {
-		InetAddress ip = nb.getIPAddress().getInetAddress();
+		InetAddress ip = nb.getIpAddress().getInetAddress();
 		// Assume can access self
 		if(!ip.isLoopback()) {
 			targets.add(

@@ -449,7 +449,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 	public InetAddress getDefaultSourceIPAddress() throws IOException, SQLException {
 		AOServer thisServer = AOServDaemon.getThisAOServer();
 		// Next, it will use the daemon bind address
-		InetAddress sourceIPAddress = thisServer.getDaemonBind().getIPAddress().getInetAddress();
+		InetAddress sourceIPAddress = thisServer.getDaemonBind().getIpAddress().getInetAddress();
 		// If daemon is binding to wildcard, then use source IP address of primary IP
 		if(sourceIPAddress.isUnspecified()) sourceIPAddress = thisServer.getPrimaryIPAddress().getInetAddress();
 		return sourceIPAddress;

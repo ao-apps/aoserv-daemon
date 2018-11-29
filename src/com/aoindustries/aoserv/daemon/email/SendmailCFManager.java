@@ -303,7 +303,7 @@ final public class SendmailCFManager extends BuilderThread {
 		if(jilterNetBind != null) {
 			out.print("dnl Enable Jilter\n"
 					+ "dnl\n");
-			InetAddress ip = jilterNetBind.getIPAddress().getInetAddress();
+			InetAddress ip = jilterNetBind.getIpAddress().getInetAddress();
 			if(ip.isUnspecified()) ip = primaryIpAddress.getInetAddress();
 			out
 				.print("INPUT_MAIL_FILTER(`jilter',`S=")
@@ -318,7 +318,7 @@ final public class SendmailCFManager extends BuilderThread {
 		Set<InetAddress> finishedIPs = new HashSet<>();
 		for(SendmailBind sb : smtpNetBinds) {
 			NetBind nb = sb.getNetBind();
-			IPAddress ia = nb.getIPAddress();
+			IPAddress ia = nb.getIpAddress();
 			InetAddress ip = ia.getInetAddress();
 			if(finishedIPs.add(ip)) {
 				String bindName = sb.getName();
@@ -344,7 +344,7 @@ final public class SendmailCFManager extends BuilderThread {
 		finishedIPs.clear();
 		for(SendmailBind sb : smtpsNetBinds) {
 			NetBind nb = sb.getNetBind();
-			IPAddress ia = nb.getIPAddress();
+			IPAddress ia = nb.getIpAddress();
 			InetAddress ip = ia.getInetAddress();
 			if(finishedIPs.add(ip)) {
 				String bindName = sb.getName();
@@ -370,7 +370,7 @@ final public class SendmailCFManager extends BuilderThread {
 		finishedIPs.clear();
 		for(SendmailBind sb : submissionNetBinds) {
 			NetBind nb = sb.getNetBind();
-			IPAddress ia = nb.getIPAddress();
+			IPAddress ia = nb.getIpAddress();
 			InetAddress ip = ia.getInetAddress();
 			if(finishedIPs.add(ip)) {
 				String bindName = sb.getName();
@@ -715,7 +715,7 @@ final public class SendmailCFManager extends BuilderThread {
 			out.print("dnl #\n"
 					+ "dnl # Enable AOServ Jilter\n"
 					+ "dnl #\n");
-			InetAddress ip = jilterNetBind.getIPAddress().getInetAddress();
+			InetAddress ip = jilterNetBind.getIpAddress().getInetAddress();
 			if(ip.isUnspecified()) ip = primaryIpAddress.getInetAddress();
 			out
 				.print("INPUT_MAIL_FILTER(`jilter', `S=")
@@ -742,7 +742,7 @@ final public class SendmailCFManager extends BuilderThread {
 		Set<InetAddress> finishedIPs = new HashSet<>();
 		for(SendmailBind sb : smtpNetBinds) {
 			NetBind nb = sb.getNetBind();
-			IPAddress ia = nb.getIPAddress();
+			IPAddress ia = nb.getIpAddress();
 			InetAddress ip = ia.getInetAddress();
 			if(finishedIPs.add(ip)) {
 				String bindName = sb.getName();
@@ -772,7 +772,7 @@ final public class SendmailCFManager extends BuilderThread {
 		finishedIPs.clear();
 		for(SendmailBind sb : submissionNetBinds) {
 			NetBind nb = sb.getNetBind();
-			IPAddress ia = nb.getIPAddress();
+			IPAddress ia = nb.getIpAddress();
 			InetAddress ip = ia.getInetAddress();
 			if(finishedIPs.add(ip)) {
 				String bindName = sb.getName();
@@ -807,7 +807,7 @@ final public class SendmailCFManager extends BuilderThread {
 		finishedIPs.clear();
 		for(SendmailBind sb : smtpsNetBinds) {
 			NetBind nb = sb.getNetBind();
-			IPAddress ia = nb.getIPAddress();
+			IPAddress ia = nb.getIpAddress();
 			InetAddress ip = ia.getInetAddress();
 			if(finishedIPs.add(ip)) {
 				String bindName = sb.getName();
@@ -991,7 +991,7 @@ final public class SendmailCFManager extends BuilderThread {
 		for(SendmailBind smtpBind : smtpBinds) {
 			NetBind smtpNetBind = smtpBind.getNetBind();
 			if(requiredPort == null || smtpNetBind.getPort().getPort() == requiredPort) {
-				InetAddress smtpAddress = smtpNetBind.getIPAddress().getInetAddress();
+				InetAddress smtpAddress = smtpNetBind.getIpAddress().getInetAddress();
 				if(family == null || smtpAddress.getAddressFamily() == family) {
 					if(smtpAddress.isUnspecified()) {
 						// Use primary IP
@@ -1172,7 +1172,7 @@ final public class SendmailCFManager extends BuilderThread {
 						// Resolve hasSpecificAddress
 						assert smtpBinds != null;
 						for(SendmailBind sb : smtpBinds.get(defaultServer)) {
-							InetAddress ia = sb.getNetBind().getIPAddress().getInetAddress();
+							InetAddress ia = sb.getNetBind().getIpAddress().getInetAddress();
 							if(!ia.isLoopback() && !ia.isUnspecified()) {
 								hasSpecificAddress = true;
 								break;
@@ -1181,7 +1181,7 @@ final public class SendmailCFManager extends BuilderThread {
 						if(!hasSpecificAddress) {
 							assert smtpsBinds != null;
 							for(SendmailBind sb : smtpsBinds.get(defaultServer)) {
-								InetAddress ia = sb.getNetBind().getIPAddress().getInetAddress();
+								InetAddress ia = sb.getNetBind().getIpAddress().getInetAddress();
 								if(!ia.isLoopback() && !ia.isUnspecified()) {
 									hasSpecificAddress = true;
 									break;
@@ -1191,7 +1191,7 @@ final public class SendmailCFManager extends BuilderThread {
 						if(!hasSpecificAddress) {
 							assert submissionBinds != null;
 							for(SendmailBind sb : submissionBinds.get(defaultServer)) {
-								InetAddress ia = sb.getNetBind().getIPAddress().getInetAddress();
+								InetAddress ia = sb.getNetBind().getIpAddress().getInetAddress();
 								if(!ia.isLoopback() && !ia.isUnspecified()) {
 									hasSpecificAddress = true;
 									break;

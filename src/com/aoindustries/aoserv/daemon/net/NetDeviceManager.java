@@ -87,7 +87,7 @@ final public class NetDeviceManager extends BuilderThread {
 
 				List<NetDevice> devices=thisAoServer.getServer().getNetDevices();
 				for(NetDevice device : devices) {
-					NetDeviceID deviceId=device.getNetDeviceID();
+					NetDeviceID deviceId=device.getDeviceId();
 					if(
 						// Don't build loopback
 						!deviceId.isLoopback()
@@ -104,7 +104,7 @@ final public class NetDeviceManager extends BuilderThread {
 								+ "#\n"
 								+ "DEVICE=").print(deviceId).print('\n');
 								IPAddress primaryIP=device.getPrimaryIPAddress();
-								if(primaryIP.isDHCP()) {
+								if(primaryIP.isDhcp()) {
 									out.print("BOOTPROTO=dhcp\n"
 											+ "ONBOOT=yes\n"
 											+ "NEEDHOSTNAME=no\n");
@@ -127,7 +127,7 @@ final public class NetDeviceManager extends BuilderThread {
 								+ "#\n"
 								+ "DEVICE=").print(deviceId).print('\n');
 								IPAddress primaryIP=device.getPrimaryIPAddress();
-								if(primaryIP.isDHCP()) {
+								if(primaryIP.isDhcp()) {
 									out.print("BOOTPROTO=dhcp\n"
 											+ "ONBOOT=yes\n"
 											+ "NEEDHOSTNAME=no\n");
@@ -198,11 +198,11 @@ final public class NetDeviceManager extends BuilderThread {
 						List<AOServer> children=thisAoServer.getNestedAOServers();
 						for(int d=-1;d<children.size();d++) {
 							AOServer aoServer=d==-1?thisAoServer:children.get(d).getServer().getAOServer();
-							NetDevice curDevice=d==-1?device:aoServer.getServer().getNetDevice(device.getNetDeviceID().getName());
+							NetDevice curDevice=d==-1?device:aoServer.getServer().getNetDevice(device.getDeviceId().getName());
 							if(curDevice!=null) {
 								for(IPAddress ip : curDevice.getIPAddresses()) {
 									if(d!=-1 || ip.isAlias()) {
-										if(ip.isDHCP()) throw new SQLException("DHCP IP aliases are not allowed for IPAddress #"+ip.getPkey());
+										if(ip.isDhcp()) throw new SQLException("DHCP IP aliases are not allowed for IPAddress #"+ip.getPkey());
 
 										String filename=aliasBeginning+(num++);
 										cfgFilenames.add(filename);
@@ -302,7 +302,7 @@ final public class NetDeviceManager extends BuilderThread {
 					// There should no more than one network device with a gateway specified
 					List<NetDevice> gatewayDevices=new ArrayList<>();
 					for (NetDevice device : devices) {
-						NetDeviceID deviceId=device.getNetDeviceID();
+						NetDeviceID deviceId=device.getDeviceId();
 						if(!deviceId.isLoopback()) {
 							if(device.getGateway()!=null) gatewayDevices.add(device);
 						}
@@ -312,7 +312,7 @@ final public class NetDeviceManager extends BuilderThread {
 						NetDevice gateway=gatewayDevices.get(0);
 						out.print("GATEWAY=").print(gateway.getGateway().toString()).print('\n');
 						if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-							out.print("GATEWAYDEV=").print(gateway.getNetDeviceID().getName()).print('\n');
+							out.print("GATEWAYDEV=").print(gateway.getDeviceId().getName()).print('\n');
 						}
 					}
 					if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
@@ -338,7 +338,7 @@ final public class NetDeviceManager extends BuilderThread {
 					}
 					// Restart all devices in this scenario
 					for (NetDevice device : devices) {
-						NetDeviceID deviceId = device.getNetDeviceID();
+						NetDeviceID deviceId = device.getDeviceId();
 						if(
 							// Don't build loopback
 							!deviceId.isLoopback()
@@ -479,10 +479,10 @@ final public class NetDeviceManager extends BuilderThread {
 			|| osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
 		) {
 			// Xen on CentOS 5 adds a "p" to the name, try that first
-			procFile = new File("/proc/net/bonding/p"+netDevice.getNetDeviceID().getName());
-			if(!procFile.exists()) procFile = new File("/proc/net/bonding/"+netDevice.getNetDeviceID().getName());
+			procFile = new File("/proc/net/bonding/p"+netDevice.getDeviceId().getName());
+			if(!procFile.exists()) procFile = new File("/proc/net/bonding/"+netDevice.getDeviceId().getName());
 		} else {
-			procFile = new File("/proc/net/bonding/"+netDevice.getNetDeviceID().getName());
+			procFile = new File("/proc/net/bonding/"+netDevice.getDeviceId().getName());
 		}
 		String report;
 		if(procFile.exists()) {
@@ -551,14 +551,14 @@ final public class NetDeviceManager extends BuilderThread {
 				osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
 				|| osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
 				|| osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-			) && !netDevice.getNetDeviceID().getName().equals(NetDeviceID.LO)
+			) && !netDevice.getDeviceId().getName().equals(NetDeviceID.LO)
 		) {
 			// Xen adds a "p" to the name or any device (except lo or non-xen devices)
-			statsDirectory = new File("/sys/class/net/p"+netDevice.getNetDeviceID().getName()+"/statistics");
+			statsDirectory = new File("/sys/class/net/p"+netDevice.getDeviceId().getName()+"/statistics");
 			// If doesn't exist, it is not a Xen-managed device, use its unaltered name
-			if(!statsDirectory.exists()) statsDirectory = new File("/sys/class/net/"+netDevice.getNetDeviceID().getName()+"/statistics");
+			if(!statsDirectory.exists()) statsDirectory = new File("/sys/class/net/"+netDevice.getDeviceId().getName()+"/statistics");
 		} else {
-			statsDirectory = new File("/sys/class/net/"+netDevice.getNetDeviceID().getName()+"/statistics");
+			statsDirectory = new File("/sys/class/net/"+netDevice.getDeviceId().getName()+"/statistics");
 		}
 
 		// Determine if on 64-bit system

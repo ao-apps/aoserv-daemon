@@ -264,7 +264,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 			commandPath,
 			dbName.toString(),
 			ms.getMinorVersion(),
-			Integer.toString(ms.getNetBind().getPort().getPort()),
+			Integer.toString(ms.getBind().getPort().getPort()),
 			output.getPath(),
 			Boolean.toString(gzip)
 		);

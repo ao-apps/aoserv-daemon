@@ -342,7 +342,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
 					//+ "      connectionTimeout=\"20000\"\n"
 					//+ "      useURIValidationHack=\"false\"\n"
 					//+ "      protocolHandlerClassName=\"org.apache.jk.server.JkCoyoteHandler\"\n"
-					+ "      port=\"").encodeXmlAttribute(hw.getNetBind().getPort().getPort()).print("\"\n"
+					+ "      port=\"").encodeXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
 					+ "      enableLookups=\"false\"\n"
 					+ "      minProcessors=\"2\"\n"
 					+ "      maxProcessors=\"200\"\n"

@@ -284,7 +284,7 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
 				if(!hs.isDisabled()) {
 					if(didOne) out.print(' ');
 					else didOne=true;
-					out.print(hs.getSiteName());
+					out.print(hs.getName());
 				}
 			}
 			out.print("\"\n");
@@ -361,7 +361,7 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
 						+ "  </GlobalNamingResources>\n"
 						+ "  <Service name=\"Catalina\">\n"
 						+ "    <Connector\n"
-						+ "      port=\"").encodeXmlAttribute(hw.getNetBind().getPort().getPort()).print("\"\n"
+						+ "      port=\"").encodeXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
 						+ "      address=\"").encodeXmlAttribute(IPAddress.LOOPBACK_IP).print("\"\n"
 						+ "      maxPostSize=\"").encodeXmlAttribute(sharedTomcat.getMaxPostSize()).print("\"\n"
 						+ "      protocol=\"AJP/1.3\"\n"
@@ -376,7 +376,7 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
 						DomainName primaryHostname=hs.getPrimaryHttpdSiteURL().getHostname();
 						out.print("      <Host\n"
 								+ "        name=\"").encodeXmlAttribute(primaryHostname.toString()).print("\"\n"
-								+ "        appBase=\"").encodeXmlAttribute(wwwDirectory).print('/').encodeXmlAttribute(hs.getSiteName()).print("/webapps\"\n"
+								+ "        appBase=\"").encodeXmlAttribute(wwwDirectory).print('/').encodeXmlAttribute(hs.getName()).print("/webapps\"\n"
 								+ "        unpackWARs=\"").encodeXmlAttribute(sharedTomcat.getUnpackWARs()).print("\"\n"
 								+ "        autoDeploy=\"").encodeXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n"
 								+ "        xmlValidation=\"false\"\n"
@@ -395,8 +395,8 @@ class HttpdSharedTomcatManager_6_0_X extends HttpdSharedTomcatManager<TomcatComm
 								}
 							}
 							// When listed first, also include the IP addresses as aliases
-							if(hs.listFirst()) {
-								String ip=bind.getHttpdBind().getNetBind().getIPAddress().getInetAddress().toString();
+							if(hs.getListFirst()) {
+								String ip=bind.getHttpdBind().getNetBind().getIpAddress().getInetAddress().toString();
 								if(!usedHostnames.contains(ip)) {
 									out.print("        <Alias>").encodeXhtml(ip).print("</Alias>\n");
 									usedHostnames.add(ip);

@@ -191,7 +191,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 			// Return no settings when Tomcat disabled
 			return super.getJkSettings();
 		}
-		final String jkCode = getHttpdWorker().getCode().getCode();
+		final String jkCode = getHttpdWorker().getName().getCode();
 		SortedSet<JkSetting> settings = new TreeSet<>();
 		for(HttpdTomcatSiteJkMount jkMount : tomcatSite.getJkMounts()) {
 			settings.add(new JkSetting(jkMount.isMount(), jkMount.getPath(), jkCode));

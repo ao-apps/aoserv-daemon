@@ -328,7 +328,7 @@ class HttpdTomcatStdSiteManager_7_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 					+ "  </GlobalNamingResources>\n"
 					+ "  <Service name=\"Catalina\">\n"
 					+ "    <Connector\n"
-					+ "      port=\"").encodeXmlAttribute(hw.getNetBind().getPort().getPort()).print("\"\n"
+					+ "      port=\"").encodeXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
 					+ "      address=\"").encodeXmlAttribute(IPAddress.LOOPBACK_IP).print("\"\n"
 					+ "      maxPostSize=\"").encodeXmlAttribute(tomcatStdSite.getMaxPostSize()).print("\"\n"
 					+ "      protocol=\"AJP/1.3\"\n"

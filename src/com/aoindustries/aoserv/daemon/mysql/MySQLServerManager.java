@@ -64,7 +64,7 @@ final public class MySQLServerManager extends BuilderThread {
 			synchronized(rebuildLock) {
 				Set<Port> mysqlPorts = new HashSet<>();
 				for(MySQLServer mysqlServer : thisAOServer.getMySQLServers()) {
-					mysqlPorts.add(mysqlServer.getNetBind().getPort());
+					mysqlPorts.add(mysqlServer.getBind().getPort());
 					// TODO: Add and initialize any missing /var/lib/mysql/name
 					// TODO: Add/update any /etc/rc.d/init.d/mysql-name
 				}
@@ -115,7 +115,7 @@ final public class MySQLServerManager extends BuilderThread {
 				if(md==null) throw new SQLException("Unable to find MySQLDatabase: "+MySQLDatabase.MYSQL+" on "+ms.toString());
 				pool=new AOConnectionPool(
 					AOServDaemonConfiguration.getMySqlDriver(),
-					"jdbc:mysql://127.0.0.1:"+md.getMySQLServer().getNetBind().getPort().getPort()+"/"+md.getName(),
+					"jdbc:mysql://127.0.0.1:"+md.getMySQLServer().getBind().getPort().getPort()+"/"+md.getName(),
 					AOServDaemonConfiguration.getMySqlUser(),
 					AOServDaemonConfiguration.getMySqlPassword(),
 					AOServDaemonConfiguration.getMySqlConnections(),
@@ -224,7 +224,7 @@ final public class MySQLServerManager extends BuilderThread {
 				"-h",
 				"127.0.0.1",
 				"-P",
-				Integer.toString(mysqlServer.getNetBind().getPort().getPort()),
+				Integer.toString(mysqlServer.getBind().getPort().getPort()),
 				"-u",
 				"root",
 				"--password="+AOServDaemonConfiguration.getMySqlPassword(),

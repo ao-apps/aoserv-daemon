@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015, 2017 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -113,7 +113,7 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 					UnixPath.valueOf(
 						HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory().toString()
 							+'/'
-							+httpdSite.getSiteName()
+							+httpdSite.getName()
 							+"/htdocs"
 					),
 					httpdSite.getEnableHtaccess() ? "AuthConfig Indexes Limit" : "None",

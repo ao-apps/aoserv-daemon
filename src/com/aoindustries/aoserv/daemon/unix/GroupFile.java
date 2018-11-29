@@ -231,7 +231,7 @@ final public class GroupFile {
 	 *
 	 * Must hold {@link #groupLock}
 	 */
-	public static byte[] buildGroupFile(Map<GroupId,Entry> groups, int gid_min) throws IOException {
+	public static byte[] buildGroupFile(Map<GroupId,Entry> groups, int gidMin, int gidMax) throws IOException {
 		assert Thread.holdsLock(groupLock);
 		if(!groups.containsKey(LinuxGroup.ROOT)) throw new IllegalArgumentException(LinuxGroup.ROOT + " group not found");
 		Map<GroupId,Entry> groupEntries = readGroupFile();
@@ -241,10 +241,10 @@ final public class GroupFile {
 			Map.Entry<GroupId,Entry> mapEntry = entryIter.next();
 			GroupId groupName = mapEntry.getKey();
 			Entry existingEntry = mapEntry.getValue();
-			boolean existingIsSystem = existingEntry.gid < gid_min || existingEntry.gid > 60000; // TODO: Get from linux_server_accounts.gid_max: LinuxGroup.GID_MAX;
+			boolean existingIsSystem = existingEntry.gid < gidMin || existingEntry.gid > gidMax;
 			if(groups.containsKey(groupName)) {
 				Entry expectedEntry = groups.get(groupName);
-				boolean expectedIsSystem = expectedEntry.gid < gid_min || expectedEntry.gid > 60000; // TODO: Get from linux_server_accounts.gid_max: LinuxGroup.GID_MAX;
+				boolean expectedIsSystem = expectedEntry.gid < gidMin || expectedEntry.gid > gidMax;
 				if(existingEntry.gid != expectedEntry.gid) {
 					if(existingIsSystem != expectedIsSystem) {
 						throw new IllegalArgumentException("Refusing to change group id between system and regular users from " + existingEntry.gid + " to " + expectedEntry.gid + " for " + groupName);

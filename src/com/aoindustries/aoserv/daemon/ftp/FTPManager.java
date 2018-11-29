@@ -150,7 +150,7 @@ final public class FTPManager extends BuilderThread {
 						com.aoindustries.net.Protocol netProtocol = bind.getPort().getProtocol();
 						if(netProtocol != com.aoindustries.net.Protocol.TCP) throw new SQLException("ProFTPD may only be configured for TCP service:  (net_binds.pkey="+bind.getPkey()+").protocol="+netProtocol);
 
-						IPAddress ia=bind.getIPAddress();
+						IPAddress ia=bind.getIpAddress();
 						bindCount++;
 						out.print("<VirtualHost ").print(ia.getInetAddress().toString()).print(">\n"
 								+ "  Port ").print(bind.getPort().getPort()).print('\n');
@@ -320,7 +320,7 @@ final public class FTPManager extends BuilderThread {
 					} else {
 						com.aoindustries.net.Protocol netProtocol=bind.getPort().getProtocol();
 						if(netProtocol != com.aoindustries.net.Protocol.TCP) throw new SQLException("vsftpd may only be configured for TCP service:  (net_binds.pkey="+bind.getPkey()+").net_protocol="+netProtocol);
-						IPAddress ia=bind.getIPAddress();
+						IPAddress ia=bind.getIpAddress();
 
 						// Write to buffer
 						bout.reset();
@@ -372,7 +372,7 @@ final public class FTPManager extends BuilderThread {
 						byte[] newBytes = bout.toByteArray();
 
 						// Only write to filesystem if missing or changed
-						String filename = "vsftpd_"+bind.getIPAddress().getInetAddress().toString()+"_"+bind.getPort().getPort()+".conf";
+						String filename = "vsftpd_"+bind.getIpAddress().getInetAddress().toString()+"_"+bind.getPort().getPort()+".conf";
 						if(!existing.add(filename)) throw new SQLException("Filename already used: "+filename);
 						UnixFile confFile = new UnixFile(vsFtpdVhostsirectory, filename, false);
 						if(!confFile.getStat().exists() || !confFile.contentEquals(newBytes)) {
@@ -422,7 +422,7 @@ final public class FTPManager extends BuilderThread {
 				 * Make the private FTP space, if needed.
 				 */
 				if(manager.enableAnonymousFtp()) {
-					String siteName = httpdSite.getSiteName();
+					String siteName = httpdSite.getName();
 					manager.configureFtpDirectory(new UnixFile(sharedFtpDirectory, siteName, false), restorecon);
 					ftpDirectories.remove(siteName);
 				}
