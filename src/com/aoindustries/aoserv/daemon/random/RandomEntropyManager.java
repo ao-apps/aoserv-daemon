@@ -6,8 +6,8 @@
 package com.aoindustries.aoserv.daemon.random;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.linux.AOServer;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;

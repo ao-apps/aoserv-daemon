@@ -6,11 +6,11 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.HttpdJKProtocol;
-import com.aoindustries.aoserv.client.HttpdTomcatContext;
-import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
-import com.aoindustries.aoserv.client.HttpdWorker;
+import com.aoindustries.aoserv.client.linux.AOServer;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdJKProtocol;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatContext;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatSharedSite;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdWorker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;

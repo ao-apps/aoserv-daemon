@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.backup;
 
-import com.aoindustries.aoserv.client.AOServer;
+import com.aoindustries.aoserv.client.linux.AOServer;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;

@@ -6,13 +6,13 @@
 package com.aoindustries.aoserv.daemon.email;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.EmailSmtpRelay;
-import com.aoindustries.aoserv.client.EmailSmtpRelayType;
-import com.aoindustries.aoserv.client.IPAddress;
-import com.aoindustries.aoserv.client.NetDevice;
-import com.aoindustries.aoserv.client.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.Server;
+import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.email.EmailSmtpRelay;
+import com.aoindustries.aoserv.client.email.EmailSmtpRelayType;
+import com.aoindustries.aoserv.client.linux.AOServer;
+import com.aoindustries.aoserv.client.net.IPAddress;
+import com.aoindustries.aoserv.client.net.NetDevice;
+import com.aoindustries.aoserv.client.net.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;

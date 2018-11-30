@@ -6,13 +6,13 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.HttpdSharedTomcat;
-import com.aoindustries.aoserv.client.HttpdSite;
-import com.aoindustries.aoserv.client.HttpdTomcatSharedSite;
-import com.aoindustries.aoserv.client.HttpdTomcatVersion;
-import com.aoindustries.aoserv.client.HttpdWorker;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.validator.UserId;
+import com.aoindustries.aoserv.client.web.HttpdSite;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdSharedTomcat;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatSharedSite;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatVersion;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdWorker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.io.unix.UnixFile;

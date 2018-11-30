@@ -6,18 +6,18 @@
 package com.aoindustries.aoserv.daemon.httpd.jboss;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.HttpdJBossSite;
-import com.aoindustries.aoserv.client.HttpdJKProtocol;
-import com.aoindustries.aoserv.client.HttpdTomcatContext;
-import com.aoindustries.aoserv.client.HttpdTomcatVersion;
-import com.aoindustries.aoserv.client.HttpdWorker;
-import com.aoindustries.aoserv.client.LinuxServerAccount;
-import com.aoindustries.aoserv.client.LinuxServerGroup;
-import com.aoindustries.aoserv.client.NetBind;
+import com.aoindustries.aoserv.client.linux.AOServer;
+import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
+import com.aoindustries.aoserv.client.linux.LinuxServerGroup;
+import com.aoindustries.aoserv.client.net.NetBind;
 import com.aoindustries.aoserv.client.validator.GroupId;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.validator.UserId;
+import com.aoindustries.aoserv.client.web.jboss.HttpdJBossSite;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdJKProtocol;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatContext;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatVersion;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdWorker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.TomcatCommon_3_2_4;

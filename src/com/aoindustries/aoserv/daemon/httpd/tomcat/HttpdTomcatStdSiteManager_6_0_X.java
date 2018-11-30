@@ -6,16 +6,16 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.HttpdJKProtocol;
-import com.aoindustries.aoserv.client.HttpdTomcatContext;
-import com.aoindustries.aoserv.client.HttpdTomcatDataSource;
-import com.aoindustries.aoserv.client.HttpdTomcatParameter;
-import com.aoindustries.aoserv.client.HttpdTomcatStdSite;
-import com.aoindustries.aoserv.client.HttpdWorker;
-import com.aoindustries.aoserv.client.IPAddress;
-import com.aoindustries.aoserv.client.LinuxServerAccount;
-import com.aoindustries.aoserv.client.NetBind;
+import com.aoindustries.aoserv.client.linux.AOServer;
+import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
+import com.aoindustries.aoserv.client.net.IPAddress;
+import com.aoindustries.aoserv.client.net.NetBind;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdJKProtocol;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatContext;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatDataSource;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatParameter;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatStdSite;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdWorker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;

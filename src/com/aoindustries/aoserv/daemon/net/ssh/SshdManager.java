@@ -6,10 +6,10 @@
 package com.aoindustries.aoserv.daemon.net.ssh;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.NetBind;
-import com.aoindustries.aoserv.client.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.Protocol;
+import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.linux.AOServer;
+import com.aoindustries.aoserv.client.net.NetBind;
+import com.aoindustries.aoserv.client.net.Protocol;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;

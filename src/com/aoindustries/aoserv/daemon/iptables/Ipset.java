@@ -1,11 +1,11 @@
 /*
- * Copyright 2012-2013, 2017 by AO Industries, Inc.,
+ * Copyright 2012-2013, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.iptables;
 
-import com.aoindustries.aoserv.client.IPAddress;
+import com.aoindustries.aoserv.client.net.IPAddress;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.ProcessResult;

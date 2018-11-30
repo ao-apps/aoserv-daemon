@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon;
 
-import com.aoindustries.aoserv.client.Protocol;
+import com.aoindustries.aoserv.client.net.Protocol;
 import com.aoindustries.io.AOPool;
 import java.io.IOException;
 import java.net.InetAddress;

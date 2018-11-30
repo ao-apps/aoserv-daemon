@@ -6,12 +6,12 @@
 package com.aoindustries.aoserv.daemon.postgres;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.PostgresServer;
-import com.aoindustries.aoserv.client.PostgresServerUser;
-import com.aoindustries.aoserv.client.PostgresUser;
-import com.aoindustries.aoserv.client.PostgresVersion;
+import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.linux.AOServer;
+import com.aoindustries.aoserv.client.postgresql.PostgresServer;
+import com.aoindustries.aoserv.client.postgresql.PostgresServerUser;
+import com.aoindustries.aoserv.client.postgresql.PostgresUser;
+import com.aoindustries.aoserv.client.postgresql.PostgresVersion;
 import com.aoindustries.aoserv.client.validator.PostgresUserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;

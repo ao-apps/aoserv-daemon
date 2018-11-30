@@ -6,15 +6,15 @@
 package com.aoindustries.aoserv.daemon.email;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.IPAddress;
-import com.aoindustries.aoserv.client.NetBind;
-import com.aoindustries.aoserv.client.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.Protocol;
-import com.aoindustries.aoserv.client.SendmailBind;
-import com.aoindustries.aoserv.client.SendmailServer;
-import com.aoindustries.aoserv.client.Server;
-import com.aoindustries.aoserv.client.SslCertificate;
+import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.email.SendmailBind;
+import com.aoindustries.aoserv.client.email.SendmailServer;
+import com.aoindustries.aoserv.client.linux.AOServer;
+import com.aoindustries.aoserv.client.net.IPAddress;
+import com.aoindustries.aoserv.client.net.NetBind;
+import com.aoindustries.aoserv.client.net.Protocol;
+import com.aoindustries.aoserv.client.net.Server;
+import com.aoindustries.aoserv.client.pki.SslCertificate;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;

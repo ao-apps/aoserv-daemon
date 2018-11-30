@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
-import com.aoindustries.aoserv.client.HttpdTomcatDataSource;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatDataSource;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;

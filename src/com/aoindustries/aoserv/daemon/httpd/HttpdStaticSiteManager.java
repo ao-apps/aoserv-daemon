@@ -5,10 +5,10 @@
  */
 package com.aoindustries.aoserv.daemon.httpd;
 
-import com.aoindustries.aoserv.client.HttpdSharedTomcat;
-import com.aoindustries.aoserv.client.HttpdSite;
-import com.aoindustries.aoserv.client.HttpdStaticSite;
 import com.aoindustries.aoserv.client.validator.UnixPath;
+import com.aoindustries.aoserv.client.web.HttpdSite;
+import com.aoindustries.aoserv.client.web.HttpdStaticSite;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdSharedTomcat;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;

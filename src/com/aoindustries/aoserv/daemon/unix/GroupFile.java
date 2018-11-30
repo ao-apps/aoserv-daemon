@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.unix;
 
-import com.aoindustries.aoserv.client.LinuxGroup;
+import com.aoindustries.aoserv.client.linux.LinuxGroup;
 import com.aoindustries.aoserv.client.validator.GroupId;
 import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;

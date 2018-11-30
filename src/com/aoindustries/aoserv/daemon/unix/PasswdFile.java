@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.unix;
 
-import com.aoindustries.aoserv.client.LinuxAccount;
+import com.aoindustries.aoserv.client.linux.LinuxAccount;
 import com.aoindustries.aoserv.client.validator.Gecos;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.validator.UserId;

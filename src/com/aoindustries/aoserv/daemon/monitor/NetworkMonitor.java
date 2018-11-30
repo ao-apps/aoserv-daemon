@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.monitor;
 
-import com.aoindustries.aoserv.client.IPAddress;
+import com.aoindustries.aoserv.client.net.IPAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.net.NullRouteManager;

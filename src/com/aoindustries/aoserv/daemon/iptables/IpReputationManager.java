@@ -1,18 +1,18 @@
 /*
- * Copyright 2012-2013, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2012-2013, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.iptables;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.BusinessAdministrator;
-import com.aoindustries.aoserv.client.IpReputationSet;
-import com.aoindustries.aoserv.client.IpReputationSetHost;
-import com.aoindustries.aoserv.client.IpReputationSetNetwork;
-import com.aoindustries.aoserv.client.MasterUser;
-import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.account.BusinessAdministrator;
+import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.linux.AOServer;
+import com.aoindustries.aoserv.client.master.MasterUser;
+import com.aoindustries.aoserv.client.net.reputation.IpReputationSet;
+import com.aoindustries.aoserv.client.net.reputation.IpReputationSetHost;
+import com.aoindustries.aoserv.client.net.reputation.IpReputationSetNetwork;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;

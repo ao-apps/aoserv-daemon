@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
-import com.aoindustries.aoserv.client.HttpdSharedTomcat;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdSharedTomcat;
 
 /**
  * Manages HttpdSharedTomcat version 8.5.X configurations.

@@ -5,8 +5,8 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
-import com.aoindustries.aoserv.client.HttpdTomcatDataSource;
-import com.aoindustries.aoserv.client.HttpdTomcatParameter;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatDataSource;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatParameter;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.encoding.ChainWriter;
 import java.io.IOException;

@@ -6,12 +6,12 @@
 package com.aoindustries.aoserv.daemon.net;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.IPAddress;
-import com.aoindustries.aoserv.client.NetBind;
-import com.aoindustries.aoserv.client.NetDevice;
-import com.aoindustries.aoserv.client.NetDeviceID;
-import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.linux.AOServer;
+import com.aoindustries.aoserv.client.net.IPAddress;
+import com.aoindustries.aoserv.client.net.NetBind;
+import com.aoindustries.aoserv.client.net.NetDevice;
+import com.aoindustries.aoserv.client.net.NetDeviceID;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;

@@ -5,9 +5,9 @@
  */
 package com.aoindustries.aoserv.daemon.email;
 
-import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.MajordomoServer;
-import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.email.MajordomoServer;
+import com.aoindustries.aoserv.client.linux.AOServer;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.io.FileUtils;

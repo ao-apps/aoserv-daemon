@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2015, 2016, 2017 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -7,18 +7,18 @@ package com.aoindustries.aoserv.daemon.distro;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.AOServTable;
-import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.DistroFile;
-import com.aoindustries.aoserv.client.DistroFileTable;
-import com.aoindustries.aoserv.client.DistroFileType;
-import com.aoindustries.aoserv.client.DistroReportType;
-import com.aoindustries.aoserv.client.LinuxAccount;
-import com.aoindustries.aoserv.client.LinuxGroup;
-import com.aoindustries.aoserv.client.LinuxServerAccount;
-import com.aoindustries.aoserv.client.LinuxServerGroup;
-import com.aoindustries.aoserv.client.SQLColumnValue;
-import com.aoindustries.aoserv.client.SQLComparator;
-import com.aoindustries.aoserv.client.SQLExpression;
+import com.aoindustries.aoserv.client.distribution.management.DistroFile;
+import com.aoindustries.aoserv.client.distribution.management.DistroFileTable;
+import com.aoindustries.aoserv.client.distribution.management.DistroFileType;
+import com.aoindustries.aoserv.client.distribution.management.DistroReportType;
+import com.aoindustries.aoserv.client.linux.AOServer;
+import com.aoindustries.aoserv.client.linux.LinuxAccount;
+import com.aoindustries.aoserv.client.linux.LinuxGroup;
+import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
+import com.aoindustries.aoserv.client.linux.LinuxServerGroup;
+import com.aoindustries.aoserv.client.sql.SQLColumnValue;
+import com.aoindustries.aoserv.client.sql.SQLComparator;
+import com.aoindustries.aoserv.client.sql.SQLExpression;
 import com.aoindustries.aoserv.client.validator.LinuxId;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;

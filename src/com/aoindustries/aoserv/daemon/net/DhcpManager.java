@@ -5,8 +5,8 @@
  */
 package com.aoindustries.aoserv.daemon.net;
 
-import com.aoindustries.aoserv.client.IPAddress;
-import com.aoindustries.aoserv.client.NetDevice;
+import com.aoindustries.aoserv.client.net.IPAddress;
+import com.aoindustries.aoserv.client.net.NetDevice;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;

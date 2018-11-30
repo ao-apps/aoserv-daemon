@@ -5,13 +5,13 @@
  */
 package com.aoindustries.aoserv.daemon.httpd;
 
-import com.aoindustries.aoserv.client.AOServer;
-import com.aoindustries.aoserv.client.HttpdServer;
-import com.aoindustries.aoserv.client.HttpdSite;
-import com.aoindustries.aoserv.client.HttpdSiteBind;
-import com.aoindustries.aoserv.client.LinuxAccount;
-import com.aoindustries.aoserv.client.LinuxServerAccount;
+import com.aoindustries.aoserv.client.linux.AOServer;
+import com.aoindustries.aoserv.client.linux.LinuxAccount;
+import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
 import com.aoindustries.aoserv.client.validator.UnixPath;
+import com.aoindustries.aoserv.client.web.HttpdServer;
+import com.aoindustries.aoserv.client.web.HttpdSite;
+import com.aoindustries.aoserv.client.web.HttpdSiteBind;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;

@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.report;
 
-import com.aoindustries.aoserv.client.IPAddress;
+import com.aoindustries.aoserv.client.net.IPAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.StringUtility;

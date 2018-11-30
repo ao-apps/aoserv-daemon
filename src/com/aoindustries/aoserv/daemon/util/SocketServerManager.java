@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.util;
 
-import com.aoindustries.aoserv.client.NetBind;
+import com.aoindustries.aoserv.client.net.NetBind;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.net.InetAddress;
 import java.io.IOException;

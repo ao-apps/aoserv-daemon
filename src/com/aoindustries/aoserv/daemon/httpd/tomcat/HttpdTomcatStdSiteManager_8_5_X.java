@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
-import com.aoindustries.aoserv.client.HttpdTomcatStdSite;
+import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatStdSite;
 import java.io.IOException;
 import java.sql.SQLException;
 
