@@ -7,9 +7,9 @@ package com.aoindustries.aoserv.daemon.monitor;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.net.NetDevice;
-import com.aoindustries.aoserv.client.net.Server;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.net.Device;
+import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.client.web.HttpdServer;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -96,8 +96,8 @@ final public class MrtgManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer thisAoServer = AOServDaemon.getThisAOServer();
-			Server thisServer = thisAoServer.getServer();
+			Server thisAoServer = AOServDaemon.getThisAOServer();
+			Host thisServer = thisAoServer.getServer();
 			OperatingSystemVersion osv = thisServer.getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
@@ -108,7 +108,7 @@ final public class MrtgManager extends BuilderThread {
 			int uid_min = thisAoServer.getUidMin().getId();
 			int gid_min = thisAoServer.getGidMin().getId();
 
-			AOServer failoverServer = thisAoServer.getFailoverServer();
+			Server failoverServer = thisAoServer.getFailoverServer();
 			String aoservMrtgBin;
 			UnixFile cfgFile;
 			UnixFile cfgFileNew;
@@ -193,8 +193,8 @@ final public class MrtgManager extends BuilderThread {
 						}
 						out.print("  <a href=\"mem.html\">Memory</a> |\n");
 						// Add the network devices
-						List<NetDevice> netDevices = thisServer.getNetDevices();
-						for(NetDevice netDevice : netDevices) {
+						List<Device> netDevices = thisServer.getNetDevices();
+						for(Device netDevice : netDevices) {
 							out.print("  <a href=\"").encodeXmlAttribute(netDevice.getDeviceId().getName()).print(".html\">").encodeXhtml(netDevice.getDescription()).print("</a> |\n");
 						}
 						out.print("  <a href=\"swap.html\">Swap</a> |\n");
@@ -207,7 +207,7 @@ final public class MrtgManager extends BuilderThread {
 								+ "  <hr />\n"
 								+ "\n"
 								+ "Interval: 5\n");
-						for(NetDevice netDevice : netDevices) {
+						for(Device netDevice : netDevices) {
 							String deviceId = netDevice.getDeviceId().getName();
 							out.print("\n"
 									+ "Target[").print(deviceId).print("]: `").print(aoservMrtgBin).print("/mrtg_net_device ").print(deviceId).print("`\n"
@@ -291,9 +291,9 @@ final public class MrtgManager extends BuilderThread {
 							throw new IOException("Unsupported number of CPUs: " + numCPUs);
 						}
 						out.print("Timezone[cpu]: ").print(thisAoServer.getTimeZone()).print("\n"
-								+ "Title[cpu]: Server CPU Utilization (%)\n"
+								+ "Title[cpu]: Host CPU Utilization (%)\n"
 								+ "PageFoot[cpu]: <p>\n"
-								+ "PageTop[cpu]: <h2>Server CPU Utilization (%)</h2>\n"
+								+ "PageTop[cpu]: <h2>Host CPU Utilization (%)</h2>\n"
 								+ "XSize[cpu]: ").print(GRAPH_WIDTH).print("\n"
 								+ "YSize[cpu]: ").print(GRAPH_HEIGHT).print("\n"
 								+ "\n"
@@ -309,9 +309,9 @@ final public class MrtgManager extends BuilderThread {
 								+ "LegendI[mem]:  Swp:\n"
 								+ "LegendO[mem]:  Mem:\n"
 								+ "Timezone[mem]: ").print(thisAoServer.getTimeZone()).print("\n"
-								+ "Title[mem]: Server Memory and Swap space\n"
+								+ "Title[mem]: Host Memory and Swap space\n"
 								+ "PageFoot[mem]: <p>\n"
-								+ "PageTop[mem]: <h2>Server Memory and Swap space</h2>\n"
+								+ "PageTop[mem]: <h2>Host Memory and Swap space</h2>\n"
 								+ "XSize[mem]: ").print(GRAPH_WIDTH).print("\n"
 								+ "YSize[mem]: ").print(GRAPH_HEIGHT).print("\n"
 								+ "\n"
@@ -327,9 +327,9 @@ final public class MrtgManager extends BuilderThread {
 								+ "LegendI[diskio]:  read:\n"
 								+ "LegendO[diskio]:  write:\n"
 								+ "Timezone[diskio]: ").print(thisAoServer.getTimeZone()).print("\n"
-								+ "Title[diskio]: Server Disk I/O (blocks per second)\n"
+								+ "Title[diskio]: Host Disk I/O (blocks per second)\n"
 								+ "PageFoot[diskio]: <p>\n"
-								+ "PageTop[diskio]: <h2>Server Disk I/O (blocks per second)</h2>\n"
+								+ "PageTop[diskio]: <h2>Host Disk I/O (blocks per second)</h2>\n"
 								+ "XSize[diskio]: ").print(GRAPH_WIDTH).print("\n"
 								+ "YSize[diskio]: ").print(GRAPH_HEIGHT).print("\n");
 						for(int c = 0; c < dfDevices.size(); c++) {
@@ -367,9 +367,9 @@ final public class MrtgManager extends BuilderThread {
 								+ "LegendI[swap]:  swap:\n"
 								+ "LegendO[swap]:  page:\n"
 								+ "Timezone[swap]: ").print(thisAoServer.getTimeZone()).print("\n"
-								+ "Title[swap]: Server Swap and Paging I/O (in+out blocks per second)\n"
+								+ "Title[swap]: Host Swap and Paging I/O (in+out blocks per second)\n"
 								+ "PageFoot[swap]: <p>\n"
-								+ "PageTop[swap]: <h2>Server Swap and Paging I/O (in+out blocks per second)</h2>\n"
+								+ "PageTop[swap]: <h2>Host Swap and Paging I/O (in+out blocks per second)</h2>\n"
 								+ "XSize[swap]: ").print(GRAPH_WIDTH).print("\n"
 								+ "YSize[swap]: ").print(GRAPH_HEIGHT).print("\n");
 						for(HttpdServer httpdServer : httpdServers) {
@@ -520,8 +520,8 @@ final public class MrtgManager extends BuilderThread {
 						}
 						out.print("          <a href=\"mem.html\">Memory</a> |\n");
 						// Add the network devices
-						List<NetDevice> netDevices = thisServer.getNetDevices();
-						for(NetDevice netDevice : netDevices) {
+						List<Device> netDevices = thisServer.getNetDevices();
+						for(Device netDevice : netDevices) {
 							out.print("          <a href=\"").encodeXmlAttribute(netDevice.getDeviceId().getName()).print(".html\">").encodeXhtml(netDevice.getDescription()).print("</a> |\n");
 						}
 						out.print("          <a href=\"swap.html\">Swap</a> |\n");
@@ -538,12 +538,12 @@ final public class MrtgManager extends BuilderThread {
 								+ "        <a href=\"load.html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"load-day.png\" alt=\"load\" /></a>\n"
 								+ "      </p>\n"
 								+ "      <hr />\n"
-								+ "      <h2>Server CPU Utilization (%)</h2>\n"
+								+ "      <h2>Host CPU Utilization (%)</h2>\n"
 								+ "      <p>\n"
 								+ "        <a href=\"cpu.html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"cpu-day.png\" alt=\"cpu\" /></a>\n"
 								+ "      </p>\n"
 								+ "      <hr />\n"
-								+ "      <h2>Server Disk I/O (blocks per second)</h2>\n"
+								+ "      <h2>Host Disk I/O (blocks per second)</h2>\n"
 								+ "      <p>\n"
 								+ "        <a href=\"diskio.html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"diskio-day.png\" alt=\"diskio\" /></a>\n"
 								+ "      </p>\n");
@@ -555,11 +555,11 @@ final public class MrtgManager extends BuilderThread {
 									+ "      </p>\n");
 						}
 						out.print("      <hr />\n"
-								+ "      <h2>Server Memory and Swap space (%)</h2>\n"
+								+ "      <h2>Host Memory and Swap space (%)</h2>\n"
 								+ "      <p>\n"
 								+ "        <a href=\"mem.html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"mem-day.png\" alt=\"mem\" /></a>\n"
 								+ "      </p>\n");
-						for(NetDevice netDevice : netDevices) {
+						for(Device netDevice : netDevices) {
 							String deviceId = netDevice.getDeviceId().getName();
 							out.print("      <hr />\n"
 									+ "      <h2>").encodeXhtml(netDevice.getDescription()).print(" traffic</h2>\n"
@@ -568,7 +568,7 @@ final public class MrtgManager extends BuilderThread {
 									+ "      </p>\n");
 						}
 						out.print("      <hr />\n"
-								+ "      <h2>Server Swap and Paging I/O (in+out blocks per second)</h2>\n"
+								+ "      <h2>Host Swap and Paging I/O (in+out blocks per second)</h2>\n"
 								+ "      <p>\n"
 								+ "        <a href=\"swap.html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"swap-day.png\" alt=\"swap\" /></a>\n"
 								+ "      </p>\n");
@@ -647,7 +647,7 @@ final public class MrtgManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
@@ -710,7 +710,7 @@ final public class MrtgManager extends BuilderThread {
 	 * @throws SQLException
 	 */
 	private static List<String> getDFDevices() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		Server thisAOServer = AOServDaemon.getThisAOServer();
 		if(thisAOServer.getFailoverServer() != null) return Collections.emptyList();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();

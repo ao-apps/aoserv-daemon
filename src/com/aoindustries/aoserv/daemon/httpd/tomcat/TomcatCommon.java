@@ -5,8 +5,8 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatDataSource;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatParameter;
+import com.aoindustries.aoserv.client.web.tomcat.ContextDataSource;
+import com.aoindustries.aoserv.client.web.tomcat.ContextParameter;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.encoding.ChainWriter;
 import java.io.IOException;
@@ -31,7 +31,7 @@ public abstract class TomcatCommon {
 	/**
 	 * Writes a single parameter.
 	 */
-	public void writeHttpdTomcatParameter(HttpdTomcatParameter parameter, ChainWriter out) throws IOException {
+	public void writeHttpdTomcatParameter(ContextParameter parameter, ChainWriter out) throws IOException {
 		out.print("          <Parameter\n"
 				+ "            name=\"").encodeXmlAttribute(parameter.getName()).print("\"\n"
 				+ "            value=\"").encodeXmlAttribute(parameter.getValue()).print("\"\n");
@@ -45,7 +45,7 @@ public abstract class TomcatCommon {
 	/**
 	 * Writes a single data source.
 	 */
-	public abstract void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws IOException, SQLException;
+	public abstract void writeHttpdTomcatDataSource(ContextDataSource dataSource, ChainWriter out) throws IOException, SQLException;
 
 	/**
 	 * Gets the name of the Tomcat directory under <code>/opt/</code>.

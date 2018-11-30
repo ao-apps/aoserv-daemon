@@ -6,11 +6,11 @@
 package com.aoindustries.aoserv.daemon.net;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.account.BusinessAdministrator;
+import com.aoindustries.aoserv.client.account.Administrator;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.master.MasterUser;
-import com.aoindustries.aoserv.client.net.IPAddress;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.master.User;
+import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -67,7 +67,7 @@ final public class NullRouteManager {
 	volatile private static NullRouteManager instance;
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
@@ -91,9 +91,9 @@ final public class NullRouteManager {
 					|| osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
-					BusinessAdministrator ba = conn.getThisBusinessAdministrator();
-					MasterUser mu = ba.getMasterUser();
-					if(mu == null) throw new AssertionError("BusinessAdministrator is not a MasterUser");
+					Administrator ba = conn.getThisBusinessAdministrator();
+					User mu = ba.getMasterUser();
+					if(mu == null) throw new AssertionError("Administrator is not a User");
 					if(mu.isRouter()) {
 						instance = new NullRouteManager();
 						instance.startThread();
@@ -123,7 +123,7 @@ final public class NullRouteManager {
 				final PrintStream out = System.out;
 				synchronized(out) {
 					out.print(NullRouteManager.class.getName());
-					out.print(IPAddress.getIPAddressForInt(ip));
+					out.print(IpAddress.getIPAddressForInt(ip));
 					out.print(": new: level=");
 					out.println(level);
 				}
@@ -143,7 +143,7 @@ final public class NullRouteManager {
 					synchronized(out) {
 						out.print(NullRouteManager.class.getName());
 						out.print(": ");
-						out.print(IPAddress.getIPAddressForInt(ip));
+						out.print(IpAddress.getIPAddressForInt(ip));
 						out.print(": system time reset: level=");
 						out.println(level);
 					}
@@ -159,7 +159,7 @@ final public class NullRouteManager {
 						synchronized(out) {
 							out.print(NullRouteManager.class.getName());
 							out.print(": ");
-							out.print(IPAddress.getIPAddressForInt(ip));
+							out.print(IpAddress.getIPAddressForInt(ip));
 							out.print(": decremented: level=");
 							out.println(level);
 						}
@@ -180,7 +180,7 @@ final public class NullRouteManager {
 				synchronized(out) {
 					out.print(NullRouteManager.class.getName());
 					out.print(": ");
-					out.print(IPAddress.getIPAddressForInt(ip));
+					out.print(IpAddress.getIPAddressForInt(ip));
 					out.print(": incremented: level=");
 					out.println(level);
 				}
@@ -217,7 +217,7 @@ final public class NullRouteManager {
 											NullRoute nullRoute = entry.getValue();
 											// If null route currently in progress, add to the output file
 											if(currentTime >= nullRoute.startTime && currentTime < nullRoute.endTime) {
-												String ipString = IPAddress.getIPAddressForInt(nullRoute.ip);
+												String ipString = IpAddress.getIPAddressForInt(nullRoute.ip);
 												InetAddress inetAddress = InetAddress.valueOf(ipString);
 												assert inetAddress.getAddressFamily() == AddressFamily.INET;
 												// Never null-route private IP addresses, such as those used for communication between routers for BGP sessions
@@ -251,7 +251,7 @@ final public class NullRouteManager {
 												null // SELinux disabled on dom0
 											)
 										) {
-											AOServer thisAOServer = AOServDaemon.getThisAOServer();
+											Server thisAOServer = AOServDaemon.getThisAOServer();
 											OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 											int osvId = osv.getPkey();
 											if(

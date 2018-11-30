@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.util;
 
-import com.aoindustries.aoserv.client.net.NetBind;
+import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.net.InetAddress;
 import java.io.IOException;
@@ -64,7 +64,7 @@ abstract public class SocketServerManager {
 
 	protected void verifySocketServers() throws IOException, SQLException {
 		synchronized(this) {
-			NetBind[] nbs=getNetBinds();
+			Bind[] nbs=getNetBinds();
 
 			// Create the existing list
 			List<SocketServerThread> existing=new ArrayList<>(socketServers.size());
@@ -72,7 +72,7 @@ abstract public class SocketServerManager {
 				existing.add(socketServer);
 			}
 
-			for(NetBind nb : nbs) {
+			for(Bind nb : nbs) {
 				InetAddress nbIP = nb.getIpAddress().getInetAddress();
 				if(
 					!nbIP.isLoopback()
@@ -131,7 +131,7 @@ abstract public class SocketServerManager {
 		}
 	}
 
-	public abstract NetBind[] getNetBinds() throws IOException, SQLException;
+	public abstract Bind[] getNetBinds() throws IOException, SQLException;
 
 	public abstract String getManagerName();
 

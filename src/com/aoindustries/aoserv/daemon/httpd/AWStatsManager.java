@@ -7,18 +7,18 @@ package com.aoindustries.aoserv.daemon.httpd;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.linux.LinuxAccount;
-import com.aoindustries.aoserv.client.linux.LinuxGroup;
-import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
-import com.aoindustries.aoserv.client.linux.LinuxServerGroup;
+import com.aoindustries.aoserv.client.linux.Group;
+import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.Shell;
-import com.aoindustries.aoserv.client.net.IPAddress;
-import com.aoindustries.aoserv.client.net.Server;
+import com.aoindustries.aoserv.client.linux.User;
+import com.aoindustries.aoserv.client.linux.UserServer;
+import com.aoindustries.aoserv.client.net.Host;
+import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.web.HttpdSite;
-import com.aoindustries.aoserv.client.web.HttpdSiteBind;
-import com.aoindustries.aoserv.client.web.HttpdSiteURL;
+import com.aoindustries.aoserv.client.web.Site;
+import com.aoindustries.aoserv.client.web.VirtualHost;
+import com.aoindustries.aoserv.client.web.VirtualHostName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -74,8 +74,8 @@ final public class AWStatsManager extends BuilderThread {
 			final PackageManager.PackageName awstatsPackageName = osConfig.getAwstatsPackageName();
 
 			// Resolve the UID and GID before obtaining the lock
-			AOServer thisAoServer = AOServDaemon.getThisAOServer();
-			Server thisServer = thisAoServer.getServer();
+			Server thisAoServer = AOServDaemon.getThisAOServer();
+			Host thisServer = thisAoServer.getServer();
 			int uid_min = thisAoServer.getUidMin().getId();
 			int gid_min = thisAoServer.getGidMin().getId();
 
@@ -100,7 +100,7 @@ final public class AWStatsManager extends BuilderThread {
 							existingHostDirectories.addAll(Arrays.asList(list));
 						}
 					}
-					final List<HttpdSite> sites = thisAoServer.getHttpdSites();
+					final List<Site> sites = thisAoServer.getHttpdSites();
 					if(!sites.isEmpty()) {
 						// Install awstats[_6] package when first needed
 						if(awstatsPackageName != null) {
@@ -109,14 +109,14 @@ final public class AWStatsManager extends BuilderThread {
 						// User and group required
 						final int awstatsUID;
 						{
-							LinuxServerAccount awstatsLSA = thisAoServer.getLinuxServerAccount(LinuxAccount.AWSTATS);
-							if(awstatsLSA == null) throw new SQLException("Unable to find LinuxServerAccount: " + LinuxAccount.AWSTATS);
+							UserServer awstatsLSA = thisAoServer.getLinuxServerAccount(User.AWSTATS);
+							if(awstatsLSA == null) throw new SQLException("Unable to find UserServer: " + User.AWSTATS);
 							awstatsUID = awstatsLSA.getUid().getId();
 						}
 						final int awstatsGID;
 						{
-							LinuxServerGroup awstatsLSG = thisAoServer.getLinuxServerGroup(LinuxGroup.AWSTATS);
-							if(awstatsLSG == null) throw new SQLException("Unable to find LinuxServerGroup: " + LinuxGroup.AWSTATS);
+							GroupServer awstatsLSG = thisAoServer.getLinuxServerGroup(Group.AWSTATS);
+							if(awstatsLSG == null) throw new SQLException("Unable to find GroupServer: " + Group.AWSTATS);
 							awstatsGID = awstatsLSG.getGid().getId();
 						}
 						// Some more values used within the loop
@@ -128,8 +128,8 @@ final public class AWStatsManager extends BuilderThread {
 						// RAM is used to verify config files before committing to the filesystem
 						ByteArrayOutputStream bout = new ByteArrayOutputStream();
 						// Iterate through each website on this server
-						for(HttpdSite site : sites) {
-							List<HttpdSiteBind> binds = site.getHttpdSiteBinds();
+						for(Site site : sites) {
+							List<VirtualHost> binds = site.getHttpdSiteBinds();
 
 							String siteName = site.getName();
 							String configFilename = "awstats." + siteName + ".conf";
@@ -137,7 +137,7 @@ final public class AWStatsManager extends BuilderThread {
 							existingHostDirectories.remove(siteName);
 
 							// Resolve the primary URL
-							HttpdSiteURL primaryHttpdSiteURL = site.getPrimaryHttpdSiteURL();
+							VirtualHostName primaryHttpdSiteURL = site.getPrimaryHttpdSiteURL();
 							String primaryURL = (primaryHttpdSiteURL == null) ? siteName : primaryHttpdSiteURL.getHostname().toString();
 							usedHostnames.clear();
 							usedHostnames.add(primaryURL);
@@ -160,9 +160,9 @@ final public class AWStatsManager extends BuilderThread {
 											+ "HostAliases=\"");
 									// For each bind, show both the hostnames and the IP addresses
 									int count=0;
-									for(HttpdSiteBind bind : binds) {
+									for(VirtualHost bind : binds) {
 										// Add the hostnames
-										for(HttpdSiteURL url : bind.getHttpdSiteURLs()) {
+										for(VirtualHostName url : bind.getHttpdSiteURLs()) {
 											String hostname=url.getHostname().toString();
 											if(usedHostnames.add(hostname)) {
 												if(count>0) out.print(' ');
@@ -171,7 +171,7 @@ final public class AWStatsManager extends BuilderThread {
 											}
 										}
 										// Add the IP address, skipping wildcard or loopback IP addresses
-										IPAddress ip=bind.getHttpdBind().getNetBind().getIpAddress();
+										IpAddress ip=bind.getHttpdBind().getNetBind().getIpAddress();
 										InetAddress ia = ip.getInetAddress();
 										if(
 											!ia.isUnspecified()
@@ -210,7 +210,7 @@ final public class AWStatsManager extends BuilderThread {
 											+ "DefaultFile=\"index.html\"\n"
 											+ "SkipHosts=\"");
 									Set<String> finishedIPs = new HashSet<>();
-									for(IPAddress ip : thisServer.getIPAddresses()) {
+									for(IpAddress ip : thisServer.getIPAddresses()) {
 										InetAddress ia = ip.getInetAddress();
 										if(!ia.isUnspecified()) {
 											String addr = ia.toString();
@@ -377,9 +377,9 @@ final public class AWStatsManager extends BuilderThread {
 											+ "HostAliases=\"");
 									// For each bind, show both the hostnames and the IP addresses
 									int count=0;
-									for(HttpdSiteBind bind : binds) {
+									for(VirtualHost bind : binds) {
 										// Add the hostnames
-										for(HttpdSiteURL url : bind.getHttpdSiteURLs()) {
+										for(VirtualHostName url : bind.getHttpdSiteURLs()) {
 											String hostname=url.getHostname().toString();
 											if(usedHostnames.add(hostname)) {
 												if(count>0) out.print(' ');
@@ -388,7 +388,7 @@ final public class AWStatsManager extends BuilderThread {
 											}
 										}
 										// Add the IP address, skipping wildcard or loopback IP addresses
-										IPAddress ip=bind.getHttpdBind().getNetBind().getIpAddress();
+										IpAddress ip=bind.getHttpdBind().getNetBind().getIpAddress();
 										InetAddress ia = ip.getInetAddress();
 										if(
 											!ia.isUnspecified()
@@ -408,7 +408,7 @@ final public class AWStatsManager extends BuilderThread {
 											+ "DNSLastUpdateCacheFile=\"").print(hostsDirectory).print('/').print(siteName).print("/dnscachelastupdate.txt\"\n"
 											+ "SkipHosts=\"");
 									Set<String> finishedIPs = new HashSet<>();
-									for(IPAddress ip : thisServer.getIPAddresses()) {
+									for(IpAddress ip : thisServer.getIPAddresses()) {
 										InetAddress ia = ip.getInetAddress();
 										if(!ia.isUnspecified()) {
 											String addr = ia.toString();
@@ -464,7 +464,7 @@ final public class AWStatsManager extends BuilderThread {
 									out.print("#!/bin/bash\n");
 									out.print(binDirectory).print("/tools/logresolvemerge.pl");
 									usedLogs.clear();
-									for(HttpdSiteBind bind : binds) {
+									for(VirtualHost bind : binds) {
 										UnixPath access_log = bind.getAccessLog();
 										if(usedLogs.add(access_log)) {
 											out.print(" \\\n"
@@ -478,7 +478,7 @@ final public class AWStatsManager extends BuilderThread {
 									out.print("#!/usr/bin/bash\n");
 									out.print(binDirectory).print("/tools/logresolvemerge.pl");
 									usedLogs.clear();
-									for(HttpdSiteBind bind : binds) {
+									for(VirtualHost bind : binds) {
 										UnixPath access_log = bind.getAccessLog();
 										if(usedLogs.add(access_log)) {
 											// Note: /etc/logrotate.d/httpd-sites contains "delaycompress" so ".1" instead of ".1.gz"
@@ -666,7 +666,7 @@ final public class AWStatsManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
@@ -757,7 +757,7 @@ final public class AWStatsManager extends BuilderThread {
 					Shell.BASH.toString(),
 					"-c",
 					runascgi + " '" + queryString + "'",
-					LinuxAccount.AWSTATS.toString()
+					User.AWSTATS.toString()
 				};
 				Process P = Runtime.getRuntime().exec(cmd);
 				try {

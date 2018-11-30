@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.unix;
 
-import com.aoindustries.aoserv.client.linux.LinuxGroup;
+import com.aoindustries.aoserv.client.linux.Group;
 import com.aoindustries.aoserv.client.validator.GroupId;
 import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
@@ -198,11 +198,11 @@ final public class GroupFile {
 			try (ChainWriter out = new ChainWriter(bout)) {
 				boolean rootFound = false;
 				for(Entry entry : groupEntries) {
-					if(entry.getGroupName().equals(LinuxGroup.ROOT)) rootFound = true;
+					if(entry.getGroupName().equals(Group.ROOT)) rootFound = true;
 					entry.appendTo(out);
 					out.print('\n');
 				}
-				if(!rootFound) throw new IllegalArgumentException(LinuxGroup.ROOT + " group not found while creating " + groupFile);
+				if(!rootFound) throw new IllegalArgumentException(Group.ROOT + " group not found while creating " + groupFile);
 			}
 			return bout.toByteArray();
 		} catch(IOException e) {
@@ -233,7 +233,7 @@ final public class GroupFile {
 	 */
 	public static byte[] buildGroupFile(Map<GroupId,Entry> groups, int gidMin, int gidMax) throws IOException {
 		assert Thread.holdsLock(groupLock);
-		if(!groups.containsKey(LinuxGroup.ROOT)) throw new IllegalArgumentException(LinuxGroup.ROOT + " group not found");
+		if(!groups.containsKey(Group.ROOT)) throw new IllegalArgumentException(Group.ROOT + " group not found");
 		Map<GroupId,Entry> groupEntries = readGroupFile();
 		// Remove any groups that no longer exist and verify group members
 		Iterator<Map.Entry<GroupId,Entry>> entryIter = groupEntries.entrySet().iterator();

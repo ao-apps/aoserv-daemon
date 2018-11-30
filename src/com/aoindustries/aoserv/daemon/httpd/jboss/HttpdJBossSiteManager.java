@@ -8,9 +8,8 @@ package com.aoindustries.aoserv.daemon.httpd.jboss;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.validator.UserId;
-import com.aoindustries.aoserv.client.web.HttpdSite;
-import com.aoindustries.aoserv.client.web.jboss.HttpdJBossSite;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdSharedTomcat;
+import com.aoindustries.aoserv.client.web.jboss.Site;
+import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
@@ -22,7 +21,7 @@ import java.sql.SQLException;
 import java.util.Set;
 
 /**
- * Manages HttpdJBossSite configurations.
+ * Manages Site configurations.
  *
  * @author  AO Industries, Inc.
  */
@@ -31,16 +30,16 @@ public abstract class HttpdJBossSiteManager<TC extends TomcatCommon> extends Htt
 	/**
 	 * Gets the specific manager for one type of web site.
 	 */
-	public static HttpdJBossSiteManager<? extends TomcatCommon> getInstance(HttpdJBossSite jbossSite) throws IOException, SQLException {
+	public static HttpdJBossSiteManager<? extends TomcatCommon> getInstance(Site jbossSite) throws IOException, SQLException {
 		AOServConnector connector=AOServDaemon.getConnector();
 		String jbossVersion = jbossSite.getHttpdJBossVersion().getTechnologyVersion(connector).getVersion();
 		if(jbossVersion.equals("2.2.2")) return new HttpdJBossSiteManager_2_2_2(jbossSite);
 		throw new SQLException("Unsupported version of standard JBoss: "+jbossVersion+" on "+jbossSite);
 	}
 
-	final protected HttpdJBossSite jbossSite;
+	final protected Site jbossSite;
 
-	HttpdJBossSiteManager(HttpdJBossSite jbossSite) throws SQLException, IOException {
+	HttpdJBossSiteManager(Site jbossSite) throws SQLException, IOException {
 		super(jbossSite.getHttpdTomcatSite());
 		this.jbossSite = jbossSite;
 	}
@@ -80,7 +79,7 @@ public abstract class HttpdJBossSiteManager<TC extends TomcatCommon> extends Htt
 	}
 
 	@Override
-	protected void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) {
+	protected void flagNeedsRestart(Set<com.aoindustries.aoserv.client.web.Site> sitesNeedingRestarted, Set<SharedTomcat> sharedTomcatsNeedingRestarted) {
 		sitesNeedingRestarted.add(httpdSite);
 	}
 }

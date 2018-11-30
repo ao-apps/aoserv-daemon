@@ -9,12 +9,12 @@ import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.SendmailBind;
 import com.aoindustries.aoserv.client.email.SendmailServer;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.net.IPAddress;
-import com.aoindustries.aoserv.client.net.NetBind;
-import com.aoindustries.aoserv.client.net.Protocol;
-import com.aoindustries.aoserv.client.net.Server;
-import com.aoindustries.aoserv.client.pki.SslCertificate;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.net.AppProtocol;
+import com.aoindustries.aoserv.client.net.Bind;
+import com.aoindustries.aoserv.client.net.Host;
+import com.aoindustries.aoserv.client.net.IpAddress;
+import com.aoindustries.aoserv.client.pki.Certificate;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -154,7 +154,7 @@ final public class SendmailCFManager extends BuilderThread {
 	 */
 	private static void buildSendmailMcCentOS5(
 		ChainWriter out,
-		AOServer thisAoServer,
+		Server thisAoServer,
 		SendmailServer sendmailServer,
 		List<SendmailBind> smtpNetBinds,
 		List<SendmailBind> smtpsNetBinds,
@@ -211,7 +211,7 @@ final public class SendmailCFManager extends BuilderThread {
 				serverKey = "/etc/ssl/sendmail/MYkey.pem";
 				cacert = "/etc/ssl/sendmail/CAcert.pem";
 			} else {
-				SslCertificate certificate = sendmailServer.getServerCertificate();
+				Certificate certificate = sendmailServer.getServerCertificate();
 				if(certificate.getCertbotName() != null) throw new SQLException("Certbot not supported on CentOS 5");
 				serverCert = certificate.getCertFile().toString();
 				serverKey = certificate.getKeyFile().toString();
@@ -239,7 +239,7 @@ final public class SendmailCFManager extends BuilderThread {
 				clientCert = "/etc/ssl/sendmail/MYcert.pem";
 				clientKey = "/etc/ssl/sendmail/MYkey.pem";
 			} else {
-				SslCertificate certificate = sendmailServer.getClientCertificate();
+				Certificate certificate = sendmailServer.getClientCertificate();
 				if(certificate.getCertbotName() != null) throw new SQLException("Certbot not supported on CentOS 5");
 				String certbotName = certificate.getCertbotName();
 				clientCert = certificate.getCertFile().toString();
@@ -297,8 +297,8 @@ final public class SendmailCFManager extends BuilderThread {
 		out.print("define(`confPROCESS_TITLE_PREFIX',`").print(hostname).print("')dnl\n"
 				+ "dnl\n");
 		// Look for the configured net bind for the jilter
-		IPAddress primaryIpAddress = thisAoServer.getPrimaryIPAddress();
-		NetBind jilterNetBind = JilterConfigurationWriter.getJilterNetBind();
+		IpAddress primaryIpAddress = thisAoServer.getPrimaryIPAddress();
+		Bind jilterNetBind = JilterConfigurationWriter.getJilterNetBind();
 		// Only configure when the net bind has been found
 		if(jilterNetBind != null) {
 			out.print("dnl Enable Jilter\n"
@@ -317,8 +317,8 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "FEATURE(`no_default_msa')dnl\n");
 		Set<InetAddress> finishedIPs = new HashSet<>();
 		for(SendmailBind sb : smtpNetBinds) {
-			NetBind nb = sb.getNetBind();
-			IPAddress ia = nb.getIpAddress();
+			Bind nb = sb.getNetBind();
+			IpAddress ia = nb.getIpAddress();
 			InetAddress ip = ia.getInetAddress();
 			if(finishedIPs.add(ip)) {
 				String bindName = sb.getName();
@@ -343,8 +343,8 @@ final public class SendmailCFManager extends BuilderThread {
 		}
 		finishedIPs.clear();
 		for(SendmailBind sb : smtpsNetBinds) {
-			NetBind nb = sb.getNetBind();
-			IPAddress ia = nb.getIpAddress();
+			Bind nb = sb.getNetBind();
+			IpAddress ia = nb.getIpAddress();
 			InetAddress ip = ia.getInetAddress();
 			if(finishedIPs.add(ip)) {
 				String bindName = sb.getName();
@@ -369,8 +369,8 @@ final public class SendmailCFManager extends BuilderThread {
 		}
 		finishedIPs.clear();
 		for(SendmailBind sb : submissionNetBinds) {
-			NetBind nb = sb.getNetBind();
-			IPAddress ia = nb.getIpAddress();
+			Bind nb = sb.getNetBind();
+			IpAddress ia = nb.getIpAddress();
 			InetAddress ip = ia.getInetAddress();
 			if(finishedIPs.add(ip)) {
 				String bindName = sb.getName();
@@ -393,8 +393,8 @@ final public class SendmailCFManager extends BuilderThread {
 				out.print("')dnl\n"); // AO added
 			}
 		}
-		IPAddress clientAddrInet = (sendmailServer == null) ? null : sendmailServer.getClientAddrInet();
-		IPAddress clientAddrInet6 = (sendmailServer == null) ? null : sendmailServer.getClientAddrInet6();
+		IpAddress clientAddrInet = (sendmailServer == null) ? null : sendmailServer.getClientAddrInet();
+		IpAddress clientAddrInet6 = (sendmailServer == null) ? null : sendmailServer.getClientAddrInet6();
 		if(clientAddrInet != null || clientAddrInet6 != null) {
 			out.print("dnl\n"
 					+ "dnl Configure outgoing connections:\n");
@@ -460,7 +460,7 @@ final public class SendmailCFManager extends BuilderThread {
 	 */
 	private static void buildSendmailMcCentOS7(
 		ChainWriter out,
-		AOServer thisAoServer,
+		Server thisAoServer,
 		SendmailServer sendmailServer,
 		List<SendmailBind> smtpNetBinds,
 		List<SendmailBind> smtpsNetBinds,
@@ -560,7 +560,7 @@ final public class SendmailCFManager extends BuilderThread {
 				serverKey = "/etc/pki/sendmail/sendmail.pem";
 				cacert = ImapManager.DEFAULT_CA_FILE;
 			} else {
-				SslCertificate certificate = sendmailServer.getServerCertificate();
+				Certificate certificate = sendmailServer.getServerCertificate();
 				String certbotName = certificate.getCertbotName();
 				if(certbotName != null) {
 					UnixFile dir = new UnixFile(CERTIFICATE_COPY_DIRECTORY, certbotName, true);
@@ -599,7 +599,7 @@ final public class SendmailCFManager extends BuilderThread {
 				clientCert = "/etc/pki/sendmail/sendmail.pem";
 				clientKey = "/etc/pki/sendmail/sendmail.pem";
 			} else {
-				SslCertificate certificate = sendmailServer.getClientCertificate();
+				Certificate certificate = sendmailServer.getClientCertificate();
 				String certbotName = certificate.getCertbotName();
 				if(certbotName != null) {
 					UnixFile dir = new UnixFile(CERTIFICATE_COPY_DIRECTORY, certbotName, true);
@@ -708,8 +708,8 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "FEATURE(`blacklist_recipients')dnl\n"
 				+ "EXPOSED_USER(`root')dnl\n");
 		// Look for the configured net bind for the jilter
-		IPAddress primaryIpAddress = thisAoServer.getPrimaryIPAddress();
-		NetBind jilterNetBind = JilterConfigurationWriter.getJilterNetBind();
+		IpAddress primaryIpAddress = thisAoServer.getPrimaryIPAddress();
+		Bind jilterNetBind = JilterConfigurationWriter.getJilterNetBind();
 		// Only configure when the net bind has been found
 		if(jilterNetBind != null) {
 			out.print("dnl #\n"
@@ -741,8 +741,8 @@ final public class SendmailCFManager extends BuilderThread {
 		if(hostname == null) hostname = thisAoServer.getHostname();
 		Set<InetAddress> finishedIPs = new HashSet<>();
 		for(SendmailBind sb : smtpNetBinds) {
-			NetBind nb = sb.getNetBind();
-			IPAddress ia = nb.getIpAddress();
+			Bind nb = sb.getNetBind();
+			IpAddress ia = nb.getIpAddress();
 			InetAddress ip = ia.getInetAddress();
 			if(finishedIPs.add(ip)) {
 				String bindName = sb.getName();
@@ -771,8 +771,8 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl DAEMON_OPTIONS(`Port=submission, Name=MSA, M=Ea')dnl\n");
 		finishedIPs.clear();
 		for(SendmailBind sb : submissionNetBinds) {
-			NetBind nb = sb.getNetBind();
-			IPAddress ia = nb.getIpAddress();
+			Bind nb = sb.getNetBind();
+			IpAddress ia = nb.getIpAddress();
 			InetAddress ip = ia.getInetAddress();
 			if(finishedIPs.add(ip)) {
 				String bindName = sb.getName();
@@ -806,8 +806,8 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "dnl DAEMON_OPTIONS(`Port=smtps, Name=TLSMTA, M=s')dnl\n");
 		finishedIPs.clear();
 		for(SendmailBind sb : smtpsNetBinds) {
-			NetBind nb = sb.getNetBind();
-			IPAddress ia = nb.getIpAddress();
+			Bind nb = sb.getNetBind();
+			IpAddress ia = nb.getIpAddress();
 			InetAddress ip = ia.getInetAddress();
 			if(finishedIPs.add(ip)) {
 				String bindName = sb.getName();
@@ -842,7 +842,7 @@ final public class SendmailCFManager extends BuilderThread {
 			if(sendmailServer == null) {
 				clientAddrInet = null;
 			} else {
-				IPAddress clientIP = sendmailServer.getClientAddrInet();
+				IpAddress clientIP = sendmailServer.getClientAddrInet();
 				if(clientIP != null) {
 					clientAddrInet = clientIP.getInetAddress();
 				} else {
@@ -862,7 +862,7 @@ final public class SendmailCFManager extends BuilderThread {
 			if(sendmailServer == null) {
 				clientAddrInet6 = null;
 			} else {
-				IPAddress clientIP = sendmailServer.getClientAddrInet6();
+				IpAddress clientIP = sendmailServer.getClientAddrInet6();
 				if(clientIP != null) {
 					clientAddrInet6 = clientIP.getInetAddress();
 				} else {
@@ -989,7 +989,7 @@ final public class SendmailCFManager extends BuilderThread {
 		}
 		InetAddress foundAddress = null;
 		for(SendmailBind smtpBind : smtpBinds) {
-			NetBind smtpNetBind = smtpBind.getNetBind();
+			Bind smtpNetBind = smtpBind.getNetBind();
 			if(requiredPort == null || smtpNetBind.getPort().getPort() == requiredPort) {
 				InetAddress smtpAddress = smtpNetBind.getIpAddress().getInetAddress();
 				if(family == null || smtpAddress.getAddressFamily() == family) {
@@ -1019,11 +1019,11 @@ final public class SendmailCFManager extends BuilderThread {
 		try {
 			// Used on inner processing
 			AOServConnector conn = AOServDaemon.getConnector();
-			AOServer thisAoServer = AOServDaemon.getThisAOServer();
-			Server thisServer = thisAoServer.getServer();
+			Server thisAoServer = AOServDaemon.getThisAOServer();
+			Host thisServer = thisAoServer.getServer();
 			OperatingSystemVersion osv = thisServer.getOperatingSystemVersion();
 			int osvId = osv.getPkey();
-			IPAddress primaryIpAddress = thisAoServer.getPrimaryIPAddress();
+			IpAddress primaryIpAddress = thisAoServer.getPrimaryIPAddress();
 			ByteArrayOutputStream bout = new ByteArrayOutputStream();
 
 			synchronized(rebuildLock) {
@@ -1069,9 +1069,9 @@ final public class SendmailCFManager extends BuilderThread {
 						if(sbs.isEmpty()) throw new SQLException("SendmailServer does not have any binds: " + ss);
 						for(SendmailBind sb : sbs) {
 							String protocol = sb.getNetBind().getAppProtocol().getProtocol();
-							if(Protocol.SMTP.equals(protocol)) smtpList.add(sb);
-							else if(Protocol.SMTPS.equals(protocol)) smtpsList.add(sb);
-							else if(Protocol.SUBMISSION.equals(protocol)) submissionList.add(sb);
+							if(AppProtocol.SMTP.equals(protocol)) smtpList.add(sb);
+							else if(AppProtocol.SMTPS.equals(protocol)) smtpsList.add(sb);
+							else if(AppProtocol.SUBMISSION.equals(protocol)) submissionList.add(sb);
 							else throw new AssertionError("Unexpected protocol for SendmailBind #" + sb.getPkey() + ": " + protocol);
 						}
 						assert !smtpList.isEmpty() || !smtpsList.isEmpty() || !submissionList.isEmpty();
@@ -1143,7 +1143,7 @@ final public class SendmailCFManager extends BuilderThread {
 					caTrustHashSupported = true;
 					caTrustHashNeeded = false;
 					for(SendmailServer ss : sendmailServers) {
-						SslCertificate serverCert = ss.getServerCertificate();
+						Certificate serverCert = ss.getServerCertificate();
 						if(serverCert != null) {
 							if(serverCert.getCertbotName() != null) {
 								caTrustHashNeeded = true;
@@ -1338,7 +1338,7 @@ final public class SendmailCFManager extends BuilderThread {
 									if(defaultServer == null) {
 										submitAddress = null;
 									} else {
-										// Find NetBind listing on SMTP on port 25, preferring primaryIpAddress
+										// Find Bind listing on SMTP on port 25, preferring primaryIpAddress
 										// TODO: Prefer 127.0.0.1 over primary?
 										final int MSP_PORT = 25;
 										InetAddress primaryAddress = primaryIpAddress.getInetAddress();
@@ -1699,7 +1699,7 @@ final public class SendmailCFManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 

@@ -11,11 +11,11 @@ import com.aoindustries.aoserv.client.distribution.management.DistroFile;
 import com.aoindustries.aoserv.client.distribution.management.DistroFileTable;
 import com.aoindustries.aoserv.client.distribution.management.DistroFileType;
 import com.aoindustries.aoserv.client.distribution.management.DistroReportType;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.linux.LinuxAccount;
-import com.aoindustries.aoserv.client.linux.LinuxGroup;
-import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
-import com.aoindustries.aoserv.client.linux.LinuxServerGroup;
+import com.aoindustries.aoserv.client.linux.Group;
+import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.linux.User;
+import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.client.sql.SQLColumnValue;
 import com.aoindustries.aoserv.client.sql.SQLComparator;
 import com.aoindustries.aoserv.client.sql.SQLExpression;
@@ -126,7 +126,7 @@ final public class DistroManager implements Runnable {
 					isSleeping = false;
 
 					// It is time to run if it is the backup hour and the backup has not been run for at least 12 hours
-					AOServer thisAOServer = AOServDaemon.getThisAOServer();
+					Server thisAOServer = AOServDaemon.getThisAOServer();
 					long distroStartTime = System.currentTimeMillis();
 					Timestamp lastDistroTime = thisAOServer.getLastDistroTime();
 					Logger logger = LogFactory.getLogger(DistroManager.class);
@@ -420,7 +420,7 @@ final public class DistroManager implements Runnable {
 	 */
 	//@SuppressWarnings({"unchecked"})
 	private static void checkDistroFile(
-		AOServer aoServer,
+		Server aoServer,
 		Integer osVersionPKey,
 		MessageDigest digest,
 		List<DistroFile> distroFiles,
@@ -490,9 +490,9 @@ final public class DistroManager implements Runnable {
 		} else {
 			// Check owner
 			int fileUID = fileStat.getUid();
-			LinuxAccount la = distroFile.getLinuxAccount();
-			LinuxServerAccount lsa = la.getLinuxServerAccount(aoServer);
-			if(lsa == null) throw new SQLException("Unable to find LinuxServerAccount for " + la + " on " + aoServer + ", path=" + file);
+			User la = distroFile.getLinuxAccount();
+			UserServer lsa = la.getLinuxServerAccount(aoServer);
+			if(lsa == null) throw new SQLException("Unable to find UserServer for " + la + " on " + aoServer + ", path=" + file);
 			int distroUID = lsa.getUid().getId();
 			if(fileUID != distroUID) {
 				addResult(
@@ -508,9 +508,9 @@ final public class DistroManager implements Runnable {
 
 			// Check group
 			int fileGID = fileStat.getGid();
-			LinuxGroup lg = distroFile.getLinuxGroup();
-			LinuxServerGroup lsg = lg.getLinuxServerGroup(aoServer);
-			if(lsg == null) throw new SQLException("Unable to find LinuxServerGroup for " + lg + " on " + aoServer + ", path=" + file);
+			Group lg = distroFile.getLinuxGroup();
+			GroupServer lsg = lg.getLinuxServerGroup(aoServer);
+			if(lsg == null) throw new SQLException("Unable to find GroupServer for " + lg + " on " + aoServer + ", path=" + file);
 			int distroGID = lsg.getGid().getId();
 			if(fileGID != distroGID) {
 				addResult(
@@ -798,7 +798,7 @@ final public class DistroManager implements Runnable {
 	}
 
 	private static void checkUserDirectory(
-		AOServer aoServer,
+		Server aoServer,
 		UnixFile file,
 		List<DistroReportFile> results,
 		DistroReportStats stats,
@@ -886,7 +886,7 @@ final public class DistroManager implements Runnable {
 										fname.equals("wrapper")
 										&& fileMode == 04750
 										&& ufStat.getUid() == UnixFile.ROOT_UID
-										&& aoServer.getLinuxServerGroup(LinuxId.valueOf(ufStat.getGid())).getLinuxGroup().getName().equals(LinuxGroup.MAIL)
+										&& aoServer.getLinuxServerGroup(LinuxId.valueOf(ufStat.getGid())).getLinuxGroup().getName().equals(Group.MAIL)
 									) {
 										found = true;
 									}

@@ -7,9 +7,8 @@ package com.aoindustries.aoserv.daemon.mysql;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.mysql.MySQLDatabase;
-import com.aoindustries.aoserv.client.mysql.MySQLServer;
+import com.aoindustries.aoserv.client.mysql.Database;
+import com.aoindustries.aoserv.client.mysql.Server;
 import com.aoindustries.aoserv.client.validator.MySQLDatabaseName;
 import com.aoindustries.aoserv.client.validator.MySQLTableName;
 import com.aoindustries.aoserv.client.validator.UnixPath;
@@ -67,7 +66,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	protected boolean doRebuild() {
 		try {
 			//AOServConnector connector=AOServDaemon.getConnector();
-			AOServer thisAOServer = AOServDaemon.getThisAOServer();
+			com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
 			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
@@ -78,8 +77,8 @@ final public class MySQLDatabaseManager extends BuilderThread {
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 			synchronized(rebuildLock) {
-				for(MySQLServer mysqlServer : thisAOServer.getMySQLServers()) {
-					List<MySQLDatabase> databases = mysqlServer.getMySQLDatabases();
+				for(Server mysqlServer : thisAOServer.getMySQLServers()) {
+					List<Database> databases = mysqlServer.getMySQLDatabases();
 					if(databases.isEmpty()) {
 						LogFactory.getLogger(MySQLDatabaseManager.class).severe("No databases; refusing to rebuild config: " + mysqlServer);
 					} else {
@@ -87,31 +86,31 @@ final public class MySQLDatabaseManager extends BuilderThread {
 						// Different versions of MySQL have different sets of system databases
 						Set<MySQLDatabaseName> systemDatabases = new LinkedHashSet<>();
 						if(
-							version.startsWith(MySQLServer.VERSION_4_0_PREFIX)
-							|| version.startsWith(MySQLServer.VERSION_4_1_PREFIX)
+							version.startsWith(Server.VERSION_4_0_PREFIX)
+							|| version.startsWith(Server.VERSION_4_1_PREFIX)
 						) {
-							systemDatabases.add(MySQLDatabase.MYSQL);
+							systemDatabases.add(Database.MYSQL);
 						} else if(
-							version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
-							|| version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
+							version.startsWith(Server.VERSION_5_0_PREFIX)
+							|| version.startsWith(Server.VERSION_5_1_PREFIX)
 						) {
-							systemDatabases.add(MySQLDatabase.MYSQL);
-							systemDatabases.add(MySQLDatabase.INFORMATION_SCHEMA);
-						} else if(version.startsWith(MySQLServer.VERSION_5_6_PREFIX)) {
-							systemDatabases.add(MySQLDatabase.MYSQL);
-							systemDatabases.add(MySQLDatabase.INFORMATION_SCHEMA);
-							systemDatabases.add(MySQLDatabase.PERFORMANCE_SCHEMA);
-						} else if(version.startsWith(MySQLServer.VERSION_5_7_PREFIX)) {
-							systemDatabases.add(MySQLDatabase.MYSQL);
-							systemDatabases.add(MySQLDatabase.INFORMATION_SCHEMA);
-							systemDatabases.add(MySQLDatabase.PERFORMANCE_SCHEMA);
-							systemDatabases.add(MySQLDatabase.SYS);
+							systemDatabases.add(Database.MYSQL);
+							systemDatabases.add(Database.INFORMATION_SCHEMA);
+						} else if(version.startsWith(Server.VERSION_5_6_PREFIX)) {
+							systemDatabases.add(Database.MYSQL);
+							systemDatabases.add(Database.INFORMATION_SCHEMA);
+							systemDatabases.add(Database.PERFORMANCE_SCHEMA);
+						} else if(version.startsWith(Server.VERSION_5_7_PREFIX)) {
+							systemDatabases.add(Database.MYSQL);
+							systemDatabases.add(Database.INFORMATION_SCHEMA);
+							systemDatabases.add(Database.PERFORMANCE_SCHEMA);
+							systemDatabases.add(Database.SYS);
 						} else {
 							throw new SQLException("Unsupported version of MySQL: " + version);
 						}
 						// Verify has all system databases
 						Set<MySQLDatabaseName> requiredDatabases = new LinkedHashSet<>(systemDatabases);
-						for(MySQLDatabase database : databases) {
+						for(Database database : databases) {
 							if(
 								requiredDatabases.remove(database.getName())
 								&& requiredDatabases.isEmpty()
@@ -142,7 +141,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 									}
 
 									// Create the databases that do not exist and should
-									for(MySQLDatabase database : databases) {
+									for(Database database : databases) {
 										MySQLDatabaseName name = database.getName();
 										if(!existing.remove(name)) {
 											// Create the database
@@ -191,7 +190,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	}
 
 	public static void dumpDatabase(
-		MySQLDatabase md,
+		Database md,
 		AOServDaemonProtocol.Version protocolVersion,
 		CompressedDataOutputStream masterOut,
 		boolean gzip
@@ -236,7 +235,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	}
 
 	private static void dumpDatabase(
-		MySQLServer ms,
+		Server ms,
 		MySQLDatabaseName dbName,
 		File output,
 		boolean gzip
@@ -274,7 +273,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	private static MySQLDatabaseManager mysqlDatabaseManager;
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
@@ -318,8 +317,8 @@ final public class MySQLDatabaseManager extends BuilderThread {
 
 	public static void getMasterStatus(int mysqlServer, CompressedDataOutputStream out) throws IOException, SQLException {
 		// Use the existing pools
-		MySQLServer ms = AOServDaemon.getConnector().getMysqlServers().get(mysqlServer);
-		if(ms == null) throw new SQLException("Unable to find MySQLServer: " + mysqlServer);
+		Server ms = AOServDaemon.getConnector().getMysqlServers().get(mysqlServer);
+		if(ms == null) throw new SQLException("Unable to find Server: " + mysqlServer);
 
 		AOConnectionPool pool = MySQLServerManager.getPool(ms);
 		Connection conn = pool.getConnection(true);
@@ -453,10 +452,10 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		}
 	}
 
-	private static final ConcurrencyLimiter<TableStatusConcurrencyKey,List<MySQLDatabase.TableStatus>> tableStatusLimiter = new ConcurrencyLimiter<>();
+	private static final ConcurrencyLimiter<TableStatusConcurrencyKey,List<Database.TableStatus>> tableStatusLimiter = new ConcurrencyLimiter<>();
 
 	public static void getTableStatus(UnixPath failoverRoot, int nestedOperatingSystemVersion, Port port, MySQLDatabaseName databaseName, CompressedDataOutputStream out) throws IOException, SQLException {
-		List<MySQLDatabase.TableStatus> tableStatuses;
+		List<Database.TableStatus> tableStatuses;
 		try {
 			tableStatuses = tableStatusLimiter.executeSerialized(
 				new TableStatusConcurrencyKey(
@@ -465,7 +464,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 					databaseName
 				),
 				() -> {
-					List<MySQLDatabase.TableStatus> statuses = new ArrayList<>();
+					List<Database.TableStatus> statuses = new ArrayList<>();
 					try (
 						Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, port);
 						Statement stmt = conn.createStatement()
@@ -473,7 +472,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 						boolean isMySQL40;
 						try (ResultSet results = stmt.executeQuery("SELECT version()")) {
 							if(!results.next()) throw new SQLException("No row returned");
-							isMySQL40 = results.getString(1).startsWith(MySQLServer.VERSION_4_0_PREFIX);
+							isMySQL40 = results.getString(1).startsWith(Server.VERSION_4_0_PREFIX);
 						}
 						try (ResultSet results = stmt.executeQuery("SHOW TABLE STATUS FROM "+databaseName)) {
 							while(results.next()) {
@@ -508,11 +507,11 @@ final public class MySQLDatabaseManager extends BuilderThread {
 								}
 								try {
 									statuses.add(
-										new MySQLDatabase.TableStatus(
+										new Database.TableStatus(
 											MySQLTableName.valueOf(results.getString("Name")),
-											engine==null ? null : MySQLDatabase.Engine.valueOf(engine),
+											engine==null ? null : Database.Engine.valueOf(engine),
 											version,
-											rowFormat==null ? null : MySQLDatabase.TableStatus.RowFormat.valueOf(rowFormat),
+											rowFormat==null ? null : Database.TableStatus.RowFormat.valueOf(rowFormat),
 											rows,
 											avgRowLength,
 											dataLength,
@@ -523,7 +522,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 											results.getString("Create_time"),
 											isMySQL40 ? null : results.getString("Update_time"),
 											results.getString("Check_time"),
-											collation==null ? null : MySQLDatabase.TableStatus.Collation.valueOf(collation),
+											collation==null ? null : Database.TableStatus.Collation.valueOf(collation),
 											isMySQL40 ? null : results.getString("Checksum"),
 											results.getString("Create_options"),
 											results.getString("Comment")
@@ -549,7 +548,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		int size = tableStatuses.size();
 		out.writeCompressedInt(size);
 		for(int c = 0; c < size; c++) {
-			MySQLDatabase.TableStatus tableStatus = tableStatuses.get(c);
+			Database.TableStatus tableStatus = tableStatuses.get(c);
 			out.writeUTF(tableStatus.getName().toString());
 			out.writeNullEnum(tableStatus.getEngine());
 			out.writeNullInteger(tableStatus.getVersion());
@@ -618,7 +617,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		}
 	}
 
-	private static final ConcurrencyLimiter<CheckTableConcurrencyKey,List<MySQLDatabase.CheckTableResult>> checkTableLimiter = new ConcurrencyLimiter<>();
+	private static final ConcurrencyLimiter<CheckTableConcurrencyKey,List<Database.CheckTableResult>> checkTableLimiter = new ConcurrencyLimiter<>();
 
 	/**
 	 * Checks all tables, times-out in one minute.
@@ -631,15 +630,15 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		final List<MySQLTableName> tableNames,
 		CompressedDataOutputStream out
 	) throws IOException, SQLException {
-		Future<List<MySQLDatabase.CheckTableResult>> future = AOServDaemon.executorService.submit(() -> {
-			List<MySQLDatabase.CheckTableResult> allTableResults = new ArrayList<>();
+		Future<List<Database.CheckTableResult>> future = AOServDaemon.executorService.submit(() -> {
+			List<Database.CheckTableResult> allTableResults = new ArrayList<>();
 			for(final MySQLTableName tableName : tableNames) {
-				if(!MySQLDatabase.isSafeName(tableName.toString())) {
+				if(!Database.isSafeName(tableName.toString())) {
 					allTableResults.add(
-						new MySQLDatabase.CheckTableResult(
+						new Database.CheckTableResult(
 							tableName,
 							0,
-							MySQLDatabase.CheckTableResult.MsgType.error,
+							Database.CheckTableResult.MsgType.error,
 							"Unsafe table name, refusing to check table"
 						)
 					);
@@ -662,17 +661,17 @@ final public class MySQLDatabaseManager extends BuilderThread {
 									) {
 										long duration = System.currentTimeMillis() - startTime;
 										if(duration<0) duration = 0; // System time possibly reset
-										final List<MySQLDatabase.CheckTableResult> tableResults = new ArrayList<>();
+										final List<Database.CheckTableResult> tableResults = new ArrayList<>();
 										while(results.next()) {
 											try {
 												String table = results.getString("Table");
 												if(table.startsWith(dbNamePrefix)) table = table.substring(dbNamePrefix.length());
 												final String msgType = results.getString("Msg_type");
 												tableResults.add(
-													new MySQLDatabase.CheckTableResult(
+													new Database.CheckTableResult(
 														MySQLTableName.valueOf(table),
 														duration,
-														msgType==null ? null : MySQLDatabase.CheckTableResult.MsgType.valueOf(msgType),
+														msgType==null ? null : Database.CheckTableResult.MsgType.valueOf(msgType),
 														results.getString("Msg_text")
 													)
 												);
@@ -697,12 +696,12 @@ final public class MySQLDatabaseManager extends BuilderThread {
 			return allTableResults;
 		});
 		try {
-			List<MySQLDatabase.CheckTableResult> allTableResults = future.get(60, TimeUnit.SECONDS);
+			List<Database.CheckTableResult> allTableResults = future.get(60, TimeUnit.SECONDS);
 			out.write(AOServDaemonProtocol.NEXT);
 			int size = allTableResults.size();
 			out.writeCompressedInt(size);
 			for(int c=0;c<size;c++) {
-				MySQLDatabase.CheckTableResult checkTableResult = allTableResults.get(c);
+				Database.CheckTableResult checkTableResult = allTableResults.get(c);
 				out.writeUTF(checkTableResult.getTable().toString());
 				out.writeLong(checkTableResult.getDuration());
 				out.writeNullEnum(checkTableResult.getMsgType());

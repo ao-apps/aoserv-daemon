@@ -6,7 +6,7 @@
 package com.aoindustries.aoserv.daemon;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.reseller.TicketCategory;
+import com.aoindustries.aoserv.client.reseller.Category;
 import com.aoindustries.aoserv.client.ticket.TicketLoggingHandler;
 import com.aoindustries.util.ErrorPrinter;
 import java.util.concurrent.ConcurrentHashMap;
@@ -59,7 +59,7 @@ public class LogFactory {
 			Handler handler;
 			try {
 				AOServConnector connector = AOServDaemon.getConnector();
-				TicketCategory category = connector.getTicketCategories().getTicketCategoryByDotPath("aoserv.aoserv_daemon");
+				Category category = connector.getTicketCategories().getTicketCategoryByDotPath("aoserv.aoserv_daemon");
 				handler = TicketLoggingHandler.getHandler(
 					AOServDaemonConfiguration.getServerHostname(),
 					connector,

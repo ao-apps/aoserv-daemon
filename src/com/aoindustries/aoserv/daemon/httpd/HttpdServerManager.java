@@ -7,33 +7,32 @@ package com.aoindustries.aoserv.daemon.httpd;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.distribution.TechnologyVersion;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.linux.LinuxAccount;
-import com.aoindustries.aoserv.client.linux.LinuxGroup;
-import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
-import com.aoindustries.aoserv.client.linux.LinuxServerGroup;
-import com.aoindustries.aoserv.client.net.NetBind;
-import com.aoindustries.aoserv.client.net.Protocol;
-import com.aoindustries.aoserv.client.pki.SslCertificate;
+import com.aoindustries.aoserv.client.distribution.SoftwareVersion;
+import com.aoindustries.aoserv.client.linux.Group;
+import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.linux.User;
+import com.aoindustries.aoserv.client.linux.UserServer;
+import com.aoindustries.aoserv.client.net.AppProtocol;
+import com.aoindustries.aoserv.client.net.Bind;
+import com.aoindustries.aoserv.client.pki.Certificate;
 import com.aoindustries.aoserv.client.util.ApacheEscape;
 import static com.aoindustries.aoserv.client.util.ApacheEscape.escape;
 import com.aoindustries.aoserv.client.validator.GroupId;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.validator.UserId;
+import com.aoindustries.aoserv.client.web.Header;
 import com.aoindustries.aoserv.client.web.HttpdBind;
 import com.aoindustries.aoserv.client.web.HttpdServer;
-import com.aoindustries.aoserv.client.web.HttpdSite;
-import com.aoindustries.aoserv.client.web.HttpdSiteAuthenticatedLocation;
-import com.aoindustries.aoserv.client.web.HttpdSiteBind;
-import com.aoindustries.aoserv.client.web.HttpdSiteBindHeader;
-import com.aoindustries.aoserv.client.web.HttpdSiteBindRedirect;
-import com.aoindustries.aoserv.client.web.HttpdSiteURL;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdSharedTomcat;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatContext;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatSharedSite;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatSite;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdWorker;
+import com.aoindustries.aoserv.client.web.Location;
+import com.aoindustries.aoserv.client.web.Redirect;
+import com.aoindustries.aoserv.client.web.Site;
+import com.aoindustries.aoserv.client.web.VirtualHost;
+import com.aoindustries.aoserv.client.web.VirtualHostName;
+import com.aoindustries.aoserv.client.web.tomcat.Context;
+import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
+import com.aoindustries.aoserv.client.web.tomcat.SharedTomcatSite;
+import com.aoindustries.aoserv.client.web.tomcat.Worker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
@@ -276,7 +275,7 @@ public class HttpdServerManager {
 	) throws IOException, SQLException {
 		// Used below
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
-		AOServer aoServer = AOServDaemon.getThisAOServer();
+		Server aoServer = AOServDaemon.getThisAOServer();
 
 		// Rebuild /etc/httpd/conf/hosts/ or /etc/httpd/sites-available and /etc/httpd/sites-enabled files
 		doRebuildConfHosts(aoServer, bout, deleteFileList, serversNeedingReloaded, restorecon);
@@ -302,7 +301,7 @@ public class HttpdServerManager {
 	 * or /etc/httpd/sites-available and /etc/httpd/sites-enabled
 	 */
 	private static void doRebuildConfHosts(
-		AOServer thisAoServer,
+		Server thisAoServer,
 		ByteArrayOutputStream bout,
 		List<File> deleteFileList,
 		Set<HttpdServer> serversNeedingReloaded,
@@ -318,13 +317,13 @@ public class HttpdServerManager {
 				extraFiles.addAll(Arrays.asList(list));
 
 				// Iterate through each site
-				for(HttpdSite httpdSite : thisAoServer.getHttpdSites()) {
+				for(Site httpdSite : thisAoServer.getHttpdSites()) {
 					// Some values used below
 					final String siteName = httpdSite.getName();
 					final HttpdSiteManager manager = HttpdSiteManager.getInstance(httpdSite);
-					final LinuxServerGroup lsg = httpdSite.getLinuxServerGroup();
+					final GroupServer lsg = httpdSite.getLinuxServerGroup();
 					final int lsgGID = lsg.getGid().getId();
-					final List<HttpdSiteBind> binds = httpdSite.getHttpdSiteBinds();
+					final List<VirtualHost> binds = httpdSite.getHttpdSiteBinds();
 
 					// Remove from delete list
 					extraFiles.remove(siteName);
@@ -344,19 +343,19 @@ public class HttpdServerManager {
 							)
 						) {
 							// File changed, all servers that use this site need restarted
-							for(HttpdSiteBind hsb : binds) serversNeedingReloaded.add(hsb.getHttpdBind().getHttpdServer());
+							for(VirtualHost hsb : binds) serversNeedingReloaded.add(hsb.getHttpdBind().getHttpdServer());
 						}
 					}
 
 					// Each of the binds
-					for(HttpdSiteBind bind : binds) {
+					for(VirtualHost bind : binds) {
 						// Some value used below
 						final boolean isManual = bind.isManual();
 						final boolean isDisabled = bind.isDisabled();
 						final String predisableConfig = bind.getPredisableConfig();
 						// TODO: predisable_config and disabled state do not interact well.  When disabled, the predisable_config keeps getting used instead of any newly generated file.
 						final HttpdBind httpdBind = bind.getHttpdBind();
-						final NetBind nb = httpdBind.getNetBind();
+						final Bind nb = httpdBind.getNetBind();
 						// Generate the filename
 						final String bindFilename;
 						{
@@ -396,7 +395,7 @@ public class HttpdServerManager {
 								newContent = buildHttpdSiteBindFile(
 									manager,
 									bind,
-									isDisabled ? HttpdSite.DISABLED : siteName,
+									isDisabled ? Site.DISABLED : siteName,
 									bout
 								);
 							}
@@ -421,7 +420,7 @@ public class HttpdServerManager {
 
 				// Mark files for deletion
 				for(String filename : extraFiles) {
-					if(!filename.equals(HttpdSite.DISABLED)) {
+					if(!filename.equals(Site.DISABLED)) {
 						File toDelete = new File(CONF_HOSTS, filename);
 						if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
 						deleteFileList.add(toDelete);
@@ -438,13 +437,13 @@ public class HttpdServerManager {
 				}
 
 				// Iterate through each site
-				for(HttpdSite httpdSite : thisAoServer.getHttpdSites()) {
+				for(Site httpdSite : thisAoServer.getHttpdSites()) {
 					// Some values used below
 					final String siteName = httpdSite.getName();
 					final HttpdSiteManager manager = HttpdSiteManager.getInstance(httpdSite);
-					final LinuxServerGroup lsg = httpdSite.getLinuxServerGroup();
+					final GroupServer lsg = httpdSite.getLinuxServerGroup();
 					final int lsgGID = lsg.getGid().getId();
-					final List<HttpdSiteBind> binds = httpdSite.getHttpdSiteBinds();
+					final List<VirtualHost> binds = httpdSite.getHttpdSiteBinds();
 
 					// Remove from delete list
 					String sharedFilename = siteName + ".inc";
@@ -465,19 +464,19 @@ public class HttpdServerManager {
 							)
 						) {
 							// File changed, all servers that use this site need restarted
-							for(HttpdSiteBind hsb : binds) serversNeedingReloaded.add(hsb.getHttpdBind().getHttpdServer());
+							for(VirtualHost hsb : binds) serversNeedingReloaded.add(hsb.getHttpdBind().getHttpdServer());
 						}
 					}
 
 					// Each of the binds
-					for(HttpdSiteBind bind : binds) {
+					for(VirtualHost bind : binds) {
 						// Some value used below
 						final boolean isManual = bind.isManual();
 						final boolean isDisabled = bind.isDisabled();
 						final String predisableConfig = bind.getPredisableConfig();
 						// TODO: predisable_config and disabled state do not interact well.  When disabled, the predisable_config keeps getting used instead of any newly generated file.
 						final HttpdBind httpdBind = bind.getHttpdBind();
-						final NetBind nb = httpdBind.getNetBind();
+						final Bind nb = httpdBind.getNetBind();
 
 						// Generate the filename
 						final String bindFilename;
@@ -518,7 +517,7 @@ public class HttpdServerManager {
 								newContent = buildHttpdSiteBindFile(
 									manager,
 									bind,
-									isDisabled ? (HttpdSite.DISABLED+".inc") : sharedFilename,
+									isDisabled ? (Site.DISABLED+".inc") : sharedFilename,
 									bout
 								);
 							}
@@ -544,7 +543,7 @@ public class HttpdServerManager {
 				// Mark files for deletion
 				for(String filename : extraFiles) {
 					if(
-						!filename.equals(HttpdSite.DISABLED + ".inc")
+						!filename.equals(Site.DISABLED + ".inc")
 						&& !filename.equals("README.txt")
 					) {
 						File toDelete = new File(SITES_AVAILABLE, filename);
@@ -561,14 +560,14 @@ public class HttpdServerManager {
 				}
 
 				// Iterate through each site
-				for(HttpdSite httpdSite : thisAoServer.getHttpdSites()) {
+				for(Site httpdSite : thisAoServer.getHttpdSites()) {
 					// Some values used below
 					final String siteName = httpdSite.getName();
 					// Each of the binds
-					for(HttpdSiteBind bind : httpdSite.getHttpdSiteBinds()) {
+					for(VirtualHost bind : httpdSite.getHttpdSiteBinds()) {
 						// Some value used below
 						final HttpdBind httpdBind = bind.getHttpdBind();
-						final NetBind nb = httpdBind.getNetBind();
+						final Bind nb = httpdBind.getNetBind();
 
 						// Generate the filename
 						final String bindFilename;
@@ -616,13 +615,13 @@ public class HttpdServerManager {
 	}
 
 	/**
-	 * Builds the contents for the shared part of a HttpdSite config.
+	 * Builds the contents for the shared part of a Site config.
 	 */
 	private static byte[] buildHttpdSiteSharedFile(HttpdSiteManager manager, ByteArrayOutputStream bout, Set<UnixFile> restorecon) throws IOException, SQLException {
-		final HttpdSite httpdSite = manager.httpdSite;
-		final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
+		final Site httpdSite = manager.httpdSite;
+		final UserServer lsa = httpdSite.getLinuxServerAccount();
 		final int uid = lsa.getUid().getId();
-		final LinuxServerGroup lsg = httpdSite.getLinuxServerGroup();
+		final GroupServer lsg = httpdSite.getLinuxServerGroup();
 		final int gid = lsg.getGid().getId();
 		final SortedSet<HttpdSiteManager.JkSetting> jkSettings = manager.getJkSettings();
 
@@ -714,11 +713,11 @@ public class HttpdServerManager {
 					}
 
 					// Write the authenticated locations
-					List<HttpdSiteAuthenticatedLocation> hsals = httpdSite.getHttpdSiteAuthenticatedLocations();
+					List<Location> hsals = httpdSite.getHttpdSiteAuthenticatedLocations();
 					if(!hsals.isEmpty()) {
 						out.print("\n"
 								+ "# Authenticated Locations\n");
-						for(HttpdSiteAuthenticatedLocation hsal : hsals) {
+						for(Location hsal : hsals) {
 							if(hsal.getHandler() != null) throw new NotImplementedException("SetHandler not implemented on " + osv);
 							out.print(hsal.getIsRegularExpression()?"<LocationMatch ":"<Location ").print(escape(dollarVariable, hsal.getPath())).print(">\n");
 							if(hsal.getAuthUserFile() != null) out.print("    AuthType Basic\n");
@@ -815,8 +814,8 @@ public class HttpdServerManager {
 
 					// Find all versions of mod_php on any Apache server that runs this site
 					SortedSet<Integer> modPhpMajorVersions = new TreeSet<>();
-					for(HttpdSiteBind hsb : httpdSite.getHttpdSiteBinds()) {
-						TechnologyVersion modPhpVersion = hsb.getHttpdBind().getHttpdServer().getModPhpVersion();
+					for(VirtualHost hsb : httpdSite.getHttpdSiteBinds()) {
+						SoftwareVersion modPhpVersion = hsb.getHttpdBind().getHttpdServer().getModPhpVersion();
 						if(modPhpVersion != null) {
 							modPhpMajorVersions.add(
 								Integer.parseInt(
@@ -952,14 +951,14 @@ public class HttpdServerManager {
 					}
 
 					// Write the authenticated locations
-					List<HttpdSiteAuthenticatedLocation> hsals = httpdSite.getHttpdSiteAuthenticatedLocations();
+					List<Location> hsals = httpdSite.getHttpdSiteAuthenticatedLocations();
 					if(!hsals.isEmpty()) {
 						out.print("\n"
 								+ "# Authenticated Locations\n");
-						for(HttpdSiteAuthenticatedLocation hsal : hsals) {
+						for(Location hsal : hsals) {
 							String handler = hsal.getHandler();
 							String indent;
-							if(HttpdSiteAuthenticatedLocation.Handler.SERVER_STATUS.equals(handler)) {
+							if(Location.Handler.SERVER_STATUS.equals(handler)) {
 								out.print("<IfModule status_module>\n");
 								indent = "    ";
 							} else {
@@ -1004,7 +1003,7 @@ public class HttpdServerManager {
 							if(handler != null) {
 								out.print('\n')
 									.print(indent).print("    SetHandler ").print(escape(dollarVariable, handler)).print('\n');
-								if(HttpdSiteAuthenticatedLocation.Handler.SERVER_STATUS.equals(handler)) {
+								if(Location.Handler.SERVER_STATUS.equals(handler)) {
 									// Limit server status to GET and POST
 									// See https://httpd.apache.org/docs/2.4/mod/core.html#limitexcept
 									out
@@ -1016,7 +1015,7 @@ public class HttpdServerManager {
 								}
 							}
 							out.print(indent).print(hsal.getIsRegularExpression()?"</LocationMatch>\n":"</Location>\n");
-							if(HttpdSiteAuthenticatedLocation.Handler.SERVER_STATUS.equals(handler)) {
+							if(Location.Handler.SERVER_STATUS.equals(handler)) {
 								out.print("</IfModule>\n");
 							}
 						}
@@ -1031,7 +1030,7 @@ public class HttpdServerManager {
 						UnixPath docBase = settings.getDocBase();
 
 						boolean isInModPhp = false;
-						for(HttpdSiteBind hsb : httpdSite.getHttpdSiteBinds()) {
+						for(VirtualHost hsb : httpdSite.getHttpdSiteBinds()) {
 							if(hsb.getHttpdBind().getHttpdServer().getModPhpVersion() != null) {
 								isInModPhp = true;
 								break;
@@ -1226,7 +1225,7 @@ public class HttpdServerManager {
 	 * </ul>
 	 */
 	private static void doRebuildConf(
-		AOServer thisAoServer,
+		Server thisAoServer,
 		ByteArrayOutputStream bout,
 		List<File> deleteFileList,
 		Set<HttpdServer> serversNeedingReloaded,
@@ -1252,7 +1251,7 @@ public class HttpdServerManager {
 		boolean hasSpecificAddress = false;
 		// Rebuild per-server files
 		for(HttpdServer hs : hss) {
-			List<HttpdSite> sites = hs.getHttpdSites();
+			List<Site> sites = hs.getHttpdSites();
 			String httpdConfFilename = getHttpdConfFile(hs);
 			UnixFile httpdConf = new UnixFile(CONF_DIRECTORY, httpdConfFilename);
 			httpdConfFilenames.add(httpdConfFilename);
@@ -1285,7 +1284,7 @@ public class HttpdServerManager {
 			// Rebuild the workers.properties file
 			// Only include mod_jk when at least one site has jk settings
 			boolean hasJkSettings = false;
-			for(HttpdSite site : sites) {
+			for(Site site : sites) {
 				HttpdSiteManager manager = HttpdSiteManager.getInstance(site);
 				if(!manager.getJkSettings().isEmpty()) {
 					hasJkSettings = true;
@@ -1312,8 +1311,8 @@ public class HttpdServerManager {
 			}
 			if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 				String escapedName = hs.getSystemdEscapedName();
-				LinuxServerAccount lsa = hs.getLinuxServerAccount();
-				LinuxServerGroup lsg = hs.getLinuxServerGroup();
+				UserServer lsa = hs.getLinuxServerAccount();
+				GroupServer lsg = hs.getLinuxServerGroup();
 				UserId user = lsa.getLinuxAccount().getUsername().getUsername();
 				GroupId group = lsg.getLinuxGroup().getName();
 				int uid = lsa.getUid().getId();
@@ -1332,8 +1331,8 @@ public class HttpdServerManager {
 				// Default server with user apache and group apache uses the default at /usr/lib/tmpfiles.d/httpd.conf
 				if(
 					escapedName != null
-					|| !user.equals(LinuxAccount.APACHE)
-					|| !group.equals(LinuxGroup.APACHE)
+					|| !user.equals(User.APACHE)
+					|| !group.equals(Group.APACHE)
 				) {
 					etcTmpfilesFilenames.add(tmpFilesFilename);
 					// Custom entry in /etc/tmpfiles.d/httpd[@<name>].conf
@@ -1507,7 +1506,7 @@ public class HttpdServerManager {
 	 */
 	private static byte[] buildHttpdConfCentOs5(
 		HttpdServer hs,
-		List<HttpdSite> sites,
+		List<Site> sites,
 		Set<String> httpdConfFilenames,
 		ByteArrayOutputStream bout,
 		boolean[] hasAnyCgi,
@@ -1525,10 +1524,10 @@ public class HttpdServerManager {
 		}
 		bout.reset();
 		try (ChainWriter out = new ChainWriter(bout)) {
-			LinuxServerAccount lsa = hs.getLinuxServerAccount();
+			UserServer lsa = hs.getLinuxServerAccount();
 			boolean isEnabled = !lsa.isDisabled();
 			// The version of PHP module to run
-			TechnologyVersion phpVersion = hs.getModPhpVersion();
+			SoftwareVersion phpVersion = hs.getModPhpVersion();
 			if(phpVersion != null) httpdConfFilenames.add("php" + serverNum);
 			out.print("ServerRoot ").print(escape(dollarVariable, SERVER_ROOT)).print("\n"
 					+ "Include conf/modules_conf/core\n"
@@ -1563,7 +1562,7 @@ public class HttpdServerManager {
 					+ "#LoadModule authnz_ldap_module modules/mod_authnz_ldap.so\n");
 			// Comment-out include module when no site has .shtml enabled
 			boolean hasSsi = false;
-			for(HttpdSite site : sites) {
+			for(Site site : sites) {
 				if(site.getEnableSsi()) {
 					hasSsi = true;
 					break;
@@ -1586,7 +1585,7 @@ public class HttpdServerManager {
 					+ "LoadModule status_module modules/mod_status.so\n");
 			// Comment-out mod_autoindex when no sites used auto-indexes
 			boolean hasIndexes = false;
-			for(HttpdSite site : sites) {
+			for(Site site : sites) {
 				if(site.getEnableIndexes()) {
 					hasIndexes = true;
 					break;
@@ -1618,7 +1617,7 @@ public class HttpdServerManager {
 					+ "#LoadModule mem_cache_module modules/mod_mem_cache.so\n");
 			// Comment-out cgi_module when no CGI enabled
 			boolean hasCgi = false;
-			for(HttpdSite site : sites) {
+			for(Site site : sites) {
 				HttpdSiteManager manager = HttpdSiteManager.getInstance(site);
 				if(manager.enableCgi()) {
 					hasCgi = true;
@@ -1632,7 +1631,7 @@ public class HttpdServerManager {
 					+ "#LoadModule asis_module modules/mod_asis.so\n");
 			// Only include mod_jk when at least one site has jk settings
 			boolean hasJkSettings = false;
-			for(HttpdSite site : sites) {
+			for(Site site : sites) {
 				HttpdSiteManager manager = HttpdSiteManager.getInstance(site);
 				if(!manager.getJkSettings().isEmpty()) {
 					hasJkSettings = true;
@@ -1645,9 +1644,9 @@ public class HttpdServerManager {
 			// Comment-out ssl module when has no ssl
 			boolean hasSsl = false;
 			HAS_SSL :
-			for(HttpdSite site : sites) {
-				for(HttpdSiteBind hsb : site.getHttpdSiteBinds(hs)) {
-					if(Protocol.HTTPS.equals(hsb.getHttpdBind().getNetBind().getAppProtocol().getProtocol())) {
+			for(Site site : sites) {
+				for(VirtualHost hsb : site.getHttpdSiteBinds(hs)) {
+					if(AppProtocol.HTTPS.equals(hsb.getHttpdBind().getNetBind().getAppProtocol().getProtocol())) {
 						hasSsl = true;
 						break HAS_SSL;
 					}
@@ -1713,8 +1712,8 @@ public class HttpdServerManager {
 				out.print("User ").print(escape(dollarVariable, lsa.getLinuxAccount().getUsername().getUsername().toString())).print("\n"
 						+ "Group ").print(escape(dollarVariable, hs.getLinuxServerGroup().getLinuxGroup().getName().toString())).print('\n');
 			} else {
-				out.print("User ").print(escape(dollarVariable, LinuxAccount.APACHE.toString())).print("\n"
-						+ "Group ").print(escape(dollarVariable, LinuxGroup.APACHE.toString())).print('\n');
+				out.print("User ").print(escape(dollarVariable, User.APACHE.toString())).print("\n"
+						+ "Group ").print(escape(dollarVariable, Group.APACHE.toString())).print('\n');
 			}
 			out.print("\n"
 					+ "ServerName ").print(escape(dollarVariable, hs.getAOServer().getHostname().toString())).print("\n"
@@ -1737,7 +1736,7 @@ public class HttpdServerManager {
 
 			// List of binds
 			for(HttpdBind hb : hs.getHttpdBinds()) {
-				NetBind nb=hb.getNetBind();
+				Bind nb=hb.getNetBind();
 				InetAddress ip=nb.getIpAddress().getInetAddress();
 				int port=nb.getPort().getPort();
 				out.print("Listen ").print(escape(dollarVariable, ip.toBracketedString() + ":" + port)).print("\n"
@@ -1748,10 +1747,10 @@ public class HttpdServerManager {
 			for(int d=0;d<2;d++) {
 				boolean listFirst=d==0;
 				out.print('\n');
-				for(HttpdSite site : sites) {
+				for(Site site : sites) {
 					if(site.getListFirst()==listFirst) {
-						for(HttpdSiteBind bind : site.getHttpdSiteBinds(hs)) {
-							NetBind nb=bind.getHttpdBind().getNetBind();
+						for(VirtualHost bind : site.getHttpdSiteBinds(hs)) {
+							Bind nb=bind.getHttpdBind().getNetBind();
 							InetAddress ipAddress=nb.getIpAddress().getInetAddress();
 							int port=nb.getPort().getPort();
 							String includeFilename;
@@ -1777,7 +1776,7 @@ public class HttpdServerManager {
 	 */
 	private static byte[] buildHttpdConfCentOs7(
 		HttpdServer hs,
-		List<HttpdSite> sites,
+		List<Site> sites,
 		Set<String> httpdConfFilenames,
 		Set<String> varLibPhpFilenames,
 		ByteArrayOutputStream bout,
@@ -1797,10 +1796,10 @@ public class HttpdServerManager {
 		final String escapedName = hs.getSystemdEscapedName();
 		bout.reset();
 		try (ChainWriter out = new ChainWriter(bout)) {
-			LinuxServerAccount lsa = hs.getLinuxServerAccount();
+			UserServer lsa = hs.getLinuxServerAccount();
 			boolean isEnabled = !lsa.isDisabled();
 			// The version of PHP module to run
-			TechnologyVersion phpVersion = hs.getModPhpVersion();
+			SoftwareVersion phpVersion = hs.getModPhpVersion();
 			out.print("#\n"
 					+ "# core\n"
 					+ "#\n"
@@ -1872,7 +1871,7 @@ public class HttpdServerManager {
 					mod_actions = false;
 				} else {
 					boolean hasCgiPhp = false;
-					for(HttpdSite site : sites) {
+					for(Site site : sites) {
 						if(site.getPhpVersion() != null) {
 							hasCgiPhp = true;
 							break;
@@ -1888,7 +1887,7 @@ public class HttpdServerManager {
 			if(mod_autoindex == null) {
 				// Enabled when has any httpd_sites.enable_indexes
 				boolean hasIndexes = false;
-				for(HttpdSite site : sites) {
+				for(Site site : sites) {
 					if(site.getEnableIndexes()) {
 						hasIndexes = true;
 						break;
@@ -1906,10 +1905,10 @@ public class HttpdServerManager {
 					// Enabled when any site has secondary context (they are added by Alias)
 					boolean hasSecondaryContext = false;
 					HAS_SECONDARY:
-					for(HttpdSite site : sites) {
-						HttpdTomcatSite tomcatSite = site.getHttpdTomcatSite();
+					for(Site site : sites) {
+						com.aoindustries.aoserv.client.web.tomcat.Site tomcatSite = site.getHttpdTomcatSite();
 						if(tomcatSite != null) {
-							for(HttpdTomcatContext context : tomcatSite.getHttpdTomcatContexts()) {
+							for(Context context : tomcatSite.getHttpdTomcatContexts()) {
 								if(!context.getPath().isEmpty()) {
 									hasSecondaryContext = true;
 									break HAS_SECONDARY;
@@ -1929,8 +1928,8 @@ public class HttpdServerManager {
 			boolean hasGroupFile = false;
 			boolean hasAuthName = false;
 			boolean hasRequire = false;
-			for(HttpdSite site : sites) {
-				for(HttpdSiteAuthenticatedLocation hsal : site.getHttpdSiteAuthenticatedLocations()) {
+			for(Site site : sites) {
+				for(Location hsal : site.getHttpdSiteAuthenticatedLocations()) {
 					if(hsal.getAuthUserFile() != null) {
 						hasUserFile = true;
 					}
@@ -2020,7 +2019,7 @@ public class HttpdServerManager {
 					+ "# LoadModule cache_socache_module modules/mod_cache_socache.so\n");
 			// Comment-out cgi_module when no CGI enabled
 			boolean hasCgi = false;
-			for(HttpdSite site : sites) {
+			for(Site site : sites) {
 				HttpdSiteManager manager = HttpdSiteManager.getInstance(site);
 				if(manager.enableCgi()) {
 					hasCgi = true;
@@ -2088,8 +2087,8 @@ public class HttpdServerManager {
 			if(mod_headers == null) {
 				mod_headers = false;
 				HTTPD_SITES:
-				for(HttpdSite site : sites) {
-					for(HttpdSiteBind bind : site.getHttpdSiteBinds(hs)) {
+				for(Site site : sites) {
+					for(VirtualHost bind : site.getHttpdSiteBinds(hs)) {
 						// Enabled when has any httpd_site_bind_headers
 						if(!bind.getHttpdSiteBindHeaders().isEmpty()) {
 							mod_headers = true;
@@ -2107,7 +2106,7 @@ public class HttpdServerManager {
 			if(mod_include == null) {
 				// Enabled when has any httpd_sites.enable_ssi
 				boolean hasSsi = false;
-				for(HttpdSite site : sites) {
+				for(Site site : sites) {
 					if(site.getEnableSsi()) {
 						hasSsi = true;
 						break;
@@ -2123,7 +2122,7 @@ public class HttpdServerManager {
 			if(mod_jk == null) {
 				// Enabled when any site has a JkMount or JkUnMount
 				boolean hasJkSettings = false;
-				for(HttpdSite site : sites) {
+				for(Site site : sites) {
 					HttpdSiteManager manager = HttpdSiteManager.getInstance(site);
 					if(!manager.getJkSettings().isEmpty()) {
 						hasJkSettings = true;
@@ -2230,7 +2229,7 @@ public class HttpdServerManager {
 			if(mod_rewrite == null) {
 				mod_rewrite = false;
 				HTTPD_SITES:
-				for(HttpdSite site : sites) {
+				for(Site site : sites) {
 					final HttpdSiteManager manager = HttpdSiteManager.getInstance(site);
 					// Enabled when has any httpd_sites.block_trace_track
 					if(manager.blockAllTraceAndTrackRequests()) {
@@ -2242,7 +2241,7 @@ public class HttpdServerManager {
 						mod_rewrite = true;
 						break HTTPD_SITES;
 					}
-					for(HttpdSiteBind bind : site.getHttpdSiteBinds(hs)) {
+					for(VirtualHost bind : site.getHttpdSiteBinds(hs)) {
 						// Enabled when has any httpd_site_binds.redirect_to_primary_hostname
 						if(bind.getRedirectToPrimaryHostname()) {
 							mod_rewrite = true;
@@ -2265,9 +2264,9 @@ public class HttpdServerManager {
 				// Enabled when has any httpd_site_binds.ssl_cert_file
 				boolean hasSsl = false;
 				HAS_SSL :
-				for(HttpdSite site : sites) {
-					for(HttpdSiteBind hsb : site.getHttpdSiteBinds(hs)) {
-						if(Protocol.HTTPS.equals(hsb.getHttpdBind().getNetBind().getAppProtocol().getProtocol())) {
+				for(Site site : sites) {
+					for(VirtualHost hsb : site.getHttpdSiteBinds(hs)) {
+						if(AppProtocol.HTTPS.equals(hsb.getHttpdBind().getNetBind().getAppProtocol().getProtocol())) {
 							hasSsl = true;
 							break HAS_SSL;
 						}
@@ -2315,9 +2314,9 @@ public class HttpdServerManager {
 				// Enabled when used by any "server-status" handler
 				boolean hasStatusHandler = false;
 				HAS_HANDLER :
-				for(HttpdSite site : sites) {
-					for(HttpdSiteAuthenticatedLocation hsal : site.getHttpdSiteAuthenticatedLocations()) {
-						if(HttpdSiteAuthenticatedLocation.Handler.SERVER_STATUS.equals(hsal.getHandler())) {
+				for(Site site : sites) {
+					for(Location hsal : site.getHttpdSiteAuthenticatedLocations()) {
+						if(Location.Handler.SERVER_STATUS.equals(hsal.getHandler())) {
 							hasStatusHandler = true;
 							break HAS_HANDLER;
 						}
@@ -2419,8 +2418,8 @@ public class HttpdServerManager {
 				out.print("    User ").print(escape(dollarVariable, lsa.getLinuxAccount().getUsername().getUsername().toString())).print("\n"
 						+ "    Group ").print(escape(dollarVariable, hs.getLinuxServerGroup().getLinuxGroup().getName().toString())).print('\n');
 			} else {
-				out.print("    User ").print(escape(dollarVariable, LinuxAccount.APACHE.toString())).print("\n"
-						+ "    Group ").print(escape(dollarVariable, LinuxGroup.APACHE.toString())).print('\n');
+				out.print("    User ").print(escape(dollarVariable, User.APACHE.toString())).print("\n"
+						+ "    Group ").print(escape(dollarVariable, Group.APACHE.toString())).print('\n');
 			}
 			out.print("</IfModule>\n");
 			if(phpVersion != null) {
@@ -2526,14 +2525,14 @@ public class HttpdServerManager {
 					+ "# Binds\n"
 					+ "#\n");
 			for(HttpdBind hb : hs.getHttpdBinds()) {
-				NetBind nb=hb.getNetBind();
+				Bind nb=hb.getNetBind();
 				InetAddress ip=nb.getIpAddress().getInetAddress();
 				int port = nb.getPort().getPort();
 				out.print("Listen ").print(escape(dollarVariable, ip.toBracketedString() + ":" + port));
 				String appProtocol = nb.getAppProtocol().getProtocol();
-				if(appProtocol.equals(Protocol.HTTP)) {
+				if(appProtocol.equals(AppProtocol.HTTP)) {
 					if(port != 80) out.print(" http");
-				} else if(appProtocol.equals(Protocol.HTTPS)) {
+				} else if(appProtocol.equals(AppProtocol.HTTPS)) {
 					if(port != 443) out.print(" https");
 				} else {
 					throw new SQLException("Unexpected app protocol: " + appProtocol);
@@ -2547,10 +2546,10 @@ public class HttpdServerManager {
 			// TODO: Could use wildcard include if there are no list-first sites (or they happen to match the ordering?) and there is only one apache instance
 			for(int d = 0; d < 2; d++) {
 				boolean listFirst = (d == 0);
-				for(HttpdSite site : sites) {
+				for(Site site : sites) {
 					if(site.getListFirst() == listFirst) {
-						for(HttpdSiteBind bind : site.getHttpdSiteBinds(hs)) {
-							NetBind nb = bind.getHttpdBind().getNetBind();
+						for(VirtualHost bind : site.getHttpdSiteBinds(hs)) {
+							Bind nb = bind.getHttpdBind().getNetBind();
 							InetAddress ipAddress = nb.getIpAddress().getInetAddress();
 							int port=nb.getPort().getPort();
 							String includeFilename;
@@ -2576,7 +2575,7 @@ public class HttpdServerManager {
 	 */
 	private static byte[] buildHttpdConf(
 		HttpdServer hs,
-		List<HttpdSite> sites,
+		List<Site> sites,
 		Set<String> httpdConfFilenames,
 		Set<String> varLibPhpFilenames,
 		ByteArrayOutputStream bout,
@@ -2592,20 +2591,20 @@ public class HttpdServerManager {
 		}
 	}
 
-	private static boolean isWorkerEnabled(HttpdWorker worker) throws IOException, SQLException {
-		HttpdSharedTomcat hst = worker.getHttpdSharedTomcat();
+	private static boolean isWorkerEnabled(Worker worker) throws IOException, SQLException {
+		SharedTomcat hst = worker.getHttpdSharedTomcat();
 		if(hst != null) {
 			if(hst.isDisabled()) return false;
 			// Must also have at least one enabled site
-			for(HttpdTomcatSharedSite htss : hst.getHttpdTomcatSharedSites()) {
+			for(SharedTomcatSite htss : hst.getHttpdTomcatSharedSites()) {
 				if(!htss.getHttpdTomcatSite().getHttpdSite().isDisabled()) return true;
 			}
 			// Does not have any enabled site
 			return false;
 		}
-		HttpdTomcatSite hts = worker.getTomcatSite();
+		com.aoindustries.aoserv.client.web.tomcat.Site hts = worker.getTomcatSite();
 		if(hts != null) return !hts.getHttpdSite().isDisabled();
-		throw new SQLException("worker is attached to neither HttpdSharedTomcat nor HttpdTomcatSite: " + worker);
+		throw new SQLException("worker is attached to neither SharedTomcat nor Site: " + worker);
 	}
 
 	/**
@@ -2613,12 +2612,12 @@ public class HttpdServerManager {
 	 */
 	private static byte[] buildWorkersFile(HttpdServer hs, ByteArrayOutputStream bout, Set<Port> enabledAjpPorts) throws IOException, SQLException {
 		AOServConnector conn = AOServDaemon.getConnector();
-		List<HttpdWorker> workers = hs.getHttpdWorkers();
+		List<Worker> workers = hs.getHttpdWorkers();
 		bout.reset();
 		try (ChainWriter out = new ChainWriter(bout)) {
 			out.print("worker.list=");
 			boolean didOne = false;
-			for(HttpdWorker worker : workers) {
+			for(Worker worker : workers) {
 				if(isWorkerEnabled(worker)) {
 					if(didOne) out.print(',');
 					else didOne = true;
@@ -2626,7 +2625,7 @@ public class HttpdServerManager {
 				}
 			}
 			out.print('\n');
-			for(HttpdWorker worker : workers) {
+			for(Worker worker : workers) {
 				if(isWorkerEnabled(worker)) {
 					String code = worker.getName().getCode();
 					Port port = worker.getBind().getPort();
@@ -2667,16 +2666,16 @@ public class HttpdServerManager {
 	}
 
 	/**
-	 * Builds the contents of a HttpdSiteBind file.
+	 * Builds the contents of a VirtualHost file.
 	 */
-	private static byte[] buildHttpdSiteBindFile(HttpdSiteManager manager, HttpdSiteBind bind, String siteInclude, ByteArrayOutputStream bout) throws IOException, SQLException {
+	private static byte[] buildHttpdSiteBindFile(HttpdSiteManager manager, VirtualHost bind, String siteInclude, ByteArrayOutputStream bout) throws IOException, SQLException {
 		OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
 		OperatingSystemVersion osv = manager.httpdSite.getAoServer().getServer().getOperatingSystemVersion();
 		HttpdBind httpdBind = bind.getHttpdBind();
-		NetBind netBind = httpdBind.getNetBind();
+		Bind netBind = httpdBind.getNetBind();
 		int port = netBind.getPort().getPort();
 		InetAddress ipAddress = netBind.getIpAddress().getInetAddress();
-		HttpdSiteURL primaryHSU = bind.getPrimaryHttpdSiteURL();
+		VirtualHostName primaryHSU = bind.getPrimaryHttpdSiteURL();
 		String primaryHostname = primaryHSU.getHostname().toString();
 
 		// TODO: Robots NOINDEX, NOFOLLOW on test URL, when it is not the primary?
@@ -2689,10 +2688,10 @@ public class HttpdServerManager {
 					out.print("<VirtualHost ").print(escape(dollarVariable, ipAddress.toBracketedString() + ":" + port)).print(">\n"
 							+ "    ServerName \\\n"
 							+ "        ").print(escape(dollarVariable, primaryHostname)).print('\n');
-					List<HttpdSiteURL> altURLs=bind.getAltHttpdSiteURLs();
+					List<VirtualHostName> altURLs=bind.getAltHttpdSiteURLs();
 					if(!altURLs.isEmpty()) {
 						out.print("    ServerAlias");
-						for(HttpdSiteURL altURL : altURLs) {
+						for(VirtualHostName altURL : altURLs) {
 							out.print(" \\\n        ").print(escape(dollarVariable, altURL.getHostname().toString()));
 						}
 						out.print('\n');
@@ -2700,9 +2699,9 @@ public class HttpdServerManager {
 					out.print("\n"
 							+ "    CustomLog ").print(escape(dollarVariable, bind.getAccessLog().toString())).print(" combined\n"
 							+ "    ErrorLog ").print(escape(dollarVariable, bind.getErrorLog().toString())).print('\n');
-					if(Protocol.HTTPS.equals(netBind.getAppProtocol().getProtocol())) {
-						SslCertificate sslCert = bind.getCertificate();
-						if(sslCert == null) throw new SQLException("SSLCertificate not found for HttpdSiteBind #" + bind.getPkey());
+					if(AppProtocol.HTTPS.equals(netBind.getAppProtocol().getProtocol())) {
+						Certificate sslCert = bind.getCertificate();
+						if(sslCert == null) throw new SQLException("SSLCertificate not found for VirtualHost #" + bind.getPkey());
 						// Use any directly configured chain file
 						out.print("\n"
 								+ "    <IfModule mod_ssl.c>\n"
@@ -2740,12 +2739,12 @@ public class HttpdServerManager {
 								+ "    RewriteRule ^ ").print(escape(dollarVariable, primaryHSU.getURLNoSlash() + "%{REQUEST_URI}")).print(" [L,NE,R=permanent]\n");
 					}
 					boolean hasRedirectAll = false;
-					List<HttpdSiteBindRedirect> redirects = bind.getHttpdSiteBindRedirects();
+					List<Redirect> redirects = bind.getHttpdSiteBindRedirects();
 					if(!redirects.isEmpty()) {
 						out.print("\n"
 								+ "    # Redirects\n"
 								+ "    RewriteEngine on\n");
-						for(HttpdSiteBindRedirect redirect : redirects) {
+						for(Redirect redirect : redirects) {
 							String comment = redirect.getComment();
 							if(comment != null) {
 								// TODO: Maybe separate escapeComment method for this?
@@ -2778,11 +2777,11 @@ public class HttpdServerManager {
 							}
 						}
 					}
-					List<HttpdSiteBindHeader> headers = bind.getHttpdSiteBindHeaders();
+					List<Header> headers = bind.getHttpdSiteBindHeaders();
 					if(!headers.isEmpty()) {
 						out.print("\n"
 								+ "    # Headers\n");
-						for(HttpdSiteBindHeader header : headers) {
+						for(Header header : headers) {
 							String comment = header.getComment();
 							if(comment != null) {
 								// TODO: Maybe separate escapeComment method for this?
@@ -2813,18 +2812,18 @@ public class HttpdServerManager {
 				case CENTOS_7_X86_64 : {
 					final String bindEscapedName = bind.getSystemdEscapedName();
 					final String dollarVariable = CENTOS_7_DOLLAR_VARIABLE;
-					final SslCertificate sslCert;
+					final Certificate sslCert;
 					final String protocol;
 					final boolean isDefaultPort;
 					{
 						String appProtocol = netBind.getAppProtocol().getProtocol();
-						if(Protocol.HTTP.equals(appProtocol)) {
+						if(AppProtocol.HTTP.equals(appProtocol)) {
 							sslCert = null;
 							protocol = "http";
 							isDefaultPort = port == 80;
-						} else if(Protocol.HTTPS.equals(appProtocol)) {
+						} else if(AppProtocol.HTTPS.equals(appProtocol)) {
 							sslCert = bind.getCertificate();
-							if(sslCert == null) throw new SQLException("SSLCertificate not found for HttpdSiteBind #" + bind.getPkey());
+							if(sslCert == null) throw new SQLException("SSLCertificate not found for VirtualHost #" + bind.getPkey());
 							protocol = "https";
 							isDefaultPort = port == 443;
 						} else {
@@ -2853,10 +2852,10 @@ public class HttpdServerManager {
 							+ "        ")
 						.print(CERTBOT_COMPAT ? escape(dollarVariable, primaryHostname) : "${bind.primary_hostname}")
 						.print('\n');
-					List<HttpdSiteURL> altURLs=bind.getAltHttpdSiteURLs();
+					List<VirtualHostName> altURLs=bind.getAltHttpdSiteURLs();
 					if(!altURLs.isEmpty()) {
 						out.print("    ServerAlias");
-						for(HttpdSiteURL altURL : altURLs) {
+						for(VirtualHostName altURL : altURLs) {
 							out.print(" \\\n        ").print(escape(dollarVariable, altURL.getHostname().toString()));
 						}
 						out.print('\n');
@@ -2921,13 +2920,13 @@ public class HttpdServerManager {
 						}
 					}
 					boolean hasRedirectAll = false;
-					List<HttpdSiteBindRedirect> redirects = bind.getHttpdSiteBindRedirects();
+					List<Redirect> redirects = bind.getHttpdSiteBindRedirects();
 					if(!redirects.isEmpty()) {
 						out.print("\n"
 								+ "    # Redirects\n"
 								+ "    <IfModule rewrite_module>\n"
 								+ "        RewriteEngine on\n");
-						for(HttpdSiteBindRedirect redirect : redirects) {
+						for(Redirect redirect : redirects) {
 							String comment = redirect.getComment();
 							if(comment != null) {
 								// TODO: Maybe separate escapeComment method for this?
@@ -2960,12 +2959,12 @@ public class HttpdServerManager {
 						}
 						out.print("    </IfModule>\n");
 					}
-					List<HttpdSiteBindHeader> headers = bind.getHttpdSiteBindHeaders();
+					List<Header> headers = bind.getHttpdSiteBindHeaders();
 					if(!headers.isEmpty()) {
 						out.print("\n"
 								+ "    # Headers\n"
 								+ "    <IfModule headers_module>\n");
-						for(HttpdSiteBindHeader header : headers) {
+						for(Header header : headers) {
 							String comment = header.getComment();
 							if(comment != null) {
 								// TODO: Maybe separate escapeComment method for this?
@@ -3179,7 +3178,7 @@ public class HttpdServerManager {
 	 * Also stops and disables instances that should no longer exist.
 	 */
 	private static void doRebuildInitScripts(
-		AOServer thisAoServer,
+		Server thisAoServer,
 		ByteArrayOutputStream bout,
 		List<File> deleteFileList,
 		Set<HttpdServer> serversNeedingReloaded,
@@ -3198,7 +3197,7 @@ public class HttpdServerManager {
 					try (ChainWriter out = new ChainWriter(bout)) {
 						out.print("#!/bin/bash\n"
 								+ "#\n"
-								+ "# httpd").print(num).print("        Startup script for the Apache HTTP Server ").print(num).print("\n"
+								+ "# httpd").print(num).print("        Startup script for the Apache HTTP Host ").print(num).print("\n"
 								+ "#\n"
 								+ "# chkconfig: 345 85 15\n"
 								+ "# description: Apache is a World Wide Web server.  It is used to serve \\\n"
@@ -3208,7 +3207,7 @@ public class HttpdServerManager {
 								+ "# pidfile: /var/run/httpd").print(num).print(".pid\n"
 								+ "\n");
 						// mod_php requires MySQL and PostgreSQL in the path
-						TechnologyVersion modPhpVersion = hs.getModPhpVersion();
+						SoftwareVersion modPhpVersion = hs.getModPhpVersion();
 						if(modPhpVersion!=null) {
 							PackageManager.PackageName requiredPackage;
 							String version = modPhpVersion.getVersion();
@@ -3384,7 +3383,7 @@ public class HttpdServerManager {
 	 * Manages SELinux.
 	 */
 	private static void doRebuildSELinux(
-		AOServer aoServer,
+		Server aoServer,
 		Set<HttpdServer> serversNeedingReloaded,
 		Set<Port> enabledAjpPorts,
 		boolean hasAnyCgi,
@@ -3408,9 +3407,9 @@ public class HttpdServerManager {
 					}
 				}
 				// Add any other local HTTP server (such as proxied user-space applications)
-				for(NetBind nb : aoServer.getServer().getNetBinds()) {
+				for(Bind nb : aoServer.getServer().getNetBinds()) {
 					String protocol = nb.getAppProtocol().getProtocol();
-					if(Protocol.HTTP.equals(protocol) || Protocol.HTTPS.equals(protocol)) {
+					if(AppProtocol.HTTP.equals(protocol) || AppProtocol.HTTPS.equals(protocol)) {
 						httpdPorts.add(nb.getPort());
 					}
 				}
@@ -3467,7 +3466,7 @@ public class HttpdServerManager {
 				httpdServer,
 				() -> {
 					AOServConnector conn = AOServDaemon.getConnector();
-					AOServer thisAOServer = AOServDaemon.getThisAOServer();
+					Server thisAOServer = AOServDaemon.getThisAOServer();
 					OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 					int osvId = osv.getPkey();
 					HttpdServer hs = conn.getHttpdServers().get(httpdServer);

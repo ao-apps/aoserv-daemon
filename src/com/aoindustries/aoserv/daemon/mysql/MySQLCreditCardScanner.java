@@ -5,10 +5,9 @@
  */
 package com.aoindustries.aoserv.daemon.mysql;
 
-import com.aoindustries.aoserv.client.account.Business;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.mysql.MySQLDatabase;
-import com.aoindustries.aoserv.client.mysql.MySQLServer;
+import com.aoindustries.aoserv.client.account.Account;
+import com.aoindustries.aoserv.client.mysql.Database;
+import com.aoindustries.aoserv.client.mysql.Server;
 import com.aoindustries.aoserv.client.validator.MySQLDatabaseName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -96,14 +95,14 @@ final public class MySQLCreditCardScanner implements CronJob {
 
 	private static void scanMySQLForCards() {
 		try {
-			AOServer thisAOServer=AOServDaemon.getThisAOServer();
+			com.aoindustries.aoserv.client.linux.Server thisAOServer=AOServDaemon.getThisAOServer();
 
-			Map<Business,StringBuilder> reports = new HashMap<>();
+			Map<Account,StringBuilder> reports = new HashMap<>();
 
-			List<MySQLServer> mysqlServers = thisAOServer.getMySQLServers();
-			for(MySQLServer mysqlServer : mysqlServers) {
-				List<MySQLDatabase> mysqlDatabases = mysqlServer.getMySQLDatabases();
-				for(MySQLDatabase database : mysqlDatabases) {
+			List<Server> mysqlServers = thisAOServer.getMySQLServers();
+			for(Server mysqlServer : mysqlServers) {
+				List<Database> mysqlDatabases = mysqlServer.getMySQLDatabases();
+				for(Database database : mysqlDatabases) {
 					MySQLDatabaseName name=database.getName();
 
 					// Get connection to the database
@@ -113,14 +112,14 @@ final public class MySQLCreditCardScanner implements CronJob {
 						AOServDaemonConfiguration.getMySqlUser(),
 						AOServDaemonConfiguration.getMySqlPassword()
 					)) {
-						Business business = database.getPackage().getBusiness();
+						Account business = database.getPackage().getBusiness();
 						StringBuilder report = reports.get(business);
 						if(report==null) reports.put(business, report=new StringBuilder());
 						scanForCards(thisAOServer, mysqlServer, database, conn, name.toString(), report);
 					}
 				}
 			}
-			for(Business business : reports.keySet()) {
+			for(Account business : reports.keySet()) {
 				StringBuilder report = reports.get(business);
 				if(report!=null && report.length()>0) {
 					/* TODO
@@ -129,7 +128,7 @@ final public class MySQLCreditCardScanner implements CronJob {
 						TicketType.TODO_SECURITY,
 						report.toString(),
 						Ticket.NO_DEADLINE,
-						TicketPriority.HIGH,
+						Priority.HIGH,
 						null,
 						null,
 						null,
@@ -145,20 +144,20 @@ final public class MySQLCreditCardScanner implements CronJob {
 		}
 	}
 
-	public static void scanForCards(AOServer aoServer, MySQLServer mysqlServer, MySQLDatabase database, Connection conn, String catalog, StringBuilder report) throws SQLException {
+	public static void scanForCards(com.aoindustries.aoserv.client.linux.Server aoServer, Server mysqlServer, Database database, Connection conn, String catalog, StringBuilder report) throws SQLException {
 		DatabaseMetaData metaData = conn.getMetaData();
 		String[] tableTypes = new String[] {"TABLE"};
 		try (ResultSet tables = metaData.getTables(catalog, null, null, tableTypes)) {
 			while(tables.next()) {
 				String table = tables.getString(3);
-				if(MySQLDatabase.isSafeName(table)) {
+				if(Database.isSafeName(table)) {
 					StringBuilder buffer = new StringBuilder();
 					buffer.append("select count(*) from `").append(table).append("` where ");
 					try (ResultSet columns = metaData.getColumns(catalog, null, table, null)) {
 						boolean isFirst = true;
 						while(columns.next()) {
 							String column = columns.getString(4);
-							if(MySQLDatabase.isSafeName(column)) {
+							if(Database.isSafeName(column)) {
 								if(isFirst) isFirst = false;
 								else buffer.append(" OR ");
 
@@ -178,8 +177,8 @@ final public class MySQLCreditCardScanner implements CronJob {
 								report.append('\n')
 									.append("Unable to scan column, unsafe name\n")
 									.append('\n')
-									.append("Server........: ").append(aoServer.getHostname()).append('\n')
-									.append("MySQL Server..: ").append(mysqlServer.toString()).append('\n')
+									.append("Host........: ").append(aoServer.getHostname()).append('\n')
+									.append("MySQL Host..: ").append(mysqlServer.toString()).append('\n')
 									.append("Database......: ").append(database.getName()).append('\n')
 									.append("Table.........: ").append(table).append('\n')
 									.append("Column........: ").append(column).append('\n');
@@ -203,8 +202,8 @@ final public class MySQLCreditCardScanner implements CronJob {
 						report.append('\n')
 							.append("Credit cards found in database\n")
 							.append('\n')
-							.append("Server........: ").append(aoServer.getHostname()).append('\n')
-							.append("MySQL Server..: ").append(mysqlServer.toString()).append('\n')
+							.append("Host........: ").append(aoServer.getHostname()).append('\n')
+							.append("MySQL Host..: ").append(mysqlServer.toString()).append('\n')
 							.append("Database......: ").append(database.getName()).append('\n')
 							.append("Table.........: ").append(table).append('\n')
 							.append("Row Count.....: ").append(rowCount).append('\n')
@@ -214,8 +213,8 @@ final public class MySQLCreditCardScanner implements CronJob {
 					report.append('\n')
 						.append("Unable to scan table, unsafe name\n")
 						.append('\n')
-						.append("Server........: ").append(aoServer.getHostname()).append('\n')
-						.append("MySQL Server..: ").append(mysqlServer.toString()).append('\n')
+						.append("Host........: ").append(aoServer.getHostname()).append('\n')
+						.append("MySQL Host..: ").append(mysqlServer.toString()).append('\n')
 						.append("Database......: ").append(database.getName()).append('\n')
 						.append("Table.........: ").append(table).append('\n');
 				}

@@ -5,16 +5,16 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
-import com.aoindustries.aoserv.client.web.tomcat.HttpdSharedTomcat;
+import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
 
 /**
- * Manages HttpdSharedTomcat version 8.5.X configurations.
+ * Manages SharedTomcat version 8.5.X configurations.
  *
  * @author  AO Industries, Inc.
  */
 class HttpdSharedTomcatManager_8_5_X extends VersionedSharedTomcatManager<TomcatCommon_8_5_X> {
 
-	HttpdSharedTomcatManager_8_5_X(HttpdSharedTomcat sharedTomcat) {
+	HttpdSharedTomcatManager_8_5_X(SharedTomcat sharedTomcat) {
 		super(sharedTomcat);
 	}
 

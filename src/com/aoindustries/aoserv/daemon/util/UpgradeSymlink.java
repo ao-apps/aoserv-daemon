@@ -12,7 +12,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 
 /**
- * Manages HttpdTomcatStdSite version 5.5.X configurations.
+ * Manages PrivateTomcatSite version 5.5.X configurations.
  *
  * @author  AO Industries, Inc.
  */

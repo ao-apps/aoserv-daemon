@@ -441,7 +441,7 @@ final public class FailoverFileReplicationManager {
 	}
 
 	/**
-	 * Tracks the most recent action on a per-FailoverFileReplication basis.
+	 * Tracks the most recent action on a per-FileReplication basis.
 	 */
 	private static final Map<Integer,Activity> activities = new HashMap<>();
 	public static Activity getActivity(Integer failoverFileReplicationPkey) {

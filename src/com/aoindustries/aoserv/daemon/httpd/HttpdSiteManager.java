@@ -6,20 +6,19 @@
 package com.aoindustries.aoserv.daemon.httpd;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.aosh.AOSHCommand;
+import com.aoindustries.aoserv.client.aosh.Command;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.linux.LinuxAccount;
-import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.linux.User;
+import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.client.validator.LinuxId;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.validator.UserId;
-import com.aoindustries.aoserv.client.web.HttpdSite;
-import com.aoindustries.aoserv.client.web.HttpdSiteBind;
-import com.aoindustries.aoserv.client.web.HttpdSiteURL;
-import com.aoindustries.aoserv.client.web.HttpdStaticSite;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdSharedTomcat;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatSite;
+import com.aoindustries.aoserv.client.web.Site;
+import com.aoindustries.aoserv.client.web.StaticSite;
+import com.aoindustries.aoserv.client.web.VirtualHost;
+import com.aoindustries.aoserv.client.web.VirtualHostName;
+import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import static com.aoindustries.aoserv.daemon.httpd.HttpdServerManager.PHP_SESSION;
@@ -54,7 +53,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Manages HttpdSite configurations.
+ * Manages Site configurations.
  *
  * @author  AO Industries, Inc.
  */
@@ -66,7 +65,7 @@ public abstract class HttpdSiteManager {
 	 * The directories in /www or /var/www that will never be deleted.
 	 * <p>
 	 * Note: This matches the check constraint on the httpd_sites table.
-	 * Note: This matches isValidSiteName in HttpdSite.
+	 * Note: This matches isValidSiteName in Site.
 	 * </p>
 	 */
 	private static final Set<String> keepWwwDirs = new HashSet<>(Arrays.asList(
@@ -108,14 +107,14 @@ public abstract class HttpdSiteManager {
 	/**
 	 * Gets the specific manager for one type of web site.
 	 */
-	public static HttpdSiteManager getInstance(HttpdSite site) throws IOException, SQLException {
-		HttpdStaticSite staticSite=site.getHttpdStaticSite();
+	public static HttpdSiteManager getInstance(Site site) throws IOException, SQLException {
+		StaticSite staticSite=site.getHttpdStaticSite();
 		if(staticSite!=null) return HttpdStaticSiteManager.getInstance(staticSite);
 
-		HttpdTomcatSite tomcatSite=site.getHttpdTomcatSite();
+		com.aoindustries.aoserv.client.web.tomcat.Site tomcatSite=site.getHttpdTomcatSite();
 		if(tomcatSite!=null) return HttpdTomcatSiteManager.getInstance(tomcatSite);
 
-		throw new SQLException("HttpdSite must be either HttpdStaticSite and HttpdTomcatSite: "+site);
+		throw new SQLException("Site must be either StaticSite and Site: "+site);
 	}
 
 	/**
@@ -125,8 +124,8 @@ public abstract class HttpdSiteManager {
 	 */
 	static void doRebuild(
 		List<File> deleteFileList,
-		Set<HttpdSite> sitesNeedingRestarted,
-		Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted,
+		Set<Site> sitesNeedingRestarted,
+		Set<SharedTomcat> sharedTomcatsNeedingRestarted,
 		Set<PackageManager.PackageName> usedPackages,
 		Set<UnixFile> restorecon
 	) throws IOException, SQLException {
@@ -134,7 +133,7 @@ public abstract class HttpdSiteManager {
 			// Get values used in the rest of the method.
 			HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 			String optSlash = osConfig.getHttpdSitesOptSlash();
-			AOServer aoServer = AOServDaemon.getThisAOServer();
+			Server aoServer = AOServDaemon.getThisAOServer();
 
 			// The www directories that exist but are not used will be removed
 			UnixFile wwwDirectory = new UnixFile(osConfig.getHttpdSitesDirectory().toString());
@@ -148,7 +147,7 @@ public abstract class HttpdSiteManager {
 			}
 
 			// Iterate through each site
-			for(HttpdSite httpdSite : aoServer.getHttpdSites()) {
+			for(Site httpdSite : aoServer.getHttpdSites()) {
 				final HttpdSiteManager manager = getInstance(httpdSite);
 
 				// Install any required RPMs
@@ -196,8 +195,8 @@ public abstract class HttpdSiteManager {
 	 *
 	 * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
 	 */
-	static void stopStartAndRestart(Set<HttpdSite> sitesNeedingRestarted) throws IOException, SQLException {
-		for(HttpdSite httpdSite : AOServDaemon.getThisAOServer().getHttpdSites()) {
+	static void stopStartAndRestart(Set<Site> sitesNeedingRestarted) throws IOException, SQLException {
+		for(Site httpdSite : AOServDaemon.getThisAOServer().getHttpdSites()) {
 			HttpdSiteManager manager = getInstance(httpdSite);
 			if(manager instanceof StopStartable) {
 				final StopStartable stopStartRestartable = (StopStartable)manager;
@@ -259,7 +258,7 @@ public abstract class HttpdSiteManager {
 		Stat daemonDirectoryStat = daemonDirectory.getStat();
 		if(daemonDirectoryStat.exists()) {
 			int daemonUid=daemonDirectoryStat.getUid();
-			LinuxServerAccount daemonLsa;
+			UserServer daemonLsa;
 			try {
 				daemonLsa = AOServDaemon.getThisAOServer().getLinuxServerAccount(LinuxId.valueOf(daemonUid));
 			} catch(ValidationException e) {
@@ -306,9 +305,9 @@ public abstract class HttpdSiteManager {
 	public static String startHttpdSite(int sitePKey) throws IOException, SQLException {
 		AOServConnector conn = AOServDaemon.getConnector();
 
-		HttpdSite httpdSite=conn.getHttpdSites().get(sitePKey);
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
-		if(!httpdSite.getAoServer().equals(thisAOServer)) return "HttpdSite #"+sitePKey+" has server of "+httpdSite.getAoServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')';
+		Site httpdSite=conn.getHttpdSites().get(sitePKey);
+		Server thisAOServer = AOServDaemon.getThisAOServer();
+		if(!httpdSite.getAoServer().equals(thisAOServer)) return "Site #"+sitePKey+" has server of "+httpdSite.getAoServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')';
 
 		HttpdSiteManager manager = getInstance(httpdSite);
 		if(manager instanceof StopStartable) {
@@ -326,10 +325,10 @@ public abstract class HttpdSiteManager {
 				// Null means all went well
 				return null;
 			} else {
-				return "HttpdSite #"+sitePKey+" is not currently startable";
+				return "Site #"+sitePKey+" is not currently startable";
 			}
 		} else {
-			return "HttpdSite #"+sitePKey+" is not a type of site that can be stopped and started";
+			return "Site #"+sitePKey+" is not a type of site that can be stopped and started";
 		}
 	}
 
@@ -341,9 +340,9 @@ public abstract class HttpdSiteManager {
 	public static String stopHttpdSite(int sitePKey) throws IOException, SQLException {
 		AOServConnector conn = AOServDaemon.getConnector();
 
-		HttpdSite httpdSite=conn.getHttpdSites().get(sitePKey);
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
-		if(!httpdSite.getAoServer().equals(thisAOServer)) return "HttpdSite #"+sitePKey+" has server of "+httpdSite.getAoServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')';
+		Site httpdSite=conn.getHttpdSites().get(sitePKey);
+		Server thisAOServer = AOServDaemon.getThisAOServer();
+		if(!httpdSite.getAoServer().equals(thisAOServer)) return "Site #"+sitePKey+" has server of "+httpdSite.getAoServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')';
 
 		HttpdSiteManager manager = getInstance(httpdSite);
 		if(manager instanceof StopStartable) {
@@ -355,13 +354,13 @@ public abstract class HttpdSiteManager {
 				return "Site was already stopped";
 			}
 		} else {
-			return "HttpdSite #"+sitePKey+" is not a type of site that can be stopped and started";
+			return "Site #"+sitePKey+" is not a type of site that can be stopped and started";
 		}
 	}
 
-	final protected HttpdSite httpdSite;
+	final protected Site httpdSite;
 
-	protected HttpdSiteManager(HttpdSite httpdSite) {
+	protected HttpdSiteManager(Site httpdSite) {
 		this.httpdSite = httpdSite;
 	}
 
@@ -379,7 +378,7 @@ public abstract class HttpdSiteManager {
 			+ "\n"
 			+ "  Control Panel: https://www.aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey="+httpdSite.getPkey()+"\n"
 			+ "\n"
-			+ "  AOSH: "+AOSHCommand.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getName()+" "+httpdSite.getAoServer().getHostname()+" true\n"
+			+ "  AOSH: "+Command.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getName()+" "+httpdSite.getAoServer().getHostname()+" true\n"
 			+ "\n"
 			+ "  support@aoindustries.com\n"
 			+ "  (205) 454-2556\n"
@@ -401,7 +400,7 @@ public abstract class HttpdSiteManager {
 			+ "\n"
 			+ "  Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey="+httpdSite.getPkey()+"\n"
 			+ "\n"
-			+ "  AOSH: "+AOSHCommand.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getName()+" "+httpdSite.getAoServer().getHostname()+" true\n"
+			+ "  AOSH: "+Command.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getName()+" "+httpdSite.getAoServer().getHostname()+" true\n"
 			+ "\n"
 			+ "  support@aoindustries.com\n"
 			+ "  (205) 454-2556\n"
@@ -423,7 +422,7 @@ public abstract class HttpdSiteManager {
 			+ "#\n"
 			+ "# Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey="+httpdSite.getPkey()+"\n"
 			+ "#\n"
-			+ "# AOSH: "+AOSHCommand.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getName()+' '+httpdSite.getAOServer().getHostname()+" true\n"
+			+ "# AOSH: "+Command.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getName()+' '+httpdSite.getAOServer().getHostname()+" true\n"
 			+ "#\n"
 			+ "# support@aoindustries.com\n"
 			+ "# (205) 454-2556\n"
@@ -456,7 +455,7 @@ public abstract class HttpdSiteManager {
 	 *   <li>Otherwise, make necessary config changes or upgrades while adhering to the manual flag</li>
 	 * </ol>
 	 */
-	protected abstract void buildSiteDirectory(UnixFile siteDirectory, String optSlash, Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted, Set<UnixFile> restorecon) throws IOException, SQLException;
+	protected abstract void buildSiteDirectory(UnixFile siteDirectory, String optSlash, Set<Site> sitesNeedingRestarted, Set<SharedTomcat> sharedTomcatsNeedingRestarted, Set<UnixFile> restorecon) throws IOException, SQLException;
 
 	/**
 	 * Determines if should have anonymous FTP area.
@@ -492,7 +491,7 @@ public abstract class HttpdSiteManager {
 	/**
 	 * Determines if CGI should be enabled.
 	 *
-	 * @see  HttpdSite#getEnableCgi()
+	 * @see  Site#getEnableCgi()
 	 */
 	protected boolean enableCgi() {
 		return httpdSite.getEnableCgi();
@@ -504,7 +503,7 @@ public abstract class HttpdSiteManager {
 	 * If this is enabled and CGI is disabled, then the HttpdServer for the
 	 * site must use mod_php.
 	 *
-	 * @see  HttpdSite#getPhpVersion()
+	 * @see  Site#getPhpVersion()
 	 */
 	protected boolean enablePhp() throws IOException, SQLException {
 		return httpdSite.getPhpVersion() != null;
@@ -519,7 +518,7 @@ public abstract class HttpdSiteManager {
 		UnixFile phpFile = new UnixFile(cgibinDirectory, "php", false);
 		// TODO: If every server this site runs as uses mod_php, then don't make the script? (and the config that refers to this script)
 		if(enableCgi() && enablePhp()) {
-			AOServer thisAoServer = AOServDaemon.getThisAOServer();
+			Server thisAoServer = AOServDaemon.getThisAOServer();
 			final OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 			final int osvId = osv.getPkey();
 
@@ -697,7 +696,7 @@ public abstract class HttpdSiteManager {
 	 */
 	protected void createTestIndex(UnixFile indexFile) throws IOException, SQLException {
 		if(!indexFile.getStat().exists()) {
-			HttpdSiteURL primaryHsu = httpdSite.getPrimaryHttpdSiteURL();
+			VirtualHostName primaryHsu = httpdSite.getPrimaryHttpdSiteURL();
 			String primaryUrl = primaryHsu==null ? httpdSite.getName() : primaryHsu.getHostname().toString();
 			// Write to temp file first
 			UnixFile tempFile = UnixFile.mktemp(indexFile.getPath()+".");
@@ -727,12 +726,12 @@ public abstract class HttpdSiteManager {
 	 * If this site runs as multiple UIDs on multiple Apache instances, will
 	 * return the "apache" user.
 	 * If the site has no binds, returns UID for "apache".
-	 * If the site is named <code>HttpdSite.DISABLED</code>, always returns UID for "apache".
+	 * If the site is named <code>Site.DISABLED</code>, always returns UID for "apache".
 	 */
 	public int getApacheUid() throws IOException, SQLException {
 		int uid = -1;
-		if(!HttpdSite.DISABLED.equals(httpdSite.getName())) {
-			for(HttpdSiteBind hsb : httpdSite.getHttpdSiteBinds()) {
+		if(!Site.DISABLED.equals(httpdSite.getName())) {
+			for(VirtualHost hsb : httpdSite.getHttpdSiteBinds()) {
 				int hsUid = hsb.getHttpdBind().getHttpdServer().getLinuxServerAccount().getUid().getId();
 				if(uid==-1) {
 					uid = hsUid;
@@ -744,9 +743,9 @@ public abstract class HttpdSiteManager {
 			}
 		}
 		if(uid==-1) {
-			AOServer aoServer = AOServDaemon.getThisAOServer();
-			LinuxServerAccount apacheLsa = aoServer.getLinuxServerAccount(LinuxAccount.APACHE);
-			if(apacheLsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+LinuxAccount.APACHE+" on "+aoServer.getHostname());
+			Server aoServer = AOServDaemon.getThisAOServer();
+			UserServer apacheLsa = aoServer.getLinuxServerAccount(User.APACHE);
+			if(apacheLsa==null) throw new SQLException("Unable to find UserServer: "+User.APACHE+" on "+aoServer.getHostname());
 			uid = apacheLsa.getUid().getId();
 		}
 		return uid;
@@ -941,7 +940,7 @@ public abstract class HttpdSiteManager {
 	 *
 	 * Seriously consider security ramifications before enabling TRACK and TRACE.
 	 *
-	 * @see  HttpdSite#getBlockTraceTrack()
+	 * @see  Site#getBlockTraceTrack()
 	 */
 	public boolean blockAllTraceAndTrackRequests() {
 		return httpdSite.getBlockTraceTrack();

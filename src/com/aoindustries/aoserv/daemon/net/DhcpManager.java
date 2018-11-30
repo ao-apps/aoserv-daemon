@@ -5,8 +5,8 @@
  */
 package com.aoindustries.aoserv.daemon.net;
 
-import com.aoindustries.aoserv.client.net.IPAddress;
-import com.aoindustries.aoserv.client.net.NetDevice;
+import com.aoindustries.aoserv.client.net.Device;
+import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -69,7 +69,7 @@ final public class DhcpManager implements Runnable {
 				if(thread == null) {
 					// Only start if at least one IP Address on the server is DHCP-enabled
 					boolean hasDhcp = false;
-					for(IPAddress ia : AOServDaemon.getThisAOServer().getServer().getIPAddresses()) {
+					for(IpAddress ia : AOServDaemon.getThisAOServer().getServer().getIPAddresses()) {
 						if(ia.isDhcp()) {
 							hasDhcp = true;
 							break;
@@ -98,8 +98,8 @@ final public class DhcpManager implements Runnable {
 					} catch(InterruptedException err) {
 						Thread.currentThread().interrupt();
 					}
-					for(NetDevice nd : AOServDaemon.getThisAOServer().getServer().getNetDevices()) {
-						IPAddress primaryIP=nd.getPrimaryIPAddress();
+					for(Device nd : AOServDaemon.getThisAOServer().getServer().getNetDevices()) {
+						IpAddress primaryIP=nd.getPrimaryIPAddress();
 						if(primaryIP.isDhcp()) {
 							InetAddress dhcpAddress=getDhcpAddress(nd.getDeviceId().getName());
 							if(!primaryIP.getInetAddress().equals(dhcpAddress)) {

@@ -5,9 +5,9 @@
  */
 package com.aoindustries.aoserv.daemon.net.xinetd;
 
-import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
-import com.aoindustries.aoserv.client.linux.LinuxServerGroup;
-import com.aoindustries.aoserv.client.net.IPAddress;
+import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.UserServer;
+import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.lang.ObjectUtils;
 import com.aoindustries.net.InetAddress;
@@ -28,11 +28,11 @@ public final class Service {
 	final private String flags;
 	final private String service;
 	final private com.aoindustries.net.Protocol socket_type;
-	final private IPAddress bind;
+	final private IpAddress bind;
 	final private Port port;
 	final private boolean wait;
-	final private LinuxServerAccount user;
-	final private LinuxServerGroup group;
+	final private UserServer user;
+	final private GroupServer group;
 	final private String server;
 	final private String env;
 	final private String server_args;
@@ -51,11 +51,11 @@ public final class Service {
 		String flags,
 		String service,
 		com.aoindustries.net.Protocol socket_type,
-		IPAddress bind,
+		IpAddress bind,
 		Port port,
 		boolean wait,
-		LinuxServerAccount user,
-		LinuxServerGroup group,
+		UserServer user,
+		GroupServer group,
 		String server,
 		String env,
 		String server_args,

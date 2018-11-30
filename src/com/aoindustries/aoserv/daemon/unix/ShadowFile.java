@@ -6,7 +6,7 @@
 package com.aoindustries.aoserv.daemon.unix;
 
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.LinuxAccount;
+import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
@@ -98,7 +98,7 @@ final public class ShadowFile {
 		/**
 		 * Constructs a shadow file entry given one line of the <code>/etc/shadow</code> file, not including
 		 * the trailing newline (<code>'\n'</code>).  This may also be called providing only the username,
-		 * in which case the default values are used and the password is set to {@link LinuxAccount#NO_PASSWORD_CONFIG_VALUE}
+		 * in which case the default values are used and the password is set to {@link User#NO_PASSWORD_CONFIG_VALUE}
 		 * (disabled).
 		 */
 		public Entry(String line) throws ValidationException {
@@ -111,7 +111,7 @@ final public class ShadowFile {
 			String S;
 
 			if(len > 1 && (S = values.get(1)).length() > 0) password = S;
-			else password = LinuxAccount.NO_PASSWORD_CONFIG_VALUE;
+			else password = User.NO_PASSWORD_CONFIG_VALUE;
 
 			if(len > 2 && (S = values.get(2)).length() > 0) changedDate = Integer.parseInt(S);
 			else changedDate = getCurrentDate();
@@ -183,7 +183,7 @@ final public class ShadowFile {
 		 * Constructs a new shadow file entry for the given user.
 		 */
 		public Entry(UserId username) {
-			this(username, LinuxAccount.NO_PASSWORD_CONFIG_VALUE, null);
+			this(username, User.NO_PASSWORD_CONFIG_VALUE, null);
 		}
 
 		/**
@@ -347,7 +347,7 @@ final public class ShadowFile {
 	/**
 	 * Gets the encrypted password for one user on the system include the {@link Entry#getChangedDate() changeDate}, if known.
 	 *
-	 * If there is no entry for the user in the shadow file, returns <code>({@link LinuxAccount#NO_PASSWORD_CONFIG_VALUE}, null)</code>.
+	 * If there is no entry for the user in the shadow file, returns <code>({@link User#NO_PASSWORD_CONFIG_VALUE}, null)</code>.
 	 */
 	public static Tuple2<String,Integer> getEncryptedPassword(UserId username) throws IOException, SQLException {
 		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
@@ -376,7 +376,7 @@ final public class ShadowFile {
 						}
 					}
 				}
-				return new Tuple2<>(LinuxAccount.NO_PASSWORD_CONFIG_VALUE, null);
+				return new Tuple2<>(User.NO_PASSWORD_CONFIG_VALUE, null);
 			} catch(ValidationException e) {
 				throw new IOException(e);
 			}
@@ -417,11 +417,11 @@ final public class ShadowFile {
 			try (ChainWriter out = new ChainWriter(bout)) {
 				boolean rootFound = false;
 				for(Entry entry : shadowEntries) {
-					if(entry.getUsername().equals(LinuxAccount.ROOT)) rootFound = true;
+					if(entry.getUsername().equals(User.ROOT)) rootFound = true;
 					entry.appendTo(out);
 					out.print('\n');
 				}
-				if(!rootFound) throw new IllegalArgumentException(LinuxAccount.ROOT + " user not found while creating " + shadowFile);
+				if(!rootFound) throw new IllegalArgumentException(User.ROOT + " user not found while creating " + shadowFile);
 			}
 			return bout.toByteArray();
 		} catch(IOException e) {
@@ -473,7 +473,7 @@ final public class ShadowFile {
 	 */
 	public static byte[] buildShadowFile(Set<UserId> usernames) throws IOException {
 		assert Thread.holdsLock(shadowLock);
-		if(!usernames.contains(LinuxAccount.ROOT)) throw new IllegalArgumentException(LinuxAccount.ROOT + " user not found");
+		if(!usernames.contains(User.ROOT)) throw new IllegalArgumentException(User.ROOT + " user not found");
 		Map<UserId,Entry> shadowEntries = readShadowFile();
 		// Remove any users that no longer exist
 		Iterator<Map.Entry<UserId,Entry>> entryIter = shadowEntries.entrySet().iterator();
@@ -547,7 +547,7 @@ final public class ShadowFile {
 		setEncryptedPassword(
 			username,
 			plaintext == null || plaintext.isEmpty()
-				? LinuxAccount.NO_PASSWORD_CONFIG_VALUE
+				? User.NO_PASSWORD_CONFIG_VALUE
 				: UnixFile.crypt(plaintext, cryptAlgorithm, AOServDaemon.getRandom()),
 			updateChangedDate ? Entry.getCurrentDate() : null
 		);

@@ -7,11 +7,11 @@ package com.aoindustries.aoserv.daemon.net.firewalld;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.net.FirewalldZone;
-import com.aoindustries.aoserv.client.net.NetBind;
-import com.aoindustries.aoserv.client.net.Protocol;
-import com.aoindustries.aoserv.client.net.Server;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.net.AppProtocol;
+import com.aoindustries.aoserv.client.net.Bind;
+import com.aoindustries.aoserv.client.net.FirewallZone;
+import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.client.validator.FirewalldZoneName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -25,6 +25,7 @@ import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.InetAddressPrefix;
 import com.aoindustries.net.InetAddressPrefixes;
 import com.aoindustries.net.Port;
+import com.aoindustries.net.Protocol;
 import com.aoindustries.util.Tuple2;
 import com.aoindustries.validation.ValidationException;
 import java.io.IOException;
@@ -54,12 +55,12 @@ final public class FirewalldManager extends BuilderThread {
 	private static final Set<FirewalldZoneName> sshFailsafeZones = Collections.unmodifiableSet(
 		new LinkedHashSet<FirewalldZoneName>(
 			Arrays.asList(
-				FirewalldZone.DMZ,
-				FirewalldZone.EXTERNAL,
-				FirewalldZone.HOME,
-				FirewalldZone.INTERNAL,
-				FirewalldZone.PUBLIC,
-				FirewalldZone.WORK
+				FirewallZone.DMZ,
+				FirewallZone.EXTERNAL,
+				FirewallZone.HOME,
+				FirewallZone.INTERNAL,
+				FirewallZone.PUBLIC,
+				FirewallZone.WORK
 			)
 		)
 	);
@@ -72,7 +73,7 @@ final public class FirewalldManager extends BuilderThread {
 	/**
 	 * Adds a target unless the net bind is on loopback device.
 	 */
-	private static void addTarget(NetBind nb, Collection<Target> targets, Set<FirewalldZoneName> zones, List<NetBind> firewalldNetBinds) throws SQLException, IOException, ValidationException {
+	private static void addTarget(Bind nb, Collection<Target> targets, Set<FirewalldZoneName> zones, List<Bind> firewalldNetBinds) throws SQLException, IOException, ValidationException {
 		InetAddress ip = nb.getIpAddress().getInetAddress();
 		// Assume can access self
 		if(!ip.isLoopback()) {
@@ -110,12 +111,12 @@ final public class FirewalldManager extends BuilderThread {
 	/**
 	 * Warn net_bind exposed to more zones than expected.
 	 */
-	private static void warnZoneMismatch(Set<FirewalldZoneName> zones, List<NetBind> firewalldNetBinds) throws IOException, SQLException {
+	private static void warnZoneMismatch(Set<FirewalldZoneName> zones, List<Bind> firewalldNetBinds) throws IOException, SQLException {
 		if(logger.isLoggable(Level.WARNING)) {
-			for(NetBind nb : firewalldNetBinds) {
+			for(Bind nb : firewalldNetBinds) {
 				Set<FirewalldZoneName> expected = nb.getFirewalldZoneNames();
 				if(!zones.equals(expected)) {
-					logger.warning("NetBind #" + nb.getPkey() + " (" + nb + ") opened on unexpected set of firewalld zones: expected=" + expected + ", zones=" + zones);
+					logger.warning("Bind #" + nb.getPkey() + " (" + nb + ") opened on unexpected set of firewalld zones: expected=" + expected + ", zones=" + zones);
 				}
 			}
 		}
@@ -125,8 +126,8 @@ final public class FirewalldManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer thisAoServer = AOServDaemon.getThisAOServer();
-			Server thisServer = thisAoServer.getServer();
+			Server thisAoServer = AOServDaemon.getThisAOServer();
+			Host thisServer = thisAoServer.getServer();
 			OperatingSystemVersion osv = thisServer.getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 
@@ -136,7 +137,7 @@ final public class FirewalldManager extends BuilderThread {
 					// Manage firewalld only when installed
 					&& PackageManager.getInstalledPackage(PackageManager.PackageName.FIREWALLD) != null
 				) {
-					List<NetBind> netBinds = thisServer.getNetBinds();
+					List<Bind> netBinds = thisServer.getNetBinds();
 					if(logger.isLoggable(Level.FINE)) logger.fine("netBinds: " + netBinds);
 					// TODO: The zones should be added per-port, but this release is constrained by the current implementation
 					//       of the underlying ao-firewalld package.  Thus any single port associated with a zone will open that
@@ -148,9 +149,9 @@ final public class FirewalldManager extends BuilderThread {
 					{
 						List<Target> targets = new ArrayList<>();
 						Set<FirewalldZoneName> zones = new LinkedHashSet<>();
-						List<NetBind> firewalldNetBinds = new ArrayList<>();
-						for(NetBind nb : netBinds) {
-							if(nb.getAppProtocol().getProtocol().equals(Protocol.SSH)) {
+						List<Bind> firewalldNetBinds = new ArrayList<>();
+						for(Bind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(AppProtocol.SSH)) {
 								addTarget(nb, targets, zones, firewalldNetBinds);
 							}
 						}
@@ -179,12 +180,12 @@ final public class FirewalldManager extends BuilderThread {
 					{
 						List<Target> targets = new ArrayList<>();
 						Set<FirewalldZoneName> zones = new LinkedHashSet<>();
-						List<NetBind> firewalldNetBinds = new ArrayList<>();
-						for(NetBind nb : netBinds) {
+						List<Bind> firewalldNetBinds = new ArrayList<>();
+						for(Bind nb : netBinds) {
 							String appProtocol = nb.getAppProtocol().getProtocol();
 							if(
-								appProtocol.equals(Protocol.AOSERV_DAEMON)
-								|| appProtocol.equals(Protocol.AOSERV_DAEMON_SSL)
+								appProtocol.equals(AppProtocol.AOSERV_DAEMON)
+								|| appProtocol.equals(AppProtocol.AOSERV_DAEMON_SSL)
 							) {
 								addTarget(nb, targets, zones, firewalldNetBinds);
 							}
@@ -202,12 +203,12 @@ final public class FirewalldManager extends BuilderThread {
 					{
 						List<Target> targets = new ArrayList<>();
 						Set<FirewalldZoneName> zones = new LinkedHashSet<>();
-						List<NetBind> firewalldNetBinds = new ArrayList<>();
-						for(NetBind nb : netBinds) {
+						List<Bind> firewalldNetBinds = new ArrayList<>();
+						for(Bind nb : netBinds) {
 							String appProtocol = nb.getAppProtocol().getProtocol();
 							if(
-								appProtocol.equals(Protocol.AOSERV_MASTER)
-								|| appProtocol.equals(Protocol.AOSERV_MASTER_SSL)
+								appProtocol.equals(AppProtocol.AOSERV_MASTER)
+								|| appProtocol.equals(AppProtocol.AOSERV_MASTER_SSL)
 							) {
 								addTarget(nb, targets, zones, firewalldNetBinds);
 							}
@@ -232,9 +233,9 @@ final public class FirewalldManager extends BuilderThread {
 					{
 						List<Target> targets = new ArrayList<>();
 						Set<FirewalldZoneName> zones = new LinkedHashSet<>();
-						List<NetBind> firewalldNetBinds = new ArrayList<>();
-						for(NetBind nb : netBinds) {
-							if(nb.getAppProtocol().getProtocol().equals(Protocol.DNS)) {
+						List<Bind> firewalldNetBinds = new ArrayList<>();
+						for(Bind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(AppProtocol.DNS)) {
 								addTarget(nb, targets, zones, firewalldNetBinds);
 							}
 						}
@@ -249,8 +250,8 @@ final public class FirewalldManager extends BuilderThread {
 										"named",
 										"Berkeley Internet Name Domain (DNS)",
 										Arrays.asList(
-											Port.valueOf(53, com.aoindustries.net.Protocol.TCP),
-											Port.valueOf(53, com.aoindustries.net.Protocol.UDP)
+											Port.valueOf(53, Protocol.TCP),
+											Port.valueOf(53, Protocol.UDP)
 										),
 										Collections.emptySet(), // protocols
 										Collections.emptySet(), // sourcePorts
@@ -268,9 +269,9 @@ final public class FirewalldManager extends BuilderThread {
 					{
 						List<Target> targets = new ArrayList<>();
 						Set<FirewalldZoneName> zones = new LinkedHashSet<>();
-						List<NetBind> firewalldNetBinds = new ArrayList<>();
-						for(NetBind nb : netBinds) {
-							if(nb.getAppProtocol().getProtocol().equals(Protocol.HTTP)) {
+						List<Bind> firewalldNetBinds = new ArrayList<>();
+						for(Bind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(AppProtocol.HTTP)) {
 								addTarget(nb, targets, zones, firewalldNetBinds);
 							}
 						}
@@ -287,9 +288,9 @@ final public class FirewalldManager extends BuilderThread {
 					{
 						List<Target> targets = new ArrayList<>();
 						Set<FirewalldZoneName> zones = new LinkedHashSet<>();
-						List<NetBind> firewalldNetBinds = new ArrayList<>();
-						for(NetBind nb : netBinds) {
-							if(nb.getAppProtocol().getProtocol().equals(Protocol.HTTPS)) {
+						List<Bind> firewalldNetBinds = new ArrayList<>();
+						for(Bind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(AppProtocol.HTTPS)) {
 								addTarget(nb, targets, zones, firewalldNetBinds);
 							}
 						}
@@ -306,9 +307,9 @@ final public class FirewalldManager extends BuilderThread {
 					{
 						List<Target> targets = new ArrayList<>();
 						Set<FirewalldZoneName> zones = new LinkedHashSet<>();
-						List<NetBind> firewalldNetBinds = new ArrayList<>();
-						for(NetBind nb : netBinds) {
-							if(nb.getAppProtocol().getProtocol().equals(Protocol.IMAP2)) {
+						List<Bind> firewalldNetBinds = new ArrayList<>();
+						for(Bind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(AppProtocol.IMAP2)) {
 								addTarget(nb, targets, zones, firewalldNetBinds);
 							}
 						}
@@ -325,9 +326,9 @@ final public class FirewalldManager extends BuilderThread {
 					{
 						List<Target> targets = new ArrayList<>();
 						Set<FirewalldZoneName> zones = new LinkedHashSet<>();
-						List<NetBind> firewalldNetBinds = new ArrayList<>();
-						for(NetBind nb : netBinds) {
-							if(nb.getAppProtocol().getProtocol().equals(Protocol.SIMAP)) {
+						List<Bind> firewalldNetBinds = new ArrayList<>();
+						for(Bind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(AppProtocol.SIMAP)) {
 								addTarget(nb, targets, zones, firewalldNetBinds);
 							}
 						}
@@ -344,9 +345,9 @@ final public class FirewalldManager extends BuilderThread {
 					{
 						List<Target> targets = new ArrayList<>();
 						Set<FirewalldZoneName> zones = new LinkedHashSet<>();
-						List<NetBind> firewalldNetBinds = new ArrayList<>();
-						for(NetBind nb : netBinds) {
-							if(nb.getAppProtocol().getProtocol().equals(Protocol.MEMCACHED)) {
+						List<Bind> firewalldNetBinds = new ArrayList<>();
+						for(Bind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(AppProtocol.MEMCACHED)) {
 								addTarget(nb, targets, zones, firewalldNetBinds);
 							}
 						}
@@ -369,9 +370,9 @@ final public class FirewalldManager extends BuilderThread {
 					{
 						List<Target> targets = new ArrayList<>();
 						Set<FirewalldZoneName> zones = new LinkedHashSet<>();
-						List<NetBind> firewalldNetBinds = new ArrayList<>();
-						for(NetBind nb : netBinds) {
-							if(nb.getAppProtocol().getProtocol().equals(Protocol.MYSQL)) {
+						List<Bind> firewalldNetBinds = new ArrayList<>();
+						for(Bind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(AppProtocol.MYSQL)) {
 								addTarget(nb, targets, zones, firewalldNetBinds);
 							}
 						}
@@ -388,9 +389,9 @@ final public class FirewalldManager extends BuilderThread {
 					{
 						List<Target> targets = new ArrayList<>();
 						Set<FirewalldZoneName> zones = new LinkedHashSet<>();
-						List<NetBind> firewalldNetBinds = new ArrayList<>();
-						for(NetBind nb : netBinds) {
-							if(nb.getAppProtocol().getProtocol().equals(Protocol.POP3)) {
+						List<Bind> firewalldNetBinds = new ArrayList<>();
+						for(Bind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(AppProtocol.POP3)) {
 								addTarget(nb, targets, zones, firewalldNetBinds);
 							}
 						}
@@ -407,9 +408,9 @@ final public class FirewalldManager extends BuilderThread {
 					{
 						List<Target> targets = new ArrayList<>();
 						Set<FirewalldZoneName> zones = new LinkedHashSet<>();
-						List<NetBind> firewalldNetBinds = new ArrayList<>();
-						for(NetBind nb : netBinds) {
-							if(nb.getAppProtocol().getProtocol().equals(Protocol.SPOP3)) {
+						List<Bind> firewalldNetBinds = new ArrayList<>();
+						for(Bind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(AppProtocol.SPOP3)) {
 								addTarget(nb, targets, zones, firewalldNetBinds);
 							}
 						}
@@ -426,9 +427,9 @@ final public class FirewalldManager extends BuilderThread {
 					{
 						List<Target> targets = new ArrayList<>();
 						Set<FirewalldZoneName> zones = new LinkedHashSet<>();
-						List<NetBind> firewalldNetBinds = new ArrayList<>();
-						for(NetBind nb : netBinds) {
-							if(nb.getAppProtocol().getProtocol().equals(Protocol.POSTGRESQL)) {
+						List<Bind> firewalldNetBinds = new ArrayList<>();
+						for(Bind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(AppProtocol.POSTGRESQL)) {
 								addTarget(nb, targets, zones, firewalldNetBinds);
 							}
 						}
@@ -445,10 +446,10 @@ final public class FirewalldManager extends BuilderThread {
 					{
 						List<Target> targets = new ArrayList<>();
 						Set<FirewalldZoneName> zones = new LinkedHashSet<>();
-						List<NetBind> firewalldNetBinds = new ArrayList<>();
-						for(NetBind nb : netBinds) {
+						List<Bind> firewalldNetBinds = new ArrayList<>();
+						for(Bind nb : netBinds) {
 							String prot = nb.getAppProtocol().getProtocol();
-							if(prot.equals(Protocol.SMTP)) {
+							if(prot.equals(AppProtocol.SMTP)) {
 								addTarget(nb, targets, zones, firewalldNetBinds);
 							}
 						}
@@ -465,9 +466,9 @@ final public class FirewalldManager extends BuilderThread {
 					{
 						List<Target> targets = new ArrayList<>();
 						Set<FirewalldZoneName> zones = new LinkedHashSet<>();
-						List<NetBind> firewalldNetBinds = new ArrayList<>();
-						for(NetBind nb : netBinds) {
-							if(nb.getAppProtocol().getProtocol().equals(Protocol.SMTPS)) {
+						List<Bind> firewalldNetBinds = new ArrayList<>();
+						for(Bind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(AppProtocol.SMTPS)) {
 								addTarget(nb, targets, zones, firewalldNetBinds);
 							}
 						}
@@ -484,10 +485,10 @@ final public class FirewalldManager extends BuilderThread {
 					{
 						List<Target> targets = new ArrayList<>();
 						Set<FirewalldZoneName> zones = new LinkedHashSet<>();
-						List<NetBind> firewalldNetBinds = new ArrayList<>();
-						for(NetBind nb : netBinds) {
+						List<Bind> firewalldNetBinds = new ArrayList<>();
+						for(Bind nb : netBinds) {
 							String prot = nb.getAppProtocol().getProtocol();
-							if(prot.equals(Protocol.SUBMISSION)) {
+							if(prot.equals(AppProtocol.SUBMISSION)) {
 								addTarget(nb, targets, zones, firewalldNetBinds);
 							}
 						}
@@ -502,7 +503,7 @@ final public class FirewalldManager extends BuilderThread {
 										"submission",
 										"Outgoing SMTP Mail",
 										Collections.singletonList(
-											Port.valueOf(587, com.aoindustries.net.Protocol.TCP)
+											Port.valueOf(587, Protocol.TCP)
 										),
 										Collections.emptySet(), // protocols
 										Collections.emptySet(), // sourcePorts
@@ -520,9 +521,9 @@ final public class FirewalldManager extends BuilderThread {
 					{
 						List<Target> targets = new ArrayList<>();
 						Set<FirewalldZoneName> zones = new LinkedHashSet<>();
-						List<NetBind> firewalldNetBinds = new ArrayList<>();
-						for(NetBind nb : netBinds) {
-							if(nb.getAppProtocol().getProtocol().equals(Protocol.RFB)) {
+						List<Bind> firewalldNetBinds = new ArrayList<>();
+						for(Bind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(AppProtocol.RFB)) {
 								addTarget(nb, targets, zones, firewalldNetBinds);
 							}
 						}
@@ -563,7 +564,7 @@ final public class FirewalldManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		synchronized(System.out) {

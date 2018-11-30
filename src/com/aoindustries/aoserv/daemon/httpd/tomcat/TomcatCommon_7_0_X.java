@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatDataSource;
+import com.aoindustries.aoserv.client.web.tomcat.ContextDataSource;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
@@ -40,7 +40,7 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 	}
 
 	@Override
-	public void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws SQLException, IOException {
+	public void writeHttpdTomcatDataSource(ContextDataSource dataSource, ChainWriter out) throws SQLException, IOException {
 		out.print("          <Resource\n"
 				+ "            name=\"").encodeXmlAttribute(dataSource.getName()).print("\"\n"
 				+ "            auth=\"Container\"\n"

@@ -5,13 +5,13 @@
  */
 package com.aoindustries.aoserv.daemon.httpd;
 
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.linux.LinuxAccount;
-import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.linux.User;
+import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.web.HttpdServer;
-import com.aoindustries.aoserv.client.web.HttpdSite;
-import com.aoindustries.aoserv.client.web.HttpdSiteBind;
+import com.aoindustries.aoserv.client.web.Site;
+import com.aoindustries.aoserv.client.web.VirtualHost;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
@@ -75,7 +75,7 @@ class HttpdLogManager {
 	) throws IOException, SQLException {
 		// Used below
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
-		AOServer aoServer = AOServDaemon.getThisAOServer();
+		Server aoServer = AOServDaemon.getThisAOServer();
 
 		// Rebuild /logs
 		doRebuildLogs(aoServer, deleteFileList, serversNeedingReloaded);
@@ -91,7 +91,7 @@ class HttpdLogManager {
 	 * Rebuilds the directories under /logs or /var/log/httpd-sites
 	 */
 	private static void doRebuildLogs(
-		AOServer aoServer,
+		Server aoServer,
 		List<File> deleteFileList,
 		Set<HttpdServer> serversNeedingReloaded
 	) throws IOException, SQLException {
@@ -99,7 +99,7 @@ class HttpdLogManager {
 		final int logfileUID;
 		{
 			final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
-			final LinuxServerAccount awstatsLSA = aoServer.getLinuxServerAccount(LinuxAccount.AWSTATS);
+			final UserServer awstatsLSA = aoServer.getLinuxServerAccount(User.AWSTATS);
 			// awstats user is required when RPM is installed
 			PackageManager.PackageName awstatsPackageName = osConfig.getAwstatsPackageName();
 			if(
@@ -107,7 +107,7 @@ class HttpdLogManager {
 				&& PackageManager.getInstalledPackage(awstatsPackageName) != null
 				&& awstatsLSA == null
 			) {
-				throw new SQLException("Unable to find LinuxServerAccount: " + LinuxAccount.AWSTATS);
+				throw new SQLException("Unable to find UserServer: " + User.AWSTATS);
 			}
 			if(awstatsLSA != null) {
 				// Allow access to AWStats user, if it exists
@@ -142,7 +142,7 @@ class HttpdLogManager {
 				}
 			}
 
-			for(HttpdSite httpdSite : aoServer.getHttpdSites()) {
+			for(Site httpdSite : aoServer.getHttpdSites()) {
 				int lsgGID = httpdSite.getLinuxServerGroup().getGid().getId();
 
 				// Create the /logs/<site_name> or /var/log/httpd-sites/<site_name> directory
@@ -160,8 +160,8 @@ class HttpdLogManager {
 				logDirectories.remove(siteName);
 
 				// Make sure each log file referenced under HttpdSiteBinds exists
-				List<HttpdSiteBind> hsbs = httpdSite.getHttpdSiteBinds();
-				for(HttpdSiteBind hsb : hsbs) {
+				List<VirtualHost> hsbs = httpdSite.getHttpdSiteBinds();
+				for(VirtualHost hsb : hsbs) {
 					// access_log
 					UnixPath accessLog = hsb.getAccessLog();
 					UnixFile accessLogFile = new UnixFile(accessLog.toString());
@@ -174,7 +174,7 @@ class HttpdLogManager {
 						new FileOutputStream(accessLogFile.getFile(), true).close();
 						accessLogStat = accessLogFile.getStat();
 						// Need to restart servers if log file created
-						for(HttpdSiteBind hsb2 : hsbs) {
+						for(VirtualHost hsb2 : hsbs) {
 							if(hsb2.getAccessLog().equals(accessLog)) {
 								serversNeedingReloaded.add(hsb2.getHttpdBind().getHttpdServer());
 							}
@@ -196,7 +196,7 @@ class HttpdLogManager {
 						new FileOutputStream(errorLogFile.getFile(), true).close();
 						errorLogStat = errorLogFile.getStat();
 						// Need to restart servers if log file created
-						for(HttpdSiteBind hsb2 : hsbs) {
+						for(VirtualHost hsb2 : hsbs) {
 							if(hsb2.getErrorLog().equals(errorLog)) {
 								serversNeedingReloaded.add(hsb2.getHttpdBind().getHttpdServer());
 							}
@@ -220,7 +220,7 @@ class HttpdLogManager {
 	 * Rebuilds the per-site logrotation files.
 	 */
 	private static void doRebuildLogrotate(
-		AOServer thisAoServer,
+		Server thisAoServer,
 		List<File> deleteFileList,
 		ByteArrayOutputStream byteOut,
 		Set<UnixFile> restorecon
@@ -254,11 +254,11 @@ class HttpdLogManager {
 
 		// For each site, build/rebuild the logrotate.d file as necessary and create any necessary log files
 		ChainWriter chainOut=new ChainWriter(byteOut);
-		for(HttpdSite site : thisAoServer.getHttpdSites()) {
+		for(Site site : thisAoServer.getHttpdSites()) {
 			// Write the new file to RAM first
 			byteOut.reset();
 			boolean wroteOne = false;
-			for(HttpdSiteBind bind : site.getHttpdSiteBinds()) {
+			for(VirtualHost bind : site.getHttpdSiteBinds()) {
 				UnixPath access_log = bind.getAccessLog();
 				// Each unique path is only rotated once
 				if(completedPaths.add(access_log)) {
@@ -388,7 +388,7 @@ class HttpdLogManager {
 	 * Rebuilds the /var/log/httpd# or /var/log/httpd[@&lt;name&gt;] directories
 	 */
 	private static void doRebuildVarLogHttpd(
-		AOServer aoServer,
+		Server aoServer,
 		List<File> deleteFileList,
 		Set<UnixFile> restorecon
 	) throws IOException, SQLException {

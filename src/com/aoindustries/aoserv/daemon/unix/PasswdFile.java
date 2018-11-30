@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.unix;
 
-import com.aoindustries.aoserv.client.linux.LinuxAccount;
+import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.validator.Gecos;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.validator.UserId;
@@ -334,11 +334,11 @@ final public class PasswdFile {
 			try (ChainWriter out = new ChainWriter(bout)) {
 				boolean rootFound = false;
 				for(Entry entry : passwdEntries) {
-					if(entry.getUsername().equals(LinuxAccount.ROOT)) rootFound = true;
+					if(entry.getUsername().equals(User.ROOT)) rootFound = true;
 					entry.appendTo(out);
 					out.print('\n');
 				}
-				if(!rootFound) throw new IllegalArgumentException(LinuxAccount.ROOT + " user not found while creating " + passwdFile);
+				if(!rootFound) throw new IllegalArgumentException(User.ROOT + " user not found while creating " + passwdFile);
 			}
 			return bout.toByteArray();
 		} catch(IOException e) {
@@ -369,7 +369,7 @@ final public class PasswdFile {
 	 */
 	public static byte[] buildPasswdFile(Map<UserId,Entry> expectedEntries, int uidMin, int uidMax) throws IOException {
 		assert Thread.holdsLock(passwdLock);
-		if(!expectedEntries.containsKey(LinuxAccount.ROOT)) throw new IllegalArgumentException(LinuxAccount.ROOT + " user not found");
+		if(!expectedEntries.containsKey(User.ROOT)) throw new IllegalArgumentException(User.ROOT + " user not found");
 		Map<UserId,Entry> passwdEntries = readPasswdFile();
 		// Remove any users that no longer exist and verify fields match
 		Iterator<Map.Entry<UserId,Entry>> entryIter = passwdEntries.entrySet().iterator();

@@ -6,18 +6,18 @@
 package com.aoindustries.aoserv.daemon.email;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.backup.FailoverFileReplication;
+import com.aoindustries.aoserv.client.backup.FileReplication;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.CyrusImapdBind;
 import com.aoindustries.aoserv.client.email.CyrusImapdServer;
-import com.aoindustries.aoserv.client.email.EmailSpamAssassinIntegrationMode;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.linux.LinuxAccount;
-import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
-import com.aoindustries.aoserv.client.net.NetBind;
-import com.aoindustries.aoserv.client.net.Protocol;
+import com.aoindustries.aoserv.client.email.SpamAssassinMode;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.linux.User;
+import com.aoindustries.aoserv.client.linux.UserServer;
+import com.aoindustries.aoserv.client.net.AppProtocol;
+import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.client.password.PasswordGenerator;
-import com.aoindustries.aoserv.client.pki.SslCertificate;
+import com.aoindustries.aoserv.client.pki.Certificate;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -257,15 +257,15 @@ final public class ImapManager extends BuilderThread {
 	 * @return  The (IP address, port, starttls) or <code>null</code> if not an IMAP server.
 	 */
 	private static Tuple3<InetAddress,Port,Boolean> getImapServer() throws IOException, SQLException {
-		AOServer aoServer = AOServDaemon.getThisAOServer();
+		Server aoServer = AOServDaemon.getThisAOServer();
 		CyrusImapdServer cyrusServer = aoServer.getCyrusImapdServer();
 		if(cyrusServer == null) return null;
 		// Look for primary IP match
 		InetAddress primaryIp = aoServer.getPrimaryIPAddress().getInetAddress();
 		Tuple3<InetAddress,Port,Boolean> firstImap = null;
 		for(CyrusImapdBind cib : cyrusServer.getCyrusImapdBinds()) {
-			NetBind nb = cib.getNetBind();
-			if(nb.getAppProtocol().getProtocol().equals(Protocol.IMAP2)) {
+			Bind nb = cib.getNetBind();
+			if(nb.getAppProtocol().getProtocol().equals(AppProtocol.IMAP2)) {
 				InetAddress ip = nb.getIpAddress().getInetAddress();
 				boolean tls;
 				{
@@ -291,7 +291,7 @@ final public class ImapManager extends BuilderThread {
 		// Get things that may failed externally before allocating session and store
 		Tuple3<InetAddress,Port,Boolean> imapServer = getImapServer();
 		if(imapServer == null) return null;
-		String user = LinuxAccount.CYRUS + "@default";
+		String user = User.CYRUS + "@default";
 		String password = AOServDaemonConfiguration.getCyrusPassword();
 		Session session = getSession(imapServer);
 		synchronized(_adminStoreLock) {
@@ -377,7 +377,7 @@ final public class ImapManager extends BuilderThread {
 	}
 
 	/**
-	 * Gets the IMAPStore for the provided user to the given IPAddress and port.
+	 * Gets the IMAPStore for the provided user to the given IpAddress and port.
 	 */
 	private static IMAPStore getUserStore(
 		PrintWriter logOut,
@@ -432,7 +432,7 @@ final public class ImapManager extends BuilderThread {
 	public static boolean hasSecondaryService() throws IOException, SQLException {
 		CyrusImapdServer cyrusServer = AOServDaemon.getThisAOServer().getCyrusImapdServer();
 		if(cyrusServer != null) {
-			Set<Protocol> foundProtocols = new HashSet<>();
+			Set<AppProtocol> foundProtocols = new HashSet<>();
 			for(CyrusImapdBind cib : cyrusServer.getCyrusImapdBinds()) {
 				if(!foundProtocols.add(cib.getNetBind().getAppProtocol())) return true;
 			}
@@ -465,7 +465,7 @@ final public class ImapManager extends BuilderThread {
 		Logger logger = LogFactory.getLogger(ImapManager.class);
 		boolean isFine = logger.isLoggable(Level.FINE);
 		try {
-			AOServer thisAOServer = AOServDaemon.getThisAOServer();
+			Server thisAOServer = AOServDaemon.getThisAOServer();
 			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
@@ -482,7 +482,7 @@ final public class ImapManager extends BuilderThread {
 					List<CyrusImapdBind> imapsBinds;
 					List<CyrusImapdBind> pop3Binds;
 					List<CyrusImapdBind> pop3sBinds;
-					NetBind sieveBind;
+					Bind sieveBind;
 					Set<String> certbotNames;
 					if(cyrusServer == null) {
 						imapBinds = Collections.emptyList();
@@ -499,12 +499,12 @@ final public class ImapManager extends BuilderThread {
 						certbotNames = new HashSet<>();
 						for(CyrusImapdBind cib : cyrusServer.getCyrusImapdBinds()) {
 							String protocol = cib.getNetBind().getAppProtocol().getProtocol();
-							if(Protocol.IMAP2.equals(protocol)) imapBinds.add(cib);
-							else if(Protocol.SIMAP.equals(protocol)) imapsBinds.add(cib);
-							else if(Protocol.POP3.equals(protocol)) pop3Binds.add(cib);
-							else if(Protocol.SPOP3.equals(protocol)) pop3sBinds.add(cib);
+							if(AppProtocol.IMAP2.equals(protocol)) imapBinds.add(cib);
+							else if(AppProtocol.SIMAP.equals(protocol)) imapsBinds.add(cib);
+							else if(AppProtocol.POP3.equals(protocol)) pop3Binds.add(cib);
+							else if(AppProtocol.SPOP3.equals(protocol)) pop3sBinds.add(cib);
 							else throw new AssertionError("Unexpected protocol for CyrusImapdBind #" + cib.getPkey() + ": " + protocol);
-							SslCertificate cibCertificate = cib.getCertificate();
+							Certificate cibCertificate = cib.getCertificate();
 							if(cibCertificate != null) {
 								String certbotName = cibCertificate.getCertbotName();
 								if(certbotName != null) certbotNames.add(certbotName);
@@ -623,8 +623,8 @@ final public class ImapManager extends BuilderThread {
 							// Required IMAP at least once on any default port
 							{
 								AOServConnector conn = AOServDaemon.getConnector();
-								Protocol imapProtocol = conn.getProtocols().get(Protocol.IMAP2);
-								if(imapProtocol == null) throw new SQLException("Protocol not found: " + Protocol.IMAP2);
+								AppProtocol imapProtocol = conn.getProtocols().get(AppProtocol.IMAP2);
+								if(imapProtocol == null) throw new SQLException("Protocol not found: " + AppProtocol.IMAP2);
 								Port defaultImapPort = imapProtocol.getPort();
 								boolean foundOnDefault = false;
 								for(CyrusImapdBind cib : imapBinds) {
@@ -667,7 +667,7 @@ final public class ImapManager extends BuilderThread {
 											);
 											int counter = 1;
 											for(CyrusImapdBind cib : imapBinds) {
-												NetBind imapBind = cib.getNetBind();
+												Bind imapBind = cib.getNetBind();
 												Port port = imapBind.getPort();
 												if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("imap requires TCP protocol");
 												String serviceName = generateServiceName("imap", "imapd", counter++);
@@ -699,7 +699,7 @@ final public class ImapManager extends BuilderThread {
 											);
 											int counter = 1;
 											for(CyrusImapdBind cib : imapsBinds) {
-												NetBind imapsBind = cib.getNetBind();
+												Bind imapsBind = cib.getNetBind();
 												Port port = imapsBind.getPort();
 												if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("imaps requires TCP protocol");
 												String serviceName = generateServiceName("imaps", "imaps", counter++);
@@ -730,7 +730,7 @@ final public class ImapManager extends BuilderThread {
 											);
 											int counter = 1;
 											for(CyrusImapdBind cib : pop3Binds) {
-												NetBind pop3Bind = cib.getNetBind();
+												Bind pop3Bind = cib.getNetBind();
 												Port port = pop3Bind.getPort();
 												if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("pop3 requires TCP protocol");
 												String serviceName = generateServiceName("pop3", "pop3d", counter++);
@@ -762,7 +762,7 @@ final public class ImapManager extends BuilderThread {
 											);
 											int counter = 1;
 											for(CyrusImapdBind cib : pop3sBinds) {
-												NetBind pop3sBind = cib.getNetBind();
+												Bind pop3sBind = cib.getNetBind();
 												Port port = pop3sBind.getPort();
 												if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new SQLException("pop3s requires TCP protocol");
 												String serviceName = generateServiceName("pop3s", "pop3s", counter++);
@@ -945,7 +945,7 @@ final public class ImapManager extends BuilderThread {
 									}
 									String certFile, keyFile, chainFile;
 									{
-										SslCertificate certificate = cyrusServer.getCertificate();
+										Certificate certificate = cyrusServer.getCertificate();
 										String certbotName = certificate.getCertbotName();
 										if(certbotName != null) {
 											UnixFile dir = new UnixFile(CERTIFICATE_COPY_DIRECTORY, certbotName, true);
@@ -974,29 +974,29 @@ final public class ImapManager extends BuilderThread {
 									for(Map.Entry<String,CyrusImapdBind> entry : tlsServices.entrySet()) {
 										String serviceName = entry.getKey();
 										CyrusImapdBind cib = entry.getValue();
-										NetBind netBind = cib.getNetBind();
+										Bind netBind = cib.getNetBind();
 										InetAddress ipAddress = netBind.getIpAddress().getInetAddress();
 										int port = netBind.getPort().getPort();
 										String protocol;
 										String appProtocol = netBind.getAppProtocol().getProtocol();
 										switch (appProtocol) {
-											case Protocol.IMAP2:
+											case AppProtocol.IMAP2:
 												protocol = "imap";
 												break;
-											case Protocol.SIMAP:
+											case AppProtocol.SIMAP:
 												protocol = "imaps";
 												break;
-											case Protocol.POP3:
+											case AppProtocol.POP3:
 												protocol = "pop3";
 												break;
-											case Protocol.SPOP3:
+											case AppProtocol.SPOP3:
 												protocol = "pop3s";
 												break;
 											default:
 												throw new SQLException("Unexpected Protocol: " + appProtocol);
 										}
 
-										SslCertificate cibCertificate = cib.getCertificate();
+										Certificate cibCertificate = cib.getCertificate();
 										if(cibCertificate != null) {
 											String cibCertFile, cibKeyFile, cibChainFile;
 											{
@@ -1731,14 +1731,14 @@ final public class ImapManager extends BuilderThread {
 			IMAPStore store = getAdminStore();
 			if(store == null) throw new SQLException("Not an IMAP server");
 			// Verify all email users - only users who have a home under /home/ are considered
-			List<LinuxServerAccount> lsas = AOServDaemon.getThisAOServer().getLinuxServerAccounts();
+			List<UserServer> lsas = AOServDaemon.getThisAOServer().getLinuxServerAccounts();
 			Set<String> validEmailUsernames = new HashSet<>(lsas.size()*4/3+1);
 			// Conversions are done concurrently
-			Map<LinuxServerAccount,Future<Object>> convertors = WUIMAP_CONVERSION_ENABLED ? new HashMap<>(lsas.size()*4/3+1) : null;
+			Map<UserServer,Future<Object>> convertors = WUIMAP_CONVERSION_ENABLED ? new HashMap<>(lsas.size()*4/3+1) : null;
 			ExecutorService executorService = WUIMAP_CONVERSION_ENABLED ? Executors.newFixedThreadPool(WUIMAP_CONVERSION_CONCURRENCY) : null;
 			try {
-				for(final LinuxServerAccount lsa : lsas) {
-					LinuxAccount la = lsa.getLinuxAccount();
+				for(final UserServer lsa : lsas) {
+					User la = lsa.getLinuxAccount();
 					final UnixPath homePath = lsa.getHome();
 					if(la.getType().isEmail() && homePath.toString().startsWith("/home/")) {
 						// Split into user and domain
@@ -1757,7 +1757,7 @@ final public class ImapManager extends BuilderThread {
 									throw new MessagingException("Unable to create folder: " + inboxFolder.getFullName());
 								}
 							}
-							rebuildAcl(inboxFolder, LinuxAccount.CYRUS.toString(), "default", new Rights("ackrx"));
+							rebuildAcl(inboxFolder, User.CYRUS.toString(), "default", new Rights("ackrx"));
 							rebuildAcl(inboxFolder, user, domain, new Rights("acdeiklprstwx"));
 						} finally {
 							if(inboxFolder.isOpen()) inboxFolder.close(false);
@@ -1774,7 +1774,7 @@ final public class ImapManager extends BuilderThread {
 									throw new MessagingException("Unable to create folder: " + trashFolder.getFullName());
 								}
 							}
-							rebuildAcl(trashFolder, LinuxAccount.CYRUS.toString(), "default", new Rights("ackrx"));
+							rebuildAcl(trashFolder, User.CYRUS.toString(), "default", new Rights("ackrx"));
 							rebuildAcl(trashFolder, user, domain, new Rights("acdeiklprstwx"));
 
 							// Set/update expire annotation
@@ -1794,7 +1794,7 @@ final public class ImapManager extends BuilderThread {
 						String junkFolderName = getFolderName(user, domain, "Junk");
 						IMAPFolder junkFolder = (IMAPFolder)store.getFolder(junkFolderName);
 						try {
-							if(lsa.getEmailSpamAssassinIntegrationMode().getName().equals(EmailSpamAssassinIntegrationMode.IMAP)) {
+							if(lsa.getEmailSpamAssassinIntegrationMode().getName().equals(SpamAssassinMode.IMAP)) {
 								// Junk folder required for IMAP mode
 								if(!junkFolder.exists()) {
 									if(isDebug) logger.fine("Creating mailbox: " + junkFolderName);
@@ -1804,7 +1804,7 @@ final public class ImapManager extends BuilderThread {
 								}
 							}
 							if(junkFolder.exists()) {
-								rebuildAcl(junkFolder, LinuxAccount.CYRUS.toString(), "default", new Rights("ackrx"));
+								rebuildAcl(junkFolder, User.CYRUS.toString(), "default", new Rights("ackrx"));
 								rebuildAcl(junkFolder, user, domain, new Rights("acdeiklprstwx"));
 
 								// Set/update expire annotation
@@ -1917,11 +1917,11 @@ final public class ImapManager extends BuilderThread {
 				}
 				if(WUIMAP_CONVERSION_ENABLED) {
 					assert convertors != null;
-					List<LinuxServerAccount> deleteMe = new ArrayList<>();
+					List<UserServer> deleteMe = new ArrayList<>();
 					while(!convertors.isEmpty()) {
 						deleteMe.clear();
-						for(Map.Entry<LinuxServerAccount,Future<Object>> entry : convertors.entrySet()) {
-							LinuxServerAccount lsa = entry.getKey();
+						for(Map.Entry<UserServer,Future<Object>> entry : convertors.entrySet()) {
+							UserServer lsa = entry.getKey();
 							Future<Object> future = entry.getValue();
 							// Wait for completion
 							try {
@@ -1945,7 +1945,7 @@ final public class ImapManager extends BuilderThread {
 								// This is OK, will just retry on next loop
 							}
 						}
-						for(LinuxServerAccount lsa : deleteMe) convertors.remove(lsa);
+						for(UserServer lsa : deleteMe) convertors.remove(lsa);
 					}
 				}
 			} finally {
@@ -1991,7 +1991,7 @@ final public class ImapManager extends BuilderThread {
 						try {
 							if(!userFolder.exists()) throw new MessagingException("Folder doesn't exist: " + cyrusFolder);
 							// TODO: Backup mailbox to /var/opt/aoserv-daemon/oldaccounts
-							rebuildAcl(userFolder, LinuxAccount.CYRUS.toString(), "default", new Rights("acdkrx")); // Adds the d permission
+							rebuildAcl(userFolder, User.CYRUS.toString(), "default", new Rights("acdkrx")); // Adds the d permission
 							if(isDebug) logger.fine("Deleting mailbox: " + cyrusFolder);
 							if(!userFolder.delete(true)) throw new IOException("Unable to delete mailbox: " + cyrusFolder);
 						} finally {
@@ -2020,8 +2020,8 @@ final public class ImapManager extends BuilderThread {
 				System.out.println(folders[c]+": "+sizes[c]);
 			}
 
-			for(LinuxServerAccount lsa : AOServDaemon.getThisAOServer().getLinuxServerAccounts()) {
-				LinuxAccount la = lsa.getLinuxAccount();
+			for(UserServer lsa : AOServDaemon.getThisAOServer().getLinuxServerAccounts()) {
+				User la = lsa.getLinuxAccount();
 				if(la.getType().isEmail() && lsa.getHome().startsWith("/home/")) {
 					String username = la.getUsername().getUsername();
 					System.out.println(username+": "+getInboxSize(username));
@@ -2035,7 +2035,7 @@ final public class ImapManager extends BuilderThread {
 	}*/
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
@@ -2081,11 +2081,11 @@ final public class ImapManager extends BuilderThread {
 	}
 
 	public static long[] getImapFolderSizes(UserId username, String[] folderNames) throws IOException, SQLException, MessagingException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
-		LinuxServerAccount lsa = thisAOServer.getLinuxServerAccount(username);
-		if(lsa == null) throw new SQLException("Unable to find LinuxServerAccount: " + username + " on " + thisAOServer);
+		UserServer lsa = thisAOServer.getLinuxServerAccount(username);
+		if(lsa == null) throw new SQLException("Unable to find UserServer: " + username + " on " + thisAOServer);
 		long[] sizes = new long[folderNames.length];
 		if(
 			osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
@@ -2305,7 +2305,7 @@ final public class ImapManager extends BuilderThread {
 	}
 
 	public static long getInboxSize(UserId username) throws IOException, SQLException, MessagingException {
-		AOServer thisAOServer=AOServDaemon.getThisAOServer();
+		Server thisAOServer=AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
@@ -2327,7 +2327,7 @@ ad OK Completed
 	}
 
 	public static long getInboxModified(UserId username) throws IOException, SQLException, MessagingException, ParseException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
@@ -2462,8 +2462,8 @@ ad OK Completed
 	/**
 	 * Configures backups for cyrus-imapd
 	 */
-	public static void addFilesystemIteratorRules(FailoverFileReplication ffr, Map<String,FilesystemIteratorRule> filesystemRules) throws IOException, SQLException {
-		AOServer thisServer = AOServDaemon.getThisAOServer();
+	public static void addFilesystemIteratorRules(FileReplication ffr, Map<String,FilesystemIteratorRule> filesystemRules) throws IOException, SQLException {
+		Server thisServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
@@ -2478,8 +2478,8 @@ ad OK Completed
 			filesystemRules.put("/var/spool/imap/stage.", FilesystemIteratorRule.SKIP);
 			filesystemRules.put("/var/spool/imap/sync.", FilesystemIteratorRule.SKIP);
 			// Automatically exclude all Junk filters
-			for(final LinuxServerAccount lsa : thisServer.getLinuxServerAccounts()) {
-				LinuxAccount la = lsa.getLinuxAccount();
+			for(final UserServer lsa : thisServer.getLinuxServerAccounts()) {
+				User la = lsa.getLinuxAccount();
 				final UnixPath homePath = lsa.getHome();
 				if(la.getType().isEmail() && homePath.toString().startsWith("/home/")) {
 					// Split into user and domain

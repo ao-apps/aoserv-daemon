@@ -5,18 +5,18 @@
  */
 package com.aoindustries.aoserv.daemon.distro;
 
-import static com.aoindustries.aoserv.client.Architecture.I686_AND_X86_64;
-import static com.aoindustries.aoserv.client.Architecture.X86_64;
-import com.aoindustries.aoserv.client.DistroFileType;
-import static com.aoindustries.aoserv.client.OperatingSystem.CENTOS;
-import static com.aoindustries.aoserv.client.OperatingSystemVersion.CENTOS_5_DOM0_X86_64;
-import static com.aoindustries.aoserv.client.OperatingSystemVersion.CENTOS_5_I686_AND_X86_64;
-import static com.aoindustries.aoserv.client.OperatingSystemVersion.CENTOS_7_DOM0_X86_64;
-import static com.aoindustries.aoserv.client.OperatingSystemVersion.CENTOS_7_X86_64;
-import static com.aoindustries.aoserv.client.OperatingSystemVersion.VERSION_5;
-import static com.aoindustries.aoserv.client.OperatingSystemVersion.VERSION_5_DOM0;
-import static com.aoindustries.aoserv.client.OperatingSystemVersion.VERSION_7;
-import static com.aoindustries.aoserv.client.OperatingSystemVersion.VERSION_7_DOM0;
+import static com.aoindustries.aoserv.client.distribution.Architecture.I686_AND_X86_64;
+import static com.aoindustries.aoserv.client.distribution.Architecture.X86_64;
+import static com.aoindustries.aoserv.client.distribution.OperatingSystem.CENTOS;
+import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.CENTOS_5_DOM0_X86_64;
+import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.CENTOS_5_I686_AND_X86_64;
+import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.CENTOS_7_DOM0_X86_64;
+import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.CENTOS_7_X86_64;
+import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.VERSION_5;
+import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.VERSION_5_DOM0;
+import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.VERSION_7;
+import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.VERSION_7_DOM0;
+import com.aoindustries.aoserv.client.distribution.management.DistroFileType;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.io.ByteCountInputStream;
 import com.aoindustries.io.IoUtils;

@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon;
 
-import com.aoindustries.aoserv.client.net.Protocol;
+import com.aoindustries.aoserv.client.net.AppProtocol;
 import com.aoindustries.io.AOPool;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -114,7 +114,7 @@ final public class AOServDaemonServer extends Thread {
 					System.out.println(')');
 				}
 				switch (protocol) {
-					case Protocol.AOSERV_DAEMON:
+					case AppProtocol.AOSERV_DAEMON:
 						try (ServerSocket SS = new ServerSocket(serverPort, 50, serverBind.isUnspecified() ? null : address)) {
 							while(true) {
 								Socket socket=SS.accept();
@@ -126,7 +126,7 @@ final public class AOServDaemonServer extends Thread {
 							}
 						}
 						// break;
-					case Protocol.AOSERV_DAEMON_SSL:
+					case AppProtocol.AOSERV_DAEMON_SSL:
 						SSLServerSocketFactory factory = (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
 						SSLServerSocket SS=(SSLServerSocket)factory.createServerSocket(serverPort, 50, address);
 						try {

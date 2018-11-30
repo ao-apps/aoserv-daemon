@@ -7,13 +7,12 @@ package com.aoindustries.aoserv.daemon.postgres;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.net.NetBind;
-import com.aoindustries.aoserv.client.net.Protocol;
-import com.aoindustries.aoserv.client.postgresql.PostgresDatabase;
-import com.aoindustries.aoserv.client.postgresql.PostgresServer;
-import com.aoindustries.aoserv.client.postgresql.PostgresUser;
-import com.aoindustries.aoserv.client.postgresql.PostgresVersion;
+import com.aoindustries.aoserv.client.net.AppProtocol;
+import com.aoindustries.aoserv.client.net.Bind;
+import com.aoindustries.aoserv.client.postgresql.Database;
+import com.aoindustries.aoserv.client.postgresql.Server;
+import com.aoindustries.aoserv.client.postgresql.User;
+import com.aoindustries.aoserv.client.postgresql.Version;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -50,7 +49,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 	 */
 	private static final String SELINUX_TYPE = "postgresql_port_t";
 
-	public static final File pgsqlDirectory = new File(PostgresServer.DATA_BASE_DIR.toString());
+	public static final File pgsqlDirectory = new File(Server.DATA_BASE_DIR.toString());
 
 	private PostgresServerManager() {
 	}
@@ -59,7 +58,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer thisAOServer = AOServDaemon.getThisAOServer();
+			com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
 			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
@@ -69,15 +68,15 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 
 			synchronized(rebuildLock) {
 				Set<Port> postgresqlPorts = new HashSet<>();
-				for(PostgresServer postgresServer : thisAOServer.getPostgresServers()) {
+				for(Server postgresServer : thisAOServer.getPostgresServers()) {
 					postgresqlPorts.add(postgresServer.getBind().getPort());
 					// TODO: Add and initialize any missing /var/lib/pgsql/name
 					// TODO: Add/update any /etc/rc.d/init.d/postgresql-name
 				}
 				// Add any other local MySQL port (such as tunneled)
-				for(NetBind nb : thisAOServer.getServer().getNetBinds()) {
+				for(Bind nb : thisAOServer.getServer().getNetBinds()) {
 					String protocol = nb.getAppProtocol().getProtocol();
-					if(Protocol.POSTGRESQL.equals(protocol)) {
+					if(AppProtocol.POSTGRESQL.equals(protocol)) {
 						postgresqlPorts.add(nb.getPort());
 					}
 				}
@@ -112,17 +111,17 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 	}
 
 	private static final Map<Integer,AOConnectionPool> pools = new HashMap<>();
-	static AOConnectionPool getPool(PostgresServer ps) throws IOException, SQLException {
+	static AOConnectionPool getPool(Server ps) throws IOException, SQLException {
 		synchronized(pools) {
 			Integer pkeyObj = ps.getPkey();
 			AOConnectionPool pool = pools.get(pkeyObj);
 			if(pool == null) {
-				PostgresDatabase pd = ps.getPostgresDatabase(PostgresDatabase.AOSERV);
-				if(pd == null) throw new SQLException("Unable to find PostgresDatabase: " + PostgresDatabase.AOSERV + " on "+ps.toString());
+				Database pd = ps.getPostgresDatabase(Database.AOSERV);
+				if(pd == null) throw new SQLException("Unable to find Database: " + Database.AOSERV + " on "+ps.toString());
 				pool = new AOConnectionPool(
 					pd.getJdbcDriver(),
 					pd.getJdbcUrl(true),
-					PostgresUser.POSTGRES.toString(),
+					User.POSTGRES.toString(),
 					AOServDaemonConfiguration.getPostgresPassword(),
 					AOServDaemonConfiguration.getPostgresConnections(),
 					AOServDaemonConfiguration.getPostgresMaxConnectionAge(),
@@ -136,7 +135,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 
 	private static PostgresServerManager postgresServerManager;
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
@@ -178,15 +177,15 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 		return "Rebuild PostgreSQL Servers";
 	}
 
-	public static void restartPostgreSQL(PostgresServer ps) throws IOException, SQLException {
+	public static void restartPostgreSQL(Server ps) throws IOException, SQLException {
 		ServerManager.controlProcess("postgresql-" + ps.getName(), "restart");
 	}
 
-	public static void startPostgreSQL(PostgresServer ps) throws IOException, SQLException {
+	public static void startPostgreSQL(Server ps) throws IOException, SQLException {
 		ServerManager.controlProcess("postgresql-" + ps.getName(), "start");
 	}
 
-	public static void stopPostgreSQL(PostgresServer ps) throws IOException, SQLException {
+	public static void stopPostgreSQL(Server ps) throws IOException, SQLException {
 		ServerManager.controlProcess("postgresql-" + ps.getName(), "stop");
 	}
 
@@ -225,13 +224,13 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 	public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
 		try {
 			AOServConnector conn = AOServDaemon.getConnector();
-			for(PostgresServer postgresServer : AOServDaemon.getThisAOServer().getPostgresServers()) {
+			for(Server postgresServer : AOServDaemon.getThisAOServer().getPostgresServers()) {
 				String version=postgresServer.getVersion().getTechnologyVersion(conn).getVersion();
 				if(
-					!version.startsWith(PostgresVersion.VERSION_7_1+'.')
-					&& !version.startsWith(PostgresVersion.VERSION_7_2+'.')
-					&& !version.startsWith(PostgresVersion.VERSION_7_3+'.')
-					&& !version.startsWith(PostgresVersion.VERSION_8_0+'.')
+					!version.startsWith(Version.VERSION_7_1+'.')
+					&& !version.startsWith(Version.VERSION_7_2+'.')
+					&& !version.startsWith(Version.VERSION_7_3+'.')
+					&& !version.startsWith(Version.VERSION_8_0+'.')
 				) {
 					// Is 8.1 or newer, need to compress and rotate logs
 					File logDirectory=new File("/var/log/postgresql", postgresServer.getName().toString());

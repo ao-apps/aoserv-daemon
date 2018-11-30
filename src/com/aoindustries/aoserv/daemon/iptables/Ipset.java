@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.iptables;
 
-import com.aoindustries.aoserv.client.net.IPAddress;
+import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.ProcessResult;
@@ -52,9 +52,9 @@ final public class Ipset {
 		I,
 
 		/**
-		 * Used by each IpReputationSet.
+		 * Used by each Set.
 		 *
-		 * @see  IpReputationSet
+		 * @see  Set
 		 */
 		R
 	}
@@ -66,7 +66,7 @@ final public class Ipset {
 	 * To minimize the kernel locking duration, each ipset is only updated with
 	 * what has changed since the last build.
 	 */
-	//private static final Map<IpReputationSet,Set<Integer>> lastNetworks=new HashMap<IpReputationSet,Set<Integer>>();
+	//private static final Map<Set,Set<Integer>> lastNetworks=new HashMap<Set,Set<Integer>>();
 
 	/**
 	 * Calls ipset -S, skipping any comment lines
@@ -140,7 +140,7 @@ final public class Ipset {
 				IPSET,
 				"-D",
 				setName,
-				IPAddress.getIPAddressForInt(entry)
+				IpAddress.getIPAddressForInt(entry)
 			},
 			CHARSET
 		);
@@ -156,7 +156,7 @@ final public class Ipset {
 				IPSET,
 				"-A",
 				setName,
-				IPAddress.getIPAddressForInt(entry)
+				IpAddress.getIPAddressForInt(entry)
 			},
 			CHARSET
 		);
@@ -175,7 +175,7 @@ final public class Ipset {
 				if(line.startsWith("-A ")) {
 					int spacePos = line.indexOf(' ', 3);
 					if(spacePos==-1) throw new IOException("Unable to find second space");
-					entries.add(IPAddress. getIntForIPAddress(line.substring(spacePos+1)));
+					entries.add(IpAddress. getIntForIPAddress(line.substring(spacePos+1)));
 				}
 			}
 		} finally {

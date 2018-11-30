@@ -5,13 +5,13 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
-import com.aoindustries.aoserv.client.linux.LinuxServerGroup;
+import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.web.HttpdSite;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdSharedTomcat;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatSharedSite;
+import com.aoindustries.aoserv.client.web.Site;
+import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
+import com.aoindustries.aoserv.client.web.tomcat.SharedTomcatSite;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
@@ -32,7 +32,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Manages HttpdSharedTomcat version 3.X configurations.
+ * Manages SharedTomcat version 3.X configurations.
  * 
  * TODO: Replace all uses of "replace" with a read file then call replace only if one of the "from" values is found.  Should be faster
  *       be eliminating unnecessary subprocesses.
@@ -43,25 +43,25 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 
 	private static final Logger logger = Logger.getLogger(HttpdSharedTomcatManager_3_X.class.getName());
 
-	HttpdSharedTomcatManager_3_X(HttpdSharedTomcat sharedTomcat) {
+	HttpdSharedTomcatManager_3_X(SharedTomcat sharedTomcat) {
 		super(sharedTomcat);
 	}
 
 	@Override
-	void buildSharedTomcatDirectory(String optSlash, UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
+	void buildSharedTomcatDirectory(String optSlash, UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<SharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
 		/*
 		 * Get values used in the rest of the loop.
 		 */
 		final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
 		final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
-		final AOServer thisAoServer = AOServDaemon.getThisAOServer();
+		final Server thisAoServer = AOServDaemon.getThisAOServer();
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
 		final String optDir = getOptDir();
 		final TC tomcatCommon = getTomcatCommon();
-		final LinuxServerAccount lsa = sharedTomcat.getLinuxServerAccount();
+		final UserServer lsa = sharedTomcat.getLinuxServerAccount();
 		final int lsaUID = lsa.getUid().getId();
-		final LinuxServerGroup lsg = sharedTomcat.getLinuxServerGroup();
+		final GroupServer lsg = sharedTomcat.getLinuxServerGroup();
 		final int lsgGID = lsg.getGid().getId();
 		final String wwwGroupDir = sharedTomcatDirectory.getPath();
 		final UnixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();
@@ -87,7 +87,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 
 			workUF.mkdir().chown(lsaUID, lsgGID).setMode(0750);
 
-			//PostgresServer postgresServer=aoServer.getPreferredPostgresServer();
+			//Server postgresServer=aoServer.getPreferredPostgresServer();
 			//String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
 
 			String profileFile = wwwGroupDir + "/bin/profile";
@@ -265,12 +265,12 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 				newSitesFileUF.getSecureOutputStream(lsaUID, lsgGID, 0750, true, uid_min, gid_min)
 			)
 		);
-		List<HttpdTomcatSharedSite> sites = sharedTomcat.getHttpdTomcatSharedSites();
+		List<SharedTomcatSite> sites = sharedTomcat.getHttpdTomcatSharedSites();
 		try {
 			out.print("export SITES=\"");
 			boolean didOne=false;
-			for(HttpdTomcatSharedSite site : sites) {
-				HttpdSite hs = site.getHttpdTomcatSite().getHttpdSite();
+			for(SharedTomcatSite site : sites) {
+				Site hs = site.getHttpdTomcatSite().getHttpdSite();
 				if(!hs.isDisabled()) {
 					if(didOne) out.print(' ');
 					else didOne=true;
@@ -297,8 +297,8 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 		List<String> workFiles = new SortedArrayList<>();
 		String[] wlist = workUF.getFile().list();
 		if(wlist!=null) workFiles.addAll(Arrays.asList(wlist));
-		for (HttpdTomcatSharedSite site : sites) {
-			HttpdSite hs = site.getHttpdTomcatSite().getHttpdSite();
+		for (SharedTomcatSite site : sites) {
+			Site hs = site.getHttpdTomcatSite().getHttpdSite();
 			if(!hs.isDisabled()) {
 				String subwork = hs.getName();
 				workFiles.remove(subwork);
@@ -323,7 +323,7 @@ abstract class HttpdSharedTomcatManager_3_X<TC extends TomcatCommon_3_X> extends
 
 		// Enable/Disable
 		boolean hasEnabledSite = false;
-		for(HttpdTomcatSharedSite htss : sharedTomcat.getHttpdTomcatSharedSites()) {
+		for(SharedTomcatSite htss : sharedTomcat.getHttpdTomcatSharedSites()) {
 			if(!htss.getHttpdTomcatSite().getHttpdSite().isDisabled()) {
 				hasEnabledSite = true;
 				break;

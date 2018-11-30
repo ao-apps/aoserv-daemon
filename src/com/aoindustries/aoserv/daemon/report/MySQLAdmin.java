@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.report;
 
-import com.aoindustries.aoserv.client.net.IPAddress;
+import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.StringUtility;
@@ -35,7 +35,7 @@ final public class MySQLAdmin extends DBReportData {
 			String[] cmd={
 				"/usr/bin/mysqladmin",
 				"-h",
-				IPAddress.LOOPBACK_IP,
+				IpAddress.LOOPBACK_IP,
 				"-u",
 				user,
 				"--password="+password,

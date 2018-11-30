@@ -7,14 +7,12 @@ package com.aoindustries.aoserv.daemon.postgres;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.linux.LinuxAccount;
-import com.aoindustries.aoserv.client.postgresql.PostgresDatabase;
-import com.aoindustries.aoserv.client.postgresql.PostgresDatabaseTable;
-import com.aoindustries.aoserv.client.postgresql.PostgresServer;
-import com.aoindustries.aoserv.client.postgresql.PostgresServerUser;
-import com.aoindustries.aoserv.client.postgresql.PostgresUser;
-import com.aoindustries.aoserv.client.postgresql.PostgresVersion;
+import com.aoindustries.aoserv.client.postgresql.Database;
+import com.aoindustries.aoserv.client.postgresql.DatabaseTable;
+import com.aoindustries.aoserv.client.postgresql.Server;
+import com.aoindustries.aoserv.client.postgresql.User;
+import com.aoindustries.aoserv.client.postgresql.UserServer;
+import com.aoindustries.aoserv.client.postgresql.Version;
 import com.aoindustries.aoserv.client.validator.PostgresDatabaseName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -64,7 +62,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 	protected boolean doRebuild() {
 		try {
 			AOServConnector connector=AOServDaemon.getConnector();
-			AOServer thisAOServer=AOServDaemon.getThisAOServer();
+			com.aoindustries.aoserv.client.linux.Server thisAOServer=AOServDaemon.getThisAOServer();
 			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
@@ -75,13 +73,13 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 			synchronized(rebuildLock) {
-				for(PostgresServer ps : thisAOServer.getPostgresServers()) {
-					List<PostgresDatabase> pds = ps.getPostgresDatabases();
+				for(Server ps : thisAOServer.getPostgresServers()) {
+					List<Database> pds = ps.getPostgresDatabases();
 					if(pds.isEmpty()) {
 						LogFactory.getLogger(PostgresDatabaseManager.class).severe("No databases; refusing to rebuild config: " + ps);
 					} else {
 						int port=ps.getBind().getPort().getPort();
-						PostgresVersion pv=ps.getVersion();
+						Version pv=ps.getVersion();
 						String version=pv.getTechnologyVersion(connector).getVersion();
 						String minorVersion=pv.getMinorVersion();
 
@@ -105,28 +103,28 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 								}
 
 								// Create the databases that do not exist and should
-								for(PostgresDatabase database : pds) {
+								for(Database database : pds) {
 									PostgresDatabaseName name=database.getName();
 									if(!existing.remove(name)) {
-										PostgresServerUser datdba=database.getDatDBA();
+										UserServer datdba=database.getDatDBA();
 										if(
-											version.startsWith(PostgresVersion.VERSION_7_3+'.')
-											|| version.startsWith(PostgresVersion.VERSION_8_0+'.')
-											|| version.startsWith(PostgresVersion.VERSION_8_1+'.')
-											|| version.startsWith(PostgresVersion.VERSION_8_3+'.')
-											|| version.startsWith(PostgresVersion.VERSION_8_3+'R')
+											version.startsWith(Version.VERSION_7_3+'.')
+											|| version.startsWith(Version.VERSION_8_0+'.')
+											|| version.startsWith(Version.VERSION_8_1+'.')
+											|| version.startsWith(Version.VERSION_8_3+'.')
+											|| version.startsWith(Version.VERSION_8_3+'R')
 										) {
 											stmt.executeUpdate("create database "+name+" with owner="+datdba.getPostgresUser().getUsername().getUsername()+" encoding='"+database.getPostgresEncoding().getEncoding()+'\'');
 											//conn.commit();
 										} else if(
-											version.startsWith(PostgresVersion.VERSION_9_4+'.')
-											|| version.startsWith(PostgresVersion.VERSION_9_4+'R')
+											version.startsWith(Version.VERSION_9_4+'.')
+											|| version.startsWith(Version.VERSION_9_4+'R')
 										) {
 											stmt.executeUpdate("create database "+name+" with owner="+datdba.getPostgresUser().getUsername().getUsername()+" template=template0 encoding='"+database.getPostgresEncoding().getEncoding()+'\'');
 											//conn.commit();
 										} else if(
-											version.startsWith(PostgresVersion.VERSION_7_1+'.')
-											|| version.startsWith(PostgresVersion.VERSION_7_2+'.')
+											version.startsWith(Version.VERSION_7_1+'.')
+											|| version.startsWith(Version.VERSION_7_2+'.')
 										) {
 											// Create the database
 											stmt.executeUpdate("create database "+name+" with encoding='"+database.getPostgresEncoding().getEncoding()+"'");
@@ -171,21 +169,21 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 												version.startsWith("7.")
 												|| version.startsWith("8.")
 											) {
-												AOServDaemon.suexec(LinuxAccount.POSTGRES, createlang+" -p "+port+" plpgsql "+name, 0);
+												AOServDaemon.suexec(com.aoindustries.aoserv.client.linux.User.POSTGRES, createlang+" -p "+port+" plpgsql "+name, 0);
 											}
 											if(
-												version.startsWith(PostgresVersion.VERSION_7_1+'.')
-												|| version.startsWith(PostgresVersion.VERSION_7_2+'.')
-												|| version.startsWith(PostgresVersion.VERSION_7_3+'.')
-												|| version.startsWith(PostgresVersion.VERSION_8_0+'.')
-												|| version.startsWith(PostgresVersion.VERSION_8_1+'.')
+												version.startsWith(Version.VERSION_7_1+'.')
+												|| version.startsWith(Version.VERSION_7_2+'.')
+												|| version.startsWith(Version.VERSION_7_3+'.')
+												|| version.startsWith(Version.VERSION_8_0+'.')
+												|| version.startsWith(Version.VERSION_8_1+'.')
 												// Not supported as of 8.3 - it has built-in full text indexing
 											) {
-												AOServDaemon.suexec(LinuxAccount.POSTGRES, psql+" -p "+port+" -c \"create function fti() returns opaque as '"+lib+"/mfti.so' language 'c';\" "+name, 0);
+												AOServDaemon.suexec(com.aoindustries.aoserv.client.linux.User.POSTGRES, psql+" -p "+port+" -c \"create function fti() returns opaque as '"+lib+"/mfti.so' language 'c';\" "+name, 0);
 											}
 											if(database.getEnablePostgis()) {
-												AOServDaemon.suexec(LinuxAccount.POSTGRES, psql+" -p "+port+" "+name+" -f "+share+"/lwpostgis.sql", 0);
-												AOServDaemon.suexec(LinuxAccount.POSTGRES, psql+" -p "+port+" "+name+" -f "+share+"/spatial_ref_sys.sql", 0);
+												AOServDaemon.suexec(com.aoindustries.aoserv.client.linux.User.POSTGRES, psql+" -p "+port+" "+name+" -f "+share+"/lwpostgis.sql", 0);
+												AOServDaemon.suexec(com.aoindustries.aoserv.client.linux.User.POSTGRES, psql+" -p "+port+" "+name+" -f "+share+"/spatial_ref_sys.sql", 0);
 											}
 										} catch(IOException err) {
 											try {
@@ -205,11 +203,11 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 								for(PostgresDatabaseName dbName : existing) {
 									// Remove the extra database
 									if(
-										dbName.equals(PostgresDatabase.TEMPLATE0)
-										|| dbName.equals(PostgresDatabase.TEMPLATE1)
-										|| dbName.equals(PostgresDatabase.AOSERV)
-										|| dbName.equals(PostgresDatabase.AOINDUSTRIES)
-										|| dbName.equals(PostgresDatabase.AOWEB)
+										dbName.equals(Database.TEMPLATE0)
+										|| dbName.equals(Database.TEMPLATE1)
+										|| dbName.equals(Database.AOSERV)
+										|| dbName.equals(Database.AOINDUSTRIES)
+										|| dbName.equals(Database.AOWEB)
 									) {
 										LogFactory.getLogger(PostgresDatabaseManager.class).log(
 											Level.WARNING,
@@ -246,7 +244,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 	}
 
 	public static void dumpDatabase(
-		PostgresDatabase pd,
+		Database pd,
 		AOServDaemonProtocol.Version protocolVersion,
 		CompressedDataOutputStream masterOut,
 		boolean gzip
@@ -291,7 +289,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 	}
 
 	private static void dumpDatabase(
-		PostgresServer ps,
+		Server ps,
 		PostgresDatabaseName dbName,
 		File output,
 		boolean gzip
@@ -329,7 +327,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 	private static PostgresDatabaseManager postgresDatabaseManager;
 	private static boolean cronStarted = false;
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
@@ -417,28 +415,28 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 	public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
 		try {
 			AOServConnector aoservConn = AOServDaemon.getConnector();
-			PostgresDatabaseTable postgresDatabaseTable = aoservConn.getPostgresDatabases();
+			DatabaseTable postgresDatabaseTable = aoservConn.getPostgresDatabases();
 			// Only REINDEX on the first Sunday of the month
 			boolean isReindexTime=dayOfMonth<=7;
 			List<String> tableNames=new ArrayList<>();
 			List<String> schemas=new ArrayList<>();
-			for(PostgresServer postgresServer : AOServDaemon.getThisAOServer().getPostgresServers()) {
+			for(Server postgresServer : AOServDaemon.getThisAOServer().getPostgresServers()) {
 				String postgresServerVersion=postgresServer.getVersion().getTechnologyVersion(aoservConn).getVersion();
 				boolean postgresServerHasSchemas=
-					!postgresServerVersion.startsWith(PostgresVersion.VERSION_7_1+'.')
-					&& !postgresServerVersion.startsWith(PostgresVersion.VERSION_7_2+'.')
+					!postgresServerVersion.startsWith(Version.VERSION_7_1+'.')
+					&& !postgresServerVersion.startsWith(Version.VERSION_7_2+'.')
 				;
 				boolean postgresServerHasVacuumFull=
-					!postgresServerVersion.startsWith(PostgresVersion.VERSION_7_1+'.')
+					!postgresServerVersion.startsWith(Version.VERSION_7_1+'.')
 				;
-				for(PostgresDatabase postgresDatabase : postgresServer.getPostgresDatabases()) {
+				for(Database postgresDatabase : postgresServer.getPostgresDatabases()) {
 					if(
 						!postgresDatabase.isTemplate()
 						&& postgresDatabase.allowsConnections()
 					) {
 						AOConnectionPool pool;
 						Connection conn;
-						if(postgresDatabase.getName().equals(PostgresDatabase.AOSERV)) {
+						if(postgresDatabase.getName().equals(Database.AOSERV)) {
 							// If the aoserv database, use the existing connection pools
 							pool=PostgresServerManager.getPool(postgresServer);
 							conn=pool.getConnection();
@@ -448,7 +446,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 							Class.forName(postgresDatabase.getJdbcDriver()).newInstance();
 							conn=DriverManager.getConnection(
 								postgresDatabase.getJdbcUrl(true),
-								PostgresUser.POSTGRES.toString(),
+								User.POSTGRES.toString(),
 								AOServDaemonConfiguration.getPostgresPassword()
 							);
 						}
@@ -458,8 +456,8 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 								try (
 									ResultSet results = stmt.executeQuery(
 										postgresServerHasSchemas
-										? ("select tablename, schemaname from pg_tables where tableowner!='"+PostgresUser.POSTGRES+"'")
-										: ("select tablename from pg_tables where tableowner!='"+PostgresUser.POSTGRES+"'")
+										? ("select tablename, schemaname from pg_tables where tableowner!='"+User.POSTGRES+"'")
+										: ("select tablename from pg_tables where tableowner!='"+User.POSTGRES+"'")
 									)
 								) {
 									tableNames.clear();

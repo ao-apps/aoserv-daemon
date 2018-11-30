@@ -8,17 +8,17 @@ package com.aoindustries.aoserv.daemon.email.jilter;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.billing.Package;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.email.EmailAddress;
-import com.aoindustries.aoserv.client.email.EmailDomain;
-import com.aoindustries.aoserv.client.email.EmailSmtpRelay;
-import com.aoindustries.aoserv.client.email.EmailSmtpRelayType;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.linux.LinuxGroup;
-import com.aoindustries.aoserv.client.linux.LinuxServerGroup;
-import com.aoindustries.aoserv.client.net.IPAddress;
-import com.aoindustries.aoserv.client.net.NetBind;
-import com.aoindustries.aoserv.client.net.Protocol;
-import com.aoindustries.aoserv.client.net.Server;
+import com.aoindustries.aoserv.client.email.Address;
+import com.aoindustries.aoserv.client.email.Domain;
+import com.aoindustries.aoserv.client.email.SmtpRelay;
+import com.aoindustries.aoserv.client.email.SmtpRelayType;
+import com.aoindustries.aoserv.client.linux.Group;
+import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.net.AppProtocol;
+import com.aoindustries.aoserv.client.net.Bind;
+import com.aoindustries.aoserv.client.net.Host;
+import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.client.validator.AccountingCode;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -54,7 +54,7 @@ public class JilterConfigurationWriter extends BuilderThread {
 	private static JilterConfigurationWriter configurationWriter;
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
@@ -101,16 +101,16 @@ public class JilterConfigurationWriter extends BuilderThread {
 	private static final Object rebuildLock = new Object();
 
 	/**
-	 * Finds the NetBind that the jilter should listen on.
+	 * Finds the Bind that the jilter should listen on.
 	 * It looks for anything with app protocol='milter'.
 	 * There must only be one or zero found.
 	 * 
-	 * @return  the NetBind or <code>null</code> if none found and jilter disabled.
+	 * @return  the Bind or <code>null</code> if none found and jilter disabled.
 	 */
-	public static NetBind getJilterNetBind() throws IOException, SQLException {
-		Protocol protocol = AOServDaemon.getConnector().getProtocols().get(Protocol.MILTER);
-		if(protocol==null) throw new SQLException("Protocol not found: " + Protocol.MILTER);
-		List<NetBind> milterBinds = AOServDaemon.getThisAOServer().getServer().getNetBinds(protocol);
+	public static Bind getJilterNetBind() throws IOException, SQLException {
+		AppProtocol protocol = AOServDaemon.getConnector().getProtocols().get(AppProtocol.MILTER);
+		if(protocol==null) throw new SQLException("Protocol not found: " + AppProtocol.MILTER);
+		List<Bind> milterBinds = AOServDaemon.getThisAOServer().getServer().getNetBinds(protocol);
 		if(milterBinds.size()>1) throw new SQLException("More than one milter found in net_binds, refusing to configure jilter");
 		return milterBinds.isEmpty() ? null : milterBinds.get(0);
 	}
@@ -118,11 +118,11 @@ public class JilterConfigurationWriter extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer aoServer = AOServDaemon.getThisAOServer();
-			Server server = aoServer.getServer();
+			Server aoServer = AOServDaemon.getThisAOServer();
+			Host server = aoServer.getServer();
 
 			// Look for the configured net bind for the jilter
-			NetBind jilterNetBind = getJilterNetBind();
+			Bind jilterNetBind = getJilterNetBind();
 			// Only configure when the net bind has been found
 			if(jilterNetBind != null) {
 				// Install package if needed
@@ -134,21 +134,21 @@ public class JilterConfigurationWriter extends BuilderThread {
 				// domainPackages and domainAddresses
 				Map<String,String> domainPackages = new HashMap<>();
 				Map<String,Set<String>> domainAddresses = new HashMap<>();
-				for(EmailDomain ed : aoServer.getEmailDomains()) {
+				for(Domain ed : aoServer.getEmailDomains()) {
 					DomainName domain = ed.getDomain();
 					// domainPackages
 					domainPackages.put(domain.toString(), ed.getPackage().getName().toString());
 					// domainAddresses
-					List<EmailAddress> eas = ed.getEmailAddresses();
+					List<Address> eas = ed.getEmailAddresses();
 					Set<String> addresses = new HashSet<>(eas.size()*4/3+1);
-					for(EmailAddress ea : eas) addresses.add(ea.getAddress());
+					for(Address ea : eas) addresses.add(ea.getAddress());
 					domainAddresses.put(domain.toString(), addresses);
 				}
 
 				// ips
-				List<IPAddress> ias = server.getIPAddresses();
+				List<IpAddress> ias = server.getIPAddresses();
 				Set<String> ips = new HashSet<>(ias.size()*4/3+1);
-				for(IPAddress ia : ias) {
+				for(IpAddress ia : ias) {
 					InetAddress ip = ia.getInetAddress();
 					if(!ip.isUnspecified()) {
 						ips.add(ip.toString());
@@ -159,17 +159,17 @@ public class JilterConfigurationWriter extends BuilderThread {
 				Set<String> denies = new HashSet<>();
 				Set<String> denySpams = new HashSet<>();
 				Set<String> allowRelays = new HashSet<>();
-				for(EmailSmtpRelay esr : aoServer.getEmailSmtpRelays()) {
+				for(SmtpRelay esr : aoServer.getEmailSmtpRelays()) {
 					String host = esr.getHost().toString();
 					String type = esr.getType().getName();
 					switch (type) {
-						case EmailSmtpRelayType.DENY:
+						case SmtpRelayType.DENY:
 							denies.add(host);
 							break;
-						case EmailSmtpRelayType.DENY_SPAM:
+						case SmtpRelayType.DENY_SPAM:
 							denySpams.add(host);
 							break;
-						case EmailSmtpRelayType.ALLOW_RELAY:
+						case SmtpRelayType.ALLOW_RELAY:
 							allowRelays.add(host);
 							break;
 						default:
@@ -221,8 +221,8 @@ public class JilterConfigurationWriter extends BuilderThread {
 					if(osv == OperatingSystemVersion.CENTOS_7_X86_64) {
 						int aoservJilterGid;
 						{
-							LinuxServerGroup aoservJilterLsg = aoServer.getLinuxServerGroup(LinuxGroup.AOSERV_JILTER);
-							if(aoservJilterLsg == null) throw new SQLException("Unable to find LinuxServerGroup: " + LinuxGroup.AOSERV_JILTER);
+							GroupServer aoservJilterLsg = aoServer.getLinuxServerGroup(Group.AOSERV_JILTER);
+							if(aoservJilterLsg == null) throw new SQLException("Unable to find GroupServer: " + Group.AOSERV_JILTER);
 							aoservJilterGid = aoservJilterLsg.getGid().getId();
 						}
 						UnixFile propsUF = new UnixFile(JilterConfiguration.PROPS_FILE);

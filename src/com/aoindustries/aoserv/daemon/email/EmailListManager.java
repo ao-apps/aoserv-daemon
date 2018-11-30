@@ -7,7 +7,7 @@ package com.aoindustries.aoserv.daemon.email;
 
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.MajordomoServer;
-import com.aoindustries.aoserv.client.linux.AOServer;
+import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.io.FileUtils;
@@ -34,7 +34,7 @@ final public class EmailListManager {
 	 * Reads the address list from the file system.
 	 */
 	public static String getEmailListFile(UnixPath path) throws IOException, SQLException {
-		AOServer thisAoServer = AOServDaemon.getThisAOServer();
+		Server thisAoServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
@@ -46,8 +46,8 @@ final public class EmailListManager {
 	}
 
 	/**
-	 * Constructs a <code>EmailList</code> providing all information.  The
-	 * new <code>EmailList</code> is stored in the database.
+	 * Constructs a <code>List</code> providing all information.  The
+	 * new <code>List</code> is stored in the database.
 	 */
 	public static void removeEmailListAddresses(UnixPath path) throws IOException, SQLException {
 		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
@@ -73,7 +73,7 @@ final public class EmailListManager {
 		int gid,
 		int mode
 	) throws IOException, SQLException {
-		AOServer thisAoServer = AOServDaemon.getThisAOServer();
+		Server thisAoServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(

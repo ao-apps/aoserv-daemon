@@ -7,16 +7,16 @@ package com.aoindustries.aoserv.daemon.email;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.email.EmailAttachmentBlock;
-import com.aoindustries.aoserv.client.email.EmailAttachmentType;
-import com.aoindustries.aoserv.client.email.EmailSpamAssassinIntegrationMode;
-import com.aoindustries.aoserv.client.email.LinuxAccAddress;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.linux.LinuxAccount;
-import com.aoindustries.aoserv.client.linux.LinuxGroup;
-import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
-import com.aoindustries.aoserv.client.linux.LinuxServerGroup;
-import com.aoindustries.aoserv.client.net.NetBind;
+import com.aoindustries.aoserv.client.email.AttachmentBlock;
+import com.aoindustries.aoserv.client.email.AttachmentType;
+import com.aoindustries.aoserv.client.email.InboxAddress;
+import com.aoindustries.aoserv.client.email.SpamAssassinMode;
+import com.aoindustries.aoserv.client.linux.Group;
+import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.linux.User;
+import com.aoindustries.aoserv.client.linux.UserServer;
+import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -92,7 +92,7 @@ public final class ProcmailManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer thisAoServer = AOServDaemon.getThisAOServer();
+			Server thisAoServer = AOServDaemon.getThisAOServer();
 			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
@@ -123,7 +123,7 @@ public final class ProcmailManager extends BuilderThread {
 						InetAddress spamcConnectAddress;
 						Port spamcConnectPort;
 						{
-							final NetBind spamdBind = SpamAssassinManager.getSpamdBind();
+							final Bind spamdBind = SpamAssassinManager.getSpamdBind();
 							if(spamdBind == null) {
 								spamcConnectAddress = null;
 								spamcConnectPort = null;
@@ -136,8 +136,8 @@ public final class ProcmailManager extends BuilderThread {
 								}
 							}
 						}
-						LinuxServerGroup mailLsg = thisAoServer.getLinuxServerGroup(LinuxGroup.MAIL);
-						if(mailLsg == null) throw new SQLException("Unable to find LinuxServerGroup: " + LinuxGroup.MAIL + " on " + thisAoServer.getHostname());
+						GroupServer mailLsg = thisAoServer.getLinuxServerGroup(Group.MAIL);
+						if(mailLsg == null) throw new SQLException("Unable to find GroupServer: " + Group.MAIL + " on " + thisAoServer.getHostname());
 						int mailGid = mailLsg.getGid().getId();
 
 						ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -158,7 +158,7 @@ public final class ProcmailManager extends BuilderThread {
 							}
 						}
 
-						for(LinuxServerAccount lsa : thisAoServer.getLinuxServerAccounts()) {
+						for(UserServer lsa : thisAoServer.getLinuxServerAccounts()) {
 							if(lsa.getLinuxAccount().getType().isEmail()) {
 								if(!isManual(lsa)) {
 									UnixPath home = lsa.getHome();
@@ -167,7 +167,7 @@ public final class ProcmailManager extends BuilderThread {
 									// Stat for use below
 									Stat procmailrcStat = procmailrc.getStat();
 									boolean isAutoresponderEnabled = lsa.isAutoresponderEnabled();
-									List<EmailAttachmentBlock> eabs;
+									List<AttachmentBlock> eabs;
 									if(EMAIL_ATTACHMENT_TYPES_ENABLED) eabs = lsa.getEmailAttachmentBlocks();
 									else eabs = Collections.emptyList();
 									String spamAssassinMode = lsa.getEmailSpamAssassinIntegrationMode().getName();
@@ -186,10 +186,10 @@ public final class ProcmailManager extends BuilderThread {
 
 											// Default locking time is fine since not locking for spamassassin now: + "LOCKSLEEP=15\n");
 
-										LinuxAccount la = lsa.getLinuxAccount();
+										User la = lsa.getLinuxAccount();
 										UserId username = la.getUsername().getUsername();
-										LinuxAccAddress laa = lsa.getAutoresponderFrom();
-										List<LinuxAccAddress> addresses = lsa.getLinuxAccAddresses();
+										InboxAddress laa = lsa.getAutoresponderFrom();
+										List<InboxAddress> addresses = lsa.getLinuxAccAddresses();
 
 										// The same X-Loop is used for attachment filters and autoresponders
 										String xloopAddress = username + "@" + lsa.getAOServer().getHostname();
@@ -223,9 +223,9 @@ public final class ProcmailManager extends BuilderThread {
 												+ "* ^X-Loop: ").print(xloopAddress).print("\n"
 												+ "/dev/null\n");
 
-										if(!spamAssassinMode.equals(EmailSpamAssassinIntegrationMode.NONE)) {
+										if(!spamAssassinMode.equals(SpamAssassinMode.NONE)) {
 											if(spamcConnectAddress == null) {
-												throw new SQLException("SpamAssassin has no net_bind, but a LinuxServerAccount has SpamAssassin integration enabled: " + lsa);
+												throw new SQLException("SpamAssassin has no net_bind, but a UserServer has SpamAssassin integration enabled: " + lsa);
 											}
 
 											// Install SpamAssassin for /usr/bin/spamc
@@ -292,14 +292,14 @@ public final class ProcmailManager extends BuilderThread {
 
 											// Third, figure out the specific attachment that was rejected
 											if(eabs.size() == 1) {
-												EmailAttachmentType eat = eabs.get(0).getEmailAttachmentType();
+												AttachmentType eat = eabs.get(0).getEmailAttachmentType();
 												out.print("\n"
 														+ "  # Only one extension, use these values\n"
 														+ "  EXTENSIONS=\" ").print(eat.getExtension()).print("\"\n");
 											} else {
 												out.print("\n"
 														+ "  # Build the list of disallowed extensions\n");
-												for(EmailAttachmentBlock eab : eabs) {
+												for(AttachmentBlock eab : eabs) {
 													String extension = eab.getEmailAttachmentType().getExtension();
 													out.print(
 														"  :0\n"
@@ -343,7 +343,7 @@ public final class ProcmailManager extends BuilderThread {
 													+ "      echo \"\" ; \\\n"
 													+ "      echo \"    Extension   Description\" ; \\\n");
 											for(int d = 0; d < eabs.size(); d++) {
-												EmailAttachmentType eat = eabs.get(d).getEmailAttachmentType();
+												AttachmentType eat = eabs.get(d).getEmailAttachmentType();
 												String extension = eat.getExtension();
 												out.print("      echo \"    ").print(extension);
 												for(int e = extension.length(); e < 11; e++) out.print(' ');
@@ -368,7 +368,7 @@ public final class ProcmailManager extends BuilderThread {
 													+ "* !^From: .*MAILER-DAEMON.*\n");
 											// This is already discarded above: + "* !^X-Loop: ").print(xloopAddress).print("\n");
 											// Don't respond to spam
-											if(!spamAssassinMode.equals(EmailSpamAssassinIntegrationMode.NONE)) {
+											if(!spamAssassinMode.equals(SpamAssassinMode.NONE)) {
 												// This handles both large messages that aren't scanned and those that are scanned by using !Yes
 												out.print("* !^X-Spam-Status: Yes\n");
 											}
@@ -397,7 +397,7 @@ public final class ProcmailManager extends BuilderThread {
 													+ "RETURN_PATH=| ").print(sedPath).print(" -n 's/^Return-Path: <\\(.*\\)>.*$/\\1/p' | /usr/bin/head -n 1\n");
 
 											// Only move to Junk folder when the inbox is enabled and in IMAP mode
-											if(spamAssassinMode.equals(EmailSpamAssassinIntegrationMode.IMAP)) {
+											if(spamAssassinMode.equals(SpamAssassinMode.IMAP)) {
 												out.print("\n"
 														+ "# Place any flagged spam in the Junk folder\n"
 														+ ":0\n"
@@ -472,7 +472,7 @@ public final class ProcmailManager extends BuilderThread {
 	 *
 	 * @exception  SQLException if the account is not an email type
 	 */
-	public static boolean isManual(LinuxServerAccount lsa) throws IOException, SQLException {
+	public static boolean isManual(UserServer lsa) throws IOException, SQLException {
 		// Must be an email type
 		if(!lsa.getLinuxAccount().getType().isEmail()) throw new SQLException("Not an email inbox: " + lsa.toString());
 
@@ -511,7 +511,7 @@ public final class ProcmailManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 

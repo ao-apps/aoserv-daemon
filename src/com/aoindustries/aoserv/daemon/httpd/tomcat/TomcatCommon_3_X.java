@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatDataSource;
+import com.aoindustries.aoserv.client.web.tomcat.ContextDataSource;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import java.io.IOException;
@@ -33,7 +33,7 @@ public abstract class TomcatCommon_3_X extends TomcatCommon {
 	};
 
 	@Override
-	public void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws SQLException {
+	public void writeHttpdTomcatDataSource(ContextDataSource dataSource, ChainWriter out) throws SQLException {
 		throw new SQLException("Not implemented for Tomcat 3.X");
 	}
 

@@ -6,15 +6,15 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.linux.AOServer;
+import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.validator.UserId;
-import com.aoindustries.aoserv.client.web.HttpdSite;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdJKProtocol;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdSharedTomcat;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatStdSite;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatVersion;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdWorker;
+import com.aoindustries.aoserv.client.web.Site;
+import com.aoindustries.aoserv.client.web.tomcat.JkProtocol;
+import com.aoindustries.aoserv.client.web.tomcat.PrivateTomcatSite;
+import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
+import com.aoindustries.aoserv.client.web.tomcat.Version;
+import com.aoindustries.aoserv.client.web.tomcat.Worker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Manages HttpdTomcatStdSite configurations.
+ * Manages PrivateTomcatSite configurations.
  *
  * @author  AO Industries, Inc.
  */
@@ -35,9 +35,9 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 	/**
 	 * Gets the specific manager for one type of web site.
 	 */
-	static HttpdTomcatStdSiteManager<? extends TomcatCommon> getInstance(HttpdTomcatStdSite stdSite) throws IOException, SQLException {
+	static HttpdTomcatStdSiteManager<? extends TomcatCommon> getInstance(PrivateTomcatSite stdSite) throws IOException, SQLException {
 		AOServConnector connector=AOServDaemon.getConnector();
-		HttpdTomcatVersion htv=stdSite.getHttpdTomcatSite().getHttpdTomcatVersion();
+		Version htv=stdSite.getHttpdTomcatSite().getHttpdTomcatVersion();
 		if(htv.isTomcat3_1(connector)) return new HttpdTomcatStdSiteManager_3_1(stdSite);
 		if(htv.isTomcat3_2_4(connector)) return new HttpdTomcatStdSiteManager_3_2_4(stdSite);
 		if(htv.isTomcat4_1_X(connector)) return new HttpdTomcatStdSiteManager_4_1_X(stdSite);
@@ -50,9 +50,9 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 		throw new SQLException("Unsupported version of standard Tomcat: " + htv.getTechnologyVersion(connector).getVersion() + " on " + stdSite);
 	}
 
-	final protected HttpdTomcatStdSite tomcatStdSite;
+	final protected PrivateTomcatSite tomcatStdSite;
 
-	HttpdTomcatStdSiteManager(HttpdTomcatStdSite tomcatStdSite) throws SQLException, IOException {
+	HttpdTomcatStdSiteManager(PrivateTomcatSite tomcatStdSite) throws SQLException, IOException {
 		super(tomcatStdSite.getHttpdTomcatSite());
 		this.tomcatStdSite = tomcatStdSite;
 	}
@@ -61,17 +61,17 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 	 * Standard sites always have worker directly attached.
 	 */
 	@Override
-	protected HttpdWorker getHttpdWorker() throws IOException, SQLException {
+	protected Worker getHttpdWorker() throws IOException, SQLException {
 		AOServConnector conn = AOServDaemon.getConnector();
-		List<HttpdWorker> workers = tomcatSite.getHttpdWorkers();
+		List<Worker> workers = tomcatSite.getHttpdWorkers();
 
 		// Prefer ajp13
-		for(HttpdWorker hw : workers) {
-			if(hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol().equals(HttpdJKProtocol.AJP13)) return hw;
+		for(Worker hw : workers) {
+			if(hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol().equals(JkProtocol.AJP13)) return hw;
 		}
 		// Try ajp12 next
-		for(HttpdWorker hw : workers) {
-			if(hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol().equals(HttpdJKProtocol.AJP12)) return hw;
+		for(Worker hw : workers) {
+			if(hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol().equals(JkProtocol.AJP12)) return hw;
 		}
 		throw new SQLException("Couldn't find either ajp13 or ajp12");
 	}
@@ -111,7 +111,7 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 	}
 
 	@Override
-	protected void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) {
+	protected void flagNeedsRestart(Set<Site> sitesNeedingRestarted, Set<SharedTomcat> sharedTomcatsNeedingRestarted) {
 		sitesNeedingRestarted.add(httpdSite);
 	}
 
@@ -167,7 +167,7 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 			}
 		} else {
 			try {
-				AOServer thisAoServer = AOServDaemon.getThisAOServer();
+				Server thisAoServer = AOServDaemon.getThisAOServer();
 				int uid_min = thisAoServer.getUidMin().getId();
 				int gid_min = thisAoServer.getGidMin().getId();
 				DaemonFileUtils.stripFilePrefix(

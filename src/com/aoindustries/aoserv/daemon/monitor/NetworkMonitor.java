@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.monitor;
 
-import com.aoindustries.aoserv.client.net.IPAddress;
+import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.net.NullRouteManager;
@@ -483,7 +483,7 @@ final public class NetworkMonitor {
 																out.print(" FIFO errors per second >= ");
 																out.print(nullRouteFifoErrorRate);
 																out.print(" pps: Found highest IP ");
-																out.print(IPAddress.getIPAddressForInt(nullingIp));
+																out.print(IpAddress.getIPAddressForInt(nullingIp));
 																out.print(" @ ");
 																out.print(getPacketRate(highestPacketCount, timeSpanMicros));
 																out.println(" pps");
@@ -497,7 +497,7 @@ final public class NetworkMonitor {
 																out.print(" FIFO errors per second >= ");
 																out.print(nullRouteFifoErrorRate);
 																out.print(" pps: Found highest IP ");
-																out.print(IPAddress.getIPAddressForInt(nullingIp));
+																out.print(IpAddress.getIPAddressForInt(nullingIp));
 																out.print(" @ ");
 																out.print(getPacketRate(highestPacketCount, timeSpanMicros));
 																out.println(" pps");
@@ -540,7 +540,7 @@ final public class NetworkMonitor {
 														out.print(" pps >= ");
 														out.print(nullRoutePacketRate);
 														out.print(" pps: Found highest IP ");
-														out.print(IPAddress.getIPAddressForInt(nullingIp));
+														out.print(IpAddress.getIPAddressForInt(nullingIp));
 														out.print(" @ ");
 														out.print(getPacketRate(highestPacketCount, timeSpanMicros));
 														out.println(" pps");
@@ -580,7 +580,7 @@ final public class NetworkMonitor {
 														out.print(" bps >= ");
 														out.print(nullRouteBitRate);
 														out.print(" bps: Found highest IP ");
-														out.print(IPAddress.getIPAddressForInt(nullingIp));
+														out.print(IpAddress.getIPAddressForInt(nullingIp));
 														out.print(" @ ");
 														out.print(getBitRate(highestByteCount, timeSpanMicros));
 														out.println(" bps");

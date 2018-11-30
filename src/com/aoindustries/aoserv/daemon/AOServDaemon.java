@@ -8,10 +8,10 @@ package com.aoindustries.aoserv.daemon;
 import com.aoindustries.aoserv.client.AOServClientConfiguration;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.AOServer;
+import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.Shell;
-import com.aoindustries.aoserv.client.net.NetBind;
-import com.aoindustries.aoserv.client.net.Server;
+import com.aoindustries.aoserv.client.net.Bind;
+import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.cvsd.CvsManager;
 import com.aoindustries.aoserv.daemon.distro.DistroManager;
@@ -146,12 +146,12 @@ final public class AOServDaemon {
 		}
 	}
 
-	public static AOServer getThisAOServer() throws IOException, SQLException {
+	public static Server getThisAOServer() throws IOException, SQLException {
 		String hostname=AOServDaemonConfiguration.getServerHostname();
-		Server server=getConnector().getServers().get(hostname);
-		if(server==null) throw new SQLException("Unable to find Server: "+hostname);
-		AOServer ao=server.getAOServer();
-		if(ao==null) throw new SQLException("Server is not an AOServer: "+hostname);
+		Host server=getConnector().getServers().get(hostname);
+		if(server==null) throw new SQLException("Unable to find Host: "+hostname);
+		Server ao=server.getAOServer();
+		if(ao==null) throw new SQLException("Host is not an Server: "+hostname);
 		return ao;
 	}
 
@@ -250,7 +250,7 @@ final public class AOServDaemon {
 				LinuxAccountManager.start();
 
 				// Start up the AOServDaemonServers
-				NetBind bind = getThisAOServer().getDaemonBind();
+				Bind bind = getThisAOServer().getDaemonBind();
 				if(bind != null) {
 					AOServDaemonServer server = new AOServDaemonServer(
 						bind.getIpAddress().getInetAddress(),

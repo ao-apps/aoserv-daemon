@@ -8,11 +8,11 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.validator.UserId;
-import com.aoindustries.aoserv.client.web.HttpdSite;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdSharedTomcat;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatSharedSite;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatVersion;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdWorker;
+import com.aoindustries.aoserv.client.web.Site;
+import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
+import com.aoindustries.aoserv.client.web.tomcat.SharedTomcatSite;
+import com.aoindustries.aoserv.client.web.tomcat.Version;
+import com.aoindustries.aoserv.client.web.tomcat.Worker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.io.unix.UnixFile;
@@ -22,7 +22,7 @@ import java.sql.SQLException;
 import java.util.Set;
 
 /**
- * Manages HttpdTomcatSharedSite configurations.
+ * Manages SharedTomcatSite configurations.
  *
  * @author  AO Industries, Inc.
  */
@@ -31,10 +31,10 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
 	/**
 	 * Gets the specific manager for one type of web site.
 	 */
-	static HttpdTomcatSharedSiteManager<? extends TomcatCommon> getInstance(HttpdTomcatSharedSite shrSite) throws IOException, SQLException {
+	static HttpdTomcatSharedSiteManager<? extends TomcatCommon> getInstance(SharedTomcatSite shrSite) throws IOException, SQLException {
 		AOServConnector connector=AOServDaemon.getConnector();
 
-		HttpdTomcatVersion htv=shrSite.getHttpdTomcatSite().getHttpdTomcatVersion();
+		Version htv=shrSite.getHttpdTomcatSite().getHttpdTomcatVersion();
 		if(htv.isTomcat3_1(connector)) return new HttpdTomcatSharedSiteManager_3_1(shrSite);
 		if(htv.isTomcat3_2_4(connector)) return new HttpdTomcatSharedSiteManager_3_2_4(shrSite);
 		if(htv.isTomcat4_1_X(connector)) return new HttpdTomcatSharedSiteManager_4_1_X(shrSite);
@@ -47,9 +47,9 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
 		throw new SQLException("Unsupported version of shared Tomcat: "+htv.getTechnologyVersion(connector).getVersion()+" on "+shrSite);
 	}
 
-	final protected HttpdTomcatSharedSite tomcatSharedSite;
+	final protected SharedTomcatSite tomcatSharedSite;
 
-	HttpdTomcatSharedSiteManager(HttpdTomcatSharedSite tomcatSharedSite) throws SQLException, IOException {
+	HttpdTomcatSharedSiteManager(SharedTomcatSite tomcatSharedSite) throws SQLException, IOException {
 		super(tomcatSharedSite.getHttpdTomcatSite());
 		this.tomcatSharedSite = tomcatSharedSite;
 	}
@@ -58,9 +58,9 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
 	 * Worker is associated with the shared JVM.
 	 */
 	@Override
-	protected HttpdWorker getHttpdWorker() throws IOException, SQLException {
-		HttpdWorker hw = tomcatSharedSite.getHttpdSharedTomcat().getTomcat4Worker();
-		if(hw==null) throw new SQLException("Unable to find shared HttpdWorker");
+	protected Worker getHttpdWorker() throws IOException, SQLException {
+		Worker hw = tomcatSharedSite.getHttpdSharedTomcat().getTomcat4Worker();
+		if(hw==null) throw new SQLException("Unable to find shared Worker");
 		return hw;
 	}
 
@@ -77,7 +77,7 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
 	@Override
 	public boolean isStartable() throws IOException, SQLException {
 		if(httpdSite.isDisabled()) return false;
-		HttpdSharedTomcat sharedTomcat = tomcatSharedSite.getHttpdSharedTomcat();
+		SharedTomcat sharedTomcat = tomcatSharedSite.getHttpdSharedTomcat();
 		if(sharedTomcat.isDisabled()) return false;
 		// Has at least one enabled site: this one
 		return true;
@@ -103,13 +103,13 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
 	}
 
 	@Override
-	protected void flagNeedsRestart(Set<HttpdSite> sitesNeedingRestarted, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws SQLException, IOException {
+	protected void flagNeedsRestart(Set<Site> sitesNeedingRestarted, Set<SharedTomcat> sharedTomcatsNeedingRestarted) throws SQLException, IOException {
 		sharedTomcatsNeedingRestarted.add(tomcatSharedSite.getHttpdSharedTomcat());
 	}
 
 	/**
 	 * Shared sites don't need to do anything to enable/disable.
-	 * The HttpdSharedTomcat manager will update the profile.sites file
+	 * The SharedTomcat manager will update the profile.sites file
 	 * and restart to take care of this.
 	 */
 	@Override

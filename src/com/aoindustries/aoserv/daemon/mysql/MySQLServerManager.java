@@ -7,11 +7,10 @@ package com.aoindustries.aoserv.daemon.mysql;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.mysql.MySQLDatabase;
-import com.aoindustries.aoserv.client.mysql.MySQLServer;
-import com.aoindustries.aoserv.client.net.NetBind;
-import com.aoindustries.aoserv.client.net.Protocol;
+import com.aoindustries.aoserv.client.mysql.Database;
+import com.aoindustries.aoserv.client.mysql.Server;
+import com.aoindustries.aoserv.client.net.AppProtocol;
+import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -42,7 +41,7 @@ final public class MySQLServerManager extends BuilderThread {
 	 */
 	private static final String SELINUX_TYPE = "mysqld_port_t";
 
-	public static final File mysqlDirectory=new File(MySQLServer.DATA_BASE_DIR.toString());
+	public static final File mysqlDirectory=new File(Server.DATA_BASE_DIR.toString());
 
 	private MySQLServerManager() {
 	}
@@ -51,7 +50,7 @@ final public class MySQLServerManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer thisAOServer = AOServDaemon.getThisAOServer();
+			com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
 			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
@@ -63,15 +62,15 @@ final public class MySQLServerManager extends BuilderThread {
 
 			synchronized(rebuildLock) {
 				Set<Port> mysqlPorts = new HashSet<>();
-				for(MySQLServer mysqlServer : thisAOServer.getMySQLServers()) {
+				for(Server mysqlServer : thisAOServer.getMySQLServers()) {
 					mysqlPorts.add(mysqlServer.getBind().getPort());
 					// TODO: Add and initialize any missing /var/lib/mysql/name
 					// TODO: Add/update any /etc/rc.d/init.d/mysql-name
 				}
 				// Add any other local MySQL port (such as tunneled)
-				for(NetBind nb : thisAOServer.getServer().getNetBinds()) {
+				for(Bind nb : thisAOServer.getServer().getNetBinds()) {
 					String protocol = nb.getAppProtocol().getProtocol();
-					if(Protocol.MYSQL.equals(protocol)) {
+					if(AppProtocol.MYSQL.equals(protocol)) {
 						mysqlPorts.add(nb.getPort());
 					}
 				}
@@ -106,13 +105,13 @@ final public class MySQLServerManager extends BuilderThread {
 	}
 
 	private static final Map<Integer,AOConnectionPool> pools=new HashMap<>();
-	static AOConnectionPool getPool(MySQLServer ms) throws IOException, SQLException {
+	static AOConnectionPool getPool(Server ms) throws IOException, SQLException {
 		synchronized(pools) {
 			Integer I=ms.getPkey();
 			AOConnectionPool pool=pools.get(I);
 			if(pool==null) {
-				MySQLDatabase md=ms.getMySQLDatabase(MySQLDatabase.MYSQL);
-				if(md==null) throw new SQLException("Unable to find MySQLDatabase: "+MySQLDatabase.MYSQL+" on "+ms.toString());
+				Database md=ms.getMySQLDatabase(Database.MYSQL);
+				if(md==null) throw new SQLException("Unable to find Database: "+Database.MYSQL+" on "+ms.toString());
 				pool=new AOConnectionPool(
 					AOServDaemonConfiguration.getMySqlDriver(),
 					"jdbc:mysql://127.0.0.1:"+md.getMySQLServer().getBind().getPort().getPort()+"/"+md.getName(),
@@ -130,7 +129,7 @@ final public class MySQLServerManager extends BuilderThread {
 
 	private static MySQLServerManager mysqlServerManager;
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
@@ -172,20 +171,20 @@ final public class MySQLServerManager extends BuilderThread {
 		return "Rebuild MySQL Servers";
 	}
 
-	public static void restartMySQL(MySQLServer ms) throws IOException, SQLException {
+	public static void restartMySQL(Server ms) throws IOException, SQLException {
 		ServerManager.controlProcess("mysql-"+ms.getName(), "restart");
 	}
 
-	public static void startMySQL(MySQLServer ms) throws IOException, SQLException {
+	public static void startMySQL(Server ms) throws IOException, SQLException {
 		ServerManager.controlProcess("mysql-"+ms.getName(), "start");
 	}
 
-	public static void stopMySQL(MySQLServer ms) throws IOException, SQLException {
+	public static void stopMySQL(Server ms) throws IOException, SQLException {
 		ServerManager.controlProcess("mysql-"+ms.getName(), "stop");
 	}
 
 	private static final Object flushLock=new Object();
-	static void flushPrivileges(MySQLServer mysqlServer) throws IOException, SQLException {
+	static void flushPrivileges(Server mysqlServer) throws IOException, SQLException {
 		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 

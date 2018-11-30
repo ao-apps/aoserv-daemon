@@ -6,17 +6,13 @@
 package com.aoindustries.aoserv.daemon;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.linux.AOServerDaemonHost;
-import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
-import com.aoindustries.aoserv.client.mysql.MySQLDatabase;
-import com.aoindustries.aoserv.client.mysql.MySQLServer;
-import com.aoindustries.aoserv.client.net.NetBind;
-import com.aoindustries.aoserv.client.net.NetDevice;
-import com.aoindustries.aoserv.client.pki.SslCertificate;
-import com.aoindustries.aoserv.client.postgresql.PostgresDatabase;
-import com.aoindustries.aoserv.client.postgresql.PostgresServer;
-import com.aoindustries.aoserv.client.postgresql.PostgresServerUser;
+import com.aoindustries.aoserv.client.linux.DaemonAcl;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.linux.UserServer;
+import com.aoindustries.aoserv.client.mysql.Database;
+import com.aoindustries.aoserv.client.net.Bind;
+import com.aoindustries.aoserv.client.net.Device;
+import com.aoindustries.aoserv.client.pki.Certificate;
 import com.aoindustries.aoserv.client.validator.HashedPassword;
 import com.aoindustries.aoserv.client.validator.MySQLDatabaseName;
 import com.aoindustries.aoserv.client.validator.MySQLServerName;
@@ -111,7 +107,7 @@ final public class AOServDaemonServerThread extends Thread {
 	 * Creates a new, running <code>AOServServerThread</code>.
 	 */
 	public AOServDaemonServerThread(AOServDaemonServer server, Socket socket) throws IOException {
-		setName("AOServ Daemon Server Thread #" + getId() + " - " + socket.getInetAddress().getHostAddress());
+		setName("AOServ Daemon Host Thread #" + getId() + " - " + socket.getInetAddress().getHostAddress());
 		//this.server = server;
 		this.socket = socket;
 		this.in = new CompressedDataInputStream(new BufferedInputStream(socket.getInputStream()));
@@ -123,7 +119,7 @@ final public class AOServDaemonServerThread extends Thread {
 	public void run() {
 		try {
 			final AOServConnector connector = AOServDaemon.getConnector();
-			final AOServer thisAOServer = AOServDaemon.getThisAOServer();
+			final Server thisAOServer = AOServDaemon.getThisAOServer();
 
 			final AOServDaemonProtocol.Version protocolVersion;
 			final String daemonKey;
@@ -175,7 +171,7 @@ final public class AOServDaemonServerThread extends Thread {
 				// Must come from one of the hosts listed in the database
 				String hostAddress = socket.getInetAddress().getHostAddress();
 				boolean isOK=false;
-				for(AOServerDaemonHost allowedHost : thisAOServer.getAOServerDaemonHosts()) {
+				for(DaemonAcl allowedHost : thisAOServer.getAOServerDaemonHosts()) {
 					String tempAddress = InetAddress.getByName(allowedHost.getHost().toString()).getHostAddress();
 					if (tempAddress.equals(hostAddress)) {
 						isOK=true;
@@ -252,8 +248,8 @@ final public class AOServDaemonServerThread extends Thread {
 									gzip = false;
 								}
 								if(daemonKey==null) throw new IOException("Only the master server may DUMP_MYSQL_DATABASE");
-								MySQLDatabase md=connector.getMysqlDatabases().get(pkey);
-								if(md==null) throw new SQLException("Unable to find MySQLDatabase: "+pkey);
+								Database md=connector.getMysqlDatabases().get(pkey);
+								if(md==null) throw new SQLException("Unable to find Database: "+pkey);
 								MySQLDatabaseManager.dumpDatabase(md, protocolVersion, out, gzip);
 								out.write(AOServDaemonProtocol.DONE);
 							}
@@ -269,8 +265,8 @@ final public class AOServDaemonServerThread extends Thread {
 									gzip = false;
 								}
 								if(daemonKey==null) throw new IOException("Only the master server may DUMP_POSTGRES_DATABASE");
-								PostgresDatabase pd=connector.getPostgresDatabases().get(pkey);
-								if(pd==null) throw new SQLException("Unable to find PostgresDatabase: "+pkey);
+								com.aoindustries.aoserv.client.postgresql.Database pd=connector.getPostgresDatabases().get(pkey);
+								if(pd==null) throw new SQLException("Unable to find Database: "+pkey);
 								PostgresDatabaseManager.dumpDatabase(pd, protocolVersion, out, gzip);
 								out.write(AOServDaemonProtocol.DONE);
 							}
@@ -378,8 +374,8 @@ final public class AOServDaemonServerThread extends Thread {
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_NET_DEVICE_BONDING_REPORT, Thread="+toString());
 								int pkey = in.readCompressedInt();
 								if(daemonKey==null) throw new IOException("Only the master server may GET_NET_DEVICE_BONDING_REPORT");
-								NetDevice netDevice = connector.getNetDevices().get(pkey);
-								if(netDevice==null) throw new SQLException("Unable to find NetDevice: "+pkey);
+								Device netDevice = connector.getNetDevices().get(pkey);
+								if(netDevice==null) throw new SQLException("Unable to find Device: "+pkey);
 								String report = NetDeviceManager.getNetDeviceBondingReport(netDevice);
 								out.write(AOServDaemonProtocol.DONE);
 								out.writeUTF(report);
@@ -390,8 +386,8 @@ final public class AOServDaemonServerThread extends Thread {
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_NET_DEVICE_STATISTICS_REPORT, Thread="+toString());
 								int pkey = in.readCompressedInt();
 								if(daemonKey==null) throw new IOException("Only the master server may GET_NET_DEVICE_STATISTICS_REPORT");
-								NetDevice netDevice = connector.getNetDevices().get(pkey);
-								if(netDevice==null) throw new SQLException("Unable to find NetDevice: "+pkey);
+								Device netDevice = connector.getNetDevices().get(pkey);
+								if(netDevice==null) throw new SQLException("Unable to find Device: "+pkey);
 								String report = NetDeviceManager.getNetDeviceStatisticsReport(netDevice);
 								out.write(AOServDaemonProtocol.DONE);
 								out.writeUTF(report);
@@ -512,7 +508,7 @@ final public class AOServDaemonServerThread extends Thread {
 									ipAddress,
 									port,
 									appProtocol,
-									NetBind.decodeParameters(monitoringParameters)
+									Bind.decodeParameters(monitoringParameters)
 								);
 								logIOException = false;
 								String result = portMonitor.checkPort();
@@ -537,14 +533,14 @@ final public class AOServDaemonServerThread extends Thread {
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing CHECK_SSL_CERTIFICATE, Thread="+toString());
 								int pkey = in.readCompressedInt();
 								if(daemonKey==null) throw new IOException("Only the master server may CHECK_SSL_CERTIFICATE");
-								SslCertificate certificate = connector.getSslCertificates().get(pkey);
-								if(certificate == null) throw new SQLException("Unable to find SslCertificate: " + pkey);
-								List<SslCertificate.Check> results = SslCertificateManager.checkSslCertificate(certificate);
+								Certificate certificate = connector.getSslCertificates().get(pkey);
+								if(certificate == null) throw new SQLException("Unable to find Certificate: " + pkey);
+								List<Certificate.Check> results = SslCertificateManager.checkSslCertificate(certificate);
 								out.write(AOServDaemonProtocol.NEXT);
 								int size = results.size();
 								out.writeCompressedInt(size);
 								for(int i = 0; i < size; i++) {
-									SslCertificate.Check check = results.get(i);
+									Certificate.Check check = results.get(i);
 									out.writeUTF(check.getCheck());
 									out.writeUTF(check.getValue());
 									out.writeUTF(check.getAlertLevel().name());
@@ -566,8 +562,8 @@ final public class AOServDaemonServerThread extends Thread {
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing IS_PROCMAIL_MANUAL, Thread="+toString());
 								int lsaPKey=in.readCompressedInt();
 								if(daemonKey==null) throw new IOException("Only the master server may IS_PROCMAIL_MANUAL");
-								LinuxServerAccount lsa=connector.getLinuxServerAccounts().get(lsaPKey);
-								if(lsa==null) throw new SQLException("Unable to find LinuxServerAccount: "+lsaPKey);
+								UserServer lsa=connector.getLinuxServerAccounts().get(lsaPKey);
+								if(lsa==null) throw new SQLException("Unable to find UserServer: "+lsaPKey);
 								boolean isManual=ProcmailManager.isManual(lsa);
 								out.write(AOServDaemonProtocol.DONE);
 								out.writeBoolean(isManual);
@@ -623,8 +619,8 @@ final public class AOServDaemonServerThread extends Thread {
 								int pkey=in.readCompressedInt();
 								MySQLUserId username = MySQLUserId.valueOf(in.readUTF());
 								if(daemonKey==null) throw new IOException("Only the master server may GET_ENCRYPTED_MYSQL_USER_PASSWORD");
-								MySQLServer mysqlServer=connector.getMysqlServers().get(pkey);
-								if(mysqlServer==null) throw new SQLException("Unable to find MySQLServer: "+pkey);
+								com.aoindustries.aoserv.client.mysql.Server mysqlServer=connector.getMysqlServers().get(pkey);
+								if(mysqlServer==null) throw new SQLException("Unable to find Server: "+pkey);
 								String encryptedPassword=MySQLUserManager.getEncryptedPassword(mysqlServer, username);
 								out.write(AOServDaemonProtocol.DONE);
 								out.writeUTF(encryptedPassword);
@@ -754,8 +750,8 @@ final public class AOServDaemonServerThread extends Thread {
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_POSTGRES_PASSWORD, Thread="+toString());
 								int pkey=in.readCompressedInt();
 								if(daemonKey==null) throw new IOException("Only the master server may GET_POSTGRES_PASSWORD");
-								PostgresServerUser psu=connector.getPostgresServerUsers().get(pkey);
-								if(psu==null) throw new SQLException("Unable to find PostgresServerUser: "+pkey);
+								com.aoindustries.aoserv.client.postgresql.UserServer psu=connector.getPostgresServerUsers().get(pkey);
+								if(psu==null) throw new SQLException("Unable to find UserServer: "+pkey);
 								String password=PostgresUserManager.getPassword(psu);
 								out.write(AOServDaemonProtocol.DONE);
 								out.writeUTF(password);
@@ -829,8 +825,8 @@ final public class AOServDaemonServerThread extends Thread {
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing RESTART_MYSQL, Thread="+toString());
 								int pkey=in.readCompressedInt();
 								if(daemonKey==null) throw new IOException("Only the master server may RESTART_MYSQL");
-								MySQLServer mysqlServer=connector.getMysqlServers().get(pkey);
-								if(mysqlServer==null) throw new SQLException("Unable to find MySQLServer: "+pkey);
+								com.aoindustries.aoserv.client.mysql.Server mysqlServer=connector.getMysqlServers().get(pkey);
+								if(mysqlServer==null) throw new SQLException("Unable to find Server: "+pkey);
 								MySQLServerManager.restartMySQL(mysqlServer);
 								out.write(AOServDaemonProtocol.DONE);
 							}
@@ -840,8 +836,8 @@ final public class AOServDaemonServerThread extends Thread {
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing RESTART_POSTGRES, Thread="+toString());
 								int pkey=in.readCompressedInt();
 								if(daemonKey==null) throw new IOException("Only the master server may RESTART_POSTGRES");
-								PostgresServer ps=connector.getPostgresServers().get(pkey);
-								if(ps==null) throw new SQLException("Unable to find PostgresServer: "+pkey);
+								com.aoindustries.aoserv.client.postgresql.Server ps=connector.getPostgresServers().get(pkey);
+								if(ps==null) throw new SQLException("Unable to find Server: "+pkey);
 								PostgresServerManager.restartPostgreSQL(ps);
 								out.write(AOServDaemonProtocol.DONE);
 							}
@@ -938,8 +934,8 @@ final public class AOServDaemonServerThread extends Thread {
 								MySQLUserId username = MySQLUserId.valueOf(in.readUTF());
 								String password=in.readBoolean()?in.readUTF():null;
 								if(daemonKey==null) throw new IOException("Only the master server may SET_MYSQL_USER_PASSWORD");
-								MySQLServer mysqlServer=connector.getMysqlServers().get(mysqlServerPKey);
-								if(mysqlServer==null) throw new SQLException("Unable to find MySQLServer: "+mysqlServerPKey);
+								com.aoindustries.aoserv.client.mysql.Server mysqlServer=connector.getMysqlServers().get(mysqlServerPKey);
+								if(mysqlServer==null) throw new SQLException("Unable to find Server: "+mysqlServerPKey);
 								MySQLUserManager.setPassword(mysqlServer, username, password);
 								out.write(AOServDaemonProtocol.DONE);
 							}
@@ -949,8 +945,8 @@ final public class AOServDaemonServerThread extends Thread {
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing SET_POSTGRES_USER_PASSWORD, Thread="+toString());
 								int pkey=in.readCompressedInt();
 								String password=in.readBoolean()?in.readUTF():null;
-								PostgresServerUser psu=connector.getPostgresServerUsers().get(pkey);
-								if(psu==null) throw new SQLException("Unable to find PostgresServerUser: "+pkey);
+								com.aoindustries.aoserv.client.postgresql.UserServer psu=connector.getPostgresServerUsers().get(pkey);
+								if(psu==null) throw new SQLException("Unable to find UserServer: "+pkey);
 								PostgresUserManager.setPassword(psu, password, false);
 								out.write(AOServDaemonProtocol.DONE);
 							}
@@ -992,8 +988,8 @@ final public class AOServDaemonServerThread extends Thread {
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing START_MYSQL, Thread="+toString());
 								int pkey=in.readCompressedInt();
 								if(daemonKey==null) throw new IOException("Only the master server may START_MYSQL");
-								MySQLServer mysqlServer=connector.getMysqlServers().get(pkey);
-								if(mysqlServer==null) throw new SQLException("Unable to find MySQLServer: "+pkey);
+								com.aoindustries.aoserv.client.mysql.Server mysqlServer=connector.getMysqlServers().get(pkey);
+								if(mysqlServer==null) throw new SQLException("Unable to find Server: "+pkey);
 								MySQLServerManager.startMySQL(mysqlServer);
 								out.write(AOServDaemonProtocol.DONE);
 							}
@@ -1003,8 +999,8 @@ final public class AOServDaemonServerThread extends Thread {
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing START_POSTGRESQL, Thread="+toString());
 								int pkey=in.readCompressedInt();
 								if(daemonKey==null) throw new IOException("Only the master server may START_POSTGRESQL");
-								PostgresServer ps=connector.getPostgresServers().get(pkey);
-								if(ps==null) throw new SQLException("Unable to find PostgresServer: "+pkey);
+								com.aoindustries.aoserv.client.postgresql.Server ps=connector.getPostgresServers().get(pkey);
+								if(ps==null) throw new SQLException("Unable to find Server: "+pkey);
 								PostgresServerManager.startPostgreSQL(ps);
 								out.write(AOServDaemonProtocol.DONE);
 							}
@@ -1049,8 +1045,8 @@ final public class AOServDaemonServerThread extends Thread {
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing STOP_MYSQL, Thread="+toString());
 								int pkey=in.readCompressedInt();
 								if(daemonKey==null) throw new IOException("Only the master server may STOP_MYSQL");
-								MySQLServer mysqlServer=connector.getMysqlServers().get(pkey);
-								if(mysqlServer==null) throw new SQLException("Unable to find MySQLServer: "+pkey);
+								com.aoindustries.aoserv.client.mysql.Server mysqlServer=connector.getMysqlServers().get(pkey);
+								if(mysqlServer==null) throw new SQLException("Unable to find Server: "+pkey);
 								MySQLServerManager.stopMySQL(mysqlServer);
 								out.write(AOServDaemonProtocol.DONE);
 							}
@@ -1060,8 +1056,8 @@ final public class AOServDaemonServerThread extends Thread {
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing STOP_POSTGRESQL, Thread="+toString());
 								int pkey=in.readCompressedInt();
 								if(daemonKey==null) throw new IOException("Only the master server may STOP_POSTGRESQL");
-								PostgresServer ps=connector.getPostgresServers().get(pkey);
-								if(ps==null) throw new SQLException("Unable to find PostgresServer: "+pkey);
+								com.aoindustries.aoserv.client.postgresql.Server ps=connector.getPostgresServers().get(pkey);
+								if(ps==null) throw new SQLException("Unable to find Server: "+pkey);
 								PostgresServerManager.stopPostgreSQL(ps);
 								out.write(AOServDaemonProtocol.DONE);
 							}

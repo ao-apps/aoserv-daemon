@@ -5,18 +5,18 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatSharedSite;
+import com.aoindustries.aoserv.client.web.tomcat.SharedTomcatSite;
 import java.io.IOException;
 import java.sql.SQLException;
 
 /**
- * Manages HttpdTomcatSharedSite version 9.0.X configurations.
+ * Manages SharedTomcatSite version 9.0.X configurations.
  *
  * @author  AO Industries, Inc.
  */
 class HttpdTomcatSharedSiteManager_9_0_X extends VersionedTomcatSharedSiteManager<TomcatCommon_9_0_X> {
 
-	HttpdTomcatSharedSiteManager_9_0_X(HttpdTomcatSharedSite tomcatSharedSite) throws SQLException, IOException {
+	HttpdTomcatSharedSiteManager_9_0_X(SharedTomcatSite tomcatSharedSite) throws SQLException, IOException {
 		super(tomcatSharedSite);
 	}
 

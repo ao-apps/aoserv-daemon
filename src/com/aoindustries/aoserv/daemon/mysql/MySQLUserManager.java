@@ -7,10 +7,9 @@ package com.aoindustries.aoserv.daemon.mysql;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.mysql.MySQLServer;
-import com.aoindustries.aoserv.client.mysql.MySQLServerUser;
-import com.aoindustries.aoserv.client.mysql.MySQLUser;
+import com.aoindustries.aoserv.client.mysql.Server;
+import com.aoindustries.aoserv.client.mysql.User;
+import com.aoindustries.aoserv.client.mysql.UserServer;
 import com.aoindustries.aoserv.client.validator.MySQLUserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -46,7 +45,7 @@ final public class MySQLUserManager extends BuilderThread {
 	protected boolean doRebuild() {
 		try {
 			//AOServConnector connector = AOServDaemon.getConnector();
-			AOServer thisAOServer=AOServDaemon.getThisAOServer();
+			com.aoindustries.aoserv.client.linux.Server thisAOServer=AOServDaemon.getThisAOServer();
 			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
@@ -57,22 +56,22 @@ final public class MySQLUserManager extends BuilderThread {
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 			synchronized (rebuildLock) {
-				for(MySQLServer mysqlServer : thisAOServer.getMySQLServers()) {
+				for(Server mysqlServer : thisAOServer.getMySQLServers()) {
 					// Get the list of all users that should exist.  By getting the list and reusing it we have a snapshot of the configuration.
-					List<MySQLServerUser> users = mysqlServer.getMySQLServerUsers();
+					List<UserServer> users = mysqlServer.getMySQLServerUsers();
 					if(users.isEmpty()) {
 						LogFactory.getLogger(MySQLUserManager.class).severe("No users; refusing to rebuild config: " + mysqlServer);
 					} else {
 						// Must have root user
 						boolean foundRoot = false;
-						for(MySQLServerUser user : users) {
-							if(user.getMySQLUser().getKey().equals(MySQLUser.ROOT)) {
+						for(UserServer user : users) {
+							if(user.getMySQLUser().getKey().equals(User.ROOT)) {
 								foundRoot = true;
 								break;
 							}
 						}
 						if(!foundRoot) {
-							LogFactory.getLogger(MySQLUserManager.class).severe(MySQLUser.ROOT + " user not found; refusing to rebuild config: " + mysqlServer);
+							LogFactory.getLogger(MySQLUserManager.class).severe(User.ROOT + " user not found; refusing to rebuild config: " + mysqlServer);
 						} else {
 							final String version=mysqlServer.getVersion().getVersion();
 
@@ -103,7 +102,7 @@ final public class MySQLUserManager extends BuilderThread {
 
 								// Update existing users to proper values
 								String updateSQL;
-								if(version.startsWith(MySQLServer.VERSION_4_0_PREFIX)) {
+								if(version.startsWith(Server.VERSION_4_0_PREFIX)) {
 									updateSQL="update user set\n"
 											+ "  Select_priv=?,\n"
 											+ "  Insert_priv=?,\n"
@@ -158,7 +157,7 @@ final public class MySQLUserManager extends BuilderThread {
 											+ "    or max_updates!=?\n"
 											+ "    or max_connections!=?\n"
 											+ "  )";
-								} else if(version.startsWith(MySQLServer.VERSION_4_1_PREFIX)) {
+								} else if(version.startsWith(Server.VERSION_4_1_PREFIX)) {
 									updateSQL="update user set\n"
 											+ "  Select_priv=?,\n"
 											+ "  Insert_priv=?,\n"
@@ -213,7 +212,7 @@ final public class MySQLUserManager extends BuilderThread {
 											+ "    or max_updates!=?\n"
 											+ "    or max_connections!=?\n"
 											+ "  )";
-								} else if(version.startsWith(MySQLServer.VERSION_5_0_PREFIX)) {
+								} else if(version.startsWith(Server.VERSION_5_0_PREFIX)) {
 									updateSQL="update user set\n"
 											+ "  Select_priv=?,\n"
 											+ "  Insert_priv=?,\n"
@@ -281,8 +280,8 @@ final public class MySQLUserManager extends BuilderThread {
 											+ "    or max_user_connections!=?\n"
 											+ "  )";
 								} else if(
-									version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-									|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
+									version.startsWith(Server.VERSION_5_1_PREFIX)
+									|| version.startsWith(Server.VERSION_5_6_PREFIX)
 								) {
 									updateSQL="update user set\n"
 											+ "  Select_priv=?,\n"
@@ -354,7 +353,7 @@ final public class MySQLUserManager extends BuilderThread {
 											+ "    or max_connections!=?\n"
 											+ "    or max_user_connections!=?\n"
 											+ "  )";
-								} else if(version.startsWith(MySQLServer.VERSION_5_7_PREFIX)) {
+								} else if(version.startsWith(Server.VERSION_5_7_PREFIX)) {
 									updateSQL="update user set\n"
 											+ "  Select_priv=?,\n"
 											+ "  Insert_priv=?,\n"
@@ -430,8 +429,8 @@ final public class MySQLUserManager extends BuilderThread {
 								} else throw new SQLException("Unsupported MySQL version: "+version);
 
 								try (PreparedStatement pstmt = conn.prepareStatement(updateSQL)) {
-									for(MySQLServerUser msu : users) {
-										MySQLUser mu = msu.getMySQLUser();
+									for(UserServer msu : users) {
+										User mu = msu.getMySQLUser();
 										String host=msu.getHost();
 										if(host==null) host="";
 										MySQLUserId username=mu.getKey();
@@ -461,10 +460,10 @@ final public class MySQLUserManager extends BuilderThread {
 											pstmt.setString(pos++, mu.isReplicationSlave()?"Y":"N");
 											pstmt.setString(pos++, mu.isReplicationClient()?"Y":"N");
 											if(
-												version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
-												|| version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-												|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
-												|| version.startsWith(MySQLServer.VERSION_5_7_PREFIX)
+												version.startsWith(Server.VERSION_5_0_PREFIX)
+												|| version.startsWith(Server.VERSION_5_1_PREFIX)
+												|| version.startsWith(Server.VERSION_5_6_PREFIX)
+												|| version.startsWith(Server.VERSION_5_7_PREFIX)
 											) {
 												pstmt.setString(pos++, mu.canCreateView()?"Y":"N");
 												pstmt.setString(pos++, mu.canShowView()?"Y":"N");
@@ -472,9 +471,9 @@ final public class MySQLUserManager extends BuilderThread {
 												pstmt.setString(pos++, mu.canAlterRoutine()?"Y":"N");
 												pstmt.setString(pos++, mu.canCreateUser()?"Y":"N");
 												if(
-													version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-													|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
-													|| version.startsWith(MySQLServer.VERSION_5_7_PREFIX)
+													version.startsWith(Server.VERSION_5_1_PREFIX)
+													|| version.startsWith(Server.VERSION_5_6_PREFIX)
+													|| version.startsWith(Server.VERSION_5_7_PREFIX)
 												) {
 													pstmt.setString(pos++, mu.canEvent()?"Y":"N");
 													pstmt.setString(pos++, mu.canTrigger()?"Y":"N");
@@ -484,17 +483,17 @@ final public class MySQLUserManager extends BuilderThread {
 											pstmt.setInt(pos++, msu.getMaxUpdates());
 											pstmt.setInt(pos++, msu.getMaxConnections());
 											if(
-												version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
-												|| version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-												|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
-												|| version.startsWith(MySQLServer.VERSION_5_7_PREFIX)
+												version.startsWith(Server.VERSION_5_0_PREFIX)
+												|| version.startsWith(Server.VERSION_5_1_PREFIX)
+												|| version.startsWith(Server.VERSION_5_6_PREFIX)
+												|| version.startsWith(Server.VERSION_5_7_PREFIX)
 											) pstmt.setInt(pos++, msu.getMaxUserConnections());
 											boolean locked =
-												username.equals(MySQLUser.MYSQL_SESSION)
-												|| username.equals(MySQLUser.MYSQL_SYS)
+												username.equals(User.MYSQL_SESSION)
+												|| username.equals(User.MYSQL_SYS)
 												|| msu.isDisabled()
 											;
-											if(version.startsWith(MySQLServer.VERSION_5_7_PREFIX)) {
+											if(version.startsWith(Server.VERSION_5_7_PREFIX)) {
 												pstmt.setString(pos++, locked?"Y":"N");
 											}
 											// where
@@ -522,10 +521,10 @@ final public class MySQLUserManager extends BuilderThread {
 											pstmt.setString(pos++, mu.isReplicationSlave()?"Y":"N");
 											pstmt.setString(pos++, mu.isReplicationClient()?"Y":"N");
 											if(
-												version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
-												|| version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-												|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
-												|| version.startsWith(MySQLServer.VERSION_5_7_PREFIX)
+												version.startsWith(Server.VERSION_5_0_PREFIX)
+												|| version.startsWith(Server.VERSION_5_1_PREFIX)
+												|| version.startsWith(Server.VERSION_5_6_PREFIX)
+												|| version.startsWith(Server.VERSION_5_7_PREFIX)
 											) {
 												pstmt.setString(pos++, mu.canCreateView()?"Y":"N");
 												pstmt.setString(pos++, mu.canShowView()?"Y":"N");
@@ -533,9 +532,9 @@ final public class MySQLUserManager extends BuilderThread {
 												pstmt.setString(pos++, mu.canAlterRoutine()?"Y":"N");
 												pstmt.setString(pos++, mu.canCreateUser()?"Y":"N");
 												if(
-													version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-													|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
-													|| version.startsWith(MySQLServer.VERSION_5_7_PREFIX)
+													version.startsWith(Server.VERSION_5_1_PREFIX)
+													|| version.startsWith(Server.VERSION_5_6_PREFIX)
+													|| version.startsWith(Server.VERSION_5_7_PREFIX)
 												) {
 													pstmt.setString(pos++, mu.canEvent()?"Y":"N");
 													pstmt.setString(pos++, mu.canTrigger()?"Y":"N");
@@ -545,12 +544,12 @@ final public class MySQLUserManager extends BuilderThread {
 											pstmt.setInt(pos++, msu.getMaxUpdates());
 											pstmt.setInt(pos++, msu.getMaxConnections());
 											if(
-												version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
-												|| version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-												|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
-												|| version.startsWith(MySQLServer.VERSION_5_7_PREFIX)
+												version.startsWith(Server.VERSION_5_0_PREFIX)
+												|| version.startsWith(Server.VERSION_5_1_PREFIX)
+												|| version.startsWith(Server.VERSION_5_6_PREFIX)
+												|| version.startsWith(Server.VERSION_5_7_PREFIX)
 											) pstmt.setInt(pos++, msu.getMaxUserConnections());
-											if(version.startsWith(MySQLServer.VERSION_5_7_PREFIX)) {
+											if(version.startsWith(Server.VERSION_5_7_PREFIX)) {
 												pstmt.setString(pos++, locked?"Y":"N");
 											}
 											int updateCount = pstmt.executeUpdate();
@@ -561,17 +560,17 @@ final public class MySQLUserManager extends BuilderThread {
 
 								// Add the users that do not exist and should
 								String insertSQL;
-								if(version.startsWith(MySQLServer.VERSION_4_0_PREFIX)) insertSQL="insert into user values(?,?,'"+MySQLUser.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?)";
-								else if(version.startsWith(MySQLServer.VERSION_4_1_PREFIX)) insertSQL="insert into user values(?,?,'"+MySQLUser.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?)";
-								else if(version.startsWith(MySQLServer.VERSION_5_0_PREFIX)) insertSQL="insert into user values(?,?,'"+MySQLUser.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?,?)";
-								else if(version.startsWith(MySQLServer.VERSION_5_1_PREFIX)) insertSQL="insert into user values(?,?,'"+MySQLUser.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?,?)";
-								else if(version.startsWith(MySQLServer.VERSION_5_6_PREFIX)) insertSQL="insert into user values(?,?,'"+MySQLUser.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'N','','','','',?,?,?,?,'',NULL,'N')";
-								else if(version.startsWith(MySQLServer.VERSION_5_7_PREFIX)) insertSQL="insert into user values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'N','','','','',?,?,?,?,'mysql_native_password','"+MySQLUser.NO_PASSWORD_DB_VALUE+"','N',NOW(),NULL,?)";
+								if(version.startsWith(Server.VERSION_4_0_PREFIX)) insertSQL="insert into user values(?,?,'"+User.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?)";
+								else if(version.startsWith(Server.VERSION_4_1_PREFIX)) insertSQL="insert into user values(?,?,'"+User.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?)";
+								else if(version.startsWith(Server.VERSION_5_0_PREFIX)) insertSQL="insert into user values(?,?,'"+User.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?,?)";
+								else if(version.startsWith(Server.VERSION_5_1_PREFIX)) insertSQL="insert into user values(?,?,'"+User.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','','','',?,?,?,?)";
+								else if(version.startsWith(Server.VERSION_5_6_PREFIX)) insertSQL="insert into user values(?,?,'"+User.NO_PASSWORD_DB_VALUE+"',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'N','','','','',?,?,?,?,'',NULL,'N')";
+								else if(version.startsWith(Server.VERSION_5_7_PREFIX)) insertSQL="insert into user values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'N','','','','',?,?,?,?,'mysql_native_password','"+User.NO_PASSWORD_DB_VALUE+"','N',NOW(),NULL,?)";
 								else throw new SQLException("Unsupported MySQL version: "+version);
 
 								try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
-									for(MySQLServerUser msu : users) {
-										MySQLUser mu = msu.getMySQLUser();
+									for(UserServer msu : users) {
+										User mu = msu.getMySQLUser();
 										String host=msu.getHost();
 										if(host==null) host="";
 										MySQLUserId username=mu.getKey();
@@ -603,10 +602,10 @@ final public class MySQLUserManager extends BuilderThread {
 											pstmt.setString(pos++, mu.isReplicationSlave()?"Y":"N");
 											pstmt.setString(pos++, mu.isReplicationClient()?"Y":"N");
 											if(
-												version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
-												|| version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-												|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
-												|| version.startsWith(MySQLServer.VERSION_5_7_PREFIX)
+												version.startsWith(Server.VERSION_5_0_PREFIX)
+												|| version.startsWith(Server.VERSION_5_1_PREFIX)
+												|| version.startsWith(Server.VERSION_5_6_PREFIX)
+												|| version.startsWith(Server.VERSION_5_7_PREFIX)
 											) {
 												pstmt.setString(pos++, mu.canCreateView()?"Y":"N");
 												pstmt.setString(pos++, mu.canShowView()?"Y":"N");
@@ -614,9 +613,9 @@ final public class MySQLUserManager extends BuilderThread {
 												pstmt.setString(pos++, mu.canAlterRoutine()?"Y":"N");
 												pstmt.setString(pos++, mu.canCreateUser()?"Y":"N");
 												if(
-													version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-													|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
-													|| version.startsWith(MySQLServer.VERSION_5_7_PREFIX)
+													version.startsWith(Server.VERSION_5_1_PREFIX)
+													|| version.startsWith(Server.VERSION_5_6_PREFIX)
+													|| version.startsWith(Server.VERSION_5_7_PREFIX)
 												) {
 													pstmt.setString(pos++, mu.canEvent()?"Y":"N");
 													pstmt.setString(pos++, mu.canTrigger()?"Y":"N");
@@ -626,12 +625,12 @@ final public class MySQLUserManager extends BuilderThread {
 											pstmt.setInt(pos++, msu.getMaxUpdates());
 											pstmt.setInt(pos++, msu.getMaxConnections());
 											if(
-												version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
-												|| version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-												|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
-												|| version.startsWith(MySQLServer.VERSION_5_7_PREFIX)
+												version.startsWith(Server.VERSION_5_0_PREFIX)
+												|| version.startsWith(Server.VERSION_5_1_PREFIX)
+												|| version.startsWith(Server.VERSION_5_6_PREFIX)
+												|| version.startsWith(Server.VERSION_5_7_PREFIX)
 											) pstmt.setInt(pos++, msu.getMaxUserConnections());
-											if(version.startsWith(MySQLServer.VERSION_5_7_PREFIX)) {
+											if(version.startsWith(Server.VERSION_5_7_PREFIX)) {
 												boolean locked = msu.isDisabled();
 												pstmt.setString(pos++, locked?"Y":"N");
 											}
@@ -650,9 +649,9 @@ final public class MySQLUserManager extends BuilderThread {
 											String host=key.getElement1();
 											MySQLUserId user=key.getElement2();
 											if(
-												user.equals(MySQLUser.ROOT)
-												|| user.equals(MySQLUser.MYSQL_SESSION)
-												|| user.equals(MySQLUser.MYSQL_SYS)
+												user.equals(User.ROOT)
+												|| user.equals(User.MYSQL_SESSION)
+												|| user.equals(User.MYSQL_SYS)
 											) {
 												LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, new SQLException("Refusing to remove the " + user + " user for host " + host + ", please remove manually."));
 											} else {
@@ -671,14 +670,14 @@ final public class MySQLUserManager extends BuilderThread {
 
 							// Disable and enable accounts
 							if(
-								version.startsWith(MySQLServer.VERSION_4_0_PREFIX)
-								|| version.startsWith(MySQLServer.VERSION_4_1_PREFIX)
-								|| version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
-								|| version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-								|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
+								version.startsWith(Server.VERSION_4_0_PREFIX)
+								|| version.startsWith(Server.VERSION_4_1_PREFIX)
+								|| version.startsWith(Server.VERSION_5_0_PREFIX)
+								|| version.startsWith(Server.VERSION_5_1_PREFIX)
+								|| version.startsWith(Server.VERSION_5_6_PREFIX)
 							) {
 								// Older versions of MySQL are disabled by stashing the encrypted password and replacing it with an invalid hash
-								for(MySQLServerUser msu : users) {
+								for(UserServer msu : users) {
 									String prePassword=msu.getPredisablePassword();
 									if(!msu.isDisabled()) {
 										if(prePassword!=null) {
@@ -690,12 +689,12 @@ final public class MySQLUserManager extends BuilderThread {
 										if(prePassword==null) {
 											MySQLUserId username=msu.getMySQLUser().getKey();
 											msu.setPredisablePassword(getEncryptedPassword(mysqlServer, username));
-											setPassword(mysqlServer, username, MySQLUser.NO_PASSWORD);
+											setPassword(mysqlServer, username, User.NO_PASSWORD);
 											modified=true;
 										}
 									}
 								}
-							} else if(version.startsWith(MySQLServer.VERSION_5_7_PREFIX)) {
+							} else if(version.startsWith(Server.VERSION_5_7_PREFIX)) {
 								// MySQL 5.7+ support "account_locked" column, set above.
 								// Nothing to do here.
 							} else {
@@ -715,19 +714,19 @@ final public class MySQLUserManager extends BuilderThread {
 		}
 	}
 
-	public static String getEncryptedPassword(MySQLServer mysqlServer, MySQLUserId username) throws IOException, SQLException {
+	public static String getEncryptedPassword(Server mysqlServer, MySQLUserId username) throws IOException, SQLException {
 		final String version = mysqlServer.getVersion().getVersion();
 		String sql;
 		if(
-			version.startsWith(MySQLServer.VERSION_4_0_PREFIX)
-			|| version.startsWith(MySQLServer.VERSION_4_1_PREFIX)
-			|| version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
-			|| version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-			|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
+			version.startsWith(Server.VERSION_4_0_PREFIX)
+			|| version.startsWith(Server.VERSION_4_1_PREFIX)
+			|| version.startsWith(Server.VERSION_5_0_PREFIX)
+			|| version.startsWith(Server.VERSION_5_1_PREFIX)
+			|| version.startsWith(Server.VERSION_5_6_PREFIX)
 		) {
 			// Older MySQL: password stored in "password" column
 			sql = "select password from user where user=?";
-		} else if(version.startsWith(MySQLServer.VERSION_5_7_PREFIX)) {
+		} else if(version.startsWith(Server.VERSION_5_7_PREFIX)) {
 			// MySQL 5.7+: password stored in "authentication_string" column
 			sql = "select authentication_string from user where user=?";
 		} else {
@@ -756,25 +755,25 @@ final public class MySQLUserManager extends BuilderThread {
 		}
 	}
 
-	public static void setPassword(MySQLServer mysqlServer, MySQLUserId username, String password) throws IOException, SQLException {
+	public static void setPassword(Server mysqlServer, MySQLUserId username, String password) throws IOException, SQLException {
 		final String version = mysqlServer.getVersion().getVersion();
 		// Get the connection to work through
 		AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
 		Connection conn = pool.getConnection();
 		try {
-			if(ObjectUtils.equals(password, MySQLUser.NO_PASSWORD)) {
+			if(ObjectUtils.equals(password, User.NO_PASSWORD)) {
 				// Disable the account
 				String sql;
 				if(
-					version.startsWith(MySQLServer.VERSION_4_0_PREFIX)
-					|| version.startsWith(MySQLServer.VERSION_4_1_PREFIX)
-					|| version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
-					|| version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-					|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
+					version.startsWith(Server.VERSION_4_0_PREFIX)
+					|| version.startsWith(Server.VERSION_4_1_PREFIX)
+					|| version.startsWith(Server.VERSION_5_0_PREFIX)
+					|| version.startsWith(Server.VERSION_5_1_PREFIX)
+					|| version.startsWith(Server.VERSION_5_6_PREFIX)
 				) {
-					sql = "update user set password='" + MySQLUser.NO_PASSWORD_DB_VALUE + "' where user=?";
-				} else if(version.startsWith(MySQLServer.VERSION_5_7_PREFIX)) {
-					sql = "update user set authentication_string='" + MySQLUser.NO_PASSWORD_DB_VALUE + "', password_last_changed=now() where user=?";
+					sql = "update user set password='" + User.NO_PASSWORD_DB_VALUE + "' where user=?";
+				} else if(version.startsWith(Server.VERSION_5_7_PREFIX)) {
+					sql = "update user set authentication_string='" + User.NO_PASSWORD_DB_VALUE + "', password_last_changed=now() where user=?";
 				} else {
 					throw new SQLException("Unsupported version of MySQL: " + version);
 				}
@@ -786,14 +785,14 @@ final public class MySQLUserManager extends BuilderThread {
 				// Reset the password
 				String sql;
 				if(
-					version.startsWith(MySQLServer.VERSION_4_0_PREFIX)
-					|| version.startsWith(MySQLServer.VERSION_4_1_PREFIX)
-					|| version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
-					|| version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-					|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
+					version.startsWith(Server.VERSION_4_0_PREFIX)
+					|| version.startsWith(Server.VERSION_4_1_PREFIX)
+					|| version.startsWith(Server.VERSION_5_0_PREFIX)
+					|| version.startsWith(Server.VERSION_5_1_PREFIX)
+					|| version.startsWith(Server.VERSION_5_6_PREFIX)
 				) {
 					sql = "update user set password=password(?) where user=?";
-				} else if(version.startsWith(MySQLServer.VERSION_5_7_PREFIX)) {
+				} else if(version.startsWith(Server.VERSION_5_7_PREFIX)) {
 					sql = "update user set authentication_string=password(?), password_last_changed=now() where user=?";
 				} else {
 					throw new SQLException("Unsupported version of MySQL: " + version);
@@ -810,25 +809,25 @@ final public class MySQLUserManager extends BuilderThread {
 		MySQLServerManager.flushPrivileges(mysqlServer);
 	}
 
-	public static void setEncryptedPassword(MySQLServer mysqlServer, MySQLUserId username, String password) throws IOException, SQLException {
+	public static void setEncryptedPassword(Server mysqlServer, MySQLUserId username, String password) throws IOException, SQLException {
 		final String version = mysqlServer.getVersion().getVersion();
 		// Get the connection to work through
 		AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
 		Connection conn = pool.getConnection();
 		try {
-			if(ObjectUtils.equals(password, MySQLUser.NO_PASSWORD)) {
+			if(ObjectUtils.equals(password, User.NO_PASSWORD)) {
 				// Disable the account
 				String sql;
 				if(
-					version.startsWith(MySQLServer.VERSION_4_0_PREFIX)
-					|| version.startsWith(MySQLServer.VERSION_4_1_PREFIX)
-					|| version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
-					|| version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-					|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
+					version.startsWith(Server.VERSION_4_0_PREFIX)
+					|| version.startsWith(Server.VERSION_4_1_PREFIX)
+					|| version.startsWith(Server.VERSION_5_0_PREFIX)
+					|| version.startsWith(Server.VERSION_5_1_PREFIX)
+					|| version.startsWith(Server.VERSION_5_6_PREFIX)
 				) {
-					sql = "update user set password='" + MySQLUser.NO_PASSWORD_DB_VALUE + "' where user=?";
-				} else if(version.startsWith(MySQLServer.VERSION_5_7_PREFIX)) {
-					sql = "update user set authentication_string='" + MySQLUser.NO_PASSWORD_DB_VALUE + "', password_last_changed=now() where user=?";
+					sql = "update user set password='" + User.NO_PASSWORD_DB_VALUE + "' where user=?";
+				} else if(version.startsWith(Server.VERSION_5_7_PREFIX)) {
+					sql = "update user set authentication_string='" + User.NO_PASSWORD_DB_VALUE + "', password_last_changed=now() where user=?";
 				} else {
 					throw new SQLException("Unsupported version of MySQL: " + version);
 				}
@@ -840,14 +839,14 @@ final public class MySQLUserManager extends BuilderThread {
 				// Reset the password
 				String sql;
 				if(
-					version.startsWith(MySQLServer.VERSION_4_0_PREFIX)
-					|| version.startsWith(MySQLServer.VERSION_4_1_PREFIX)
-					|| version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
-					|| version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-					|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
+					version.startsWith(Server.VERSION_4_0_PREFIX)
+					|| version.startsWith(Server.VERSION_4_1_PREFIX)
+					|| version.startsWith(Server.VERSION_5_0_PREFIX)
+					|| version.startsWith(Server.VERSION_5_1_PREFIX)
+					|| version.startsWith(Server.VERSION_5_6_PREFIX)
 				) {
 					sql = "update user set password=? where user=?";
-				} else if(version.startsWith(MySQLServer.VERSION_5_7_PREFIX)) {
+				} else if(version.startsWith(Server.VERSION_5_7_PREFIX)) {
 					sql = "update user set authentication_string=?, password_last_changed=now() where user=?";
 				} else {
 					throw new SQLException("Unsupported version of MySQL: " + version);
@@ -866,7 +865,7 @@ final public class MySQLUserManager extends BuilderThread {
 
 	private static MySQLUserManager mysqlUserManager;
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 

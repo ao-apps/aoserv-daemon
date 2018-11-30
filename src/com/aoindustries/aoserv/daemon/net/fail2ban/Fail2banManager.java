@@ -7,11 +7,11 @@ package com.aoindustries.aoserv.daemon.net.fail2ban;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.net.FirewalldZone;
-import com.aoindustries.aoserv.client.net.NetBind;
-import com.aoindustries.aoserv.client.net.Protocol;
-import com.aoindustries.aoserv.client.net.Server;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.net.AppProtocol;
+import com.aoindustries.aoserv.client.net.Bind;
+import com.aoindustries.aoserv.client.net.FirewallZone;
+import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -67,10 +67,10 @@ final public class Fail2banManager extends BuilderThread {
 		CYRUS_IMAP(
 			"cyrus-imap",
 			getSet(
-				Protocol.POP3,
-				Protocol.IMAP2,
-				Protocol.SIMAP,
-				Protocol.SPOP3
+				AppProtocol.POP3,
+				AppProtocol.IMAP2,
+				AppProtocol.SIMAP,
+				AppProtocol.SPOP3
 			),
 			true,
 			null
@@ -78,9 +78,9 @@ final public class Fail2banManager extends BuilderThread {
 		SENDMAIL_AUTH(
 			"sendmail-auth",
 			getSet(
-				Protocol.SMTP,
-				Protocol.SMTPS,
-				Protocol.SUBMISSION
+				AppProtocol.SMTP,
+				AppProtocol.SMTPS,
+				AppProtocol.SUBMISSION
 			),
 			true,
 			null
@@ -88,16 +88,16 @@ final public class Fail2banManager extends BuilderThread {
 		SENDMAIL_DISCONNECT(
 			"sendmail-disconnect",
 			getSet(
-				Protocol.SMTP,
-				Protocol.SMTPS,
-				Protocol.SUBMISSION
+				AppProtocol.SMTP,
+				AppProtocol.SMTPS,
+				AppProtocol.SUBMISSION
 			),
 			false,
 			PackageManager.PackageName.FAIL2BAN_FILTER_SENDMAIL_DISCONNECT
 		),
 		SSHD(
 			"sshd",
-			getSet(Protocol.SSH),
+			getSet(AppProtocol.SSH),
 			true,
 			null
 		);
@@ -173,8 +173,8 @@ final public class Fail2banManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer thisAoServer = AOServDaemon.getThisAOServer();
-			Server thisServer = thisAoServer.getServer();
+			Server thisAoServer = AOServDaemon.getThisAOServer();
+			Host thisServer = thisAoServer.getServer();
 			OperatingSystemVersion osv = thisServer.getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 
@@ -187,12 +187,12 @@ final public class Fail2banManager extends BuilderThread {
 						Jail[] jails = Jail.values();
 						if(logger.isLoggable(Level.FINE)) logger.fine("jails: " + Arrays.asList(jails));
 
-						List<NetBind> netBinds = thisServer.getNetBinds();
+						List<Bind> netBinds = thisServer.getNetBinds();
 						if(logger.isLoggable(Level.FINE)) logger.fine("netBinds: " + netBinds);
 
 						// Resolves the unique ports for each supported jail
 						Map<Jail,SortedSet<Integer>> jailPorts = new HashMap<>();
-						for(NetBind nb : netBinds) {
+						for(Bind nb : netBinds) {
 							InetAddress ip = nb.getIpAddress().getInetAddress();
 							if(!ip.isLoopback()) {
 								for(Jail jail : jails) {
@@ -201,7 +201,7 @@ final public class Fail2banManager extends BuilderThread {
 										boolean fail2ban;
 										if(firewalldInstalled) {
 											fail2ban = false;
-											for(FirewalldZone zone : nb.getFirewalldZones()) {
+											for(FirewallZone zone : nb.getFirewalldZones()) {
 												if(zone.getFail2ban()) {
 													fail2ban = true;
 													break;
@@ -368,7 +368,7 @@ final public class Fail2banManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		synchronized(System.out) {

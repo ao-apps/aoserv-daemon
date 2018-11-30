@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.util;
 
-import com.aoindustries.aoserv.client.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.io.FileUtils;

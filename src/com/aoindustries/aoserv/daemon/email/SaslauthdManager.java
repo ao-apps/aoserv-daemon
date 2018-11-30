@@ -7,7 +7,7 @@ package com.aoindustries.aoserv.daemon.email;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.AOServer;
+import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -48,7 +48,7 @@ final public class SaslauthdManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer thisAoServer = AOServDaemon.getThisAOServer();
+			Server thisAoServer = AOServDaemon.getThisAOServer();
 			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(osvId != OperatingSystemVersion.CENTOS_7_X86_64) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -138,7 +138,7 @@ final public class SaslauthdManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 

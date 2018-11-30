@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatDataSource;
+import com.aoindustries.aoserv.client.web.tomcat.ContextDataSource;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
@@ -62,7 +62,7 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 	 * </ol>
 	 */
 	@Override 
-	public void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws IOException, SQLException {
+	public void writeHttpdTomcatDataSource(ContextDataSource dataSource, ChainWriter out) throws IOException, SQLException {
 		int maxActive = dataSource.getMaxActive();
 		out.print("          <Resource\n"
 				+ "            name=\"").encodeXmlAttribute(dataSource.getName()).print("\"\n"

@@ -7,11 +7,10 @@ package com.aoindustries.aoserv.daemon.postgres;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.postgresql.PostgresServer;
-import com.aoindustries.aoserv.client.postgresql.PostgresServerUser;
-import com.aoindustries.aoserv.client.postgresql.PostgresUser;
-import com.aoindustries.aoserv.client.postgresql.PostgresVersion;
+import com.aoindustries.aoserv.client.postgresql.Server;
+import com.aoindustries.aoserv.client.postgresql.User;
+import com.aoindustries.aoserv.client.postgresql.UserServer;
+import com.aoindustries.aoserv.client.postgresql.Version;
 import com.aoindustries.aoserv.client.validator.PostgresUserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -55,7 +54,7 @@ final public class PostgresUserManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer thisAOServer=AOServDaemon.getThisAOServer();
+			com.aoindustries.aoserv.client.linux.Server thisAOServer=AOServDaemon.getThisAOServer();
 			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
@@ -67,14 +66,14 @@ final public class PostgresUserManager extends BuilderThread {
 
 			AOServConnector connector = AOServDaemon.getConnector();
 			synchronized (rebuildLock) {
-				for (PostgresServer ps : thisAOServer.getPostgresServers()) {
+				for (Server ps : thisAOServer.getPostgresServers()) {
 					String version=ps.getVersion().getTechnologyVersion(connector).getVersion();
 
 					// Get the connection to work through
 					AOConnectionPool pool=PostgresServerManager.getPool(ps);
 					Connection conn=pool.getConnection(false);
 					// Get the list of all users that should exist
-					List<PostgresServerUser> users=ps.getPostgresServerUsers();
+					List<UserServer> users=ps.getPostgresServerUsers();
 					if(users.isEmpty()) {
 						LogFactory.getLogger(PostgresUserManager.class).severe("No users; refusing to rebuild config: " + ps);
 					} else {
@@ -84,10 +83,10 @@ final public class PostgresUserManager extends BuilderThread {
 							Set<PostgresUserId> existing = new HashSet<>();
 							try (Statement stmt = conn.createStatement()) {
 								String sqlString =
-									version.startsWith(PostgresVersion.VERSION_7_1+'.')
-									|| version.startsWith(PostgresVersion.VERSION_7_2+'.')
-									|| version.startsWith(PostgresVersion.VERSION_7_3+'.')
-									|| version.startsWith(PostgresVersion.VERSION_8_0+'.')
+									version.startsWith(Version.VERSION_7_1+'.')
+									|| version.startsWith(Version.VERSION_7_2+'.')
+									|| version.startsWith(Version.VERSION_7_3+'.')
+									|| version.startsWith(Version.VERSION_8_0+'.')
 									? "select usename from pg_user"
 									: "select rolname from pg_authid"
 									;
@@ -109,9 +108,9 @@ final public class PostgresUserManager extends BuilderThread {
 								}
 
 								// Find the users that do not exist and should be added
-								List<PostgresServerUser> needAdded=new ArrayList<>();
-								for (PostgresServerUser psu : users) {
-									PostgresUser pu=psu.getPostgresUser();
+								List<UserServer> needAdded=new ArrayList<>();
+								for (UserServer psu : users) {
+									User pu=psu.getPostgresUser();
 									PostgresUserId username=pu.getKey();
 									if(!existing.remove(username)) needAdded.add(psu);
 								}
@@ -119,10 +118,10 @@ final public class PostgresUserManager extends BuilderThread {
 								// Remove the extra users before adding to avoid usesysid or usename conflicts
 								for (PostgresUserId username : existing) {
 									if(
-										username.equals(PostgresUser.POSTGRES)
-										|| username.equals(PostgresUser.AOADMIN)
-										|| username.equals(PostgresUser.AOSERV_APP)
-										|| username.equals(PostgresUser.AOWEB_APP)
+										username.equals(User.POSTGRES)
+										|| username.equals(User.AOADMIN)
+										|| username.equals(User.AOSERV_APP)
+										|| username.equals(User.AOWEB_APP)
 									) throw new SQLException("AOServ Daemon will not automatically drop user, please drop manually: "+username+" on "+ps.getName());
 									sqlString = "DROP USER "+username;
 									try {
@@ -135,8 +134,8 @@ final public class PostgresUserManager extends BuilderThread {
 								}
 
 								// Add the new users
-								for(PostgresServerUser psu : needAdded) {
-									PostgresUser pu = psu.getPostgresUser();
+								for(UserServer psu : needAdded) {
+									User pu = psu.getPostgresUser();
 									PostgresUserId username=pu.getKey();
 
 									// Add the user
@@ -144,11 +143,11 @@ final public class PostgresUserManager extends BuilderThread {
 									sql
 										.append(
 											(
-												version.startsWith(PostgresVersion.VERSION_8_1+'.')
-													|| version.startsWith(PostgresVersion.VERSION_8_3+'.')
-													|| version.startsWith(PostgresVersion.VERSION_8_3+'R')
-													|| version.startsWith(PostgresVersion.VERSION_9_4+'.')
-													|| version.startsWith(PostgresVersion.VERSION_9_4+'R')
+												version.startsWith(Version.VERSION_8_1+'.')
+													|| version.startsWith(Version.VERSION_8_3+'.')
+													|| version.startsWith(Version.VERSION_8_3+'R')
+													|| version.startsWith(Version.VERSION_9_4+'.')
+													|| version.startsWith(Version.VERSION_9_4+'R')
 												)
 												? "CREATE ROLE "
 												: "CREATE USER "
@@ -156,31 +155,31 @@ final public class PostgresUserManager extends BuilderThread {
 										.append(username)
 										//.append(
 										//	(
-										//		version.startsWith(PostgresVersion.VERSION_7_1+'.')
+										//		version.startsWith(Version.VERSION_7_1+'.')
 										//	)
 										//	? " PASSWORD '"
 										//	: " UNENCRYPTED PASSWORD '"
 										//)
-										//.append(PostgresUser.NO_PASSWORD_DB_VALUE)
+										//.append(User.NO_PASSWORD_DB_VALUE)
 										//.append("' ")
 										.append(pu.canCreateDB()?" CREATEDB":" NOCREATEDB")
 										.append(
 											(
-												version.startsWith(PostgresVersion.VERSION_8_1+'.')
-													|| version.startsWith(PostgresVersion.VERSION_8_3+'.')
-													|| version.startsWith(PostgresVersion.VERSION_8_3+'R')
-													|| version.startsWith(PostgresVersion.VERSION_9_4+'.')
-													|| version.startsWith(PostgresVersion.VERSION_9_4+'R')
+												version.startsWith(Version.VERSION_8_1+'.')
+													|| version.startsWith(Version.VERSION_8_3+'.')
+													|| version.startsWith(Version.VERSION_8_3+'R')
+													|| version.startsWith(Version.VERSION_9_4+'.')
+													|| version.startsWith(Version.VERSION_9_4+'R')
 												)
 												? (pu.canCatUPD()?" CREATEROLE":" NOCREATEROLE")
 												: (pu.canCatUPD()?" CREATEUSER":" NOCREATEUSER")
 										).append(
 											(
-												version.startsWith(PostgresVersion.VERSION_8_1+'.')
-													|| version.startsWith(PostgresVersion.VERSION_8_3+'.')
-													|| version.startsWith(PostgresVersion.VERSION_8_3+'R')
-													|| version.startsWith(PostgresVersion.VERSION_9_4+'.')
-													|| version.startsWith(PostgresVersion.VERSION_9_4+'R')
+												version.startsWith(Version.VERSION_8_1+'.')
+													|| version.startsWith(Version.VERSION_8_3+'.')
+													|| version.startsWith(Version.VERSION_8_3+'R')
+													|| version.startsWith(Version.VERSION_9_4+'.')
+													|| version.startsWith(Version.VERSION_9_4+'R')
 												)
 												? " LOGIN"
 												: ""
@@ -197,14 +196,14 @@ final public class PostgresUserManager extends BuilderThread {
 								}
 								if(
 									!(
-									version.startsWith(PostgresVersion.VERSION_7_1+'.')
-									|| version.startsWith(PostgresVersion.VERSION_7_2+'.')
-									|| version.startsWith(PostgresVersion.VERSION_7_3+'.')
-									|| version.startsWith(PostgresVersion.VERSION_8_0+'.')
+									version.startsWith(Version.VERSION_7_1+'.')
+									|| version.startsWith(Version.VERSION_7_2+'.')
+									|| version.startsWith(Version.VERSION_7_3+'.')
+									|| version.startsWith(Version.VERSION_8_0+'.')
 									)
 									) {
 									// Enable/disable using rolcanlogin
-									for (PostgresServerUser psu : users) {
+									for (UserServer psu : users) {
 										PostgresUserId username=psu.getPostgresUser().getKey();
 										// Get the current login state
 										boolean rolcanlogin;
@@ -253,7 +252,7 @@ final public class PostgresUserManager extends BuilderThread {
 
 						if(!disableEnableDone) {
 							// Disable/enable using password value
-							for (PostgresServerUser psu : users) {
+							for (UserServer psu : users) {
 								String prePassword=psu.getPredisablePassword();
 								if(!psu.isDisabled()) {
 									if(prePassword!=null) {
@@ -263,7 +262,7 @@ final public class PostgresUserManager extends BuilderThread {
 								} else {
 									if(prePassword==null) {
 										psu.setPredisablePassword(getPassword(psu));
-										setPassword(psu, PostgresUser.NO_PASSWORD,true);
+										setPassword(psu, User.NO_PASSWORD,true);
 									}
 								}
 							}
@@ -280,17 +279,17 @@ final public class PostgresUserManager extends BuilderThread {
 		}
 	}
 
-	public static String getPassword(PostgresServerUser psu) throws IOException, SQLException {
-		PostgresServer ps=psu.getPostgresServer();
+	public static String getPassword(UserServer psu) throws IOException, SQLException {
+		Server ps=psu.getPostgresServer();
 		String version=ps.getVersion().getTechnologyVersion(AOServDaemon.getConnector()).getVersion();
 		AOConnectionPool pool=PostgresServerManager.getPool(ps);
 		Connection conn=pool.getConnection(true);
 		try {
 			try (PreparedStatement pstmt = conn.prepareStatement(
-				version.startsWith(PostgresVersion.VERSION_7_1+'.')
-				|| version.startsWith(PostgresVersion.VERSION_7_2+'.')
-				|| version.startsWith(PostgresVersion.VERSION_7_3+'.')
-				|| version.startsWith(PostgresVersion.VERSION_8_0+'.')
+				version.startsWith(Version.VERSION_7_1+'.')
+				|| version.startsWith(Version.VERSION_7_2+'.')
+				|| version.startsWith(Version.VERSION_7_3+'.')
+				|| version.startsWith(Version.VERSION_8_0+'.')
 				? "select passwd from pg_shadow where usename=?"
 				: "select rolpassword from pg_authid where rolname=?"
 			)) {
@@ -310,20 +309,20 @@ final public class PostgresUserManager extends BuilderThread {
 		}
 	}
 
-	public static void setPassword(PostgresServerUser psu, String password, boolean forceUnencrypted) throws IOException, SQLException {
+	public static void setPassword(UserServer psu, String password, boolean forceUnencrypted) throws IOException, SQLException {
 		// Get the connection to work through
 		AOServConnector aoservConn=AOServDaemon.getConnector();
-		PostgresServer ps=psu.getPostgresServer();
+		Server ps=psu.getPostgresServer();
 		PostgresUserId username=psu.getPostgresUser().getKey();
 		AOConnectionPool pool=PostgresServerManager.getPool(ps);
 		Connection conn = pool.getConnection(false);
 		try {
 			String version=ps.getVersion().getTechnologyVersion(aoservConn).getVersion();
-			if(version.startsWith(PostgresVersion.VERSION_7_1+'.')) {
-				if(ObjectUtils.equals(password, PostgresUser.NO_PASSWORD)) {
+			if(version.startsWith(Version.VERSION_7_1+'.')) {
+				if(ObjectUtils.equals(password, User.NO_PASSWORD)) {
 					// Remove the password
 					Statement stmt = conn.createStatement();
-					String sqlString = "alter user " + username + " with password '"+PostgresUser.NO_PASSWORD_DB_VALUE+'\'';
+					String sqlString = "alter user " + username + " with password '"+User.NO_PASSWORD_DB_VALUE+'\'';
 					try {
 						stmt.executeUpdate(sqlString);
 					} catch(SQLException err) {
@@ -342,11 +341,11 @@ final public class PostgresUserManager extends BuilderThread {
 						}
 					}
 				}
-			} else if(version.startsWith(PostgresVersion.VERSION_7_2+'.') || version.startsWith(PostgresVersion.VERSION_7_3+'.')) {
-				if(ObjectUtils.equals(password, PostgresUser.NO_PASSWORD)) {
+			} else if(version.startsWith(Version.VERSION_7_2+'.') || version.startsWith(Version.VERSION_7_3+'.')) {
+				if(ObjectUtils.equals(password, User.NO_PASSWORD)) {
 					// Remove the password
 					Statement stmt = conn.createStatement();
-					String sqlString = "alter user " + username + " with unencrypted password '"+PostgresUser.NO_PASSWORD_DB_VALUE+'\'';
+					String sqlString = "alter user " + username + " with unencrypted password '"+User.NO_PASSWORD_DB_VALUE+'\'';
 					try {
 						stmt.executeUpdate(sqlString);
 					} catch(SQLException err) {
@@ -366,16 +365,16 @@ final public class PostgresUserManager extends BuilderThread {
 					}
 				}
 			} else if(
-				version.startsWith(PostgresVersion.VERSION_8_1+'.')
-				|| version.startsWith(PostgresVersion.VERSION_8_3+'.')
-				|| version.startsWith(PostgresVersion.VERSION_8_3+'R')
-				|| version.startsWith(PostgresVersion.VERSION_9_4+'.')
-				|| version.startsWith(PostgresVersion.VERSION_9_4+'R')
+				version.startsWith(Version.VERSION_8_1+'.')
+				|| version.startsWith(Version.VERSION_8_3+'.')
+				|| version.startsWith(Version.VERSION_8_3+'R')
+				|| version.startsWith(Version.VERSION_9_4+'.')
+				|| version.startsWith(Version.VERSION_9_4+'R')
 			) {
-				if(ObjectUtils.equals(password, PostgresUser.NO_PASSWORD)) {
+				if(ObjectUtils.equals(password, User.NO_PASSWORD)) {
 					// Remove the password
 					try (Statement stmt = conn.createStatement()) {
-						String sqlString = "alter role " + username + " with unencrypted password '"+PostgresUser.NO_PASSWORD_DB_VALUE+'\'';
+						String sqlString = "alter role " + username + " with unencrypted password '"+User.NO_PASSWORD_DB_VALUE+'\'';
 						try {
 							stmt.executeUpdate(sqlString);
 						} catch(SQLException err) {
@@ -464,7 +463,7 @@ final public class PostgresUserManager extends BuilderThread {
 
 	private static PostgresUserManager postgresUserManager;
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 

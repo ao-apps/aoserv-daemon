@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatDataSource;
+import com.aoindustries.aoserv.client.web.tomcat.ContextDataSource;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.UpgradeSymlink;
@@ -42,7 +42,7 @@ class TomcatCommon_8_0_X extends TomcatCommon {
 	//       Tomcat 8.0 is end-of-life and we're migrating clients off it, so
 	//       we're not fixing this implementation.
 	@Override
-	public void writeHttpdTomcatDataSource(HttpdTomcatDataSource dataSource, ChainWriter out) throws SQLException, IOException {
+	public void writeHttpdTomcatDataSource(ContextDataSource dataSource, ChainWriter out) throws SQLException, IOException {
 		out.print("          <Resource\n"
 				+ "            name=\"").encodeXmlAttribute(dataSource.getName()).print("\"\n"
 				+ "            auth=\"Container\"\n"

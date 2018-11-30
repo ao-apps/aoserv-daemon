@@ -7,10 +7,10 @@ package com.aoindustries.aoserv.daemon.httpd;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.AOServer;
+import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.web.HttpdServer;
-import com.aoindustries.aoserv.client.web.HttpdSite;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdSharedTomcat;
+import com.aoindustries.aoserv.client.web.Site;
+import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -52,8 +52,8 @@ final public class HttpdManager extends BuilderThread {
 				try {
 					// Get some variables that will be used throughout the method
 					List<File> deleteFileList = new ArrayList<>();
-					Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted = new HashSet<>();
-					Set<HttpdSite> sitesNeedingRestarted = new HashSet<>();
+					Set<SharedTomcat> sharedTomcatsNeedingRestarted = new HashSet<>();
+					Set<Site> sitesNeedingRestarted = new HashSet<>();
 					Set<HttpdServer> serversNeedingReloaded = new HashSet<>();
 					Set<PackageManager.PackageName> usedPackages = EnumSet.noneOf(PackageManager.PackageName.class);
 
@@ -104,7 +104,7 @@ final public class HttpdManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 

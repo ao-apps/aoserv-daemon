@@ -6,12 +6,12 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdJKProtocol;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatContext;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatStdSite;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdWorker;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.linux.UserServer;
+import com.aoindustries.aoserv.client.web.tomcat.Context;
+import com.aoindustries.aoserv.client.web.tomcat.JkProtocol;
+import com.aoindustries.aoserv.client.web.tomcat.PrivateTomcatSite;
+import com.aoindustries.aoserv.client.web.tomcat.Worker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
@@ -26,13 +26,13 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Manages HttpdTomcatStdSite version 3.X configurations.
+ * Manages PrivateTomcatSite version 3.X configurations.
  *
  * @author  AO Industries, Inc.
  */
 abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extends HttpdTomcatStdSiteManager<TC> {
 
-	HttpdTomcatStdSiteManager_3_X(HttpdTomcatStdSite tomcatStdSite) throws SQLException, IOException {
+	HttpdTomcatStdSiteManager_3_X(PrivateTomcatSite tomcatStdSite) throws SQLException, IOException {
 		super(tomcatStdSite);
 	}
 
@@ -40,15 +40,15 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 	 * Only supports ajp12
 	 */
 	@Override
-	protected HttpdWorker getHttpdWorker() throws IOException, SQLException {
+	protected Worker getHttpdWorker() throws IOException, SQLException {
 		AOServConnector conn = AOServDaemon.getConnector();
-		List<HttpdWorker> workers = tomcatSite.getHttpdWorkers();
+		List<Worker> workers = tomcatSite.getHttpdWorkers();
 
 		// Try ajp12 next
-		for(HttpdWorker hw : workers) {
-			if(hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol().equals(HttpdJKProtocol.AJP12)) return hw;
+		for(Worker hw : workers) {
+			if(hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol().equals(JkProtocol.AJP12)) return hw;
 		}
-		throw new SQLException("Couldn't find " + HttpdJKProtocol.AJP12);
+		throw new SQLException("Couldn't find " + JkProtocol.AJP12);
 	}
 
 	/**
@@ -61,14 +61,14 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 		final TomcatCommon_3_X tomcatCommon = getTomcatCommon();
 		final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
 		final String siteDir = siteDirectory.getPath();
-		final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
+		final UserServer lsa = httpdSite.getLinuxServerAccount();
 		final int uid = lsa.getUid().getId();
 		final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
-		final AOServer thisAoServer = AOServDaemon.getThisAOServer();
+		final Server thisAoServer = AOServDaemon.getThisAOServer();
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
 		final DomainName hostname = thisAoServer.getHostname();
-		//final PostgresServer postgresServer=thisAOServer.getPreferredPostgresServer();
+		//final Server postgresServer=thisAOServer.getPreferredPostgresServer();
 		//final String postgresServerMinorVersion=postgresServer==null?null:postgresServer.getPostgresVersion().getMinorVersion();
 
 		/*
@@ -78,21 +78,21 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 		DaemonFileUtils.mkdir(siteDir+"/conf", 0775, uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/daemon", 0770, uid, gid);
 		if (!httpdSite.isDisabled()) DaemonFileUtils.ln("../bin/tomcat", siteDir+"/daemon/tomcat", uid, gid);
-		DaemonFileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
+		DaemonFileUtils.ln("webapps/"+Context.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/lib", 0770, uid, gid);
-		DaemonFileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", siteDir+"/servlet", uid, gid);
+		DaemonFileUtils.ln("webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/classes", siteDir+"/servlet", uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/var", 0770, uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/var/log", 0770, uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/var/run", 0770, uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/webapps", 0775, uid, gid);
-		final String rootDir = siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE;
+		final String rootDir = siteDir+"/webapps/"+Context.ROOT_DOC_BASE;
 		DaemonFileUtils.mkdir(rootDir, 0775, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF", 0775, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon", 0770, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf", 0770, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);	
+		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/META-INF", 0775, uid, gid);
+		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF", 0775, uid, gid);
+		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
+		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/cocoon", 0770, uid, gid);
+		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/conf", 0770, uid, gid);
+		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);	
 		DaemonFileUtils.mkdir(siteDir+"/work", 0750, uid, gid);
 		final String profileFile=siteDir+"/bin/profile";
 		LinuxAccountManager.setBashProfile(lsa, profileFile);
@@ -264,8 +264,8 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 		try {
 			out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
 					+ "\n"
-					+ "<!ELEMENT Server (ContextManager+)>\n"
-					+ "<!ATTLIST Server\n"
+					+ "<!ELEMENT Host (ContextManager+)>\n"
+					+ "<!ATTLIST Host\n"
 					+ "    adminPort NMTOKEN \"-1\"\n"
 					+ "    workDir CDATA \"work\">\n"
 					+ "\n"
@@ -318,18 +318,18 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 			String filename = siteDir+"/var/log/" + tomcatLogFile;
 			new UnixFile(filename).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min).close();
 		}
-		final String manifestFile=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF/MANIFEST.MF";
+		final String manifestFile=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/META-INF/MANIFEST.MF";
 		new ChainWriter(new UnixFile(manifestFile).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)).print("Manifest-Version: 1.0").close();
 
 		/*
 		 * Write the cocoon.properties file.
 		 */
-		OutputStream fileOut=new BufferedOutputStream(new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties").getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min));
+		OutputStream fileOut=new BufferedOutputStream(new UnixFile(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties").getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min));
 		try {
 			tomcatCommon.copyCocoonProperties1(fileOut);
 			out=new ChainWriter(fileOut);
 			try {
-				out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon\n");
+				out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/cocoon\n");
 				out.flush();
 				tomcatCommon.copyCocoonProperties2(fileOut);
 			} finally {
@@ -344,7 +344,7 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 		 */
 		out=new ChainWriter(
 			new BufferedOutputStream(
-				new UnixFile(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/web.xml").getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+				new UnixFile(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/web.xml").getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
 			)
 		);
 		try {

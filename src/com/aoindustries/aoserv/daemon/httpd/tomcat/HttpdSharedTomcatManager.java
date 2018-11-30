@@ -6,12 +6,12 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.aosh.AOSHCommand;
-import com.aoindustries.aoserv.client.linux.AOServer;
+import com.aoindustries.aoserv.client.aosh.Command;
+import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdSharedTomcat;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatSharedSite;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatVersion;
+import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
+import com.aoindustries.aoserv.client.web.tomcat.SharedTomcatSite;
+import com.aoindustries.aoserv.client.web.tomcat.Version;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
@@ -37,7 +37,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Manages HttpdSharedTomcat configurations.
+ * Manages SharedTomcat configurations.
  *
  * @author  AO Industries, Inc.
  */
@@ -49,7 +49,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	 * The directories in /wwwgroup or /var/opt/apache-tomcat that will never be deleted.
 	 * <p>
 	 * Note: This matches the check constraint on the httpd_shared_tomcats table.
-	 * Note: This matches isValidSharedTomcatName in HttpdSharedTomcat.
+	 * Note: This matches isValidSharedTomcatName in SharedTomcat.
 	 * </p>
 	 */
 	private static final Set<String> keepWwwgroupDirs = new HashSet<>(Arrays.asList(
@@ -62,10 +62,10 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	/**
 	 * Gets the specific manager for one version of shared Tomcat.
 	 */
-	static HttpdSharedTomcatManager<? extends TomcatCommon> getInstance(HttpdSharedTomcat sharedTomcat) throws IOException, SQLException {
+	static HttpdSharedTomcatManager<? extends TomcatCommon> getInstance(SharedTomcat sharedTomcat) throws IOException, SQLException {
 		AOServConnector connector=AOServDaemon.getConnector();
 
-		HttpdTomcatVersion htv=sharedTomcat.getHttpdTomcatVersion();
+		Version htv=sharedTomcat.getHttpdTomcatVersion();
 		if(htv.isTomcat3_1(connector)) return new HttpdSharedTomcatManager_3_1(sharedTomcat);
 		if(htv.isTomcat3_2_4(connector)) return new HttpdSharedTomcatManager_3_2_4(sharedTomcat);
 		if(htv.isTomcat4_1_X(connector)) return new HttpdSharedTomcatManager_4_1_X(sharedTomcat);
@@ -85,14 +85,14 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	 */
 	public static void doRebuild(
 		List<File> deleteFileList,
-		Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted,
+		Set<SharedTomcat> sharedTomcatsNeedingRestarted,
 		Set<PackageManager.PackageName> usedPackages
 	) throws IOException, SQLException {
 		try {
 			// Get values used in the rest of the method.
 			HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 			String optSlash = osConfig.getHttpdSharedTomcatsOptSlash();
-			AOServer aoServer = AOServDaemon.getThisAOServer();
+			Server aoServer = AOServDaemon.getThisAOServer();
 
 			// The www group directories that exist but are not used will be removed
 			UnixFile wwwgroupDirectory = new UnixFile(osConfig.getHttpdSharedTomcatsDirectory().toString());
@@ -106,7 +106,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 			}
 
 			// Iterate through each shared Tomcat
-			for(HttpdSharedTomcat sharedTomcat : aoServer.getHttpdSharedTomcats()) {
+			for(SharedTomcat sharedTomcat : aoServer.getHttpdSharedTomcats()) {
 				final HttpdSharedTomcatManager<?> manager = getInstance(sharedTomcat);
 
 				// Install any required RPMs
@@ -156,12 +156,12 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	 *
 	 * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
 	 */
-	public static void stopStartAndRestart(Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
-		for(HttpdSharedTomcat sharedTomcat : AOServDaemon.getThisAOServer().getHttpdSharedTomcats()) {
+	public static void stopStartAndRestart(Set<SharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
+		for(SharedTomcat sharedTomcat : AOServDaemon.getThisAOServer().getHttpdSharedTomcats()) {
 			final HttpdSharedTomcatManager<?> manager = getInstance(sharedTomcat);
 
 			boolean hasEnabledSite = false;
-			for(HttpdTomcatSharedSite htss : sharedTomcat.getHttpdTomcatSharedSites()) {
+			for(SharedTomcatSite htss : sharedTomcat.getHttpdTomcatSharedSites()) {
 				if(!htss.getHttpdTomcatSite().getHttpdSite().isDisabled()) {
 					hasEnabledSite = true;
 					break;
@@ -218,9 +218,9 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 		HttpdSiteManager.stopAndDisableDaemons(sharedTomcatDirectory);
 	}
 
-	final protected HttpdSharedTomcat sharedTomcat;
+	final protected SharedTomcat sharedTomcat;
 
-	HttpdSharedTomcatManager(HttpdSharedTomcat sharedTomcat) {
+	HttpdSharedTomcatManager(SharedTomcat sharedTomcat) {
 		this.sharedTomcat = sharedTomcat;
 	}
 
@@ -238,7 +238,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 			+ "\n"
 			+ "  Control Panel: https://www.aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey="+sharedTomcat.getPkey()+"\n"
 			+ "\n"
-			+ "  AOSH: "+AOSHCommand.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+" "+sharedTomcat.getAOServer().getHostname()+" true\n"
+			+ "  AOSH: "+Command.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+" "+sharedTomcat.getAOServer().getHostname()+" true\n"
 			+ "\n"
 			+ "  support@aoindustries.com\n"
 			+ "  (866) 270-6195\n"
@@ -260,7 +260,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 			+ "\n"
 			+ "  Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey="+sharedTomcat.getPkey()+"\n"
 			+ "\n"
-			+ "  AOSH: "+AOSHCommand.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+" "+sharedTomcat.getAOServer().getHostname()+" true\n"
+			+ "  AOSH: "+Command.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+" "+sharedTomcat.getAOServer().getHostname()+" true\n"
 			+ "\n"
 			+ "  support@aoindustries.com\n"
 			+ "  (205) 454-2556\n"
@@ -282,7 +282,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 			+ "#\n"
 			+ "# Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey="+sharedTomcat.getPkey()+"\n"
 			+ "#\n"
-			+ "# AOSH: "+AOSHCommand.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+' '+sharedTomcat.getAOServer().getHostname()+" true\n"
+			+ "# AOSH: "+Command.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+' '+sharedTomcat.getAOServer().getHostname()+" true\n"
 			+ "#\n"
 			+ "# support@aoindustries.com\n"
 			+ "# (866) 270-6195\n"
@@ -304,7 +304,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 			+ "#\n"
 			+ "# Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey="+sharedTomcat.getPkey()+"\n"
 			+ "#\n"
-			+ "# AOSH: "+AOSHCommand.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+' '+sharedTomcat.getAOServer().getHostname()+" true\n"
+			+ "# AOSH: "+Command.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+' '+sharedTomcat.getAOServer().getHostname()+" true\n"
 			+ "#\n"
 			+ "# support@aoindustries.com\n"
 			+ "# (205) 454-2556\n"
@@ -336,7 +336,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	 *   <li>Otherwise, make necessary config changes or upgrades while adhering to the manual flag</li>
 	 * </ol>
 	 */
-	abstract void buildSharedTomcatDirectory(String optSlash, UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException;
+	abstract void buildSharedTomcatDirectory(String optSlash, UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<SharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException;
 
 	/**
 	 * Upgrades the site directory contents for an auto-upgrade.
@@ -361,7 +361,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	public boolean isStartable() throws IOException, SQLException {
 		if(sharedTomcat.isDisabled()) return false;
 		// Must also have at least one enabled site
-		for(HttpdTomcatSharedSite htss : sharedTomcat.getHttpdTomcatSharedSites()) {
+		for(SharedTomcatSite htss : sharedTomcat.getHttpdTomcatSharedSites()) {
 			if(!htss.getHttpdTomcatSite().getHttpdSite().isDisabled()) {
 				return true;
 			}

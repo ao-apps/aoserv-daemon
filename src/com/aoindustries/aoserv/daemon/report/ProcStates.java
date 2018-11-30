@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.report;
 
-import com.aoindustries.aoserv.client.linux.AOServer;
+import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.validator.LinuxId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.util.ErrorPrinter;
@@ -59,7 +59,7 @@ final public class ProcStates {
 			_user_unknown=0
 		;
 
-		AOServer thisAoServer = AOServDaemon.getThisAOServer();
+		Server thisAoServer = AOServDaemon.getThisAOServer();
 		boolean isOuterServer = thisAoServer.getFailoverServer()==null;
 		int uid_min = thisAoServer.getUidMin().getId();
 

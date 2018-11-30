@@ -7,13 +7,13 @@ package com.aoindustries.aoserv.daemon.dns;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.dns.DNSZone;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.linux.LinuxGroup;
-import com.aoindustries.aoserv.client.linux.LinuxServerGroup;
-import com.aoindustries.aoserv.client.net.NetBind;
-import com.aoindustries.aoserv.client.net.Protocol;
-import com.aoindustries.aoserv.client.net.Server;
+import com.aoindustries.aoserv.client.dns.Zone;
+import com.aoindustries.aoserv.client.linux.Group;
+import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.net.AppProtocol;
+import com.aoindustries.aoserv.client.net.Bind;
+import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -131,15 +131,15 @@ final public class DNSManager extends BuilderThread {
 	/**
 	 * Each zone is only rebuild if the zone file does not exist or its serial has changed.
 	 */
-	private static final Map<DNSZone,Long> zoneSerials = new HashMap<>();
+	private static final Map<Zone,Long> zoneSerials = new HashMap<>();
 
 	private static final Object rebuildLock = new Object();
 	@Override
 	protected boolean doRebuild() {
 		try {
 			AOServConnector connector = AOServDaemon.getConnector();
-			AOServer thisAoServer = AOServDaemon.getThisAOServer();
-			Server thisServer = thisAoServer.getServer();
+			Server thisAoServer = AOServDaemon.getThisAOServer();
+			Host thisServer = thisAoServer.getServer();
 			OperatingSystemVersion osv = thisServer.getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
@@ -151,14 +151,14 @@ final public class DNSManager extends BuilderThread {
 			int gid_min = thisAoServer.getGidMin().getId();
 
 			synchronized(rebuildLock) {
-				Protocol dns = AOServDaemon.getConnector().getProtocols().get(Protocol.DNS);
-				if(dns == null) throw new SQLException("Unable to find Protocol: " + Protocol.DNS);
-				List<NetBind> netBinds = thisServer.getNetBinds(dns);
+				AppProtocol dns = AOServDaemon.getConnector().getProtocols().get(AppProtocol.DNS);
+				if(dns == null) throw new SQLException("Unable to find Protocol: " + AppProtocol.DNS);
+				List<Bind> netBinds = thisServer.getNetBinds(dns);
 				if(!netBinds.isEmpty()) {
 					final int namedGid;
 					{
-						LinuxServerGroup lsg = thisAoServer.getLinuxServerGroup(LinuxGroup.NAMED);
-						if(lsg == null) throw new SQLException("Unable to find LinuxServerGroup: " + LinuxGroup.NAMED + " on " + thisAoServer.getHostname());
+						GroupServer lsg = thisAoServer.getLinuxServerGroup(Group.NAMED);
+						if(lsg == null) throw new SQLException("Unable to find GroupServer: " + Group.NAMED + " on " + thisAoServer.getHostname());
 						namedGid = lsg.getGid().getId();
 					}
 
@@ -197,8 +197,8 @@ final public class DNSManager extends BuilderThread {
 					 * Create the new /var/named files
 					 */
 					// By getting the list first, we get a snap-shot of the data
-					List<DNSZone> zones = connector.getDnsZones().getRows();
-					for(DNSZone zone : zones) {
+					List<Zone> zones = connector.getDnsZones().getRows();
+					for(Zone zone : zones) {
 						String file = zone.getFile();
 						long serial = zone.getSerial();
 						Long lastSerial = zoneSerials.get(zone);
@@ -267,7 +267,7 @@ final public class DNSManager extends BuilderThread {
 										+ "\tallow-query { " + ACL + " };\n"
 										+ "\tallow-recursion { " + ACL + " };\n");
 								Map<Integer,Set<InetAddress>> alreadyAddedIPs = new HashMap<>();
-								for(NetBind nb : netBinds) {
+								for(Bind nb : netBinds) {
 									int port = nb.getPort().getPort();
 									InetAddress ip = nb.getIpAddress().getInetAddress();
 									Set<InetAddress> ips = alreadyAddedIPs.get(port);
@@ -293,7 +293,7 @@ final public class DNSManager extends BuilderThread {
 										+ "\t};\n"
 										+ "};\n"
 										+ "include \"/etc/named.rfc1912.zones\";\n");
-								for(DNSZone zone : zones) {
+								for(Zone zone : zones) {
 									String file = zone.getFile();
 									out.print("\n"
 											+ "zone \"").print(zone.getZone()).print("\" IN {\n"
@@ -315,7 +315,7 @@ final public class DNSManager extends BuilderThread {
 								// Find all unique InetAddresses per port
 								Map<Integer,Set<InetAddress>> ipsPerPortV4 = new HashMap<>();
 								Map<Integer,Set<InetAddress>> ipsPerPortV6 = new HashMap<>();
-								for(NetBind nb : netBinds) {
+								for(Bind nb : netBinds) {
 									int port = nb.getPort().getPort();
 									InetAddress ip = nb.getIpAddress().getInetAddress();
 									Map<Integer,Set<InetAddress>> ipsPerPort;
@@ -389,7 +389,7 @@ final public class DNSManager extends BuilderThread {
 										+ "\n"
 										+ "include \"/etc/named.rfc1912.zones\";\n"
 										+ "include \"/etc/named.root.key\";\n");
-								for(DNSZone zone : zones) {
+								for(Zone zone : zones) {
 									String file = zone.getFile();
 									out.print("\n"
 											+ "zone \"").print(zone.getZone()).print("\" IN {\n"
@@ -460,9 +460,9 @@ final public class DNSManager extends BuilderThread {
 
 	private static final Object restartLock = new Object();
 	private static void restart() throws IOException, SQLException {
-		Protocol dns = AOServDaemon.getConnector().getProtocols().get(Protocol.DNS);
-		if(dns == null) throw new SQLException("Unable to find Protocol: " + Protocol.DNS);
-		Server thisServer = AOServDaemon.getThisAOServer().getServer();
+		AppProtocol dns = AOServDaemon.getConnector().getProtocols().get(AppProtocol.DNS);
+		if(dns == null) throw new SQLException("Unable to find Protocol: " + AppProtocol.DNS);
+		Host thisServer = AOServDaemon.getThisAOServer().getServer();
 		if(!thisServer.getNetBinds(dns).isEmpty()) {
 			OperatingSystemVersion osv = thisServer.getOperatingSystemVersion();
 			int osvId = osv.getPkey();

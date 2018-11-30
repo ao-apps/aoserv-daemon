@@ -7,8 +7,8 @@ package com.aoindustries.aoserv.daemon.cvsd;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.client.scm.CvsRepository;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -45,7 +45,7 @@ final public class CvsManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer thisAoServer = AOServDaemon.getThisAOServer();
+			Server thisAoServer = AOServDaemon.getThisAOServer();
 			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
@@ -95,7 +95,7 @@ final public class CvsManager extends BuilderThread {
 				for(CvsRepository cvs : cvsRepositories) {
 					UnixPath path = cvs.getPath();
 					UnixFile cvsUF = new UnixFile(path.toString());
-					LinuxServerAccount lsa = cvs.getLinuxServerAccount();
+					UserServer lsa = cvs.getLinuxServerAccount();
 					{
 						Stat cvsStat = cvsUF.getStat();
 						long cvsMode = cvs.getMode();
@@ -152,7 +152,7 @@ final public class CvsManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 

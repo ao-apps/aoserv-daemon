@@ -6,13 +6,13 @@
 package com.aoindustries.aoserv.daemon.iptables;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.account.BusinessAdministrator;
+import com.aoindustries.aoserv.client.account.Administrator;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.master.MasterUser;
-import com.aoindustries.aoserv.client.net.reputation.IpReputationSet;
-import com.aoindustries.aoserv.client.net.reputation.IpReputationSetHost;
-import com.aoindustries.aoserv.client.net.reputation.IpReputationSetNetwork;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.master.User;
+import com.aoindustries.aoserv.client.net.reputation.Host;
+import com.aoindustries.aoserv.client.net.reputation.Network;
+import com.aoindustries.aoserv.client.net.reputation.Set;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -29,7 +29,6 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -69,7 +68,7 @@ final public class IpReputationManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
@@ -92,9 +91,9 @@ final public class IpReputationManager extends BuilderThread {
 					|| osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
-					BusinessAdministrator ba = conn.getThisBusinessAdministrator();
-					MasterUser mu = ba.getMasterUser();
-					if(mu == null) throw new AssertionError("BusinessAdministrator is not a MasterUser");
+					Administrator ba = conn.getThisBusinessAdministrator();
+					User mu = ba.getMasterUser();
+					if(mu == null) throw new AssertionError("Administrator is not a User");
 					if(mu.isRouter()) {
 						ipReputationManager = new IpReputationManager();
 						conn.getIpReputationSets().addTableListener(ipReputationManager, 0);
@@ -119,7 +118,7 @@ final public class IpReputationManager extends BuilderThread {
 	/**
 	 * Orders hosts with worse reputation first.
 	 */
-	private static final Comparator<IpReputationSetHost> badHostComparator = (IpReputationSetHost host1, IpReputationSetHost host2) -> {
+	private static final Comparator<Host> badHostComparator = (Host host1, Host host2) -> {
 		// Sort by effective reputation first
 		int rep1 = host1.getReputation();
 		int rep2 = host2.getReputation();
@@ -136,7 +135,7 @@ final public class IpReputationManager extends BuilderThread {
 	/**
 	 * Orders networks with best reputation first.
 	 */
-	private static final Comparator<IpReputationSetNetwork> goodNetworkComparator = (IpReputationSetNetwork network1, IpReputationSetNetwork network2) -> {
+	private static final Comparator<Network> goodNetworkComparator = (Network network1, Network network2) -> {
 		// Sort by effective reputation first
 		int count1 = network1.getCounter();
 		int count2 = network2.getCounter();
@@ -153,7 +152,7 @@ final public class IpReputationManager extends BuilderThread {
 	/**
 	 * Orders hosts with best reputation first.
 	 */
-	private static final Comparator<IpReputationSetHost> goodHostComparator = (IpReputationSetHost host1, IpReputationSetHost host2) -> {
+	private static final Comparator<Host> goodHostComparator = (Host host1, Host host2) -> {
 		// Sort by effective reputation first
 		int rep1 = host1.getReputation();
 		int rep2 = host2.getReputation();
@@ -173,14 +172,14 @@ final public class IpReputationManager extends BuilderThread {
 	 * @see  #synchronizeIpset
 	 */
 	private static void synchronizeHostIpset(
-		Set<IpReputationSetHost> hosts,
-		IpReputationSet.ConfidenceType confidence,
-		IpReputationSet.ReputationType reputationType,
+		java.util.Set<Host> hosts,
+		Set.ConfidenceType confidence,
+		Set.ReputationType reputationType,
 		String identifier,
 		UnixFile setDir
 	) throws IOException {
-		Set<Integer> entries = new LinkedHashSet<>(Math.min(Ipset.MAX_IPSET_SIZE+1, hosts.size())*4/3+1);
-		for(IpReputationSetHost host : hosts) {
+		java.util.Set<Integer> entries = new LinkedHashSet<>(Math.min(Ipset.MAX_IPSET_SIZE+1, hosts.size())*4/3+1);
+		for(Host host : hosts) {
 			entries.add(host.getHost());
 			if(entries.size()>Ipset.MAX_IPSET_SIZE) break;
 		}
@@ -198,20 +197,20 @@ final public class IpReputationManager extends BuilderThread {
 	 * @see  #synchronizeIpset
 	 */
 	private static void synchronizeNetworkIpset(
-		Set<IpReputationSetNetwork> networks,
+		java.util.Set<Network> networks,
 		short networkPrefix,
 		String identifier,
 		UnixFile setDir
 	) throws IOException {
-		Set<Integer> entries = new LinkedHashSet<>(Math.min(Ipset.MAX_IPSET_SIZE+1, networks.size())*4/3+1);
-		for(IpReputationSetNetwork network : networks) {
+		java.util.Set<Integer> entries = new LinkedHashSet<>(Math.min(Ipset.MAX_IPSET_SIZE+1, networks.size())*4/3+1);
+		for(Network network : networks) {
 			entries.add(network.getNetwork());
 			if(entries.size()>Ipset.MAX_IPSET_SIZE) break;
 		}
 		Ipset.synchronize(
 			entries,
 			networkPrefix,
-			Ipset.NamespacePrefix.R.name()+IpReputationSet.ReputationType.GOOD.toChar()+"N_" + identifier,
+			Ipset.NamespacePrefix.R.name()+Set.ReputationType.GOOD.toChar()+"N_" + identifier,
 			setDir
 		);
 	}
@@ -221,7 +220,7 @@ final public class IpReputationManager extends BuilderThread {
 	protected boolean doRebuild() {
 		try {
 			AOServConnector conn = AOServDaemon.getConnector();
-			AOServer thisAOServer = AOServDaemon.getThisAOServer();
+			Server thisAOServer = AOServDaemon.getThisAOServer();
 			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
@@ -233,12 +232,12 @@ final public class IpReputationManager extends BuilderThread {
 
 			synchronized(rebuildLock) {
 				final UnixFile ipreputationDir = getIpreputationDir();
-				final Collection<IpReputationSet> sets = conn.getIpReputationSets().getRows();
+				final Collection<Set> sets = conn.getIpReputationSets().getRows();
 
 				// Track the names of each set, used to remove extra directories
-				final Set<String> setIdentifiers = new HashSet<>(sets.size()*4/3+1);
+				final java.util.Set<String> setIdentifiers = new HashSet<>(sets.size()*4/3+1);
 
-				for(IpReputationSet set : sets) {
+				for(Set set : sets) {
 					// Set settings
 					final String identifier       = set.getIdentifier();
 					final short maxUncertainGood  = set.getMaxUncertainReputation();
@@ -254,11 +253,11 @@ final public class IpReputationManager extends BuilderThread {
 					// TODO: Use concurrency equal to minimum of four or half the cores on the server
 
 					// Split the IP addresses into four classes based on the set's settings.
-					SortedSet<IpReputationSetHost>    definiteBadHosts   = new TreeSet<>(badHostComparator);
-					SortedSet<IpReputationSetHost>    uncertainBadHosts  = new TreeSet<>(badHostComparator);
-					SortedSet<IpReputationSetHost>    uncertainGoodHosts = new TreeSet<>(goodHostComparator);
-					SortedSet<IpReputationSetHost>    definiteGoodHosts  = new TreeSet<>(goodHostComparator);
-					for(IpReputationSetHost host : set.getHosts()) {
+					SortedSet<Host>    definiteBadHosts   = new TreeSet<>(badHostComparator);
+					SortedSet<Host>    uncertainBadHosts  = new TreeSet<>(badHostComparator);
+					SortedSet<Host>    uncertainGoodHosts = new TreeSet<>(goodHostComparator);
+					SortedSet<Host>    definiteGoodHosts  = new TreeSet<>(goodHostComparator);
+					for(Host host : set.getHosts()) {
 						short rep = host.getReputation();
 						if(rep < minUncertainBad) {
 							definiteBadHosts.add(host);
@@ -274,35 +273,35 @@ final public class IpReputationManager extends BuilderThread {
 					}
 
 					// Sort the networks by reputation
-					SortedSet<IpReputationSetNetwork> goodNetworks = new TreeSet<>(goodNetworkComparator);
+					SortedSet<Network> goodNetworks = new TreeSet<>(goodNetworkComparator);
 					goodNetworks.addAll(set.getNetworks());
 
 					// Synchronize both the in-kernel set as well as the on-disk representations
 					synchronizeHostIpset(
 						definiteBadHosts,
-						IpReputationSet.ConfidenceType.DEFINITE,
-						IpReputationSet.ReputationType.BAD,
+						Set.ConfidenceType.DEFINITE,
+						Set.ReputationType.BAD,
 						identifier,
 						setDir
 					);
 					synchronizeHostIpset(
 						uncertainBadHosts,
-						IpReputationSet.ConfidenceType.UNCERTAIN,
-						IpReputationSet.ReputationType.BAD,
+						Set.ConfidenceType.UNCERTAIN,
+						Set.ReputationType.BAD,
 						identifier,
 						setDir
 					);
 					synchronizeHostIpset(
 						uncertainGoodHosts,
-						IpReputationSet.ConfidenceType.UNCERTAIN,
-						IpReputationSet.ReputationType.GOOD,
+						Set.ConfidenceType.UNCERTAIN,
+						Set.ReputationType.GOOD,
 						identifier,
 						setDir
 					);
 					synchronizeHostIpset(
 						definiteGoodHosts,
-						IpReputationSet.ConfidenceType.DEFINITE,
-						IpReputationSet.ReputationType.GOOD,
+						Set.ConfidenceType.DEFINITE,
+						Set.ReputationType.GOOD,
 						identifier,
 						setDir
 					);

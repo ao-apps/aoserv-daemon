@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.backup;
 
-import com.aoindustries.aoserv.client.linux.AOServer;
+import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -64,7 +64,7 @@ final public class BackupManager {
 			// Backup
 			createTarball(deleteFileList, backupFile);
 			// Remove the files that have been backed up.
-			AOServer thisAoServer = AOServDaemon.getThisAOServer();
+			Server thisAoServer = AOServDaemon.getThisAOServer();
 			int uid_min = thisAoServer.getUidMin().getId();
 			int gid_min = thisAoServer.getGidMin().getId();
 			for(File file : deleteFileList) {
@@ -150,8 +150,8 @@ final public class BackupManager {
 		try {
 			AOServDaemon.executorService.submit(timer);
 			try {
-				for(MySQLServer ms : AOServDaemon.getThisAOServer().getMySQLServers()) {
-					for(MySQLDatabase md : ms.getMySQLDatabases()) {
+				for(Server ms : AOServDaemon.getThisAOServer().getMySQLServers()) {
+					for(Database md : ms.getMySQLDatabases()) {
 						if(md.getBackupLevel().getLevel()>0) {
 							long startTime=System.currentTimeMillis();
 							try {
@@ -191,8 +191,8 @@ final public class BackupManager {
 		try {
 			AOServDaemon.executorService.submit(timer);
 			try {
-				for(PostgresServer ps : AOServDaemon.getThisAOServer().getPostgresServers()) {
-					for(PostgresDatabase pd : ps.getPostgresDatabases()) {
+				for(Server ps : AOServDaemon.getThisAOServer().getPostgresServers()) {
+					for(Database pd : ps.getPostgresDatabases()) {
 						if(pd.allowsConnections() && pd.getBackupLevel().getLevel()>0) {
 							long startTime=System.currentTimeMillis();
 							try {

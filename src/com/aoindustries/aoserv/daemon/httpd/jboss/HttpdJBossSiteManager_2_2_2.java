@@ -6,18 +6,18 @@
 package com.aoindustries.aoserv.daemon.httpd.jboss;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
-import com.aoindustries.aoserv.client.linux.LinuxServerGroup;
-import com.aoindustries.aoserv.client.net.NetBind;
+import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.linux.UserServer;
+import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.client.validator.GroupId;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.validator.UserId;
-import com.aoindustries.aoserv.client.web.jboss.HttpdJBossSite;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdJKProtocol;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatContext;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatVersion;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdWorker;
+import com.aoindustries.aoserv.client.web.jboss.Site;
+import com.aoindustries.aoserv.client.web.tomcat.Context;
+import com.aoindustries.aoserv.client.web.tomcat.JkProtocol;
+import com.aoindustries.aoserv.client.web.tomcat.Version;
+import com.aoindustries.aoserv.client.web.tomcat.Worker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.TomcatCommon_3_2_4;
@@ -39,13 +39,13 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Manages HttpdJBossSite version 2.2.2 configurations.
+ * Manages Site version 2.2.2 configurations.
  *
  * @author  AO Industries, Inc.
  */
 class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2_4> {
 
-	HttpdJBossSiteManager_2_2_2(HttpdJBossSite jbossSite) throws SQLException, IOException {
+	HttpdJBossSiteManager_2_2_2(Site jbossSite) throws SQLException, IOException {
 		super(jbossSite);
 	}
 
@@ -65,8 +65,8 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		if(replaceCommand==null) throw new IOException("OperatingSystem doesn't have replace command");
 		final TomcatCommon_3_2_4 tomcatCommon = getTomcatCommon();
 		final String siteDir = siteDirectory.getPath();
-		final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
-		final LinuxServerGroup lsg = httpdSite.getLinuxServerGroup();
+		final UserServer lsa = httpdSite.getLinuxServerAccount();
+		final GroupServer lsg = httpdSite.getLinuxServerGroup();
 		final int uid = lsa.getUid().getId();
 		final int gid = lsg.getGid().getId();
 		final UserId laUsername=lsa.getLinuxAccount().getUsername().getUsername();
@@ -79,10 +79,10 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		DaemonFileUtils.mkdir(new UnixFile(siteDirectory, "bin", false), 0770, uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/conf", 0775, uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/daemon", 0770, uid, gid);
-		DaemonFileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
+		DaemonFileUtils.ln("webapps/"+Context.ROOT_DOC_BASE, siteDir+"/htdocs", uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/lib", 0770, uid, gid);
 		DaemonFileUtils.ln("var/log", siteDir+"/logs", uid, gid);
-		DaemonFileUtils.ln("webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", siteDir+"/servlet", uid, gid);
+		DaemonFileUtils.ln("webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/classes", siteDir+"/servlet", uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/var", 0770, uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/var/log", 0770, uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/var/run", 0770, uid, gid);
@@ -149,13 +149,13 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		);
 		DaemonFileUtils.ln(".", siteDir+"/tomcat", uid, gid);
 
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF", 0775, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon", 0770, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf", 0770, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);	
+		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE, 0775, uid, gid);
+		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/META-INF", 0775, uid, gid);
+		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF", 0775, uid, gid);
+		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
+		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/cocoon", 0770, uid, gid);
+		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/conf", 0770, uid, gid);
+		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);	
 		DaemonFileUtils.mkdir(siteDir+"/work", 0750, uid, gid);
 
 		/*
@@ -169,7 +169,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		 */
 		DaemonFileUtils.mkdir(siteDir+"/classes", 0770, uid, gid);
 
-		AOServer thisAoServer = AOServDaemon.getThisAOServer();
+		Server thisAoServer = AOServDaemon.getThisAOServer();
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
 		/*
@@ -217,8 +217,8 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		try {
 			out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
 					  + "\n"
-					  + "<!ELEMENT Server (ContextManager+)>\n"
-					  + "<!ATTLIST Server\n"
+					  + "<!ELEMENT Host (ContextManager+)>\n"
+					  + "<!ATTLIST Host\n"
 					  + "    adminPort NMTOKEN \"-1\"\n"
 					  + "    workDir CDATA \"work\">\n"
 					  + "\n"
@@ -297,7 +297,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		/*
 		 * Create the manifest file.
 		 */
-		String manifestFile=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/META-INF/MANIFEST.MF";
+		String manifestFile=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/META-INF/MANIFEST.MF";
 		new ChainWriter(
 			new UnixFile(manifestFile).getSecureOutputStream(
 				uid,
@@ -312,13 +312,13 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		/*
 		 * Write the cocoon.properties file.
 		 */
-		String cocoonProps=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties";
+		String cocoonProps=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties";
 		OutputStream fileOut=new BufferedOutputStream(new UnixFile(cocoonProps).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min));
 		try {
 			tomcatCommon.copyCocoonProperties1(fileOut);
 			out=new ChainWriter(fileOut);
 			try {
-				out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/cocoon\n");
+				out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/cocoon\n");
 				out.flush();
 				tomcatCommon.copyCocoonProperties2(fileOut);
 			} finally {
@@ -331,7 +331,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		/*
 		 * Write the ROOT/WEB-INF/web.xml file.
 		 */
-		String webXML=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/web.xml";
+		String webXML=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/web.xml";
 		out=new ChainWriter(
 			new BufferedOutputStream(
 				new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
@@ -377,13 +377,13 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 	 * Only supports ajp12
 	 */
 	@Override
-	protected HttpdWorker getHttpdWorker() throws IOException, SQLException {
+	protected Worker getHttpdWorker() throws IOException, SQLException {
 		AOServConnector conn = AOServDaemon.getConnector();
-		List<HttpdWorker> workers = tomcatSite.getHttpdWorkers();
+		List<Worker> workers = tomcatSite.getHttpdWorkers();
 
 		// Try ajp12 next
-		for(HttpdWorker hw : workers) {
-			if(hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol().equals(HttpdJKProtocol.AJP12)) return hw;
+		for(Worker hw : workers) {
+			if(hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol().equals(JkProtocol.AJP12)) return hw;
 		}
 		throw new SQLException("Couldn't find ajp12");
 	}
@@ -412,13 +412,13 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 	protected byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException {
 		final String siteDir = siteDirectory.getPath();
 		final AOServConnector conn = AOServDaemon.getConnector();
-		final HttpdTomcatVersion htv = tomcatSite.getHttpdTomcatVersion();
+		final Version htv = tomcatSite.getHttpdTomcatVersion();
 
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
 		try (ChainWriter out = new ChainWriter(bout)) {
 			out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n");
 			if(!httpdSite.isManual()) out.print(autoWarning);
-			out.print("<Server>\n"
+			out.print("<Host>\n"
 					+ "  <xmlmapper:debug level=\"0\" />\n"
 					+ "  <Logger name=\"tc_log\" verbosityLevel = \"INFORMATION\" path=\"").encodeXmlAttribute(siteDir).print("/var/log/tomcat.log\" />\n"
 					+ "  <Logger name=\"servlet_log\" path=\"").encodeXmlAttribute(siteDir).print("/var/log/servlet.log\" />\n"
@@ -439,17 +439,17 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 					+ "    <RequestInterceptor className=\"org.jboss.tomcat.security.JBossSecurityMgrRealm\" />\n"
 					+ "    <ContextInterceptor className=\"org.apache.tomcat.context.LoadOnStartupInterceptor\" />\n");
 
-			for(HttpdWorker worker : tomcatSite.getHttpdWorkers()) {
-				NetBind netBind=worker.getBind();
+			for(Worker worker : tomcatSite.getHttpdWorkers()) {
+				Bind netBind=worker.getBind();
 				String protocol=worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
 
 				out.print("    <Connector className=\"org.apache.tomcat.service.PoolTcpConnector\">\n"
 						+ "      <Parameter name=\"handler\" value=\"");
 				switch (protocol) {
-					case HttpdJKProtocol.AJP12:
+					case JkProtocol.AJP12:
 						out.print("org.apache.tomcat.service.connector.Ajp12ConnectionHandler");
 						break;
-					case HttpdJKProtocol.AJP13:
+					case JkProtocol.AJP13:
 						out.print("org.apache.tomcat.service.connector.Ajp13ConnectionHandler");
 						break;
 					default:
@@ -465,11 +465,11 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 						+ "    </Connector>\n"
 				);
 			}
-			for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
+			for(Context htc : tomcatSite.getHttpdTomcatContexts()) {
 				out.print("    <Context path=\"").encodeXmlAttribute(htc.getPath()).print("\" docBase=\"").encodeXmlAttribute(htc.getDocBase()).print("\" debug=\"").encodeXmlAttribute(htc.getDebugLevel()).print("\" reloadable=\"").encodeXmlAttribute(htc.isReloadable()).print("\" />\n");
 			}
 			out.print("  </ContextManager>\n"
-					+ "</Server>\n");
+					+ "</Host>\n");
 		}
 		return bout.toByteArray();
 	}
@@ -481,7 +481,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		String autoWarning = getAutoWarningXml();
 		String autoWarningOld = getAutoWarningXmlOld();
 
-		AOServer thisAoServer = AOServDaemon.getThisAOServer();
+		Server thisAoServer = AOServDaemon.getThisAOServer();
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
 

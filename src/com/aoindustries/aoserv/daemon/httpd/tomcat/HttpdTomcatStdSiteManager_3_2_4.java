@@ -6,12 +6,12 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.net.NetBind;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdJKProtocol;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatContext;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatStdSite;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatVersion;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdWorker;
+import com.aoindustries.aoserv.client.net.Bind;
+import com.aoindustries.aoserv.client.web.tomcat.Context;
+import com.aoindustries.aoserv.client.web.tomcat.JkProtocol;
+import com.aoindustries.aoserv.client.web.tomcat.PrivateTomcatSite;
+import com.aoindustries.aoserv.client.web.tomcat.Version;
+import com.aoindustries.aoserv.client.web.tomcat.Worker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
@@ -21,13 +21,13 @@ import java.io.IOException;
 import java.sql.SQLException;
 
 /**
- * Manages HttpdTomcatStdSite version 3.2.4 configurations.
+ * Manages PrivateTomcatSite version 3.2.4 configurations.
  *
  * @author  AO Industries, Inc.
  */
 class HttpdTomcatStdSiteManager_3_2_4 extends HttpdTomcatStdSiteManager_3_X<TomcatCommon_3_2_4> {
 
-	HttpdTomcatStdSiteManager_3_2_4(HttpdTomcatStdSite tomcatStdSite) throws SQLException, IOException {
+	HttpdTomcatStdSiteManager_3_2_4(PrivateTomcatSite tomcatStdSite) throws SQLException, IOException {
 		super(tomcatStdSite);
 	}
 
@@ -40,14 +40,14 @@ class HttpdTomcatStdSiteManager_3_2_4 extends HttpdTomcatStdSiteManager_3_X<Tomc
 	protected byte[] buildServerXml(UnixFile siteDirectory, String autoWarning) throws IOException, SQLException {
 		final String siteDir = siteDirectory.getPath();
 		AOServConnector conn = AOServDaemon.getConnector();
-		final HttpdTomcatVersion htv = tomcatSite.getHttpdTomcatVersion();
+		final Version htv = tomcatSite.getHttpdTomcatVersion();
 
 		// Build to RAM first
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
 		try (ChainWriter out = new ChainWriter(bout)) {
 			out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n");
 			if(!httpdSite.isManual()) out.print(autoWarning);
-			out.print("<Server>\n"
+			out.print("<Host>\n"
 					+ "  <xmlmapper:debug level=\"0\" />\n"
 					+ "  <Logger name=\"tc_log\" verbosityLevel = \"INFORMATION\" path=\"").encodeXmlAttribute(siteDir).print("/var/log/tomcat.log\" />\n"
 					+ "  <Logger name=\"servlet_log\" path=\"").encodeXmlAttribute(siteDir).print("/var/log/servlet.log\" />\n"
@@ -67,14 +67,14 @@ class HttpdTomcatStdSiteManager_3_2_4 extends HttpdTomcatStdSiteManager_3_X<Tomc
 					+ "    <RequestInterceptor className=\"org.apache.tomcat.request.SimpleRealm\" debug=\"0\" />\n"
 					+ "    <ContextInterceptor className=\"org.apache.tomcat.context.LoadOnStartupInterceptor\" />\n");
 
-			for(HttpdWorker worker : tomcatSite.getHttpdWorkers()) {
-				NetBind netBind=worker.getBind();
+			for(Worker worker : tomcatSite.getHttpdWorkers()) {
+				Bind netBind=worker.getBind();
 				String protocol=worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
 
 				out.print("    <Connector className=\"org.apache.tomcat.service.PoolTcpConnector\">\n"
 						+ "      <Parameter name=\"handler\" value=\"");
-				if(protocol.equals(HttpdJKProtocol.AJP12)) out.print("org.apache.tomcat.service.connector.Ajp12ConnectionHandler");
-				else if(protocol.equals(HttpdJKProtocol.AJP13)) out.print("org.apache.tomcat.service.connector.Ajp13ConnectionHandler");
+				if(protocol.equals(JkProtocol.AJP12)) out.print("org.apache.tomcat.service.connector.Ajp12ConnectionHandler");
+				else if(protocol.equals(JkProtocol.AJP13)) out.print("org.apache.tomcat.service.connector.Ajp13ConnectionHandler");
 				else throw new IllegalArgumentException("Unknown AJP version: "+htv);
 				out.print("\"/>\n"
 						+ "      <Parameter name=\"port\" value=\"").encodeXmlAttribute(netBind.getPort().getPort()).print("\"/>\n");
@@ -86,11 +86,11 @@ class HttpdTomcatStdSiteManager_3_2_4 extends HttpdTomcatStdSiteManager_3_X<Tomc
 						+ "    </Connector>\n"
 				);
 			}
-			for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
+			for(Context htc : tomcatSite.getHttpdTomcatContexts()) {
 				out.print("    <Context path=\"").encodeXmlAttribute(htc.getPath()).print("\" docBase=\"").encodeXmlAttribute(htc.getDocBase()).print("\" debug=\"").encodeXmlAttribute(htc.getDebugLevel()).print("\" reloadable=\"").encodeXmlAttribute(htc.isReloadable()).print("\" />\n");
 			}
 			out.print("  </ContextManager>\n"
-					+ "</Server>\n");
+					+ "</Host>\n");
 		}
 		return bout.toByteArray();
 	}

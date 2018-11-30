@@ -5,23 +5,22 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
-import com.aoindustries.aoserv.client.aosh.AOSHCommand;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
-import com.aoindustries.aoserv.client.linux.LinuxServerGroup;
-import com.aoindustries.aoserv.client.net.IPAddress;
-import com.aoindustries.aoserv.client.net.NetBind;
+import com.aoindustries.aoserv.client.aosh.Command;
+import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.linux.UserServer;
+import com.aoindustries.aoserv.client.net.Bind;
+import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.web.HttpdSite;
-import com.aoindustries.aoserv.client.web.HttpdSiteBind;
-import com.aoindustries.aoserv.client.web.HttpdSiteURL;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdSharedTomcat;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatContext;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatDataSource;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatParameter;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatSharedSite;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatSite;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdWorker;
+import com.aoindustries.aoserv.client.web.VirtualHost;
+import com.aoindustries.aoserv.client.web.VirtualHostName;
+import com.aoindustries.aoserv.client.web.tomcat.Context;
+import com.aoindustries.aoserv.client.web.tomcat.ContextDataSource;
+import com.aoindustries.aoserv.client.web.tomcat.ContextParameter;
+import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
+import com.aoindustries.aoserv.client.web.tomcat.SharedTomcatSite;
+import com.aoindustries.aoserv.client.web.tomcat.Site;
+import com.aoindustries.aoserv.client.web.tomcat.Worker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
@@ -51,7 +50,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Manages shared aspects of HttpdSharedTomcat version 8.5 and above.
+ * Manages shared aspects of SharedTomcat version 8.5 and above.
  *
  * @author  AO Industries, Inc.
  */
@@ -64,7 +63,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 	 */
 	private static final String README_TXT = "README.txt";
 
-	VersionedSharedTomcatManager(HttpdSharedTomcat sharedTomcat) {
+	VersionedSharedTomcatManager(SharedTomcat sharedTomcat) {
 		super(sharedTomcat);
 	}
 
@@ -75,8 +74,8 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 	 */
 	protected void writeServerXml(
 		ChainWriter out,
-		HttpdSharedTomcat sharedTomcat,
-		List<HttpdTomcatSharedSite> sites
+		SharedTomcat sharedTomcat,
+		List<SharedTomcatSite> sites
 	) throws IOException, SQLException {
 		final TC tomcatCommon = getTomcatCommon();
 		final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
@@ -84,14 +83,14 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		final UnixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();
 		String autoWarning = getAutoWarningXml();
 
-		HttpdWorker hw = sharedTomcat.getTomcat4Worker();
-		NetBind shutdownPort = sharedTomcat.getTomcat4ShutdownPort();
-		if(shutdownPort == null) throw new SQLException("Unable to find shutdown key for HttpdSharedTomcat: " + sharedTomcat);
+		Worker hw = sharedTomcat.getTomcat4Worker();
+		Bind shutdownPort = sharedTomcat.getTomcat4ShutdownPort();
+		if(shutdownPort == null) throw new SQLException("Unable to find shutdown key for SharedTomcat: " + sharedTomcat);
 		String shutdownKey = sharedTomcat.getTomcat4ShutdownKey();
-		if(shutdownKey == null) throw new SQLException("Unable to find shutdown key for HttpdSharedTomcat: " + sharedTomcat);
+		if(shutdownKey == null) throw new SQLException("Unable to find shutdown key for SharedTomcat: " + sharedTomcat);
 		out.print("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 		if(!sharedTomcat.isManual()) out.print(autoWarning);
-		out.print("<Server port=\"").encodeXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").encodeXmlAttribute(shutdownKey).print("\">\n"
+		out.print("<Host port=\"").encodeXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").encodeXmlAttribute(shutdownKey).print("\">\n"
 				+ "  <Listener className=\"org.apache.catalina.startup.VersionLoggerListener\" />\n"
 				+ "  <!-- Security listener. Documentation at /docs/config/listeners.html\n"
 				+ "  <Listener className=\"org.apache.catalina.security.SecurityListener\" />\n"
@@ -120,7 +119,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 				+ "  <Service name=\"Catalina\">\n"
 				+ "    <Connector\n"
 				+ "      port=\"").encodeXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
-				+ "      address=\"").encodeXmlAttribute(IPAddress.LOOPBACK_IP).print("\"\n"
+				+ "      address=\"").encodeXmlAttribute(IpAddress.LOOPBACK_IP).print("\"\n"
 				+ "      maxPostSize=\"").encodeXmlAttribute(sharedTomcat.getMaxPostSize()).print("\"\n"
 				+ "      protocol=\"AJP/1.3\"\n"
 				+ "      redirectPort=\"8443\"\n"
@@ -131,8 +130,8 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		String defaultHostPrimaryHostname = null;
 		FIND_FIRST :
 		for(boolean listFirst : new boolean[] {true, false}) {
-			for (HttpdTomcatSharedSite site : sites) {
-				HttpdSite hs = site.getHttpdTomcatSite().getHttpdSite();
+			for (SharedTomcatSite site : sites) {
+				com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
 				if(hs.getListFirst() == listFirst && !hs.isDisabled()) {
 					defaultHostPrimaryHostname = hs.getPrimaryHttpdSiteURL().getHostname().toLowerCase();
 					break FIND_FIRST;
@@ -151,8 +150,8 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 				+ "               resourceName=\"UserDatabase\"/>\n"
 				+ "      </Realm>\n");
 		for(boolean listFirst : new boolean[] {true, false}) {
-			for (HttpdTomcatSharedSite site : sites) {
-				HttpdSite hs = site.getHttpdTomcatSite().getHttpdSite();
+			for (SharedTomcatSite site : sites) {
+				com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
 				if(hs.getListFirst() == listFirst && !hs.isDisabled()) {
 					String primaryHostname = hs.getPrimaryHttpdSiteURL().getHostname().toLowerCase();
 					out.print("\n"
@@ -164,9 +163,9 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 							+ "      >\n");
 					List<String> usedHostnames = new SortedArrayList<>();
 					usedHostnames.add(primaryHostname);
-					List<HttpdSiteBind> binds = hs.getHttpdSiteBinds();
-					for (HttpdSiteBind bind : binds) {
-						for (HttpdSiteURL url : bind.getHttpdSiteURLs()) {
+					List<VirtualHost> binds = hs.getHttpdSiteBinds();
+					for (VirtualHost bind : binds) {
+						for (VirtualHostName url : bind.getHttpdSiteURLs()) {
 							String hostname = url.getHostname().toLowerCase();
 							if(!usedHostnames.contains(hostname)) {
 								out.print("        <Alias>").encodeXhtml(hostname).print("</Alias>\n");
@@ -182,8 +181,8 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 							}
 						}
 					}
-					HttpdTomcatSite tomcatSite = hs.getHttpdTomcatSite();
-					for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
+					Site tomcatSite = hs.getHttpdTomcatSite();
+					for(Context htc : tomcatSite.getHttpdTomcatContexts()) {
 						if(!htc.isServerXmlConfigured()) out.print("        <!--\n");
 						out.print("        <Context\n");
 						if(htc.getClassName() != null) out.print("          className=\"").encodeXmlAttribute(htc.getClassName()).print("\"\n");
@@ -198,18 +197,18 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 						if(htc.getWrapperClass() != null) out.print("          wrapperClass=\"").encodeXmlAttribute(htc.getWrapperClass()).print("\"\n");
 						// Not present in Tomcat 8.5+: out.print("          debug=\"").encodeXmlAttribute(htc.getDebugLevel()).print("\"\n");
 						if(htc.getWorkDir() != null) out.print("          workDir=\"").encodeXmlAttribute(htc.getWorkDir()).print("\"\n");
-						List<HttpdTomcatParameter> parameters = htc.getHttpdTomcatParameters();
-						List<HttpdTomcatDataSource> dataSources = htc.getHttpdTomcatDataSources();
+						List<ContextParameter> parameters = htc.getHttpdTomcatParameters();
+						List<ContextDataSource> dataSources = htc.getHttpdTomcatDataSources();
 						if(parameters.isEmpty() && dataSources.isEmpty()) {
 							out.print("        />\n");
 						} else {
 							out.print("        >\n");
 							// Parameters
-							for(HttpdTomcatParameter parameter : parameters) {
+							for(ContextParameter parameter : parameters) {
 								tomcatCommon.writeHttpdTomcatParameter(parameter, out);
 							}
 							// Data Sources
-							for(HttpdTomcatDataSource dataSource : dataSources) {
+							for(ContextDataSource dataSource : dataSources) {
 								tomcatCommon.writeHttpdTomcatDataSource(dataSource, out);
 							}
 							out.print("        </Context>\n");
@@ -222,19 +221,19 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		}
 		out.print("    </Engine>\n"
 				+ "  </Service>\n"
-				+ "</Server>\n");
+				+ "</Host>\n");
 	}
 
 	@Override
-	void buildSharedTomcatDirectory(String optSlash, UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
+	void buildSharedTomcatDirectory(String optSlash, UnixFile sharedTomcatDirectory, List<File> deleteFileList, Set<SharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
 		/*
 		 * Get values used in the rest of the loop.
 		 */
 		final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
 		final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
-		final LinuxServerAccount lsa = sharedTomcat.getLinuxServerAccount();
+		final UserServer lsa = sharedTomcat.getLinuxServerAccount();
 		final int lsaUID = lsa.getUid().getId();
-		final LinuxServerGroup lsg = sharedTomcat.getLinuxServerGroup();
+		final GroupServer lsg = sharedTomcat.getLinuxServerGroup();
 		final int lsgGID = lsg.getGid().getId();
 		final UnixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();
 
@@ -301,13 +300,13 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		}
 
 		// always rebuild bin/profile.d/httpd-sites.sh
-		List<HttpdTomcatSharedSite> sites = sharedTomcat.getHttpdTomcatSharedSites();
+		List<SharedTomcatSite> sites = sharedTomcat.getHttpdTomcatSharedSites();
 		bout.reset();
 		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
 			out.print("export SITES=\"");
 			boolean didOne = false;
-			for(HttpdTomcatSharedSite site : sites) {
-				HttpdSite hs = site.getHttpdTomcatSite().getHttpdSite();
+			for(SharedTomcatSite site : sites) {
+				com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
 				if(!hs.isDisabled()) {
 					if(didOne) out.print(' ');
 					else didOne = true;
@@ -339,8 +338,8 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		if(wlist != null) {
 			workFiles.addAll(Arrays.asList(wlist));
 		}
-		for (HttpdTomcatSharedSite site : sites) {
-			HttpdSite hs = site.getHttpdTomcatSite().getHttpdSite();
+		for (SharedTomcatSite site : sites) {
+			com.aoindustries.aoserv.client.web.Site hs = site.getHttpdTomcatSite().getHttpdSite();
 			if(!hs.isDisabled()) {
 				String subwork = hs.getPrimaryHttpdSiteURL().getHostname().toString();
 				workFiles.remove(subwork);
@@ -379,7 +378,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 			}
 		} else {
 			try {
-				AOServer thisAoServer = AOServDaemon.getThisAOServer();
+				Server thisAoServer = AOServDaemon.getThisAOServer();
 				int uid_min = thisAoServer.getUidMin().getId();
 				int gid_min = thisAoServer.getGidMin().getId();
 				DaemonFileUtils.stripFilePrefix(
@@ -401,7 +400,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 
 		// Enable/Disable
 		boolean hasEnabledSite = false;
-		for(HttpdTomcatSharedSite htss : sharedTomcat.getHttpdTomcatSharedSites()) {
+		for(SharedTomcatSite htss : sharedTomcat.getHttpdTomcatSharedSites()) {
 			if(!htss.getHttpdTomcatSite().getHttpdSite().isDisabled()) {
 				hasEnabledSite = true;
 				break;
@@ -537,7 +536,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 				+ "\n"
 				+ "Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey=").print(sharedTomcat.getPkey()).print("\n"
 				+ "\n"
-				+ "AOSH: " + AOSHCommand.SET_HTTPD_SHARED_TOMCAT_VERSION + " ").print(sharedTomcat.getName()).print(' ').print(sharedTomcat.getAOServer().getHostname()).print(" {series}.{major}\n"
+				+ "AOSH: " + Command.SET_HTTPD_SHARED_TOMCAT_VERSION + " ").print(sharedTomcat.getName()).print(' ').print(sharedTomcat.getAOServer().getHostname()).print(" {series}.{major}\n"
 				+ "\n"
 				+ "Changing the major version will trigger a full rebuild of this Tomcat\n"
 				+ "installation.  During the major rebuild, any file altered is backed-up with\n"

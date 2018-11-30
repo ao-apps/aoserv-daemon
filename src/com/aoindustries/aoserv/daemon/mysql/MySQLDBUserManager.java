@@ -7,12 +7,11 @@ package com.aoindustries.aoserv.daemon.mysql;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.mysql.MySQLDBUser;
-import com.aoindustries.aoserv.client.mysql.MySQLDatabase;
-import com.aoindustries.aoserv.client.mysql.MySQLServer;
-import com.aoindustries.aoserv.client.mysql.MySQLServerUser;
-import com.aoindustries.aoserv.client.mysql.MySQLUser;
+import com.aoindustries.aoserv.client.mysql.Database;
+import com.aoindustries.aoserv.client.mysql.DatabaseUser;
+import com.aoindustries.aoserv.client.mysql.Server;
+import com.aoindustries.aoserv.client.mysql.User;
+import com.aoindustries.aoserv.client.mysql.UserServer;
 import com.aoindustries.aoserv.client.validator.MySQLDatabaseName;
 import com.aoindustries.aoserv.client.validator.MySQLUserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -48,7 +47,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer thisAOServer = AOServDaemon.getThisAOServer();
+			com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
 			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
@@ -60,9 +59,9 @@ final public class MySQLDBUserManager extends BuilderThread {
 
 			AOServConnector connector = AOServDaemon.getConnector();
 			synchronized(rebuildLock) {
-				for(MySQLServer mysqlServer : connector.getMysqlServers()) {
+				for(Server mysqlServer : connector.getMysqlServers()) {
 					// Get the list of all db entries that should exist
-					List<MySQLDBUser> dbUsers = mysqlServer.getMySQLDBUsers();
+					List<DatabaseUser> dbUsers = mysqlServer.getMySQLDBUsers();
 					if(dbUsers.isEmpty()) {
 						LogFactory.getLogger(MySQLDBUserManager.class).severe("No users; refusing to rebuild config: " + mysqlServer);
 					} else {
@@ -70,23 +69,23 @@ final public class MySQLDBUserManager extends BuilderThread {
 						// Different versions of MySQL have different sets of system db users
 						Set<Tuple2<MySQLDatabaseName,MySQLUserId>> systemDbUsers = new LinkedHashSet<>();
 						if(
-							version.startsWith(MySQLServer.VERSION_4_0_PREFIX)
-							|| version.startsWith(MySQLServer.VERSION_4_1_PREFIX)
-							|| version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
-							|| version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-							|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
+							version.startsWith(Server.VERSION_4_0_PREFIX)
+							|| version.startsWith(Server.VERSION_4_1_PREFIX)
+							|| version.startsWith(Server.VERSION_5_0_PREFIX)
+							|| version.startsWith(Server.VERSION_5_1_PREFIX)
+							|| version.startsWith(Server.VERSION_5_6_PREFIX)
 						) {
 							// None
-						} else if(version.startsWith(MySQLServer.VERSION_5_7_PREFIX)) {
-							systemDbUsers.add(new Tuple2<>(MySQLDatabase.PERFORMANCE_SCHEMA, MySQLUser.MYSQL_SESSION));
-							systemDbUsers.add(new Tuple2<>(MySQLDatabase.SYS, MySQLUser.MYSQL_SYS));
+						} else if(version.startsWith(Server.VERSION_5_7_PREFIX)) {
+							systemDbUsers.add(new Tuple2<>(Database.PERFORMANCE_SCHEMA, User.MYSQL_SESSION));
+							systemDbUsers.add(new Tuple2<>(Database.SYS, User.MYSQL_SYS));
 						} else {
 							throw new SQLException("Unsupported version of MySQL: " + version);
 						}
 
 						// Verify has all system db users
 						Set<Tuple2<MySQLDatabaseName,MySQLUserId>> requiredDbUsers = new LinkedHashSet<>(systemDbUsers);
-						for(MySQLDBUser mdu : dbUsers) {
+						for(DatabaseUser mdu : dbUsers) {
 							if(
 								requiredDbUsers.remove(new Tuple2<>(mdu.getMySQLDatabase().getName(), mdu.getMySQLServerUser().getMySQLUser().getKey()))
 								&& requiredDbUsers.isEmpty()
@@ -127,29 +126,29 @@ final public class MySQLDBUserManager extends BuilderThread {
 
 								// Add the db entries that do not exist and should
 								String insertSQL;
-								if(version.startsWith(MySQLServer.VERSION_4_0_PREFIX)) {
+								if(version.startsWith(Server.VERSION_4_0_PREFIX)) {
 									insertSQL = "insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-								} else if(version.startsWith(MySQLServer.VERSION_4_1_PREFIX)) {
+								} else if(version.startsWith(Server.VERSION_4_1_PREFIX)) {
 									insertSQL = "insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-								} else if(version.startsWith(MySQLServer.VERSION_5_0_PREFIX)) {
+								} else if(version.startsWith(Server.VERSION_5_0_PREFIX)) {
 									insertSQL = "insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 								} else if(
-									version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-									|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
-									|| version.startsWith(MySQLServer.VERSION_5_7_PREFIX)
+									version.startsWith(Server.VERSION_5_1_PREFIX)
+									|| version.startsWith(Server.VERSION_5_6_PREFIX)
+									|| version.startsWith(Server.VERSION_5_7_PREFIX)
 								) {
 									insertSQL="insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 								} else throw new SQLException("Unsupported MySQL version: "+version);
 								try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
-									for(MySQLDBUser mdu : dbUsers) {
-										MySQLDatabase md = mdu.getMySQLDatabase();
+									for(DatabaseUser mdu : dbUsers) {
+										Database md = mdu.getMySQLDatabase();
 										MySQLDatabaseName db=md.getName();
-										MySQLServerUser msu=mdu.getMySQLServerUser();
+										UserServer msu=mdu.getMySQLServerUser();
 										MySQLUserId user=msu.getMySQLUser().getKey();
 
 										// These must both be on the same server !!!
 										if(!md.getMySQLServer().equals(msu.getMySQLServer())) throw new SQLException(
-											"Server mismatch in mysql_db_users.pkey="
+											"Host mismatch in mysql_db_users.pkey="
 											+mdu.getPkey()
 											+": ((mysql_databases.pkey="
 											+md.getPkey()
@@ -165,10 +164,10 @@ final public class MySQLDBUserManager extends BuilderThread {
 										if(!existing.remove(key)) {
 											// Add the db entry
 											String host = 
-												user.equals(MySQLUser.MYSQL_SESSION)
-												|| user.equals(MySQLUser.MYSQL_SYS)
+												user.equals(User.MYSQL_SESSION)
+												|| user.equals(User.MYSQL_SYS)
 												? "localhost"
-												: MySQLServerUser.ANY_HOST;
+												: UserServer.ANY_HOST;
 											pstmt.setString(1, host);
 											pstmt.setString(2, db.toString());
 											pstmt.setString(3, user.toString());
@@ -185,10 +184,10 @@ final public class MySQLDBUserManager extends BuilderThread {
 											pstmt.setString(14, mdu.canCreateTempTable()?"Y":"N");
 											pstmt.setString(15, mdu.canLockTables()?"Y":"N");
 											if(
-												version.startsWith(MySQLServer.VERSION_5_0_PREFIX)
-												|| version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-												|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
-												|| version.startsWith(MySQLServer.VERSION_5_7_PREFIX)
+												version.startsWith(Server.VERSION_5_0_PREFIX)
+												|| version.startsWith(Server.VERSION_5_1_PREFIX)
+												|| version.startsWith(Server.VERSION_5_6_PREFIX)
+												|| version.startsWith(Server.VERSION_5_7_PREFIX)
 											) {
 												pstmt.setString(16, mdu.canCreateView()?"Y":"N");
 												pstmt.setString(17, mdu.canShowView()?"Y":"N");
@@ -196,9 +195,9 @@ final public class MySQLDBUserManager extends BuilderThread {
 												pstmt.setString(19, mdu.canAlterRoutine()?"Y":"N");
 												pstmt.setString(20, mdu.canExecute()?"Y":"N");
 												if(
-													version.startsWith(MySQLServer.VERSION_5_1_PREFIX)
-													|| version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
-													|| version.startsWith(MySQLServer.VERSION_5_7_PREFIX)
+													version.startsWith(Server.VERSION_5_1_PREFIX)
+													|| version.startsWith(Server.VERSION_5_6_PREFIX)
+													|| version.startsWith(Server.VERSION_5_7_PREFIX)
 												) {
 													pstmt.setString(21, mdu.canEvent()?"Y":"N");
 													pstmt.setString(22, mdu.canTrigger()?"Y":"N");
@@ -250,7 +249,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 
 	private static MySQLDBUserManager mysqlDBUserManager;
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 

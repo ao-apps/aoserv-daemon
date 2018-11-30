@@ -6,16 +6,16 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.aosh.AOSHCommand;
-import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
-import com.aoindustries.aoserv.client.net.IPAddress;
-import com.aoindustries.aoserv.client.net.NetBind;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdJKProtocol;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatContext;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatDataSource;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatParameter;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatStdSite;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdWorker;
+import com.aoindustries.aoserv.client.aosh.Command;
+import com.aoindustries.aoserv.client.linux.UserServer;
+import com.aoindustries.aoserv.client.net.Bind;
+import com.aoindustries.aoserv.client.net.IpAddress;
+import com.aoindustries.aoserv.client.web.tomcat.Context;
+import com.aoindustries.aoserv.client.web.tomcat.ContextDataSource;
+import com.aoindustries.aoserv.client.web.tomcat.ContextParameter;
+import com.aoindustries.aoserv.client.web.tomcat.JkProtocol;
+import com.aoindustries.aoserv.client.web.tomcat.PrivateTomcatSite;
+import com.aoindustries.aoserv.client.web.tomcat.Worker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.Copy;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.Generated;
@@ -35,13 +35,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Manages shared aspects of HttpdTomcatStdSite version 8.5 and above.
+ * Manages shared aspects of PrivateTomcatSite version 8.5 and above.
  *
  * @author  AO Industries, Inc.
  */
 abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> extends HttpdTomcatStdSiteManager<TC> {
 
-	VersionedTomcatStdSiteManager(HttpdTomcatStdSite tomcatStdSite) throws SQLException, IOException {
+	VersionedTomcatStdSiteManager(PrivateTomcatSite tomcatStdSite) throws SQLException, IOException {
 		super(tomcatStdSite);
 	}
 
@@ -51,7 +51,7 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 	@Override
 	protected void buildSiteDirectoryContents(String optSlash, UnixFile siteDirectory, boolean isUpgrade) throws IOException, SQLException {
 		// Resolve and allocate stuff used throughout the method
-		final LinuxServerAccount lsa = httpdSite.getLinuxServerAccount();
+		final UserServer lsa = httpdSite.getLinuxServerAccount();
 		final int uid = lsa.getUid().getId();
 		final int gid = httpdSite.getLinuxServerGroup().getGid().getId();
 
@@ -89,23 +89,23 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 		// Build to RAM first
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
 		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
-			HttpdWorker hw;
+			Worker hw;
 			{
-				List<HttpdWorker> hws = tomcatSite.getHttpdWorkers();
-				if(hws.size() != 1) throw new SQLException("Expected to only find one HttpdWorker for HttpdTomcatStdSite #" + httpdSite.getPkey() + ", found " + hws.size());
+				List<Worker> hws = tomcatSite.getHttpdWorkers();
+				if(hws.size() != 1) throw new SQLException("Expected to only find one Worker for PrivateTomcatSite #" + httpdSite.getPkey() + ", found " + hws.size());
 				hw = hws.get(0);
 				String hwProtocol = hw.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
-				if(!hwProtocol.equals(HttpdJKProtocol.AJP13)) {
-					throw new SQLException("HttpdWorker #" + hw.getPkey() + " for HttpdTomcatStdSite #" + httpdSite.getPkey() + " must be AJP13 but it is " + hwProtocol);
+				if(!hwProtocol.equals(JkProtocol.AJP13)) {
+					throw new SQLException("Worker #" + hw.getPkey() + " for PrivateTomcatSite #" + httpdSite.getPkey() + " must be AJP13 but it is " + hwProtocol);
 				}
 			}
-			NetBind shutdownPort = tomcatStdSite.getTomcat4ShutdownPort();
-			if(shutdownPort == null) throw new SQLException("Unable to find shutdown port for HttpdTomcatStdSite=" + tomcatStdSite);
+			Bind shutdownPort = tomcatStdSite.getTomcat4ShutdownPort();
+			if(shutdownPort == null) throw new SQLException("Unable to find shutdown port for PrivateTomcatSite=" + tomcatStdSite);
 			String shutdownKey = tomcatStdSite.getTomcat4ShutdownKey();
-			if(shutdownKey == null) throw new SQLException("Unable to find shutdown key for HttpdTomcatStdSite=" + tomcatStdSite);
+			if(shutdownKey == null) throw new SQLException("Unable to find shutdown key for PrivateTomcatSite=" + tomcatStdSite);
 			out.print("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 			if(!httpdSite.isManual()) out.print(autoWarning);
-			out.print("<Server port=\"").encodeXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").encodeXmlAttribute(shutdownKey).print("\">\n"
+			out.print("<Host port=\"").encodeXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").encodeXmlAttribute(shutdownKey).print("\">\n"
 					+ "  <Listener className=\"org.apache.catalina.startup.VersionLoggerListener\" />\n"
 					+ "  <!-- Security listener. Documentation at /docs/config/listeners.html\n"
 					+ "  <Listener className=\"org.apache.catalina.security.SecurityListener\" />\n"
@@ -134,7 +134,7 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 					+ "  <Service name=\"Catalina\">\n"
 					+ "    <Connector\n"
 					+ "      port=\"").encodeXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
-					+ "      address=\"").encodeXmlAttribute(IPAddress.LOOPBACK_IP).print("\"\n"
+					+ "      address=\"").encodeXmlAttribute(IpAddress.LOOPBACK_IP).print("\"\n"
 					+ "      maxPostSize=\"").encodeXmlAttribute(tomcatStdSite.getMaxPostSize()).print("\"\n"
 					+ "      protocol=\"AJP/1.3\"\n"
 					+ "      redirectPort=\"8443\"\n"
@@ -159,7 +159,7 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 					+ "        unpackWARs=\"").encodeXmlAttribute(tomcatStdSite.getUnpackWARs()).print("\"\n"
 					+ "        autoDeploy=\"").encodeXmlAttribute(tomcatStdSite.getAutoDeploy()).print("\"\n"
 					+ "      >\n");
-			for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
+			for(Context htc : tomcatSite.getHttpdTomcatContexts()) {
 				if(!htc.isServerXmlConfigured()) out.print("        <!--\n");
 				out.print("        <Context\n");
 				if(htc.getClassName() != null) out.print("          className=\"").encodeXmlAttribute(htc.getClassName()).print("\"\n");
@@ -174,18 +174,18 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 				if(htc.getWrapperClass() != null) out.print("          wrapperClass=\"").encodeXmlAttribute(htc.getWrapperClass()).print("\"\n");
 				// Not present in Tomcat 8.5+: out.print("          debug=\"").encodeXmlAttribute(htc.getDebugLevel()).print("\"\n");
 				if(htc.getWorkDir() != null) out.print("          workDir=\"").encodeXmlAttribute(htc.getWorkDir()).print("\"\n");
-				List<HttpdTomcatParameter> parameters = htc.getHttpdTomcatParameters();
-				List<HttpdTomcatDataSource> dataSources = htc.getHttpdTomcatDataSources();
+				List<ContextParameter> parameters = htc.getHttpdTomcatParameters();
+				List<ContextDataSource> dataSources = htc.getHttpdTomcatDataSources();
 				if(parameters.isEmpty() && dataSources.isEmpty()) {
 					out.print("        />\n");
 				} else {
 					out.print("        >\n");
 					// Parameters
-					for(HttpdTomcatParameter parameter : parameters) {
+					for(ContextParameter parameter : parameters) {
 						tomcatCommon.writeHttpdTomcatParameter(parameter, out);
 					}
 					// Data Sources
-					for(HttpdTomcatDataSource dataSource : dataSources) {
+					for(ContextDataSource dataSource : dataSources) {
 						tomcatCommon.writeHttpdTomcatDataSource(dataSource, out);
 					}
 					out.print("        </Context>\n");
@@ -195,7 +195,7 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 			out.print("      </Host>\n"
 					+ "    </Engine>\n"
 					+ "  </Service>\n"
-					+ "</Server>\n");
+					+ "</Host>\n");
 		}
 		return bout.toByteArray();
 	}
@@ -302,7 +302,7 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 				+ "\n"
 				+ "Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey=").print(httpdSite.getPkey()).print("\n"
 				+ "\n"
-				+ "AOSH: " + AOSHCommand.SET_HTTPD_TOMCAT_STD_SITE_VERSION + " ").print(httpdSite.getName()).print(' ').print(httpdSite.getAoServer().getHostname()).print(" {series}.{major}\n"
+				+ "AOSH: " + Command.SET_HTTPD_TOMCAT_STD_SITE_VERSION + " ").print(httpdSite.getName()).print(' ').print(httpdSite.getAoServer().getHostname()).print(" {series}.{major}\n"
 				+ "\n"
 				+ "Changing the major version will trigger a full rebuild of this Tomcat\n"
 				+ "installation.  During the major rebuild, any file altered is backed-up with\n"
@@ -341,11 +341,11 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 		installFiles.add(new Generated("bin/tomcat", 0700, VersionedTomcatStdSiteManager::generateTomcatScript));
 		if(!isUpgrade) {
 			installFiles.add(new Mkdir    ("webapps", 0775));
-			installFiles.add(new Mkdir    ("webapps/" + HttpdTomcatContext.ROOT_DOC_BASE, 0775));
-			installFiles.add(new Mkdir    ("webapps/" + HttpdTomcatContext.ROOT_DOC_BASE + "/WEB-INF", 0770));
-			installFiles.add(new Mkdir    ("webapps/" + HttpdTomcatContext.ROOT_DOC_BASE + "/WEB-INF/classes", 0770));
-			installFiles.add(new Mkdir    ("webapps/" + HttpdTomcatContext.ROOT_DOC_BASE + "/WEB-INF/lib", 0770));
-			installFiles.add(new Copy     ("webapps/" + HttpdTomcatContext.ROOT_DOC_BASE + "/WEB-INF/web.xml", 0660));
+			installFiles.add(new Mkdir    ("webapps/" + Context.ROOT_DOC_BASE, 0775));
+			installFiles.add(new Mkdir    ("webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF", 0770));
+			installFiles.add(new Mkdir    ("webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/classes", 0770));
+			installFiles.add(new Mkdir    ("webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/lib", 0770));
+			installFiles.add(new Copy     ("webapps/" + Context.ROOT_DOC_BASE + "/WEB-INF/web.xml", 0660));
 		}
 		return installFiles;
 	}

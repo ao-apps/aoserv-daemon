@@ -6,13 +6,13 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.net.NetBind;
+import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdJKProtocol;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatContext;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatSharedSite;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatVersion;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdWorker;
+import com.aoindustries.aoserv.client.web.tomcat.Context;
+import com.aoindustries.aoserv.client.web.tomcat.JkProtocol;
+import com.aoindustries.aoserv.client.web.tomcat.SharedTomcatSite;
+import com.aoindustries.aoserv.client.web.tomcat.Version;
+import com.aoindustries.aoserv.client.web.tomcat.Worker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.encoding.ChainWriter;
@@ -23,13 +23,13 @@ import java.io.IOException;
 import java.sql.SQLException;
 
 /**
- * Manages HttpdTomcatSharedSite version 3.1 configurations.
+ * Manages SharedTomcatSite version 3.1 configurations.
  *
  * @author  AO Industries, Inc.
  */
 class HttpdTomcatSharedSiteManager_3_1 extends HttpdTomcatSharedSiteManager_3_X<TomcatCommon_3_1> {
 
-	HttpdTomcatSharedSiteManager_3_1(HttpdTomcatSharedSite tomcatSharedSite) throws SQLException, IOException {
+	HttpdTomcatSharedSiteManager_3_1(SharedTomcatSite tomcatSharedSite) throws SQLException, IOException {
 		super(tomcatSharedSite);
 	}
 
@@ -43,17 +43,17 @@ class HttpdTomcatSharedSiteManager_3_1 extends HttpdTomcatSharedSiteManager_3_X<
 		final String siteName = httpdSite.getName();
 		final String siteDir = siteDirectory.getPath();
 		AOServConnector conn = AOServDaemon.getConnector();
-		final HttpdTomcatVersion htv = tomcatSite.getHttpdTomcatVersion();
+		final Version htv = tomcatSite.getHttpdTomcatVersion();
 		final HttpdOperatingSystemConfiguration httpdConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		final UnixPath wwwgroupDirectory = httpdConfig.getHttpdSharedTomcatsDirectory();
-		HttpdTomcatSharedSite shrSite=tomcatSite.getHttpdTomcatSharedSite();
+		SharedTomcatSite shrSite=tomcatSite.getHttpdTomcatSharedSite();
 
 		// Build to RAM first
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
 		try (ChainWriter out = new ChainWriter(bout)) {
 			out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n");
 			if(!httpdSite.isManual()) out.print(autoWarning);
-			out.print("<Server>\n"
+			out.print("<Host>\n"
 					+ "    <xmlmapper:debug level=\"0\" />\n"
 					+ "    <Logger name=\"tc_log\"\n"
 					+ "            path=\"").encodeXmlAttribute(siteDir).print("/var/log/tomcat.log\"\n"
@@ -74,17 +74,17 @@ class HttpdTomcatSharedSiteManager_3_1 extends HttpdTomcatSharedSiteManager_3_X<
 					+ "        <RequestInterceptor className=\"org.apache.tomcat.request.SecurityCheck\" />\n"
 					+ "        <RequestInterceptor className=\"org.apache.tomcat.request.FixHeaders\" />\n"
 			);
-			for(HttpdWorker worker : tomcatSite.getHttpdWorkers()) {
-				NetBind netBind=worker.getBind();
+			for(Worker worker : tomcatSite.getHttpdWorkers()) {
+				Bind netBind=worker.getBind();
 				String protocol=worker.getHttpdJKProtocol(conn).getProtocol(conn).getProtocol();
 
 				out.print("        <Connector className=\"org.apache.tomcat.service.PoolTcpConnector\">\n"
 						+ "            <Parameter name=\"handler\" value=\"");
 				switch (protocol) {
-					case HttpdJKProtocol.AJP12:
+					case JkProtocol.AJP12:
 						out.print("org.apache.tomcat.service.connector.Ajp12ConnectionHandler");
 						break;
-					case HttpdJKProtocol.AJP13:
+					case JkProtocol.AJP13:
 						throw new IllegalArgumentException("Tomcat Version "+htv+" does not support AJP version: "+protocol);
 					default:
 						throw new IllegalArgumentException("Unknown AJP version: "+htv);
@@ -99,11 +99,11 @@ class HttpdTomcatSharedSiteManager_3_1 extends HttpdTomcatSharedSiteManager_3_X<
 						+ "        </Connector>\n"
 				);
 			}
-			for(HttpdTomcatContext htc : tomcatSite.getHttpdTomcatContexts()) {
+			for(Context htc : tomcatSite.getHttpdTomcatContexts()) {
 				out.print("    <Context path=\"").encodeXmlAttribute(htc.getPath()).print("\" docBase=\"").encodeXmlAttribute(htc.getDocBase()).print("\" debug=\"").encodeXmlAttribute(htc.getDebugLevel()).print("\" reloadable=\"").encodeXmlAttribute(htc.isReloadable()).print("\" />\n");
 			}
 			out.print("  </ContextManager>\n"
-					+ "</Server>\n");
+					+ "</Host>\n");
 		}
 		return bout.toByteArray();
 	}

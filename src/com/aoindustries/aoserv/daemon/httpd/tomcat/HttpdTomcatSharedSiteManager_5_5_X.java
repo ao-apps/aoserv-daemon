@@ -5,9 +5,9 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatContext;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatSharedSite;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.web.tomcat.Context;
+import com.aoindustries.aoserv.client.web.tomcat.SharedTomcatSite;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
@@ -18,13 +18,13 @@ import java.sql.SQLException;
 import java.util.Set;
 
 /**
- * Manages HttpdTomcatSharedSite version 5.5.X configurations.
+ * Manages SharedTomcatSite version 5.5.X configurations.
  *
  * @author  AO Industries, Inc.
  */
 class HttpdTomcatSharedSiteManager_5_5_X extends HttpdTomcatSharedSiteManager<TomcatCommon_5_5_X> {
 
-	HttpdTomcatSharedSiteManager_5_5_X(HttpdTomcatSharedSite tomcatSharedSite) throws SQLException, IOException {
+	HttpdTomcatSharedSiteManager_5_5_X(SharedTomcatSite tomcatSharedSite) throws SQLException, IOException {
 		super(tomcatSharedSite);
 	}
 
@@ -48,19 +48,19 @@ class HttpdTomcatSharedSiteManager_5_5_X extends HttpdTomcatSharedSiteManager<To
 		DaemonFileUtils.mkdir(siteDir+"/var", 0770, uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/var/log", 0770, uid, gid);
 		DaemonFileUtils.mkdir(siteDir+"/webapps", 0775, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE, 0775, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF", 0775, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
-		DaemonFileUtils.mkdir(siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);
+		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE, 0775, uid, gid);
+		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF", 0775, uid, gid);
+		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/classes", 0770, uid, gid);
+		DaemonFileUtils.mkdir(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/lib", 0770, uid, gid);
 
-		AOServer thisAoServer = AOServDaemon.getThisAOServer();
+		Server thisAoServer = AOServDaemon.getThisAOServer();
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
 
 		/*
 		 * Write the ROOT/WEB-INF/web.xml file.
 		 */
-		String webXML=siteDir+"/webapps/"+HttpdTomcatContext.ROOT_DOC_BASE+"/WEB-INF/web.xml";
+		String webXML=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/web.xml";
 		try (
 			ChainWriter out = new ChainWriter(
 				new BufferedOutputStream(

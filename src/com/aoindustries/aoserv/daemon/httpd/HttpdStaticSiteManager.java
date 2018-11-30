@@ -6,9 +6,9 @@
 package com.aoindustries.aoserv.daemon.httpd;
 
 import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.web.HttpdSite;
-import com.aoindustries.aoserv.client.web.HttpdStaticSite;
-import com.aoindustries.aoserv.client.web.tomcat.HttpdSharedTomcat;
+import com.aoindustries.aoserv.client.web.Site;
+import com.aoindustries.aoserv.client.web.StaticSite;
+import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -20,7 +20,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 /**
- * Manages HttpdStaticSite configurations.  These are the most stripped-down
+ * Manages StaticSite configurations.  These are the most stripped-down
  * form of website.  Should not allow any sort of server-side execution.
  * Perhaps we could sell these for $1/month?
  *
@@ -31,13 +31,13 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 	/**
 	 * Gets the specific manager for one type of web site.
 	 */
-	static HttpdStaticSiteManager getInstance(HttpdStaticSite staticSite) throws SQLException, IOException {
+	static HttpdStaticSiteManager getInstance(StaticSite staticSite) throws SQLException, IOException {
 		return new HttpdStaticSiteManager(staticSite);
 	}
 
-	final protected HttpdStaticSite staticSite;
+	final protected StaticSite staticSite;
 
-	private HttpdStaticSiteManager(HttpdStaticSite staticSite) throws SQLException, IOException {
+	private HttpdStaticSiteManager(StaticSite staticSite) throws SQLException, IOException {
 		super(staticSite.getHttpdSite());
 		this.staticSite = staticSite;
 	}
@@ -46,8 +46,8 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 	protected void buildSiteDirectory(
 		UnixFile siteDirectory,
 		String optSlash,
-		Set<HttpdSite> sitesNeedingRestarted,
-		Set<HttpdSharedTomcat> sharedTomcatsNeedingRestarted,
+		Set<Site> sitesNeedingRestarted,
+		Set<SharedTomcat> sharedTomcatsNeedingRestarted,
 		Set<UnixFile> restorecon
 	) throws IOException, SQLException {
 		final boolean isAuto = !httpdSite.isManual();

@@ -7,16 +7,16 @@ package com.aoindustries.aoserv.daemon.email;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.email.EmailSpamAssassinIntegrationMode;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.linux.LinuxAccount;
-import com.aoindustries.aoserv.client.linux.LinuxGroup;
-import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
-import com.aoindustries.aoserv.client.linux.LinuxServerGroup;
-import com.aoindustries.aoserv.client.net.IPAddress;
-import com.aoindustries.aoserv.client.net.NetBind;
-import com.aoindustries.aoserv.client.net.Protocol;
-import com.aoindustries.aoserv.client.net.Server;
+import com.aoindustries.aoserv.client.email.SpamAssassinMode;
+import com.aoindustries.aoserv.client.linux.Group;
+import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.linux.User;
+import com.aoindustries.aoserv.client.linux.UserServer;
+import com.aoindustries.aoserv.client.net.AppProtocol;
+import com.aoindustries.aoserv.client.net.Bind;
+import com.aoindustries.aoserv.client.net.Host;
+import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -169,7 +169,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
@@ -236,11 +236,11 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 		try {
 			// Only process incoming messages when the incoming directory exists
 			if(incomingDirectory.getStat().exists()) {
-				AOServer thisAoServer = AOServDaemon.getThisAOServer();
+				Server thisAoServer = AOServDaemon.getThisAOServer();
 				int mailGid;
 				{
-					LinuxServerGroup mail = thisAoServer.getLinuxServerGroup(LinuxGroup.MAIL);
-					if(mail == null) throw new SQLException("Unable to find LinuxServerGroup: " + LinuxAccount.MAIL + " on " + thisAoServer);
+					GroupServer mail = thisAoServer.getLinuxServerGroup(Group.MAIL);
+					if(mail == null) throw new SQLException("Unable to find GroupServer: " + User.MAIL + " on " + thisAoServer);
 					mailGid = mail.getGid().getId();
 				}
 
@@ -255,7 +255,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 					if(incomingDirectoryList == null || incomingDirectoryList.length == 0) break;
 
 					// Find the username that has the oldest timestamp that is also at least one minute old or one minute in the future
-					LinuxServerAccount oldestLsa = null;
+					UserServer oldestLsa = null;
 					Map<UnixFile,Long> oldestReadyMap = null;
 					long oldestTimestamp = -1;
 
@@ -268,7 +268,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 						File userDirectoryFile = userDirectoryUf.getFile();
 
 						// Each filename should be a username
-						LinuxServerAccount lsa = thisAoServer.getLinuxServerAccount(UserId.valueOf(incomingDirectoryFilename));
+						UserServer lsa = thisAoServer.getLinuxServerAccount(UserId.valueOf(incomingDirectoryFilename));
 						if(lsa == null) {
 							// user not found, backup and then remove
 							LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectoryFilename = " + incomingDirectoryFilename, new IOException("User not found, deleting"));
@@ -390,8 +390,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 					}
 
 					// Only train SpamAssassin when integration mode not set to none
-					EmailSpamAssassinIntegrationMode integrationMode = oldestLsa.getEmailSpamAssassinIntegrationMode();
-					if(!integrationMode.getName().equals(EmailSpamAssassinIntegrationMode.NONE)) {
+					SpamAssassinMode integrationMode = oldestLsa.getEmailSpamAssassinIntegrationMode();
+					if(!integrationMode.getName().equals(SpamAssassinMode.NONE)) {
 						// Make sure sa-learn is installed
 						PackageManager.installPackage(PackageManager.PackageName.SPAMASSASSIN);
 						// Call sa-learn for this pass
@@ -433,16 +433,16 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 	}
 
 	/**
-	 * Gets the {@link NetBind} for the <code>spamd</code> process, or {@code null}
+	 * Gets the {@link Bind} for the <code>spamd</code> process, or {@code null}
 	 * if SpamAssassin is not enabled.
 	 *
 	 * Note: CentOS 7 supports more than one bind for spamd, but we have not need for it at this time.
 	 */
-	public static NetBind getSpamdBind() throws IOException, SQLException {
+	public static Bind getSpamdBind() throws IOException, SQLException {
 		AOServConnector conn = AOServDaemon.getConnector();
-		Protocol spamdProtocol = conn.getProtocols().get(Protocol.SPAMD);
-		if(spamdProtocol == null) throw new SQLException("Unable to find Protocol: " + Protocol.SPAMD);
-		List<NetBind> spamdBinds = AOServDaemon.getThisAOServer().getServer().getNetBinds(spamdProtocol);
+		AppProtocol spamdProtocol = conn.getProtocols().get(AppProtocol.SPAMD);
+		if(spamdProtocol == null) throw new SQLException("Unable to find Protocol: " + AppProtocol.SPAMD);
+		List<Bind> spamdBinds = AOServDaemon.getThisAOServer().getServer().getNetBinds(spamdProtocol);
 		if(spamdBinds.isEmpty()) {
 			// Disabled
 			return null;
@@ -458,8 +458,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer thisAoServer = AOServDaemon.getThisAOServer();
-			Server thisServer = thisAoServer.getServer();
+			Server thisAoServer = AOServDaemon.getThisAOServer();
+			Host thisServer = thisAoServer.getServer();
 			OperatingSystemVersion osv = thisServer.getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
@@ -475,7 +475,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 				try {
 					boolean hasSpecificAddress = false;
 
-					final NetBind spamdBind = getSpamdBind();
+					final Bind spamdBind = getSpamdBind();
 					final boolean spamdInstalled;
 					boolean[] restartRequired = {false};
 					if(spamdBind != null) {
@@ -563,13 +563,13 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 									// Allow all IP addresses for this machine that are in the same family
 									AddressFamily spamdFamily = spamdInetAddress.getAddressFamily();
 									Set<InetAddress> usedIps = new HashSet<>();
-									for(IPAddress ip : thisServer.getIPAddresses()) {
+									for(IpAddress ip : thisServer.getIPAddresses()) {
 										InetAddress addr = ip.getInetAddress();
 										if(
 											!addr.isUnspecified()
 											&& !ip.getDevice().getDeviceId().isLoopback()
 											&& ip.getInetAddress().getAddressFamily() == spamdFamily
-											// TODO: Should we also filter by on the same NetDevice?  (consider dual NICs, one private, one not)
+											// TODO: Should we also filter by on the same Device?  (consider dual NICs, one private, one not)
 										) {
 											if(!usedIps.contains(addr)) {
 												if(!usedIps.isEmpty()) newOut.print(',');
@@ -580,9 +580,9 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 									}
 									// Allow the primary IP of our current failover server
 									/*
-									AOServer failoverServer = server.getFailoverServer();
+									Server failoverServer = server.getFailoverServer();
 									if(failoverServer != null) {
-										IPAddress foPrimaryIP = failoverServer.getPrimaryIPAddress();
+										IpAddress foPrimaryIP = failoverServer.getPrimaryIPAddress();
 										if(foPrimaryIP == null) throw new SQLException("Unable to find Primary IP Address for failover server: " + failoverServer);
 										String addr = foPrimaryIP.getInetAddress();
 										if(!usedIps.contains(addr)) {
@@ -802,12 +802,12 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 					 */
 					int uid_min = thisAoServer.getUidMin().getId();
 					int gid_min = thisAoServer.getGidMin().getId();
-					List<LinuxServerAccount> lsas = thisAoServer.getLinuxServerAccounts();
-					for(LinuxServerAccount lsa : lsas) {
+					List<UserServer> lsas = thisAoServer.getLinuxServerAccounts();
+					for(UserServer lsa : lsas) {
 						// Only build spamassassin for accounts under /home/
-						EmailSpamAssassinIntegrationMode integrationMode = lsa.getEmailSpamAssassinIntegrationMode();
+						SpamAssassinMode integrationMode = lsa.getEmailSpamAssassinIntegrationMode();
 						// Only write files when SpamAssassin is turned on
-						if(!integrationMode.getName().equals(EmailSpamAssassinIntegrationMode.NONE)) {
+						if(!integrationMode.getName().equals(SpamAssassinMode.NONE)) {
 							if(!lsa.getLinuxAccount().getType().isEmail()) {
 								throw new SQLException("SpamAssassin integration enabled on a non-email type user: " + lsa);
 							}
@@ -838,7 +838,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 										+ "# Generated by ").print(SpamAssassinManager.class.getName()).print("\n"
 										+ "#\n"
 										+ "required_score ").print(lsa.getSpamAssassinRequiredScore()).print('\n');
-									if(integrationMode.getName().equals(EmailSpamAssassinIntegrationMode.POP3)) {
+									if(integrationMode.getName().equals(SpamAssassinMode.POP3)) {
 										newOut.print("rewrite_header Subject *****SPAM*****\n");
 									}
 								}
@@ -919,11 +919,11 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 			try {
 				Set<UnixFile> restorecon = new LinkedHashSet<>();
 				try {
-					AOServer thisAoServer = AOServDaemon.getThisAOServer();
+					Server thisAoServer = AOServDaemon.getThisAOServer();
 					int uid_min = thisAoServer.getUidMin().getId();
 					int gid_min = thisAoServer.getGidMin().getId();
 					Queue<String> queuedLines = new LinkedList<>();
-					for(LinuxServerAccount lsa : thisAoServer.getLinuxServerAccounts()) {
+					for(UserServer lsa : thisAoServer.getLinuxServerAccounts()) {
 						// Only clean razor for accounts under /home/
 						UnixPath homePath = lsa.getHome();
 						if(lsa.getLinuxAccount().getType().isEmail() && homePath.toString().startsWith("/home/")) {

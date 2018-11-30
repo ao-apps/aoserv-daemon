@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.monitor;
 
-import com.aoindustries.aoserv.client.net.IPAddress;
+import com.aoindustries.aoserv.client.net.IpAddress;
 
 /**
  * TODO: Move this to NOC
@@ -81,9 +81,9 @@ final public class NetStat {
 	}
 
 	private static String convertIP(String ip) {
-		if("::ffff:127.0.0.1".equals(ip)) return IPAddress.LOOPBACK_IP;
-		if("::".equals(ip)) return IPAddress.WILDCARD_IP;
-		if("::1".equals(ip)) return IPAddress.LOOPBACK_IP;
+		if("::ffff:127.0.0.1".equals(ip)) return IpAddress.LOOPBACK_IP;
+		if("::".equals(ip)) return IpAddress.WILDCARD_IP;
+		if("::1".equals(ip)) return IpAddress.LOOPBACK_IP;
 		return ip;
 	}
 }

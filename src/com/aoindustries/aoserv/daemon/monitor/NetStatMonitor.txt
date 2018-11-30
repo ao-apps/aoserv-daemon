@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.monitor;
 
-import com.aoindustries.aoserv.client.net.NetBind;
+import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.client.NetProtocol;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -63,10 +63,10 @@ final public class NetStatMonitor implements Runnable {
 					}
 
 					// Get the current list of binds for this server
-					List<NetBind> nbs=AOServDaemon.getThisAOServer().getServer().getNetBinds();
+					List<Bind> nbs=AOServDaemon.getThisAOServer().getServer().getNetBinds();
 
 					// Build a ArrayList that will be trimmed as matches are found
-					List<NetBind> dbBinds=new ArrayList<NetBind>(nbs.size());
+					List<Bind> dbBinds=new ArrayList<Bind>(nbs.size());
 					for(int c=0;c<nbs.size();c++) dbBinds.add(nbs.get(c));
 
 					// Keep track of net binds that are returned by netstat but not in dbBinds
@@ -91,7 +91,7 @@ final public class NetStatMonitor implements Runnable {
 											// Find one or more matches and remove, otherwise add to extra bind info
 											boolean found=false;
 											for(int c=0;c<dbBinds.size();c++) {
-												NetBind nb=dbBinds.get(c);
+												Bind nb=dbBinds.get(c);
 												if(
 												   nb.getIPAddress().getIPAddress().equals(netStat.ip_address)
 												   && nb.getNetProtocol().getProtocol().equals(netStat.net_protocol)
@@ -118,7 +118,7 @@ final public class NetStatMonitor implements Runnable {
 					// Report and discrepancy
 					int missing=0;
 					for(int c=0;c<dbBinds.size();c++) {
-						NetBind dbBind=dbBinds.get(c);
+						Bind dbBind=dbBinds.get(c);
 						if(dbBind.isMonitoringEnabled()) missing++;
 					}
 					int extra=extraBinds.size();
@@ -132,7 +132,7 @@ final public class NetStatMonitor implements Runnable {
 						}
 						SB.append('\n');
 						for(int c=0;c<dbBinds.size();c++) {
-							NetBind nb=dbBinds.get(c);
+							Bind nb=dbBinds.get(c);
 							if(nb.isMonitoringEnabled()) {
 								SB.append("Missing: ").append(nb.getNetProtocol()).append(' ').append(nb.getIPAddress().getIPAddress()).append(':').append(nb.getPort()).append('\n');
 							}

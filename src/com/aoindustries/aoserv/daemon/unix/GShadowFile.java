@@ -6,7 +6,7 @@
 package com.aoindustries.aoserv.daemon.unix;
 
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.LinuxGroup;
+import com.aoindustries.aoserv.client.linux.Group;
 import com.aoindustries.aoserv.client.validator.GroupId;
 import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -245,11 +245,11 @@ final public class GShadowFile {
 			try (ChainWriter out = new ChainWriter(bout)) {
 				boolean rootFound = false;
 				for(Entry entry : gshadowEntries) {
-					if(entry.getGroupName().equals(LinuxGroup.ROOT)) rootFound = true;
+					if(entry.getGroupName().equals(Group.ROOT)) rootFound = true;
 					entry.appendTo(out);
 					out.print('\n');
 				}
-				if(!rootFound) throw new IllegalArgumentException(LinuxGroup.ROOT + " group not found while creating " + gshadowFile);
+				if(!rootFound) throw new IllegalArgumentException(Group.ROOT + " group not found while creating " + gshadowFile);
 			}
 			return bout.toByteArray();
 		} catch(IOException e) {
@@ -301,7 +301,7 @@ final public class GShadowFile {
 	 */
 	public static byte[] buildGShadowFile(Map<GroupId,Set<UserId>> groups) throws IOException {
 		assert Thread.holdsLock(gshadowLock);
-		if(!groups.containsKey(LinuxGroup.ROOT)) throw new IllegalArgumentException(LinuxGroup.ROOT + " group not found");
+		if(!groups.containsKey(Group.ROOT)) throw new IllegalArgumentException(Group.ROOT + " group not found");
 		Map<GroupId,Entry> gshadowEntries = readGShadowFile();
 		// Remove any groups that no longer exist and verify group members
 		Iterator<Map.Entry<GroupId,Entry>> entryIter = gshadowEntries.entrySet().iterator();

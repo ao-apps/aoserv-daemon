@@ -7,12 +7,12 @@ package com.aoindustries.aoserv.daemon.email;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.email.EmailSmtpRelay;
-import com.aoindustries.aoserv.client.email.EmailSmtpRelayType;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.net.IPAddress;
-import com.aoindustries.aoserv.client.net.NetDevice;
-import com.aoindustries.aoserv.client.net.Server;
+import com.aoindustries.aoserv.client.email.SmtpRelay;
+import com.aoindustries.aoserv.client.email.SmtpRelayType;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.net.Device;
+import com.aoindustries.aoserv.client.net.Host;
+import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -68,8 +68,8 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 	protected boolean doRebuild() {
 		try {
 			AOServConnector connector = AOServDaemon.getConnector();
-			AOServer thisAoServer = AOServDaemon.getThisAOServer();
-			Server thisServer = thisAoServer.getServer();
+			Server thisAoServer = AOServDaemon.getThisAOServer();
+			Host thisServer = thisAoServer.getServer();
 			OperatingSystemVersion osv = thisServer.getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
@@ -77,7 +77,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
-			EmailSmtpRelayType allowRelay = connector.getEmailSmtpRelayTypes().get(EmailSmtpRelayType.ALLOW_RELAY);
+			SmtpRelayType allowRelay = connector.getEmailSmtpRelayTypes().get(SmtpRelayType.ALLOW_RELAY);
 			//boolean isQmail=server.isQmail();
 
 			// The IP addresses that have been used
@@ -115,8 +115,8 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 							//}
 
 							// Allow all of the local IP addresses
-							for(NetDevice nd : thisServer.getNetDevices()) {
-								for(IPAddress ia : nd.getIPAddresses()) {
+							for(Device nd : thisServer.getNetDevices()) {
+								for(IpAddress ia : nd.getIPAddresses()) {
 									String ip = ia.getInetAddress().toString();
 									if(!usedHosts.contains(ip)) {
 										writeAccessLine(out, ip, allowRelay/*, isQmail*/);
@@ -126,14 +126,14 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 							}
 
 							// Deny first
-							List<EmailSmtpRelay> relays = thisAoServer.getEmailSmtpRelays();
-							for(EmailSmtpRelay ssr : relays) {
+							List<SmtpRelay> relays = thisAoServer.getEmailSmtpRelays();
+							for(SmtpRelay ssr : relays) {
 								if(!ssr.isDisabled()) {
-									EmailSmtpRelayType esrt = ssr.getType();
+									SmtpRelayType esrt = ssr.getType();
 									String type = esrt.getName();
 									if(
-										type.equals(EmailSmtpRelayType.DENY)
-										|| type.equals(EmailSmtpRelayType.DENY_SPAM)
+										type.equals(SmtpRelayType.DENY)
+										|| type.equals(SmtpRelayType.DENY_SPAM)
 									) {
 										Timestamp expiration = ssr.getExpiration();
 										if(expiration == null || expiration.getTime() > System.currentTimeMillis()) {
@@ -148,13 +148,13 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 							}
 
 							// Allow last
-							for(EmailSmtpRelay ssr : relays) {
+							for(SmtpRelay ssr : relays) {
 								if(!ssr.isDisabled()) {
-									EmailSmtpRelayType esrt = ssr.getType();
+									SmtpRelayType esrt = ssr.getType();
 									String type = esrt.getName();
 									if(
-										type.equals(EmailSmtpRelayType.ALLOW)
-										|| type.equals(EmailSmtpRelayType.ALLOW_RELAY)
+										type.equals(SmtpRelayType.ALLOW)
+										|| type.equals(SmtpRelayType.ALLOW_RELAY)
 									) {
 										Timestamp expiration = ssr.getExpiration();
 										if(expiration == null || expiration.getTime() > System.currentTimeMillis()) {
@@ -213,7 +213,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 		}
 	}
 
-	private static void writeAccessLine(ChainWriter out, String host, EmailSmtpRelayType type/*, boolean isQmail*/) throws IOException, SQLException {
+	private static void writeAccessLine(ChainWriter out, String host, SmtpRelayType type/*, boolean isQmail*/) throws IOException, SQLException {
 		/*if(isQmail) out.print(host).print(':').print(StringUtility.replace(type.getQmailConfig(), "%h", host)).print('\n');
 		else*/ out.print("Connect:").print(host).print('\t').print(StringUtility.replace(type.getSendmailConfig(), "%h", host)).print('\n');
 	}
@@ -277,7 +277,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 					}
 					long time = System.currentTimeMillis();
 					boolean needRebuild = false;
-					for(EmailSmtpRelay relay : AOServDaemon.getThisAOServer().getEmailSmtpRelays()) {
+					for(SmtpRelay relay : AOServDaemon.getThisAOServer().getEmailSmtpRelays()) {
 						Timestamp expiration = relay.getExpiration();
 						if(
 							expiration != null
@@ -305,7 +305,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 

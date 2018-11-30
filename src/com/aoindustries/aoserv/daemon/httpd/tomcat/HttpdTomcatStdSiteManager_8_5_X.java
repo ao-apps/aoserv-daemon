@@ -5,18 +5,18 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
-import com.aoindustries.aoserv.client.web.tomcat.HttpdTomcatStdSite;
+import com.aoindustries.aoserv.client.web.tomcat.PrivateTomcatSite;
 import java.io.IOException;
 import java.sql.SQLException;
 
 /**
- * Manages HttpdTomcatStdSite version 8.5.X configurations.
+ * Manages PrivateTomcatSite version 8.5.X configurations.
  *
  * @author  AO Industries, Inc.
  */
 class HttpdTomcatStdSiteManager_8_5_X extends VersionedTomcatStdSiteManager<TomcatCommon_8_5_X> {
 
-	HttpdTomcatStdSiteManager_8_5_X(HttpdTomcatStdSite tomcatStdSite) throws SQLException, IOException {
+	HttpdTomcatStdSiteManager_8_5_X(PrivateTomcatSite tomcatStdSite) throws SQLException, IOException {
 		super(tomcatStdSite);
 	}
 

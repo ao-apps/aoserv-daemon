@@ -9,10 +9,10 @@ import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.MajordomoList;
 import com.aoindustries.aoserv.client.email.MajordomoServer;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.linux.LinuxGroup;
-import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
-import com.aoindustries.aoserv.client.linux.LinuxServerGroup;
+import com.aoindustries.aoserv.client.linux.Group;
+import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -48,7 +48,7 @@ final public class MajordomoManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer thisAoServer = AOServDaemon.getThisAOServer();
+			Server thisAoServer = AOServDaemon.getThisAOServer();
 			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -73,10 +73,10 @@ final public class MajordomoManager extends BuilderThread {
 				// Resolve the GID for "mail"
 				int mailGID;
 				{
-					LinuxGroup mailLG = AOServDaemon.getConnector().getLinuxGroups().get(LinuxGroup.MAIL);
-					if(mailLG==null) throw new SQLException("Unable to find LinuxGroup: "+LinuxGroup.MAIL);
-					LinuxServerGroup mailLSG=mailLG.getLinuxServerGroup(thisAoServer);
-					if(mailLSG==null) throw new SQLException("Unable to find LinuxServerGroup: "+LinuxGroup.MAIL+" on "+thisAoServer.getHostname());
+					Group mailLG = AOServDaemon.getConnector().getLinuxGroups().get(Group.MAIL);
+					if(mailLG==null) throw new SQLException("Unable to find Group: "+Group.MAIL);
+					GroupServer mailLSG=mailLG.getLinuxServerGroup(thisAoServer);
+					if(mailLSG==null) throw new SQLException("Unable to find GroupServer: "+Group.MAIL+" on "+thisAoServer.getHostname());
 					mailGID=mailLSG.getGid().getId();
 				}
 
@@ -96,9 +96,9 @@ final public class MajordomoManager extends BuilderThread {
 					// Make sure it won't be deleted
 					existingServers.remove(domain);
 					String msPath=MajordomoServer.MAJORDOMO_SERVER_DIRECTORY.toString()+'/'+domain;
-					LinuxServerAccount lsa=ms.getLinuxServerAccount();
+					UserServer lsa=ms.getLinuxServerAccount();
 					int lsaUID=lsa.getUid().getId();
-					LinuxServerGroup lsg=ms.getLinuxServerGroup();
+					GroupServer lsg=ms.getLinuxServerGroup();
 					int lsgGID=lsg.getGid().getId();
 					UnixFile msUF=new UnixFile(msPath);
 					Stat msUFStat = msUF.getStat();
@@ -973,7 +973,7 @@ final public class MajordomoManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 

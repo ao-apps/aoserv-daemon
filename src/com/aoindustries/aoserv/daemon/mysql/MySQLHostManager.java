@@ -7,10 +7,9 @@ package com.aoindustries.aoserv.daemon.mysql;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.mysql.MySQLServer;
-import com.aoindustries.aoserv.client.net.IPAddress;
-import com.aoindustries.aoserv.client.net.NetDevice;
+import com.aoindustries.aoserv.client.mysql.Server;
+import com.aoindustries.aoserv.client.net.Device;
+import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -41,7 +40,7 @@ final public class MySQLHostManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServer thisAOServer = AOServDaemon.getThisAOServer();
+			com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
 			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
@@ -53,12 +52,12 @@ final public class MySQLHostManager extends BuilderThread {
 
 			AOServConnector connector = AOServDaemon.getConnector();
 			synchronized (rebuildLock) {
-				for(MySQLServer mysqlServer : connector.getMysqlServers()) {
+				for(Server mysqlServer : connector.getMysqlServers()) {
 					String version=mysqlServer.getVersion().getVersion();
 					// hosts no longer exists in MySQL 5.6.7+
 					if(
-						!version.startsWith(MySQLServer.VERSION_5_6_PREFIX)
-						&& !version.startsWith(MySQLServer.VERSION_5_7_PREFIX)
+						!version.startsWith(Server.VERSION_5_6_PREFIX)
+						&& !version.startsWith(Server.VERSION_5_7_PREFIX)
 					) {
 						boolean modified = false;
 						// Get the connection to work through
@@ -80,12 +79,12 @@ final public class MySQLHostManager extends BuilderThread {
 							// Get the list of all hosts that should exist
 							Set<String> hosts=new HashSet<>();
 							// Always include loopback, just in case of data errors
-							hosts.add(IPAddress.LOOPBACK_IP);
+							hosts.add(IpAddress.LOOPBACK_IP);
 							hosts.add("localhost");
 							hosts.add("localhost.localdomain");
 							// Include all of the local IP addresses
-							for(NetDevice nd : thisAOServer.getServer().getNetDevices()) {
-								for(IPAddress ia : nd.getIPAddresses()) {
+							for(Device nd : thisAOServer.getServer().getNetDevices()) {
+								for(IpAddress ia : nd.getIPAddresses()) {
 									InetAddress ip = ia.getInetAddress();
 									if(!ip.isUnspecified()) {
 										String ipString = ip.toString();
@@ -96,10 +95,10 @@ final public class MySQLHostManager extends BuilderThread {
 
 							// Add the hosts that do not exist and should
 							String insertSQL;
-							if(version.startsWith(MySQLServer.VERSION_4_0_PREFIX))      insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
-							else if(version.startsWith(MySQLServer.VERSION_4_1_PREFIX)) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
-							else if(version.startsWith(MySQLServer.VERSION_5_0_PREFIX)) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
-							else if(version.startsWith(MySQLServer.VERSION_5_1_PREFIX)) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
+							if(version.startsWith(Server.VERSION_4_0_PREFIX))      insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
+							else if(version.startsWith(Server.VERSION_4_1_PREFIX)) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
+							else if(version.startsWith(Server.VERSION_5_0_PREFIX)) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
+							else if(version.startsWith(Server.VERSION_5_1_PREFIX)) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
 							else throw new SQLException("Unsupported MySQL version: "+version);
 
 							try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
@@ -143,7 +142,7 @@ final public class MySQLHostManager extends BuilderThread {
 
 	private static MySQLHostManager mysqlHostManager;
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 

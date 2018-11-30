@@ -9,19 +9,19 @@ import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.CyrusImapdBind;
 import com.aoindustries.aoserv.client.email.CyrusImapdServer;
 import com.aoindustries.aoserv.client.email.SendmailServer;
-import com.aoindustries.aoserv.client.linux.AOServer;
+import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.monitoring.AlertLevel;
 import static com.aoindustries.aoserv.client.monitoring.AlertLevel.CRITICAL;
 import static com.aoindustries.aoserv.client.monitoring.AlertLevel.HIGH;
 import static com.aoindustries.aoserv.client.monitoring.AlertLevel.LOW;
 import static com.aoindustries.aoserv.client.monitoring.AlertLevel.MEDIUM;
 import static com.aoindustries.aoserv.client.monitoring.AlertLevel.NONE;
-import com.aoindustries.aoserv.client.pki.SslCertificate;
-import com.aoindustries.aoserv.client.pki.SslCertificate.Check;
-import com.aoindustries.aoserv.client.pki.SslCertificateName;
-import com.aoindustries.aoserv.client.pki.SslCertificateOtherUse;
+import com.aoindustries.aoserv.client.pki.Certificate;
+import com.aoindustries.aoserv.client.pki.Certificate.Check;
+import com.aoindustries.aoserv.client.pki.CertificateName;
+import com.aoindustries.aoserv.client.pki.CertificateOtherUse;
 import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.web.HttpdSiteBind;
+import com.aoindustries.aoserv.client.web.VirtualHost;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -491,11 +491,11 @@ final public class SslCertificateManager {
 		}
 	}
 
-	private static final ConcurrencyLimiter<SslCertificate,List<Check>> checkSslCertificateConcurrencyLimiter = new ConcurrencyLimiter<>();
+	private static final ConcurrencyLimiter<Certificate,List<Check>> checkSslCertificateConcurrencyLimiter = new ConcurrencyLimiter<>();
 
-	public static List<Check> checkSslCertificate(SslCertificate certificate) throws IOException, SQLException {
+	public static List<Check> checkSslCertificate(Certificate certificate) throws IOException, SQLException {
 		try {
-			AOServer thisAOServer = AOServDaemon.getThisAOServer();
+			Server thisAOServer = AOServDaemon.getThisAOServer();
 			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			boolean isNewOpenssl;
@@ -523,10 +523,10 @@ final public class SslCertificateManager {
 					Set<String> expectedAlts;
 					Set<String> expectedAltsLower;
 					{
-						List<SslCertificateName> altNames = certificate.getAltNames();
+						List<CertificateName> altNames = certificate.getAltNames();
 						expectedAlts = new LinkedHashSet<>(altNames.size()*4/3+1);
 						expectedAltsLower = new LinkedHashSet<>(altNames.size()*4/3+1);
-						for(SslCertificateName altName : altNames) {
+						for(CertificateName altName : altNames) {
 							String name = altName.getName();
 							if(!expectedAlts.add(name)) throw new SQLException("Duplicate alt name: " + name);
 							String lower = name.toLowerCase(Locale.ROOT);
@@ -655,7 +655,7 @@ final public class SslCertificateManager {
 							? new String[] {"openssl", "x509", "-outform", "PEM", "-in", certCanonical.getPath(), "-pubkey", "-noout"}
 							: new String[] {"openssl", "x509", "-in", certCanonical.getPath(), "-noout", "-modulus"}
 					) : null;
-					// TODO: Do we need to support both cert and fullchain files no SslCertificate class?  Check both with x509 command for match
+					// TODO: Do we need to support both cert and fullchain files no Certificate class?  Check both with x509 command for match
 					// TODO: PostgreSQL uses fullchain for Let's Encrypt.
 					if(keyHash != null) {
 						results.add(new Check("Key " + ALGORITHM, keyHash, NONE, null));
@@ -839,10 +839,10 @@ final public class SslCertificateManager {
 					// Low-level if certificate appears unused
 					List<CyrusImapdBind> cyrusBinds = certificate.getCyrusImapdBinds();
 					List<CyrusImapdServer> cyrusServers = certificate.getCyrusImapdServers();
-					List<HttpdSiteBind> hsbs = certificate.getHttpdSiteBinds();
+					List<VirtualHost> hsbs = certificate.getHttpdSiteBinds();
 					List<SendmailServer> sendmailServers = certificate.getSendmailServersByServerCertificate();
 					List<SendmailServer> sendmailClients = certificate.getSendmailServersByClientCertificate();
-					List<SslCertificateOtherUse> otherUses = certificate.getOtherUses();
+					List<CertificateOtherUse> otherUses = certificate.getOtherUses();
 					int useCount = 0;
 					StringBuilder usedBy = new StringBuilder();
 					if(!cyrusBinds.isEmpty()) {
@@ -860,13 +860,13 @@ final public class SslCertificateManager {
 						if(usedBy.length() > 0) usedBy.append(", ");
 						int size = hsbs.size();
 						useCount += size;
-						usedBy.append(size).append(size == 1 ? " HttpdSiteBind" : " HttpdSiteBind");
+						usedBy.append(size).append(size == 1 ? " VirtualHost" : " VirtualHost");
 					}
 					if(!sendmailServers.isEmpty()) {
 						if(usedBy.length() > 0) usedBy.append(", ");
 						int size = sendmailServers.size();
 						useCount += size;
-						usedBy.append(size).append(size == 1 ? " SendmailServer(Server)" : " SendmailServers(Server)");
+						usedBy.append(size).append(size == 1 ? " SendmailServer(Host)" : " SendmailServers(Host)");
 					}
 					if(!sendmailClients.isEmpty()) {
 						if(usedBy.length() > 0) usedBy.append(", ");
@@ -874,7 +874,7 @@ final public class SslCertificateManager {
 						useCount += size;
 						usedBy.append(size).append(size == 1 ? " SendmailServer(Client)" : " SendmailServers(Client)");
 					}
-					for(SslCertificateOtherUse otherUse : otherUses) {
+					for(CertificateOtherUse otherUse : otherUses) {
 						if(usedBy.length() > 0) usedBy.append(", ");
 						int count = otherUse.getCount();
 						useCount += count;

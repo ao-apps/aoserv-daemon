@@ -7,14 +7,14 @@ package com.aoindustries.aoserv.daemon.net.xinetd;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.linux.AOServer;
-import com.aoindustries.aoserv.client.linux.LinuxAccount;
-import com.aoindustries.aoserv.client.linux.LinuxGroup;
-import com.aoindustries.aoserv.client.linux.LinuxServerAccount;
-import com.aoindustries.aoserv.client.linux.LinuxServerGroup;
-import com.aoindustries.aoserv.client.net.NetBind;
-import com.aoindustries.aoserv.client.net.NetTcpRedirect;
-import com.aoindustries.aoserv.client.net.Protocol;
+import com.aoindustries.aoserv.client.linux.Group;
+import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.linux.User;
+import com.aoindustries.aoserv.client.linux.UserServer;
+import com.aoindustries.aoserv.client.net.AppProtocol;
+import com.aoindustries.aoserv.client.net.Bind;
+import com.aoindustries.aoserv.client.net.TcpRedirect;
 import com.aoindustries.aoserv.client.scm.CvsRepository;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
@@ -24,6 +24,7 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.Port;
+import com.aoindustries.net.Protocol;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -58,7 +59,7 @@ public final class XinetdManager extends BuilderThread {
 	protected boolean doRebuild() {
 		try {
 			AOServConnector connector=AOServDaemon.getConnector();
-			AOServer aoServer=AOServDaemon.getThisAOServer();
+			Server aoServer=AOServDaemon.getThisAOServer();
 			OperatingSystemVersion osv = aoServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
@@ -70,13 +71,13 @@ public final class XinetdManager extends BuilderThread {
 			final ByteArrayOutputStream bout = new ByteArrayOutputStream();
 
 			synchronized(rebuildLock) {
-				LinuxServerAccount interbaseUser=aoServer.getLinuxServerAccount(LinuxAccount.INTERBASE);
-				LinuxServerAccount nobodyUser=aoServer.getLinuxServerAccount(LinuxAccount.NOBODY);
-				LinuxServerAccount rootUser=aoServer.getLinuxServerAccount(LinuxAccount.ROOT);
-				LinuxServerGroup ttyGroup=aoServer.getLinuxServerGroup(LinuxGroup.TTY);
+				UserServer interbaseUser=aoServer.getLinuxServerAccount(User.INTERBASE);
+				UserServer nobodyUser=aoServer.getLinuxServerAccount(User.NOBODY);
+				UserServer rootUser=aoServer.getLinuxServerAccount(User.ROOT);
+				GroupServer ttyGroup=aoServer.getLinuxServerGroup(Group.TTY);
 
 				// Build a list of services that should be running
-				List<NetBind> binds=aoServer.getServer().getNetBinds();
+				List<Bind> binds=aoServer.getServer().getNetBinds();
 				List<Service> services=new ArrayList<>(binds.size()+(ImapManager.WUIMAP_CONVERSION_ENABLED ? 1 : 0)); // Worst-case all binds are in xinetd
 
 				if(ImapManager.WUIMAP_CONVERSION_ENABLED) {
@@ -90,9 +91,9 @@ public final class XinetdManager extends BuilderThread {
 							null,
 							null,
 							"wuimap",
-							com.aoindustries.net.Protocol.TCP,
+							Protocol.TCP,
 							aoServer.getPrimaryIPAddress(),
-							Port.valueOf(8143, com.aoindustries.net.Protocol.TCP),
+							Port.valueOf(8143, Protocol.TCP),
 							false,
 							rootUser,
 							null,
@@ -108,38 +109,38 @@ public final class XinetdManager extends BuilderThread {
 					);
 				}
 
-				for (NetBind bind : binds) {
+				for (Bind bind : binds) {
 					Port port=bind.getPort();
-					NetTcpRedirect redirect=bind.getNetTcpRedirect();
-					Protocol protocolObj=bind.getAppProtocol();
+					TcpRedirect redirect=bind.getNetTcpRedirect();
+					AppProtocol protocolObj=bind.getAppProtocol();
 					String protocol=protocolObj.getProtocol();
 					if(
 						redirect!=null
-						//|| protocol.equals(Protocol.AUTH)
-						|| protocol.equals(Protocol.CVSPSERVER)
-						|| protocol.equals(Protocol.NTALK)
-						|| protocol.equals(Protocol.TALK)
-						|| protocol.equals(Protocol.TELNET)
+						//|| protocol.equals(AppProtocolAUTH)
+						|| protocol.equals(AppProtocol.CVSPSERVER)
+						|| protocol.equals(AppProtocol.NTALK)
+						|| protocol.equals(AppProtocol.TALK)
+						|| protocol.equals(AppProtocol.TELNET)
 						|| (
 							// POP and IMAP is handled through xinetd on Mandriva 2006.0
 							osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586
 							&& (
-								//protocol.equals(Protocol.POP2)
-								protocol.equals(Protocol.POP3)
-								|| protocol.equals(Protocol.SIMAP)
-								|| protocol.equals(Protocol.SPOP3)
-								|| protocol.equals(Protocol.IMAP2)
+								//protocol.equals(AppProtocol.POP2)
+								protocol.equals(AppProtocol.POP3)
+								|| protocol.equals(AppProtocol.SIMAP)
+								|| protocol.equals(AppProtocol.SPOP3)
+								|| protocol.equals(AppProtocol.IMAP2)
 							)
 						) || (
 							// FTP is handled through xinetd on CentOS 5
 							osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-							&& protocol.equals(Protocol.FTP)
+							&& protocol.equals(AppProtocol.FTP)
 						)
 					) {
 						Service service;
 						if(redirect!=null) {
-							com.aoindustries.net.Protocol netProtocol=port.getProtocol();
-							if(netProtocol != com.aoindustries.net.Protocol.TCP) throw new SQLException("Only TCP ports may be redirected: (net_binds.pkey="+bind.getPkey()+").protocol="+netProtocol);
+							Protocol netProtocol=port.getProtocol();
+							if(netProtocol != Protocol.TCP) throw new SQLException("Only TCP ports may be redirected: (net_binds.pkey="+bind.getPkey()+").protocol="+netProtocol);
 
 							service=new Service(
 								UNLISTED,
@@ -166,7 +167,7 @@ public final class XinetdManager extends BuilderThread {
 							);
 						} else {
 							boolean portMatches=protocolObj.getPort().equals(port);
-							/*if(protocol.equals(Protocol.AUTH)) {
+							/*if(protocol.equals(AppProtocol.AUTH)) {
 							service=new Service(
 							portMatches?null:UNLISTED,
 							-1,
@@ -189,7 +190,7 @@ public final class XinetdManager extends BuilderThread {
 							);
 							} else */
 							switch (protocol) {
-								case Protocol.CVSPSERVER:
+								case AppProtocol.CVSPSERVER:
 									List<CvsRepository> repos=aoServer.getCvsRepositories();
 									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 										StringBuilder server_args=new StringBuilder();
@@ -255,7 +256,7 @@ public final class XinetdManager extends BuilderThread {
 										);
 									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									break;
-								case Protocol.FTP:
+								case AppProtocol.FTP:
 									if(osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 										service=new Service(
 											portMatches?null:UNLISTED,
@@ -282,7 +283,7 @@ public final class XinetdManager extends BuilderThread {
 										);
 									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									break;
-								case Protocol.IMAP2:
+								case AppProtocol.IMAP2:
 									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 										service=new Service(
 											portMatches?null:UNLISTED,
@@ -309,7 +310,7 @@ public final class XinetdManager extends BuilderThread {
 										);
 									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									break;
-								case Protocol.NTALK:
+								case AppProtocol.NTALK:
 									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 										service=new Service(
 											portMatches?null:UNLISTED,
@@ -359,7 +360,7 @@ public final class XinetdManager extends BuilderThread {
 											null
 										);
 									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-									/*} else if(protocol.equals(Protocol.POP2)) {
+									/*} else if(protocol.equals(AppProtocol.POP2)) {
 									if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 									service=new Service(
 									portMatches?null:UNLISTED,
@@ -386,7 +387,7 @@ public final class XinetdManager extends BuilderThread {
 									);
 									} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);*/
 									break;
-								case Protocol.POP3:
+								case AppProtocol.POP3:
 									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 										service=new Service(
 											portMatches?null:UNLISTED,
@@ -413,7 +414,7 @@ public final class XinetdManager extends BuilderThread {
 										);
 									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									break;
-								case Protocol.SIMAP:
+								case AppProtocol.SIMAP:
 									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 										service=new Service(
 											portMatches?null:UNLISTED,
@@ -440,7 +441,7 @@ public final class XinetdManager extends BuilderThread {
 										);
 									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									break;
-								case Protocol.SPOP3:
+								case AppProtocol.SPOP3:
 									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 										service=new Service(
 											portMatches?null:UNLISTED,
@@ -467,7 +468,7 @@ public final class XinetdManager extends BuilderThread {
 										);
 									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									break;
-								case Protocol.TALK:
+								case AppProtocol.TALK:
 									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 										service=new Service(
 											portMatches?null:UNLISTED,
@@ -518,7 +519,7 @@ public final class XinetdManager extends BuilderThread {
 										);
 									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									break;
-								case Protocol.TELNET:
+								case AppProtocol.TELNET:
 									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 										service=new Service(
 											portMatches?null:UNLISTED,
@@ -712,7 +713,7 @@ public final class XinetdManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		AOServer thisAOServer = AOServDaemon.getThisAOServer();
+		Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
