@@ -321,7 +321,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
 			if(shutdownPort==null) throw new SQLException("Unable to find shutdown port for PrivateTomcatSite="+tomcatStdSite);
 			String shutdownKey=tomcatStdSite.getTomcat4ShutdownKey();
 			if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for PrivateTomcatSite="+tomcatStdSite);
-			out.print("<Host port=\"").encodeXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").encodeXmlAttribute(shutdownKey).print("\" debug=\"0\">\n");
+			out.print("<Server port=\"").encodeXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").encodeXmlAttribute(shutdownKey).print("\" debug=\"0\">\n");
 			out.print("  <GlobalNamingResources>\n"
 					+ "    <Resource name=\"UserDatabase\" auth=\"Container\"\n"
 					+ "              type=\"org.apache.catalina.UserDatabase\"\n"
@@ -400,7 +400,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
 			out.print("      </Host>\n"
 					+ "    </Engine>\n"
 					+ "  </Service>\n"
-					+ "</Host>\n");
+					+ "</Server>\n");
 		}
 		return bout.toByteArray();
 	}

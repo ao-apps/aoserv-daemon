@@ -90,7 +90,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		if(shutdownKey == null) throw new SQLException("Unable to find shutdown key for SharedTomcat: " + sharedTomcat);
 		out.print("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 		if(!sharedTomcat.isManual()) out.print(autoWarning);
-		out.print("<Host port=\"").encodeXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").encodeXmlAttribute(shutdownKey).print("\">\n"
+		out.print("<Server port=\"").encodeXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").encodeXmlAttribute(shutdownKey).print("\">\n"
 				+ "  <Listener className=\"org.apache.catalina.startup.VersionLoggerListener\" />\n"
 				+ "  <!-- Security listener. Documentation at /docs/config/listeners.html\n"
 				+ "  <Listener className=\"org.apache.catalina.security.SecurityListener\" />\n"
@@ -221,7 +221,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		}
 		out.print("    </Engine>\n"
 				+ "  </Service>\n"
-				+ "</Host>\n");
+				+ "</Server>\n");
 	}
 
 	@Override
