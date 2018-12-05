@@ -349,10 +349,13 @@ final public class DNSManager extends BuilderThread {
 									}
 									out.print(" };\n");
 								}
-								out.print("\tdirectory \"").print(namedZoneDir.getPath()).print("\";\n"
-										+ "\tdump-file \"/var/named/data/cache_dump.db\";\n"
+								out.print("\tdirectory \t\"").print(namedZoneDir.getPath()).print("\";\n"
+										+ "\tdump-file \t\"/var/named/data/cache_dump.db\";\n"
 										+ "\tstatistics-file \"/var/named/data/named_stats.txt\";\n"
 										+ "\tmemstatistics-file \"/var/named/data/named_mem_stats.txt\";\n"
+										// recursing-file and secroots-file were added in CentOS 7.6
+										+ "\trecursing-file  \"/var/named/data/named.recursing\";\n"
+										+ "\tsecroots-file   \"/var/named/data/named.secroots\";\n"
 										+ "\n"
 										+ "\tallow-query { " + ACL + " };\n"
 										//+ "\trecursion yes;\n"
