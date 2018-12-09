@@ -74,8 +74,8 @@ import org.apache.commons.lang3.NotImplementedException;
  * TODO: Install PHP packages as-needed on CentOS 7, including extensions and shared built-ins.
  * </p>
  * <p>
- * TODO: Write/update /etc/sysconfig/httpd when the first instance of Apache runs PHP 7+ to include PHP_INI_SCAN_DIR=/etc/httpd/conf/php/conf.d.
- * Or, could this be somehow added by the php_7_* packages?
+ * TODO: Write/update /etc/system/system/httpd[@name}.service.d/php.conf for PHP 7+
+ *       Or, could this be somehow added by the php_7_* packages?
  * </p>
  *
  * @author  AO Industries, Inc.
