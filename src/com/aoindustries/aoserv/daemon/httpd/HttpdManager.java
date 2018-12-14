@@ -134,7 +134,7 @@ final public class HttpdManager extends BuilderThread {
 					connector.getHttpdSiteAuthenticatedLocationTable().addTableListener(httpdManager, 0);
 					connector.getHttpdSiteBinds().addTableListener(httpdManager, 0);
 					connector.getHttpdSiteBindHeaders().addTableListener(httpdManager, 0);
-					connector.getHttpdSiteBindRedirects().addTableListener(httpdManager, 0);
+					connector.getRewriteRuleTable().addTableListener(httpdManager, 0);
 					connector.getHttpdSiteURLs().addTableListener(httpdManager, 0);
 					connector.getHttpdStaticSites().addTableListener(httpdManager, 0);
 					connector.getHttpdTomcatContexts().addTableListener(httpdManager, 0);

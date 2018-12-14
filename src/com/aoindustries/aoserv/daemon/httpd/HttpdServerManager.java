@@ -25,7 +25,7 @@ import com.aoindustries.aoserv.client.web.Header;
 import com.aoindustries.aoserv.client.web.HttpdBind;
 import com.aoindustries.aoserv.client.web.HttpdServer;
 import com.aoindustries.aoserv.client.web.Location;
-import com.aoindustries.aoserv.client.web.Redirect;
+import com.aoindustries.aoserv.client.web.RewriteRule;
 import com.aoindustries.aoserv.client.web.Site;
 import com.aoindustries.aoserv.client.web.VirtualHost;
 import com.aoindustries.aoserv.client.web.VirtualHostName;
@@ -2247,8 +2247,8 @@ public class HttpdServerManager {
 							mod_rewrite = true;
 							break HTTPD_SITES;
 						}
-						// Enabled when has any httpd_site_bind_redirects
-						if(!bind.getHttpdSiteBindRedirects().isEmpty()) {
+						// Enabled when has any RewriteRule
+						if(!bind.getRewriteRules().isEmpty()) {
 							mod_rewrite = true;
 							break HTTPD_SITES;
 						}
@@ -2666,6 +2666,29 @@ public class HttpdServerManager {
 	}
 
 	/**
+	 * Determines if a RewriteRule redirects all traffic.  This is used to know when the main site configuration
+	 * is not required to be included.
+	 */
+	private static boolean isRedirectAll(RewriteRule rewriteRule) {
+		String substitution = rewriteRule.getSubstitution();
+		String pattern = rewriteRule.getPattern();
+		return
+			(
+				"^".equals(pattern)
+				|| "^(.*)$".equals(pattern)
+			) && !substitution.equals("-")
+			// Flag "L" or "last" stops processing, expecting request to still be handled by this virtual host configuration
+			&& !rewriteRule.hasFlag("L")
+			&& !rewriteRule.hasFlag("last")
+			// Flag "S" or "skip" jumps to a different rule, so does not constitute redirecting all
+			&& !rewriteRule.hasFlag("S")
+			&& !rewriteRule.hasFlag("skip")
+			// Flag "T" or "type" sets the MIME type, so does not constitute redirecting all
+			&& !rewriteRule.hasFlag("T")
+			&& !rewriteRule.hasFlag("type");
+	}
+
+	/**
 	 * Builds the contents of a VirtualHost file.
 	 */
 	private static byte[] buildHttpdSiteBindFile(HttpdSiteManager manager, VirtualHost bind, String siteInclude, ByteArrayOutputStream bout) throws IOException, SQLException {
@@ -2739,42 +2762,22 @@ public class HttpdServerManager {
 								+ "    RewriteRule ^ ").print(escape(dollarVariable, primaryHSU.getURLNoSlash() + "%{REQUEST_URI}")).print(" [L,NE,R=permanent]\n");
 					}
 					boolean hasRedirectAll = false;
-					List<Redirect> redirects = bind.getHttpdSiteBindRedirects();
-					if(!redirects.isEmpty()) {
+					List<RewriteRule> rewriteRules = bind.getRewriteRules();
+					if(!rewriteRules.isEmpty()) {
 						out.print("\n"
 								+ "    # Redirects\n"
 								+ "    RewriteEngine on\n");
-						for(Redirect redirect : redirects) {
-							String comment = redirect.getComment();
+						for(RewriteRule rewriteRule : rewriteRules) {
+							String comment = rewriteRule.getComment();
 							if(comment != null) {
 								// TODO: Maybe separate escapeComment method for this?
 								out.print("    # ").print(escape(dollarVariable, comment, true)).print('\n');
 							}
-							String substitution = redirect.getSubstitution();
 							// Auto-detect a redirect-all bind
-							String pattern = redirect.getPattern();
-							if(
-								(
-									"^".equals(pattern)
-									|| "^(.*)$".equals(pattern)
-								) && !substitution.equals("-")
-							) {
+							if(isRedirectAll(rewriteRule)) {
 								hasRedirectAll = true;
 							}
-							out
-								.print("    RewriteRule ")
-								.print(escape(dollarVariable, pattern))
-								.print(' ');
-							if(substitution.equals("-")) {
-								out.print("- [L");
-								if(redirect.isNoEscape()) out.print(",NE");
-								out.print("]\n");
-							} else {
-								out.print(escape(dollarVariable, substitution))
-									.print(" [L");
-								if(redirect.isNoEscape()) out.print(",NE");
-								out.print(",R=permanent]\n");
-							}
+							out.print("    ").print(rewriteRule.getApacheDirective(dollarVariable)).print('\n');
 						}
 					}
 					List<Header> headers = bind.getHttpdSiteBindHeaders();
@@ -2920,42 +2923,23 @@ public class HttpdServerManager {
 						}
 					}
 					boolean hasRedirectAll = false;
-					List<Redirect> redirects = bind.getHttpdSiteBindRedirects();
-					if(!redirects.isEmpty()) {
+					List<RewriteRule> rewriteRules = bind.getRewriteRules();
+					if(!rewriteRules.isEmpty()) {
 						out.print("\n"
 								+ "    # Redirects\n"
 								+ "    <IfModule rewrite_module>\n"
 								+ "        RewriteEngine on\n");
-						for(Redirect redirect : redirects) {
-							String comment = redirect.getComment();
+						for(RewriteRule rewriteRule : rewriteRules) {
+							String comment = rewriteRule.getComment();
 							if(comment != null) {
 								// TODO: Maybe separate escapeComment method for this?
 								out.print("        # ").print(escape(dollarVariable, comment, true)).print('\n');
 							}
-							String substitution = redirect.getSubstitution();
 							// Auto-detect a redirect-all bind
-							String pattern = redirect.getPattern();
-							if(
-								(
-									"^".equals(pattern)
-									|| "^(.*)$".equals(pattern)
-								) && !substitution.equals("-")
-							) {
+							if(isRedirectAll(rewriteRule)) {
 								hasRedirectAll = true;
 							}
-							out
-								.print("        RewriteRule ")
-								.print(escape(dollarVariable, pattern))
-								.print(' ');
-							if(substitution.equals("-")) {
-								out.print("- [L");
-								if(redirect.isNoEscape()) out.print(",NE");
-								out.print("]\n");
-							} else {
-								out.print(escape(dollarVariable, substitution)).print(" [END");
-								if(redirect.isNoEscape()) out.print(",NE");
-								out.print(",R=permanent]\n");
-							}
+							out.print("        ").print(rewriteRule.getApacheDirective(dollarVariable)).print('\n');
 						}
 						out.print("    </IfModule>\n");
 					}
