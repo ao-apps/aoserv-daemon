@@ -2670,22 +2670,29 @@ public class HttpdServerManager {
 	 * is not required to be included.
 	 */
 	private static boolean isRedirectAll(RewriteRule rewriteRule) {
-		String substitution = rewriteRule.getSubstitution();
+		// String substitution = rewriteRule.getSubstitution();
 		String pattern = rewriteRule.getPattern();
 		return
 			(
 				"^".equals(pattern)
 				|| "^(.*)$".equals(pattern)
-			) && !substitution.equals("-")
-			// Flag "L" or "last" stops processing, expecting request to still be handled by this virtual host configuration
-			&& !rewriteRule.hasFlag("L")
-			&& !rewriteRule.hasFlag("last")
-			// Flag "S" or "skip" jumps to a different rule, so does not constitute redirecting all
-			&& !rewriteRule.hasFlag("S")
-			&& !rewriteRule.hasFlag("skip")
-			// Flag "T" or "type" sets the MIME type, so does not constitute redirecting all
-			&& !rewriteRule.hasFlag("T")
-			&& !rewriteRule.hasFlag("type");
+			)
+			// && !substitution.equals("-")
+			&& (
+				// Redirects with "L", "last", or "END"
+				rewriteRule.hasFlag("R", "redirect")
+				&& rewriteRule.hasFlag("L", "last", "END")
+			) || (
+				// Proxy via "P" or "proxy" ("L" is implied)
+				rewriteRule.hasFlag("P", "proxy")
+			) || (
+				// Flag "L", "last", "END" stops processing, expecting request to still be handled by this virtual host configuration
+				!rewriteRule.hasFlag("L", "last", "END")
+				// Flag "S" or "skip" jumps to a different rule, so does not constitute redirecting all
+				&& !rewriteRule.hasFlag("S", "skip")
+				// Flag "T" or "type" sets the MIME type, so does not constitute redirecting all
+				&& !rewriteRule.hasFlag("T", "type")
+			);
 	}
 
 	/**
