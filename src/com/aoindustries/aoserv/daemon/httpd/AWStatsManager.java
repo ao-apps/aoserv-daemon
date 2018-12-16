@@ -688,11 +688,11 @@ final public class AWStatsManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					awstatsManager = new AWStatsManager();
-					conn.getHttpdSites().addTableListener(awstatsManager, 0);
-					conn.getHttpdSiteBinds().addTableListener(awstatsManager, 0);
-					conn.getHttpdSiteURLs().addTableListener(awstatsManager, 0);
-					conn.getIpAddresses().addTableListener(awstatsManager, 0);
-					conn.getNetBinds().addTableListener(awstatsManager, 0);
+					conn.getWeb().getHttpdSites().addTableListener(awstatsManager, 0);
+					conn.getWeb().getHttpdSiteBinds().addTableListener(awstatsManager, 0);
+					conn.getWeb().getHttpdSiteURLs().addTableListener(awstatsManager, 0);
+					conn.getNet().getIpAddresses().addTableListener(awstatsManager, 0);
+					conn.getNet().getNetBinds().addTableListener(awstatsManager, 0);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);

@@ -157,7 +157,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					postgresServerManager = new PostgresServerManager();
-					conn.getPostgresServers().addTableListener(postgresServerManager, 0);
+					conn.getPostgresql().getPostgresServers().addTableListener(postgresServerManager, 0);
 					// Register in CronDaemon
 					CronDaemon.addCronJob(postgresServerManager, LogFactory.getLogger(PostgresServerManager.class));
 					System.out.println("Done");

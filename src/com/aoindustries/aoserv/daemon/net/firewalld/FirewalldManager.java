@@ -582,9 +582,9 @@ final public class FirewalldManager extends BuilderThread {
 				if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					firewalldManager = new FirewalldManager();
-					conn.getFirewalldZones().addTableListener(firewalldManager, 0);
-					conn.getNetBinds().addTableListener(firewalldManager, 0);
-					conn.getNetBindFirewalldZones().addTableListener(firewalldManager, 0);
+					conn.getNet().getFirewalldZones().addTableListener(firewalldManager, 0);
+					conn.getNet().getNetBinds().addTableListener(firewalldManager, 0);
+					conn.getNet().getNetBindFirewalldZones().addTableListener(firewalldManager, 0);
 					PackageManager.addPackageListener(firewalldManager);
 					System.out.println("Done");
 				} else {

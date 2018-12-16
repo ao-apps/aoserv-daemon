@@ -297,7 +297,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					mysqlDatabaseManager = new MySQLDatabaseManager();
-					conn.getMysqlDatabases().addTableListener(mysqlDatabaseManager, 0);
+					conn.getMysql().getMysqlDatabases().addTableListener(mysqlDatabaseManager, 0);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);
@@ -317,7 +317,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 
 	public static void getMasterStatus(int mysqlServer, CompressedDataOutputStream out) throws IOException, SQLException {
 		// Use the existing pools
-		Server ms = AOServDaemon.getConnector().getMysqlServers().get(mysqlServer);
+		Server ms = AOServDaemon.getConnector().getMysql().getMysqlServers().get(mysqlServer);
 		if(ms == null) throw new SQLException("Unable to find Server: " + mysqlServer);
 
 		AOConnectionPool pool = MySQLServerManager.getPool(ms);

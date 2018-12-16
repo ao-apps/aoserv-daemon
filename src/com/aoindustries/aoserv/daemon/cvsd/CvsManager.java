@@ -175,9 +175,9 @@ final public class CvsManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					cvsManager = new CvsManager();
-					conn.getCvsRepositories().addTableListener(cvsManager, 0);
-					conn.getLinuxServerAccounts().addTableListener(cvsManager, 0);
-					conn.getLinuxServerGroups().addTableListener(cvsManager, 0);
+					conn.getScm().getCvsRepositories().addTableListener(cvsManager, 0);
+					conn.getLinux().getLinuxServerAccounts().addTableListener(cvsManager, 0);
+					conn.getLinux().getLinuxServerGroups().addTableListener(cvsManager, 0);
 					PackageManager.addPackageListener(cvsManager);
 					System.out.println("Done");
 				} else {

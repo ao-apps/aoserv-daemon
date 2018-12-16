@@ -572,18 +572,18 @@ final public class EmailAddressManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					emailAddressManager = new EmailAddressManager();
-					conn.getEmailDomains().addTableListener(emailAddressManager, 0);
-					conn.getBlackholeEmailAddresses().addTableListener(emailAddressManager, 0);
-					conn.getEmailAddresses().addTableListener(emailAddressManager, 0);
-					conn.getEmailForwardings().addTableListener(emailAddressManager, 0);
-					conn.getEmailLists().addTableListener(emailAddressManager, 0);
-					conn.getEmailListAddresses().addTableListener(emailAddressManager, 0);
-					conn.getEmailPipes().addTableListener(emailAddressManager, 0);
-					conn.getEmailPipeAddresses().addTableListener(emailAddressManager, 0);
-					conn.getLinuxServerAccounts().addTableListener(emailAddressManager, 0);
-					conn.getLinuxAccAddresses().addTableListener(emailAddressManager, 0);
-					conn.getPackages().addTableListener(emailAddressManager, 0);
-					conn.getSystemEmailAliases().addTableListener(emailAddressManager, 0);
+					conn.getEmail().getEmailDomains().addTableListener(emailAddressManager, 0);
+					conn.getEmail().getBlackholeEmailAddresses().addTableListener(emailAddressManager, 0);
+					conn.getEmail().getEmailAddresses().addTableListener(emailAddressManager, 0);
+					conn.getEmail().getEmailForwardings().addTableListener(emailAddressManager, 0);
+					conn.getEmail().getEmailLists().addTableListener(emailAddressManager, 0);
+					conn.getEmail().getEmailListAddresses().addTableListener(emailAddressManager, 0);
+					conn.getEmail().getEmailPipes().addTableListener(emailAddressManager, 0);
+					conn.getEmail().getEmailPipeAddresses().addTableListener(emailAddressManager, 0);
+					conn.getLinux().getLinuxServerAccounts().addTableListener(emailAddressManager, 0);
+					conn.getEmail().getLinuxAccAddresses().addTableListener(emailAddressManager, 0);
+					conn.getBilling().getPackages().addTableListener(emailAddressManager, 0);
+					conn.getEmail().getSystemEmailAliases().addTableListener(emailAddressManager, 0);
 					PackageManager.addPackageListener(emailAddressManager);
 					System.out.println("Done");
 				} else {

@@ -623,7 +623,7 @@ final public class ImapManager extends BuilderThread {
 							// Required IMAP at least once on any default port
 							{
 								AOServConnector conn = AOServDaemon.getConnector();
-								AppProtocol imapProtocol = conn.getProtocols().get(AppProtocol.IMAP2);
+								AppProtocol imapProtocol = conn.getNet().getProtocols().get(AppProtocol.IMAP2);
 								if(imapProtocol == null) throw new SQLException("Protocol not found: " + AppProtocol.IMAP2);
 								Port defaultImapPort = imapProtocol.getPort();
 								boolean foundOnDefault = false;
@@ -2057,15 +2057,15 @@ final public class ImapManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					imapManager = new ImapManager();
-					conn.getAoServers().addTableListener(imapManager, 0);
-					conn.getCyrusImapdBinds().addTableListener(imapManager, 0);
-					conn.getCyrusImapdServers().addTableListener(imapManager, 0);
-					conn.getIpAddresses().addTableListener(imapManager, 0);
-					conn.getLinuxAccounts().addTableListener(imapManager, 0);
-					conn.getLinuxServerAccounts().addTableListener(imapManager, 0);
-					conn.getNetBinds().addTableListener(imapManager, 0);
-					conn.getServers().addTableListener(imapManager, 0);
-					conn.getSslCertificates().addTableListener(imapManager, 0);
+					conn.getLinux().getAoServers().addTableListener(imapManager, 0);
+					conn.getEmail().getCyrusImapdBinds().addTableListener(imapManager, 0);
+					conn.getEmail().getCyrusImapdServers().addTableListener(imapManager, 0);
+					conn.getNet().getIpAddresses().addTableListener(imapManager, 0);
+					conn.getLinux().getLinuxAccounts().addTableListener(imapManager, 0);
+					conn.getLinux().getLinuxServerAccounts().addTableListener(imapManager, 0);
+					conn.getNet().getNetBinds().addTableListener(imapManager, 0);
+					conn.getNet().getServers().addTableListener(imapManager, 0);
+					conn.getPki().getSslCertificates().addTableListener(imapManager, 0);
 					PackageManager.addPackageListener(imapManager);
 					System.out.println("Done");
 				} else {

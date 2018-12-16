@@ -191,8 +191,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					spamAssassinManager = new SpamAssassinManager();
-					conn.getLinuxServerAccounts().addTableListener(spamAssassinManager, 0);
-					conn.getIpAddresses().addTableListener(spamAssassinManager, 0);
+					conn.getLinux().getLinuxServerAccounts().addTableListener(spamAssassinManager, 0);
+					conn.getNet().getIpAddresses().addTableListener(spamAssassinManager, 0);
 					PackageManager.addPackageListener(spamAssassinManager);
 					new Thread(spamAssassinManager, "SpamAssassinManager").start();
 					// Once per day, the razor logs will be trimmed to only include the last 1000 lines
@@ -440,7 +440,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 	 */
 	public static Bind getSpamdBind() throws IOException, SQLException {
 		AOServConnector conn = AOServDaemon.getConnector();
-		AppProtocol spamdProtocol = conn.getProtocols().get(AppProtocol.SPAMD);
+		AppProtocol spamdProtocol = conn.getNet().getProtocols().get(AppProtocol.SPAMD);
 		if(spamdProtocol == null) throw new SQLException("Unable to find Protocol: " + AppProtocol.SPAMD);
 		List<Bind> spamdBinds = AOServDaemon.getThisAOServer().getServer().getNetBinds(spamdProtocol);
 		if(spamdBinds.isEmpty()) {

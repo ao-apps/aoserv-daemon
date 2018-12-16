@@ -52,7 +52,7 @@ final public class MySQLHostManager extends BuilderThread {
 
 			AOServConnector connector = AOServDaemon.getConnector();
 			synchronized (rebuildLock) {
-				for(Server mysqlServer : connector.getMysqlServers()) {
+				for(Server mysqlServer : connector.getMysql().getMysqlServers()) {
 					String version=mysqlServer.getVersion().getVersion();
 					// hosts no longer exists in MySQL 5.6.7+
 					if(
@@ -166,8 +166,8 @@ final public class MySQLHostManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					mysqlHostManager = new MySQLHostManager();
-					conn.getIpAddresses().addTableListener(mysqlHostManager, 0);
-					conn.getMysqlServers().addTableListener(mysqlHostManager, 0);
+					conn.getNet().getIpAddresses().addTableListener(mysqlHostManager, 0);
+					conn.getMysql().getMysqlServers().addTableListener(mysqlHostManager, 0);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);

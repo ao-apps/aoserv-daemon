@@ -96,9 +96,9 @@ final public class IpReputationManager extends BuilderThread {
 					if(mu == null) throw new AssertionError("Administrator is not a User");
 					if(mu.isRouter()) {
 						ipReputationManager = new IpReputationManager();
-						conn.getIpReputationSets().addTableListener(ipReputationManager, 0);
-						conn.getIpReputationSetHosts().addTableListener(ipReputationManager, 0);
-						conn.getIpReputationSetNetworks().addTableListener(ipReputationManager, 0);
+						conn.getNet_reputation().getIpReputationSets().addTableListener(ipReputationManager, 0);
+						conn.getNet_reputation().getIpReputationSetHosts().addTableListener(ipReputationManager, 0);
+						conn.getNet_reputation().getIpReputationSetNetworks().addTableListener(ipReputationManager, 0);
 						System.out.println("Done");
 					} else {
 						System.out.println("Disabled: This is not a router");
@@ -232,7 +232,7 @@ final public class IpReputationManager extends BuilderThread {
 
 			synchronized(rebuildLock) {
 				final UnixFile ipreputationDir = getIpreputationDir();
-				final Collection<Set> sets = conn.getIpReputationSets().getRows();
+				final Collection<Set> sets = conn.getNet_reputation().getIpReputationSets().getRows();
 
 				// Track the names of each set, used to remove extra directories
 				final java.util.Set<String> setIdentifiers = new HashSet<>(sets.size()*4/3+1);

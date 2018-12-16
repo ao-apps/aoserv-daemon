@@ -59,7 +59,7 @@ public class LogFactory {
 			Handler handler;
 			try {
 				AOServConnector connector = AOServDaemon.getConnector();
-				Category category = connector.getTicketCategories().getTicketCategoryByDotPath("aoserv.aoserv_daemon");
+				Category category = connector.getReseller().getTicketCategories().getTicketCategoryByDotPath("aoserv.aoserv_daemon");
 				handler = TicketLoggingHandler.getHandler(
 					AOServDaemonConfiguration.getServerHostname(),
 					connector,

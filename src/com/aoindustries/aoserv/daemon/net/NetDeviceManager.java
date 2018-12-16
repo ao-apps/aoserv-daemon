@@ -455,8 +455,8 @@ final public class NetDeviceManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					netDeviceManager = new NetDeviceManager();
-					conn.getIpAddresses().addTableListener(netDeviceManager, 0);
-					conn.getNetDevices().addTableListener(netDeviceManager, 0);
+					conn.getNet().getIpAddresses().addTableListener(netDeviceManager, 0);
+					conn.getNet().getNetDevices().addTableListener(netDeviceManager, 0);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);

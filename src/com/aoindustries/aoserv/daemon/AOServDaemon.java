@@ -148,7 +148,7 @@ final public class AOServDaemon {
 
 	public static Server getThisAOServer() throws IOException, SQLException {
 		String hostname=AOServDaemonConfiguration.getServerHostname();
-		Host server=getConnector().getServers().get(hostname);
+		Host server=getConnector().getNet().getServers().get(hostname);
 		if(server==null) throw new SQLException("Unable to find Host: "+hostname);
 		Server ao=server.getAOServer();
 		if(ao==null) throw new SQLException("Host is not an Server: "+hostname);

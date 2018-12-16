@@ -735,9 +735,9 @@ public final class XinetdManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					xinetdManager = new XinetdManager();
-					conn.getCvsRepositories().addTableListener(xinetdManager, 0);
-					conn.getNetBinds().addTableListener(xinetdManager, 0);
-					conn.getNetTcpRedirects().addTableListener(xinetdManager, 0);
+					conn.getScm().getCvsRepositories().addTableListener(xinetdManager, 0);
+					conn.getNet().getNetBinds().addTableListener(xinetdManager, 0);
+					conn.getNet().getNetTcpRedirects().addTableListener(xinetdManager, 0);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);

@@ -157,8 +157,8 @@ final public class SaslauthdManager extends BuilderThread {
 				if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					saslauthdManager = new SaslauthdManager();
-					conn.getLinuxServerAccounts().addTableListener(saslauthdManager, 0);
-					conn.getNetBinds().addTableListener(saslauthdManager, 0);
+					conn.getLinux().getLinuxServerAccounts().addTableListener(saslauthdManager, 0);
+					conn.getNet().getNetBinds().addTableListener(saslauthdManager, 0);
 					PackageManager.addPackageListener(saslauthdManager);
 					System.out.println("Done");
 				} else {

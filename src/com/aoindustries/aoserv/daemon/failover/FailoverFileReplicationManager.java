@@ -2430,7 +2430,7 @@ final public class FailoverFileReplicationManager {
 				}
 			}
 			// Go through each retention level >= 14
-			List<BackupRetention> brs = AOServDaemon.getConnector().getBackupRetentions().getRows();
+			List<BackupRetention> brs = AOServDaemon.getConnector().getBackup().getBackupRetentions().getRows();
 			int lastLevel = 0;
 			for(BackupRetention br : brs) {
 				int currentLevel = br.getDays();

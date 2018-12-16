@@ -141,7 +141,7 @@ final public class FTPManager extends BuilderThread {
 						+ "</Global>\n"
 				);
 
-				for(Bind bind : thisAoServer.getServer().getNetBinds(conn.getProtocols().get(AppProtocol.FTP))) {
+				for(Bind bind : thisAoServer.getServer().getNetBinds(conn.getNet().getProtocols().get(AppProtocol.FTP))) {
 					TcpRedirect redirect=bind.getNetTcpRedirect();
 					PrivateServer privateServer=bind.getPrivateFTPServer();
 					if(redirect!=null) {
@@ -306,7 +306,7 @@ final public class FTPManager extends BuilderThread {
 				}
 
 				// Find all the FTP binds
-				List<Bind> binds = thisAoServer.getServer().getNetBinds(conn.getProtocols().get(AppProtocol.FTP));
+				List<Bind> binds = thisAoServer.getServer().getNetBinds(conn.getNet().getProtocols().get(AppProtocol.FTP));
 
 				// Keep a list of the files that were verified
 				Set<String> existing = new HashSet<>(binds.size()*4/3+1);
@@ -465,14 +465,14 @@ final public class FTPManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					ftpManager = new FTPManager();
-					conn.getFtpGuestUsers().addTableListener(ftpManager, 0);
-					conn.getHttpdSites().addTableListener(ftpManager, 0);
-					conn.getIpAddresses().addTableListener(ftpManager, 0);
-					conn.getLinuxAccounts().addTableListener(ftpManager, 0);
-					conn.getLinuxServerAccounts().addTableListener(ftpManager, 0);
-					conn.getNetBinds().addTableListener(ftpManager, 0);
-					conn.getPrivateFTPServers().addTableListener(ftpManager, 0);
-					conn.getUsernames().addTableListener(ftpManager, 0);
+					conn.getFtp().getFtpGuestUsers().addTableListener(ftpManager, 0);
+					conn.getWeb().getHttpdSites().addTableListener(ftpManager, 0);
+					conn.getNet().getIpAddresses().addTableListener(ftpManager, 0);
+					conn.getLinux().getLinuxAccounts().addTableListener(ftpManager, 0);
+					conn.getLinux().getLinuxServerAccounts().addTableListener(ftpManager, 0);
+					conn.getNet().getNetBinds().addTableListener(ftpManager, 0);
+					conn.getFtp().getPrivateFTPServers().addTableListener(ftpManager, 0);
+					conn.getAccount().getUsernames().addTableListener(ftpManager, 0);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);
