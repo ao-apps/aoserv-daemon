@@ -305,7 +305,7 @@ public abstract class HttpdSiteManager {
 	public static String startHttpdSite(int sitePKey) throws IOException, SQLException {
 		AOServConnector conn = AOServDaemon.getConnector();
 
-		Site httpdSite=conn.getWeb().getHttpdSites().get(sitePKey);
+		Site httpdSite = conn.getWeb().getSite().get(sitePKey);
 		Server thisAOServer = AOServDaemon.getThisAOServer();
 		if(!httpdSite.getAoServer().equals(thisAOServer)) return "Site #"+sitePKey+" has server of "+httpdSite.getAoServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')';
 
@@ -340,7 +340,7 @@ public abstract class HttpdSiteManager {
 	public static String stopHttpdSite(int sitePKey) throws IOException, SQLException {
 		AOServConnector conn = AOServDaemon.getConnector();
 
-		Site httpdSite=conn.getWeb().getHttpdSites().get(sitePKey);
+		Site httpdSite = conn.getWeb().getSite().get(sitePKey);
 		Server thisAOServer = AOServDaemon.getThisAOServer();
 		if(!httpdSite.getAoServer().equals(thisAOServer)) return "Site #"+sitePKey+" has server of "+httpdSite.getAoServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')';
 

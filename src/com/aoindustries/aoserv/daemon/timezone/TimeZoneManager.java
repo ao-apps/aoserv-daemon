@@ -64,8 +64,8 @@ public class TimeZoneManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					timeZoneManager = new TimeZoneManager();
-					conn.getLinux().getAoServers().addTableListener(timeZoneManager, 0);
-					conn.getLinux().getTimeZones().addTableListener(timeZoneManager, 0);
+					conn.getLinux().getServer().addTableListener(timeZoneManager, 0);
+					conn.getLinux().getTimeZone().addTableListener(timeZoneManager, 0);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);

@@ -347,7 +347,7 @@ final public class DistroManager implements Runnable {
 		try {
 			// Build the list of files that should exist
 			AOServConnector conn=AOServDaemon.getConnector();
-			DistroFileTable distroFileTable=conn.getDistribution_management().getDistroFiles();
+			DistroFileTable distroFileTable = conn.getDistribution_management().getDistroFile();
 			// Getting this list provides a single, immutable, consistent snap-shot of the information
 			List<DistroFile> distroFiles=distroFileTable.getRows();
 			boolean[] foundFiles=new boolean[distroFiles.size()];

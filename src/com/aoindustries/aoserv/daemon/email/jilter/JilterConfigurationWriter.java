@@ -78,14 +78,14 @@ public class JilterConfigurationWriter extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					configurationWriter = new JilterConfigurationWriter();
-					conn.getLinux().getAoServers().addTableListener(configurationWriter, 0);
-					conn.getNet().getNetBinds().addTableListener(configurationWriter, 0);
-					conn.getNet().getNetDevices().addTableListener(configurationWriter, 0);
-					conn.getNet().getIpAddresses().addTableListener(configurationWriter, 0);
-					conn.getEmail().getEmailDomains().addTableListener(configurationWriter, 0);
-					conn.getEmail().getEmailAddresses().addTableListener(configurationWriter, 0);
-					conn.getEmail().getEmailSmtpRelays().addTableListener(configurationWriter, 0);
-					conn.getBilling().getPackages().addTableListener(configurationWriter, 0);
+					conn.getLinux().getServer().addTableListener(configurationWriter, 0);
+					conn.getNet().getBind().addTableListener(configurationWriter, 0);
+					conn.getNet().getDevice().addTableListener(configurationWriter, 0);
+					conn.getNet().getIpAddress().addTableListener(configurationWriter, 0);
+					conn.getEmail().getDomain().addTableListener(configurationWriter, 0);
+					conn.getEmail().getAddress().addTableListener(configurationWriter, 0);
+					conn.getEmail().getSmtpRelay().addTableListener(configurationWriter, 0);
+					conn.getBilling().getPackage().addTableListener(configurationWriter, 0);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);
@@ -108,8 +108,8 @@ public class JilterConfigurationWriter extends BuilderThread {
 	 * @return  the Bind or <code>null</code> if none found and jilter disabled.
 	 */
 	public static Bind getJilterNetBind() throws IOException, SQLException {
-		AppProtocol protocol = AOServDaemon.getConnector().getNet().getProtocols().get(AppProtocol.MILTER);
-		if(protocol==null) throw new SQLException("Protocol not found: " + AppProtocol.MILTER);
+		AppProtocol protocol = AOServDaemon.getConnector().getNet().getAppProtocol().get(AppProtocol.MILTER);
+		if(protocol == null) throw new SQLException("AppProtocol not found: " + AppProtocol.MILTER);
 		List<Bind> milterBinds = AOServDaemon.getThisAOServer().getServer().getNetBinds(protocol);
 		if(milterBinds.size()>1) throw new SQLException("More than one milter found in net_binds, refusing to configure jilter");
 		return milterBinds.isEmpty() ? null : milterBinds.get(0);
@@ -183,8 +183,8 @@ public class JilterConfigurationWriter extends BuilderThread {
 				Map<String,EmailLimit> emailOutLimits = new HashMap<>(noGrowSize);
 				Map<String,EmailLimit> emailRelayLimits = new HashMap<>(noGrowSize);
 				for(String packageName : domainPackages.values()) {
-					Package pk = AOServDaemon.getConnector().getBilling().getPackages().get(AccountingCode.valueOf(packageName));
-					if(pk==null) throw new SQLException("Unable to find Package: "+packageName);
+					Package pk = AOServDaemon.getConnector().getBilling().getPackage().get(AccountingCode.valueOf(packageName));
+					if(pk == null) throw new SQLException("Unable to find Package: " + packageName);
 					int emailInBurst = pk.getEmailInBurst();
 					float emailInRate = pk.getEmailInRate();
 					if(emailInBurst!=-1 && !Float.isNaN(emailInRate)) emailInLimits.put(packageName, new EmailLimit(emailInBurst, emailInRate));

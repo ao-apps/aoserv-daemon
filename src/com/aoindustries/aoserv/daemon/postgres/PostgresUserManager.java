@@ -487,7 +487,7 @@ final public class PostgresUserManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					postgresUserManager = new PostgresUserManager();
-					conn.getPostgresql().getPostgresServerUsers().addTableListener(postgresUserManager, 0);
+					conn.getPostgresql().getUserServer().addTableListener(postgresUserManager, 0);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);

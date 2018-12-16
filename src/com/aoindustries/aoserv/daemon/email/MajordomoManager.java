@@ -73,7 +73,7 @@ final public class MajordomoManager extends BuilderThread {
 				// Resolve the GID for "mail"
 				int mailGID;
 				{
-					Group mailLG = AOServDaemon.getConnector().getLinux().getLinuxGroups().get(Group.MAIL);
+					Group mailLG = AOServDaemon.getConnector().getLinux().getGroup().get(Group.MAIL);
 					if(mailLG==null) throw new SQLException("Unable to find Group: "+Group.MAIL);
 					GroupServer mailLSG=mailLG.getLinuxServerGroup(thisAoServer);
 					if(mailLSG==null) throw new SQLException("Unable to find GroupServer: "+Group.MAIL+" on "+thisAoServer.getHostname());
@@ -992,8 +992,8 @@ final public class MajordomoManager extends BuilderThread {
 				if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					majordomoManager = new MajordomoManager();
-					conn.getEmail().getMajordomoLists().addTableListener(majordomoManager, 0);
-					conn.getEmail().getMajordomoServers().addTableListener(majordomoManager, 0);
+					conn.getEmail().getMajordomoList().addTableListener(majordomoManager, 0);
+					conn.getEmail().getMajordomoServer().addTableListener(majordomoManager, 0);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);

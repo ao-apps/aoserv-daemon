@@ -153,7 +153,7 @@ final public class MySQLServerManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					mysqlServerManager = new MySQLServerManager();
-					conn.getMysql().getMysqlServers().addTableListener(mysqlServerManager, 0);
+					conn.getMysql().getServer().addTableListener(mysqlServerManager, 0);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);

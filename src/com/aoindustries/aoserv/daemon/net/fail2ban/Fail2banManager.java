@@ -386,9 +386,9 @@ final public class Fail2banManager extends BuilderThread {
 				if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					fail2banManager = new Fail2banManager();
-					conn.getNet().getFirewalldZones().addTableListener(fail2banManager, 0);
-					conn.getNet().getNetBinds().addTableListener(fail2banManager, 0);
-					conn.getNet().getNetBindFirewalldZones().addTableListener(fail2banManager, 0);
+					conn.getNet().getFirewallZone().addTableListener(fail2banManager, 0);
+					conn.getNet().getBind().addTableListener(fail2banManager, 0);
+					conn.getNet().getBindFirewallZone().addTableListener(fail2banManager, 0);
 					PackageManager.addPackageListener(fail2banManager);
 					System.out.println("Done");
 				} else {

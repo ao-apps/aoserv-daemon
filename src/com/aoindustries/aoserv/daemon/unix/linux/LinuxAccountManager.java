@@ -404,7 +404,7 @@ public class LinuxAccountManager extends BuilderThread {
 
 				if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 					// Create any inboxes that need to exist.
-					GroupServer mailGroup = connector.getLinux().getLinuxGroups().get(Group.MAIL).getLinuxServerGroup(thisAoServer);
+					GroupServer mailGroup = connector.getLinux().getGroup().get(Group.MAIL).getLinuxServerGroup(thisAoServer);
 					if(mailGroup == null) throw new SQLException("Unable to find GroupServer: " + Group.MAIL + " on " + thisAoServer.getHostname());
 					for(UserServer lsa : lsas) {
 						User la = lsa.getLinuxAccount();
@@ -1041,11 +1041,11 @@ public class LinuxAccountManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					linuxAccountManager = new LinuxAccountManager();
-					conn.getFtp().getFtpGuestUsers().addTableListener(linuxAccountManager, 0);
-					conn.getLinux().getLinuxAccounts().addTableListener(linuxAccountManager, 0);
-					conn.getLinux().getLinuxGroupAccounts().addTableListener(linuxAccountManager, 0);
-					conn.getLinux().getLinuxServerAccounts().addTableListener(linuxAccountManager, 0);
-					conn.getLinux().getLinuxServerGroups().addTableListener(linuxAccountManager, 0);
+					conn.getFtp().getGuestUser().addTableListener(linuxAccountManager, 0);
+					conn.getLinux().getUser().addTableListener(linuxAccountManager, 0);
+					conn.getLinux().getGroupUser().addTableListener(linuxAccountManager, 0);
+					conn.getLinux().getUserServer().addTableListener(linuxAccountManager, 0);
+					conn.getLinux().getGroupServer().addTableListener(linuxAccountManager, 0);
 
 					// TODO: This seemed to not pick-up correctly.  Add a delay?
 					PackageManager.addPackageListener(linuxAccountManager); // React to users and groups added by RPMs

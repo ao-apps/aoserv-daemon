@@ -151,7 +151,7 @@ final public class DNSManager extends BuilderThread {
 			int gid_min = thisAoServer.getGidMin().getId();
 
 			synchronized(rebuildLock) {
-				AppProtocol dns = AOServDaemon.getConnector().getNet().getProtocols().get(AppProtocol.DNS);
+				AppProtocol dns = AOServDaemon.getConnector().getNet().getAppProtocol().get(AppProtocol.DNS);
 				if(dns == null) throw new SQLException("Unable to find Protocol: " + AppProtocol.DNS);
 				List<Bind> netBinds = thisServer.getNetBinds(dns);
 				if(!netBinds.isEmpty()) {
@@ -197,7 +197,7 @@ final public class DNSManager extends BuilderThread {
 					 * Create the new /var/named files
 					 */
 					// By getting the list first, we get a snap-shot of the data
-					List<Zone> zones = connector.getDns().getDnsZones().getRows();
+					List<Zone> zones = connector.getDns().getZone().getRows();
 					for(Zone zone : zones) {
 						String file = zone.getFile();
 						long serial = zone.getSerial();
@@ -463,8 +463,8 @@ final public class DNSManager extends BuilderThread {
 
 	private static final Object restartLock = new Object();
 	private static void restart() throws IOException, SQLException {
-		AppProtocol dns = AOServDaemon.getConnector().getNet().getProtocols().get(AppProtocol.DNS);
-		if(dns == null) throw new SQLException("Unable to find Protocol: " + AppProtocol.DNS);
+		AppProtocol dns = AOServDaemon.getConnector().getNet().getAppProtocol().get(AppProtocol.DNS);
+		if(dns == null) throw new SQLException("Unable to find AppProtocol: " + AppProtocol.DNS);
 		Host thisServer = AOServDaemon.getThisAOServer().getServer();
 		if(!thisServer.getNetBinds(dns).isEmpty()) {
 			OperatingSystemVersion osv = thisServer.getOperatingSystemVersion();
@@ -502,9 +502,9 @@ final public class DNSManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					dnsManager = new DNSManager();
-					conn.getDns().getDnsZones().addTableListener(dnsManager, 0);
-					conn.getDns().getDnsRecords().addTableListener(dnsManager, 0);
-					conn.getNet().getNetBinds().addTableListener(dnsManager, 0);
+					conn.getDns().getZone().addTableListener(dnsManager, 0);
+					conn.getDns().getRecord().addTableListener(dnsManager, 0);
+					conn.getNet().getBind().addTableListener(dnsManager, 0);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);

@@ -382,8 +382,8 @@ public final class PgHbaManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					pgHbaManager = new PgHbaManager();
-					conn.getPostgresql().getPostgresDatabases().addTableListener(pgHbaManager, 0);
-					conn.getPostgresql().getPostgresServerUsers().addTableListener(pgHbaManager, 0);
+					conn.getPostgresql().getDatabase().addTableListener(pgHbaManager, 0);
+					conn.getPostgresql().getUserServer().addTableListener(pgHbaManager, 0);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);

@@ -59,7 +59,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 
 			AOServConnector connector = AOServDaemon.getConnector();
 			synchronized(rebuildLock) {
-				for(Server mysqlServer : connector.getMysql().getMysqlServers()) {
+				for(Server mysqlServer : connector.getMysql().getServer()) {
 					// Get the list of all db entries that should exist
 					List<DatabaseUser> dbUsers = mysqlServer.getMySQLDBUsers();
 					if(dbUsers.isEmpty()) {
@@ -273,10 +273,10 @@ final public class MySQLDBUserManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					mysqlDBUserManager = new MySQLDBUserManager();
-					conn.getMysql().getMysqlDBUsers().addTableListener(mysqlDBUserManager, 0);
-					conn.getMysql().getMysqlDatabases().addTableListener(mysqlDBUserManager, 0);
-					conn.getMysql().getMysqlServerUsers().addTableListener(mysqlDBUserManager, 0);
-					conn.getMysql().getMysqlUsers().addTableListener(mysqlDBUserManager, 0);
+					conn.getMysql().getDatabaseUser().addTableListener(mysqlDBUserManager, 0);
+					conn.getMysql().getDatabase().addTableListener(mysqlDBUserManager, 0);
+					conn.getMysql().getUserServer().addTableListener(mysqlDBUserManager, 0);
+					conn.getMysql().getUser().addTableListener(mysqlDBUserManager, 0);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);

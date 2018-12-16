@@ -623,8 +623,8 @@ final public class ImapManager extends BuilderThread {
 							// Required IMAP at least once on any default port
 							{
 								AOServConnector conn = AOServDaemon.getConnector();
-								AppProtocol imapProtocol = conn.getNet().getProtocols().get(AppProtocol.IMAP2);
-								if(imapProtocol == null) throw new SQLException("Protocol not found: " + AppProtocol.IMAP2);
+								AppProtocol imapProtocol = conn.getNet().getAppProtocol().get(AppProtocol.IMAP2);
+								if(imapProtocol == null) throw new SQLException("AppProtocol not found: " + AppProtocol.IMAP2);
 								Port defaultImapPort = imapProtocol.getPort();
 								boolean foundOnDefault = false;
 								for(CyrusImapdBind cib : imapBinds) {
@@ -2057,15 +2057,15 @@ final public class ImapManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					imapManager = new ImapManager();
-					conn.getLinux().getAoServers().addTableListener(imapManager, 0);
-					conn.getEmail().getCyrusImapdBinds().addTableListener(imapManager, 0);
-					conn.getEmail().getCyrusImapdServers().addTableListener(imapManager, 0);
-					conn.getNet().getIpAddresses().addTableListener(imapManager, 0);
-					conn.getLinux().getLinuxAccounts().addTableListener(imapManager, 0);
-					conn.getLinux().getLinuxServerAccounts().addTableListener(imapManager, 0);
-					conn.getNet().getNetBinds().addTableListener(imapManager, 0);
-					conn.getNet().getServers().addTableListener(imapManager, 0);
-					conn.getPki().getSslCertificates().addTableListener(imapManager, 0);
+					conn.getLinux().getServer().addTableListener(imapManager, 0);
+					conn.getEmail().getCyrusImapdBind().addTableListener(imapManager, 0);
+					conn.getEmail().getCyrusImapdServer().addTableListener(imapManager, 0);
+					conn.getNet().getIpAddress().addTableListener(imapManager, 0);
+					conn.getLinux().getUser().addTableListener(imapManager, 0);
+					conn.getLinux().getUserServer().addTableListener(imapManager, 0);
+					conn.getNet().getBind().addTableListener(imapManager, 0);
+					conn.getNet().getHost().addTableListener(imapManager, 0);
+					conn.getPki().getCertificate().addTableListener(imapManager, 0);
 					PackageManager.addPackageListener(imapManager);
 					System.out.println("Done");
 				} else {

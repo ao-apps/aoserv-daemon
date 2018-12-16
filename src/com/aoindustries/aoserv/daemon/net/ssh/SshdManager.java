@@ -364,8 +364,8 @@ final public class SshdManager extends BuilderThread {
 					List<Bind> nbs = new ArrayList<>();
 					boolean hasSpecificAddress = false;
 					{
-						AppProtocol sshProtocol = conn.getNet().getProtocols().get(AppProtocol.SSH);
-						if(sshProtocol == null) throw new SQLException("Protocol not found: " + AppProtocol.SSH);
+						AppProtocol sshProtocol = conn.getNet().getAppProtocol().get(AppProtocol.SSH);
+						if(sshProtocol == null) throw new SQLException("AppProtocol not found: " + AppProtocol.SSH);
 						for(Bind nb : thisAoServer.getServer().getNetBinds(sshProtocol)) {
 							if(nb.getNetTcpRedirect() == null) {
 								com.aoindustries.net.Protocol netProtocol = nb.getPort().getProtocol();
@@ -565,7 +565,7 @@ final public class SshdManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					sshdManager = new SshdManager();
-					conn.getNet().getNetBinds().addTableListener(sshdManager, 0);
+					conn.getNet().getBind().addTableListener(sshdManager, 0);
 					PackageManager.addPackageListener(sshdManager);
 					System.out.println("Done");
 				} else {

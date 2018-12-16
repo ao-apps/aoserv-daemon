@@ -889,7 +889,7 @@ final public class MySQLUserManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					mysqlUserManager = new MySQLUserManager();
-					conn.getMysql().getMysqlServerUsers().addTableListener(mysqlUserManager, 0);
+					conn.getMysql().getUserServer().addTableListener(mysqlUserManager, 0);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);

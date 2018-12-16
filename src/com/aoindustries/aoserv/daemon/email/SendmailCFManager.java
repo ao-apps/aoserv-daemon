@@ -1721,13 +1721,13 @@ final public class SendmailCFManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					sendmailCFManager = new SendmailCFManager();
-					conn.getLinux().getAoServers().addTableListener(sendmailCFManager, 0);
-					conn.getNet().getIpAddresses().addTableListener(sendmailCFManager, 0);
-					conn.getNet().getNetBinds().addTableListener(sendmailCFManager, 0);
-					conn.getEmail().getSendmailBinds().addTableListener(sendmailCFManager, 0);
-					conn.getEmail().getSendmailServers().addTableListener(sendmailCFManager, 0);
-					conn.getNet().getServers().addTableListener(sendmailCFManager, 0);
-					conn.getPki().getSslCertificates().addTableListener(sendmailCFManager, 0);
+					conn.getLinux().getServer().addTableListener(sendmailCFManager, 0);
+					conn.getNet().getIpAddress().addTableListener(sendmailCFManager, 0);
+					conn.getNet().getBind().addTableListener(sendmailCFManager, 0);
+					conn.getEmail().getSendmailBind().addTableListener(sendmailCFManager, 0);
+					conn.getEmail().getSendmailServer().addTableListener(sendmailCFManager, 0);
+					conn.getNet().getHost().addTableListener(sendmailCFManager, 0);
+					conn.getPki().getCertificate().addTableListener(sendmailCFManager, 0);
 					//conn.getServerFarms().addTableListener(sendmailCFManager, 0);
 					System.out.println("Done");
 				} else {

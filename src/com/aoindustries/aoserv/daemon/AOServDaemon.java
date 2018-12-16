@@ -147,11 +147,11 @@ final public class AOServDaemon {
 	}
 
 	public static Server getThisAOServer() throws IOException, SQLException {
-		String hostname=AOServDaemonConfiguration.getServerHostname();
-		Host server=getConnector().getNet().getServers().get(hostname);
-		if(server==null) throw new SQLException("Unable to find Host: "+hostname);
-		Server ao=server.getAOServer();
-		if(ao==null) throw new SQLException("Host is not an Server: "+hostname);
+		String hostname = AOServDaemonConfiguration.getServerHostname();
+		Host host = getConnector().getNet().getHost().get(hostname);
+		if(host == null) throw new SQLException("Unable to find Host: " + hostname);
+		Server ao = host.getAOServer();
+		if(ao == null) throw new SQLException("Host is not an Server: " + hostname);
 		return ao;
 	}
 

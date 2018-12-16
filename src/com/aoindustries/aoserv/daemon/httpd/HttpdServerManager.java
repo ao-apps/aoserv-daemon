@@ -3460,7 +3460,7 @@ public class HttpdServerManager {
 					Server thisAOServer = AOServDaemon.getThisAOServer();
 					OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 					int osvId = osv.getPkey();
-					HttpdServer hs = conn.getWeb().getHttpdServers().get(httpdServer);
+					HttpdServer hs = conn.getWeb().getHttpdServer().get(httpdServer);
 					if(hs == null) throw new SQLException("HttpdServer not found: " + httpdServer);
 					int ppid;
 					{

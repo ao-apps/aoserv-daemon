@@ -163,7 +163,7 @@ public final class EmailDomainManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					emailDomainManager = new EmailDomainManager();
-					conn.getEmail().getEmailDomains().addTableListener(emailDomainManager, 0);
+					conn.getEmail().getDomain().addTableListener(emailDomainManager, 0);
 					PackageManager.addPackageListener(emailDomainManager);
 					System.out.println("Done");
 				} else {

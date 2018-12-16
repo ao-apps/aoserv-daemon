@@ -355,7 +355,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 					if(postgresDatabaseManager == null) {
 						AOServConnector conn = AOServDaemon.getConnector();
 						postgresDatabaseManager = new PostgresDatabaseManager();
-						conn.getPostgresql().getPostgresDatabases().addTableListener(postgresDatabaseManager, 0);
+						conn.getPostgresql().getDatabase().addTableListener(postgresDatabaseManager, 0);
 					}
 					if(!cronStarted) {
 						CronDaemon.addCronJob(postgresDatabaseManager, LogFactory.getLogger(PostgresDatabaseManager.class));
@@ -415,7 +415,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 	public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
 		try {
 			AOServConnector aoservConn = AOServDaemon.getConnector();
-			DatabaseTable postgresDatabaseTable = aoservConn.getPostgresql().getPostgresDatabases();
+			DatabaseTable postgresDatabaseTable = aoservConn.getPostgresql().getDatabase();
 			// Only REINDEX on the first Sunday of the month
 			boolean isReindexTime=dayOfMonth<=7;
 			List<String> tableNames=new ArrayList<>();
