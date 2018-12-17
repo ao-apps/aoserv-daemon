@@ -13,7 +13,6 @@ import com.aoindustries.aoserv.client.postgresql.Server;
 import com.aoindustries.aoserv.client.postgresql.User;
 import com.aoindustries.aoserv.client.postgresql.UserServer;
 import com.aoindustries.aoserv.client.postgresql.Version;
-import com.aoindustries.aoserv.client.validator.PostgresServerName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -69,7 +68,7 @@ public final class PgHbaManager extends BuilderThread {
 							String version=ps.getVersion().getTechnologyVersion(connector).getVersion();
 							int postgresUID=thisAOServer.getLinuxServerAccount(com.aoindustries.aoserv.client.linux.User.POSTGRES).getUid().getId();
 							int postgresGID=thisAOServer.getLinuxServerGroup(Group.POSTGRES).getGid().getId();
-							PostgresServerName serverName=ps.getName();
+							Server.Name serverName=ps.getName();
 							File serverDir=new File(PostgresServerManager.pgsqlDirectory, serverName.toString());
 							UnixFile newHbaUF=new UnixFile(serverDir, "pg_hba.conf.new");
 							ChainWriter out=new ChainWriter(new FileOutputStream(newHbaUF.getFile()));

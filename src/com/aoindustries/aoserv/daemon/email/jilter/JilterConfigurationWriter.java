@@ -6,6 +6,7 @@
 package com.aoindustries.aoserv.daemon.email.jilter;
 
 import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.account.Account;
 import com.aoindustries.aoserv.client.billing.Package;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.Address;
@@ -19,7 +20,6 @@ import com.aoindustries.aoserv.client.net.AppProtocol;
 import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.client.net.IpAddress;
-import com.aoindustries.aoserv.client.validator.AccountingCode;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -183,7 +183,7 @@ public class JilterConfigurationWriter extends BuilderThread {
 				Map<String,EmailLimit> emailOutLimits = new HashMap<>(noGrowSize);
 				Map<String,EmailLimit> emailRelayLimits = new HashMap<>(noGrowSize);
 				for(String packageName : domainPackages.values()) {
-					Package pk = AOServDaemon.getConnector().getBilling().getPackage().get(AccountingCode.valueOf(packageName));
+					Package pk = AOServDaemon.getConnector().getBilling().getPackage().get(Account.Name.valueOf(packageName));
 					if(pk == null) throw new SQLException("Unable to find Package: " + packageName);
 					int emailInBurst = pk.getEmailInBurst();
 					float emailInRate = pk.getEmailInRate();

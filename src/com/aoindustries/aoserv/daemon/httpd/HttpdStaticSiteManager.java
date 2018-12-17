@@ -5,7 +5,7 @@
  */
 package com.aoindustries.aoserv.daemon.httpd;
 
-import com.aoindustries.aoserv.client.validator.UnixPath;
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.web.Site;
 import com.aoindustries.aoserv.client.web.StaticSite;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
@@ -110,7 +110,7 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 			webapps.put(
 				"",
 				new WebAppSettings(
-					UnixPath.valueOf(
+					PosixPath.valueOf(
 						HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory().toString()
 							+'/'
 							+httpdSite.getName()

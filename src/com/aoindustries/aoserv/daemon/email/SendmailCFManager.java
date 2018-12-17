@@ -9,13 +9,13 @@ import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.SendmailBind;
 import com.aoindustries.aoserv.client.email.SendmailServer;
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.net.AppProtocol;
 import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.client.pki.Certificate;
-import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -1149,7 +1149,7 @@ final public class SendmailCFManager extends BuilderThread {
 								caTrustHashNeeded = true;
 								break;
 							}
-							UnixPath chain = serverCert.getChainFile();
+							PosixPath chain = serverCert.getChainFile();
 							if(chain != null && !ImapManager.DEFAULT_CA_FILE.equals(chain.toString())) {
 								caTrustHashNeeded = true;
 								break;

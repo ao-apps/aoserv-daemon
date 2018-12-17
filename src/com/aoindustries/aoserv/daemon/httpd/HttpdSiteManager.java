@@ -8,12 +8,11 @@ package com.aoindustries.aoserv.daemon.httpd;
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.aosh.Command;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.linux.LinuxId;
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.linux.UserServer;
-import com.aoindustries.aoserv.client.validator.LinuxId;
-import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.client.web.Site;
 import com.aoindustries.aoserv.client.web.StaticSite;
 import com.aoindustries.aoserv.client.web.VirtualHost;
@@ -174,7 +173,7 @@ public abstract class HttpdSiteManager {
 				// Stop and disable any daemons
 				stopAndDisableDaemons(removeFile);
 				// Only remove the directory when not used by a home directory
-				if(!aoServer.isHomeUsed(UnixPath.valueOf(removeFile.getPath()))) {
+				if(!aoServer.isHomeUsed(PosixPath.valueOf(removeFile.getPath()))) {
 					File toDelete = removeFile.getFile();
 					if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
 					deleteFileList.add(toDelete);
@@ -272,7 +271,7 @@ public abstract class HttpdSiteManager {
 						final UnixFile scriptFile = new UnixFile(daemonDirectory, scriptName, false);
 						// Call stop with a one-minute time-out if not owned by root
 						if(daemonUid!=UnixFile.ROOT_UID) {
-							final UserId username = daemonLsa.getLinuxAccount().getUsername().getUsername();
+							final User.Name username = daemonLsa.getLinuxAccount_username_id();
 							try {
 								Future<Object> stopFuture = AOServDaemon.executorService.submit(() -> {
 									AOServDaemon.suexec(
@@ -1057,14 +1056,14 @@ public abstract class HttpdSiteManager {
 			}
 		}
 
-		private final UnixPath docBase;
+		private final PosixPath docBase;
 		private final String allowOverride;
 		private final String options;
 		private final boolean enableSsi;
 		private final boolean enableCgi;
 		private final String cgiOptions;
 
-		public WebAppSettings(UnixPath docBase, String allowOverride, String options, boolean enableSsi, boolean enableCgi, String cgiOptions) {
+		public WebAppSettings(PosixPath docBase, String allowOverride, String options, boolean enableSsi, boolean enableCgi, String cgiOptions) {
 			this.docBase = docBase;
 			this.allowOverride = allowOverride;
 			this.options = options;
@@ -1074,7 +1073,7 @@ public abstract class HttpdSiteManager {
 		}
 
 		public WebAppSettings(
-			UnixPath docBase,
+			PosixPath docBase,
 			String allowOverride,
 			boolean enableSsi,
 			boolean enableIndexes,
@@ -1091,7 +1090,7 @@ public abstract class HttpdSiteManager {
 			);
 		}
 
-		public UnixPath getDocBase() {
+		public PosixPath getDocBase() {
 			return docBase;
 		}
 

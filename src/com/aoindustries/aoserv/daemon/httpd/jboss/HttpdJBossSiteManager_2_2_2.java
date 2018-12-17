@@ -6,13 +6,13 @@
 package com.aoindustries.aoserv.daemon.httpd.jboss;
 
 import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.linux.Group;
 import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.client.net.Bind;
-import com.aoindustries.aoserv.client.validator.GroupId;
-import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.client.web.jboss.Site;
 import com.aoindustries.aoserv.client.web.tomcat.Context;
 import com.aoindustries.aoserv.client.web.tomcat.JkProtocol;
@@ -61,7 +61,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		 * Resolve and allocate stuff used throughout the method
 		 */
 		final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
-		final UnixPath replaceCommand = osConfig.getReplaceCommand();
+		final PosixPath replaceCommand = osConfig.getReplaceCommand();
 		if(replaceCommand==null) throw new IOException("OperatingSystem doesn't have replace command");
 		final TomcatCommon_3_2_4 tomcatCommon = getTomcatCommon();
 		final String siteDir = siteDirectory.getPath();
@@ -69,8 +69,8 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		final GroupServer lsg = httpdSite.getLinuxServerGroup();
 		final int uid = lsa.getUid().getId();
 		final int gid = lsg.getGid().getId();
-		final UserId laUsername=lsa.getLinuxAccount().getUsername().getUsername();
-		final GroupId laGroupname = lsg.getLinuxGroup().getName();
+		final User.Name laUsername = lsa.getLinuxAccount_username_id();
+		final Group.Name laGroupname = lsg.getLinuxGroup().getName();
 		final String siteName=httpdSite.getName();
 
 		/*

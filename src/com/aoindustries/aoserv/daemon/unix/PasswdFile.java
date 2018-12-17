@@ -5,10 +5,9 @@
  */
 package com.aoindustries.aoserv.daemon.unix;
 
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.User;
-import com.aoindustries.aoserv.client.validator.Gecos;
-import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.validator.UserId;
+import com.aoindustries.aoserv.client.linux.User.Gecos;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
@@ -52,7 +51,7 @@ final public class PasswdFile {
 		/**
 		 * @see  #getUsername()
 		 */
-		private final UserId username;
+		private final User.Name username;
 
 		/**
 		 * @see  #getUid()
@@ -87,12 +86,12 @@ final public class PasswdFile {
 		/**
 		 * @see  #getHome()
 		 */
-		private final UnixPath home;
+		private final PosixPath home;
 
 		/**
 		 * @see  #getShell()
 		 */
-		private final UnixPath shell;
+		private final PosixPath shell;
 
 		/**
 		 * Constructs a passwd file entry given one line of the <code>/etc/passwd</code> file, not including
@@ -103,7 +102,7 @@ final public class PasswdFile {
 			int len = values.size();
 			if(len < 7) throw new IllegalArgumentException("At least the first seven fields of passwd file required: " + line);
 
-			username = UserId.valueOf(values.get(0));
+			username = User.Name.valueOf(values.get(0));
 
 			String S;
 
@@ -135,10 +134,10 @@ final public class PasswdFile {
 
 			if(fields.size() > 4) throw new IllegalArgumentException("Too many GECOS fields: " + line);
 
-			if(len > 5 && (S = values.get(5)).length() > 0) home = UnixPath.valueOf(S);
+			if(len > 5 && (S = values.get(5)).length() > 0) home = PosixPath.valueOf(S);
 			else throw new IllegalArgumentException("home missing: " + line);
 
-			if(len > 6 && (S = values.get(6)).length() > 0) shell = UnixPath.valueOf(S);
+			if(len > 6 && (S = values.get(6)).length() > 0) shell = PosixPath.valueOf(S);
 			else throw new IllegalArgumentException("shell missing: " + line);
 
 			if(len > 7) throw new IllegalArgumentException("Too many fields: " + line);
@@ -148,15 +147,15 @@ final public class PasswdFile {
 		 * Constructs a passwd file entry given all the values.
 		 */
 		public Entry(
-			UserId username,
+			User.Name username,
 			int uid,
 			int gid,
 			Gecos fullName,
 			Gecos officeLocation,
 			Gecos officePhone,
 			Gecos homePhone,
-			UnixPath home,
-			UnixPath shell
+			PosixPath home,
+			PosixPath shell
 		) {
 			this.username = username;
 			this.uid = uid;
@@ -232,7 +231,7 @@ final public class PasswdFile {
 		/**
 		 * The username the entry is for
 		 */
-		public UserId getUsername() {
+		public User.Name getUsername() {
 			return username;
 		}
 
@@ -281,14 +280,14 @@ final public class PasswdFile {
 		/**
 		 * The home directory.
 		 */
-		public UnixPath getHome() {
+		public PosixPath getHome() {
 			return home;
 		}
 
 		/**
 		 * The shell interpreter.
 		 */
-		public UnixPath getShell() {
+		public PosixPath getShell() {
 			return shell;
 		}
 	}
@@ -303,10 +302,10 @@ final public class PasswdFile {
 	 *
 	 * Must hold {@link #passwdLock}
 	 */
-	public static Map<UserId,Entry> readPasswdFile() throws IOException {
+	public static Map<User.Name,Entry> readPasswdFile() throws IOException {
 		assert Thread.holdsLock(passwdLock);
 		try {
-			Map<UserId,Entry> passwdEntries = new LinkedHashMap<>();
+			Map<User.Name,Entry> passwdEntries = new LinkedHashMap<>();
 			try (
 				BufferedReader in = new BufferedReader(
 					new InputStreamReader(
@@ -367,15 +366,15 @@ final public class PasswdFile {
 	 *
 	 * Must hold {@link #passwdLock}
 	 */
-	public static byte[] buildPasswdFile(Map<UserId,Entry> expectedEntries, int uidMin, int uidMax) throws IOException {
+	public static byte[] buildPasswdFile(Map<User.Name,Entry> expectedEntries, int uidMin, int uidMax) throws IOException {
 		assert Thread.holdsLock(passwdLock);
 		if(!expectedEntries.containsKey(User.ROOT)) throw new IllegalArgumentException(User.ROOT + " user not found");
-		Map<UserId,Entry> passwdEntries = readPasswdFile();
+		Map<User.Name,Entry> passwdEntries = readPasswdFile();
 		// Remove any users that no longer exist and verify fields match
-		Iterator<Map.Entry<UserId,Entry>> entryIter = passwdEntries.entrySet().iterator();
+		Iterator<Map.Entry<User.Name,Entry>> entryIter = passwdEntries.entrySet().iterator();
 		while(entryIter.hasNext()) {
-			Map.Entry<UserId,Entry> mapEntry = entryIter.next();
-			UserId username = mapEntry.getKey();
+			Map.Entry<User.Name,Entry> mapEntry = entryIter.next();
+			User.Name username = mapEntry.getKey();
 			Entry existingEntry = mapEntry.getValue();
 			boolean existingIsSystem = existingEntry.uid < uidMin || existingEntry.uid > uidMax;
 			if(expectedEntries.containsKey(username)) {
@@ -448,7 +447,7 @@ final public class PasswdFile {
 
 		// Add new users
 		for(Entry entry : expectedEntries.values()) {
-			UserId username = entry.username;
+			User.Name username = entry.username;
 			if(!passwdEntries.containsKey(username)) {
 				if(logger.isLoggable(Level.INFO)) {
 					logger.info("Adding user to " + passwdFile + ": " + username);

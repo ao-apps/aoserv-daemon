@@ -7,8 +7,7 @@ package com.aoindustries.aoserv.daemon.unix;
 
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Group;
-import com.aoindustries.aoserv.client.validator.GroupId;
-import com.aoindustries.aoserv.client.validator.UserId;
+import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
@@ -54,7 +53,7 @@ final public class GShadowFile {
 		/**
 		 * @see  #getGroupName()
 		 */
-		private final GroupId groupName;
+		private final Group.Name groupName;
 
 		/**
 		 * @see  #getPassword()
@@ -64,21 +63,21 @@ final public class GShadowFile {
 		/**
 		 * @see  #getGroupAdministrators()
 		 */
-		private final Set<UserId> groupAdministrators;
+		private final Set<User.Name> groupAdministrators;
 
 		/**
 		 * @see  #getGroupMembers()
 		 */
-		private final Set<UserId> groupMembers;
+		private final Set<User.Name> groupMembers;
 
-		static Set<UserId> parseUserIds(String s) throws ValidationException {
+		static Set<User.Name> parseUserIds(String s) throws ValidationException {
 			List<String> usernames = StringUtility.splitStringCommaSpace(s);
 			int size = usernames.size();
 			if(size == 0) return Collections.emptySet();
-			if(size == 1) return Collections.singleton(UserId.valueOf(usernames.get(0)));
-			Set<UserId> userIds = new LinkedHashSet<>(size*4/3+1);
+			if(size == 1) return Collections.singleton(User.Name.valueOf(usernames.get(0)));
+			Set<User.Name> userIds = new LinkedHashSet<>(size*4/3+1);
 			for(String username : usernames) {
-				UserId userId = UserId.valueOf(username);
+				User.Name userId = User.Name.valueOf(username);
 				if(!userIds.add(userId)) throw new IllegalStateException("Duplicate userId: " + userId);
 			}
 			return Collections.unmodifiableSet(userIds);
@@ -93,7 +92,7 @@ final public class GShadowFile {
 			int len = values.size();
 			if(len < 1) throw new IllegalArgumentException("At least the first field of gshadow file required: " + line);
 
-			groupName = GroupId.valueOf(values.get(0));
+			groupName = Group.Name.valueOf(values.get(0));
 
 			String S;
 
@@ -115,10 +114,10 @@ final public class GShadowFile {
 		 * Constructs a gshadow file entry given all the values.
 		 */
 		public Entry(
-			GroupId groupName,
+			Group.Name groupName,
 			String password,
-			Set<UserId> groupAdministrators,
-			Set<UserId> groupMembers
+			Set<User.Name> groupAdministrators,
+			Set<User.Name> groupMembers
 		) {
 			this.groupName = groupName;
 			this.password = password;
@@ -128,7 +127,7 @@ final public class GShadowFile {
 		}
 
 		private void checkNoUserIdOverlap() throws IllegalArgumentException {
-			Set<UserId> intersection = new LinkedHashSet<>(groupAdministrators);
+			Set<User.Name> intersection = new LinkedHashSet<>(groupAdministrators);
 			intersection.retainAll(groupMembers);
 			if(!intersection.isEmpty()) throw new IllegalArgumentException("Users listed as both administrator and regular member: " + intersection);
 		}
@@ -159,14 +158,14 @@ final public class GShadowFile {
 			if(password != null) out.append(password);
 			out.append(':');
 			boolean didOne = false;
-			for(UserId groupAdministrator : groupAdministrators) {
+			for(User.Name groupAdministrator : groupAdministrators) {
 				if(didOne) out.append(',');
 				else didOne = true;
 				out.append(groupAdministrator.toString());
 			}
 			out.append(':');
 			didOne = false;
-			for(UserId groupMember : groupMembers) {
+			for(User.Name groupMember : groupMembers) {
 				if(didOne) out.append(',');
 				else didOne = true;
 				out.append(groupMember.toString());
@@ -177,7 +176,7 @@ final public class GShadowFile {
 		/**
 		 * The group name the entry is for
 		 */
-		public GroupId getGroupName() {
+		public Group.Name getGroupName() {
 			return groupName;
 		}
 
@@ -193,7 +192,7 @@ final public class GShadowFile {
 		 * The unmodifiable set of group administrators
 		 * or an empty set if not set.
 		 */
-		public Set<UserId> getGroupAdministrators() {
+		public Set<User.Name> getGroupAdministrators() {
 			return groupAdministrators;
 		}
 
@@ -201,7 +200,7 @@ final public class GShadowFile {
 		 * The unmodifiable set of non-administrative group members
 		 * or an empty set if not set.
 		 */
-		public Set<UserId> getGroupMembers() {
+		public Set<User.Name> getGroupMembers() {
 			return groupMembers;
 		}
 	}
@@ -214,10 +213,10 @@ final public class GShadowFile {
 	/**
 	 * Reads the full contents of /etc/gshadow
 	 */
-	private static Map<GroupId,Entry> readGShadowFile() throws IOException {
+	private static Map<Group.Name,Entry> readGShadowFile() throws IOException {
 		assert Thread.holdsLock(gshadowLock);
 		try {
-			Map<GroupId,Entry> gshadowEntries = new LinkedHashMap<>();
+			Map<Group.Name,Entry> gshadowEntries = new LinkedHashMap<>();
 			try (
 				BufferedReader in = new BufferedReader(
 					new InputStreamReader(
@@ -299,18 +298,18 @@ final public class GShadowFile {
 	 *
 	 * Must hold {@link #gshadowLock}
 	 */
-	public static byte[] buildGShadowFile(Map<GroupId,Set<UserId>> groups) throws IOException {
+	public static byte[] buildGShadowFile(Map<Group.Name,Set<User.Name>> groups) throws IOException {
 		assert Thread.holdsLock(gshadowLock);
 		if(!groups.containsKey(Group.ROOT)) throw new IllegalArgumentException(Group.ROOT + " group not found");
-		Map<GroupId,Entry> gshadowEntries = readGShadowFile();
+		Map<Group.Name,Entry> gshadowEntries = readGShadowFile();
 		// Remove any groups that no longer exist and verify group members
-		Iterator<Map.Entry<GroupId,Entry>> entryIter = gshadowEntries.entrySet().iterator();
+		Iterator<Map.Entry<Group.Name,Entry>> entryIter = gshadowEntries.entrySet().iterator();
 		while(entryIter.hasNext()) {
-			Map.Entry<GroupId,Entry> mapEntry = entryIter.next();
-			GroupId groupName = mapEntry.getKey();
+			Map.Entry<Group.Name,Entry> mapEntry = entryIter.next();
+			Group.Name groupName = mapEntry.getKey();
 			if(groups.containsKey(groupName)) {
 				// Verify group members match
-				Set<UserId> expectedMembers = groups.get(groupName);
+				Set<User.Name> expectedMembers = groups.get(groupName);
 				Entry entry = mapEntry.getValue();
 				if(!entry.getGroupMembers().equals(expectedMembers)) {
 					assert entry.groupName.equals(groupName);
@@ -335,8 +334,8 @@ final public class GShadowFile {
 		}
 
 		// Add new groups
-		for(Map.Entry<GroupId,Set<UserId>> entry : groups.entrySet()) {
-			GroupId groupName = entry.getKey();
+		for(Map.Entry<Group.Name,Set<User.Name>> entry : groups.entrySet()) {
+			Group.Name groupName = entry.getKey();
 			if(!gshadowEntries.containsKey(groupName)) {
 				if(logger.isLoggable(Level.INFO)) {
 					logger.info("Adding group to " + gshadowFile + ": " + groupName);

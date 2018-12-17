@@ -6,8 +6,7 @@
 package com.aoindustries.aoserv.daemon.unix;
 
 import com.aoindustries.aoserv.client.linux.Group;
-import com.aoindustries.aoserv.client.validator.GroupId;
-import com.aoindustries.aoserv.client.validator.UserId;
+import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
@@ -51,7 +50,7 @@ final public class GroupFile {
 		/**
 		 * @see  #getGroupName()
 		 */
-		private final GroupId groupName;
+		private final Group.Name groupName;
 
 		/**
 		 * @see  #getGid()
@@ -61,7 +60,7 @@ final public class GroupFile {
 		/**
 		 * @see  #getGroupMembers()
 		 */
-		private final Set<UserId> groupMembers;
+		private final Set<User.Name> groupMembers;
 
 		/**
 		 * Constructs a group file entry given one line of the <code>/etc/group</code> file, not including
@@ -72,7 +71,7 @@ final public class GroupFile {
 			int len = values.size();
 			if(len < 3) throw new IllegalArgumentException("At least the first three fields of group file required: " + line);
 
-			groupName = GroupId.valueOf(values.get(0));
+			groupName = Group.Name.valueOf(values.get(0));
 
 			String S;
 
@@ -89,9 +88,9 @@ final public class GroupFile {
 		 * Constructs a group file entry given all the values.
 		 */
 		public Entry(
-			GroupId groupName,
+			Group.Name groupName,
 			int gid,
-			Set<UserId> groupMembers
+			Set<User.Name> groupMembers
 		) {
 			this.groupName = groupName;
 			this.gid = gid;
@@ -126,7 +125,7 @@ final public class GroupFile {
 				.append(Integer.toString(gid))
 				.append(':');
 			boolean didOne = false;
-			for(UserId groupMember : groupMembers) {
+			for(User.Name groupMember : groupMembers) {
 				if(didOne) out.append(',');
 				else didOne = true;
 				out.append(groupMember.toString());
@@ -137,7 +136,7 @@ final public class GroupFile {
 		/**
 		 * The group name the entry is for
 		 */
-		public GroupId getGroupName() {
+		public Group.Name getGroupName() {
 			return groupName;
 		}
 
@@ -152,7 +151,7 @@ final public class GroupFile {
 		 * The unmodifiable set of group members
 		 * or an empty set if not set.
 		 */
-		public Set<UserId> getGroupMembers() {
+		public Set<User.Name> getGroupMembers() {
 			return groupMembers;
 		}
 	}
@@ -167,10 +166,10 @@ final public class GroupFile {
 	 *
 	 * Must hold {@link #groupLock}
 	 */
-	public static Map<GroupId,Entry> readGroupFile() throws IOException {
+	public static Map<Group.Name,Entry> readGroupFile() throws IOException {
 		assert Thread.holdsLock(groupLock);
 		try {
-			Map<GroupId,Entry> groupEntries = new LinkedHashMap<>();
+			Map<Group.Name,Entry> groupEntries = new LinkedHashMap<>();
 			try (
 				BufferedReader in = new BufferedReader(
 					new InputStreamReader(
@@ -231,15 +230,15 @@ final public class GroupFile {
 	 *
 	 * Must hold {@link #groupLock}
 	 */
-	public static byte[] buildGroupFile(Map<GroupId,Entry> groups, int gidMin, int gidMax) throws IOException {
+	public static byte[] buildGroupFile(Map<Group.Name,Entry> groups, int gidMin, int gidMax) throws IOException {
 		assert Thread.holdsLock(groupLock);
 		if(!groups.containsKey(Group.ROOT)) throw new IllegalArgumentException(Group.ROOT + " group not found");
-		Map<GroupId,Entry> groupEntries = readGroupFile();
+		Map<Group.Name,Entry> groupEntries = readGroupFile();
 		// Remove any groups that no longer exist and verify group members
-		Iterator<Map.Entry<GroupId,Entry>> entryIter = groupEntries.entrySet().iterator();
+		Iterator<Map.Entry<Group.Name,Entry>> entryIter = groupEntries.entrySet().iterator();
 		while(entryIter.hasNext()) {
-			Map.Entry<GroupId,Entry> mapEntry = entryIter.next();
-			GroupId groupName = mapEntry.getKey();
+			Map.Entry<Group.Name,Entry> mapEntry = entryIter.next();
+			Group.Name groupName = mapEntry.getKey();
 			Entry existingEntry = mapEntry.getValue();
 			boolean existingIsSystem = existingEntry.gid < gidMin || existingEntry.gid > gidMax;
 			if(groups.containsKey(groupName)) {
@@ -254,7 +253,7 @@ final public class GroupFile {
 					}
 				}
 				// Verify group members match
-				Set<UserId> expectedMembers = expectedEntry.groupMembers;
+				Set<User.Name> expectedMembers = expectedEntry.groupMembers;
 				if(
 					existingEntry.gid != expectedEntry.gid
 					|| !existingEntry.getGroupMembers().equals(expectedMembers)
@@ -283,7 +282,7 @@ final public class GroupFile {
 
 		// Add new groups
 		for(Entry entry : groups.values()) {
-			GroupId groupName = entry.groupName;
+			Group.Name groupName = entry.groupName;
 			if(!groupEntries.containsKey(groupName)) {
 				if(logger.isLoggable(Level.INFO)) {
 					logger.info("Adding group to " + groupFile + ": " + groupName);

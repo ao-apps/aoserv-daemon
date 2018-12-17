@@ -7,8 +7,8 @@ package com.aoindustries.aoserv.daemon.failover;
 
 import com.aoindustries.aoserv.backup.BackupDaemon;
 import com.aoindustries.aoserv.client.backup.BackupRetention;
+import com.aoindustries.aoserv.client.mysql.Server;
 import com.aoindustries.aoserv.client.scm.CvsRepository;
-import com.aoindustries.aoserv.client.validator.MySQLServerName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -651,7 +651,7 @@ final public class FailoverFileReplicationManager {
 		final short fromServerYear,
 		final short fromServerMonth,
 		final short fromServerDay,
-		final List<MySQLServerName> replicatedMySQLServers,
+		final List<Server.Name> replicatedMySQLServers,
 		final List<String> replicatedMySQLMinorVersions,
 		final int quota_gid
 	) throws IOException, SQLException {
@@ -685,7 +685,7 @@ final public class FailoverFileReplicationManager {
 				if(fromServerMonth<1 || fromServerMonth>12) throw new IOException("Invalid fromServerMonth (1-12): "+fromServerMonth);
 				if(fromServerDay<1 || fromServerDay>31) throw new IOException("Invalid fromServerDay (1-31): "+fromServerDay);
 
-				for(MySQLServerName replicatedMySQLServer : replicatedMySQLServers) {
+				for(Server.Name replicatedMySQLServer : replicatedMySQLServers) {
 					if(isFine) logger.fine("failoverServer from \""+fromServer+"\", replicatedMySQLServer: "+replicatedMySQLServer);
 				}
 				for(String replicatedMySQLMinorVersion : replicatedMySQLMinorVersions) {
@@ -1999,7 +1999,7 @@ final public class FailoverFileReplicationManager {
 				throw err;
 			} finally {
 				if(postPassChecklist.restartMySQLs && retention==1) {
-					for(MySQLServerName mysqlServer : replicatedMySQLServers) {
+					for(Server.Name mysqlServer : replicatedMySQLServers) {
 						String message = "Restarting MySQL "+mysqlServer+" in \""+toPath+'"';
 						activity.update("logic: ", message);
 						if(isFine) logger.fine(message);
@@ -2258,7 +2258,7 @@ final public class FailoverFileReplicationManager {
 	 * Determines if a specific file may be deleted on clean-up.
 	 * Don't delete anything in /proc/*, /sys/*, /selinux/*, /dev/pts/*, or MySQL replication-related files
 	 */
-	private static boolean deleteOnCleanup(String fromServer, int retention, String relativePath, List<MySQLServerName> replicatedMySQLServers, List<String> replicatedMySQLMinorVersions) {
+	private static boolean deleteOnCleanup(String fromServer, int retention, String relativePath, List<Server.Name> replicatedMySQLServers, List<String> replicatedMySQLMinorVersions) {
 		Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
 		boolean isDebug = logger.isLoggable(Level.FINE);
 		if(
@@ -2275,7 +2275,7 @@ final public class FailoverFileReplicationManager {
 			return false;
 		}
 		if(retention==1) {
-			for(MySQLServerName name : replicatedMySQLServers) {
+			for(Server.Name name : replicatedMySQLServers) {
 				if(
 					(
 						relativePath.startsWith("/var/lib/mysql/")

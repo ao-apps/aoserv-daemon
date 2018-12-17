@@ -10,6 +10,7 @@ import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.distribution.SoftwareVersion;
 import com.aoindustries.aoserv.client.linux.Group;
 import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.linux.UserServer;
@@ -18,9 +19,6 @@ import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.client.pki.Certificate;
 import com.aoindustries.aoserv.client.util.ApacheEscape;
 import static com.aoindustries.aoserv.client.util.ApacheEscape.escape;
-import com.aoindustries.aoserv.client.validator.GroupId;
-import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.client.web.Header;
 import com.aoindustries.aoserv.client.web.HttpdBind;
 import com.aoindustries.aoserv.client.web.HttpdServer;
@@ -633,7 +631,7 @@ public class HttpdServerManager {
 			switch(osvId) {
 				case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 : {
 					final String dollarVariable = CENTOS_5_DOLLAR_VARIABLE;
-					out.print("ServerAdmin ").print(escape(dollarVariable, httpdSite.getServerAdmin())).print('\n');
+					out.print("ServerAdmin ").print(escape(dollarVariable, httpdSite.getServerAdmin().toString())).print('\n');
 
 					// Enable CGI PHP option if the site supports CGI and PHP
 					if(manager.enablePhp() && manager.enableCgi()) {
@@ -744,7 +742,7 @@ public class HttpdServerManager {
 					for(Map.Entry<String,HttpdSiteManager.WebAppSettings> entry : webapps.entrySet()) {
 						String path = entry.getKey();
 						HttpdSiteManager.WebAppSettings settings = entry.getValue();
-						UnixPath docBase = settings.getDocBase();
+						PosixPath docBase = settings.getDocBase();
 
 						if(path.length()==0) {
 							foundRoot = true;
@@ -1027,7 +1025,7 @@ public class HttpdServerManager {
 					for(Map.Entry<String,HttpdSiteManager.WebAppSettings> entry : webapps.entrySet()) {
 						String path = entry.getKey();
 						HttpdSiteManager.WebAppSettings settings = entry.getValue();
-						UnixPath docBase = settings.getDocBase();
+						PosixPath docBase = settings.getDocBase();
 
 						boolean isInModPhp = false;
 						for(VirtualHost hsb : httpdSite.getHttpdSiteBinds()) {
@@ -1313,8 +1311,8 @@ public class HttpdServerManager {
 				String escapedName = hs.getSystemdEscapedName();
 				UserServer lsa = hs.getLinuxServerAccount();
 				GroupServer lsg = hs.getLinuxServerGroup();
-				UserId user = lsa.getLinuxAccount().getUsername().getUsername();
-				GroupId group = lsg.getLinuxGroup().getName();
+				User.Name user = lsa.getLinuxAccount_username_id();
+				Group.Name group = lsg.getLinuxGroup().getName();
 				int uid = lsa.getUid().getId();
 				int gid = lsg.getGid().getId();
 				String tmpFilesFilename;
@@ -2648,7 +2646,7 @@ public class HttpdServerManager {
 		return escape(dollarVariable, value);
 	}
 
-	private static String getEscapedSslPath(String dollarVariable, UnixPath sslCert, String primaryHostname) {
+	private static String getEscapedSslPath(String dollarVariable, PosixPath sslCert, String primaryHostname) {
 		// Let's Encrypt certificate
 		String sslCertStr = sslCert.toString();
 		{
@@ -2737,7 +2735,7 @@ public class HttpdServerManager {
 								+ "    <IfModule mod_ssl.c>\n"
 								+ "        SSLCertificateFile ").print(escape(dollarVariable, sslCert.getCertFile().toString())).print("\n"
 								+ "        SSLCertificateKeyFile ").print(escape(dollarVariable, sslCert.getKeyFile().toString())).print('\n');
-						UnixPath sslChain = sslCert.getChainFile();
+						PosixPath sslChain = sslCert.getChainFile();
 						if(sslChain != null) {
 							out.print("        SSLCertificateChainFile ").print(escape(dollarVariable, sslChain.toString())).print('\n');
 						}
@@ -2851,7 +2849,7 @@ public class HttpdServerManager {
 							+ "Define site.name             ").print(escape(dollarVariable, siteName)).print("\n"
 							+ "Define site.user             ").print(escape(dollarVariable, manager.httpdSite.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername().toString())).print("\n"
 							+ "Define site.group            ").print(escape(dollarVariable, manager.httpdSite.getLinuxServerGroup().getLinuxGroup().getName().toString())).print("\n"
-							+ "Define site.server_admin     ").print(escape(dollarVariable, manager.httpdSite.getServerAdmin())).print("\n"
+							+ "Define site.server_admin     ").print(escape(dollarVariable, manager.httpdSite.getServerAdmin().toString())).print("\n"
 							+ "\n"
 							+ "<VirtualHost ")
 						.print(CERTBOT_COMPAT ? escape(dollarVariable, ipString) : "${bind.ip_address}")
@@ -2893,7 +2891,7 @@ public class HttpdServerManager {
 								+ "    <IfModule ssl_module>\n"
 								+ "        SSLCertificateFile ").print(getEscapedSslPath(dollarVariable, sslCert.getCertFile(), primaryHostname)).print("\n"
 								+ "        SSLCertificateKeyFile ").print(getEscapedSslPath(dollarVariable, sslCert.getKeyFile(), primaryHostname)).print('\n');
-						UnixPath sslChain = sslCert.getChainFile();
+						PosixPath sslChain = sslCert.getChainFile();
 						if(sslChain != null) {
 							out.print("        SSLCertificateChainFile ").print(getEscapedSslPath(dollarVariable, sslChain, primaryHostname)).print('\n');
 						}

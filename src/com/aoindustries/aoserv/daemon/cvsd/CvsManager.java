@@ -7,10 +7,10 @@ package com.aoindustries.aoserv.daemon.cvsd;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.client.scm.CvsRepository;
-import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -93,7 +93,7 @@ final public class CvsManager extends BuilderThread {
 				// Add each directory that doesn't exist, fix permissions and ownerships, too
 				// while removing existing directories from existing
 				for(CvsRepository cvs : cvsRepositories) {
-					UnixPath path = cvs.getPath();
+					PosixPath path = cvs.getPath();
 					UnixFile cvsUF = new UnixFile(path.toString());
 					UserServer lsa = cvs.getLinuxServerAccount();
 					{
@@ -121,7 +121,7 @@ final public class CvsManager extends BuilderThread {
 					UnixFile cvsRootUF = new UnixFile(cvsUF, "CVSROOT", false);
 					if(!cvsRootUF.getStat().exists()) {
 						AOServDaemon.suexec(
-							lsa.getLinuxAccount().getUsername().getUsername(),
+							lsa.getLinuxAccount_username_id(),
 							"/usr/bin/cvs -d " + path + " init",
 							0
 						);

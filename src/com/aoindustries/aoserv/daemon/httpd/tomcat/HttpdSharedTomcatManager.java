@@ -7,8 +7,8 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.aosh.Command;
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
-import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcatSite;
 import com.aoindustries.aoserv.client.web.tomcat.Version;
@@ -135,7 +135,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 				// Stop and disable any daemons
 				stopAndDisableDaemons(removeFile);
 				// Only remove the directory when not used by a home directory
-				if(!aoServer.isHomeUsed(UnixPath.valueOf(removeFile.getPath()))) {
+				if(!aoServer.isHomeUsed(PosixPath.valueOf(removeFile.getPath()))) {
 					File toDelete = removeFile.getFile();
 					if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
 					deleteFileList.add(toDelete);
@@ -384,7 +384,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 		UnixFile pidFile = getPidFile();
 		if(pidFile.getStat().exists()) {
 			AOServDaemon.suexec(
-				sharedTomcat.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername(),
+				sharedTomcat.getLinuxServerAccount().getLinuxAccount_username_id(),
 				getStartStopScriptPath()+" stop",
 				0
 			);
@@ -400,7 +400,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 		UnixFile pidFile = getPidFile();
 		if(!pidFile.getStat().exists()) {
 			AOServDaemon.suexec(
-				sharedTomcat.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername(),
+				sharedTomcat.getLinuxServerAccount().getLinuxAccount_username_id(),
 				getStartStopScriptPath()+" start",
 				0
 			);
@@ -415,7 +415,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 					System.err.println("Warning: Deleting PID file for dead process: "+pidFile.getPath());
 					pidFile.delete();
 					AOServDaemon.suexec(
-						sharedTomcat.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername(),
+						sharedTomcat.getLinuxServerAccount().getLinuxAccount_username_id(),
 						getStartStopScriptPath()+" start",
 						0
 					);

@@ -7,11 +7,11 @@ package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoindustries.aoserv.client.aosh.Command;
 import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.client.net.IpAddress;
-import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.web.VirtualHost;
 import com.aoindustries.aoserv.client.web.VirtualHostName;
 import com.aoindustries.aoserv.client.web.tomcat.Context;
@@ -80,7 +80,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		final TC tomcatCommon = getTomcatCommon();
 		final OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
 		final HttpdOperatingSystemConfiguration httpdConfig = osConfig.getHttpdOperatingSystemConfiguration();
-		final UnixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();
+		final PosixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();
 		String autoWarning = getAutoWarningXml();
 
 		Worker hw = sharedTomcat.getTomcat4Worker();
@@ -235,7 +235,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 		final int lsaUID = lsa.getUid().getId();
 		final GroupServer lsg = sharedTomcat.getLinuxServerGroup();
 		final int lsgGID = lsg.getGid().getId();
-		final UnixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();
+		final PosixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();
 
 		final TC tomcatCommon = getTomcatCommon();
 		final String apacheTomcatDir = tomcatCommon.getApacheTomcatDir();

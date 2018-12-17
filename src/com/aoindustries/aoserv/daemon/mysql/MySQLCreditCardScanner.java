@@ -8,7 +8,6 @@ package com.aoindustries.aoserv.daemon.mysql;
 import com.aoindustries.aoserv.client.account.Account;
 import com.aoindustries.aoserv.client.mysql.Database;
 import com.aoindustries.aoserv.client.mysql.Server;
-import com.aoindustries.aoserv.client.validator.MySQLDatabaseName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -103,7 +102,7 @@ final public class MySQLCreditCardScanner implements CronJob {
 			for(Server mysqlServer : mysqlServers) {
 				List<Database> mysqlDatabases = mysqlServer.getMySQLDatabases();
 				for(Database database : mysqlDatabases) {
-					MySQLDatabaseName name=database.getName();
+					Database.Name name=database.getName();
 
 					// Get connection to the database
 					Class.forName(AOServDaemonConfiguration.getMySqlDriver()).newInstance();

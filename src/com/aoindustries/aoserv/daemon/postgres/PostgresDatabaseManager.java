@@ -13,7 +13,6 @@ import com.aoindustries.aoserv.client.postgresql.Server;
 import com.aoindustries.aoserv.client.postgresql.User;
 import com.aoindustries.aoserv.client.postgresql.UserServer;
 import com.aoindustries.aoserv.client.postgresql.Version;
-import com.aoindustries.aoserv.client.validator.PostgresDatabaseName;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -89,12 +88,12 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 						try {
 							conn.setAutoCommit(true);
 							// Get the list of all existing databases
-							Set<PostgresDatabaseName> existing = new HashSet<>();
+							Set<Database.Name> existing = new HashSet<>();
 							try (Statement stmt = conn.createStatement()) {
 								try (ResultSet results = stmt.executeQuery("select datname from pg_database")) {
 									try {
 										while(results.next()) {
-											PostgresDatabaseName datname = PostgresDatabaseName.valueOf(results.getString(1));
+											Database.Name datname = Database.Name.valueOf(results.getString(1));
 											if(!existing.add(datname)) throw new SQLException("Duplicate database name: " + datname);
 										}
 									} catch(ValidationException e) {
@@ -104,7 +103,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 
 								// Create the databases that do not exist and should
 								for(Database database : pds) {
-									PostgresDatabaseName name=database.getName();
+									Database.Name name=database.getName();
 									if(!existing.remove(name)) {
 										UserServer datdba=database.getDatDBA();
 										if(
@@ -200,7 +199,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 								}
 
 								// Remove the extra databases
-								for(PostgresDatabaseName dbName : existing) {
+								for(Database.Name dbName : existing) {
 									// Remove the extra database
 									if(
 										dbName.equals(Database.TEMPLATE0)
@@ -290,7 +289,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 
 	private static void dumpDatabase(
 		Server ps,
-		PostgresDatabaseName dbName,
+		Database.Name dbName,
 		File output,
 		boolean gzip
 	) throws IOException, SQLException {
@@ -470,13 +469,13 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 								for(int c=0;c<tableNames.size();c++) {
 									String tableName=tableNames.get(c);
 									String schema=postgresServerHasSchemas ? schemas.get(c) : null;
-									if(PostgresDatabaseName.validate(tableName.toLowerCase()).isValid()) {
+									if(Database.Name.validate(tableName.toLowerCase()).isValid()) {
 										if(
 											!postgresServerHasSchemas
 											|| "public".equals(schema)
 											|| (
 												schema!=null
-												&& PostgresDatabaseName.validate(schema.toLowerCase()).isValid()
+												&& Database.Name.validate(schema.toLowerCase()).isValid()
 											)
 										) {
 											// VACUUM the table

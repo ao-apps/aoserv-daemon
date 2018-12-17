@@ -5,8 +5,8 @@
  */
 package com.aoindustries.aoserv.daemon.report;
 
+import com.aoindustries.aoserv.client.linux.LinuxId;
 import com.aoindustries.aoserv.client.linux.Server;
-import com.aoindustries.aoserv.client.validator.LinuxId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.StringUtility;

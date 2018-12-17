@@ -10,7 +10,6 @@ import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.mysql.Server;
 import com.aoindustries.aoserv.client.mysql.User;
 import com.aoindustries.aoserv.client.mysql.UserServer;
-import com.aoindustries.aoserv.client.validator.MySQLUserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -82,16 +81,16 @@ final public class MySQLUserManager extends BuilderThread {
 							Connection conn = pool.getConnection();
 							try {
 								// Get the list of all existing users
-								Set<Tuple2<String,MySQLUserId>> existing = new HashSet<>();
+								Set<Tuple2<String,User.Name>> existing = new HashSet<>();
 								try (
 									Statement stmt = conn.createStatement();
 									ResultSet results = stmt.executeQuery("select host, user from user")
 								) {
 									try {
 										while (results.next()) {
-											Tuple2<String,MySQLUserId> tuple = new Tuple2<>(
+											Tuple2<String,User.Name> tuple = new Tuple2<>(
 												results.getString(1),
-												MySQLUserId.valueOf(results.getString(2))
+												User.Name.valueOf(results.getString(2))
 											);
 											if(!existing.add(tuple)) throw new SQLException("Duplicate (host, user): " + tuple);
 										}
@@ -433,8 +432,8 @@ final public class MySQLUserManager extends BuilderThread {
 										User mu = msu.getMySQLUser();
 										String host=msu.getHost();
 										if(host==null) host="";
-										MySQLUserId username=mu.getKey();
-										Tuple2<String,MySQLUserId> key = new Tuple2<>(host, username);
+										User.Name username=mu.getKey();
+										Tuple2<String,User.Name> key = new Tuple2<>(host, username);
 										if(existing.contains(key)) {
 											int pos=1;
 											// Update the user
@@ -573,8 +572,8 @@ final public class MySQLUserManager extends BuilderThread {
 										User mu = msu.getMySQLUser();
 										String host=msu.getHost();
 										if(host==null) host="";
-										MySQLUserId username=mu.getKey();
-										Tuple2<String,MySQLUserId> key = new Tuple2<>(host, username);
+										User.Name username=mu.getKey();
+										Tuple2<String,User.Name> key = new Tuple2<>(host, username);
 										if(!existing.remove(key)) {
 											// Add the user
 											int pos=1;
@@ -644,10 +643,10 @@ final public class MySQLUserManager extends BuilderThread {
 								// Remove the extra users
 								if(!existing.isEmpty()) {
 									try (PreparedStatement pstmt = conn.prepareStatement("delete from user where host=? and user=?")) {
-										for (Tuple2<String,MySQLUserId> key : existing) {
+										for (Tuple2<String,User.Name> key : existing) {
 											// Remove the extra host entry
 											String host=key.getElement1();
-											MySQLUserId user=key.getElement2();
+											User.Name user=key.getElement2();
 											if(
 												user.equals(User.ROOT)
 												|| user.equals(User.MYSQL_SESSION)
@@ -687,7 +686,7 @@ final public class MySQLUserManager extends BuilderThread {
 										}
 									} else {
 										if(prePassword==null) {
-											MySQLUserId username=msu.getMySQLUser().getKey();
+											User.Name username=msu.getMySQLUser().getKey();
 											msu.setPredisablePassword(getEncryptedPassword(mysqlServer, username));
 											setPassword(mysqlServer, username, User.NO_PASSWORD);
 											modified=true;
@@ -714,7 +713,7 @@ final public class MySQLUserManager extends BuilderThread {
 		}
 	}
 
-	public static String getEncryptedPassword(Server mysqlServer, MySQLUserId username) throws IOException, SQLException {
+	public static String getEncryptedPassword(Server mysqlServer, User.Name username) throws IOException, SQLException {
 		final String version = mysqlServer.getVersion().getVersion();
 		String sql;
 		if(
@@ -755,7 +754,7 @@ final public class MySQLUserManager extends BuilderThread {
 		}
 	}
 
-	public static void setPassword(Server mysqlServer, MySQLUserId username, String password) throws IOException, SQLException {
+	public static void setPassword(Server mysqlServer, User.Name username, String password) throws IOException, SQLException {
 		final String version = mysqlServer.getVersion().getVersion();
 		// Get the connection to work through
 		AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
@@ -809,7 +808,7 @@ final public class MySQLUserManager extends BuilderThread {
 		MySQLServerManager.flushPrivileges(mysqlServer);
 	}
 
-	public static void setEncryptedPassword(Server mysqlServer, MySQLUserId username, String password) throws IOException, SQLException {
+	public static void setEncryptedPassword(Server mysqlServer, User.Name username, String password) throws IOException, SQLException {
 		final String version = mysqlServer.getVersion().getVersion();
 		// Get the connection to work through
 		AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);

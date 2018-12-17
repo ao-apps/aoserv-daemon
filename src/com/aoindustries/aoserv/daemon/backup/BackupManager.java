@@ -5,8 +5,8 @@
  */
 package com.aoindustries.aoserv.daemon.backup;
 
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
-import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
@@ -270,15 +270,15 @@ final public class BackupManager {
 	 */
 	public static final String DF = "/bin/df";
 
-	public static long getDiskDeviceTotalSize(UnixPath path) throws IOException {
+	public static long getDiskDeviceTotalSize(PosixPath path) throws IOException {
 		return getDFColumn(path, 1);
 	}
 
-	public static long getDiskDeviceUsedSize(UnixPath path) throws IOException {
+	public static long getDiskDeviceUsedSize(PosixPath path) throws IOException {
 		return getDFColumn(path, 2);
 	}
 
-	private static long getDFColumn(UnixPath path, int column) throws IOException {
+	private static long getDFColumn(PosixPath path, int column) throws IOException {
 		String[] dfCommand={
 			DF,
 			"-k",

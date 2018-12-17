@@ -10,6 +10,7 @@ import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.SpamAssassinMode;
 import com.aoindustries.aoserv.client.linux.Group;
 import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.linux.UserServer;
@@ -17,8 +18,6 @@ import com.aoindustries.aoserv.client.net.AppProtocol;
 import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.client.net.IpAddress;
-import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -268,7 +267,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 						File userDirectoryFile = userDirectoryUf.getFile();
 
 						// Each filename should be a username
-						UserServer lsa = thisAoServer.getLinuxServerAccount(UserId.valueOf(incomingDirectoryFilename));
+						UserServer lsa = thisAoServer.getLinuxServerAccount(User.Name.valueOf(incomingDirectoryFilename));
 						if(lsa == null) {
 							// user not found, backup and then remove
 							LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectoryFilename = " + incomingDirectoryFilename, new IOException("User not found, deleting"));
@@ -395,7 +394,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 						// Make sure sa-learn is installed
 						PackageManager.installPackage(PackageManager.PackageName.SPAMASSASSIN);
 						// Call sa-learn for this pass
-						UserId username = oldestLsa.getLinuxAccount().getUsername().getUsername();
+						User.Name username = oldestLsa.getLinuxAccount_username_id();
 						tempSB.setLength(0);
 						tempSB.append("/usr/bin/sa-learn");
 						boolean isNoSync = thisPass.size() >= SALEARN_NOSYNC_THRESHOLD;
@@ -811,7 +810,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 							if(!lsa.getLinuxAccount().getType().isEmail()) {
 								throw new SQLException("SpamAssassin integration enabled on a non-email type user: " + lsa);
 							}
-							UnixPath homePath = lsa.getHome();
+							PosixPath homePath = lsa.getHome();
 							if(!homePath.toString().startsWith("/home/")) {
 								throw new SQLException("SpamAssassin integration enabled on a user with home directory outside /home: " + lsa + " at " + homePath);
 							}
@@ -925,7 +924,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 					Queue<String> queuedLines = new LinkedList<>();
 					for(UserServer lsa : thisAoServer.getLinuxServerAccounts()) {
 						// Only clean razor for accounts under /home/
-						UnixPath homePath = lsa.getHome();
+						PosixPath homePath = lsa.getHome();
 						if(lsa.getLinuxAccount().getType().isEmail() && homePath.toString().startsWith("/home/")) {
 							UnixFile home = new UnixFile(homePath.toString());
 							UnixFile dotRazor = new UnixFile(home, ".razor", false);

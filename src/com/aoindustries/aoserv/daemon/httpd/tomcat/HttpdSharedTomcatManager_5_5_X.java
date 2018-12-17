@@ -6,11 +6,11 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.client.net.IpAddress;
-import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.web.VirtualHost;
 import com.aoindustries.aoserv.client.web.VirtualHostName;
 import com.aoindustries.aoserv.client.web.tomcat.Context;
@@ -73,7 +73,7 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 		final GroupServer lsg = sharedTomcat.getLinuxServerGroup();
 		final int lsgGID = lsg.getGid().getId();
 		final String wwwGroupDir = sharedTomcatDirectory.getPath();
-		final UnixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();
+		final PosixPath wwwDirectory = httpdConfig.getHttpdSitesDirectory();
 		final UnixFile daemonUF = new UnixFile(sharedTomcatDirectory, "daemon", false);
 
 		// Create and fill in the directory if it does not exist or is owned by root.

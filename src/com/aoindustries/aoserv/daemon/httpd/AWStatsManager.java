@@ -9,13 +9,13 @@ import com.aoindustries.aoserv.client.AOServConnector;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Group;
 import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.Shell;
 import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.client.net.IpAddress;
-import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.web.Site;
 import com.aoindustries.aoserv.client.web.VirtualHost;
 import com.aoindustries.aoserv.client.web.VirtualHostName;
@@ -124,7 +124,7 @@ final public class AWStatsManager extends BuilderThread {
 						final File binDirectory        = new File(osConfig.getAwstatsBinDirectory().toString());
 						// These are cleared and reused for each iteration of the loop
 						Set<String> usedHostnames = new HashSet<>();
-						Set<UnixPath> usedLogs = new HashSet<>();
+						Set<PosixPath> usedLogs = new HashSet<>();
 						// RAM is used to verify config files before committing to the filesystem
 						ByteArrayOutputStream bout = new ByteArrayOutputStream();
 						// Iterate through each website on this server
@@ -465,7 +465,7 @@ final public class AWStatsManager extends BuilderThread {
 									out.print(binDirectory).print("/tools/logresolvemerge.pl");
 									usedLogs.clear();
 									for(VirtualHost bind : binds) {
-										UnixPath access_log = bind.getAccessLog();
+										PosixPath access_log = bind.getAccessLog();
 										if(usedLogs.add(access_log)) {
 											out.print(" \\\n"
 													+ "\t'").print(access_log).print(".1.gz' \\\n"
@@ -479,7 +479,7 @@ final public class AWStatsManager extends BuilderThread {
 									out.print(binDirectory).print("/tools/logresolvemerge.pl");
 									usedLogs.clear();
 									for(VirtualHost bind : binds) {
-										UnixPath access_log = bind.getAccessLog();
+										PosixPath access_log = bind.getAccessLog();
 										if(usedLogs.add(access_log)) {
 											// Note: /etc/logrotate.d/httpd-sites contains "delaycompress" so ".1" instead of ".1.gz"
 											out.print(" \\\n"

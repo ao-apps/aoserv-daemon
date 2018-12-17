@@ -472,7 +472,7 @@ final public class FTPManager extends BuilderThread {
 					conn.getLinux().getUserServer().addTableListener(ftpManager, 0);
 					conn.getNet().getBind().addTableListener(ftpManager, 0);
 					conn.getFtp().getPrivateServer().addTableListener(ftpManager, 0);
-					conn.getAccount().getUsername().addTableListener(ftpManager, 0);
+					conn.getAccount().getUser().addTableListener(ftpManager, 0);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);

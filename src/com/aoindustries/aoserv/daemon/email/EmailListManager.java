@@ -7,8 +7,8 @@ package com.aoindustries.aoserv.daemon.email;
 
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.MajordomoServer;
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
-import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.UnixFile;
@@ -33,7 +33,7 @@ final public class EmailListManager {
 	/**
 	 * Reads the address list from the file system.
 	 */
-	public static String getEmailListFile(UnixPath path) throws IOException, SQLException {
+	public static String getEmailListFile(PosixPath path) throws IOException, SQLException {
 		Server thisAoServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
@@ -49,7 +49,7 @@ final public class EmailListManager {
 	 * Constructs a <code>List</code> providing all information.  The
 	 * new <code>List</code> is stored in the database.
 	 */
-	public static void removeEmailListAddresses(UnixPath path) throws IOException, SQLException {
+	public static void removeEmailListAddresses(PosixPath path) throws IOException, SQLException {
 		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
@@ -67,7 +67,7 @@ final public class EmailListManager {
 	 * Writes the address list to the file system.
 	 */
 	public synchronized static void setEmailListFile(
-		UnixPath path,
+		PosixPath path,
 		String file,
 		int uid,
 		int gid,

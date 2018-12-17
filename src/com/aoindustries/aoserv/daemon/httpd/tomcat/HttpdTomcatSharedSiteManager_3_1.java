@@ -6,8 +6,8 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.net.Bind;
-import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.web.tomcat.Context;
 import com.aoindustries.aoserv.client.web.tomcat.JkProtocol;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcatSite;
@@ -45,7 +45,7 @@ class HttpdTomcatSharedSiteManager_3_1 extends HttpdTomcatSharedSiteManager_3_X<
 		AOServConnector conn = AOServDaemon.getConnector();
 		final Version htv = tomcatSite.getHttpdTomcatVersion();
 		final HttpdOperatingSystemConfiguration httpdConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
-		final UnixPath wwwgroupDirectory = httpdConfig.getHttpdSharedTomcatsDirectory();
+		final PosixPath wwwgroupDirectory = httpdConfig.getHttpdSharedTomcatsDirectory();
 		SharedTomcatSite shrSite=tomcatSite.getHttpdTomcatSharedSite();
 
 		// Build to RAM first

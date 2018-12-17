@@ -10,15 +10,13 @@ import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.ftp.GuestUser;
 import com.aoindustries.aoserv.client.linux.Group;
 import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.LinuxId;
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.Shell;
 import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.client.linux.UserType;
-import com.aoindustries.aoserv.client.validator.GroupId;
-import com.aoindustries.aoserv.client.validator.LinuxId;
-import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
@@ -93,7 +91,7 @@ public class LinuxAccountManager extends BuilderThread {
 
 	private static final File cronDirectory = new File("/var/spool/cron");
 
-	public static boolean comparePassword(UserId username, String password) throws IOException, SQLException {
+	public static boolean comparePassword(User.Name username, String password) throws IOException, SQLException {
 		String crypted = ShadowFile.getEncryptedPassword(username).getElement1();
 		if(crypted.equals(User.NO_PASSWORD_CONFIG_VALUE)) return false;
 		int len = crypted.length();
@@ -151,15 +149,15 @@ public class LinuxAccountManager extends BuilderThread {
 			List<UserServer> lsas = thisAoServer.getLinuxServerAccounts();
 			boolean hasFtpShell = false;
 			boolean hasPasswdShell = false;
-			final Set<UserId> usernames;
+			final Set<User.Name> usernames;
 			final Set<String> usernameStrs;
 			final Set<Integer> uids;
 			final Set<String> homeDirs;
-			final Map<UserId,PasswdFile.Entry> passwdEntries;
+			final Map<User.Name,PasswdFile.Entry> passwdEntries;
 
 			List<GroupServer> lsgs = thisAoServer.getLinuxServerGroups();
-			final Map<GroupId,Set<UserId>> groups;
-			final Map<GroupId,GroupFile.Entry> groupEntries;
+			final Map<Group.Name,Set<User.Name>> groups;
+			final Map<Group.Name,GroupFile.Entry> groupEntries;
 
 			Set<UnixFile> restorecon = new LinkedHashSet<>();
 			try {
@@ -169,13 +167,13 @@ public class LinuxAccountManager extends BuilderThread {
 				) {
 					// Add any system groups found, updating lsgs
 					{
-						Map<GroupId,GroupFile.Entry> groupFile;
+						Map<Group.Name,GroupFile.Entry> groupFile;
 						synchronized(GroupFile.groupLock) {
 							groupFile = GroupFile.readGroupFile();
 						}
 						boolean modified = false;
 						for(GroupFile.Entry entry : groupFile.values()) {
-							GroupId groupName = entry.getGroupName();
+							Group.Name groupName = entry.getGroupName();
 							if(
 								entry.getGid() < gidMin
 								|| entry.getGid() > gidMax
@@ -202,13 +200,13 @@ public class LinuxAccountManager extends BuilderThread {
 					}
 					// Add any system users found, updating lsas
 					{
-						Map<UserId,PasswdFile.Entry> passwdFile;
+						Map<User.Name,PasswdFile.Entry> passwdFile;
 						synchronized(PasswdFile.passwdLock) {
 							passwdFile = PasswdFile.readPasswdFile();
 						}
 						boolean modified = false;
 						for(PasswdFile.Entry entry : passwdFile.values()) {
-							UserId username = entry.getUsername();
+							User.Name username = entry.getUsername();
 							if(
 								entry.getUid() < uidMin
 								|| entry.getUid() > uidMax
@@ -246,7 +244,7 @@ public class LinuxAccountManager extends BuilderThread {
 
 					// Install /usr/bin/ftppasswd and /usr/bin/ftponly if required by any UserServer
 					for(UserServer lsa : lsas) {
-						UnixPath shellPath = lsa.getLinuxAccount().getShell().getPath();
+						PosixPath shellPath = lsa.getLinuxAccount().getShell().getPath();
 						if(
 							shellPath.equals(Shell.FTPONLY)
 							|| shellPath.equals(Shell.FTPPASSWD)
@@ -281,14 +279,14 @@ public class LinuxAccountManager extends BuilderThread {
 						boolean hasRoot = false;
 						for(UserServer lsa : lsas) {
 							User la = lsa.getLinuxAccount();
-							UserId username = la.getUsername().getUsername();
+							User.Name username = la.getUsername_id();
 							if(!usernames.add(username)) throw new SQLException("Duplicate username: " + username);
 							if(!usernameStrs.add(username.toString())) throw new AssertionError();
 							uids.add(lsa.getUid().getId());
 							homeDirs.add(lsa.getHome().toString());
 							GroupServer primaryGroup = lsa.getPrimaryLinuxServerGroup();
 							if(primaryGroup == null) throw new SQLException("Unable to find primary GroupServer for username=" + username + " on " + lsa.getAOServer());
-							UnixPath shell = la.getShell().getPath();
+							PosixPath shell = la.getShell().getPath();
 							// CentOS 5 requires /bin/bash, but CentOS 7 ships with /sbin/nologin.
 							// Unfortunately, in our current schema the shell is set of all servers at once.
 							// This ugly hack allows us to store the new version, and it will be converted
@@ -333,11 +331,11 @@ public class LinuxAccountManager extends BuilderThread {
 						groupEntries = new LinkedHashMap<>(initialCapacity);
 						boolean hasRoot = false;
 						for(GroupServer lsg : lsgs) {
-							GroupId groupName = lsg.getLinuxGroup().getName();
-							Set<UserId> groupMembers = new LinkedHashSet<>();
+							Group.Name groupName = lsg.getLinuxGroup().getName();
+							Set<User.Name> groupMembers = new LinkedHashSet<>();
 							{
 								for(UserServer altAccount : lsg.getAlternateLinuxServerAccounts()) {
-									UserId userId = altAccount.getLinuxAccount().getUsername().getUsername();
+									User.Name userId = altAccount.getLinuxAccount_username_id();
 									if(!groupMembers.add(userId)) throw new SQLException("Duplicate group member: " + userId);
 								}
 								if(groupName.equals(Group.PROFTPD_JAILED)) {
@@ -346,7 +344,7 @@ public class LinuxAccountManager extends BuilderThread {
 										|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
 									) {
 										for(GuestUser guestUser : thisAoServer.getFTPGuestUsers()) {
-											groupMembers.add(guestUser.getLinuxAccount().getUsername().getUsername());
+											groupMembers.add(guestUser.getLinuxAccount().getUsername_id());
 										}
 									} else if(
 										osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
@@ -409,7 +407,7 @@ public class LinuxAccountManager extends BuilderThread {
 					for(UserServer lsa : lsas) {
 						User la = lsa.getLinuxAccount();
 						if(la.getType().isEmail()) {
-							UserId username = la.getUsername().getUsername();
+							User.Name username = la.getUsername_id();
 							File file = new File(ImapManager.mailSpool, username.toString());
 							if(!file.exists()) {
 								UnixFile unixFile = new UnixFile(file.getPath());
@@ -457,14 +455,14 @@ public class LinuxAccountManager extends BuilderThread {
 				for(UserServer lsa : lsas) {
 					User la = lsa.getLinuxAccount();
 					String type = la.getType().getName();
-					UserId username = la.getUsername().getUsername();
+					User.Name username = la.getUsername_id();
 					GroupServer primaryLsg = lsa.getPrimaryLinuxServerGroup();
 					int uid = lsa.getUid().getId();
 					int gid = primaryLsg.getGid().getId();
 
 					boolean copySkel = false;
 
-					final UnixPath homePath = lsa.getHome();
+					final PosixPath homePath = lsa.getHome();
 					final UnixFile homeDir = new UnixFile(homePath.toString());
 					if(!homeDir.getStat().exists()) {
 						// Make the parent of the home directory if it does not exist
@@ -476,8 +474,8 @@ public class LinuxAccountManager extends BuilderThread {
 						// Look for home directory being moved
 						UnixFile oldHome;
 						{
-							UnixPath defaultHome = UserServer.getDefaultHomeDirectory(username);
-							UnixPath hashedHome = UserServer.getHashedHomeDirectory(username);
+							PosixPath defaultHome = UserServer.getDefaultHomeDirectory(username);
+							PosixPath hashedHome = UserServer.getHashedHomeDirectory(username);
 							if(homePath.equals(defaultHome)) {
 								oldHome = new UnixFile(hashedHome.toString());
 							} else if(homePath.equals(hashedHome)) {
@@ -722,7 +720,7 @@ public class LinuxAccountManager extends BuilderThread {
 					if(lsa.isDisabled()) {
 						// Account is disabled
 						if(prePassword == null) {
-							UserId username = lsa.getLinuxAccount().getUsername().getUsername();
+							User.Name username = lsa.getLinuxAccount_username_id();
 							if(logger.isLoggable(Level.INFO)) logger.info("Storing predisable password for " + username);
 							lsa.setPredisablePassword(getEncryptedPassword(username).getElement1());
 							if(logger.isLoggable(Level.INFO)) logger.info("Clearing password for " + username);
@@ -731,9 +729,9 @@ public class LinuxAccountManager extends BuilderThread {
 					} else {
 						// Account is enabled
 						if(prePassword != null) {
-							UserId username = lsa.getLinuxAccount().getUsername().getUsername();
+							User.Name username = lsa.getLinuxAccount_username_id();
 							if(logger.isLoggable(Level.INFO)) logger.info("Restoring password for " + username);
-							setEncryptedPassword(lsa.getLinuxAccount().getUsername().getUsername(), prePassword, null);
+							setEncryptedPassword(username, prePassword, null);
 							if(logger.isLoggable(Level.INFO)) logger.info("Clearing predisable password for " + username);
 							lsa.setPredisablePassword(null);
 						}
@@ -844,7 +842,7 @@ public class LinuxAccountManager extends BuilderThread {
 		}
 	}
 
-	public static String getAutoresponderContent(UnixPath path) throws IOException, SQLException {
+	public static String getAutoresponderContent(PosixPath path) throws IOException, SQLException {
 		UnixFile file = new UnixFile(path.toString());
 		String content;
 		if(file.getStat().exists()) {
@@ -869,7 +867,7 @@ public class LinuxAccountManager extends BuilderThread {
 		return content;
 	}
 
-	public static String getCronTable(UserId username) throws IOException, SQLException {
+	public static String getCronTable(User.Name username) throws IOException, SQLException {
 		File cronFile = new File(cronDirectory, username.toString());
 		String cronTable;
 		if(cronFile.exists()) {
@@ -887,9 +885,9 @@ public class LinuxAccountManager extends BuilderThread {
 	}
 
 	/**
-	 * @see  ShadowFile#getEncryptedPassword(com.aoindustries.aoserv.client.validator.UserId)
+	 * @see  ShadowFile#getEncryptedPassword(com.aoindustries.aoserv.client.validator.User.Name)
 	 */
-	public static Tuple2<String,Integer> getEncryptedPassword(UserId username) throws IOException, SQLException {
+	public static Tuple2<String,Integer> getEncryptedPassword(User.Name username) throws IOException, SQLException {
 		return ShadowFile.getEncryptedPassword(username);
 	}
 
@@ -932,7 +930,7 @@ public class LinuxAccountManager extends BuilderThread {
 		}
 	}
 
-	public static void setAutoresponderContent(UnixPath path, String content, int uid, int gid) throws IOException, SQLException {
+	public static void setAutoresponderContent(PosixPath path, String content, int uid, int gid) throws IOException, SQLException {
 		Server thisAoServer = AOServDaemon.getThisAOServer();
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
@@ -954,7 +952,7 @@ public class LinuxAccountManager extends BuilderThread {
 		}
 	}
 
-	public static void setCronTable(UserId username, String cronTable) throws IOException, SQLException {
+	public static void setCronTable(User.Name username, String cronTable) throws IOException, SQLException {
 		Server thisAoServer = AOServDaemon.getThisAOServer();
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
@@ -984,9 +982,9 @@ public class LinuxAccountManager extends BuilderThread {
 	}
 
 	/**
-	 * @see  ShadowFile#setEncryptedPassword(com.aoindustries.aoserv.client.validator.UserId, java.lang.String, java.lang.Integer)
+	 * @see  ShadowFile#setEncryptedPassword(com.aoindustries.aoserv.client.validator.User.Name, java.lang.String, java.lang.Integer)
 	 */
-	public static void setEncryptedPassword(UserId username, String encryptedPassword, Integer changedDate) throws IOException, SQLException {
+	public static void setEncryptedPassword(User.Name username, String encryptedPassword, Integer changedDate) throws IOException, SQLException {
 		Server aoServer = AOServDaemon.getThisAOServer();
 		UserServer lsa = aoServer.getLinuxServerAccount(username);
 		if(lsa == null) throw new SQLException("Unable to find UserServer: " + username + " on " + aoServer);
@@ -994,7 +992,7 @@ public class LinuxAccountManager extends BuilderThread {
 	}
 
 	@SuppressWarnings("deprecation")
-	public static void setPassword(UserId username, String plain_password, boolean updateChangedDate) throws IOException, SQLException {
+	public static void setPassword(User.Name username, String plain_password, boolean updateChangedDate) throws IOException, SQLException {
 		Server aoServer = AOServDaemon.getThisAOServer();
 		UserServer lsa = aoServer.getLinuxServerAccount(username);
 		if(lsa == null) throw new SQLException("Unable to find UserServer: " + username + " on " + aoServer);
@@ -1058,9 +1056,9 @@ public class LinuxAccountManager extends BuilderThread {
 		}
 	}
 
-	public static void tarHomeDirectory(CompressedDataOutputStream out, UserId username) throws IOException, SQLException {
+	public static void tarHomeDirectory(CompressedDataOutputStream out, User.Name username) throws IOException, SQLException {
 		UserServer lsa = AOServDaemon.getThisAOServer().getLinuxServerAccount(username);
-		UnixPath home = lsa.getHome();
+		PosixPath home = lsa.getHome();
 		UnixFile tempUF = UnixFile.mktemp("/tmp/tar_home_directory.tar.", true);
 		try {
 			AOServDaemon.exec(
@@ -1090,13 +1088,13 @@ public class LinuxAccountManager extends BuilderThread {
 		}
 	}
 
-	public static void untarHomeDirectory(CompressedDataInputStream in, UserId username) throws IOException, SQLException {
+	public static void untarHomeDirectory(CompressedDataInputStream in, User.Name username) throws IOException, SQLException {
 		Server thisAoServer = AOServDaemon.getThisAOServer();
 		int uid_min = thisAoServer.getUidMin().getId();
 		int gid_min = thisAoServer.getGidMin().getId();
 		synchronized(rebuildLock) {
 			UserServer lsa = thisAoServer.getLinuxServerAccount(username);
-			UnixPath home = lsa.getHome();
+			PosixPath home = lsa.getHome();
 			UnixFile tempUF = UnixFile.mktemp("/tmp/untar_home_directory.tar.", true);
 			try {
 				int code;

@@ -6,7 +6,7 @@
 package com.aoindustries.aoserv.daemon;
 
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
-import com.aoindustries.aoserv.client.validator.UnixPath;
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.util.WrappedException;
@@ -26,17 +26,17 @@ public enum OperatingSystemConfiguration {
 			return HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64;
 		}
 		@Override
-		public UnixPath getOpensslDefaultCaFile() {
+		public PosixPath getOpensslDefaultCaFile() {
 			try {
-				return UnixPath.valueOf("/etc/pki/tls/certs/ca-bundle.crt");
+				return PosixPath.valueOf("/etc/pki/tls/certs/ca-bundle.crt");
 			} catch(ValidationException e) {
 				throw new WrappedException(e);
 			}
 		}
 		@Override
-		public UnixPath getOpensslDefaultChainFile() {
+		public PosixPath getOpensslDefaultChainFile() {
 			try {
-				return UnixPath.valueOf("/etc/pki/tls/certs/server-chain.crt");
+				return PosixPath.valueOf("/etc/pki/tls/certs/server-chain.crt");
 			} catch(ValidationException e) {
 				throw new WrappedException(e);
 			}
@@ -46,32 +46,32 @@ public enum OperatingSystemConfiguration {
 		 * TODO: Just use sed instead.
 		 */
 		@Override
-		public UnixPath getReplaceCommand() {
+		public PosixPath getReplaceCommand() {
 			try {
-				return UnixPath.valueOf("/opt/aoserv-daemon/bin/replace");
+				return PosixPath.valueOf("/opt/aoserv-daemon/bin/replace");
 			} catch(ValidationException e) {
 				throw new WrappedException(e);
 			}
 		}
 		//@Override
-		//public UnixPath getAOServClientScriptInclude() {
+		//public PosixPath getAOServClientScriptInclude() {
 		//	return "/opt/aoserv-client/scripts/aoserv-client.sh";
 		//}
 		@Override
-		public UnixPath getPostgresPath(String minorVersion) {
+		public PosixPath getPostgresPath(String minorVersion) {
 			try {
-				return UnixPath.valueOf("/opt/postgresql-"+minorVersion+"-i686");
+				return PosixPath.valueOf("/opt/postgresql-"+minorVersion+"-i686");
 			} catch(ValidationException e) {
 				throw new WrappedException(e);
 			}
 		}
-		//public UnixPath getMySQLConnectorJavaJarPath() {
+		//public PosixPath getMySQLConnectorJavaJarPath() {
 		//	return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
 		//}
 		@Override
-		public UnixPath getDefaultJdkProfileSh() {
+		public PosixPath getDefaultJdkProfileSh() {
 			try {
-				return UnixPath.valueOf("/opt/jdk1-i686/setenv.sh");
+				return PosixPath.valueOf("/opt/jdk1-i686/setenv.sh");
 			} catch(ValidationException e) {
 				throw new WrappedException(e);
 			}
@@ -81,9 +81,9 @@ public enum OperatingSystemConfiguration {
 			return PackageManager.PackageName.JDK1_I686;
 		}
 		@Override
-		public UnixPath getJdk17ProfileSh() {
+		public PosixPath getJdk17ProfileSh() {
 			try {
-				return UnixPath.valueOf("/opt/jdk1.7-i686/setenv.sh");
+				return PosixPath.valueOf("/opt/jdk1.7-i686/setenv.sh");
 			} catch(ValidationException e) {
 				throw new WrappedException(e);
 			}
@@ -99,29 +99,29 @@ public enum OperatingSystemConfiguration {
 			return null;
 		}
 		@Override
-		public UnixPath getOpensslDefaultCaFile() {
+		public PosixPath getOpensslDefaultCaFile() {
 			return CENTOS_5_I686_AND_X86_64.getOpensslDefaultCaFile();
 		}
 		@Override
-		public UnixPath getOpensslDefaultChainFile() {
+		public PosixPath getOpensslDefaultChainFile() {
 			return CENTOS_5_I686_AND_X86_64.getOpensslDefaultChainFile();
 		}
 		@Override
-		public UnixPath getReplaceCommand() {
+		public PosixPath getReplaceCommand() {
 			return CENTOS_5_I686_AND_X86_64.getReplaceCommand();
 		}
-		//public UnixPath getAOServClientScriptInclude() {
+		//public PosixPath getAOServClientScriptInclude() {
 		//	return "/opt/aoserv-client/scripts/aoserv-client.sh";
 		//}
 		@Override
-		public UnixPath getPostgresPath(String minorVersion) {
+		public PosixPath getPostgresPath(String minorVersion) {
 			return null;
 		}
-		//public UnixPath getMySQLConnectorJavaJarPath() {
+		//public PosixPath getMySQLConnectorJavaJarPath() {
 		//	return null;
 		//}
 		@Override
-		public UnixPath getDefaultJdkProfileSh() {
+		public PosixPath getDefaultJdkProfileSh() {
 			return CENTOS_5_I686_AND_X86_64.getDefaultJdkProfileSh();
 		}
 		@Override
@@ -129,7 +129,7 @@ public enum OperatingSystemConfiguration {
 			return CENTOS_5_I686_AND_X86_64.getDefaultJdkPackageName();
 		}
 		@Override
-		public UnixPath getJdk17ProfileSh() {
+		public PosixPath getJdk17ProfileSh() {
 			return CENTOS_5_I686_AND_X86_64.getJdk17ProfileSh();
 		}
 		@Override
@@ -143,29 +143,29 @@ public enum OperatingSystemConfiguration {
 			return null;
 		}
 		@Override
-		public UnixPath getOpensslDefaultCaFile() {
+		public PosixPath getOpensslDefaultCaFile() {
 			return CENTOS_5_I686_AND_X86_64.getOpensslDefaultCaFile();
 		}
 		@Override
-		public UnixPath getOpensslDefaultChainFile() {
+		public PosixPath getOpensslDefaultChainFile() {
 			return CENTOS_5_I686_AND_X86_64.getOpensslDefaultChainFile();
 		}
 		@Override
-		public UnixPath getReplaceCommand() {
+		public PosixPath getReplaceCommand() {
 			return CENTOS_5_I686_AND_X86_64.getReplaceCommand();
 		}
-		//public UnixPath getAOServClientScriptInclude() {
+		//public PosixPath getAOServClientScriptInclude() {
 		//	return "/opt/aoserv-client/scripts/aoserv-client.sh";
 		//}
 		@Override
-		public UnixPath getPostgresPath(String minorVersion) {
+		public PosixPath getPostgresPath(String minorVersion) {
 			return null;
 		}
-		//public UnixPath getMySQLConnectorJavaJarPath() {
+		//public PosixPath getMySQLConnectorJavaJarPath() {
 		//	return null;
 		//}
 		@Override
-		public UnixPath getDefaultJdkProfileSh() {
+		public PosixPath getDefaultJdkProfileSh() {
 			return CENTOS_5_I686_AND_X86_64.getDefaultJdkProfileSh();
 		}
 		@Override
@@ -173,7 +173,7 @@ public enum OperatingSystemConfiguration {
 			return CENTOS_5_I686_AND_X86_64.getDefaultJdkPackageName();
 		}
 		@Override
-		public UnixPath getJdk17ProfileSh() {
+		public PosixPath getJdk17ProfileSh() {
 			return CENTOS_5_I686_AND_X86_64.getJdk17ProfileSh();
 		}
 		@Override
@@ -187,17 +187,17 @@ public enum OperatingSystemConfiguration {
 			return HttpdOperatingSystemConfiguration.CENTOS_7_X86_64;
 		}
 		@Override
-		public UnixPath getOpensslDefaultCaFile() {
+		public PosixPath getOpensslDefaultCaFile() {
 			try {
-				return UnixPath.valueOf("/etc/pki/tls/certs/ca-bundle.crt");
+				return PosixPath.valueOf("/etc/pki/tls/certs/ca-bundle.crt");
 			} catch(ValidationException e) {
 				throw new WrappedException(e);
 			}
 		}
 		@Override
-		public UnixPath getOpensslDefaultChainFile() {
+		public PosixPath getOpensslDefaultChainFile() {
 			try {
-				return UnixPath.valueOf("/etc/pki/tls/certs/server-chain.crt");
+				return PosixPath.valueOf("/etc/pki/tls/certs/server-chain.crt");
 			} catch(ValidationException e) {
 				throw new WrappedException(e);
 			}
@@ -207,32 +207,32 @@ public enum OperatingSystemConfiguration {
 		 * TODO: Just use sed instead.
 		 */
 		@Override
-		public UnixPath getReplaceCommand() {
+		public PosixPath getReplaceCommand() {
 			try {
-				return UnixPath.valueOf("/opt/aoserv-daemon/bin/replace");
+				return PosixPath.valueOf("/opt/aoserv-daemon/bin/replace");
 			} catch(ValidationException e) {
 				throw new WrappedException(e);
 			}
 		}
 		//@Override
-		//public UnixPath getAOServClientScriptInclude() {
+		//public PosixPath getAOServClientScriptInclude() {
 		//	return "/opt/aoserv-client/scripts/aoserv-client.sh";
 		//}
 		@Override
-		public UnixPath getPostgresPath(String minorVersion) {
+		public PosixPath getPostgresPath(String minorVersion) {
 			try {
-				return UnixPath.valueOf("/opt/postgresql-" + minorVersion);
+				return PosixPath.valueOf("/opt/postgresql-" + minorVersion);
 			} catch(ValidationException e) {
 				throw new WrappedException(e);
 			}
 		}
-		//public UnixPath getMySQLConnectorJavaJarPath() {
+		//public PosixPath getMySQLConnectorJavaJarPath() {
 		//	return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
 		//}
 		@Override
-		public UnixPath getDefaultJdkProfileSh() {
+		public PosixPath getDefaultJdkProfileSh() {
 			try {
-				return UnixPath.valueOf("/opt/jdk-lts/profile.sh");
+				return PosixPath.valueOf("/opt/jdk-lts/profile.sh");
 			} catch(ValidationException e) {
 				throw new WrappedException(e);
 			}
@@ -242,9 +242,9 @@ public enum OperatingSystemConfiguration {
 			return PackageManager.PackageName.JDK_LTS;
 		}
 		@Override
-		public UnixPath getJdk17ProfileSh() {
+		public PosixPath getJdk17ProfileSh() {
 			try {
-				return UnixPath.valueOf("/opt/jdk1.7/setenv.sh");
+				return PosixPath.valueOf("/opt/jdk1.7/setenv.sh");
 			} catch(ValidationException e) {
 				throw new WrappedException(e);
 			}
@@ -260,30 +260,30 @@ public enum OperatingSystemConfiguration {
 			return null;
 		}
 		@Override
-		public UnixPath getOpensslDefaultCaFile() {
+		public PosixPath getOpensslDefaultCaFile() {
 			return CENTOS_7_X86_64.getOpensslDefaultCaFile();
 		}
 		@Override
-		public UnixPath getOpensslDefaultChainFile() {
+		public PosixPath getOpensslDefaultChainFile() {
 			return CENTOS_7_X86_64.getOpensslDefaultChainFile();
 		}
 		@Override
-		public UnixPath getReplaceCommand() {
+		public PosixPath getReplaceCommand() {
 			return CENTOS_7_X86_64.getReplaceCommand();
 		}
 		//@Override
-		//public UnixPath getAOServClientScriptInclude() {
+		//public PosixPath getAOServClientScriptInclude() {
 		//	return "/opt/aoserv-client/scripts/aoserv-client.sh";
 		//}
 		@Override
-		public UnixPath getPostgresPath(String minorVersion) {
+		public PosixPath getPostgresPath(String minorVersion) {
 			return null;
 		}
-		//public UnixPath getMySQLConnectorJavaJarPath() {
+		//public PosixPath getMySQLConnectorJavaJarPath() {
 		//	return "/opt/mysql-connector-java-3.1.12/mysql-connector-java-3.1.12-bin.jar";
 		//}
 		@Override
-		public UnixPath getDefaultJdkProfileSh() {
+		public PosixPath getDefaultJdkProfileSh() {
 			return CENTOS_7_X86_64.getDefaultJdkProfileSh();
 		}
 		@Override
@@ -291,7 +291,7 @@ public enum OperatingSystemConfiguration {
 			return CENTOS_7_X86_64.getDefaultJdkPackageName();
 		}
 		@Override
-		public UnixPath getJdk17ProfileSh() {
+		public PosixPath getJdk17ProfileSh() {
 			return CENTOS_7_X86_64.getJdk17ProfileSh();
 		}
 		@Override
@@ -335,25 +335,25 @@ public enum OperatingSystemConfiguration {
 	/**
 	 * Gets the default certificate authority file for OpenSSL.
 	 */
-	public abstract UnixPath getOpensslDefaultCaFile();
+	public abstract PosixPath getOpensslDefaultCaFile();
 
 	/**
 	 * Gets the default certificate chain file for OpenSSL, if any.
 	 * This file may be not exist even when this returns non-null.
 	 */
-	public abstract UnixPath getOpensslDefaultChainFile();
+	public abstract PosixPath getOpensslDefaultChainFile();
 
 	/**
 	 * Gets the full path to the replace command or <code>null</code>
 	 * if unavailable.
 	 */
-	public abstract UnixPath getReplaceCommand();
+	public abstract PosixPath getReplaceCommand();
 
 	/**
 	 * Gets the full path that a shell script would use to include the AOServ
 	 * Client.
 	 */
-	//public abstract UnixPath getAOServClientScriptInclude();
+	//public abstract PosixPath getAOServClientScriptInclude();
 
 	/**
 	 * Gets the path to the PostgreSQL installation directory for the provided
@@ -361,18 +361,18 @@ public enum OperatingSystemConfiguration {
 	 *
 	 * @return  The full path or <code>null</code> if PostgreSQL not supported.
 	 */
-	public abstract UnixPath getPostgresPath(String minorVersion);
+	public abstract PosixPath getPostgresPath(String minorVersion);
 
 	/**
 	 * Gets the full path to the preferred MySQL Java JDBC driver JAR or
 	 * <code>null</code> if none available.
 	 */
-	//public abstract UnixPath getMySQLConnectorJavaJarPath();
+	//public abstract PosixPath getMySQLConnectorJavaJarPath();
 
 	/**
 	 * Gets the path to the default JDK profile.sh script.
 	 */
-	public abstract UnixPath getDefaultJdkProfileSh();
+	public abstract PosixPath getDefaultJdkProfileSh();
 
 	/**
 	 * Gets the package that provides the default JDK.
@@ -382,7 +382,7 @@ public enum OperatingSystemConfiguration {
 	/**
 	 * Gets the path to the JDK 1.7 profile.sh script.
 	 */
-	public abstract UnixPath getJdk17ProfileSh();
+	public abstract PosixPath getJdk17ProfileSh();
 
 	/**
 	 * Gets the package that provides JDK 1.7.

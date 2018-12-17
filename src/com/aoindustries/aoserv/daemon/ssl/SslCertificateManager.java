@@ -9,6 +9,7 @@ import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.CyrusImapdBind;
 import com.aoindustries.aoserv.client.email.CyrusImapdServer;
 import com.aoindustries.aoserv.client.email.SendmailServer;
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.monitoring.AlertLevel;
 import static com.aoindustries.aoserv.client.monitoring.AlertLevel.CRITICAL;
@@ -20,7 +21,6 @@ import com.aoindustries.aoserv.client.pki.Certificate;
 import com.aoindustries.aoserv.client.pki.Certificate.Check;
 import com.aoindustries.aoserv.client.pki.CertificateName;
 import com.aoindustries.aoserv.client.pki.CertificateOtherUse;
-import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.web.VirtualHost;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.io.unix.Stat;
@@ -66,7 +66,7 @@ import org.apache.commons.lang3.StringUtils;
 
 final public class SslCertificateManager {
 
-	private static UnixFile getUnixFile(UnixPath path) {
+	private static UnixFile getUnixFile(PosixPath path) {
 		return (path == null) ? null : new UnixFile(path.toString());
 	}
 

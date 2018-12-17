@@ -11,6 +11,7 @@ import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.CyrusImapdBind;
 import com.aoindustries.aoserv.client.email.CyrusImapdServer;
 import com.aoindustries.aoserv.client.email.SpamAssassinMode;
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.linux.UserServer;
@@ -18,8 +19,6 @@ import com.aoindustries.aoserv.client.net.AppProtocol;
 import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.client.password.PasswordGenerator;
 import com.aoindustries.aoserv.client.pki.Certificate;
-import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -328,7 +327,7 @@ final public class ImapManager extends BuilderThread {
 	 */
 	private static IMAPStore getOldUserStore(
 		PrintWriter logOut,
-		UserId username,
+		User.Name username,
 		String[] tempPassword,
 		UnixFile passwordBackup
 	) throws IOException, SQLException, MessagingException {
@@ -358,7 +357,7 @@ final public class ImapManager extends BuilderThread {
 	 */
 	private static IMAPStore getNewUserStore(
 		PrintWriter logOut,
-		UserId username,
+		User.Name username,
 		String[] tempPassword,
 		UnixFile passwordBackup
 	) throws IOException, SQLException, MessagingException {
@@ -382,7 +381,7 @@ final public class ImapManager extends BuilderThread {
 	private static IMAPStore getUserStore(
 		PrintWriter logOut,
 		Tuple3<InetAddress,Port,Boolean> imapServer,
-		UserId username,
+		User.Name username,
 		String imapUsername,
 		String[] tempPassword,
 		UnixFile passwordBackup
@@ -1271,7 +1270,7 @@ final public class ImapManager extends BuilderThread {
 	 * 
 	 * @see  #getDomain
 	 */
-	private static String getUser(UserId username) {
+	private static String getUser(User.Name username) {
 		String usernameStr = username.toString();
 		int atPos = usernameStr.lastIndexOf('@');
 		return (atPos == -1) ? usernameStr : usernameStr.substring(0, atPos);
@@ -1282,7 +1281,7 @@ final public class ImapManager extends BuilderThread {
 	 * 
 	 * @see  #getUser
 	 */
-	private static String getDomain(UserId username) {
+	private static String getDomain(User.Name username) {
 		String usernameStr = username.toString();
 		int atPos = usernameStr.lastIndexOf('@');
 		return (atPos == -1) ? "default" : usernameStr.substring(atPos + 1);
@@ -1336,7 +1335,7 @@ final public class ImapManager extends BuilderThread {
 
 	private static void convertImapDirectory(
 		final PrintWriter logOut,
-		final UserId username,
+		final User.Name username,
 		final int junkRetention,
 		final int trashRetention,
 		final UnixFile directory,
@@ -1492,7 +1491,7 @@ final public class ImapManager extends BuilderThread {
 
 	private static void convertImapFile(
 		final PrintWriter logOut,
-		final UserId username,
+		final User.Name username,
 		final int junkRetention,
 		final int trashRetention,
 		final UnixFile file,
@@ -1713,7 +1712,7 @@ final public class ImapManager extends BuilderThread {
 	/**
 	 * Logs a message as trace on commons-logging and on the per-user log.
 	 */
-	private static void log(PrintWriter userLogOut, Level level, UserId username, String message) {
+	private static void log(PrintWriter userLogOut, Level level, User.Name username, String message) {
 		Logger logger = LogFactory.getLogger(ImapManager.class);
 		if(logger.isLoggable(level)) logger.log(level, username + " - " + message);
 		synchronized(userLogOut) {
@@ -1739,10 +1738,10 @@ final public class ImapManager extends BuilderThread {
 			try {
 				for(final UserServer lsa : lsas) {
 					User la = lsa.getLinuxAccount();
-					final UnixPath homePath = lsa.getHome();
+					final PosixPath homePath = lsa.getHome();
 					if(la.getType().isEmail() && homePath.toString().startsWith("/home/")) {
 						// Split into user and domain
-						final UserId laUsername = la.getUsername().getUsername();
+						final User.Name laUsername = la.getUsername_id();
 						String user = getUser(laUsername);
 						String domain = getDomain(laUsername);
 						validEmailUsernames.add(laUsername.toString());
@@ -2080,7 +2079,7 @@ final public class ImapManager extends BuilderThread {
 		return "Rebuild IMAP and Cyrus configurations";
 	}
 
-	public static long[] getImapFolderSizes(UserId username, String[] folderNames) throws IOException, SQLException, MessagingException {
+	public static long[] getImapFolderSizes(User.Name username, String[] folderNames) throws IOException, SQLException, MessagingException {
 		Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
@@ -2257,7 +2256,7 @@ final public class ImapManager extends BuilderThread {
 		});
 	}
 
-	private static long getCyrusFolderSize(UserId username, String folder, boolean notFoundOK) throws IOException, SQLException, MessagingException {
+	private static long getCyrusFolderSize(User.Name username, String folder, boolean notFoundOK) throws IOException, SQLException, MessagingException {
 		return getCyrusFolderSize(getUser(username), folder, getDomain(username), notFoundOK);
 	}
 
@@ -2304,7 +2303,7 @@ final public class ImapManager extends BuilderThread {
 		}
 	}
 
-	public static long getInboxSize(UserId username) throws IOException, SQLException, MessagingException {
+	public static long getInboxSize(User.Name username) throws IOException, SQLException, MessagingException {
 		Server thisAOServer=AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
@@ -2326,7 +2325,7 @@ ad OK Completed
 		} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 	}
 
-	public static long getInboxModified(UserId username) throws IOException, SQLException, MessagingException, ParseException {
+	public static long getInboxModified(User.Name username) throws IOException, SQLException, MessagingException, ParseException {
 		Server thisAOServer = AOServDaemon.getThisAOServer();
 		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
@@ -2480,10 +2479,10 @@ ad OK Completed
 			// Automatically exclude all Junk filters
 			for(final UserServer lsa : thisServer.getLinuxServerAccounts()) {
 				User la = lsa.getLinuxAccount();
-				final UnixPath homePath = lsa.getHome();
+				final PosixPath homePath = lsa.getHome();
 				if(la.getType().isEmail() && homePath.toString().startsWith("/home/")) {
 					// Split into user and domain
-					final UserId laUsername = la.getUsername().getUsername();
+					final User.Name laUsername = la.getUsername_id();
 					String user = getUser(laUsername);
 					String domain = getDomain(laUsername);
 					if("default".equals(domain)) {

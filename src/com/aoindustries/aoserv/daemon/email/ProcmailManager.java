@@ -13,12 +13,11 @@ import com.aoindustries.aoserv.client.email.InboxAddress;
 import com.aoindustries.aoserv.client.email.SpamAssassinMode;
 import com.aoindustries.aoserv.client.linux.Group;
 import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.client.net.Bind;
-import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -161,7 +160,7 @@ public final class ProcmailManager extends BuilderThread {
 						for(UserServer lsa : thisAoServer.getLinuxServerAccounts()) {
 							if(lsa.getLinuxAccount().getType().isEmail()) {
 								if(!isManual(lsa)) {
-									UnixPath home = lsa.getHome();
+									PosixPath home = lsa.getHome();
 									UnixFile procmailrc = new UnixFile(home.toString(), PROCMAILRC);
 
 									// Stat for use below
@@ -187,7 +186,7 @@ public final class ProcmailManager extends BuilderThread {
 											// Default locking time is fine since not locking for spamassassin now: + "LOCKSLEEP=15\n");
 
 										User la = lsa.getLinuxAccount();
-										UserId username = la.getUsername().getUsername();
+										User.Name username = la.getUsername_id();
 										InboxAddress laa = lsa.getAutoresponderFrom();
 										List<InboxAddress> addresses = lsa.getLinuxAccAddresses();
 
@@ -476,7 +475,7 @@ public final class ProcmailManager extends BuilderThread {
 		// Must be an email type
 		if(!lsa.getLinuxAccount().getType().isEmail()) throw new SQLException("Not an email inbox: " + lsa.toString());
 
-		UnixPath home = lsa.getHome();
+		PosixPath home = lsa.getHome();
 		// If the home directory is outside /home/, it is manually maintained (not maintained by this code)
 		if(!home.toString().startsWith("/home/")) return true;
 

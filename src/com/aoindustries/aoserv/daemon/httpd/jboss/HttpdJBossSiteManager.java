@@ -6,8 +6,8 @@
 package com.aoindustries.aoserv.daemon.httpd.jboss;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.validator.UserId;
+import com.aoindustries.aoserv.client.linux.PosixPath;
+import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.web.jboss.Site;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
@@ -60,9 +60,9 @@ public abstract class HttpdJBossSiteManager<TC extends TomcatCommon> extends Htt
 	}
 
 	@Override
-	public UnixPath getStartStopScriptPath() throws IOException, SQLException {
+	public PosixPath getStartStopScriptPath() throws IOException, SQLException {
 		try {
-			return UnixPath.valueOf(
+			return PosixPath.valueOf(
 				HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
 				+ "/"
 				+ httpdSite.getName()
@@ -74,8 +74,8 @@ public abstract class HttpdJBossSiteManager<TC extends TomcatCommon> extends Htt
 	}
 
 	@Override
-	public UserId getStartStopScriptUsername() throws IOException, SQLException {
-		return httpdSite.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername();
+	public User.Name getStartStopScriptUsername() throws IOException, SQLException {
+		return httpdSite.getLinuxAccount_username();
 	}
 
 	@Override

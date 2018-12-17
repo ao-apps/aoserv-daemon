@@ -5,10 +5,10 @@
  */
 package com.aoindustries.aoserv.daemon.httpd;
 
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.linux.UserServer;
-import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.client.web.HttpdServer;
 import com.aoindustries.aoserv.client.web.Site;
 import com.aoindustries.aoserv.client.web.VirtualHost;
@@ -119,7 +119,7 @@ class HttpdLogManager {
 		}
 
 		// The log directories that exist but are not used will be removed
-		UnixPath logDir = aoServer.getServer().getOperatingSystemVersion().getHttpdSiteLogsDirectory();
+		PosixPath logDir = aoServer.getServer().getOperatingSystemVersion().getHttpdSiteLogsDirectory();
 		if(logDir != null) {
 			UnixFile logDirUF = new UnixFile(logDir.toString());
 			// Create the logs directory if missing
@@ -163,7 +163,7 @@ class HttpdLogManager {
 				List<VirtualHost> hsbs = httpdSite.getHttpdSiteBinds();
 				for(VirtualHost hsb : hsbs) {
 					// access_log
-					UnixPath accessLog = hsb.getAccessLog();
+					PosixPath accessLog = hsb.getAccessLog();
 					UnixFile accessLogFile = new UnixFile(accessLog.toString());
 					Stat accessLogStat = accessLogFile.getStat();
 					UnixFile accessLogParent = accessLogFile.getParent();
@@ -185,7 +185,7 @@ class HttpdLogManager {
 					// TODO: Verify ownership and permissions of rotated logs in same directory
 
 					// error_log
-					UnixPath errorLog = hsb.getErrorLog();
+					PosixPath errorLog = hsb.getErrorLog();
 					UnixFile errorLogFile = new UnixFile(errorLog.toString());
 					UnixFile errorLogParent = errorLogFile.getParent();
 					Stat errorLogStat = errorLogFile.getStat();
@@ -250,7 +250,7 @@ class HttpdLogManager {
 		Set<String> logRotationFiles = new HashSet<>(Arrays.asList(new File(siteLogRotationDir).list()));
 
 		// Each log file will be only rotated at most once
-		Set<UnixPath> completedPaths = new HashSet<>(logRotationFiles.size()*4/3+1);
+		Set<PosixPath> completedPaths = new HashSet<>(logRotationFiles.size()*4/3+1);
 
 		// For each site, build/rebuild the logrotate.d file as necessary and create any necessary log files
 		ChainWriter chainOut=new ChainWriter(byteOut);
@@ -259,7 +259,7 @@ class HttpdLogManager {
 			byteOut.reset();
 			boolean wroteOne = false;
 			for(VirtualHost bind : site.getHttpdSiteBinds()) {
-				UnixPath access_log = bind.getAccessLog();
+				PosixPath access_log = bind.getAccessLog();
 				// Each unique path is only rotated once
 				if(completedPaths.add(access_log)) {
 					// Add to the site log rotation
@@ -267,7 +267,7 @@ class HttpdLogManager {
 					else wroteOne = true;
 					chainOut.print(access_log);
 				}
-				UnixPath error_log = bind.getErrorLog();
+				PosixPath error_log = bind.getErrorLog();
 				if(completedPaths.add(error_log)) {
 					// Add to the site log rotation
 					if(wroteOne) chainOut.print(' ');

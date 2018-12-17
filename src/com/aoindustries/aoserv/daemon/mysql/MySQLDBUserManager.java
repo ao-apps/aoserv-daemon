@@ -12,8 +12,6 @@ import com.aoindustries.aoserv.client.mysql.DatabaseUser;
 import com.aoindustries.aoserv.client.mysql.Server;
 import com.aoindustries.aoserv.client.mysql.User;
 import com.aoindustries.aoserv.client.mysql.UserServer;
-import com.aoindustries.aoserv.client.validator.MySQLDatabaseName;
-import com.aoindustries.aoserv.client.validator.MySQLUserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -67,7 +65,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 					} else {
 						String version = mysqlServer.getVersion().getVersion();
 						// Different versions of MySQL have different sets of system db users
-						Set<Tuple2<MySQLDatabaseName,MySQLUserId>> systemDbUsers = new LinkedHashSet<>();
+						Set<Tuple2<Database.Name,User.Name>> systemDbUsers = new LinkedHashSet<>();
 						if(
 							version.startsWith(Server.VERSION_4_0_PREFIX)
 							|| version.startsWith(Server.VERSION_4_1_PREFIX)
@@ -84,7 +82,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 						}
 
 						// Verify has all system db users
-						Set<Tuple2<MySQLDatabaseName,MySQLUserId>> requiredDbUsers = new LinkedHashSet<>(systemDbUsers);
+						Set<Tuple2<Database.Name,User.Name>> requiredDbUsers = new LinkedHashSet<>(systemDbUsers);
 						for(DatabaseUser mdu : dbUsers) {
 							if(
 								requiredDbUsers.remove(new Tuple2<>(mdu.getMySQLDatabase().getName(), mdu.getMySQLServerUser().getMySQLUser().getKey()))
@@ -106,16 +104,16 @@ final public class MySQLDBUserManager extends BuilderThread {
 								// TODO: As written, updates to mysql_users table (which are very rare) will be represented here.
 
 								// Get the list of all existing db entries
-								Set<Tuple2<MySQLDatabaseName,MySQLUserId>> existing = new HashSet<>();
+								Set<Tuple2<Database.Name,User.Name>> existing = new HashSet<>();
 								try (
 									Statement stmt = conn.createStatement();
 									ResultSet results = stmt.executeQuery("select db, user from db")
 								) {
 									while (results.next()) {
 										try {
-											Tuple2<MySQLDatabaseName,MySQLUserId> tuple = new Tuple2<>(
-												MySQLDatabaseName.valueOf(results.getString(1)),
-												MySQLUserId.valueOf(results.getString(2))
+											Tuple2<Database.Name,User.Name> tuple = new Tuple2<>(
+												Database.Name.valueOf(results.getString(1)),
+												User.Name.valueOf(results.getString(2))
 											);
 											if(!existing.add(tuple)) throw new SQLException("Duplicate (db, user): " + tuple);
 										} catch(ValidationException e) {
@@ -142,9 +140,9 @@ final public class MySQLDBUserManager extends BuilderThread {
 								try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
 									for(DatabaseUser mdu : dbUsers) {
 										Database md = mdu.getMySQLDatabase();
-										MySQLDatabaseName db=md.getName();
+										Database.Name db=md.getName();
 										UserServer msu=mdu.getMySQLServerUser();
-										MySQLUserId user=msu.getMySQLUser().getKey();
+										User.Name user=msu.getMySQLUser().getKey();
 
 										// These must both be on the same server !!!
 										if(!md.getMySQLServer().equals(msu.getMySQLServer())) throw new SQLException(
@@ -160,7 +158,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 											+msu.getMySQLServer().getPkey()
 											+')'
 										);
-										Tuple2<MySQLDatabaseName,MySQLUserId> key = new Tuple2<>(db, user);
+										Tuple2<Database.Name,User.Name> key = new Tuple2<>(db, user);
 										if(!existing.remove(key)) {
 											// Add the db entry
 											String host = 
@@ -213,7 +211,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 								// Remove the extra db entries
 								if (!existing.isEmpty()) {
 									try (PreparedStatement pstmt = conn.prepareStatement("delete from db where db=? and user=?")) {
-										for (Tuple2<MySQLDatabaseName,MySQLUserId> key : existing) {
+										for (Tuple2<Database.Name,User.Name> key : existing) {
 											if(systemDbUsers.contains(key)) {
 												LogFactory.getLogger(MySQLDatabaseManager.class).log(
 													Level.WARNING,

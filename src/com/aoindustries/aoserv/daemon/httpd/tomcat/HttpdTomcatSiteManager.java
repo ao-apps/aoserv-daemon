@@ -5,8 +5,8 @@
  */
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
-import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.validator.UserId;
+import com.aoindustries.aoserv.client.linux.PosixPath;
+import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.web.tomcat.Context;
 import com.aoindustries.aoserv.client.web.tomcat.JkMount;
 import com.aoindustries.aoserv.client.web.tomcat.PrivateTomcatSite;
@@ -231,12 +231,12 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 	/**
 	 * Gets the path to the start/stop script.
 	 */
-	public abstract UnixPath getStartStopScriptPath() throws IOException, SQLException;
+	public abstract PosixPath getStartStopScriptPath() throws IOException, SQLException;
 
 	/**
 	 * Gets the username to run the start/stop script as.
 	 */
-	public abstract UserId getStartStopScriptUsername() throws IOException, SQLException;
+	public abstract User.Name getStartStopScriptUsername() throws IOException, SQLException;
 
 	@Override
 	protected Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException {

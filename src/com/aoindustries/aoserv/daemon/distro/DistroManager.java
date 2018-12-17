@@ -13,14 +13,14 @@ import com.aoindustries.aoserv.client.distribution.management.DistroFileType;
 import com.aoindustries.aoserv.client.distribution.management.DistroReportType;
 import com.aoindustries.aoserv.client.linux.Group;
 import com.aoindustries.aoserv.client.linux.GroupServer;
+import com.aoindustries.aoserv.client.linux.LinuxId;
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.client.sql.SQLColumnValue;
 import com.aoindustries.aoserv.client.sql.SQLComparator;
 import com.aoindustries.aoserv.client.sql.SQLExpression;
-import com.aoindustries.aoserv.client.validator.LinuxId;
-import com.aoindustries.aoserv.client.validator.UnixPath;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -260,12 +260,12 @@ final public class DistroManager implements Runnable {
 	private static class DistroReportFile {
 
 		private final String type;
-		private final UnixPath path;
+		private final PosixPath path;
 		private final String actualValue;
 		private final String expectedValue;
 		private final String recommendedAction;
 
-		private DistroReportFile(String type, UnixPath path, String actualValue, String expectedValue, String recommendedAction) {
+		private DistroReportFile(String type, PosixPath path, String actualValue, String expectedValue, String recommendedAction) {
 			this.type = type;
 			this.path = path;
 			this.actualValue = actualValue;
@@ -291,7 +291,7 @@ final public class DistroManager implements Runnable {
 	/**
 	 * Adds a report line, displaying to provided error printer if non-null.
 	 */
-	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, UnixPath path, String actualValue, String expectedValue, String recommendedAction) throws IOException {
+	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, PosixPath path, String actualValue, String expectedValue, String recommendedAction) throws IOException {
 		DistroReportFile report = new DistroReportFile(type, path, actualValue, expectedValue, recommendedAction);
 		results.add(report);
 		if(verboseOut != null) {
@@ -314,29 +314,29 @@ final public class DistroManager implements Runnable {
 			//verboseOut.flush();
 		}
 	}
-	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, UnixPath path, String actualValue, String expectedValue) throws IOException {
+	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, PosixPath path, String actualValue, String expectedValue) throws IOException {
 		addResult(results, verboseOut, type, path, actualValue, expectedValue, null);
 	}
-	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, UnixPath path) throws IOException {
+	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, PosixPath path) throws IOException {
 		addResult(results, verboseOut, type, path, null, null, null);
 	}
 	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, UnixFile file, String actualValue, String expectedValue, String recommendedAction) throws IOException {
 		try {
-			addResult(results, verboseOut, type, UnixPath.valueOf(file.getPath()), actualValue, expectedValue, recommendedAction);
+			addResult(results, verboseOut, type, PosixPath.valueOf(file.getPath()), actualValue, expectedValue, recommendedAction);
 		} catch(ValidationException e) {
 			throw new IOException(e);
 		}
 	}
 	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, UnixFile file, String actualValue, String expectedValue) throws IOException {
 		try {
-			addResult(results, verboseOut, type, UnixPath.valueOf(file.getPath()), actualValue, expectedValue, null);
+			addResult(results, verboseOut, type, PosixPath.valueOf(file.getPath()), actualValue, expectedValue, null);
 		} catch(ValidationException e) {
 			throw new IOException(e);
 		}
 	}
 	private static void addResult(List<DistroReportFile> results, Appendable verboseOut, String type, UnixFile file) throws IOException {
 		try {
-			addResult(results, verboseOut, type, UnixPath.valueOf(file.getPath()), null, null, null);
+			addResult(results, verboseOut, type, PosixPath.valueOf(file.getPath()), null, null, null);
 		} catch(ValidationException e) {
 			throw new IOException(e);
 		}
@@ -378,13 +378,13 @@ final public class DistroManager implements Runnable {
 			);
 
 			// Add entries for all the missing files
-			UnixPath lastPath = null;
+			PosixPath lastPath = null;
 			int size = foundFiles.length;
 			for(int c = 0; c < size; c++) {
 				if(!foundFiles[c]) {
 					DistroFile distroFile = distroFiles.get(c);
 					if(!distroFile.isOptional()) {
-						UnixPath path = distroFile.getPath();
+						PosixPath path = distroFile.getPath();
 						if(
 							lastPath == null
 							|| !path.toString().startsWith(lastPath.toString()+'/') // TODO: Why startsWith here, why did not add '/' before?
@@ -448,7 +448,7 @@ final public class DistroManager implements Runnable {
 		{
 			// First look for exact match
 			String filename = file.getPath();
-			int index = Collections.binarySearch(distroFiles, new Object[] {UnixPath.valueOf(filename), osVersionPKey}, pathComparator);
+			int index = Collections.binarySearch(distroFiles, new Object[] {PosixPath.valueOf(filename), osVersionPKey}, pathComparator);
 			if(index >= 0) {
 				distroFile = distroFiles.get(index);
 				// Flag as found
@@ -459,7 +459,7 @@ final public class DistroManager implements Runnable {
 				int pos = filename.indexOf(hostname);
 				if(pos >= 0) {
 					filename = filename.substring(0, pos) + "$h" + filename.substring(pos+hostname.length());
-					index = Collections.binarySearch(distroFiles, new Object[] {UnixPath.valueOf(filename), osVersionPKey}, pathComparator);
+					index = Collections.binarySearch(distroFiles, new Object[] {PosixPath.valueOf(filename), osVersionPKey}, pathComparator);
 					if(index >= 0) {
 						distroFile = distroFiles.get(index);
 						// Flag as found

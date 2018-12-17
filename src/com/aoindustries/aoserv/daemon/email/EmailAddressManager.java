@@ -6,7 +6,6 @@
 package com.aoindustries.aoserv.daemon.email;
 
 import com.aoindustries.aoserv.client.AOServConnector;
-import com.aoindustries.aoserv.client.account.Username;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.email.Address;
 import com.aoindustries.aoserv.client.email.BlackholeAddress;
@@ -16,10 +15,10 @@ import com.aoindustries.aoserv.client.email.InboxAddress;
 import com.aoindustries.aoserv.client.email.ListAddress;
 import com.aoindustries.aoserv.client.email.PipeAddress;
 import com.aoindustries.aoserv.client.email.SystemAlias;
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
+import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.linux.UserServer;
-import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -30,6 +29,7 @@ import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.DomainName;
+import com.aoindustries.net.Email;
 import com.aoindustries.util.StringUtility;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
@@ -199,10 +199,10 @@ final public class EmailAddressManager extends BuilderThread {
 						}
 						// Specific address@domain combinations
 						String[] devNullUsername = new String[1];
-						Map<String,String> singleForwardingTies = new HashMap<>();
-						Map<UnixPath,String> singleListTies = new HashMap<>();
+						Map<Email,String> singleForwardingTies = new HashMap<>();
+						Map<PosixPath,String> singleListTies = new HashMap<>();
 						Map<String,String> singlePipeTies = new HashMap<>();
-						Map<UserId,String> singleInboxTies = new HashMap<>();
+						Map<User.Name,String> singleInboxTies = new HashMap<>();
 						{
 							boolean didOne = false;
 							for(Address ea : eas) {
@@ -334,10 +334,10 @@ final public class EmailAddressManager extends BuilderThread {
 		Address ea,
 		Set<String> usernamesUsed,
 		String[] devNullUsername,
-		Map<String,String> singleForwardingTies,
-		Map<UnixPath,String> singleListTies,
+		Map<Email,String> singleForwardingTies,
+		Map<PosixPath,String> singleListTies,
 		Map<String,String> singlePipeTies,
-		Map<UserId,String> singleInboxTies,
+		Map<User.Name,String> singleInboxTies,
 		ChainWriter aliasesOut,
 		ChainWriter usersOut
 	) throws IOException, SQLException {
@@ -386,7 +386,7 @@ final public class EmailAddressManager extends BuilderThread {
 			&& laas.isEmpty()
 		) {
 			// 2) One forwarding destination, BEA ignored (use singleForwardingTies)
-			String destination = efs.get(0).getDestination();
+			Email destination = efs.get(0).getDestination();
 			tieUsername = singleForwardingTies.get(destination);
 			if(tieUsername == null) {
 				tieUsername = getTieUsername(usernamesUsed);
@@ -400,7 +400,7 @@ final public class EmailAddressManager extends BuilderThread {
 			&& laas.isEmpty()
 		) {
 			// 3)  One email list, BEA ignored (use singleListTies)
-			UnixPath path = elas.get(0).getEmailList().getPath();
+			PosixPath path = elas.get(0).getEmailList().getPath();
 			tieUsername = singleListTies.get(path);
 			if(tieUsername == null) {
 				tieUsername = getTieUsername(usernamesUsed);
@@ -430,17 +430,12 @@ final public class EmailAddressManager extends BuilderThread {
 			// 5) One Inbox only, BEA ignored (use singleInboxTies)
 			UserServer lsa = laas.get(0).getLinuxServerAccount();
 			if(lsa != null) {
-				Username un = lsa.getLinuxAccount().getUsername();
-				if(un != null) {
-					UserId username = un.getUsername();
-					tieUsername = singleInboxTies.get(username);
-					if(tieUsername == null) {
-						tieUsername = getTieUsername(usernamesUsed);
-						singleInboxTies.put(username, tieUsername);
-						aliasesOut.print(tieUsername).print(": \\").println(StringUtility.replace(username.toString(), '@', "\\@"));
-					}
-				} else {
-					tieUsername = null;
+				User.Name username = lsa.getLinuxAccount_username_id();
+				tieUsername = singleInboxTies.get(username);
+				if(tieUsername == null) {
+					tieUsername = getTieUsername(usernamesUsed);
+					singleInboxTies.put(username, tieUsername);
+					aliasesOut.print(tieUsername).print(": \\").println(StringUtility.replace(username.toString(), '@', "\\@"));
 				}
 			} else {
 				tieUsername = null;

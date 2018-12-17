@@ -7,7 +7,6 @@ package com.aoindustries.aoserv.daemon.unix;
 
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.User;
-import com.aoindustries.aoserv.client.validator.UserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
@@ -53,7 +52,7 @@ final public class ShadowFile {
 		/**
 		 * @see  #getUsername()
 		 */
-		private final UserId username;
+		private final User.Name username;
 
 		/**
 		 * @see  #getPassword()
@@ -106,7 +105,7 @@ final public class ShadowFile {
 			int len = values.size();
 			if(len < 1) throw new IllegalArgumentException("At least the first field of shadow file required: " + line);
 
-			username = UserId.valueOf(values.get(0));
+			username = User.Name.valueOf(values.get(0));
 
 			String S;
 
@@ -141,7 +140,7 @@ final public class ShadowFile {
 		 * Constructs a shadow file entry given all the values.
 		 */
 		public Entry(
-			UserId username,
+			User.Name username,
 			String password,
 			int changedDate,
 			Integer minPasswordAge,
@@ -165,7 +164,7 @@ final public class ShadowFile {
 		/**
 		 * Constructs a new shadow file entry for the given user and encrypted password.
 		 */
-		public Entry(UserId username, String password, Integer newChangedDate) {
+		public Entry(User.Name username, String password, Integer newChangedDate) {
 			this(
 				username,
 				password,
@@ -182,7 +181,7 @@ final public class ShadowFile {
 		/**
 		 * Constructs a new shadow file entry for the given user.
 		 */
-		public Entry(UserId username) {
+		public Entry(User.Name username) {
 			this(username, User.NO_PASSWORD_CONFIG_VALUE, null);
 		}
 
@@ -247,7 +246,7 @@ final public class ShadowFile {
 		/**
 		 * The username the entry is for
 		 */
-		public UserId getUsername() {
+		public User.Name getUsername() {
 			return username;
 		}
 
@@ -349,7 +348,7 @@ final public class ShadowFile {
 	 *
 	 * If there is no entry for the user in the shadow file, returns <code>({@link User#NO_PASSWORD_CONFIG_VALUE}, null)</code>.
 	 */
-	public static Tuple2<String,Integer> getEncryptedPassword(UserId username) throws IOException, SQLException {
+	public static Tuple2<String,Integer> getEncryptedPassword(User.Name username) throws IOException, SQLException {
 		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
@@ -386,10 +385,10 @@ final public class ShadowFile {
 	/**
 	 * Reads the full contents of /etc/shadow
 	 */
-	private static Map<UserId,Entry> readShadowFile() throws IOException {
+	private static Map<User.Name,Entry> readShadowFile() throws IOException {
 		assert Thread.holdsLock(shadowLock);
 		try {
-			Map<UserId,Entry> shadowEntries = new LinkedHashMap<>();
+			Map<User.Name,Entry> shadowEntries = new LinkedHashMap<>();
 			try (
 				BufferedReader in = new BufferedReader(
 					new InputStreamReader(
@@ -471,15 +470,15 @@ final public class ShadowFile {
 	 *
 	 * Must hold {@link #shadowLock}
 	 */
-	public static byte[] buildShadowFile(Set<UserId> usernames) throws IOException {
+	public static byte[] buildShadowFile(Set<User.Name> usernames) throws IOException {
 		assert Thread.holdsLock(shadowLock);
 		if(!usernames.contains(User.ROOT)) throw new IllegalArgumentException(User.ROOT + " user not found");
-		Map<UserId,Entry> shadowEntries = readShadowFile();
+		Map<User.Name,Entry> shadowEntries = readShadowFile();
 		// Remove any users that no longer exist
-		Iterator<Map.Entry<UserId,Entry>> entryIter = shadowEntries.entrySet().iterator();
+		Iterator<Map.Entry<User.Name,Entry>> entryIter = shadowEntries.entrySet().iterator();
 		while(entryIter.hasNext()) {
-			Map.Entry<UserId,Entry> mapEntry = entryIter.next();
-			UserId username = mapEntry.getKey();
+			Map.Entry<User.Name,Entry> mapEntry = entryIter.next();
+			User.Name username = mapEntry.getKey();
 			if(!usernames.contains(username)) {
 				if(logger.isLoggable(Level.INFO)) {
 					logger.info("Removing user from " + shadowFile + ": " + username);
@@ -489,7 +488,7 @@ final public class ShadowFile {
 		}
 
 		// Add new users
-		for(UserId username : usernames) {
+		for(User.Name username : usernames) {
 			if(!shadowEntries.containsKey(username)) {
 				if(logger.isLoggable(Level.INFO)) {
 					logger.info("Adding user to " + shadowFile + ": " + username);
@@ -512,9 +511,9 @@ final public class ShadowFile {
 	 *
 	 * @see UnixFile#crypt(java.lang.String, com.aoindustries.io.unix.UnixFile.CryptAlgorithm)
 	 */
-	public static void setEncryptedPassword(UserId username, String encryptedPassword, Integer newChangedDate) throws IOException, SQLException {
+	public static void setEncryptedPassword(User.Name username, String encryptedPassword, Integer newChangedDate) throws IOException, SQLException {
 		synchronized(shadowLock) {
-			Map<UserId,Entry> shadowEntries = readShadowFile();
+			Map<User.Name,Entry> shadowEntries = readShadowFile();
 
 			Entry entry = shadowEntries.get(username);
 			if(entry != null) {
@@ -543,7 +542,7 @@ final public class ShadowFile {
 	/**
 	 * Sets the password for one user on the system.
 	 */
-	public static void setPassword(UserId username, String plaintext, UnixFile.CryptAlgorithm cryptAlgorithm, boolean updateChangedDate) throws IOException, SQLException {
+	public static void setPassword(User.Name username, String plaintext, UnixFile.CryptAlgorithm cryptAlgorithm, boolean updateChangedDate) throws IOException, SQLException {
 		setEncryptedPassword(
 			username,
 			plaintext == null || plaintext.isEmpty()

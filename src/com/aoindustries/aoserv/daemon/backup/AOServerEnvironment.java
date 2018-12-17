@@ -14,8 +14,6 @@ import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.client.scm.CvsRepository;
-import com.aoindustries.aoserv.client.validator.MySQLServerName;
-import com.aoindustries.aoserv.client.validator.PostgresServerName;
 import com.aoindustries.aoserv.client.web.HttpdServer;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -74,7 +72,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		// TODO: BackupManager.backupPostgresDatabases();
 	}
 
-	private final Map<FileReplication,List<MySQLServerName>> replicatedMySQLServerses = new HashMap<>();
+	private final Map<FileReplication,List<com.aoindustries.aoserv.client.mysql.Server.Name>> replicatedMySQLServerses = new HashMap<>();
 	private final Map<FileReplication,List<String>> replicatedMySQLMinorVersionses = new HashMap<>();
 
 	@Override
@@ -85,13 +83,13 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		if(retention==1) {
 			Server toServer = ffr.getBackupPartition().getAOServer();
 			List<MysqlReplication> fmrs = ffr.getFailoverMySQLReplications();
-			List<MySQLServerName> replicatedMySQLServers = new ArrayList<>(fmrs.size());
+			List<com.aoindustries.aoserv.client.mysql.Server.Name> replicatedMySQLServers = new ArrayList<>(fmrs.size());
 			List<String> replicatedMySQLMinorVersions = new ArrayList<>(fmrs.size());
 			Logger logger = getLogger();
 			boolean isDebug = logger.isLoggable(Level.FINE);
 			for(MysqlReplication fmr : fmrs) {
 				com.aoindustries.aoserv.client.mysql.Server mysqlServer = fmr.getMySQLServer();
-				MySQLServerName name = mysqlServer.getName();
+				com.aoindustries.aoserv.client.mysql.Server.Name name = mysqlServer.getName();
 				String minorVersion = mysqlServer.getMinorVersion();
 				replicatedMySQLServers.add(name);
 				replicatedMySQLMinorVersions.add(minorVersion);
@@ -262,7 +260,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		final DomainName hostname = thisServer.getHostname();
 		List<com.aoindustries.aoserv.client.mysql.Server> mysqlServers = thisServer.getMySQLServers();
 		for(com.aoindustries.aoserv.client.mysql.Server mysqlServer : mysqlServers)  {
-			MySQLServerName name = mysqlServer.getName();
+			com.aoindustries.aoserv.client.mysql.Server.Name name = mysqlServer.getName();
 			if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 				// Skip /var/lib/mysql/(name)/(hostname).pid
 				filesystemRules.put("/var/lib/mysql/" + name + "/" + hostname + ".pid", FilesystemIteratorRule.SKIP);
@@ -280,12 +278,12 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		}
 		if(retention == 1) {
 			// Failover-over mode
-			List<MySQLServerName> replicatedMySQLServers;
+			List<com.aoindustries.aoserv.client.mysql.Server.Name> replicatedMySQLServers;
 			synchronized(replicatedMySQLServerses) {
 				replicatedMySQLServers = replicatedMySQLServerses.get(ffr);
 			}
 			// Skip files for any MySQL Host that is being replicated through MySQL replication
-			for(MySQLServerName name : replicatedMySQLServers) {
+			for(com.aoindustries.aoserv.client.mysql.Server.Name name : replicatedMySQLServers) {
 				// Skip /var/lib/mysql/(name)
 				filesystemRules.put("/var/lib/mysql/" + name, FilesystemIteratorRule.SKIP);
 				// Skip /var/log/mysql-(name)/
@@ -311,7 +309,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		filesystemRules.put("/var/lib/pgsql/lost+found", FilesystemIteratorRule.SKIP); // TODO: just iterate all mounts points and exclude lost+found instead?
 		List<com.aoindustries.aoserv.client.postgresql.Server> postgresServers = thisServer.getPostgresServers();
 		for(com.aoindustries.aoserv.client.postgresql.Server postgresServer : postgresServers)  {
-			PostgresServerName name = postgresServer.getName();
+			com.aoindustries.aoserv.client.postgresql.Server.Name name = postgresServer.getName();
 			// Skip /var/lib/pgsql/(name)/postmaster.pid
 			filesystemRules.put("/var/lib/pgsql/" + name + "/postmaster.pid", FilesystemIteratorRule.SKIP);
 			if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
@@ -436,7 +434,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		final Server thisServer = AOServDaemon.getThisAOServer();
 		Map<String,FilesystemIteratorRule> filesystemPrefixRules = new HashMap<>();
 		for(com.aoindustries.aoserv.client.mysql.Server mysqlServer : thisServer.getMySQLServers()) {
-			MySQLServerName name = mysqlServer.getName();
+			com.aoindustries.aoserv.client.mysql.Server.Name name = mysqlServer.getName();
 			filesystemPrefixRules.put("/var/lib/mysql/" + name + "/mysql-bin.", FilesystemIteratorRule.SKIP);
 			filesystemPrefixRules.put("/var/lib/mysql/" + name + "/relay-log.", FilesystemIteratorRule.SKIP);
 		}
@@ -454,7 +452,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 	}
 
 	@Override
-	public List<MySQLServerName> getReplicatedMySQLServers(FileReplication ffr) throws IOException, SQLException {
+	public List<com.aoindustries.aoserv.client.mysql.Server.Name> getReplicatedMySQLServers(FileReplication ffr) throws IOException, SQLException {
 		synchronized(replicatedMySQLServerses) {
 			return replicatedMySQLServerses.get(ffr);
 		}

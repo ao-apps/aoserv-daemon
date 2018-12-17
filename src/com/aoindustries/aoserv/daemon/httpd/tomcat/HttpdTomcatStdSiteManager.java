@@ -6,9 +6,9 @@
 package com.aoindustries.aoserv.daemon.httpd.tomcat;
 
 import com.aoindustries.aoserv.client.AOServConnector;
+import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
-import com.aoindustries.aoserv.client.validator.UnixPath;
-import com.aoindustries.aoserv.client.validator.UserId;
+import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.client.web.Site;
 import com.aoindustries.aoserv.client.web.tomcat.JkProtocol;
 import com.aoindustries.aoserv.client.web.tomcat.PrivateTomcatSite;
@@ -92,9 +92,9 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 	}
 
 	@Override
-	public UnixPath getStartStopScriptPath() throws IOException, SQLException {
+	public PosixPath getStartStopScriptPath() throws IOException, SQLException {
 		try {
-			return UnixPath.valueOf(
+			return PosixPath.valueOf(
 				HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSitesDirectory()
 				+ "/"
 				+ httpdSite.getName()
@@ -106,8 +106,8 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 	}
 
 	@Override
-	public UserId getStartStopScriptUsername() throws IOException, SQLException {
-		return httpdSite.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername();
+	public User.Name getStartStopScriptUsername() throws IOException, SQLException {
+		return httpdSite.getLinuxAccount_username();
 	}
 
 	@Override

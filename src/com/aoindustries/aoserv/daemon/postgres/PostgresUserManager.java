@@ -11,7 +11,6 @@ import com.aoindustries.aoserv.client.postgresql.Server;
 import com.aoindustries.aoserv.client.postgresql.User;
 import com.aoindustries.aoserv.client.postgresql.UserServer;
 import com.aoindustries.aoserv.client.postgresql.Version;
-import com.aoindustries.aoserv.client.validator.PostgresUserId;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
@@ -80,7 +79,7 @@ final public class PostgresUserManager extends BuilderThread {
 						boolean disableEnableDone = false;
 						try {
 							// Get the list of all existing users
-							Set<PostgresUserId> existing = new HashSet<>();
+							Set<User.Name> existing = new HashSet<>();
 							try (Statement stmt = conn.createStatement()) {
 								String sqlString =
 									version.startsWith(Version.VERSION_7_1+'.')
@@ -96,7 +95,7 @@ final public class PostgresUserManager extends BuilderThread {
 											String username = results.getString(1);
 											if(DEBUG) debug("Found user " + username);
 											try {
-												PostgresUserId usename = PostgresUserId.valueOf(username);
+												User.Name usename = User.Name.valueOf(username);
 												if(!existing.add(usename)) throw new SQLException("Duplicate username: " + usename);
 											} catch(ValidationException e) {
 												throw new SQLException(e);
@@ -111,12 +110,12 @@ final public class PostgresUserManager extends BuilderThread {
 								List<UserServer> needAdded=new ArrayList<>();
 								for (UserServer psu : users) {
 									User pu=psu.getPostgresUser();
-									PostgresUserId username=pu.getKey();
+									User.Name username=pu.getKey();
 									if(!existing.remove(username)) needAdded.add(psu);
 								}
 
 								// Remove the extra users before adding to avoid usesysid or usename conflicts
-								for (PostgresUserId username : existing) {
+								for (User.Name username : existing) {
 									if(
 										username.equals(User.POSTGRES)
 										|| username.equals(User.AOADMIN)
@@ -136,7 +135,7 @@ final public class PostgresUserManager extends BuilderThread {
 								// Add the new users
 								for(UserServer psu : needAdded) {
 									User pu = psu.getPostgresUser();
-									PostgresUserId username=pu.getKey();
+									User.Name username=pu.getKey();
 
 									// Add the user
 									StringBuilder sql=new StringBuilder();
@@ -204,7 +203,7 @@ final public class PostgresUserManager extends BuilderThread {
 									) {
 									// Enable/disable using rolcanlogin
 									for (UserServer psu : users) {
-										PostgresUserId username=psu.getPostgresUser().getKey();
+										User.Name username=psu.getPostgresUser().getKey();
 										// Get the current login state
 										boolean rolcanlogin;
 										sqlString = "select rolcanlogin from pg_authid where rolname='"+username+"'";
@@ -313,7 +312,7 @@ final public class PostgresUserManager extends BuilderThread {
 		// Get the connection to work through
 		AOServConnector aoservConn=AOServDaemon.getConnector();
 		Server ps=psu.getPostgresServer();
-		PostgresUserId username=psu.getPostgresUser().getKey();
+		User.Name username=psu.getPostgresUser().getKey();
 		AOConnectionPool pool=PostgresServerManager.getPool(ps);
 		Connection conn = pool.getConnection(false);
 		try {
