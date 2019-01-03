@@ -228,6 +228,14 @@ public final class PgHbaManager extends BuilderThread {
 								} else if(
 									version.startsWith(Version.VERSION_9_4+'.')
 									|| version.startsWith(Version.VERSION_9_4+'R')
+									|| version.startsWith(Version.VERSION_9_5+'.')
+									|| version.startsWith(Version.VERSION_9_5+'R')
+									|| version.startsWith(Version.VERSION_9_6+'.')
+									|| version.startsWith(Version.VERSION_9_6+'R')
+									|| version.startsWith(Version.VERSION_10+'.')
+									|| version.startsWith(Version.VERSION_10+'R')
+									|| version.startsWith(Version.VERSION_11+'.')
+									|| version.startsWith(Version.VERSION_11+'R')
 								) {
 									for(Database db : pds) {
 										// peer used from local
