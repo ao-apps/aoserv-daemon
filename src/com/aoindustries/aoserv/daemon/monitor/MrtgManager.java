@@ -670,10 +670,11 @@ final public class MrtgManager extends BuilderThread {
 					AOServConnector conn = AOServDaemon.getConnector();
 					mrtgManager = new MrtgManager();
 					conn.getLinux().getServer().addTableListener(mrtgManager, 0);
+					conn.getLinux().getTimeZone().addTableListener(mrtgManager, 0);
 					conn.getNet().getDevice().addTableListener(mrtgManager, 0);
 					conn.getNet().getDeviceId().addTableListener(mrtgManager, 0);
 					conn.getNet().getHost().addTableListener(mrtgManager, 0);
-					conn.getLinux().getTimeZone().addTableListener(mrtgManager, 0);
+					conn.getWeb().getHttpdServer().addTableListener(mrtgManager, 0);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);
