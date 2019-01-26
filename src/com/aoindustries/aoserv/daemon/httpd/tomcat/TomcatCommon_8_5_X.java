@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 by AO Industries, Inc.,
+ * Copyright 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -130,7 +130,6 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 				rpmVersion.equals("8.5.33")
 				|| rpmVersion.equals("8.5.34")
 				|| rpmVersion.equals("8.5.35")
-				|| rpmVersion.equals("8.5.37")
 			) {
 				UpgradeSymlink[] upgradeSymlinks_8_5_33 = {
 					// mysql-connector-java-8.0.12.jar -> mysql-connector-java-8.0.13.jar
@@ -163,6 +162,31 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 					)
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_5_33) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+			} else if(
+				rpmVersion.equals("8.5.37")
+			) {
+				UpgradeSymlink[] upgradeSymlinks_8_5_37 = {
+					// mysql-connector-java-8.0.12.jar -> mysql-connector-java-8.0.14.jar
+					// mysql-connector-java-8.0.13.jar -> mysql-connector-java-8.0.14.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.12.jar",
+						"../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.12.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.13.jar",
+						"../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.13.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.14.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.14.jar"
+					)
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_5_37) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			} else {

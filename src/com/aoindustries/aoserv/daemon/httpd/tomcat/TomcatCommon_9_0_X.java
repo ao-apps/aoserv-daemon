@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 by AO Industries, Inc.,
+ * Copyright 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -178,6 +178,17 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 						"lib/ecj-4.9.jar",
 						null,
 						"../" + optSlash + "apache-tomcat-9.0/lib/ecj-4.9.jar"
+					),
+					// mysql-connector-java-8.0.13.jar -> mysql-connector-java-8.0.14.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.13.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.13.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.14.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.14.jar"
 					),
 					// New lib/tomcat-i18n-*.jar
 					new UpgradeSymlink(
