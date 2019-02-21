@@ -179,7 +179,8 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 						null,
 						"../" + optSlash + "apache-tomcat-9.0/lib/ecj-4.9.jar"
 					),
-					// mysql-connector-java-8.0.13.jar -> mysql-connector-java-8.0.14.jar
+					// mysql-connector-java-8.0.13.jar -> mysql-connector-java-8.0.15.jar
+					// mysql-connector-java-8.0.14.jar -> mysql-connector-java-8.0.15.jar
 					new UpgradeSymlink(
 						"lib/mysql-connector-java-8.0.13.jar",
 						"../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.13.jar",
@@ -187,8 +188,13 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 					),
 					new UpgradeSymlink(
 						"lib/mysql-connector-java-8.0.14.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.14.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.15.jar",
 						null,
-						"../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.14.jar"
+						"../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.15.jar"
 					),
 					// New lib/tomcat-i18n-*.jar
 					new UpgradeSymlink(
@@ -213,6 +219,68 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 					),
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_14) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+			} else if(
+				rpmVersion.equals("9.0.16")
+			) {
+				UpgradeSymlink[] upgradeSymlinks_9_0_16 = {
+					// ecj-4.7.3a.jar -> ecj-4.9.jar
+					new UpgradeSymlink(
+						"lib/ecj-4.7.3a.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/ecj-4.7.3a.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/ecj-4.9.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/ecj-4.9.jar"
+					),
+					// mysql-connector-java-8.0.13.jar -> mysql-connector-java-8.0.15.jar
+					// mysql-connector-java-8.0.14.jar -> mysql-connector-java-8.0.15.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.13.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.13.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.14.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.14.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.15.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.15.jar"
+					),
+					// New lib/tomcat-i18n-*.jar
+					new UpgradeSymlink(
+						"lib/tomcat-i18n-cs.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/tomcat-i18n-cs.jar"
+					),
+					new UpgradeSymlink(
+						"lib/tomcat-i18n-de.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/tomcat-i18n-de.jar"
+					),
+					new UpgradeSymlink(
+						"lib/tomcat-i18n-ko.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/tomcat-i18n-ko.jar"
+					),
+					new UpgradeSymlink(
+						"lib/tomcat-i18n-pt-BR.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/tomcat-i18n-pt-BR.jar"
+					),
+					new UpgradeSymlink(
+						"lib/tomcat-i18n-zh-CN.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/tomcat-i18n-zh-CN.jar"
+					),
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_16) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			} else {
