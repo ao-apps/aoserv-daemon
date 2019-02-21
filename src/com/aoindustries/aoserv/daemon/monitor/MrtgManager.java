@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2006-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -291,9 +291,9 @@ final public class MrtgManager extends BuilderThread {
 							throw new IOException("Unsupported number of CPUs: " + numCPUs);
 						}
 						out.print("Timezone[cpu]: ").print(thisAoServer.getTimeZone()).print("\n"
-								+ "Title[cpu]: Host CPU Utilization (%)\n"
+								+ "Title[cpu]: Server CPU Utilization (%)\n"
 								+ "PageFoot[cpu]: <p>\n"
-								+ "PageTop[cpu]: <h2>Host CPU Utilization (%)</h2>\n"
+								+ "PageTop[cpu]: <h2>Server CPU Utilization (%)</h2>\n"
 								+ "XSize[cpu]: ").print(GRAPH_WIDTH).print("\n"
 								+ "YSize[cpu]: ").print(GRAPH_HEIGHT).print("\n"
 								+ "\n"
@@ -309,9 +309,9 @@ final public class MrtgManager extends BuilderThread {
 								+ "LegendI[mem]:  Swp:\n"
 								+ "LegendO[mem]:  Mem:\n"
 								+ "Timezone[mem]: ").print(thisAoServer.getTimeZone()).print("\n"
-								+ "Title[mem]: Host Memory and Swap space\n"
+								+ "Title[mem]: Server Memory and Swap space\n"
 								+ "PageFoot[mem]: <p>\n"
-								+ "PageTop[mem]: <h2>Host Memory and Swap space</h2>\n"
+								+ "PageTop[mem]: <h2>Server Memory and Swap space</h2>\n"
 								+ "XSize[mem]: ").print(GRAPH_WIDTH).print("\n"
 								+ "YSize[mem]: ").print(GRAPH_HEIGHT).print("\n"
 								+ "\n"
@@ -327,9 +327,9 @@ final public class MrtgManager extends BuilderThread {
 								+ "LegendI[diskio]:  read:\n"
 								+ "LegendO[diskio]:  write:\n"
 								+ "Timezone[diskio]: ").print(thisAoServer.getTimeZone()).print("\n"
-								+ "Title[diskio]: Host Disk I/O (blocks per second)\n"
+								+ "Title[diskio]: Server Disk I/O (blocks per second)\n"
 								+ "PageFoot[diskio]: <p>\n"
-								+ "PageTop[diskio]: <h2>Host Disk I/O (blocks per second)</h2>\n"
+								+ "PageTop[diskio]: <h2>Server Disk I/O (blocks per second)</h2>\n"
 								+ "XSize[diskio]: ").print(GRAPH_WIDTH).print("\n"
 								+ "YSize[diskio]: ").print(GRAPH_HEIGHT).print("\n");
 						for(int c = 0; c < dfDevices.size(); c++) {
@@ -367,9 +367,9 @@ final public class MrtgManager extends BuilderThread {
 								+ "LegendI[swap]:  swap:\n"
 								+ "LegendO[swap]:  page:\n"
 								+ "Timezone[swap]: ").print(thisAoServer.getTimeZone()).print("\n"
-								+ "Title[swap]: Host Swap and Paging I/O (in+out blocks per second)\n"
+								+ "Title[swap]: Server Swap and Paging I/O (in+out blocks per second)\n"
 								+ "PageFoot[swap]: <p>\n"
-								+ "PageTop[swap]: <h2>Host Swap and Paging I/O (in+out blocks per second)</h2>\n"
+								+ "PageTop[swap]: <h2>Server Swap and Paging I/O (in+out blocks per second)</h2>\n"
 								+ "XSize[swap]: ").print(GRAPH_WIDTH).print("\n"
 								+ "YSize[swap]: ").print(GRAPH_HEIGHT).print("\n");
 						for(HttpdServer httpdServer : httpdServers) {
@@ -538,12 +538,12 @@ final public class MrtgManager extends BuilderThread {
 								+ "        <a href=\"load.html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"load-day.png\" alt=\"load\" /></a>\n"
 								+ "      </p>\n"
 								+ "      <hr />\n"
-								+ "      <h2>Host CPU Utilization (%)</h2>\n"
+								+ "      <h2>Server CPU Utilization (%)</h2>\n"
 								+ "      <p>\n"
 								+ "        <a href=\"cpu.html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"cpu-day.png\" alt=\"cpu\" /></a>\n"
 								+ "      </p>\n"
 								+ "      <hr />\n"
-								+ "      <h2>Host Disk I/O (blocks per second)</h2>\n"
+								+ "      <h2>Server Disk I/O (blocks per second)</h2>\n"
 								+ "      <p>\n"
 								+ "        <a href=\"diskio.html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"diskio-day.png\" alt=\"diskio\" /></a>\n"
 								+ "      </p>\n");
@@ -555,7 +555,7 @@ final public class MrtgManager extends BuilderThread {
 									+ "      </p>\n");
 						}
 						out.print("      <hr />\n"
-								+ "      <h2>Host Memory and Swap space (%)</h2>\n"
+								+ "      <h2>Server Memory and Swap space (%)</h2>\n"
 								+ "      <p>\n"
 								+ "        <a href=\"mem.html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"mem-day.png\" alt=\"mem\" /></a>\n"
 								+ "      </p>\n");
@@ -568,7 +568,7 @@ final public class MrtgManager extends BuilderThread {
 									+ "      </p>\n");
 						}
 						out.print("      <hr />\n"
-								+ "      <h2>Host Swap and Paging I/O (in+out blocks per second)</h2>\n"
+								+ "      <h2>Server Swap and Paging I/O (in+out blocks per second)</h2>\n"
 								+ "      <p>\n"
 								+ "        <a href=\"swap.html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"swap-day.png\" alt=\"swap\" /></a>\n"
 								+ "      </p>\n");
