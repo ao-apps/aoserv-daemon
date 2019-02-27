@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -234,7 +234,8 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		filesystemRules.put("/usr/tmp/", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/apache-mm/", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/backup/", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/backups/", FilesystemIteratorRule.SKIP); // CentOS 7 /var/backups is a default
+		// 2019-02-26: Now defaulting to including content of /var/backups, so they can be shipped off-site, too:
+		// filesystemRules.put("/var/backups/", FilesystemIteratorRule.SKIP); // CentOS 7 /var/backups is a default
 		filesystemRules.put("/var/failover/", FilesystemIteratorRule.SKIP);
 		filesystemRules.put(
 			CvsRepository.DEFAULT_CVS_DIRECTORY + "/",
