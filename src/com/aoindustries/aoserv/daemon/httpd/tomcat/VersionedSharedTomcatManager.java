@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 by AO Industries, Inc.,
+ * Copyright 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -462,7 +462,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 					+ "                    break\n"
 					+ "                fi\n"
 					+ "                if [ \"$attempt\" -eq ").print(VersionedTomcatCommon.KILL_DELAY_ATTEMPTS).print(" ]; then\n"
-					+ "                    echo \"Forcefully killing \"tomcat\" PID $pid\" 1>&2\n"
+					+ "                    echo \"Forcefully killing \\\"tomcat\\\" PID $pid\" 1>&2\n"
 					+ "                    kill -9 \"$pid\"\n"
 					+ "                fi\n"
 					+ "            done\n"
@@ -482,7 +482,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 					+ "                break\n"
 					+ "            fi\n"
 					+ "            if [ \"$attempt\" -eq ").print(VersionedTomcatCommon.KILL_DELAY_ATTEMPTS).print(" ]; then\n"
-					+ "                echo \"Forcefully killing \"java\" PID $pid\" 1>&2\n"
+					+ "                echo \"Forcefully killing \\\"java\\\" PID $pid\" 1>&2\n"
 					+ "                kill -9 \"$pid\"\n"
 					+ "            fi\n"
 					+ "        done\n"
