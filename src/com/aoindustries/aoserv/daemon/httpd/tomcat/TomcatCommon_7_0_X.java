@@ -299,6 +299,7 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 				rpmVersion.equals("7.0.91")
 				|| rpmVersion.equals("7.0.92")
 				|| rpmVersion.equals("7.0.93")
+				|| rpmVersion.equals("7.0.94")
 			) {
 				UpgradeSymlink[] upgradeSymlinks_7_0_91 = {
 					new UpgradeSymlink(
