@@ -1,5 +1,5 @@
 /*
- * Copyright 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -11,7 +11,6 @@ import com.aoindustries.aoserv.client.linux.User.Gecos;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.ObjectUtils;
 import com.aoindustries.util.StringUtility;
 import com.aoindustries.validation.ValidationException;
 import java.io.BufferedReader;
@@ -25,6 +24,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -398,10 +398,10 @@ final public class PasswdFile {
 				if(
 					existingEntry.uid != expectedEntry.uid
 					|| existingEntry.gid != expectedEntry.gid
-					|| !ObjectUtils.equals(existingEntry.fullName, expectedEntry.fullName)
-					|| !ObjectUtils.equals(existingEntry.officeLocation, expectedEntry.officeLocation)
-					|| !ObjectUtils.equals(existingEntry.officePhone, expectedEntry.officePhone)
-					|| !ObjectUtils.equals(existingEntry.homePhone, expectedEntry.homePhone)
+					|| !Objects.equals(existingEntry.fullName, expectedEntry.fullName)
+					|| !Objects.equals(existingEntry.officeLocation, expectedEntry.officeLocation)
+					|| !Objects.equals(existingEntry.officePhone, expectedEntry.officePhone)
+					|| !Objects.equals(existingEntry.homePhone, expectedEntry.homePhone)
 					|| !existingEntry.home.equals(expectedEntry.home)
 					|| !existingEntry.shell.equals(expectedEntry.shell)
 				) {
@@ -413,16 +413,16 @@ final public class PasswdFile {
 						if(existingEntry.gid != expectedEntry.gid) {
 							logger.info("Updating gid in " + passwdFile + ": " + username + " -> " + expectedEntry.gid);
 						}
-						if(!ObjectUtils.equals(existingEntry.fullName, expectedEntry.fullName)) {
+						if(!Objects.equals(existingEntry.fullName, expectedEntry.fullName)) {
 							logger.info("Updating full name in " + passwdFile + ": " + username + " -> " + expectedEntry.fullName);
 						}
-						if(!ObjectUtils.equals(existingEntry.officeLocation, expectedEntry.officeLocation)) {
+						if(!Objects.equals(existingEntry.officeLocation, expectedEntry.officeLocation)) {
 							logger.info("Updating office location in " + passwdFile + ": " + username + " -> " + expectedEntry.officeLocation);
 						}
-						if(!ObjectUtils.equals(existingEntry.officePhone, expectedEntry.officePhone)) {
+						if(!Objects.equals(existingEntry.officePhone, expectedEntry.officePhone)) {
 							logger.info("Updating office phone in " + passwdFile + ": " + username + " -> " + expectedEntry.officePhone);
 						}
-						if(!ObjectUtils.equals(existingEntry.homePhone, expectedEntry.homePhone)) {
+						if(!Objects.equals(existingEntry.homePhone, expectedEntry.homePhone)) {
 							logger.info("Updating home phone in " + passwdFile + ": " + username + " -> " + expectedEntry.homePhone);
 						}
 						if(!existingEntry.home.equals(expectedEntry.home)) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -32,7 +32,6 @@ import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.FilesystemIteratorRule;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.ObjectUtils;
 import com.aoindustries.net.AddressFamily;
 import com.aoindustries.net.DomainName;
 import com.aoindustries.net.InetAddress;
@@ -73,6 +72,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -954,7 +954,7 @@ final public class ImapManager extends BuilderThread {
 										} else {
 											certFile = certificate.getCertFile().toString();
 											keyFile = certificate.getKeyFile().toString();
-											chainFile = ObjectUtils.toString(certificate.getChainFile());
+											chainFile = Objects.toString(certificate.getChainFile(), null);
 											if(chainFile == null) {
 												// Use operating system default
 												chainFile = DEFAULT_CA_FILE;
@@ -1008,7 +1008,7 @@ final public class ImapManager extends BuilderThread {
 												} else {
 													cibCertFile = cibCertificate.getCertFile().toString();
 													cibKeyFile = cibCertificate.getKeyFile().toString();
-													cibChainFile = ObjectUtils.toString(cibCertificate.getChainFile());
+													cibChainFile = Objects.toString(cibCertificate.getChainFile(), null);
 													if(cibChainFile == null) {
 														// Use operating system default
 														cibChainFile = DEFAULT_CA_FILE;
@@ -1780,7 +1780,7 @@ final public class ImapManager extends BuilderThread {
 							String existingValue = getAnnotation(trashFolder, "/vendor/cmu/cyrus-imapd/expire", "value.shared");
 							int trashRetention = lsa.getTrashEmailRetention();
 							String expectedValue = trashRetention == -1 ? null : Integer.toString(trashRetention);
-							if(!ObjectUtils.equals(existingValue, expectedValue)) {
+							if(!Objects.equals(existingValue, expectedValue)) {
 								if(isDebug) logger.fine("Setting mailbox expiration: " + trashFolderName + ": " + expectedValue);
 								setAnnotation(trashFolder, "/vendor/cmu/cyrus-imapd/expire", expectedValue, "text/plain");
 							}
@@ -1810,7 +1810,7 @@ final public class ImapManager extends BuilderThread {
 								String existingValue = getAnnotation(junkFolder, "/vendor/cmu/cyrus-imapd/expire", "value.shared");
 								int junkRetention = lsa.getJunkEmailRetention();
 								String expectedValue = junkRetention == -1 ? null : Integer.toString(junkRetention);
-								if(!ObjectUtils.equals(existingValue, expectedValue)) {
+								if(!Objects.equals(existingValue, expectedValue)) {
 									if(isDebug) logger.fine("Setting mailbox expiration: " + junkFolderName + ": " + expectedValue);
 									setAnnotation(junkFolder, "/vendor/cmu/cyrus-imapd/expire", expectedValue, "text/plain");
 								}

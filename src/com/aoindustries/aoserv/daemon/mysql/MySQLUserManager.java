@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -14,7 +14,6 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.lang.ObjectUtils;
 import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.util.Tuple2;
 import com.aoindustries.validation.ValidationException;
@@ -26,6 +25,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -760,7 +760,7 @@ final public class MySQLUserManager extends BuilderThread {
 		AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
 		Connection conn = pool.getConnection();
 		try {
-			if(ObjectUtils.equals(password, User.NO_PASSWORD)) {
+			if(Objects.equals(password, User.NO_PASSWORD)) {
 				// Disable the account
 				String sql;
 				if(
@@ -814,7 +814,7 @@ final public class MySQLUserManager extends BuilderThread {
 		AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
 		Connection conn = pool.getConnection();
 		try {
-			if(ObjectUtils.equals(password, User.NO_PASSWORD)) {
+			if(Objects.equals(password, User.NO_PASSWORD)) {
 				// Disable the account
 				String sql;
 				if(

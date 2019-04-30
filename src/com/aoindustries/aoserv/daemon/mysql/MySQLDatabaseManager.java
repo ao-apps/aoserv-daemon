@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -20,7 +20,6 @@ import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.ObjectUtils;
 import com.aoindustries.net.Port;
 import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.util.BufferManager;
@@ -42,6 +41,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -424,7 +424,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 			this.failoverRoot = failoverRoot;
 			this.port = port;
 			this.databaseName = databaseName;
-			int newHash = ObjectUtils.hashCode(failoverRoot);
+			int newHash = Objects.hashCode(failoverRoot);
 			newHash = newHash * 31 + port.hashCode();
 			newHash = newHash * 31 + databaseName.hashCode();
 			this.hash = newHash;
@@ -445,7 +445,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 				// == fields
 				&& port==other.port
 				// .equals fields
-				&& ObjectUtils.equals(failoverRoot, other.failoverRoot)
+				&& Objects.equals(failoverRoot, other.failoverRoot)
 				&& databaseName.equals(other.databaseName)
 			;
 		}
@@ -538,9 +538,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 					return Collections.unmodifiableList(statuses);
 				}
 			);
-		} catch(InterruptedException e) {
-			throw new SQLException(e);
-		} catch(ExecutionException e) {
+		} catch(InterruptedException | ExecutionException e) {
 			throw new SQLException(e);
 		}
 		out.write(AOServDaemonProtocol.NEXT);
@@ -587,7 +585,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 			this.port = port;
 			this.databaseName = databaseName;
 			this.tableName = tableName;
-			int newHash = ObjectUtils.hashCode(failoverRoot);
+			int newHash = Objects.hashCode(failoverRoot);
 			newHash = newHash * 31 + port.hashCode();
 			newHash = newHash * 31 + databaseName.hashCode();
 			newHash = newHash * 31 + tableName.hashCode();
@@ -609,7 +607,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 				// == fields
 				&& port==other.port
 				// .equals fields
-				&& ObjectUtils.equals(failoverRoot, other.failoverRoot)
+				&& Objects.equals(failoverRoot, other.failoverRoot)
 				&& databaseName.equals(other.databaseName)
 				&& tableName.equals(other.tableName)
 			;
@@ -685,9 +683,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 								}
 							)
 						);
-					} catch(InterruptedException e) {
-						throw new SQLException(e);
-					} catch(ExecutionException e) {
+					} catch(InterruptedException | ExecutionException e) {
 						throw new SQLException(e);
 					}
 				}

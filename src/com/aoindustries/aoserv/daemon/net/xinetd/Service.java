@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013, 2015, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2015, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -9,11 +9,11 @@ import com.aoindustries.aoserv.client.linux.GroupServer;
 import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.lang.ObjectUtils;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.Port;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Objects;
 
 /**
  * Represents one service in the xinetd.d directory.
@@ -167,7 +167,7 @@ public final class Service {
 			bind.equals(other.bind)
 			&& socket_type.equals(other.socket_type)
 			&& service.equals(other.service)
-			&& ObjectUtils.equals(port, other.port)
+			&& Objects.equals(port, other.port)
 		;
 	}
 }

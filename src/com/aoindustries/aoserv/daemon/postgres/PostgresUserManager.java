@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2014, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2014, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -15,7 +15,6 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.lang.ObjectUtils;
 import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.sql.WrappedSQLException;
 import com.aoindustries.validation.ValidationException;
@@ -30,6 +29,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import org.apache.commons.lang3.NotImplementedException;
@@ -403,7 +403,7 @@ final public class PostgresUserManager extends BuilderThread {
 		try {
 			String version=ps.getVersion().getTechnologyVersion(aoservConn).getVersion();
 			if(version.startsWith(Version.VERSION_7_1+'.')) {
-				if(ObjectUtils.equals(password, User.NO_PASSWORD)) {
+				if(Objects.equals(password, User.NO_PASSWORD)) {
 					// Remove the password
 					Statement stmt = conn.createStatement();
 					String sqlString = "alter user " + username + " with password '"+User.NO_PASSWORD_DB_VALUE+'\'';
@@ -426,7 +426,7 @@ final public class PostgresUserManager extends BuilderThread {
 					}
 				}
 			} else if(version.startsWith(Version.VERSION_7_2+'.') || version.startsWith(Version.VERSION_7_3+'.')) {
-				if(ObjectUtils.equals(password, User.NO_PASSWORD)) {
+				if(Objects.equals(password, User.NO_PASSWORD)) {
 					// Remove the password
 					Statement stmt = conn.createStatement();
 					String sqlString = "alter user " + username + " with unencrypted password '"+User.NO_PASSWORD_DB_VALUE+'\'';
@@ -463,7 +463,7 @@ final public class PostgresUserManager extends BuilderThread {
 				|| version.startsWith(Version.VERSION_11+'.')
 				|| version.startsWith(Version.VERSION_11+'R')
 			) {
-				if(ObjectUtils.equals(password, User.NO_PASSWORD)) {
+				if(Objects.equals(password, User.NO_PASSWORD)) {
 					// Remove the password
 					try (Statement stmt = conn.createStatement()) {
 						String sqlString = "alter role " + username + " with unencrypted password '"+User.NO_PASSWORD_DB_VALUE+'\'';
