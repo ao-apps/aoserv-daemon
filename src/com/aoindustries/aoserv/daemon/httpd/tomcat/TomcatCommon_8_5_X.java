@@ -168,7 +168,6 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 				rpmVersion.equals("8.5.37")
 				|| rpmVersion.equals("8.5.38")
 				|| rpmVersion.equals("8.5.39")
-				|| rpmVersion.equals("8.5.40")
 			) {
 				UpgradeSymlink[] upgradeSymlinks_8_5_37 = {
 					// mysql-connector-java-8.0.12.jar -> mysql-connector-java-8.0.15.jar
@@ -196,6 +195,31 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 					)
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_5_37) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+			} else if(
+				rpmVersion.equals("8.5.40")
+			) {
+				UpgradeSymlink[] upgradeSymlinks_8_5_40 = {
+					// mysql-connector-java-8.0.15.jar -> mysql-connector-java-8.0.16.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.15.jar",
+						"/dev/null",
+						"lib/mysql-connector-java-8.0.16.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.15.jar",
+						"../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.15.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.16.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.16.jar"
+					)
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_5_40) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			} else {

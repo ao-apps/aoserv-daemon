@@ -299,6 +299,23 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 						null,
 						"../" + optSlash + "apache-tomcat-9.0/lib/ecj-4.10.jar"
 					),
+					// mysql-connector-java-8.0.15.jar -> mysql-connector-java-8.0.16.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.15.jar",
+						"/dev/null",
+						"lib/mysql-connector-java-8.0.16.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.15.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.15.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.16.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.16.jar"
+					),
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_19) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
