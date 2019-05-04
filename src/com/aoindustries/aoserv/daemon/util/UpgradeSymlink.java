@@ -30,10 +30,13 @@ public class UpgradeSymlink {
      * @param newLinkTarget
      */
     public UpgradeSymlink(String oldLinkPath, String oldLinkTarget, String newLinkPath, String newLinkTarget) {
-        if(Objects.equals(oldLinkTarget, newLinkTarget)) throw new IllegalArgumentException("oldLinkTarget = newLinkTarget: " + oldLinkTarget);
+		NullArgumentException.checkNotNull(oldLinkPath, "oldLinkPath");
+        if(oldLinkPath.equals(newLinkPath) && Objects.equals(oldLinkTarget, newLinkTarget)) {
+			throw new IllegalArgumentException("oldLinkPath = newLinkPath and oldLinkTarget = newLinkTarget: linkPath = " + oldLinkPath + ", linkTarget = " + oldLinkTarget);
+		}
 		if((newLinkPath == null) != (newLinkTarget == null)) throw new IllegalArgumentException("(newLinkPath == null) != (newLinkTarget == null): (" + newLinkPath + " == null) != (" + newLinkTarget + " == null)");
 		if((oldLinkTarget == null) && (newLinkTarget == null)) throw new IllegalArgumentException("(oldLinkTarget == null) && (newLinkTarget == null): (" + oldLinkTarget + " == null) && (" + newLinkTarget + " == null)");
-        this.oldLinkPath = NullArgumentException.checkNotNull(oldLinkPath, "oldLinkPath");
+        this.oldLinkPath = oldLinkPath;
         this.oldLinkTarget = oldLinkTarget;
         this.newLinkPath = newLinkPath;
         this.newLinkTarget = newLinkTarget;
