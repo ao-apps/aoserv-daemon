@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2014, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -427,7 +427,7 @@ public class HttpdServerManager {
 				break;
 			}
 			case OperatingSystemVersion.CENTOS_7_X86_64 : {
-				// The config directory should only contain files referenced in the database, or "disabled.inc" or README.txt
+				// The config directory should only contain files referenced in the database, or "disabled.inc", README, or README.txt (1.0.0~snapshot only)
 				Set<String> extraFiles = new HashSet<>();
 				{
 					String[] list = new File(SITES_AVAILABLE).list();
@@ -542,7 +542,8 @@ public class HttpdServerManager {
 				for(String filename : extraFiles) {
 					if(
 						!filename.equals(Site.DISABLED + ".inc")
-						&& !filename.equals("README.txt")
+						&& !filename.equals("README")
+						&& !filename.equals("README.txt") // 1.0.0~snapshot only
 					) {
 						File toDelete = new File(SITES_AVAILABLE, filename);
 						if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
@@ -599,7 +600,10 @@ public class HttpdServerManager {
 
 				// Mark files for deletion
 				for(String filename : extraFiles) {
-					if(!filename.equals("README.txt")) {
+					if(
+						!filename.equals("README")
+						&& !filename.equals("README.txt") // 1.0.0~snapshot only
+					) {
 						File toDelete = new File(SITES_ENABLED, filename);
 						if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
 						deleteFileList.add(toDelete);
