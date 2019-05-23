@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2014, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2014, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -23,13 +23,14 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.AddressFamily;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.util.WrappedException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.net.ProtocolFamily;
+import java.net.StandardProtocolFamily;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -273,15 +274,13 @@ final public class DNSManager extends BuilderThread {
 									Set<InetAddress> ips = alreadyAddedIPs.get(port);
 									if(ips==null) alreadyAddedIPs.put(port, ips = new HashSet<>());
 									if(ips.add(ip)) {
-										switch(ip.getAddressFamily()) {
-											case INET :
-												out.print("\tlisten-on port ").print(port).print(" { ").print(ip.toString()).print("; };\n");
-												break;
-											case INET6 :
-												out.print("\tlisten-on-v6 port ").print(port).print(" { ").print(ip.toString()).print("; };\n");
-												break;
-											default :
-												throw new AssertionError();
+										ProtocolFamily family = ip.getProtocolFamily();
+										if(family.equals(StandardProtocolFamily.INET)) {
+											out.print("\tlisten-on port ").print(port).print(" { ").print(ip.toString()).print("; };\n");
+										} else if(family.equals(StandardProtocolFamily.INET6)) {
+											out.print("\tlisten-on-v6 port ").print(port).print(" { ").print(ip.toString()).print("; };\n");
+										} else {
+											throw new AssertionError("Unexpected family: " + family);
 										}
 									}
 								}
@@ -319,15 +318,13 @@ final public class DNSManager extends BuilderThread {
 									int port = nb.getPort().getPort();
 									InetAddress ip = nb.getIpAddress().getInetAddress();
 									Map<Integer,Set<InetAddress>> ipsPerPort;
-									switch(ip.getAddressFamily()) {
-										case INET :
-											ipsPerPort = ipsPerPortV4;
-											break;
-										case INET6 :
-											ipsPerPort = ipsPerPortV6;
-											break;
-										default :
-											throw new AssertionError();
+									ProtocolFamily family = ip.getProtocolFamily();
+									if(family.equals(StandardProtocolFamily.INET)) {
+										ipsPerPort = ipsPerPortV4;
+									} else if(family.equals(StandardProtocolFamily.INET6)) {
+										ipsPerPort = ipsPerPortV6;
+									} else {
+										throw new AssertionError("Unexpected family: " + family);
 									}
 									Set<InetAddress> ips = ipsPerPort.get(port);
 									if(ips == null) ipsPerPort.put(port, ips = new LinkedHashSet<>());
@@ -336,7 +333,7 @@ final public class DNSManager extends BuilderThread {
 								for(Map.Entry<Integer,Set<InetAddress>> entry : ipsPerPortV4.entrySet()) {
 									out.print("\tlisten-on port ").print(entry.getKey()).print(" {");
 									for(InetAddress ip : entry.getValue()) {
-										assert ip.getAddressFamily() == AddressFamily.INET;
+										assert ip.getProtocolFamily().equals(StandardProtocolFamily.INET);
 										out.print(' ').print(ip.toString()).print(';');
 									}
 									out.print(" };\n");
@@ -344,7 +341,7 @@ final public class DNSManager extends BuilderThread {
 								for(Map.Entry<Integer,Set<InetAddress>> entry : ipsPerPortV6.entrySet()) {
 									out.print("\tlisten-on-v6 port ").print(entry.getKey()).print(" {");
 									for(InetAddress ip : entry.getValue()) {
-										assert ip.getAddressFamily() == AddressFamily.INET6;
+										assert ip.getProtocolFamily().equals(StandardProtocolFamily.INET6);
 										out.print(' ').print(ip.toString()).print(';');
 									}
 									out.print(" };\n");

@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -28,12 +28,13 @@ import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.AddressFamily;
 import com.aoindustries.net.DomainName;
 import com.aoindustries.net.InetAddress;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.net.ProtocolFamily;
+import java.net.StandardProtocolFamily;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -307,7 +308,7 @@ final public class SendmailCFManager extends BuilderThread {
 			if(ip.isUnspecified()) ip = primaryIpAddress.getInetAddress();
 			out
 				.print("INPUT_MAIL_FILTER(`jilter',`S=")
-				.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
+				.print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
 				.print(':')
 				.print(jilterNetBind.getPort().getPort()).print('@').print(ip).print(", F=R, T=S:60s;R:60s')\n"
 					+ "dnl\n");
@@ -329,7 +330,7 @@ final public class SendmailCFManager extends BuilderThread {
 					.print("DAEMON_OPTIONS(`Addr=")
 					.print(ip.toString())
 					.print(", Family=")
-					.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
+					.print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
 					.print(", Port=")
 					.print(nb.getPort().getPort())
 					.print(", Name=")
@@ -355,7 +356,7 @@ final public class SendmailCFManager extends BuilderThread {
 					.print("DAEMON_OPTIONS(`Addr=")
 					.print(ip.toString())
 					.print(", Family=")
-					.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
+					.print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
 					.print(", Port=")
 					.print(nb.getPort().getPort())
 					.print(", Name=")
@@ -381,7 +382,7 @@ final public class SendmailCFManager extends BuilderThread {
 					.print("DAEMON_OPTIONS(`Addr=")
 					.print(ip.toString())
 					.print(", Family=")
-					.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
+					.print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
 					.print(", Port=")
 					.print(nb.getPort().getPort())
 					.print(", Name=")
@@ -404,7 +405,7 @@ final public class SendmailCFManager extends BuilderThread {
 					.print("CLIENT_OPTIONS(`Addr=")
 					.print(ip.toString())
 					.print(", Family=")
-					.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
+					.print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
 					.print("')dnl\n"); // AO added
 			}
 			if(clientAddrInet6 != null) {
@@ -413,7 +414,7 @@ final public class SendmailCFManager extends BuilderThread {
 					.print("CLIENT_OPTIONS(`Addr=")
 					.print(ip.toString())
 					.print(", Family=")
-					.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
+					.print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
 					.print("')dnl\n"); // AO added
 			}
 		}
@@ -719,7 +720,7 @@ final public class SendmailCFManager extends BuilderThread {
 			if(ip.isUnspecified()) ip = primaryIpAddress.getInetAddress();
 			out
 				.print("INPUT_MAIL_FILTER(`jilter', `S=")
-				.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
+				.print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
 				.print(':')
 				.print(jilterNetBind.getPort().getPort()).print('@').print(ip).print(", F=R, T=S:60s;R:60s')\n");
 		}
@@ -753,7 +754,7 @@ final public class SendmailCFManager extends BuilderThread {
 					.print("DAEMON_OPTIONS(`Addr=")
 					.print(ip.toString())
 					.print(", Family=")
-					.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
+					.print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
 					.print(", Port=")
 					.print(nb.getPort().getPort())
 					.print(", Name=")
@@ -783,7 +784,7 @@ final public class SendmailCFManager extends BuilderThread {
 					.print("DAEMON_OPTIONS(`Addr=")
 					.print(ip.toString())
 					.print(", Family=")
-					.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
+					.print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
 					.print(", Port=")
 					.print(nb.getPort().getPort())
 					.print(", Name=")
@@ -818,7 +819,7 @@ final public class SendmailCFManager extends BuilderThread {
 					.print("DAEMON_OPTIONS(`Addr=")
 					.print(ip.toString())
 					.print(", Family=")
-					.print(ip.getAddressFamily().name().toLowerCase(Locale.ROOT))
+					.print(ip.getProtocolFamily().name().toLowerCase(Locale.ROOT))
 					.print(", Port=")
 					.print(nb.getPort().getPort())
 					.print(", Name=")
@@ -848,10 +849,10 @@ final public class SendmailCFManager extends BuilderThread {
 				} else {
 					// Automatic client inet address, based on port SMTP, Submission, then SMTPS
 					InetAddress primaryAddress = primaryIpAddress.getInetAddress();
-					if(primaryAddress.getAddressFamily() != AddressFamily.INET) primaryAddress = null;
-					clientAddrInet = findSmtpAddress(AddressFamily.INET, primaryAddress, smtpNetBinds, null);
-					if(clientAddrInet == null) findSmtpAddress(AddressFamily.INET, primaryAddress, submissionNetBinds, null);
-					if(clientAddrInet == null) findSmtpAddress(AddressFamily.INET, primaryAddress, smtpsNetBinds, null);
+					if(!primaryAddress.getProtocolFamily().equals(StandardProtocolFamily.INET)) primaryAddress = null;
+					clientAddrInet = findSmtpAddress(StandardProtocolFamily.INET, primaryAddress, smtpNetBinds, null);
+					if(clientAddrInet == null) findSmtpAddress(StandardProtocolFamily.INET, primaryAddress, submissionNetBinds, null);
+					if(clientAddrInet == null) findSmtpAddress(StandardProtocolFamily.INET, primaryAddress, smtpsNetBinds, null);
 					// Don't specify client when matches primary IP on this family
 					if(clientAddrInet != null && clientAddrInet.equals(primaryAddress)) clientAddrInet = null;
 				}
@@ -868,10 +869,10 @@ final public class SendmailCFManager extends BuilderThread {
 				} else {
 					// Automatic client inet6 address, based on port SMTP, Submission, then SMTPS
 					InetAddress primaryAddress = primaryIpAddress.getInetAddress();
-					if(primaryAddress.getAddressFamily() != AddressFamily.INET6) primaryAddress = null;
-					clientAddrInet6 = findSmtpAddress(AddressFamily.INET6, primaryAddress, smtpNetBinds, null);
-					if(clientAddrInet6 == null) findSmtpAddress(AddressFamily.INET6, primaryAddress, submissionNetBinds, null);
-					if(clientAddrInet6 == null) findSmtpAddress(AddressFamily.INET6, primaryAddress, smtpsNetBinds, null);
+					if(!primaryAddress.getProtocolFamily().equals(StandardProtocolFamily.INET6)) primaryAddress = null;
+					clientAddrInet6 = findSmtpAddress(StandardProtocolFamily.INET6, primaryAddress, smtpNetBinds, null);
+					if(clientAddrInet6 == null) findSmtpAddress(StandardProtocolFamily.INET6, primaryAddress, submissionNetBinds, null);
+					if(clientAddrInet6 == null) findSmtpAddress(StandardProtocolFamily.INET6, primaryAddress, smtpsNetBinds, null);
 					// Don't specify client when matches primary IP on this family
 					if(clientAddrInet6 != null && clientAddrInet6.equals(primaryAddress)) clientAddrInet6 = null;
 				}
@@ -886,7 +887,7 @@ final public class SendmailCFManager extends BuilderThread {
 					.print("CLIENT_OPTIONS(`Addr=")
 					.print(clientAddrInet.toString())
 					.print(", Family=")
-					.print(clientAddrInet.getAddressFamily().name().toLowerCase(Locale.ROOT))
+					.print(clientAddrInet.getProtocolFamily().name().toLowerCase(Locale.ROOT))
 					.print("')dnl\n"); // AO added
 			}
 			if(clientAddrInet6 != null) {
@@ -894,7 +895,7 @@ final public class SendmailCFManager extends BuilderThread {
 					.print("CLIENT_OPTIONS(`Addr=")
 					.print(clientAddrInet6.toString())
 					.print(", Family=")
-					.print(clientAddrInet6.getAddressFamily().name().toLowerCase(Locale.ROOT))
+					.print(clientAddrInet6.getProtocolFamily().name().toLowerCase(Locale.ROOT))
 					.print("')dnl\n"); // AO added
 			}
 		}
@@ -981,9 +982,9 @@ final public class SendmailCFManager extends BuilderThread {
 	 *
 	 * @return  The IP or {@code null} if no matches.
 	 */
-	private static InetAddress findSmtpAddress(AddressFamily family, InetAddress primaryAddress, List<SendmailBind> smtpBinds, Integer requiredPort) throws IOException, SQLException {
+	private static InetAddress findSmtpAddress(ProtocolFamily family, InetAddress primaryAddress, List<SendmailBind> smtpBinds, Integer requiredPort) throws IOException, SQLException {
 		if(primaryAddress != null) {
-			if(family != null && primaryAddress.getAddressFamily() != family) throw new IllegalArgumentException("Primary IP is not in family \"" + family + "\": " + primaryAddress);
+			if(family != null && primaryAddress.getProtocolFamily().equals(family)) throw new IllegalArgumentException("Primary IP is not in family \"" + family + "\": " + primaryAddress);
 		} else {
 			primaryAddress = null;
 		}
@@ -992,7 +993,7 @@ final public class SendmailCFManager extends BuilderThread {
 			Bind smtpNetBind = smtpBind.getNetBind();
 			if(requiredPort == null || smtpNetBind.getPort().getPort() == requiredPort) {
 				InetAddress smtpAddress = smtpNetBind.getIpAddress().getInetAddress();
-				if(family == null || smtpAddress.getAddressFamily() == family) {
+				if(family == null || smtpAddress.getProtocolFamily().equals(family)) {
 					if(smtpAddress.isUnspecified()) {
 						// Use primary IP
 						if(primaryAddress != null) {
@@ -1344,7 +1345,7 @@ final public class SendmailCFManager extends BuilderThread {
 										InetAddress primaryAddress = primaryIpAddress.getInetAddress();
 										assert smtpBinds != null;
 										submitAddress = findSmtpAddress(
-											primaryAddress.getAddressFamily(),
+											primaryAddress.getProtocolFamily(),
 											primaryAddress,
 											smtpBinds.get(defaultServer),
 											MSP_PORT

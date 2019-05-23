@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2012, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2002-2012, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -79,17 +79,17 @@ abstract public class BuilderThread implements TableListener, PackageManager.Pac
 									isSleeping=false;
 								}
 								try {
-									ProcessTimer timer=new ProcessTimer(
-										logger,
-										AOServDaemon.getRandom(),
-										BuilderThread.this.getClass().getName(),
-										"delayAndRebuild",
-										getProcessTimerSubject(),
-										getProcessTimerDescription(),
-										getProcessTimerMaximumTime(),
-										getProcessTimerReminderInterval()
-									);
-									try {
+									try (
+										ProcessTimer timer=new ProcessTimer(
+											logger,
+											BuilderThread.this.getClass().getName(),
+											"delayAndRebuild",
+											getProcessTimerSubject(),
+											getProcessTimerDescription(),
+											getProcessTimerMaximumTime(),
+											getProcessTimerReminderInterval()
+										)
+									) {
 										AOServDaemon.executorService.submit(timer);
 										long buildStart=System.currentTimeMillis();
 										while(!doRebuild()) {
@@ -106,8 +106,6 @@ abstract public class BuilderThread implements TableListener, PackageManager.Pac
 											lastRebuild=buildStart;
 											BuilderThread.this.notify();
 										}
-									} finally {
-										timer.finished();
 									}
 								} catch(ThreadDeath TD) {
 									throw TD;

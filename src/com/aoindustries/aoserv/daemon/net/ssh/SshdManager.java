@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -18,13 +18,14 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.AddressFamily;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.Port;
 import com.aoindustries.selinux.SEManagePort;
 import com.aoindustries.util.WrappedException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.ProtocolFamily;
+import java.net.StandardProtocolFamily;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -89,16 +90,13 @@ final public class SshdManager extends BuilderThread {
 			for(Bind nb : nbs) {
 				out.print("ListenAddress ");
 				InetAddress ip = nb.getIpAddress().getInetAddress();
-				AddressFamily addressFamily = ip.getAddressFamily();
-				switch(addressFamily) {
-					case INET :
-						out.print(ip.toString());
-						break;
-					case INET6 :
-						out.print('[').print(ip.toString()).print(']');
-						break;
-					default :
-						throw new AssertionError("Unexpected address family: " + addressFamily);
+				ProtocolFamily family = ip.getProtocolFamily();
+				if(family.equals(StandardProtocolFamily.INET)) {
+					out.print(ip.toString());
+				} else if(family.equals(StandardProtocolFamily.INET6)) {
+					out.print('[').print(ip.toString()).print(']');
+				} else {
+					throw new AssertionError("Unexpected family: " + family);
 				}
 				int port = nb.getPort().getPort();
 				if(port != DEFAULT_PORT) {
@@ -191,18 +189,15 @@ final public class SshdManager extends BuilderThread {
 			LOOP :
 			for(Bind nb : nbs) {
 				InetAddress ip = nb.getIpAddress().getInetAddress();
-				AddressFamily addressFamily = ip.getAddressFamily();
-				switch(addressFamily) {
-					case INET :
-						hasIPv4 = true;
-						if(hasIPv6) break LOOP;
-						break;
-					case INET6 :
-						hasIPv6 = true;
-						if(hasIPv4) break LOOP;
-						break;
-					default :
-						throw new AssertionError("Unexpected address family: " + addressFamily);
+				ProtocolFamily family = ip.getProtocolFamily();
+				if(family.equals(StandardProtocolFamily.INET)) {
+					hasIPv4 = true;
+					if(hasIPv6) break LOOP;
+				} else if(family.equals(StandardProtocolFamily.INET6)) {
+					hasIPv6 = true;
+					if(hasIPv4) break LOOP;
+				} else {
+					throw new AssertionError("Unexpected family: " + family);
 				}
 			}
 			out.print("AddressFamily ");

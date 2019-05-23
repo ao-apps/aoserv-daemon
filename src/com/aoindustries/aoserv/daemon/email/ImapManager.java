@@ -32,7 +32,6 @@ import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.FilesystemIteratorRule;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.AddressFamily;
 import com.aoindustries.net.DomainName;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.Port;
@@ -58,6 +57,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.ProtocolFamily;
+import java.net.StandardProtocolFamily;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -442,20 +443,26 @@ final public class ImapManager extends BuilderThread {
 	/**
 	 * Gets the Cyrus protocol for the given protocl and address family.
 	 */
-	private static String getCyrusProtocol(com.aoindustries.net.Protocol protocol, AddressFamily family) {
+	private static String getCyrusProtocol(com.aoindustries.net.Protocol protocol, ProtocolFamily family) {
 		if(protocol == com.aoindustries.net.Protocol.TCP) {
-			switch(family) {
-				case INET: return "tcp4";
-				case INET6: return "tcp6";
-				default: throw new IllegalArgumentException("Unexpected family: " + family);
+			if(family.equals(StandardProtocolFamily.INET)) {
+				return "tcp4";
+			} else if(family.equals(StandardProtocolFamily.INET6)) {
+				return "tcp6";
+			} else {
+				throw new IllegalArgumentException("Unexpected family: " + family);
 			}
 		} else if(protocol == com.aoindustries.net.Protocol.UDP) {
-			switch(family) {
-				case INET: return "udp4";
-				case INET6: return "udp6";
-				default: throw new IllegalArgumentException("Unexpected family: " + family);
+			if(family.equals(StandardProtocolFamily.INET)) {
+				return "udp4";
+			} else if(family.equals(StandardProtocolFamily.INET6)) {
+				return "udp6";
+			} else {
+				throw new IllegalArgumentException("Unexpected family: " + family);
 			}
-		} else throw new IllegalArgumentException("Unexpected protocol: " + protocol);
+		} else {
+			throw new IllegalArgumentException("Unexpected protocol: " + protocol);
+		}
 	}
 
 	private static final Object rebuildLock = new Object();
@@ -679,7 +686,7 @@ final public class ImapManager extends BuilderThread {
 													.print("]:")
 													.print(port.getPort())
 													.print("\" proto=\"")
-													.print(getCyrusProtocol(port.getProtocol(), ia.getAddressFamily()))
+													.print(getCyrusProtocol(port.getProtocol(), ia.getProtocolFamily()))
 													.print("\" prefork=")
 													.print(prefork)
 													.print('\n');
@@ -710,7 +717,7 @@ final public class ImapManager extends BuilderThread {
 													.print(ia.toString())
 													.print("]:").print(port.getPort())
 													.print("\" proto=\"")
-													.print(getCyrusProtocol(port.getProtocol(), ia.getAddressFamily()))
+													.print(getCyrusProtocol(port.getProtocol(), ia.getProtocolFamily()))
 													.print("\" prefork=")
 													.print(prefork)
 													.print('\n');
@@ -742,7 +749,7 @@ final public class ImapManager extends BuilderThread {
 													.print("]:")
 													.print(port.getPort())
 													.print("\" proto=\"")
-													.print(getCyrusProtocol(port.getProtocol(), ia.getAddressFamily()))
+													.print(getCyrusProtocol(port.getProtocol(), ia.getProtocolFamily()))
 													.print("\" prefork=")
 													.print(prefork)
 													.print('\n');
@@ -774,7 +781,7 @@ final public class ImapManager extends BuilderThread {
 													.print("]:")
 													.print(port.getPort())
 													.print("\" proto=\"")
-													.print(getCyrusProtocol(port.getProtocol(), ia.getAddressFamily()))
+													.print(getCyrusProtocol(port.getProtocol(), ia.getProtocolFamily()))
 													.print("\" prefork=")
 													.print(prefork)
 													.print('\n');
@@ -799,7 +806,7 @@ final public class ImapManager extends BuilderThread {
 												.print("]:")
 												.print(port.getPort())
 												.print("\" proto=\"")
-												.print(getCyrusProtocol(port.getProtocol(), ia.getAddressFamily()))
+												.print(getCyrusProtocol(port.getProtocol(), ia.getProtocolFamily()))
 												.print("\" prefork=0\n"
 											);
 											if(!ia.isLoopback() && !ia.isUnspecified()) hasSpecificAddress = true;

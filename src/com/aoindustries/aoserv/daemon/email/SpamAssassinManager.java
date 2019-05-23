@@ -1,5 +1,5 @@
 /*
- * Copyright 2005-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2005-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -32,7 +32,6 @@ import com.aoindustries.cron.Schedule;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.AddressFamily;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.Port;
 import com.aoindustries.validation.ValidationException;
@@ -45,6 +44,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.ProtocolFamily;
+import java.net.StandardProtocolFamily;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -525,15 +526,13 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 								if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 									// No -4 or -6 switches
 								} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-									switch(spamdInetAddress.getAddressFamily()) {
-										case INET :
-											newOut.print(" -4");
-											break;
-										case INET6 :
-											newOut.print(" -6");
-											break;
-										default :
-											throw new AssertionError();
+									ProtocolFamily family = spamdInetAddress.getProtocolFamily();
+									if(family.equals(StandardProtocolFamily.INET)) {
+										newOut.print(" -4");
+									} else if(family.equals(StandardProtocolFamily.INET6)) {
+										newOut.print(" -6");
+									} else {
+										throw new AssertionError("Unexpected family: " + family);
 									}
 								} else {
 									throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -560,14 +559,14 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 									}
 								} else {
 									// Allow all IP addresses for this machine that are in the same family
-									AddressFamily spamdFamily = spamdInetAddress.getAddressFamily();
+									ProtocolFamily spamdFamily = spamdInetAddress.getProtocolFamily();
 									Set<InetAddress> usedIps = new HashSet<>();
 									for(IpAddress ip : thisServer.getIPAddresses()) {
 										InetAddress addr = ip.getInetAddress();
 										if(
 											!addr.isUnspecified()
 											&& !ip.getDevice().getDeviceId().isLoopback()
-											&& ip.getInetAddress().getAddressFamily() == spamdFamily
+											&& ip.getInetAddress().getProtocolFamily().equals(spamdFamily)
 											// TODO: Should we also filter by on the same Device?  (consider dual NICs, one private, one not)
 										) {
 											if(!usedIps.contains(addr)) {

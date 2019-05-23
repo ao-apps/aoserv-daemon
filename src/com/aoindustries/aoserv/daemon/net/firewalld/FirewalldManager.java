@@ -1,5 +1,5 @@
 /*
- * Copyright 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -72,6 +72,7 @@ final public class FirewalldManager extends BuilderThread {
 	/**
 	 * Adds a target unless the net bind is on loopback device.
 	 */
+	@SuppressWarnings("deprecation")
 	private static void addTarget(Bind nb, Collection<Target> targets, Set<FirewallZone.Name> zones, List<Bind> firewalldNetBinds) throws SQLException, IOException, ValidationException {
 		InetAddress ip = nb.getIpAddress().getInetAddress();
 		// Assume can access self

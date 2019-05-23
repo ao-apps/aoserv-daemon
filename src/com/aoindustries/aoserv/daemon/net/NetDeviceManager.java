@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2006-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -35,7 +35,9 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
+import java.net.ProtocolFamily;
 import java.net.Socket;
+import java.net.StandardProtocolFamily;
 import java.nio.charset.Charset;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -138,20 +140,18 @@ final public class NetDeviceManager extends BuilderThread {
 									if(broadcast==null) throw new SQLException("(net_devices.pkey="+device.getPkey()+").broadcast may not be null");
 									out.print("BOOTPROTO=static\n");
 									InetAddress ip = primaryIP.getInetAddress();
-									switch(ip.getAddressFamily()) {
-										case INET :
-											out.print("IPADDR=").print(ip.toString()).print("\n"
-													+ "NETMASK=").print(primaryIP.getNetMask()).print("\n"
-													+ "NETWORK=").print(network.toString()).print("\n"
-													+ "BROADCAST=").print(broadcast.toString()).print("\n");
-											break;
-										case INET6 :
-											out.print("IPV6INIT=yes\n"
-													+ "IPV6ADDR=").print(ip.toString()).print("\n"
-													+ "IPV6PREFIX=\n");
-											break;
-										default :
-											throw new AssertionError();
+									ProtocolFamily family = ip.getProtocolFamily();
+									if(family.equals(StandardProtocolFamily.INET)) {
+										out.print("IPADDR=").print(ip.toString()).print("\n"
+												+ "NETMASK=").print(primaryIP.getNetMask()).print("\n"
+												+ "NETWORK=").print(network.toString()).print("\n"
+												+ "BROADCAST=").print(broadcast.toString()).print("\n");
+									} else if(family.equals(StandardProtocolFamily.INET6)) {
+										out.print("IPV6INIT=yes\n"
+												+ "IPV6ADDR=").print(ip.toString()).print("\n"
+												+ "IPV6PREFIX=\n");
+									} else {
+										throw new AssertionError("Unexpected family: " + family);
 									}
 									out.print("ONBOOT=yes\n");
 								}
@@ -217,17 +217,15 @@ final public class NetDeviceManager extends BuilderThread {
 												osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586
 												|| osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 											) {
-												switch(ip.getInetAddress().getAddressFamily()) {
-													case INET :
-														out.print("IPADDR=").print(ip.getInetAddress().toString()).print("\n"
-																+ "NETMASK=").print(ip.getNetMask()).print("\n");
-														break;
-													case INET6 :
-														out.print("IPV6ADDR=").print(ip.getInetAddress().toString()).print("\n"
-																+ "IPV6PREFIX=\n");
-														break;
-													default :
-														throw new AssertionError();
+												ProtocolFamily family = ip.getInetAddress().getProtocolFamily();
+												if(family.equals(StandardProtocolFamily.INET)) {
+													out.print("IPADDR=").print(ip.getInetAddress().toString()).print("\n"
+															+ "NETMASK=").print(ip.getNetMask()).print("\n");
+												} else if(family.equals(StandardProtocolFamily.INET6)) {
+													out.print("IPV6ADDR=").print(ip.getInetAddress().toString()).print("\n"
+															+ "IPV6PREFIX=\n");
+												} else {
+													throw new AssertionError("Unexpected family: " + family);
 												}
 											} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 										} finally {

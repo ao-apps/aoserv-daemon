@@ -1,5 +1,5 @@
 /*
- * Copyright 2013, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -18,11 +18,11 @@ import com.aoindustries.aoserv.daemon.server.VirtualServerManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxProcess;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.net.AddressFamily;
 import com.aoindustries.net.InetAddress;
-import com.aoindustries.nio.charset.Charsets;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.StandardProtocolFamily;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -219,7 +219,7 @@ final public class NullRouteManager {
 											if(currentTime >= nullRoute.startTime && currentTime < nullRoute.endTime) {
 												String ipString = IpAddress.getIPAddressForInt(nullRoute.ip);
 												InetAddress inetAddress = InetAddress.valueOf(ipString);
-												assert inetAddress.getAddressFamily() == AddressFamily.INET;
+												assert inetAddress.getProtocolFamily().equals(StandardProtocolFamily.INET);
 												// Never null-route private IP addresses, such as those used for communication between routers for BGP sessions
 												if(!inetAddress.isUniqueLocal()) {
 													newContents
@@ -238,7 +238,7 @@ final public class NullRouteManager {
 												}
 											}
 										}
-										byte[] newBytes = newContents.toString().getBytes(Charsets.UTF_8.name()); // .name() only for JDK < 1.6 compatibility
+										byte[] newBytes = newContents.toString().getBytes(StandardCharsets.UTF_8.name()); // .name() only for JDK < 1.6 compatibility
 										// See if file has changed
 										if(
 											DaemonFileUtils.atomicWrite(

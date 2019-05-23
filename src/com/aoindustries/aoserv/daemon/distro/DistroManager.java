@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -153,17 +153,17 @@ final public class DistroManager implements Runnable {
 							logger.finer("currentHour=" + currentHour);
 						}
 						if(runNow || currentHour == distroHour) {
-							ProcessTimer timer = new ProcessTimer(
-								LogFactory.getLogger(DistroManager.class),
-								AOServDaemon.getRandom(),
-								DistroManager.class.getName(),
-								"run",
-								"Distro verification taking too long",
-								"Distro Verification",
-								12*60*60*1000, // 12 hours
-								60*60*1000 // 1 hour
-							);
-							try {
+							try (
+								ProcessTimer timer = new ProcessTimer(
+									LogFactory.getLogger(DistroManager.class),
+									DistroManager.class.getName(),
+									"run",
+									"Distro verification taking too long",
+									"Distro Verification",
+									12*60*60*1000, // 12 hours
+									60*60*1000 // 1 hour
+								)
+							) {
 								AOServDaemon.executorService.submit(timer);
 
 								AOServDaemon.getThisAOServer().setLastDistroTime(new Timestamp(distroStartTime));
@@ -183,8 +183,6 @@ final public class DistroManager implements Runnable {
 									if(count == null) codes.put(code, count  =new int[1]);
 									count[0]++;
 								}*/
-							} finally {
-								timer.finished();
 							}
 						}
 					}
