@@ -124,7 +124,7 @@ import javax.mail.StoreClosedException;
  *               http://cyrusimap.web.cmu.edu/twiki/bin/view/Cyrus/Backup
  *           Also, don't back-up Junk folders?
  *     Add smmapd support
- *     Consider http://en.wikipedia.org/wiki/Application_Configuration_Access_Protocol or http://en.wikipedia.org/wiki/Application_Configuration_Access_Protocol
+ *     Consider https://wikipedia.org/wiki/Application_Configuration_Access_Protocol or https://wikipedia.org/wiki/Application_Configuration_Access_Protocol
  *     Look for any "junk" flags for Cyrus folders - if exists can train off this instead of requiring move to/from Junk
  *
  * TODO: SELinux port management for non-standard ports
