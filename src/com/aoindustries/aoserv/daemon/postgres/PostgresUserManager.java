@@ -87,6 +87,7 @@ final public class PostgresUserManager extends BuilderThread {
 		) {
 			return new HashSet<>(Arrays.asList(
 				User.POSTGRES,
+				// PostgreSQL 10+
 				User.PG_MONITOR,
 				User.PG_READ_ALL_SETTINGS,
 				User.PG_READ_ALL_STATS,
@@ -98,7 +99,19 @@ final public class PostgresUserManager extends BuilderThread {
 			version.startsWith(Version.VERSION_11+'.')
 			|| version.startsWith(Version.VERSION_11+'R')
 		) {
-			throw new NotImplementedException("TODO: Implement for version " + version);
+			return new HashSet<>(Arrays.asList(
+				User.POSTGRES,
+				// PostgreSQL 10+
+				User.PG_MONITOR,
+				User.PG_READ_ALL_SETTINGS,
+				User.PG_READ_ALL_STATS,
+				User.PG_SIGNAL_BACKEND,
+				User.PG_STAT_SCAN_TABLES,
+				// PostgreSQL 11+
+				User.PG_EXECUTE_SERVER_PROGRAM,
+				User.PG_READ_SERVER_FILES,
+				User.PG_WRITE_SERVER_FILES
+			));
 		}
 		throw new NotImplementedException("TODO: Implement for version " + version);
 	}
