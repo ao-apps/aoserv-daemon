@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -209,17 +209,11 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 								// Remove the extra databases
 								for(Database.Name dbName : existing) {
 									// Remove the extra database
-									if(
-										dbName.equals(Database.TEMPLATE0)
-										|| dbName.equals(Database.TEMPLATE1)
-										|| dbName.equals(Database.AOSERV)
-										|| dbName.equals(Database.AOINDUSTRIES)
-										|| dbName.equals(Database.AOWEB)
-									) {
+									if(Database.isSpecial(dbName)) {
 										LogFactory.getLogger(PostgresDatabaseManager.class).log(
 											Level.WARNING,
 											null,
-											new SQLException("Refusing to drop critical PostgreSQL Database: " + dbName + " on " + ps)
+											new SQLException("Refusing to drop special PostgreSQL Database: " + dbName + " on " + ps)
 										);
 									} else {
 										// Dump database before dropping

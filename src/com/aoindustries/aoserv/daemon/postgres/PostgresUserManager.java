@@ -155,8 +155,7 @@ final public class PostgresUserManager extends BuilderThread {
 									|| version.startsWith(Version.VERSION_7_3+'.')
 									|| version.startsWith(Version.VERSION_8_0+'.')
 									? "select usename from pg_user"
-									: "select rolname from pg_authid"
-									;
+									: "select rolname from pg_authid";
 								try {
 									try (ResultSet results = stmt.executeQuery(sqlString)) {
 										while (results.next()) {
@@ -185,12 +184,9 @@ final public class PostgresUserManager extends BuilderThread {
 								// Remove the extra users before adding to avoid usesysid or usename conflicts
 								for (User.Name username : existing) {
 									if(!systemRoles.contains(username)) {
-										if(
-											username.equals(User.POSTGRES)
-											|| username.equals(User.AOADMIN)
-											|| username.equals(User.AOSERV_APP)
-											|| username.equals(User.AOWEB_APP)
-										) throw new SQLException("AOServ Daemon will not automatically drop user, please drop manually: "+username+" on "+ps.getName());
+										if(User.isSpecial(username)) {
+											throw new SQLException("AOServ Daemon will not automatically special user, please drop manually: " + username + " on " + ps.getName());
+										}
 										sqlString = "DROP USER "+username;
 										try {
 											if(DEBUG) debug("Dropping user: " + sqlString);
