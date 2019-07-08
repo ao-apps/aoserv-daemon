@@ -339,6 +339,14 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		}
 	}
 
+	public static String getJdbcUrl(Port port, Database.Name database) {
+		if(port == Server.DEFAULT_PORT) {
+			return "jdbc:mysql://127.0.0.1/" + database;
+		} else {
+			return "jdbc:mysql://127.0.0.1:" + port.getPort() + "/" + database;
+		}
+	}
+
 	/**
 	 * Gets a connection to the MySQL server, this handles both master and slave scenarios.
 	 */
@@ -368,7 +376,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		} catch(ClassNotFoundException|InstantiationException|IllegalAccessException err) {
 			throw new SQLException(err);
 		}
-		final String jdbcUrl = "jdbc:mysql://127.0.0.1:" + port.getPort() + "/mysql";
+		final String jdbcUrl = getJdbcUrl(port, Database.MYSQL);
 		try {
 			return DriverManager.getConnection(
 				jdbcUrl,

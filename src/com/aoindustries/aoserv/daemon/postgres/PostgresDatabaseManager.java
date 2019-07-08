@@ -422,6 +422,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 			List<String> tableNames=new ArrayList<>();
 			List<String> schemas=new ArrayList<>();
 			for(Server postgresServer : AOServDaemon.getThisAOServer().getPostgresServers()) {
+				Server.Name serverName = postgresServer.getName();
 				String postgresServerVersion=postgresServer.getVersion().getTechnologyVersion(aoservConn).getVersion();
 				boolean postgresServerHasSchemas=
 					!postgresServerVersion.startsWith(Version.VERSION_7_1+'.')
@@ -448,7 +449,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 							conn=DriverManager.getConnection(
 								postgresDatabase.getJdbcUrl(true),
 								User.POSTGRES.toString(),
-								AOServDaemonConfiguration.getPostgresPassword()
+								AOServDaemonConfiguration.getPostgresPassword(serverName)
 							);
 						}
 						try {

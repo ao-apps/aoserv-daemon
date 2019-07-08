@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -15,6 +15,7 @@ import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
 import com.aoindustries.cron.CronJobScheduleMode;
 import com.aoindustries.cron.Schedule;
+import com.aoindustries.net.Port;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -100,6 +101,8 @@ final public class MySQLCreditCardScanner implements CronJob {
 
 			List<Server> mysqlServers = thisAOServer.getMySQLServers();
 			for(Server mysqlServer : mysqlServers) {
+				Server.Name serverName = mysqlServer.getName();
+				Port port = mysqlServer.getBind().getPort();
 				List<Database> mysqlDatabases = mysqlServer.getMySQLDatabases();
 				for(Database database : mysqlDatabases) {
 					Database.Name name=database.getName();
@@ -107,9 +110,9 @@ final public class MySQLCreditCardScanner implements CronJob {
 					// Get connection to the database
 					Class.forName(AOServDaemonConfiguration.getMySqlDriver()).newInstance();
 					try (Connection conn = DriverManager.getConnection(
-						"jdbc:mysql://"+thisAOServer.getPrimaryIPAddress().getInetAddress().toBracketedString()+":"+database.getMySQLServer().getBind().getPort().getPort()+"/"+name,
-						AOServDaemonConfiguration.getMySqlUser(),
-						AOServDaemonConfiguration.getMySqlPassword()
+						MySQLDatabaseManager.getJdbcUrl(port, name),
+						AOServDaemonConfiguration.getMySqlUser(serverName),
+						AOServDaemonConfiguration.getMySqlPassword(serverName)
 					)) {
 						Account business = database.getPackage().getBusiness();
 						StringBuilder report = reports.get(business);

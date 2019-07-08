@@ -173,13 +173,14 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 				} else {
 					throw new RuntimeException("Unexpected version of PostgreSQL: " + version);
 				}
+				Server.Name serverName = ps.getName();
 				pool = new AOConnectionPool(
 					pd.getJdbcDriver(),
 					jdbcUrl,
 					User.POSTGRES.toString(),
-					AOServDaemonConfiguration.getPostgresPassword(),
-					AOServDaemonConfiguration.getPostgresConnections(),
-					AOServDaemonConfiguration.getPostgresMaxConnectionAge(),
+					AOServDaemonConfiguration.getPostgresPassword(serverName),
+					AOServDaemonConfiguration.getPostgresConnections(serverName),
+					AOServDaemonConfiguration.getPostgresMaxConnectionAge(serverName),
 					LogFactory.getLogger(PostgresServerManager.class)
 				);
 				pools.put(pkeyObj, pool);

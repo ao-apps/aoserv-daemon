@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2013, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2006-2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -112,13 +112,14 @@ final public class MySQLServerManager extends BuilderThread {
 			if(pool==null) {
 				Database md=ms.getMySQLDatabase(Database.MYSQL);
 				if(md==null) throw new SQLException("Unable to find Database: "+Database.MYSQL+" on "+ms.toString());
+				Server.Name serverName = ms.getName();
 				pool=new AOConnectionPool(
 					AOServDaemonConfiguration.getMySqlDriver(),
 					"jdbc:mysql://127.0.0.1:"+md.getMySQLServer().getBind().getPort().getPort()+"/"+md.getName(),
-					AOServDaemonConfiguration.getMySqlUser(),
-					AOServDaemonConfiguration.getMySqlPassword(),
-					AOServDaemonConfiguration.getMySqlConnections(),
-					AOServDaemonConfiguration.getMySqlMaxConnectionAge(),
+					AOServDaemonConfiguration.getMySqlUser(serverName),
+					AOServDaemonConfiguration.getMySqlPassword(serverName),
+					AOServDaemonConfiguration.getMySqlConnections(serverName),
+					AOServDaemonConfiguration.getMySqlMaxConnectionAge(serverName),
 					LogFactory.getLogger(MySQLServerManager.class)
 				);
 				pools.put(I, pool);
@@ -218,6 +219,7 @@ final public class MySQLServerManager extends BuilderThread {
 				path = "/opt/mysql-" + mysqlServer.getMinorVersion() + "/bin/mysqladmin";
 			} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
+			Server.Name serverName = mysqlServer.getName();
 			AOServDaemon.exec(
 				path,
 				"-h",
@@ -225,8 +227,8 @@ final public class MySQLServerManager extends BuilderThread {
 				"-P",
 				Integer.toString(mysqlServer.getBind().getPort().getPort()),
 				"-u",
-				"root",
-				"--password="+AOServDaemonConfiguration.getMySqlPassword(),
+				AOServDaemonConfiguration.getMySqlUser(serverName),
+				"--password=" + AOServDaemonConfiguration.getMySqlPassword(serverName),
 				"reload"
 			);
 		}

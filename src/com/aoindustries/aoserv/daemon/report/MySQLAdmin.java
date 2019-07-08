@@ -1,12 +1,11 @@
 /*
- * Copyright 2001-2013, 2018 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.report;
 
 import com.aoindustries.aoserv.client.net.IpAddress;
-import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.StringUtility;
 import java.io.BufferedReader;
@@ -29,8 +28,10 @@ final public class MySQLAdmin extends DBReportData {
 	final public float queries_per_second;
 
 	public MySQLAdmin() throws IOException {
-		String user= AOServDaemonConfiguration.getMySqlUser();
-		String password=AOServDaemonConfiguration.getMySqlPassword();
+		// TODO: Do once per MySQLServer instance
+		// TODO: Implement in NOC
+		String user = "TODO"; // AOServDaemonConfiguration.getMySqlUser();
+		String password = "TODO"; // AOServDaemonConfiguration.getMySqlPassword();
 		if(user!=null && user.length()>0 && password!=null && password.length()>0) {
 			String[] cmd={
 				"/usr/bin/mysqladmin",

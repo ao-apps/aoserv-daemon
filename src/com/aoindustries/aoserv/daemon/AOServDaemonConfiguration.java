@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2014, 2015, 2017 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2014, 2015, 2017, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -86,38 +86,50 @@ final public class AOServDaemonConfiguration {
 		return getProperty("ssl.keystore.path");
 	}
 
-	public static String getPostgresPassword() throws IOException {
-		return getProperty("postgres.password", true);
+	public static String getPostgresPassword(com.aoindustries.aoserv.client.postgresql.Server.Name serverName) throws IOException {
+		String password = getProperty("postgres." + serverName + ".password");
+		if(password == null || password.isEmpty()) password = getProperty("postgres.password", true);
+		return password;
 	}
 
-	public static int getPostgresConnections() throws IOException {
-		return Integer.parseInt(getProperty("postgres.connections", true));
+	public static int getPostgresConnections(com.aoindustries.aoserv.client.postgresql.Server.Name serverName) throws IOException {
+		String connections = getProperty("postgres." + serverName + ".connections");
+		if(connections == null || connections.isEmpty()) connections = getProperty("postgres.connections", true);
+		return Integer.parseInt(connections);
 	}
 
-	public static long getPostgresMaxConnectionAge() throws IOException {
-		String S=getProperty("postgres.max_connection_age");
-		return S==null || S.length()==0 ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(S);
+	public static long getPostgresMaxConnectionAge(com.aoindustries.aoserv.client.postgresql.Server.Name serverName) throws IOException {
+		String max_connection_age = getProperty("postgres." + serverName + ".max_connection_age");
+		if(max_connection_age == null || max_connection_age.isEmpty()) max_connection_age = getProperty("postgres.max_connection_age");
+		return max_connection_age == null || max_connection_age.isEmpty() ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(max_connection_age);
 	}
 
 	public static String getMySqlDriver() throws IOException {
 		return getProperty("mysql.driver", true);
 	}
 
-	public static String getMySqlUser() throws IOException {
-		return getProperty("mysql.user", true);
+	public static String getMySqlUser(com.aoindustries.aoserv.client.mysql.Server.Name serverName) throws IOException {
+		String user = getProperty("mysql." + serverName + ".user");
+		if(user == null || user.isEmpty()) user = getProperty("mysql.user", true);
+		return user;
 	}
 
-	public static String getMySqlPassword() throws IOException {
-		return getProperty("mysql.password", true);
+	public static String getMySqlPassword(com.aoindustries.aoserv.client.mysql.Server.Name serverName) throws IOException {
+		String password = getProperty("mysql." + serverName + ".password");
+		if(password == null || password.isEmpty()) password = getProperty("mysql.password", true);
+		return password;
 	}
 
-	public static int getMySqlConnections() throws IOException {
-		return Integer.parseInt(getProperty("mysql.connections", true));
+	public static int getMySqlConnections(com.aoindustries.aoserv.client.mysql.Server.Name serverName) throws IOException {
+		String connections = getProperty("mysql." + serverName + ".connections");
+		if(connections == null || connections.isEmpty()) connections = getProperty("mysql.connections", true);
+		return Integer.parseInt(connections);
 	}
 
-	public static long getMySqlMaxConnectionAge() throws IOException {
-		String S=getProperty("mysql.max_connection_age");
-		return S==null || S.length()==0 ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(S);
+	public static long getMySqlMaxConnectionAge(com.aoindustries.aoserv.client.mysql.Server.Name serverName) throws IOException {
+		String max_connection_age = getProperty("mysql." + serverName + ".max_connection_age");
+		if(max_connection_age == null || max_connection_age.isEmpty()) max_connection_age = getProperty("mysql.max_connection_age");
+		return max_connection_age == null || max_connection_age.isEmpty() ? AOPool.DEFAULT_MAX_CONNECTION_AGE : Long.parseLong(max_connection_age);
 	}
 
 	public static String getCyrusPassword() throws IOException {
