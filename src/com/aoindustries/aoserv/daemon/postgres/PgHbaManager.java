@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -18,16 +18,19 @@ import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxProcess;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
+import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.sql.SQLException;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 /**
@@ -56,302 +59,331 @@ public final class PgHbaManager extends BuilderThread {
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 			synchronized(rebuildLock) {
-				for(Server ps : thisAOServer.getPostgresServers()) {
-					List<UserServer> users = ps.getPostgresServerUsers();
-					if(users.isEmpty()) {
-						LogFactory.getLogger(PgHbaManager.class).severe("No users; refusing to rebuild config: " + ps);
-					} else {
-						List<Database> pds = ps.getPostgresDatabases();
-						if(pds.isEmpty()) {
-							LogFactory.getLogger(PgHbaManager.class).severe("No databases; refusing to rebuild config: " + ps);
+				Set<UnixFile> restorecon = new LinkedHashSet<>();
+				try {
+					for(Server ps : thisAOServer.getPostgresServers()) {
+						List<UserServer> users = ps.getPostgresServerUsers();
+						if(users.isEmpty()) {
+							LogFactory.getLogger(PgHbaManager.class).severe("No users; refusing to rebuild config: " + ps);
 						} else {
-							String version=ps.getVersion().getTechnologyVersion(connector).getVersion();
-							int postgresUID=thisAOServer.getLinuxServerAccount(com.aoindustries.aoserv.client.linux.User.POSTGRES).getUid().getId();
-							int postgresGID=thisAOServer.getLinuxServerGroup(Group.POSTGRES).getGid().getId();
-							Server.Name serverName=ps.getName();
-							File serverDir=new File(PostgresServerManager.pgsqlDirectory, serverName.toString());
-							UnixFile newHbaUF=new UnixFile(serverDir, "pg_hba.conf.new");
-							ChainWriter out=new ChainWriter(new FileOutputStream(newHbaUF.getFile()));
-							try {
-								newHbaUF.setMode(0600).chown(postgresUID, postgresGID);
-								if(
-									version.startsWith(Version.VERSION_7_1+'.')
-									|| version.startsWith(Version.VERSION_7_2+'.')
-								) {
-									out.print("local all trust\n"
-											+ "host all 127.0.0.1 255.255.255.255 ident sameuser\n"
-											+ "host all 0.0.0.0 0.0.0.0 password\n");
-								} else if(version.startsWith(Version.VERSION_7_3+'.')) {
-									out.print("local all all trust\n");
-									for(Database db : pds) {
-										out.print("host ").print(db.getName()).print(' ');
-										boolean didOne=false;
-										for(UserServer psu : users) {
-											User pu = psu.getPostgresUser();
-											if(
-												// Allow postgres to all databases
-												pu.getKey().equals(User.POSTGRES)
-												// Allow database admin
-												|| psu.equals(db.getDatDBA())
-												// Allow in same business
-												|| pu.getUsername().getPackage().getBusiness().equals(
-													// TODO: Allow access to subaccounts?
-													db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness()
-												)
-											) {
-												if(didOne) out.print(',');
-												else didOne=true;
-												out.print(pu);
+							List<Database> pds = ps.getPostgresDatabases();
+							if(pds.isEmpty()) {
+								LogFactory.getLogger(PgHbaManager.class).severe("No databases; refusing to rebuild config: " + ps);
+							} else {
+								// InetAddress bind = ps.getBind().getIpAddress().getInetAddress();
+								String version=ps.getVersion().getTechnologyVersion(connector).getVersion();
+								int postgresUID=thisAOServer.getLinuxServerAccount(com.aoindustries.aoserv.client.linux.User.POSTGRES).getUid().getId();
+								int postgresGID=thisAOServer.getLinuxServerGroup(Group.POSTGRES).getGid().getId();
+								Server.Name serverName=ps.getName();
+								File serverDir=new File(PostgresServerManager.pgsqlDirectory, serverName.toString());
+								ByteArrayOutputStream bout = new ByteArrayOutputStream();
+								try (ChainWriter out = new ChainWriter(bout)) {
+									if(
+										version.startsWith(Version.VERSION_7_1+'.')
+										|| version.startsWith(Version.VERSION_7_2+'.')
+									) {
+										out.print("local all trust\n"
+												+ "host all 127.0.0.1 255.255.255.255 ident sameuser\n"
+												+ "host all 0.0.0.0 0.0.0.0 password\n");
+									} else if(version.startsWith(Version.VERSION_7_3+'.')) {
+										out.print("local all all trust\n");
+										for(Database db : pds) {
+											out.print("host ").print(db.getName()).print(' ');
+											boolean didOne=false;
+											for(UserServer psu : users) {
+												User pu = psu.getPostgresUser();
+												if(
+													// Allow postgres to all databases
+													pu.getKey().equals(User.POSTGRES)
+													// Allow database admin
+													|| psu.equals(db.getDatDBA())
+													// Allow in same business
+													|| pu.getUsername().getPackage().getBusiness().equals(
+														// TODO: Allow access to subaccounts?
+														db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness()
+													)
+												) {
+													if(didOne) out.print(',');
+													else didOne=true;
+													out.print(pu);
+												}
+											}
+											out.print(" 127.0.0.1 255.255.255.255 ident sameuser\n"
+													+ "host ").print(db.getName()).print(' ');
+											didOne=false;
+											for(UserServer psu : users) {
+												User pu = psu.getPostgresUser();
+												if(
+													// Allow postgres to all databases
+													pu.getKey().equals(User.POSTGRES)
+													// Allow database admin
+													|| psu.equals(db.getDatDBA())
+													// Allow in same business
+													|| pu.getUsername().getPackage().getBusiness().equals(
+														// TODO: Allow access to subaccounts?
+														db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness()
+													)
+												) {
+													if(didOne) out.print(',');
+													else didOne=true;
+													out.print(pu);
+												}
+											}
+											out.print(" 0.0.0.0 0.0.0.0 password\n");
+										}
+									} else if(
+										version.startsWith(Version.VERSION_8_1+'.')
+										|| version.startsWith(Version.VERSION_8_3+'.')
+										|| version.startsWith(Version.VERSION_8_3+'R')
+									) {
+										for(Database db : pds) {
+											// ident used from local
+											out.print("local ").print(db.getName()).print(' ');
+											boolean didOne=false;
+											for(UserServer psu : users) {
+												User pu = psu.getPostgresUser();
+												if(
+													// Allow postgres to all databases
+													pu.getKey().equals(User.POSTGRES)
+													// Allow database admin
+													|| psu.equals(db.getDatDBA())
+													// Allow in same business
+													|| pu.getUsername().getPackage().getBusiness().equals(
+														// TODO: Allow access to subaccounts?
+														db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness()
+													)
+												) {
+													if(didOne) out.print(',');
+													else didOne=true;
+													out.print(pu);
+												}
+											}
+											out.print(" ident sameuser\n");
+
+											// ident used from 127.0.0.1
+											out.print("host ").print(db.getName()).print(' ');
+											didOne=false;
+											for(UserServer psu : users) {
+												User pu = psu.getPostgresUser();
+												if(
+													// Allow postgres to all databases
+													pu.getKey().equals(User.POSTGRES)
+													// Allow database admin
+													|| psu.equals(db.getDatDBA())
+													// Allow in same business
+													|| pu.getUsername().getPackage().getBusiness().equals(
+														// TODO: Allow access to subaccounts?
+														db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness()
+													)
+												) {
+													if(didOne) out.print(',');
+													else didOne=true;
+													out.print(pu);
+												}
+											}
+											out.print(" 127.0.0.1/32 ident sameuser\n");
+
+											// ident used from ::1/128
+											out.print("host ").print(db.getName()).print(' ');
+											didOne=false;
+											for(UserServer psu : users) {
+												User pu = psu.getPostgresUser();
+												if(
+													// Allow postgres to all databases
+													pu.getKey().equals(User.POSTGRES)
+													// Allow database admin
+													|| psu.equals(db.getDatDBA())
+													// Allow in same business
+													|| pu.getUsername().getPackage().getBusiness().equals(
+														// TODO: Allow access to subaccounts?
+														db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness()
+													)
+												) {
+													if(didOne) out.print(',');
+													else didOne=true;
+													out.print(pu);
+												}
+											}
+											out.print(" ::1/128 ident sameuser\n");
+
+											// md5 used for other connections
+											out.print("host ").print(db.getName()).print(' ');
+											didOne=false;
+											for(UserServer psu : users) {
+												User pu = psu.getPostgresUser();
+												if(
+													// Allow postgres to all databases
+													pu.getKey().equals(User.POSTGRES)
+													// Allow database admin
+													|| psu.equals(db.getDatDBA())
+													// Allow in same business
+													|| pu.getUsername().getPackage().getBusiness().equals(
+														// TODO: Allow access to subaccounts?
+														db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness()
+													)
+												) {
+													if(didOne) out.print(',');
+													else didOne=true;
+													out.print(pu);
+												}
+											}
+											out.print(" 0.0.0.0 0.0.0.0 md5\n");
+										}
+									} else if(
+										version.startsWith(Version.VERSION_9_4+'.')
+										|| version.startsWith(Version.VERSION_9_4+'R')
+										|| version.startsWith(Version.VERSION_9_5+'.')
+										|| version.startsWith(Version.VERSION_9_5+'R')
+										|| version.startsWith(Version.VERSION_9_6+'.')
+										|| version.startsWith(Version.VERSION_9_6+'R')
+										|| version.startsWith(Version.VERSION_10+'.')
+										|| version.startsWith(Version.VERSION_10+'R')
+										|| version.startsWith(Version.VERSION_11+'.')
+										|| version.startsWith(Version.VERSION_11+'R')
+									) {
+										out.print("# AOServ Daemon: authenticated local TCP only, only to " + Database.AOSERV + " database\n");
+										out.print("hostnossl " + Database.AOSERV + " " + User.POSTGRES + " 127.0.0.1/32 md5\n");
+										out.print("hostnossl " + Database.AOSERV + " " + User.POSTGRES + " ::1/128      md5\n");
+										out.print("\n");
+										out.print("# Super user: local only, to all databases\n");
+										out.print("local     all " + User.POSTGRES + "              peer\n");
+										out.print("hostnossl all " + User.POSTGRES + " 127.0.0.1/32 ident\n");
+										out.print("hostnossl all " + User.POSTGRES + " ::1/128      ident\n");
+										if(ps.getPostgresServerUser(User.POSTGRESMON) != null) {
+											out.print("\n");
+											out.print("# Monitoring: authenticated from anywhere, only to monitoring database\n");
+											if(ps.getPostgresDatabase(Database.POSTGRESMON) != null) {
+												// Has monitoring database
+												out.print("host " + Database.POSTGRESMON + " " + User.POSTGRESMON + " all md5\n");
+											} else {
+												// Compatibility: Allow connection to aoserv database
+												out.print("host " + Database.AOSERV + " " + User.POSTGRESMON + " all md5\n");
 											}
 										}
-										out.print(" 127.0.0.1 255.255.255.255 ident sameuser\n"
-												+ "host ").print(db.getName()).print(' ');
-										didOne=false;
-										for(UserServer psu : users) {
-											User pu = psu.getPostgresUser();
+										out.print("\n");
+										out.print("# Other databases: ident local, authenticate all others, to all databases in same account\n");
+										for(Database db : pds) {
+											Database.Name name = db.getName();
 											if(
-												// Allow postgres to all databases
-												pu.getKey().equals(User.POSTGRES)
-												// Allow database admin
-												|| psu.equals(db.getDatDBA())
-												// Allow in same business
-												|| pu.getUsername().getPackage().getBusiness().equals(
-													// TODO: Allow access to subaccounts?
-													db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness()
-												)
+												// Templates handled above: only postgres may connect to it
+												!name.equals(Database.TEMPLATE0)
+												&& !name.equals(Database.TEMPLATE1)
+												// aoserv handled above: only postgres and possibly postgresmon may connect to it
+												&& !name.equals(Database.AOSERV)
+												// Monitoring handled above: only postgres and postgresmon may connect to it
+												&& !name.equals(Database.POSTGRESMON)
 											) {
-												if(didOne) out.print(',');
-												else didOne=true;
-												out.print(pu);
+												Set<User.Name> dbUsers = new LinkedHashSet<>();
+												for(UserServer psu : users) {
+													User pu = psu.getPostgresUser();
+													User.Name username = pu.getUsername_username_id();
+													if(
+														// Super user handled above
+														!username.equals(User.POSTGRES)
+														// Monitoring handled above
+														&& !username.equals(User.POSTGRESMON)
+														&& (
+															// Allow database admin
+															psu.equals(db.getDatDBA())
+															// Allow in same business as database admin
+															|| pu.getUsername().getPackage().getBusiness().equals(
+																// TODO: Allow access to subaccounts?
+																db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness()
+															)
+														)
+													) {
+														dbUsers.add(username);
+													}
+												}
+												if(dbUsers.isEmpty()) throw new SQLException("No users found for database (should always have at least datdba): " + db);
+												// peer used from local
+												out.print("local ").print(name).print(' ');
+												boolean didOne = false;
+												for(User.Name dbUser : dbUsers) {
+													if(didOne) out.print(',');
+													else didOne = true;
+													out.print(dbUser);
+												}
+												out.print("              peer\n");
+
+												// ident used from 127.0.0.1/32
+												out.print("host  ").print(name).print(' ');
+												didOne = false;
+												for(User.Name dbUser : dbUsers) {
+													if(didOne) out.print(',');
+													else didOne = true;
+													out.print(dbUser);
+												}
+												out.print(" 127.0.0.1/32 ident\n");
+
+												// ident used from ::1/128
+												out.print("host  ").print(db.getName()).print(' ');
+												didOne = false;
+												for(User.Name dbUser : dbUsers) {
+													if(didOne) out.print(',');
+													else didOne = true;
+													out.print(dbUser);
+												}
+												out.print(" ::1/128      ident\n");
+
+												// md5 used for other connections
+												out.print("host  ").print(db.getName()).print(' ');
+												didOne = false;
+												for(User.Name dbUser : dbUsers) {
+													if(didOne) out.print(',');
+													else didOne = true;
+													out.print(dbUser);
+												}
+												out.print(" all          md5\n");
 											}
 										}
-										out.print(" 0.0.0.0 0.0.0.0 password\n");
+									} else {
+										throw new RuntimeException("Unexpected version of PostgreSQL: " + version);
 									}
-								} else if(
-									version.startsWith(Version.VERSION_8_1+'.')
-									|| version.startsWith(Version.VERSION_8_3+'.')
-									|| version.startsWith(Version.VERSION_8_3+'R')
-								) {
-									for(Database db : pds) {
-										// ident used from local
-										out.print("local ").print(db.getName()).print(' ');
-										boolean didOne=false;
-										for(UserServer psu : users) {
-											User pu = psu.getPostgresUser();
-											if(
-												// Allow postgres to all databases
-												pu.getKey().equals(User.POSTGRES)
-												// Allow database admin
-												|| psu.equals(db.getDatDBA())
-												// Allow in same business
-												|| pu.getUsername().getPackage().getBusiness().equals(
-													// TODO: Allow access to subaccounts?
-													db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness()
-												)
-											) {
-												if(didOne) out.print(',');
-												else didOne=true;
-												out.print(pu);
-											}
-										}
-										out.print(" ident sameuser\n");
-
-										// ident used from 127.0.0.1
-										out.print("host ").print(db.getName()).print(' ');
-										didOne=false;
-										for(UserServer psu : users) {
-											User pu = psu.getPostgresUser();
-											if(
-												// Allow postgres to all databases
-												pu.getKey().equals(User.POSTGRES)
-												// Allow database admin
-												|| psu.equals(db.getDatDBA())
-												// Allow in same business
-												|| pu.getUsername().getPackage().getBusiness().equals(
-													// TODO: Allow access to subaccounts?
-													db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness()
-												)
-											) {
-												if(didOne) out.print(',');
-												else didOne=true;
-												out.print(pu);
-											}
-										}
-										out.print(" 127.0.0.1/32 ident sameuser\n");
-
-										// ident used from ::1/128
-										out.print("host ").print(db.getName()).print(' ');
-										didOne=false;
-										for(UserServer psu : users) {
-											User pu = psu.getPostgresUser();
-											if(
-												// Allow postgres to all databases
-												pu.getKey().equals(User.POSTGRES)
-												// Allow database admin
-												|| psu.equals(db.getDatDBA())
-												// Allow in same business
-												|| pu.getUsername().getPackage().getBusiness().equals(
-													// TODO: Allow access to subaccounts?
-													db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness()
-												)
-											) {
-												if(didOne) out.print(',');
-												else didOne=true;
-												out.print(pu);
-											}
-										}
-										out.print(" ::1/128 ident sameuser\n");
-
-										// md5 used for other connections
-										out.print("host ").print(db.getName()).print(' ');
-										didOne=false;
-										for(UserServer psu : users) {
-											User pu = psu.getPostgresUser();
-											if(
-												// Allow postgres to all databases
-												pu.getKey().equals(User.POSTGRES)
-												// Allow database admin
-												|| psu.equals(db.getDatDBA())
-												// Allow in same business
-												|| pu.getUsername().getPackage().getBusiness().equals(
-													// TODO: Allow access to subaccounts?
-													db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness()
-												)
-											) {
-												if(didOne) out.print(',');
-												else didOne=true;
-												out.print(pu);
-											}
-										}
-										out.print(" 0.0.0.0 0.0.0.0 md5\n");
-									}
-								} else if(
-									version.startsWith(Version.VERSION_9_4+'.')
-									|| version.startsWith(Version.VERSION_9_4+'R')
-									|| version.startsWith(Version.VERSION_9_5+'.')
-									|| version.startsWith(Version.VERSION_9_5+'R')
-									|| version.startsWith(Version.VERSION_9_6+'.')
-									|| version.startsWith(Version.VERSION_9_6+'R')
-									|| version.startsWith(Version.VERSION_10+'.')
-									|| version.startsWith(Version.VERSION_10+'R')
-									|| version.startsWith(Version.VERSION_11+'.')
-									|| version.startsWith(Version.VERSION_11+'R')
-								) {
-									for(Database db : pds) {
-										// peer used from local
-										out.print("local ").print(db.getName()).print(' ');
-										boolean didOne=false;
-										for(UserServer psu : users) {
-											User pu = psu.getPostgresUser();
-											if(
-												// Allow postgres to all databases
-												pu.getKey().equals(User.POSTGRES)
-												// Allow database admin
-												|| psu.equals(db.getDatDBA())
-												// Allow in same business
-												|| pu.getUsername().getPackage().getBusiness().equals(
-													// TODO: Allow access to subaccounts?
-													db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness()
-												)
-											) {
-												if(didOne) out.print(',');
-												else didOne=true;
-												out.print(pu);
-											}
-										}
-										out.print(" peer\n");
-
-										// ident used from 127.0.0.1
-										out.print("host ").print(db.getName()).print(' ');
-										didOne=false;
-										for(UserServer psu : users) {
-											User pu = psu.getPostgresUser();
-											if(
-												// Allow postgres to all databases
-												pu.getKey().equals(User.POSTGRES)
-												// Allow database admin
-												|| psu.equals(db.getDatDBA())
-												// Allow in same business
-												|| pu.getUsername().getPackage().getBusiness().equals(
-													db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness()
-												)
-											) {
-												if(didOne) out.print(',');
-												else didOne=true;
-												out.print(pu);
-											}
-										}
-										out.print(" 127.0.0.1/32 ident\n");
-
-										// ident used from ::1/128
-										out.print("host ").print(db.getName()).print(' ');
-										didOne=false;
-										for(UserServer psu : users) {
-											User pu = psu.getPostgresUser();
-											if(
-												// Allow postgres to all databases
-												pu.getKey().equals(User.POSTGRES)
-												// Allow database admin
-												|| psu.equals(db.getDatDBA())
-												// Allow in same business
-												|| pu.getUsername().getPackage().getBusiness().equals(
-													db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness()
-												)
-											) {
-												if(didOne) out.print(',');
-												else didOne=true;
-												out.print(pu);
-											}
-										}
-										out.print(" ::1/128 ident\n");
-
-										// md5 used for other connections
-										out.print("host ").print(db.getName()).print(' ');
-										didOne=false;
-										for(UserServer psu : users) {
-											User pu = psu.getPostgresUser();
-											if(
-												// Allow postgres to all databases
-												pu.getKey().equals(User.POSTGRES)
-												// Allow database admin
-												|| psu.equals(db.getDatDBA())
-												// Allow in same business
-												|| pu.getUsername().getPackage().getBusiness().equals(
-													db.getDatDBA().getPostgresUser().getUsername().getPackage().getBusiness()
-												)
-											) {
-												if(didOne) out.print(',');
-												else didOne=true;
-												out.print(pu);
-											}
-										}
-										out.print(" 0.0.0.0 0.0.0.0 md5\n");
-									}
-								} else throw new RuntimeException("Unexpected version of PostgreSQL: "+version);
-							} finally {
-								out.flush();
-								out.close();
-							}
-
-							// Move the new file into place
-							UnixFile hbaUF=new UnixFile(serverDir, "pg_hba.conf");
-							if(hbaUF.getStat().exists() && newHbaUF.contentEquals(hbaUF)) newHbaUF.delete();
-							else {
-								// Move the new file into place
-								newHbaUF.renameTo(hbaUF);
-
-								// Signal reload on PostgreSQL
-								BufferedReader in=new BufferedReader(new InputStreamReader(new FileInputStream(new File(serverDir, "postmaster.pid"))));
-								String pid=in.readLine();
-								// Must be all 0-9
-								for(int d=0;d<pid.length();d++) {
-									char ch=pid.charAt(d);
-									if(ch<'0' || ch>'9') throw new IOException("Invalid character in postmaster.pid first line: "+ch);
 								}
-								new LinuxProcess(Integer.parseInt(pid)).signal("HUP");
+
+								// Move the new file into place
+								boolean needsReload = DaemonFileUtils.atomicWrite(
+									new UnixFile(serverDir, "pg_hba.conf"),
+									bout.toByteArray(),
+									0600,
+									postgresUID,
+									postgresGID,
+									null,
+									restorecon
+								);
+
+								// SELinux before next steps
+								DaemonFileUtils.restorecon(restorecon);
+								restorecon.clear();
+
+								if(needsReload) {
+									// Signal reload on PostgreSQL
+									File pidFile = new File(serverDir, "postmaster.pid");
+									if(pidFile.exists()) {
+										BufferedReader in=new BufferedReader(new InputStreamReader(new FileInputStream(pidFile)));
+										String pid=in.readLine();
+										// Must be all 0-9
+										for(int d=0;d<pid.length();d++) {
+											char ch=pid.charAt(d);
+											if(ch<'0' || ch>'9') throw new IOException("Invalid character in postmaster.pid first line: "+ch);
+										}
+										new LinuxProcess(Integer.parseInt(pid)).signal("HUP");
+									} else {
+										LogFactory.getLogger(PgHbaManager.class).log(
+											Level.WARNING,
+											"PID file not found for PostgreSQL server \""
+												+ serverName
+												+ "\", server running? "
+												+ pidFile
+										);
+									}
+								}
 							}
 						}
 					}
+				} finally {
+					DaemonFileUtils.restorecon(restorecon);
 				}
 			}
 			return true;

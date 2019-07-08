@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -24,11 +24,14 @@ import com.aoindustries.cron.CronJob;
 import com.aoindustries.cron.CronJobScheduleMode;
 import com.aoindustries.cron.Schedule;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.Port;
 import com.aoindustries.selinux.SEManagePort;
 import com.aoindustries.sql.AOConnectionPool;
 import java.io.File;
 import java.io.IOException;
+import java.net.ProtocolFamily;
+import java.net.StandardProtocolFamily;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -112,15 +115,67 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 
 	private static final Map<Integer,AOConnectionPool> pools = new HashMap<>();
 	static AOConnectionPool getPool(Server ps) throws IOException, SQLException {
+		AOServConnector connector  =AOServDaemon.getConnector();
+		String version = ps.getVersion().getTechnologyVersion(connector).getVersion();
 		synchronized(pools) {
 			Integer pkeyObj = ps.getPkey();
 			AOConnectionPool pool = pools.get(pkeyObj);
 			if(pool == null) {
 				Database pd = ps.getPostgresDatabase(Database.AOSERV);
 				if(pd == null) throw new SQLException("Unable to find Database: " + Database.AOSERV + " on "+ps.toString());
+				String jdbcUrl;
+				if(
+					version.startsWith(Version.VERSION_7_1+'.')
+					|| version.startsWith(Version.VERSION_7_2+'.')
+					|| version.startsWith(Version.VERSION_7_3+'.')
+					|| version.startsWith(Version.VERSION_8_1+'.')
+					|| version.startsWith(Version.VERSION_8_3+'.')
+					|| version.startsWith(Version.VERSION_8_3+'R')
+				) {
+					// Connect to IP (no 127.0.0.1/::1-only support)
+					jdbcUrl = pd.getJdbcUrl(true);
+				} else if(
+					version.startsWith(Version.VERSION_9_4+'.')
+					|| version.startsWith(Version.VERSION_9_4+'R')
+					|| version.startsWith(Version.VERSION_9_5+'.')
+					|| version.startsWith(Version.VERSION_9_5+'R')
+					|| version.startsWith(Version.VERSION_9_6+'.')
+					|| version.startsWith(Version.VERSION_9_6+'R')
+					|| version.startsWith(Version.VERSION_10+'.')
+					|| version.startsWith(Version.VERSION_10+'R')
+					|| version.startsWith(Version.VERSION_11+'.')
+					|| version.startsWith(Version.VERSION_11+'R')
+				) {
+					// Connect to 127.0.0.1 or ::1
+					com.aoindustries.aoserv.client.linux.Server ao = ps.getAoServer();
+					StringBuilder jdbcUrlSB = new StringBuilder();
+					jdbcUrlSB.append("jdbc:postgresql://");
+					Bind nb = ps.getBind();
+					InetAddress ia = nb.getIpAddress().getInetAddress();
+					ProtocolFamily family = ia.getProtocolFamily();
+					if(family.equals(StandardProtocolFamily.INET)) {
+						jdbcUrlSB.append(InetAddress.LOOPBACK_IPV4.toBracketedString());
+					} else if(family.equals(StandardProtocolFamily.INET6)) {
+						jdbcUrlSB.append(InetAddress.LOOPBACK_IPV6.toBracketedString());
+					} else {
+						throw new AssertionError("Unexpected family: " + family);
+					}
+					Port port = nb.getPort();
+					if(!port.equals(Server.DEFAULT_PORT)) {
+						jdbcUrlSB
+							.append(':')
+							.append(port.getPort());
+					}
+					jdbcUrlSB
+						.append('/')
+						.append(pd.getName());
+					jdbcUrl = jdbcUrlSB.toString();
+				} else {
+					throw new RuntimeException("Unexpected version of PostgreSQL: " + version);
+				}
 				pool = new AOConnectionPool(
 					pd.getJdbcDriver(),
-					pd.getJdbcUrl(true),
+					jdbcUrl,
 					User.POSTGRES.toString(),
 					AOServDaemonConfiguration.getPostgresPassword(),
 					AOServDaemonConfiguration.getPostgresConnections(),
