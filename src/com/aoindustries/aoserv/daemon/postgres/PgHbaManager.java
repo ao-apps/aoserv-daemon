@@ -21,12 +21,15 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.net.InetAddress;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.ProtocolFamily;
+import java.net.StandardProtocolFamily;
 import java.sql.SQLException;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -70,7 +73,6 @@ public final class PgHbaManager extends BuilderThread {
 							if(pds.isEmpty()) {
 								LogFactory.getLogger(PgHbaManager.class).severe("No databases; refusing to rebuild config: " + ps);
 							} else {
-								// InetAddress bind = ps.getBind().getIpAddress().getInetAddress();
 								String version=ps.getVersion().getTechnologyVersion(connector).getVersion();
 								int postgresUID=thisAOServer.getLinuxServerAccount(com.aoindustries.aoserv.client.linux.User.POSTGRES).getUid().getId();
 								int postgresGID=thisAOServer.getLinuxServerGroup(Group.POSTGRES).getGid().getId();
@@ -241,27 +243,47 @@ public final class PgHbaManager extends BuilderThread {
 										|| version.startsWith(Version.VERSION_11+'.')
 										|| version.startsWith(Version.VERSION_11+'R')
 									) {
-										out.print("# AOServ Daemon: authenticated local TCP only, only to " + Database.AOSERV + " database\n");
-										out.print("hostnossl " + Database.AOSERV + " " + User.POSTGRES + " 127.0.0.1/32 md5\n");
-										out.print("hostnossl " + Database.AOSERV + " " + User.POSTGRES + " ::1/128      md5\n");
-										out.print("\n");
-										out.print("# Super user: local only, to all databases\n");
+										// When bind is either 127.0.0.1 or ::1, the server is configured to listen on "localhost",
+										// which will listen on both.  The 127.0.0.1 / ::1 distiction only affects which family the
+										// AOServDaemon connects to.
+										InetAddress bind = ps.getBind().getIpAddress().getInetAddress();
+										ProtocolFamily family = bind.getProtocolFamily();
+										boolean isLocalhost = bind.equals(InetAddress.LOOPBACK_IPV4) || bind.equals(InetAddress.LOOPBACK_IPV6);
+										out.print("# AOServ Daemon: authenticate localhost TCP, only to " + Database.AOSERV + " database\n");
+										out.print("hostnossl " + Database.AOSERV + " " + User.POSTGRES + " 127.0.0.1/32 ");
+										out.print(family.equals(StandardProtocolFamily.INET) ? "md5" : "reject");
+										out.print('\n');
+										out.print("hostnossl " + Database.AOSERV + " " + User.POSTGRES + " ::1/128      ");
+										out.print(family.equals(StandardProtocolFamily.INET6) ? "md5" : "reject");
+										out.print('\n');
+										out.print('\n');
+										out.print("# Super user: local peer, ident localhost TCP, to all databases\n");
 										out.print("local     all " + User.POSTGRES + "              peer\n");
 										out.print("hostnossl all " + User.POSTGRES + " 127.0.0.1/32 ident\n");
 										out.print("hostnossl all " + User.POSTGRES + " ::1/128      ident\n");
 										if(ps.getPostgresServerUser(User.POSTGRESMON) != null) {
-											out.print("\n");
-											out.print("# Monitoring: authenticated from anywhere, only to monitoring database\n");
-											if(ps.getPostgresDatabase(Database.POSTGRESMON) != null) {
+											out.print('\n');
+											Database.Name monitoringDB = ps.getPostgresDatabase(Database.POSTGRESMON) != null
 												// Has monitoring database
-												out.print("host " + Database.POSTGRESMON + " " + User.POSTGRESMON + " all md5\n");
-											} else {
+												? Database.POSTGRESMON
 												// Compatibility: Allow connection to aoserv database
-												out.print("host " + Database.AOSERV + " " + User.POSTGRESMON + " all md5\n");
+												: Database.AOSERV;
+											if(isLocalhost) {
+												out.print("# Monitoring: authenticate localhost TCP, only to " + User.POSTGRESMON + " database\n");
+												out.print("hostnossl ");
+												out.print(monitoringDB);
+												out.print(" " + User.POSTGRESMON + " 127.0.0.1/32 md5\n");
+												out.print("hostnossl ");
+												out.print(monitoringDB);
+												out.print(" " + User.POSTGRESMON + " ::1/128      md5\n");
+											} else {
+												out.print("# Monitoring: authenticate all TCP, only to " + User.POSTGRESMON + " database\n");
+												out.print("host ");
+												out.print(monitoringDB);
+												out.print(" " + User.POSTGRESMON + " all md5\n");
 											}
 										}
-										out.print("\n");
-										out.print("# Other databases: ident local, authenticate all others, to all databases in same account\n");
+										boolean didComment = false;
 										for(Database db : pds) {
 											Database.Name name = db.getName();
 											if(
@@ -296,45 +318,87 @@ public final class PgHbaManager extends BuilderThread {
 													}
 												}
 												if(dbUsers.isEmpty()) throw new SQLException("No users found for database (should always have at least datdba): " + db);
-												// peer used from local
-												out.print("local ").print(name).print(' ');
-												boolean didOne = false;
-												for(User.Name dbUser : dbUsers) {
-													if(didOne) out.print(',');
-													else didOne = true;
-													out.print(dbUser);
-												}
-												out.print("              peer\n");
+												if(isLocalhost) {
+													if(!didComment) {
+														out.print('\n');
+														out.print("# Other databases: local peer, authenticate localhost TCP, to all databases in same account\n");
+														didComment = true;
+													}
+													// peer used from local
+													out.print("local     ").print(name).print(' ');
+													boolean didOne = false;
+													for(User.Name dbUser : dbUsers) {
+														if(didOne) out.print(',');
+														else didOne = true;
+														out.print(dbUser);
+													}
+													out.print("              peer\n");
 
-												// ident used from 127.0.0.1/32
-												out.print("host  ").print(name).print(' ');
-												didOne = false;
-												for(User.Name dbUser : dbUsers) {
-													if(didOne) out.print(',');
-													else didOne = true;
-													out.print(dbUser);
-												}
-												out.print(" 127.0.0.1/32 ident\n");
+													// md5 used from 127.0.0.1/32
+													out.print("hostnossl ").print(name).print(' ');
+													didOne = false;
+													for(User.Name dbUser : dbUsers) {
+														if(didOne) out.print(',');
+														else didOne = true;
+														out.print(dbUser);
+													}
+													out.print(" 127.0.0.1/32 md5\n");
 
-												// ident used from ::1/128
-												out.print("host  ").print(db.getName()).print(' ');
-												didOne = false;
-												for(User.Name dbUser : dbUsers) {
-													if(didOne) out.print(',');
-													else didOne = true;
-													out.print(dbUser);
-												}
-												out.print(" ::1/128      ident\n");
+													// md5 used from ::1/128
+													out.print("hostnossl ").print(db.getName()).print(' ');
+													didOne = false;
+													for(User.Name dbUser : dbUsers) {
+														if(didOne) out.print(',');
+														else didOne = true;
+														out.print(dbUser);
+													}
+													out.print(" ::1/128      md5\n");
+												} else {
+													if(!didComment) {
+														out.print('\n');
+														out.print("# Other databases: local peer, ident localhost TCP, authenticate other TCP, to all databases in same account\n");
+														didComment = true;
+													}
+													// peer used from local
+													out.print("local ").print(name).print(' ');
+													boolean didOne = false;
+													for(User.Name dbUser : dbUsers) {
+														if(didOne) out.print(',');
+														else didOne = true;
+														out.print(dbUser);
+													}
+													out.print("              peer\n");
 
-												// md5 used for other connections
-												out.print("host  ").print(db.getName()).print(' ');
-												didOne = false;
-												for(User.Name dbUser : dbUsers) {
-													if(didOne) out.print(',');
-													else didOne = true;
-													out.print(dbUser);
+													// ident used from 127.0.0.1/32
+													out.print("host  ").print(name).print(' ');
+													didOne = false;
+													for(User.Name dbUser : dbUsers) {
+														if(didOne) out.print(',');
+														else didOne = true;
+														out.print(dbUser);
+													}
+													out.print(" 127.0.0.1/32 ident\n");
+
+													// ident used from ::1/128
+													out.print("host  ").print(db.getName()).print(' ');
+													didOne = false;
+													for(User.Name dbUser : dbUsers) {
+														if(didOne) out.print(',');
+														else didOne = true;
+														out.print(dbUser);
+													}
+													out.print(" ::1/128      ident\n");
+
+													// md5 used for other connections
+													out.print("host  ").print(db.getName()).print(' ');
+													didOne = false;
+													for(User.Name dbUser : dbUsers) {
+														if(didOne) out.print(',');
+														else didOne = true;
+														out.print(dbUser);
+													}
+													out.print(" all          md5\n");
 												}
-												out.print(" all          md5\n");
 											}
 										}
 									} else {
@@ -421,7 +485,10 @@ public final class PgHbaManager extends BuilderThread {
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					pgHbaManager = new PgHbaManager();
+					conn.getNet().getBind().addTableListener(pgHbaManager, 0);
+					conn.getNet().getIpAddress().addTableListener(pgHbaManager, 0);
 					conn.getPostgresql().getDatabase().addTableListener(pgHbaManager, 0);
+					conn.getPostgresql().getServer().addTableListener(pgHbaManager, 0);
 					conn.getPostgresql().getUserServer().addTableListener(pgHbaManager, 0);
 					System.out.println("Done");
 				} else {
