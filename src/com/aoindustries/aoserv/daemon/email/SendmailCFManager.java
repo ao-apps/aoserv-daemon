@@ -984,7 +984,7 @@ final public class SendmailCFManager extends BuilderThread {
 	 */
 	private static InetAddress findSmtpAddress(ProtocolFamily family, InetAddress primaryAddress, List<SendmailBind> smtpBinds, Integer requiredPort) throws IOException, SQLException {
 		if(primaryAddress != null) {
-			if(family != null && primaryAddress.getProtocolFamily().equals(family)) throw new IllegalArgumentException("Primary IP is not in family \"" + family + "\": " + primaryAddress);
+			if(family != null && !primaryAddress.getProtocolFamily().equals(family)) throw new IllegalArgumentException("Primary IP is not in family \"" + family + "\": " + primaryAddress);
 		} else {
 			primaryAddress = null;
 		}
