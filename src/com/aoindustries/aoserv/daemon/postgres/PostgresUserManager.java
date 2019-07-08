@@ -185,15 +185,20 @@ final public class PostgresUserManager extends BuilderThread {
 								for (User.Name username : existing) {
 									if(!systemRoles.contains(username)) {
 										if(User.isSpecial(username)) {
-											throw new SQLException("AOServ Daemon will not automatically special user, please drop manually: " + username + " on " + ps.getName());
-										}
-										sqlString = "DROP USER "+username;
-										try {
-											if(DEBUG) debug("Dropping user: " + sqlString);
-											stmt.executeUpdate(sqlString);
-											//conn.commit();
-										} catch(SQLException err) {
-											throw new WrappedSQLException(err, sqlString);
+											LogFactory.getLogger(PostgresUserManager.class).log(
+												Level.WARNING,
+												null,
+												new SQLException("Refusing to drop special user: " + username + " on " + ps.getName())
+											);
+										} else {
+											sqlString = "DROP USER "+username;
+											try {
+												if(DEBUG) debug("Dropping user: " + sqlString);
+												stmt.executeUpdate(sqlString);
+												//conn.commit();
+											} catch(SQLException err) {
+												throw new WrappedSQLException(err, sqlString);
+											}
 										}
 									}
 								}
@@ -204,133 +209,143 @@ final public class PostgresUserManager extends BuilderThread {
 									User.Name username=pu.getKey();
 									if(!systemRoles.contains(username)) {
 										// Add the user
-										StringBuilder sql=new StringBuilder();
-										sql
-											.append(
-												(
-													version.startsWith(Version.VERSION_8_1+'.')
-														|| version.startsWith(Version.VERSION_8_3+'.')
-														|| version.startsWith(Version.VERSION_8_3+'R')
-														|| version.startsWith(Version.VERSION_9_4+'.')
-														|| version.startsWith(Version.VERSION_9_4+'R')
-														|| version.startsWith(Version.VERSION_9_5+'.')
-														|| version.startsWith(Version.VERSION_9_5+'R')
-														|| version.startsWith(Version.VERSION_9_6+'.')
-														|| version.startsWith(Version.VERSION_9_6+'R')
-														|| version.startsWith(Version.VERSION_10+'.')
-														|| version.startsWith(Version.VERSION_10+'R')
-														|| version.startsWith(Version.VERSION_11+'.')
-														|| version.startsWith(Version.VERSION_11+'R')
-													)
-													? "CREATE ROLE "
-													: "CREATE USER "
-											)
-											.append(username)
-											//.append(
-											//	(
-											//		version.startsWith(Version.VERSION_7_1+'.')
-											//	)
-											//	? " PASSWORD '"
-											//	: " UNENCRYPTED PASSWORD '"
-											//)
-											//.append(User.NO_PASSWORD_DB_VALUE)
-											//.append("' ")
-											.append(pu.canCreateDB()?" CREATEDB":" NOCREATEDB")
-											.append(
-												(
-													version.startsWith(Version.VERSION_8_1+'.')
-														|| version.startsWith(Version.VERSION_8_3+'.')
-														|| version.startsWith(Version.VERSION_8_3+'R')
-														|| version.startsWith(Version.VERSION_9_4+'.')
-														|| version.startsWith(Version.VERSION_9_4+'R')
-														|| version.startsWith(Version.VERSION_9_5+'.')
-														|| version.startsWith(Version.VERSION_9_5+'R')
-														|| version.startsWith(Version.VERSION_9_6+'.')
-														|| version.startsWith(Version.VERSION_9_6+'R')
-														|| version.startsWith(Version.VERSION_10+'.')
-														|| version.startsWith(Version.VERSION_10+'R')
-														|| version.startsWith(Version.VERSION_11+'.')
-														|| version.startsWith(Version.VERSION_11+'R')
-													)
-													? (pu.canCatUPD()?" CREATEROLE":" NOCREATEROLE")
-													: (pu.canCatUPD()?" CREATEUSER":" NOCREATEUSER")
-											).append(
-												(
-													version.startsWith(Version.VERSION_8_1+'.')
-														|| version.startsWith(Version.VERSION_8_3+'.')
-														|| version.startsWith(Version.VERSION_8_3+'R')
-														|| version.startsWith(Version.VERSION_9_4+'.')
-														|| version.startsWith(Version.VERSION_9_4+'R')
-														|| version.startsWith(Version.VERSION_9_5+'.')
-														|| version.startsWith(Version.VERSION_9_5+'R')
-														|| version.startsWith(Version.VERSION_9_6+'.')
-														|| version.startsWith(Version.VERSION_9_6+'R')
-														|| version.startsWith(Version.VERSION_10+'.')
-														|| version.startsWith(Version.VERSION_10+'R')
-														|| version.startsWith(Version.VERSION_11+'.')
-														|| version.startsWith(Version.VERSION_11+'R')
-													)
-													? " LOGIN"
-													: ""
-											)
-											;
-										sqlString = sql.toString();
-										try {
-											if(DEBUG) debug("Adding user: " + sqlString);
-											stmt.executeUpdate(sqlString);
-											//conn.commit();
-										} catch(SQLException err) {
-											throw new WrappedSQLException(err, sqlString);
+										if(psu.isSpecial()) {
+											LogFactory.getLogger(PostgresUserManager.class).log(
+												Level.WARNING,
+												null,
+												new SQLException("Refusing to create special user: " + username + " on " + ps.getName())
+											);
+										} else {
+											StringBuilder sql=new StringBuilder();
+											sql
+												.append(
+													(
+														version.startsWith(Version.VERSION_8_1+'.')
+															|| version.startsWith(Version.VERSION_8_3+'.')
+															|| version.startsWith(Version.VERSION_8_3+'R')
+															|| version.startsWith(Version.VERSION_9_4+'.')
+															|| version.startsWith(Version.VERSION_9_4+'R')
+															|| version.startsWith(Version.VERSION_9_5+'.')
+															|| version.startsWith(Version.VERSION_9_5+'R')
+															|| version.startsWith(Version.VERSION_9_6+'.')
+															|| version.startsWith(Version.VERSION_9_6+'R')
+															|| version.startsWith(Version.VERSION_10+'.')
+															|| version.startsWith(Version.VERSION_10+'R')
+															|| version.startsWith(Version.VERSION_11+'.')
+															|| version.startsWith(Version.VERSION_11+'R')
+														)
+														? "CREATE ROLE "
+														: "CREATE USER "
+												)
+												.append(username)
+												//.append(
+												//	(
+												//		version.startsWith(Version.VERSION_7_1+'.')
+												//	)
+												//	? " PASSWORD '"
+												//	: " UNENCRYPTED PASSWORD '"
+												//)
+												//.append(User.NO_PASSWORD_DB_VALUE)
+												//.append("' ")
+												.append(pu.canCreateDB()?" CREATEDB":" NOCREATEDB")
+												.append(
+													(
+														version.startsWith(Version.VERSION_8_1+'.')
+															|| version.startsWith(Version.VERSION_8_3+'.')
+															|| version.startsWith(Version.VERSION_8_3+'R')
+															|| version.startsWith(Version.VERSION_9_4+'.')
+															|| version.startsWith(Version.VERSION_9_4+'R')
+															|| version.startsWith(Version.VERSION_9_5+'.')
+															|| version.startsWith(Version.VERSION_9_5+'R')
+															|| version.startsWith(Version.VERSION_9_6+'.')
+															|| version.startsWith(Version.VERSION_9_6+'R')
+															|| version.startsWith(Version.VERSION_10+'.')
+															|| version.startsWith(Version.VERSION_10+'R')
+															|| version.startsWith(Version.VERSION_11+'.')
+															|| version.startsWith(Version.VERSION_11+'R')
+														)
+														? (pu.canCatUPD()?" CREATEROLE":" NOCREATEROLE")
+														: (pu.canCatUPD()?" CREATEUSER":" NOCREATEUSER")
+												).append(
+													(
+														version.startsWith(Version.VERSION_8_1+'.')
+															|| version.startsWith(Version.VERSION_8_3+'.')
+															|| version.startsWith(Version.VERSION_8_3+'R')
+															|| version.startsWith(Version.VERSION_9_4+'.')
+															|| version.startsWith(Version.VERSION_9_4+'R')
+															|| version.startsWith(Version.VERSION_9_5+'.')
+															|| version.startsWith(Version.VERSION_9_5+'R')
+															|| version.startsWith(Version.VERSION_9_6+'.')
+															|| version.startsWith(Version.VERSION_9_6+'R')
+															|| version.startsWith(Version.VERSION_10+'.')
+															|| version.startsWith(Version.VERSION_10+'R')
+															|| version.startsWith(Version.VERSION_11+'.')
+															|| version.startsWith(Version.VERSION_11+'R')
+														)
+														? " LOGIN"
+														: ""
+												)
+												;
+											sqlString = sql.toString();
+											try {
+												if(DEBUG) debug("Adding user: " + sqlString);
+												stmt.executeUpdate(sqlString);
+												//conn.commit();
+											} catch(SQLException err) {
+												throw new WrappedSQLException(err, sqlString);
+											}
 										}
 									}
 								}
 								if(
 									!(
-									version.startsWith(Version.VERSION_7_1+'.')
-									|| version.startsWith(Version.VERSION_7_2+'.')
-									|| version.startsWith(Version.VERSION_7_3+'.')
-									|| version.startsWith(Version.VERSION_8_0+'.')
+										version.startsWith(Version.VERSION_7_1+'.')
+										|| version.startsWith(Version.VERSION_7_2+'.')
+										|| version.startsWith(Version.VERSION_7_3+'.')
+										|| version.startsWith(Version.VERSION_8_0+'.')
 									)
 								) {
 									// Enable/disable using rolcanlogin
 									for (UserServer psu : users) {
-										User.Name username=psu.getPostgresUser().getKey();
-										if(!systemRoles.contains(username)) {
-											// Get the current login state
-											boolean rolcanlogin;
-											// TODO: We should be using PreparedStatement instead of relying on usernames to be safe, which they currently are but no guarantees in the future
-											sqlString = "select rolcanlogin from pg_authid where rolname='"+username+"'";
-											try {
-												try (ResultSet results = stmt.executeQuery(sqlString)) {
-													if(results.next()) {
-														rolcanlogin = results.getBoolean(1);
-													} else {
-														throw new SQLException("Unable to find pg_authid entry for rolname='"+username+"'");
+										if(!psu.isSpecial()) {
+											User.Name username=psu.getPostgresUser().getKey();
+											if(!systemRoles.contains(username)) {
+												// Get the current login state
+												boolean rolcanlogin;
+												// TODO: We should be using PreparedStatement instead of relying on usernames to be safe, which they currently are but no guarantees in the future
+												sqlString = "select rolcanlogin from pg_authid where rolname='"+username+"'";
+												try {
+													try (ResultSet results = stmt.executeQuery(sqlString)) {
+														if(results.next()) {
+															rolcanlogin = results.getBoolean(1);
+														} else {
+															throw new SQLException("Unable to find pg_authid entry for rolname='"+username+"'");
+														}
 													}
+												} catch(SQLException err) {
+													throw new WrappedSQLException(err, sqlString);
 												}
-											} catch(SQLException err) {
-												throw new WrappedSQLException(err, sqlString);
-											}
-											if(!psu.isDisabled()) {
-												// Enable if needed
-												if(!rolcanlogin) {
-													sqlString = "alter role "+username+" login";
-													try {
-														if(DEBUG) debug("Adding login role: " + sqlString);
-														stmt.executeUpdate(sqlString);
-													} catch(SQLException err) {
-														throw new WrappedSQLException(err, sqlString);
+												if(!psu.isDisabled()) {
+													// Enable if needed
+													if(!rolcanlogin) {
+														sqlString = "alter role "+username+" login";
+														try {
+															if(DEBUG) debug("Adding login role: " + sqlString);
+															stmt.executeUpdate(sqlString);
+														} catch(SQLException err) {
+															throw new WrappedSQLException(err, sqlString);
+														}
 													}
-												}
-											} else {
-												// Disable if needed
-												if(rolcanlogin) {
-													sqlString = "alter role "+username+" nologin";
-													try {
-														if(DEBUG) debug("Removing login role: " + sqlString);
-														stmt.executeUpdate(sqlString);
-													} catch(SQLException err) {
-														throw new WrappedSQLException(err, sqlString);
+												} else {
+													// Disable if needed
+													if(rolcanlogin) {
+														sqlString = "alter role "+username+" nologin";
+														try {
+															if(DEBUG) debug("Removing login role: " + sqlString);
+															stmt.executeUpdate(sqlString);
+														} catch(SQLException err) {
+															throw new WrappedSQLException(err, sqlString);
+														}
 													}
 												}
 											}
@@ -346,16 +361,18 @@ final public class PostgresUserManager extends BuilderThread {
 						if(!disableEnableDone) {
 							// Disable/enable using password value
 							for (UserServer psu : users) {
-								String prePassword=psu.getPredisablePassword();
-								if(!psu.isDisabled()) {
-									if(prePassword!=null) {
-										setPassword(psu, prePassword, true);
-										psu.setPredisablePassword(null);
-									}
-								} else {
-									if(prePassword==null) {
-										psu.setPredisablePassword(getPassword(psu));
-										setPassword(psu, User.NO_PASSWORD,true);
+								if(!psu.isSpecial()) {
+									String prePassword=psu.getPredisablePassword();
+									if(!psu.isDisabled()) {
+										if(prePassword!=null) {
+											setPassword(psu, prePassword, true);
+											psu.setPredisablePassword(null);
+										}
+									} else {
+										if(prePassword==null) {
+											psu.setPredisablePassword(getPassword(psu));
+											setPassword(psu, User.NO_PASSWORD,true);
+										}
 									}
 								}
 							}
@@ -373,6 +390,9 @@ final public class PostgresUserManager extends BuilderThread {
 	}
 
 	public static String getPassword(UserServer psu) throws IOException, SQLException {
+		if(psu.isSpecial()) {
+			throw new SQLException("Refusing to get the password for a special user: " + psu);
+		}
 		Server ps=psu.getPostgresServer();
 		String version=ps.getVersion().getTechnologyVersion(AOServDaemon.getConnector()).getVersion();
 		AOConnectionPool pool=PostgresServerManager.getPool(ps);
@@ -403,6 +423,9 @@ final public class PostgresUserManager extends BuilderThread {
 	}
 
 	public static void setPassword(UserServer psu, String password, boolean forceUnencrypted) throws IOException, SQLException {
+		if(psu.isSpecial()) {
+			throw new SQLException("Refusing to set the password for a special user: " + psu);
+		}
 		// Get the connection to work through
 		AOServConnector aoservConn=AOServDaemon.getConnector();
 		Server ps=psu.getPostgresServer();

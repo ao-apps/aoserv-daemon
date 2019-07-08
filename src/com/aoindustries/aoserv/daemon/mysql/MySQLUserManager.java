@@ -576,66 +576,74 @@ final public class MySQLUserManager extends BuilderThread {
 										Tuple2<String,User.Name> key = new Tuple2<>(host, username);
 										if(!existing.remove(key)) {
 											// Add the user
-											int pos=1;
-											pstmt.setString(pos++, host);
-											pstmt.setString(pos++, username.toString());
-											pstmt.setString(pos++, mu.canSelect()?"Y":"N");
-											pstmt.setString(pos++, mu.canInsert()?"Y":"N");
-											pstmt.setString(pos++, mu.canUpdate()?"Y":"N");
-											pstmt.setString(pos++, mu.canDelete()?"Y":"N");
-											pstmt.setString(pos++, mu.canCreate()?"Y":"N");
-											pstmt.setString(pos++, mu.canDrop()?"Y":"N");
-											pstmt.setString(pos++, mu.canReload()?"Y":"N");
-											pstmt.setString(pos++, mu.canShutdown()?"Y":"N");
-											pstmt.setString(pos++, mu.canProcess()?"Y":"N");
-											pstmt.setString(pos++, mu.canFile()?"Y":"N");
-											pstmt.setString(pos++, mu.canGrant()?"Y":"N");
-											pstmt.setString(pos++, mu.canReference()?"Y":"N");
-											pstmt.setString(pos++, mu.canIndex()?"Y":"N");
-											pstmt.setString(pos++, mu.canAlter()?"Y":"N");
-											pstmt.setString(pos++, mu.canShowDB()?"Y":"N");
-											pstmt.setString(pos++, mu.isSuper()?"Y":"N");
-											pstmt.setString(pos++, mu.canCreateTempTable()?"Y":"N");
-											pstmt.setString(pos++, mu.canLockTables()?"Y":"N");
-											pstmt.setString(pos++, mu.canExecute()?"Y":"N");
-											pstmt.setString(pos++, mu.isReplicationSlave()?"Y":"N");
-											pstmt.setString(pos++, mu.isReplicationClient()?"Y":"N");
-											if(
-												version.startsWith(Server.VERSION_5_0_PREFIX)
-												|| version.startsWith(Server.VERSION_5_1_PREFIX)
-												|| version.startsWith(Server.VERSION_5_6_PREFIX)
-												|| version.startsWith(Server.VERSION_5_7_PREFIX)
-											) {
-												pstmt.setString(pos++, mu.canCreateView()?"Y":"N");
-												pstmt.setString(pos++, mu.canShowView()?"Y":"N");
-												pstmt.setString(pos++, mu.canCreateRoutine()?"Y":"N");
-												pstmt.setString(pos++, mu.canAlterRoutine()?"Y":"N");
-												pstmt.setString(pos++, mu.canCreateUser()?"Y":"N");
+											if(mu.isSpecial()) {
+												LogFactory.getLogger(MySQLUserManager.class).log(
+													Level.WARNING,
+													null,
+													new SQLException("Refusing to create special user: " + username + " on " + mysqlServer.getName())
+												);
+											} else {
+												int pos=1;
+												pstmt.setString(pos++, host);
+												pstmt.setString(pos++, username.toString());
+												pstmt.setString(pos++, mu.canSelect()?"Y":"N");
+												pstmt.setString(pos++, mu.canInsert()?"Y":"N");
+												pstmt.setString(pos++, mu.canUpdate()?"Y":"N");
+												pstmt.setString(pos++, mu.canDelete()?"Y":"N");
+												pstmt.setString(pos++, mu.canCreate()?"Y":"N");
+												pstmt.setString(pos++, mu.canDrop()?"Y":"N");
+												pstmt.setString(pos++, mu.canReload()?"Y":"N");
+												pstmt.setString(pos++, mu.canShutdown()?"Y":"N");
+												pstmt.setString(pos++, mu.canProcess()?"Y":"N");
+												pstmt.setString(pos++, mu.canFile()?"Y":"N");
+												pstmt.setString(pos++, mu.canGrant()?"Y":"N");
+												pstmt.setString(pos++, mu.canReference()?"Y":"N");
+												pstmt.setString(pos++, mu.canIndex()?"Y":"N");
+												pstmt.setString(pos++, mu.canAlter()?"Y":"N");
+												pstmt.setString(pos++, mu.canShowDB()?"Y":"N");
+												pstmt.setString(pos++, mu.isSuper()?"Y":"N");
+												pstmt.setString(pos++, mu.canCreateTempTable()?"Y":"N");
+												pstmt.setString(pos++, mu.canLockTables()?"Y":"N");
+												pstmt.setString(pos++, mu.canExecute()?"Y":"N");
+												pstmt.setString(pos++, mu.isReplicationSlave()?"Y":"N");
+												pstmt.setString(pos++, mu.isReplicationClient()?"Y":"N");
 												if(
-													version.startsWith(Server.VERSION_5_1_PREFIX)
+													version.startsWith(Server.VERSION_5_0_PREFIX)
+													|| version.startsWith(Server.VERSION_5_1_PREFIX)
 													|| version.startsWith(Server.VERSION_5_6_PREFIX)
 													|| version.startsWith(Server.VERSION_5_7_PREFIX)
 												) {
-													pstmt.setString(pos++, mu.canEvent()?"Y":"N");
-													pstmt.setString(pos++, mu.canTrigger()?"Y":"N");
+													pstmt.setString(pos++, mu.canCreateView()?"Y":"N");
+													pstmt.setString(pos++, mu.canShowView()?"Y":"N");
+													pstmt.setString(pos++, mu.canCreateRoutine()?"Y":"N");
+													pstmt.setString(pos++, mu.canAlterRoutine()?"Y":"N");
+													pstmt.setString(pos++, mu.canCreateUser()?"Y":"N");
+													if(
+														version.startsWith(Server.VERSION_5_1_PREFIX)
+														|| version.startsWith(Server.VERSION_5_6_PREFIX)
+														|| version.startsWith(Server.VERSION_5_7_PREFIX)
+													) {
+														pstmt.setString(pos++, mu.canEvent()?"Y":"N");
+														pstmt.setString(pos++, mu.canTrigger()?"Y":"N");
+													}
 												}
-											}
-											pstmt.setInt(pos++, msu.getMaxQuestions());
-											pstmt.setInt(pos++, msu.getMaxUpdates());
-											pstmt.setInt(pos++, msu.getMaxConnections());
-											if(
-												version.startsWith(Server.VERSION_5_0_PREFIX)
-												|| version.startsWith(Server.VERSION_5_1_PREFIX)
-												|| version.startsWith(Server.VERSION_5_6_PREFIX)
-												|| version.startsWith(Server.VERSION_5_7_PREFIX)
-											) pstmt.setInt(pos++, msu.getMaxUserConnections());
-											if(version.startsWith(Server.VERSION_5_7_PREFIX)) {
-												boolean locked = msu.isDisabled();
-												pstmt.setString(pos++, locked?"Y":"N");
-											}
-											pstmt.executeUpdate();
+												pstmt.setInt(pos++, msu.getMaxQuestions());
+												pstmt.setInt(pos++, msu.getMaxUpdates());
+												pstmt.setInt(pos++, msu.getMaxConnections());
+												if(
+													version.startsWith(Server.VERSION_5_0_PREFIX)
+													|| version.startsWith(Server.VERSION_5_1_PREFIX)
+													|| version.startsWith(Server.VERSION_5_6_PREFIX)
+													|| version.startsWith(Server.VERSION_5_7_PREFIX)
+												) pstmt.setInt(pos++, msu.getMaxUserConnections());
+												if(version.startsWith(Server.VERSION_5_7_PREFIX)) {
+													boolean locked = msu.isDisabled();
+													pstmt.setString(pos++, locked?"Y":"N");
+												}
+												pstmt.executeUpdate();
 
-											modified = true;
+												modified = true;
+											}
 										}
 									}
 								}
@@ -647,12 +655,12 @@ final public class MySQLUserManager extends BuilderThread {
 											// Remove the extra host entry
 											String host=key.getElement1();
 											User.Name user=key.getElement2();
-											if(
-												user.equals(User.ROOT)
-												|| user.equals(User.MYSQL_SESSION)
-												|| user.equals(User.MYSQL_SYS)
-											) {
-												LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, new SQLException("Refusing to remove the " + user + " user for host " + host + ", please remove manually."));
+											if(User.isSpecial(user)) {
+												LogFactory.getLogger(MySQLUserManager.class).log(
+													Level.WARNING,
+													null,
+													new SQLException("Refusing to drop special user: " + user + " user for host " + host + " on " + mysqlServer.getName())
+												);
 											} else {
 												pstmt.setString(1, host);
 												pstmt.setString(2, user.toString());
@@ -677,19 +685,21 @@ final public class MySQLUserManager extends BuilderThread {
 							) {
 								// Older versions of MySQL are disabled by stashing the encrypted password and replacing it with an invalid hash
 								for(UserServer msu : users) {
-									String prePassword=msu.getPredisablePassword();
-									if(!msu.isDisabled()) {
-										if(prePassword!=null) {
-											setEncryptedPassword(mysqlServer, msu.getMySQLUser().getKey(), prePassword);
-											modified=true;
-											msu.setPredisablePassword(null);
-										}
-									} else {
-										if(prePassword==null) {
-											User.Name username=msu.getMySQLUser().getKey();
-											msu.setPredisablePassword(getEncryptedPassword(mysqlServer, username));
-											setPassword(mysqlServer, username, User.NO_PASSWORD);
-											modified=true;
+									if(!msu.isSpecial()) {
+										String prePassword=msu.getPredisablePassword();
+										if(!msu.isDisabled()) {
+											if(prePassword!=null) {
+												setEncryptedPassword(mysqlServer, msu.getMySQLUser().getKey(), prePassword);
+												modified=true;
+												msu.setPredisablePassword(null);
+											}
+										} else {
+											if(prePassword==null) {
+												User.Name username=msu.getMySQLUser().getKey();
+												msu.setPredisablePassword(getEncryptedPassword(mysqlServer, username));
+												setPassword(mysqlServer, username, User.NO_PASSWORD);
+												modified=true;
+											}
 										}
 									}
 								}
@@ -714,6 +724,9 @@ final public class MySQLUserManager extends BuilderThread {
 	}
 
 	public static String getEncryptedPassword(Server mysqlServer, User.Name username) throws IOException, SQLException {
+		if(User.isSpecial(username)) {
+			throw new SQLException("Refusing to get the encrypted password for a special user: " + username + " on " + mysqlServer.getName());
+		}
 		final String version = mysqlServer.getVersion().getVersion();
 		String sql;
 		if(
@@ -755,6 +768,9 @@ final public class MySQLUserManager extends BuilderThread {
 	}
 
 	public static void setPassword(Server mysqlServer, User.Name username, String password) throws IOException, SQLException {
+		if(User.isSpecial(username)) {
+			throw new SQLException("Refusing to set the password for a special user: " + username + " on " + mysqlServer.getName());
+		}
 		final String version = mysqlServer.getVersion().getVersion();
 		// Get the connection to work through
 		AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
@@ -809,6 +825,9 @@ final public class MySQLUserManager extends BuilderThread {
 	}
 
 	public static void setEncryptedPassword(Server mysqlServer, User.Name username, String password) throws IOException, SQLException {
+		if(User.isSpecial(username)) {
+			throw new SQLException("Refusing to set the encrypted password for a special user: " + username + " on " + mysqlServer.getName());
+		}
 		final String version = mysqlServer.getVersion().getVersion();
 		// Get the connection to work through
 		AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);

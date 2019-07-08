@@ -143,9 +143,17 @@ final public class MySQLDatabaseManager extends BuilderThread {
 									for(Database database : databases) {
 										Database.Name name = database.getName();
 										if(!existing.remove(name)) {
-											// Create the database
-											stmt.executeUpdate("create database " + name);
-											modified=true;
+											if(database.isSpecial()) {
+												LogFactory.getLogger(MySQLDatabaseManager.class).log(
+													Level.WARNING,
+													null,
+													new SQLException("Refusing to create special database: " + name + " on " + mysqlServer.getName())
+												);
+											} else {
+												// Create the database
+												stmt.executeUpdate("create database " + name);
+												modified=true;
+											}
 										}
 									}
 
@@ -155,7 +163,13 @@ final public class MySQLDatabaseManager extends BuilderThread {
 											LogFactory.getLogger(MySQLDatabaseManager.class).log(
 												Level.WARNING,
 												null,
-												new SQLException("Refusing to drop system MySQL Database: " + dbName + " on " + mysqlServer)
+												new SQLException("Refusing to drop system database: " + dbName + " on " + mysqlServer.getName())
+											);
+										} else if(Database.isSpecial(dbName)) {
+											LogFactory.getLogger(MySQLDatabaseManager.class).log(
+												Level.WARNING,
+												null,
+												new SQLException("Refusing to drop special database: " + dbName + " on " + mysqlServer.getName())
 											);
 										} else {
 											// Dump database before dropping
