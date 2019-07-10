@@ -17,19 +17,36 @@ aoserv.daemon.ssl.keystore.password=[KEYSTORE_PASSWORD]
 aoserv.daemon.ssl.keystore.path=/etc/opt/aoserv-daemon/com/aoindustries/aoserv/daemon/keystore
 
 # The PostgreSQL server
+# Default settings:
 aoserv.daemon.postgres.password=[POSTGRES_PASSWORD]
 aoserv.daemon.postgres.connections=16
 aoserv.daemon.postgres.max_connection_age=
+# Per-instance settings:
+# aoserv.daemon.postgres.[POSTGRES_SERVER_NAME].password=[POSTGRES_PASSWORD]
+# aoserv.daemon.postgres.[POSTGRES_SERVER_NAME].connections=16
+# aoserv.daemon.postgres.[POSTGRES_SERVER_NAME].max_connection_age=
 
 # The MySQL server
 aoserv.daemon.mysql.driver=com.mysql.jdbc.Driver
+# Default settings:
 aoserv.daemon.mysql.user=root
 aoserv.daemon.mysql.password=[MYSQL_PASSWORD]
 aoserv.daemon.mysql.connections=16
 aoserv.daemon.mysql.max_connection_age=
+# Per-instance settings:
+# aoserv.daemon.mysql.[MYSQL_SERVER_NAME].user=root
+# aoserv.daemon.mysql.[MYSQL_SERVER_NAME].password=[MYSQL_PASSWORD]
+# aoserv.daemon.mysql.[MYSQL_SERVER_NAME].connections=16
+# aoserv.daemon.mysql.[MYSQL_SERVER_NAME].max_connection_age=
 
 # Cyrus
 aoserv.daemon.cyrus.password=[CYRUS_PASSWORD]
+
+# NetworkMonitor settings
+aoserv.daemon.monitor.NetworkMonitor.networkNames=
+
+# PackageManager settings
+aoserv.daemon.unix.linux.PackageManager.uninstallEnabled=true
 
 # Enabled/disabled each Manager
 aoserv.daemon.cvsd.CvsManager.enabled=true
@@ -37,18 +54,21 @@ aoserv.daemon.distro.DistroManager.enabled=true
 aoserv.daemon.dns.DNSManager.enabled=true
 aoserv.daemon.email.EmailAddressManager.enabled=true
 aoserv.daemon.email.EmailDomainManager.enabled=true
-aoserv.daemon.email.jilter.JilterConfigurationWriter.enabled=true
 aoserv.daemon.email.ImapManager.enabled=true
 aoserv.daemon.email.MajordomoManager.enabled=true
 aoserv.daemon.email.ProcmailManager.enabled=true
+aoserv.daemon.email.SaslauthdManager.enabled=true
 aoserv.daemon.email.SendmailCFManager.enabled=true
 aoserv.daemon.email.SmtpRelayManager.enabled=true
 aoserv.daemon.email.SpamAssassinManager.enabled=true
+aoserv.daemon.email.jilter.JilterConfigurationWriter.enabled=true
 aoserv.daemon.failover.FailoverFileReplicationManager.enabled=true
 aoserv.daemon.ftp.FTPManager.enabled=true
 aoserv.daemon.httpd.AWStatsManager.enabled=true
 aoserv.daemon.httpd.HttpdManager.enabled=true
+aoserv.daemon.iptables.IpReputationManager.enabled=true
 aoserv.daemon.monitor.MrtgManager.enabled=true
+aoserv.daemon.monitor.NetworkMonitor.enabled=true
 aoserv.daemon.mysql.MySQLDatabaseManager.enabled=true
 aoserv.daemon.mysql.MySQLDBUserManager.enabled=true
 aoserv.daemon.mysql.MySQLHostManager.enabled=true
@@ -56,6 +76,9 @@ aoserv.daemon.mysql.MySQLServerManager.enabled=true
 aoserv.daemon.mysql.MySQLUserManager.enabled=true
 aoserv.daemon.net.DhcpManager.enabled=true
 aoserv.daemon.net.NetDeviceManager.enabled=true
+aoserv.daemon.net.NullRouteManager.enabled=true
+aoserv.daemon.net.fail2ban.Fail2banManager.enabled=true
+aoserv.daemon.net.firewalld.FirewalldManager.enabled=true
 aoserv.daemon.net.ssh.SshdManager.enabled=true
 aoserv.daemon.net.xinetd.XinetdManager.enabled=true
 aoserv.daemon.postgres.PgHbaManager.enabled=true
@@ -63,7 +86,5 @@ aoserv.daemon.postgres.PostgresDatabaseManager.enabled=true
 aoserv.daemon.postgres.PostgresServerManager.enabled=true
 aoserv.daemon.postgres.PostgresUserManager.enabled=true
 aoserv.daemon.random.RandomEntropyManager.enabled=true
-aoserv.daemon.report.ServerReportThread.enabled=true
-aoserv.daemon.slocate.SLocateManager.enabled=true
 aoserv.daemon.timezone.TimeZoneManager.enabled=true
 aoserv.daemon.unix.linux.LinuxAccountManager.enabled=true
