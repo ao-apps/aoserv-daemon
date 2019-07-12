@@ -285,7 +285,6 @@ public final class PgHbaManager extends BuilderThread {
 										boolean isLocalhost = bind.equals(InetAddress.LOOPBACK_IPV4) || bind.equals(InetAddress.LOOPBACK_IPV6);
 
 										// aoserv database
-										out.print("# AOServ Daemon: authenticate localhost TCP, only to " + Database.AOSERV + " database\n");
 										UserServer postgresUser = ps.getPostgresServerUser(User.POSTGRES);
 										if(postgresUser == null) throw new SQLException("User not found: " + User.POSTGRES + " on " + serverName);
 										Database aoservDatabase = ps.getPostgresDatabase(Database.AOSERV);
@@ -299,19 +298,26 @@ public final class PgHbaManager extends BuilderThread {
 													+ " does not have the expected owner: expected "
 													+ User.POSTGRES + ", got " + aoservDatdba.getPostresUser_username());
 										}
-										out.print("hostnossl " + Database.AOSERV + " " + User.POSTGRES + " 127.0.0.1/32 ");
-										out.print(family.equals(StandardProtocolFamily.INET) ? (isScramSha256 ? "scram-sha-256" : "md5") : "reject");
-										out.print('\n');
-										out.print("hostnossl " + Database.AOSERV + " " + User.POSTGRES + " ::1/128      ");
-										out.print(family.equals(StandardProtocolFamily.INET6) ? (isScramSha256 ? "scram-sha-256" : "md5") : "reject");
-										out.print('\n');
+										out.print("# AOServ Daemon: authenticate localhost TCP, only to " + Database.AOSERV + " database\n");
+										if(family.equals(StandardProtocolFamily.INET)) {
+											out.print("hostnossl " + Database.AOSERV + " " + User.POSTGRES + " 127.0.0.1/32 ");
+											out.print(isScramSha256 ? "scram-sha-256" : "md5");
+											out.print('\n');
+										} else if(family.equals(StandardProtocolFamily.INET6)) {
+											out.print("hostnossl " + Database.AOSERV + " " + User.POSTGRES + " ::1/128 ");
+											out.print(isScramSha256 ? "scram-sha-256" : "md5");
+											out.print('\n');
+										} else {
+											throw new AssertionError("Unexpected family: " + family);
+										}
 										out.print('\n');
 
 										// postgres user
 										out.print("# Super user: local peer-only, to all databases\n");
-										out.print("local all " + User.POSTGRES + " peer\n");
+										out.print("local all " + User.POSTGRES + "     peer\n");
 										//out.print("hostnossl all " + User.POSTGRES + " 127.0.0.1/32 ident\n");
 										//out.print("hostnossl all " + User.POSTGRES + " ::1/128      ident\n");
+										out.print("host  all " + User.POSTGRES + " all reject\n");
 
 										// postgresmon database
 										UserServer postgresmonUser = ps.getPostgresServerUser(User.POSTGRESMON);
@@ -338,6 +344,7 @@ public final class PgHbaManager extends BuilderThread {
 												out.print('\n');
 											} else {
 												out.print("# Monitoring: authenticate all TCP, only to " + User.POSTGRESMON + " database\n");
+												// TODO: hostssl for Let's Encrypt-enabled servers, or selectable per database
 												out.print("host " + Database.POSTGRESMON + " " + User.POSTGRESMON + " all ");
 												out.print(isScramSha256 ? "scram-sha-256" : "md5");
 												out.print('\n');
