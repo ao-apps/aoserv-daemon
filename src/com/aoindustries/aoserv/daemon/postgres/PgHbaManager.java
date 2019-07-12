@@ -100,8 +100,8 @@ public final class PgHbaManager extends BuilderThread {
 								String version=ps.getVersion().getTechnologyVersion(connector).getVersion();
 								int postgresUID=thisAOServer.getLinuxServerAccount(com.aoindustries.aoserv.client.linux.User.POSTGRES).getUid().getId();
 								int postgresGID=thisAOServer.getLinuxServerGroup(Group.POSTGRES).getGid().getId();
-								Server.Name serverName=ps.getName();
-								File serverDir=new File(PostgresServerManager.pgsqlDirectory, serverName.toString());
+								Server.Name serverName = ps.getName();
+								File serverDir = new File(PostgresServerManager.pgsqlDirectory, serverName.toString());
 								ByteArrayOutputStream bout = new ByteArrayOutputStream();
 								try (ChainWriter out = new ChainWriter(bout)) {
 									if(
@@ -293,27 +293,31 @@ public final class PgHbaManager extends BuilderThread {
 										out.print("local     all " + User.POSTGRES + "              peer\n");
 										out.print("hostnossl all " + User.POSTGRES + " 127.0.0.1/32 ident\n");
 										out.print("hostnossl all " + User.POSTGRES + " ::1/128      ident\n");
-										if(ps.getPostgresServerUser(User.POSTGRESMON) != null) {
+										UserServer postgresmonUser = ps.getPostgresServerUser(User.POSTGRESMON);
+										Database postgresmonDB = ps.getPostgresDatabase(Database.POSTGRESMON);
+										if(postgresmonUser != null) {
+											if(postgresmonDB == null) {
+												throw new SQLException("Database not found: " + Database.POSTGRESMON + " on " + serverName);
+											}
+											UserServer datdba = postgresmonDB.getDatDBA();
+											if(!datdba.equals(postgresmonUser)) {
+												throw new SQLException(
+													Database.POSTGRESMON + " on " + serverName
+														+ " does not have the expected owner: expected "
+														+ User.POSTGRESMON + ", got " + datdba.getPostresUser_username());
+											}
 											out.print('\n');
-											Database.Name monitoringDB = ps.getPostgresDatabase(Database.POSTGRESMON) != null
-												// Has monitoring database
-												? Database.POSTGRESMON
-												// Compatibility: Allow connection to aoserv database
-												: Database.AOSERV;
 											if(isLocalhost) {
 												out.print("# Monitoring: authenticate localhost TCP, only to " + User.POSTGRESMON + " database\n");
-												out.print("hostnossl ");
-												out.print(monitoringDB);
-												out.print(" " + User.POSTGRESMON + " 127.0.0.1/32 md5\n");
-												out.print("hostnossl ");
-												out.print(monitoringDB);
-												out.print(" " + User.POSTGRESMON + " ::1/128      md5\n");
+												out.print("hostnossl " + Database.POSTGRESMON + " " + User.POSTGRESMON + " 127.0.0.1/32 md5\n");
+												out.print("hostnossl " + Database.POSTGRESMON + " " + User.POSTGRESMON + " ::1/128      md5\n");
 											} else {
 												out.print("# Monitoring: authenticate all TCP, only to " + User.POSTGRESMON + " database\n");
-												out.print("host ");
-												out.print(monitoringDB);
-												out.print(" " + User.POSTGRESMON + " all md5\n");
+												out.print("host " + Database.POSTGRESMON + " " + User.POSTGRESMON + " all md5\n");
 											}
+										} else {
+											if(postgresmonDB != null) throw new SQLException("User not found: " + User.POSTGRESMON + " on " + serverName);
+											// Neither postgresmon database nor use exists - OK and skipped
 										}
 										boolean didComment = false;
 										for(Database db : pds) {
