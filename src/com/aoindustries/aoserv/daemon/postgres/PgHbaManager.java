@@ -267,6 +267,8 @@ public final class PgHbaManager extends BuilderThread {
 										|| version.startsWith(Version.VERSION_11+'.')
 										|| version.startsWith(Version.VERSION_11+'R')
 									) {
+										// scram-sha-256 as of PostgreSQL 10
+										boolean isScramSha256 = Version.isScramSha256(version);
 										// Find all non-system users on this server, used to limit "peer" and "ident" records
 										Set<com.aoindustries.aoserv.client.account.User.Name> postgresIdentUsers = new HashSet<>();
 										for(com.aoindustries.aoserv.client.linux.UserServer lsa : thisAOServer.getLinuxServerAccounts()) {
@@ -298,10 +300,10 @@ public final class PgHbaManager extends BuilderThread {
 													+ User.POSTGRES + ", got " + aoservDatdba.getPostresUser_username());
 										}
 										out.print("hostnossl " + Database.AOSERV + " " + User.POSTGRES + " 127.0.0.1/32 ");
-										out.print(family.equals(StandardProtocolFamily.INET) ? "md5" : "reject");
+										out.print(family.equals(StandardProtocolFamily.INET) ? (isScramSha256 ? "scram-sha-256" : "md5") : "reject");
 										out.print('\n');
 										out.print("hostnossl " + Database.AOSERV + " " + User.POSTGRES + " ::1/128      ");
-										out.print(family.equals(StandardProtocolFamily.INET6) ? "md5" : "reject");
+										out.print(family.equals(StandardProtocolFamily.INET6) ? (isScramSha256 ? "scram-sha-256" : "md5") : "reject");
 										out.print('\n');
 										out.print('\n');
 
@@ -328,11 +330,17 @@ public final class PgHbaManager extends BuilderThread {
 											out.print('\n');
 											if(isLocalhost) {
 												out.print("# Monitoring: authenticate localhost TCP, only to " + User.POSTGRESMON + " database\n");
-												out.print("hostnossl " + Database.POSTGRESMON + " " + User.POSTGRESMON + " 127.0.0.1/32 md5\n");
-												out.print("hostnossl " + Database.POSTGRESMON + " " + User.POSTGRESMON + " ::1/128      md5\n");
+												out.print("hostnossl " + Database.POSTGRESMON + " " + User.POSTGRESMON + " 127.0.0.1/32 ");
+												out.print(isScramSha256 ? "scram-sha-256" : "md5");
+												out.print('\n');
+												out.print("hostnossl " + Database.POSTGRESMON + " " + User.POSTGRESMON + " ::1/128      ");
+												out.print(isScramSha256 ? "scram-sha-256" : "md5");
+												out.print('\n');
 											} else {
 												out.print("# Monitoring: authenticate all TCP, only to " + User.POSTGRESMON + " database\n");
-												out.print("host " + Database.POSTGRESMON + " " + User.POSTGRESMON + " all md5\n");
+												out.print("host " + Database.POSTGRESMON + " " + User.POSTGRESMON + " all ");
+												out.print(isScramSha256 ? "scram-sha-256" : "md5");
+												out.print('\n');
 											}
 										} else {
 											// Check for database exists without expected user
