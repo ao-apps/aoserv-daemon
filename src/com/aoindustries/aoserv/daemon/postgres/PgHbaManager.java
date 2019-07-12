@@ -281,7 +281,22 @@ public final class PgHbaManager extends BuilderThread {
 										InetAddress bind = ps.getBind().getIpAddress().getInetAddress();
 										ProtocolFamily family = bind.getProtocolFamily();
 										boolean isLocalhost = bind.equals(InetAddress.LOOPBACK_IPV4) || bind.equals(InetAddress.LOOPBACK_IPV6);
+
+										// aoserv database
 										out.print("# AOServ Daemon: authenticate localhost TCP, only to " + Database.AOSERV + " database\n");
+										UserServer postgresUser = ps.getPostgresServerUser(User.POSTGRES);
+										if(postgresUser == null) throw new SQLException("User not found: " + User.POSTGRES + " on " + serverName);
+										Database aoservDatabase = ps.getPostgresDatabase(Database.AOSERV);
+										if(aoservDatabase == null) {
+											throw new SQLException("Database not found: " + Database.AOSERV + " on " + serverName);
+										}
+										UserServer aoservDatdba = aoservDatabase.getDatDBA();
+										if(!aoservDatdba.equals(postgresUser)) {
+											throw new SQLException(
+												Database.AOSERV + " on " + serverName
+													+ " does not have the expected owner: expected "
+													+ User.POSTGRES + ", got " + aoservDatdba.getPostresUser_username());
+										}
 										out.print("hostnossl " + Database.AOSERV + " " + User.POSTGRES + " 127.0.0.1/32 ");
 										out.print(family.equals(StandardProtocolFamily.INET) ? "md5" : "reject");
 										out.print('\n');
@@ -289,10 +304,14 @@ public final class PgHbaManager extends BuilderThread {
 										out.print(family.equals(StandardProtocolFamily.INET6) ? "md5" : "reject");
 										out.print('\n');
 										out.print('\n');
+
+										// postgres user
 										out.print("# Super user: local peer, ident localhost TCP, to all databases\n");
 										out.print("local     all " + User.POSTGRES + "              peer\n");
 										out.print("hostnossl all " + User.POSTGRES + " 127.0.0.1/32 ident\n");
 										out.print("hostnossl all " + User.POSTGRES + " ::1/128      ident\n");
+
+										// postgresmon database
 										UserServer postgresmonUser = ps.getPostgresServerUser(User.POSTGRESMON);
 										Database postgresmonDB = ps.getPostgresDatabase(Database.POSTGRESMON);
 										if(postgresmonUser != null) {
@@ -316,6 +335,7 @@ public final class PgHbaManager extends BuilderThread {
 												out.print("host " + Database.POSTGRESMON + " " + User.POSTGRESMON + " all md5\n");
 											}
 										} else {
+											// Check for database exists without expected user
 											if(postgresmonDB != null) throw new SQLException("User not found: " + User.POSTGRESMON + " on " + serverName);
 											// Neither postgresmon database nor use exists - OK and skipped
 										}
