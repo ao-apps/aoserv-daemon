@@ -31,6 +31,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -354,10 +356,14 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	}
 
 	public static String getJdbcUrl(Port port, Database.Name database) {
-		if(port == Server.DEFAULT_PORT) {
-			return "jdbc:mysql://127.0.0.1/" + database;
-		} else {
-			return "jdbc:mysql://127.0.0.1:" + port.getPort() + "/" + database;
+		try {
+			if(port == Server.DEFAULT_PORT) {
+				return "jdbc:mysql://127.0.0.1/" + URLEncoder.encode(database.toString(), "UTF-8");
+			} else {
+				return "jdbc:mysql://127.0.0.1:" + port.getPort() + "/" + URLEncoder.encode(database.toString(), "UTF-8");
+			}
+		} catch(UnsupportedEncodingException e) {
+			throw new AssertionError("UTF-8 encoding should be always supported", e);
 		}
 	}
 

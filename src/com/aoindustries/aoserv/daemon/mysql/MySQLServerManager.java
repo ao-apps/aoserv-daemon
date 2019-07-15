@@ -22,6 +22,7 @@ import com.aoindustries.selinux.SEManagePort;
 import com.aoindustries.sql.AOConnectionPool;
 import java.io.File;
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -112,10 +113,17 @@ final public class MySQLServerManager extends BuilderThread {
 			if(pool==null) {
 				Database md=ms.getMySQLDatabase(Database.MYSQL);
 				if(md==null) throw new SQLException("Unable to find Database: "+Database.MYSQL+" on "+ms.toString());
+				Port port = md.getMySQLServer().getBind().getPort();
 				Server.Name serverName = ms.getName();
-				pool=new AOConnectionPool(
+				String jdbcUrl;
+				if(port == Server.DEFAULT_PORT) {
+					jdbcUrl = "jdbc:mysql://127.0.0.1/" + URLEncoder.encode(md.getName().toString(), "UTF-8");
+				} else {
+					jdbcUrl = "jdbc:mysql://127.0.0.1:" + port.getPort() + "/" + URLEncoder.encode(md.getName().toString(), "UTF-8");
+				}
+				pool = new AOConnectionPool(
 					AOServDaemonConfiguration.getMySqlDriver(),
-					"jdbc:mysql://127.0.0.1:"+md.getMySQLServer().getBind().getPort().getPort()+"/"+md.getName(),
+					jdbcUrl,
 					AOServDaemonConfiguration.getMySqlUser(serverName),
 					AOServDaemonConfiguration.getMySqlPassword(serverName),
 					AOServDaemonConfiguration.getMySqlConnections(serverName),
