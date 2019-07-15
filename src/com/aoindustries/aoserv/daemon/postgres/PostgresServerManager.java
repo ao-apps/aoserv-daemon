@@ -125,26 +125,26 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 				if(pd == null) throw new SQLException("Unable to find Database: " + Database.AOSERV + " on "+ps.toString());
 				String jdbcUrl;
 				if(
-					version.startsWith(Version.VERSION_7_1+'.')
-					|| version.startsWith(Version.VERSION_7_2+'.')
-					|| version.startsWith(Version.VERSION_7_3+'.')
-					|| version.startsWith(Version.VERSION_8_1+'.')
-					|| version.startsWith(Version.VERSION_8_3+'.')
-					|| version.startsWith(Version.VERSION_8_3+'R')
+					version.startsWith(Version.VERSION_7_1 + '.')
+					|| version.startsWith(Version.VERSION_7_2 + '.')
+					|| version.startsWith(Version.VERSION_7_3 + '.')
+					|| version.startsWith(Version.VERSION_8_1 + '.')
+					|| version.startsWith(Version.VERSION_8_3 + '.')
+					|| version.startsWith(Version.VERSION_8_3 + 'R')
 				) {
 					// Connect to IP (no 127.0.0.1/::1-only support)
 					jdbcUrl = pd.getJdbcUrl(true);
 				} else if(
-					version.startsWith(Version.VERSION_9_4+'.')
-					|| version.startsWith(Version.VERSION_9_4+'R')
-					|| version.startsWith(Version.VERSION_9_5+'.')
-					|| version.startsWith(Version.VERSION_9_5+'R')
-					|| version.startsWith(Version.VERSION_9_6+'.')
-					|| version.startsWith(Version.VERSION_9_6+'R')
-					|| version.startsWith(Version.VERSION_10+'.')
-					|| version.startsWith(Version.VERSION_10+'R')
-					|| version.startsWith(Version.VERSION_11+'.')
-					|| version.startsWith(Version.VERSION_11+'R')
+					version.startsWith(Version.VERSION_9_4 + '.')
+					|| version.startsWith(Version.VERSION_9_4 + 'R')
+					|| version.startsWith(Version.VERSION_9_5 + '.')
+					|| version.startsWith(Version.VERSION_9_5 + 'R')
+					|| version.startsWith(Version.VERSION_9_6 + '.')
+					|| version.startsWith(Version.VERSION_9_6 + 'R')
+					|| version.startsWith(Version.VERSION_10 + '.')
+					|| version.startsWith(Version.VERSION_10 + 'R')
+					|| version.startsWith(Version.VERSION_11 + '.')
+					|| version.startsWith(Version.VERSION_11 + 'R')
 				) {
 					// Connect to 127.0.0.1 or ::1
 					com.aoindustries.aoserv.client.linux.Server ao = ps.getAoServer();
@@ -283,62 +283,73 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 			for(Server postgresServer : AOServDaemon.getThisAOServer().getPostgresServers()) {
 				String version=postgresServer.getVersion().getTechnologyVersion(conn).getVersion();
 				if(
-					!version.startsWith(Version.VERSION_7_1+'.')
-					&& !version.startsWith(Version.VERSION_7_2+'.')
-					&& !version.startsWith(Version.VERSION_7_3+'.')
-					&& !version.startsWith(Version.VERSION_8_0+'.')
+					!version.startsWith(Version.VERSION_7_1 + '.')
+					&& !version.startsWith(Version.VERSION_7_2 + '.')
+					&& !version.startsWith(Version.VERSION_7_3 + '.')
+					&& !version.startsWith(Version.VERSION_8_0 + '.')
 				) {
 					// Is 8.1 or newer, need to compress and rotate logs
-					File logDirectory=new File("/var/log/postgresql", postgresServer.getName().toString());
-					String[] list=logDirectory.list();
-					if(list!=null) {
+					File logDirectory = new File("/var/opt/postgresql-" + postgresServer.getName() + "/log");
+					String[] list = logDirectory.list();
+					if(list != null) {
 						for(String filename : list) {
 							if(
 								!filename.equals("stderr")
 								&& !filename.equals("stdout")
 							) {
 								// Must be in postgresql-2006-02-14_011332.log format
+								// TODO: *.csv, too
 								if(
-									filename.length()!=32
+									filename.length() != 32
 									|| !filename.substring(0, 11).equals("postgresql-")
-									|| filename.charAt(11)<'0' || filename.charAt(11)>'9'
-									|| filename.charAt(12)<'0' || filename.charAt(12)>'9'
-									|| filename.charAt(13)<'0' || filename.charAt(13)>'9'
-									|| filename.charAt(14)<'0' || filename.charAt(14)>'9'
-									|| filename.charAt(15)!='-'
-									|| filename.charAt(16)<'0' || filename.charAt(16)>'9'
-									|| filename.charAt(17)<'0' || filename.charAt(17)>'9'
-									|| filename.charAt(18)!='-'
-									|| filename.charAt(19)<'0' || filename.charAt(19)>'9'
-									|| filename.charAt(20)<'0' || filename.charAt(20)>'9'
-									|| filename.charAt(21)!='_'
-									|| filename.charAt(22)<'0' || filename.charAt(22)>'9'
-									|| filename.charAt(23)<'0' || filename.charAt(23)>'9'
-									|| filename.charAt(24)<'0' || filename.charAt(24)>'9'
-									|| filename.charAt(25)<'0' || filename.charAt(25)>'9'
-									|| filename.charAt(26)<'0' || filename.charAt(26)>'9'
-									|| filename.charAt(27)<'0' || filename.charAt(27)>'9'
-									|| filename.charAt(28)!='.'
-									|| filename.charAt(29)!='l'
-									|| filename.charAt(30)!='o'
-									|| filename.charAt(31)!='g'
+									|| filename.charAt(11) < '0' || filename.charAt(11)>'9'
+									|| filename.charAt(12) < '0' || filename.charAt(12)>'9'
+									|| filename.charAt(13) < '0' || filename.charAt(13)>'9'
+									|| filename.charAt(14) < '0' || filename.charAt(14)>'9'
+									|| filename.charAt(15) != '-'
+									|| filename.charAt(16) < '0' || filename.charAt(16)>'9'
+									|| filename.charAt(17) < '0' || filename.charAt(17)>'9'
+									|| filename.charAt(18) != '-'
+									|| filename.charAt(19) < '0' || filename.charAt(19)>'9'
+									|| filename.charAt(20) < '0' || filename.charAt(20)>'9'
+									|| filename.charAt(21) != '_'
+									|| filename.charAt(22) < '0' || filename.charAt(22)>'9'
+									|| filename.charAt(23) < '0' || filename.charAt(23)>'9'
+									|| filename.charAt(24) < '0' || filename.charAt(24)>'9'
+									|| filename.charAt(25) < '0' || filename.charAt(25)>'9'
+									|| filename.charAt(26) < '0' || filename.charAt(26)>'9'
+									|| filename.charAt(27) < '0' || filename.charAt(27)>'9'
+									|| filename.charAt(28) != '.'
+									|| (
+										!(
+											// *.log
+											filename.charAt(29) == 'l'
+											|| filename.charAt(30) == 'o'
+											|| filename.charAt(31) == 'g'
+										) && !(
+											// *.csv
+											filename.charAt(29) == 'c'
+											|| filename.charAt(30) == 's'
+											|| filename.charAt(31) == 'v'
+										)
+									)
 								) {
-									LogFactory.getLogger(PostgresServerManager.class).log(Level.WARNING, null, new IOException("Warning, unexpected filename, will not remove: "+logDirectory.getPath()+"/"+filename));
+									LogFactory.getLogger(PostgresServerManager.class).log(Level.WARNING, null, new IOException("Warning, unexpected filename, will not remove: " + logDirectory.getPath() + "/" + filename));
 								} else {
 									// Determine the timestamp of the file
-									Calendar fileDate=Calendar.getInstance();
+									Calendar fileDate = Calendar.getInstance();
 									fileDate.set(Calendar.YEAR, Integer.parseInt(filename.substring(11, 15)));
-									fileDate.set(Calendar.MONTH, Integer.parseInt(filename.substring(16, 18))-1);
+									fileDate.set(Calendar.MONTH, Integer.parseInt(filename.substring(16, 18)) - 1);
 									fileDate.set(Calendar.DAY_OF_MONTH, Integer.parseInt(filename.substring(19, 21)));
 									fileDate.set(Calendar.HOUR_OF_DAY, 0);
 									fileDate.set(Calendar.MINUTE, 0);
 									fileDate.set(Calendar.SECOND, 0);
 									fileDate.set(Calendar.MILLISECOND, 0);
 
-									Calendar monthAgo=Calendar.getInstance();
+									Calendar monthAgo = Calendar.getInstance();
 									monthAgo.add(Calendar.MONTH, -1);
 
-									if(fileDate.compareTo(monthAgo)<0) {
+									if(fileDate.compareTo(monthAgo) < 0) {
 										new UnixFile(logDirectory, filename).delete();
 									}
 								}

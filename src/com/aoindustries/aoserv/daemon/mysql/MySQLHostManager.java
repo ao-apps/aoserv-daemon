@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -56,8 +56,10 @@ final public class MySQLHostManager extends BuilderThread {
 					String version=mysqlServer.getVersion().getVersion();
 					// hosts no longer exists in MySQL 5.6.7+
 					if(
-						!version.startsWith(Server.VERSION_5_6_PREFIX)
-						&& !version.startsWith(Server.VERSION_5_7_PREFIX)
+						version.startsWith(Server.VERSION_4_0_PREFIX)
+						|| version.startsWith(Server.VERSION_4_1_PREFIX)
+						|| version.startsWith(Server.VERSION_5_0_PREFIX)
+						|| version.startsWith(Server.VERSION_5_1_PREFIX)
 					) {
 						boolean modified = false;
 						// Get the connection to work through
@@ -68,7 +70,7 @@ final public class MySQLHostManager extends BuilderThread {
 							Set<String> existing = new HashSet<>();
 							try (
 								Statement stmt = conn.createStatement();
-								ResultSet results = stmt.executeQuery("select host from host")
+								ResultSet results = stmt.executeQuery("SELECT host FROM host")
 							) {
 								while (results.next()) {
 									String host = results.getString(1);
@@ -95,10 +97,10 @@ final public class MySQLHostManager extends BuilderThread {
 
 							// Add the hosts that do not exist and should
 							String insertSQL;
-							if(version.startsWith(Server.VERSION_4_0_PREFIX))      insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
-							else if(version.startsWith(Server.VERSION_4_1_PREFIX)) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
-							else if(version.startsWith(Server.VERSION_5_0_PREFIX)) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
-							else if(version.startsWith(Server.VERSION_5_1_PREFIX)) insertSQL="insert into host values(?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
+							if(version.startsWith(Server.VERSION_4_0_PREFIX))      insertSQL = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
+							else if(version.startsWith(Server.VERSION_4_1_PREFIX)) insertSQL = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
+							else if(version.startsWith(Server.VERSION_5_0_PREFIX)) insertSQL = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
+							else if(version.startsWith(Server.VERSION_5_1_PREFIX)) insertSQL = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
 							else throw new SQLException("Unsupported MySQL version: "+version);
 
 							try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
@@ -107,7 +109,6 @@ final public class MySQLHostManager extends BuilderThread {
 										// Add the host
 										pstmt.setString(1, hostname);
 										pstmt.executeUpdate();
-
 										modified = true;
 									}
 								}
@@ -115,7 +116,7 @@ final public class MySQLHostManager extends BuilderThread {
 
 							// Remove the extra hosts
 							if (!existing.isEmpty()) {
-								try (PreparedStatement pstmt = conn.prepareStatement("delete from host where host=?")) {
+								try (PreparedStatement pstmt = conn.prepareStatement("DELETE FROM host WHERE host=?")) {
 									for (String dbName : existing) {
 										// Remove the extra host entry
 										pstmt.setString(1, dbName);

@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
@@ -59,8 +60,8 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 	@Override
 	protected boolean doRebuild() {
 		try {
-			AOServConnector connector=AOServDaemon.getConnector();
-			com.aoindustries.aoserv.client.linux.Server thisAOServer=AOServDaemon.getThisAOServer();
+			AOServConnector connector = AOServDaemon.getConnector();
+			com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
 			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
@@ -76,20 +77,19 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 					if(pds.isEmpty()) {
 						LogFactory.getLogger(PostgresDatabaseManager.class).severe("No databases; refusing to rebuild config: " + ps);
 					} else {
-						int port=ps.getBind().getPort().getPort();
-						Version pv=ps.getVersion();
-						String version=pv.getTechnologyVersion(connector).getVersion();
-						String minorVersion=pv.getMinorVersion();
+						int port = ps.getBind().getPort().getPort();
+						Version pv = ps.getVersion();
+						String version = pv.getTechnologyVersion(connector).getVersion();
+						String minorVersion = pv.getMinorVersion();
 
 						// Get the connection to work through
-						AOConnectionPool pool=PostgresServerManager.getPool(ps);
-						Connection conn=pool.getConnection(false);
+						AOConnectionPool pool = PostgresServerManager.getPool(ps);
+						Connection conn = pool.getConnection(false);
 						try {
-							conn.setAutoCommit(true);
 							// Get the list of all existing databases
 							Set<Database.Name> existing = new HashSet<>();
 							try (Statement stmt = conn.createStatement()) {
-								try (ResultSet results = stmt.executeQuery("select datname from pg_database")) {
+								try (ResultSet results = stmt.executeQuery("SELECT datname FROM pg_database")) {
 									try {
 										while(results.next()) {
 											Database.Name datname = Database.Name.valueOf(results.getString(1));
@@ -99,140 +99,147 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 										throw new SQLException(e);
 									}
 								}
+							}
 
-								// Create the databases that do not exist and should
-								for(Database database : pds) {
-									Database.Name name=database.getName();
-									if(!existing.remove(name)) {
-										if(database.isSpecial()) {
-											LogFactory.getLogger(PostgresDatabaseManager.class).log(
-												Level.WARNING,
-												null,
-												new SQLException("Refusing to create special database: " + name + " on " + ps.getName())
-											);
-										} else {
-											UserServer datdba=database.getDatDBA();
-											if(
-												version.startsWith(Version.VERSION_7_3+'.')
-												|| version.startsWith(Version.VERSION_8_0+'.')
-												|| version.startsWith(Version.VERSION_8_1+'.')
-												|| version.startsWith(Version.VERSION_8_3+'.')
-												|| version.startsWith(Version.VERSION_8_3+'R')
-											) {
-												stmt.executeUpdate("create database "+name+" with owner="+datdba.getPostgresUser().getUsername().getUsername()+" encoding='"+database.getPostgresEncoding().getEncoding()+'\'');
-												//conn.commit();
-											} else if(
-												version.startsWith(Version.VERSION_9_4+'.')
-												|| version.startsWith(Version.VERSION_9_4+'R')
-												|| version.startsWith(Version.VERSION_9_5+'.')
-												|| version.startsWith(Version.VERSION_9_5+'R')
-												|| version.startsWith(Version.VERSION_9_6+'.')
-												|| version.startsWith(Version.VERSION_9_6+'R')
-												|| version.startsWith(Version.VERSION_10+'.')
-												|| version.startsWith(Version.VERSION_10+'R')
-												|| version.startsWith(Version.VERSION_11+'.')
-												|| version.startsWith(Version.VERSION_11+'R')
-											) {
-												stmt.executeUpdate("create database "+name+" with owner="+datdba.getPostgresUser().getUsername().getUsername()+" template=template0 encoding='"+database.getPostgresEncoding().getEncoding()+'\'');
-												//conn.commit();
-											} else if(
-												version.startsWith(Version.VERSION_7_1+'.')
-												|| version.startsWith(Version.VERSION_7_2+'.')
-											) {
-												// Create the database
-												stmt.executeUpdate("create database "+name+" with encoding='"+database.getPostgresEncoding().getEncoding()+"'");
-												stmt.executeUpdate("update pg_database set datdba=(select usesysid from pg_user where usename='"+datdba.getPostgresUser().getUsername().getUsername()+"') where datname='"+name+"'");
-												//conn.commit();
-											} else throw new SQLException("Unsupported version of PostgreSQL: "+version);
-
-											// createlang
-											try {
-												final String createlang;
-												final String psql;
-												final String lib;
-												final String share;
-												switch(osvId) {
-													case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64:
-														createlang = "/opt/postgresql-"+minorVersion+"-i686/bin/createlang";
-														psql = "/opt/postgresql-"+minorVersion+"-i686/bin/psql";
-														lib = "/opt/postgresql-"+minorVersion+"-i686/lib";
-														share = "/opt/postgresql-"+minorVersion+"-i686/share";
-														break;
-													case OperatingSystemVersion.REDHAT_ES_4_X86_64:
-													case OperatingSystemVersion.CENTOS_7_X86_64:
-														createlang = "/opt/postgresql-"+minorVersion+"/bin/createlang";
-														psql = "/opt/postgresql-"+minorVersion+"/bin/psql";
-														lib = "/opt/postgresql-"+minorVersion+"/lib";
-														share = "/opt/postgresql-"+minorVersion+"/share";
-														break;
-													case OperatingSystemVersion.MANDRIVA_2006_0_I586:
-														createlang = "/usr/postgresql/"+minorVersion+"/bin/createlang";
-														psql = "/usr/postgresql/"+minorVersion+"/bin/psql";
-														lib = "/usr/postgresql/"+minorVersion+"/lib";
-														share = "/usr/postgresql/"+minorVersion+"/share";
-														break;
-													default:
-														throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-												}
-												// Automatically add plpgsql support for PostgreSQL 7 and 8
-												// PostgreSQL 9 is already installed:
-												//     bash-3.2$ /opt/postgresql-9.4-i686/bin/createlang -p 5461 plpgsql asdfdasf
-												//     createlang: language "plpgsql" is already installed in database "asdfdasf"
-												if(
-													version.startsWith("7.")
-													|| version.startsWith("8.")
-												) {
-													AOServDaemon.suexec(com.aoindustries.aoserv.client.linux.User.POSTGRES, createlang+" -p "+port+" plpgsql "+name, 0);
-												}
-												if(
-													version.startsWith(Version.VERSION_7_1+'.')
-													|| version.startsWith(Version.VERSION_7_2+'.')
-													|| version.startsWith(Version.VERSION_7_3+'.')
-													|| version.startsWith(Version.VERSION_8_0+'.')
-													|| version.startsWith(Version.VERSION_8_1+'.')
-													// Not supported as of 8.3 - it has built-in full text indexing
-												) {
-													AOServDaemon.suexec(com.aoindustries.aoserv.client.linux.User.POSTGRES, psql+" -p "+port+" -c \"create function fti() returns opaque as '"+lib+"/mfti.so' language 'c';\" "+name, 0);
-												}
-												if(database.getEnablePostgis()) {
-													AOServDaemon.suexec(com.aoindustries.aoserv.client.linux.User.POSTGRES, psql+" -p "+port+" "+name+" -f "+share+"/lwpostgis.sql", 0);
-													AOServDaemon.suexec(com.aoindustries.aoserv.client.linux.User.POSTGRES, psql+" -p "+port+" "+name+" -f "+share+"/spatial_ref_sys.sql", 0);
-												}
-											} catch(IOException err) {
-												try {
-													// Drop the new database if not fully configured
-													stmt.executeUpdate("drop database "+name);
-													//conn.commit();
-												} catch(SQLException err2) {
-													LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.SEVERE, null, err2);
-													throw err2;
-												}
-												throw err;
-											}
-										}
-									}
-								}
-
-								// Remove the extra databases
-								for(Database.Name dbName : existing) {
-									// Remove the extra database
-									if(Database.isSpecial(dbName)) {
+							// Create the databases that do not exist and should
+							for(Database database : pds) {
+								Database.Name name = database.getName();
+								if(!existing.remove(name)) {
+									if(database.isSpecial()) {
 										LogFactory.getLogger(PostgresDatabaseManager.class).log(
 											Level.WARNING,
 											null,
-											new SQLException("Refusing to drop special database: " + dbName + " on " + ps)
+											new SQLException("Refusing to create special database: " + name + " on " + ps.getName())
 										);
 									} else {
-										// Dump database before dropping
-										dumpDatabase(
-											ps,
-											dbName,
-											BackupManager.getNextBackupFile("-postgresql-" + ps.getName()+"-"+dbName+".sql.gz"),
-											true
-										);
-										// Now drop
-										stmt.executeUpdate("drop database "+dbName);
-										//conn.commit();
+										UserServer datdba = database.getDatDBA();
+										if(
+											version.startsWith(Version.VERSION_7_1 + '.')
+											|| version.startsWith(Version.VERSION_7_2 + '.')
+										) {
+											// Create the database
+											try (Statement stmt = conn.createStatement()) {
+												stmt.executeUpdate("CREATE DATABASE \"" + name + "\" WITH TEMPLATE = template0 ENCODING = '" + database.getPostgresEncoding().getEncoding() + '\'');
+											}
+											// Set the owner
+											try (PreparedStatement pstmt = conn.prepareStatement("UPDATE pg_database SET datdba=(SELECT usesysid FROM pg_user WHERE usename=?) WHERE datname=?")) {
+												pstmt.setString(1, datdba.getPostgresUser_username().toString());
+												pstmt.setString(2, name.toString());
+												pstmt.executeUpdate();
+											}
+										} else if(
+											version.startsWith(Version.VERSION_7_3 + '.')
+											|| version.startsWith(Version.VERSION_8_0 + '.')
+											|| version.startsWith(Version.VERSION_8_1 + '.')
+											|| version.startsWith(Version.VERSION_8_3 + '.')
+											|| version.startsWith(Version.VERSION_8_3 + 'R')
+											|| version.startsWith(Version.VERSION_9_4 + '.')
+											|| version.startsWith(Version.VERSION_9_4 + 'R')
+											|| version.startsWith(Version.VERSION_9_5 + '.')
+											|| version.startsWith(Version.VERSION_9_5 + 'R')
+											|| version.startsWith(Version.VERSION_9_6 + '.')
+											|| version.startsWith(Version.VERSION_9_6 + 'R')
+											|| version.startsWith(Version.VERSION_10 + '.')
+											|| version.startsWith(Version.VERSION_10 + 'R')
+											|| version.startsWith(Version.VERSION_11 + '.')
+											|| version.startsWith(Version.VERSION_11 + 'R')
+										) {
+											try (Statement stmt = conn.createStatement()) {
+												stmt.executeUpdate("CREATE DATABASE \"" + name + "\" WITH OWNER = \"" + datdba.getPostgresUser_username() + "\" TEMPLATE = template0 ENCODING = '" + database.getPostgresEncoding().getEncoding() + '\'');
+											}
+										} else {
+											throw new SQLException("Unsupported version of PostgreSQL: " + version);
+										}
+
+										// createlang
+										try {
+											final String createlang;
+											final String psql;
+											final String lib;
+											final String share;
+											switch(osvId) {
+												case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64:
+													createlang = "/opt/postgresql-" + minorVersion + "-i686/bin/createlang";
+													psql = "/opt/postgresql-" + minorVersion + "-i686/bin/psql";
+													lib = "/opt/postgresql-" + minorVersion + "-i686/lib";
+													share = "/opt/postgresql-" + minorVersion + "-i686/share";
+													break;
+												case OperatingSystemVersion.REDHAT_ES_4_X86_64:
+												case OperatingSystemVersion.CENTOS_7_X86_64:
+													createlang = "/opt/postgresql-" + minorVersion + "/bin/createlang";
+													psql = "/opt/postgresql-" + minorVersion + "/bin/psql";
+													lib = "/opt/postgresql-" + minorVersion + "/lib";
+													share = "/opt/postgresql-" + minorVersion + "/share";
+													break;
+												case OperatingSystemVersion.MANDRIVA_2006_0_I586:
+													createlang = "/usr/postgresql/" + minorVersion + "/bin/createlang";
+													psql = "/usr/postgresql/" + minorVersion + "/bin/psql";
+													lib = "/usr/postgresql/" + minorVersion + "/lib";
+													share = "/usr/postgresql/" + minorVersion + "/share";
+													break;
+												default:
+													throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+											}
+											// Automatically add plpgsql support for PostgreSQL 7 and 8
+											// PostgreSQL 9 is already installed:
+											//     bash-3.2$ /opt/postgresql-9.4-i686/bin/createlang -p 5461 plpgsql asdfdasf
+											//     createlang: language "plpgsql" is already installed in database "asdfdasf"
+											if(
+												version.startsWith("7.")
+												|| version.startsWith("8.")
+											) {
+												AOServDaemon.suexec(com.aoindustries.aoserv.client.linux.User.POSTGRES, createlang + " -p " + port + " plpgsql " + name, 0);
+											}
+											if(
+												version.startsWith(Version.VERSION_7_1 + '.')
+												|| version.startsWith(Version.VERSION_7_2 + '.')
+												|| version.startsWith(Version.VERSION_7_3 + '.')
+												|| version.startsWith(Version.VERSION_8_0 + '.')
+												|| version.startsWith(Version.VERSION_8_1 + '.')
+												// Not supported as of 8.3 - it has built-in full text indexing
+											) {
+												AOServDaemon.suexec(com.aoindustries.aoserv.client.linux.User.POSTGRES, psql + " -p " + port + " -c \"create function fti() returns opaque as '" + lib + "/mfti.so' language 'c';\" " + name, 0);
+											}
+											if(database.getEnablePostgis()) {
+												AOServDaemon.suexec(com.aoindustries.aoserv.client.linux.User.POSTGRES, psql + " -p " + port + " " + name + " -f " + share + "/lwpostgis.sql", 0);
+												AOServDaemon.suexec(com.aoindustries.aoserv.client.linux.User.POSTGRES, psql + " -p " + port + " " + name + " -f " + share + "/spatial_ref_sys.sql", 0);
+											}
+										} catch(IOException err) {
+											try {
+												// Drop the new database if not fully configured
+												try (Statement stmt = conn.createStatement()) {
+													stmt.executeUpdate("DROP DATABASE \"" + name + '"');
+												}
+											} catch(SQLException err2) {
+												LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.SEVERE, null, err2);
+												throw err2;
+											}
+											throw err;
+										}
+									}
+								}
+							}
+
+							// Remove the extra databases
+							for(Database.Name dbName : existing) {
+								// Remove the extra database
+								if(Database.isSpecial(dbName)) {
+									LogFactory.getLogger(PostgresDatabaseManager.class).log(
+										Level.WARNING,
+										null,
+										new SQLException("Refusing to drop special database: " + dbName + " on " + ps)
+									);
+								} else {
+									// Dump database before dropping
+									dumpDatabase(
+										ps,
+										dbName,
+										BackupManager.getNextBackupFile("-postgresql-" + ps.getName()+"-"+dbName+".sql.gz"),
+										true
+									);
+									// Now drop
+									try (Statement stmt = conn.createStatement()) {
+										stmt.executeUpdate("DROP DATABASE \"" + dbName + '"');
 									}
 								}
 							}
@@ -416,9 +423,10 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 	 */
 	@Override
 	public int getCronJobThreadPriority() {
-		return Thread.NORM_PRIORITY+2;
+		return Thread.NORM_PRIORITY + 2;
 	}
 
+	// TODO: This should be moved to scripts in the relevant postgresql-* packages, so the system still works correctly with disabled aoserv-daemon
 	@Override
 	public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
 		try {
@@ -431,12 +439,12 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 			for(Server postgresServer : AOServDaemon.getThisAOServer().getPostgresServers()) {
 				Server.Name serverName = postgresServer.getName();
 				String postgresServerVersion=postgresServer.getVersion().getTechnologyVersion(aoservConn).getVersion();
-				boolean postgresServerHasSchemas=
-					!postgresServerVersion.startsWith(Version.VERSION_7_1+'.')
-					&& !postgresServerVersion.startsWith(Version.VERSION_7_2+'.')
+				boolean postgresServerHasSchemas =
+					!postgresServerVersion.startsWith(Version.VERSION_7_1 + '.')
+					&& !postgresServerVersion.startsWith(Version.VERSION_7_2 + '.')
 				;
-				boolean postgresServerHasVacuumFull=
-					!postgresServerVersion.startsWith(Version.VERSION_7_1+'.')
+				boolean postgresServerHasVacuumFull =
+					!postgresServerVersion.startsWith(Version.VERSION_7_1 + '.')
 				;
 				for(Database postgresDatabase : postgresServer.getPostgresDatabases()) {
 					if(
@@ -447,28 +455,29 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 						Connection conn;
 						if(postgresDatabase.getName().equals(Database.AOSERV)) {
 							// If the aoserv database, use the existing connection pools
-							pool=PostgresServerManager.getPool(postgresServer);
-							conn=pool.getConnection();
+							pool = PostgresServerManager.getPool(postgresServer);
+							conn = pool.getConnection();
 						} else {
 							// For other databases, establish a connection directly
-							pool=null;
+							pool = null;
 							Class.forName(postgresDatabase.getJdbcDriver()).newInstance();
-							conn=DriverManager.getConnection(
+							conn = DriverManager.getConnection(
 								postgresDatabase.getJdbcUrl(true),
 								User.POSTGRES.toString(),
 								AOServDaemonConfiguration.getPostgresPassword(serverName)
 							);
+							conn.setAutoCommit(true);
 						}
 						try {
-							conn.setAutoCommit(true);
-							try (Statement stmt = conn.createStatement()) {
-								try (
-									ResultSet results = stmt.executeQuery(
-										postgresServerHasSchemas
-										? ("select tablename, schemaname from pg_tables where tableowner!='"+User.POSTGRES+"'")
-										: ("select tablename from pg_tables where tableowner!='"+User.POSTGRES+"'")
-									)
-								) {
+							try (
+								PreparedStatement pstmt = conn.prepareStatement(
+									postgresServerHasSchemas
+									? "SELECT tablename, schemaname FROM pg_tables WHERE tableowner != ?"
+									: "SELECT tablename FROM pg_tables WHERE tableowner != ?"
+								)
+							) {
+								pstmt.setString(1, User.POSTGRES.toString());
+								try (ResultSet results = pstmt.executeQuery()) {
 									tableNames.clear();
 									if(postgresServerHasSchemas) schemas.clear();
 									while(results.next()) {
@@ -476,49 +485,51 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 										if(postgresServerHasSchemas) schemas.add(results.getString(2));
 									}
 								}
-								for(int c=0;c<tableNames.size();c++) {
-									String tableName=tableNames.get(c);
-									String schema=postgresServerHasSchemas ? schemas.get(c) : null;
-									if(Database.Name.validate(tableName.toLowerCase()).isValid()) {
-										if(
-											!postgresServerHasSchemas
-											|| "public".equals(schema)
-											|| (
-												schema!=null
-												&& Database.Name.validate(schema.toLowerCase()).isValid()
-											)
-										) {
-											// VACUUM the table
+							}
+							for(int c=0;c<tableNames.size();c++) {
+								String tableName = tableNames.get(c);
+								String schema = postgresServerHasSchemas ? schemas.get(c) : null;
+								if(Database.Name.validate(tableName).isValid()) {
+									if(
+										!postgresServerHasSchemas
+										|| "public".equals(schema)
+										|| (
+											schema != null
+											&& Database.Name.validate(schema).isValid()
+										)
+									) {
+										// VACUUM the table
+										try (Statement stmt = conn.createStatement()) {
 											stmt.executeUpdate(
 												postgresServerHasVacuumFull
 												? (
 													postgresServerHasSchemas
-													? ("vacuum full analyze "+schema+"."+tableName)
-													: ("vacuum full analyze "+tableName)
+													? ("VACUUM FULL ANALYZE \"" + schema + "\".\"" + tableName + '"')
+													: ("VACUUM FULL ANALYZE \"" + tableName + '"')
 												) : (
 													postgresServerHasSchemas
-													? ("vacuum analyze "+schema+"."+tableName)
-													: ("vacuum analyze "+tableName)
+													? ("VACUUM ANALYZE \"" + schema + "\".\"" + tableName + '"')
+													: ("VACUUM ANALYZE \"" + tableName + '"')
 												)
 											);
 											if(isReindexTime) {
 												// REINDEX the table
 												stmt.executeUpdate(
 													postgresServerHasSchemas
-													? ("reindex table "+schema+"."+tableName)
-													: ("reindex table "+tableName)
+													? ("REINDEX TABLE \"" + schema + "\".\"" + tableName + '"')
+													: ("REINDEX TABLE \"" + tableName + '"')
 												);
 											}
-										} else {
-											LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.WARNING, "schema="+schema, new SQLWarning("Warning: not calling VACUUM or REINDEX because schema name does not pass the database name checks.  This is to make sure specially-crafted schema names cannot be used to execute arbitrary SQL with administrative privileges."));
 										}
 									} else {
-										LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.WARNING, "tableName="+tableName, new SQLWarning("Warning: not calling VACUUM or REINDEX because table name does not pass the database name checks.  This is to make sure specially-crafted table names cannot be used to execute arbitrary SQL with administrative privileges."));
+										LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.WARNING, "schema=" + schema, new SQLWarning("Warning: not calling VACUUM or REINDEX because schema name does not pass the database name checks.  This is to make sure specially-crafted schema names cannot be used to execute arbitrary SQL with administrative privileges."));
 									}
+								} else {
+									LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.WARNING, "tableName=" + tableName, new SQLWarning("Warning: not calling VACUUM or REINDEX because table name does not pass the database name checks.  This is to make sure specially-crafted table names cannot be used to execute arbitrary SQL with administrative privileges."));
 								}
 							}
 						} finally {
-							if(pool!=null) pool.releaseConnection(conn);
+							if(pool != null) pool.releaseConnection(conn);
 							else conn.close();
 						}
 					}

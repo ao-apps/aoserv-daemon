@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -94,7 +94,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 						if(!requiredDbUsers.isEmpty()) {
 							LogFactory.getLogger(MySQLUserManager.class).severe("Required db users not found; refusing to rebuild config: " + mysqlServer + " -> " + requiredDbUsers);
 						} else {
-							boolean modified=false;
+							boolean modified = false;
 
 							// Get the connection to work through
 							AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
@@ -107,7 +107,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 								Set<Tuple2<Database.Name,User.Name>> existing = new HashSet<>();
 								try (
 									Statement stmt = conn.createStatement();
-									ResultSet results = stmt.executeQuery("select db, user from db")
+									ResultSet results = stmt.executeQuery("SELECT db, user FROM db")
 								) {
 									while (results.next()) {
 										try {
@@ -125,38 +125,38 @@ final public class MySQLDBUserManager extends BuilderThread {
 								// Add the db entries that do not exist and should
 								String insertSQL;
 								if(version.startsWith(Server.VERSION_4_0_PREFIX)) {
-									insertSQL = "insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+									insertSQL = "INSERT INTO db VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 								} else if(version.startsWith(Server.VERSION_4_1_PREFIX)) {
-									insertSQL = "insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+									insertSQL = "INSERT INTO db VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 								} else if(version.startsWith(Server.VERSION_5_0_PREFIX)) {
-									insertSQL = "insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+									insertSQL = "INSERT INTO db VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 								} else if(
 									version.startsWith(Server.VERSION_5_1_PREFIX)
 									|| version.startsWith(Server.VERSION_5_6_PREFIX)
 									|| version.startsWith(Server.VERSION_5_7_PREFIX)
 								) {
-									insertSQL="insert into db values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+									insertSQL="INSERT INTO db VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 								} else throw new SQLException("Unsupported MySQL version: "+version);
 								try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
 									for(DatabaseUser mdu : dbUsers) {
 										Database md = mdu.getMySQLDatabase();
-										Database.Name db=md.getName();
-										UserServer msu=mdu.getMySQLServerUser();
-										User.Name user=msu.getMySQLUser().getKey();
+										Database.Name db = md.getName();
+										UserServer msu = mdu.getMySQLServerUser();
+										User.Name user = msu.getMySQLUser().getKey();
 
 										// These must both be on the same server !!!
 										if(!md.getMySQLServer().equals(msu.getMySQLServer())) throw new SQLException(
 											"Host mismatch in mysql_db_users.pkey="
-											+mdu.getPkey()
-											+": ((mysql_databases.pkey="
-											+md.getPkey()
-											+").mysql_server="
-											+md.getMySQLServer().getPkey()
-											+")!=((mysql_server_users.pkey="
-											+msu.getPkey()
-											+").mysql_server="
-											+msu.getMySQLServer().getPkey()
-											+')'
+											+ mdu.getPkey()
+											+ ": ((mysql_databases.pkey="
+											+ md.getPkey()
+											+ ").mysql_server="
+											+ md.getMySQLServer().getPkey()
+											+ ")!=((mysql_server_users.pkey="
+											+ msu.getPkey()
+											+ ").mysql_server="
+											+ msu.getMySQLServer().getPkey()
+											+ ')'
 										);
 										Tuple2<Database.Name,User.Name> key = new Tuple2<>(db, user);
 										if(!existing.remove(key)) {
@@ -169,40 +169,39 @@ final public class MySQLDBUserManager extends BuilderThread {
 											pstmt.setString(1, host);
 											pstmt.setString(2, db.toString());
 											pstmt.setString(3, user.toString());
-											pstmt.setString(4, mdu.canSelect()?"Y":"N");
-											pstmt.setString(5, mdu.canInsert()?"Y":"N");
-											pstmt.setString(6, mdu.canUpdate()?"Y":"N");
-											pstmt.setString(7, mdu.canDelete()?"Y":"N");
-											pstmt.setString(8, mdu.canCreate()?"Y":"N");
-											pstmt.setString(9, mdu.canDrop()?"Y":"N");
-											pstmt.setString(10, mdu.canGrant()?"Y":"N");
-											pstmt.setString(11, mdu.canReference()?"Y":"N");
-											pstmt.setString(12, mdu.canIndex()?"Y":"N");
-											pstmt.setString(13, mdu.canAlter()?"Y":"N");
-											pstmt.setString(14, mdu.canCreateTempTable()?"Y":"N");
-											pstmt.setString(15, mdu.canLockTables()?"Y":"N");
+											pstmt.setString(4, mdu.canSelect() ? "Y" : "N");
+											pstmt.setString(5, mdu.canInsert() ? "Y" : "N");
+											pstmt.setString(6, mdu.canUpdate() ? "Y" : "N");
+											pstmt.setString(7, mdu.canDelete() ? "Y" : "N");
+											pstmt.setString(8, mdu.canCreate() ? "Y" : "N");
+											pstmt.setString(9, mdu.canDrop() ? "Y" : "N");
+											pstmt.setString(10, mdu.canGrant() ? "Y" : "N");
+											pstmt.setString(11, mdu.canReference() ? "Y" : "N");
+											pstmt.setString(12, mdu.canIndex() ? "Y" : "N");
+											pstmt.setString(13, mdu.canAlter() ? "Y" : "N");
+											pstmt.setString(14, mdu.canCreateTempTable() ? "Y" : "N");
+											pstmt.setString(15, mdu.canLockTables() ? "Y" : "N");
 											if(
 												version.startsWith(Server.VERSION_5_0_PREFIX)
 												|| version.startsWith(Server.VERSION_5_1_PREFIX)
 												|| version.startsWith(Server.VERSION_5_6_PREFIX)
 												|| version.startsWith(Server.VERSION_5_7_PREFIX)
 											) {
-												pstmt.setString(16, mdu.canCreateView()?"Y":"N");
-												pstmt.setString(17, mdu.canShowView()?"Y":"N");
-												pstmt.setString(18, mdu.canCreateRoutine()?"Y":"N");
-												pstmt.setString(19, mdu.canAlterRoutine()?"Y":"N");
-												pstmt.setString(20, mdu.canExecute()?"Y":"N");
+												pstmt.setString(16, mdu.canCreateView() ? "Y" : "N");
+												pstmt.setString(17, mdu.canShowView() ? "Y" : "N");
+												pstmt.setString(18, mdu.canCreateRoutine() ? "Y" : "N");
+												pstmt.setString(19, mdu.canAlterRoutine() ? "Y" : "N");
+												pstmt.setString(20, mdu.canExecute() ? "Y" : "N");
 												if(
 													version.startsWith(Server.VERSION_5_1_PREFIX)
 													|| version.startsWith(Server.VERSION_5_6_PREFIX)
 													|| version.startsWith(Server.VERSION_5_7_PREFIX)
 												) {
-													pstmt.setString(21, mdu.canEvent()?"Y":"N");
-													pstmt.setString(22, mdu.canTrigger()?"Y":"N");
+													pstmt.setString(21, mdu.canEvent() ? "Y" : "N");
+													pstmt.setString(22, mdu.canTrigger() ? "Y" : "N");
 												}
 											}
 											pstmt.executeUpdate();
-
 											modified = true;
 										}
 									}
@@ -210,7 +209,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 
 								// Remove the extra db entries
 								if (!existing.isEmpty()) {
-									try (PreparedStatement pstmt = conn.prepareStatement("delete from db where db=? and user=?")) {
+									try (PreparedStatement pstmt = conn.prepareStatement("DELETE FROM db WHERE db=? AND user=?")) {
 										for (Tuple2<Database.Name,User.Name> key : existing) {
 											if(systemDbUsers.contains(key)) {
 												LogFactory.getLogger(MySQLDatabaseManager.class).log(

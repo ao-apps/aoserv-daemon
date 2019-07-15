@@ -52,7 +52,7 @@ public final class PgHbaManager extends BuilderThread {
 		for(Object element : list) {
 			if(didOne) out.print(',');
 			else didOne = true;
-			out.print(element);
+			out.print('"').print(element).print('"');
 		}
 		return didOne;
 	}
@@ -61,11 +61,13 @@ public final class PgHbaManager extends BuilderThread {
 		boolean didOne = writeList(list, out);
 		// Whitespace placeholder for alignment
 		for(Object element : whitespace) {
-			if(didOne) out.print(' ');
+			if(didOne) out.print(' '); // ,
 			else didOne = true;
+			out.print(' '); // "
 			for(int i = 0, len = element.toString().length(); i < len; i++) {
 				out.print(' ');
 			}
+			out.print(' '); // "
 		}
 		return didOne;
 	}
@@ -97,25 +99,25 @@ public final class PgHbaManager extends BuilderThread {
 							if(pds.isEmpty()) {
 								LogFactory.getLogger(PgHbaManager.class).severe("No databases; refusing to rebuild config: " + ps);
 							} else {
-								String version=ps.getVersion().getTechnologyVersion(connector).getVersion();
-								int postgresUID=thisAOServer.getLinuxServerAccount(com.aoindustries.aoserv.client.linux.User.POSTGRES).getUid().getId();
-								int postgresGID=thisAOServer.getLinuxServerGroup(Group.POSTGRES).getGid().getId();
+								String version = ps.getVersion().getTechnologyVersion(connector).getVersion();
+								int postgresUID = thisAOServer.getLinuxServerAccount(com.aoindustries.aoserv.client.linux.User.POSTGRES).getUid().getId();
+								int postgresGID = thisAOServer.getLinuxServerGroup(Group.POSTGRES).getGid().getId();
 								Server.Name serverName = ps.getName();
 								File serverDir = new File(PostgresServerManager.pgsqlDirectory, serverName.toString());
 								ByteArrayOutputStream bout = new ByteArrayOutputStream();
 								try (ChainWriter out = new ChainWriter(bout)) {
 									if(
-										version.startsWith(Version.VERSION_7_1+'.')
-										|| version.startsWith(Version.VERSION_7_2+'.')
+										version.startsWith(Version.VERSION_7_1 + '.')
+										|| version.startsWith(Version.VERSION_7_2 + '.')
 									) {
 										out.print("local all trust\n"
 												+ "host all 127.0.0.1 255.255.255.255 ident sameuser\n"
 												+ "host all 0.0.0.0 0.0.0.0 password\n");
-									} else if(version.startsWith(Version.VERSION_7_3+'.')) {
+									} else if(version.startsWith(Version.VERSION_7_3 + '.')) {
 										out.print("local all all trust\n");
 										for(Database db : pds) {
-											out.print("host ").print(db.getName()).print(' ');
-											boolean didOne=false;
+											out.print("host \"").print(db.getName()).print("\" ");
+											boolean didOne = false;
 											for(UserServer psu : users) {
 												User pu = psu.getPostgresUser();
 												if(
@@ -130,13 +132,14 @@ public final class PgHbaManager extends BuilderThread {
 													)
 												) {
 													if(didOne) out.print(',');
-													else didOne=true;
-													out.print(pu);
+													else didOne = true;
+													out.print('"').print(pu).print('"');
 												}
 											}
+											if(!didOne) throw new SQLException("No users for database " + db);
 											out.print(" 127.0.0.1 255.255.255.255 ident sameuser\n"
-													+ "host ").print(db.getName()).print(' ');
-											didOne=false;
+													+ "host \"").print(db.getName()).print("\" ");
+											didOne = false;
 											for(UserServer psu : users) {
 												User pu = psu.getPostgresUser();
 												if(
@@ -151,21 +154,22 @@ public final class PgHbaManager extends BuilderThread {
 													)
 												) {
 													if(didOne) out.print(',');
-													else didOne=true;
-													out.print(pu);
+													else didOne = true;
+													out.print('"').print(pu).print('"');
 												}
 											}
+											if(!didOne) throw new SQLException("No users for database " + db);
 											out.print(" 0.0.0.0 0.0.0.0 password\n");
 										}
 									} else if(
-										version.startsWith(Version.VERSION_8_1+'.')
-										|| version.startsWith(Version.VERSION_8_3+'.')
-										|| version.startsWith(Version.VERSION_8_3+'R')
+										version.startsWith(Version.VERSION_8_1 + '.')
+										|| version.startsWith(Version.VERSION_8_3 + '.')
+										|| version.startsWith(Version.VERSION_8_3 + 'R')
 									) {
 										for(Database db : pds) {
 											// ident used from local
-											out.print("local ").print(db.getName()).print(' ');
-											boolean didOne=false;
+											out.print("local \"").print(db.getName()).print("\" ");
+											boolean didOne = false;
 											for(UserServer psu : users) {
 												User pu = psu.getPostgresUser();
 												if(
@@ -180,15 +184,16 @@ public final class PgHbaManager extends BuilderThread {
 													)
 												) {
 													if(didOne) out.print(',');
-													else didOne=true;
-													out.print(pu);
+													else didOne = true;
+													out.print('"').print(pu).print('"');
 												}
 											}
+											if(!didOne) throw new SQLException("No users for database " + db);
 											out.print(" ident sameuser\n");
 
 											// ident used from 127.0.0.1
-											out.print("host ").print(db.getName()).print(' ');
-											didOne=false;
+											out.print("host \"").print(db.getName()).print("\" ");
+											didOne = false;
 											for(UserServer psu : users) {
 												User pu = psu.getPostgresUser();
 												if(
@@ -203,15 +208,16 @@ public final class PgHbaManager extends BuilderThread {
 													)
 												) {
 													if(didOne) out.print(',');
-													else didOne=true;
-													out.print(pu);
+													else didOne = true;
+													out.print('"').print(pu).print('"');
 												}
 											}
+											if(!didOne) throw new SQLException("No users for database " + db);
 											out.print(" 127.0.0.1/32 ident sameuser\n");
 
 											// ident used from ::1/128
-											out.print("host ").print(db.getName()).print(' ');
-											didOne=false;
+											out.print("host \"").print(db.getName()).print("\" ");
+											didOne = false;
 											for(UserServer psu : users) {
 												User pu = psu.getPostgresUser();
 												if(
@@ -226,15 +232,16 @@ public final class PgHbaManager extends BuilderThread {
 													)
 												) {
 													if(didOne) out.print(',');
-													else didOne=true;
-													out.print(pu);
+													else didOne = true;
+													out.print('"').print(pu).print('"');
 												}
 											}
+											if(!didOne) throw new SQLException("No users for database " + db);
 											out.print(" ::1/128 ident sameuser\n");
 
 											// md5 used for other connections
-											out.print("host ").print(db.getName()).print(' ');
-											didOne=false;
+											out.print("host \"").print(db.getName()).print("\" ");
+											didOne = false;
 											for(UserServer psu : users) {
 												User pu = psu.getPostgresUser();
 												if(
@@ -249,23 +256,24 @@ public final class PgHbaManager extends BuilderThread {
 													)
 												) {
 													if(didOne) out.print(',');
-													else didOne=true;
-													out.print(pu);
+													else didOne = true;
+													out.print('"').print(pu).print('"');
 												}
 											}
+											if(!didOne) throw new SQLException("No users for database " + db);
 											out.print(" 0.0.0.0 0.0.0.0 md5\n");
 										}
 									} else if(
-										version.startsWith(Version.VERSION_9_4+'.')
-										|| version.startsWith(Version.VERSION_9_4+'R')
-										|| version.startsWith(Version.VERSION_9_5+'.')
-										|| version.startsWith(Version.VERSION_9_5+'R')
-										|| version.startsWith(Version.VERSION_9_6+'.')
-										|| version.startsWith(Version.VERSION_9_6+'R')
-										|| version.startsWith(Version.VERSION_10+'.')
-										|| version.startsWith(Version.VERSION_10+'R')
-										|| version.startsWith(Version.VERSION_11+'.')
-										|| version.startsWith(Version.VERSION_11+'R')
+										version.startsWith(Version.VERSION_9_4 + '.')
+										|| version.startsWith(Version.VERSION_9_4 + 'R')
+										|| version.startsWith(Version.VERSION_9_5 + '.')
+										|| version.startsWith(Version.VERSION_9_5 + 'R')
+										|| version.startsWith(Version.VERSION_9_6 + '.')
+										|| version.startsWith(Version.VERSION_9_6 + 'R')
+										|| version.startsWith(Version.VERSION_10 + '.')
+										|| version.startsWith(Version.VERSION_10 + 'R')
+										|| version.startsWith(Version.VERSION_11 + '.')
+										|| version.startsWith(Version.VERSION_11 + 'R')
 									) {
 										// scram-sha-256 as of PostgreSQL 10
 										boolean isScramSha256 = Version.isScramSha256(version);
@@ -296,15 +304,15 @@ public final class PgHbaManager extends BuilderThread {
 											throw new SQLException(
 												Database.AOSERV + " on " + serverName
 													+ " does not have the expected owner: expected "
-													+ User.POSTGRES + ", got " + aoservDatdba.getPostresUser_username());
+													+ User.POSTGRES + ", got " + aoservDatdba.getPostgresUser_username());
 										}
 										out.print("# AOServ Daemon: authenticate localhost TCP, only to " + Database.AOSERV + " database\n");
 										if(family.equals(StandardProtocolFamily.INET)) {
-											out.print("hostnossl " + Database.AOSERV + " " + User.POSTGRES + " 127.0.0.1/32 ");
+											out.print("hostnossl \"" + Database.AOSERV + "\" \"" + User.POSTGRES + "\" 127.0.0.1/32 ");
 											out.print(isScramSha256 ? "scram-sha-256" : "md5");
 											out.print('\n');
 										} else if(family.equals(StandardProtocolFamily.INET6)) {
-											out.print("hostnossl " + Database.AOSERV + " " + User.POSTGRES + " ::1/128 ");
+											out.print("hostnossl \"" + Database.AOSERV + "\" \"" + User.POSTGRES + "\" ::1/128 ");
 											out.print(isScramSha256 ? "scram-sha-256" : "md5");
 											out.print('\n');
 										} else {
@@ -314,10 +322,10 @@ public final class PgHbaManager extends BuilderThread {
 
 										// postgres user
 										out.print("# Super user: local peer-only, to all databases\n");
-										out.print("local all " + User.POSTGRES + "     peer\n");
-										//out.print("hostnossl all " + User.POSTGRES + " 127.0.0.1/32 ident\n");
-										//out.print("hostnossl all " + User.POSTGRES + " ::1/128      ident\n");
-										out.print("host  all " + User.POSTGRES + " all reject\n");
+										out.print("local all \"" + User.POSTGRES + "\"     peer\n");
+										//out.print("hostnossl all \"" + User.POSTGRES + "\" 127.0.0.1/32 ident\n");
+										//out.print("hostnossl all \"" + User.POSTGRES + "\" ::1/128      ident\n");
+										out.print("host  all \"" + User.POSTGRES + "\" all reject\n");
 
 										// postgresmon database
 										UserServer postgresmonUser = ps.getPostgresServerUser(User.POSTGRESMON);
@@ -331,21 +339,21 @@ public final class PgHbaManager extends BuilderThread {
 												throw new SQLException(
 													Database.POSTGRESMON + " on " + serverName
 														+ " does not have the expected owner: expected "
-														+ User.POSTGRESMON + ", got " + datdba.getPostresUser_username());
+														+ User.POSTGRESMON + ", got " + datdba.getPostgresUser_username());
 											}
 											out.print('\n');
 											if(isLocalhost) {
 												out.print("# Monitoring: authenticate localhost TCP, only to " + User.POSTGRESMON + " database\n");
-												out.print("hostnossl " + Database.POSTGRESMON + " " + User.POSTGRESMON + " 127.0.0.1/32 ");
+												out.print("hostnossl \"" + Database.POSTGRESMON + "\" \"" + User.POSTGRESMON + "\" 127.0.0.1/32 ");
 												out.print(isScramSha256 ? "scram-sha-256" : "md5");
 												out.print('\n');
-												out.print("hostnossl " + Database.POSTGRESMON + " " + User.POSTGRESMON + " ::1/128      ");
+												out.print("hostnossl \"" + Database.POSTGRESMON + "\" \"" + User.POSTGRESMON + "\" ::1/128      ");
 												out.print(isScramSha256 ? "scram-sha-256" : "md5");
 												out.print('\n');
 											} else {
 												out.print("# Monitoring: authenticate all TCP, only to " + User.POSTGRESMON + " database\n");
 												// TODO: hostssl for Let's Encrypt-enabled servers, or selectable per database
-												out.print("host " + Database.POSTGRESMON + " " + User.POSTGRESMON + " all ");
+												out.print("host \"" + Database.POSTGRESMON + "\" \"" + User.POSTGRESMON + "\" all ");
 												out.print(isScramSha256 ? "scram-sha-256" : "md5");
 												out.print('\n');
 											}
@@ -407,18 +415,18 @@ public final class PgHbaManager extends BuilderThread {
 													}
 													// peer used from local
 													if(!identDbUsers.isEmpty()) {
-														out.print("local     ").print(name).print(' ');
+														out.print("local     \"").print(name).print("\" ");
 														writeList(identDbUsers, noIdentDbUsers, out);
 														out.print("              peer\n");
 													}
 
 													// md5 used from 127.0.0.1/32
-													out.print("hostnossl ").print(name).print(' ');
+													out.print("hostnossl \"").print(name).print("\" ");
 													writeList(dbUsers, out);
 													out.print(" 127.0.0.1/32 md5\n");
 
 													// md5 used from ::1/128
-													out.print("hostnossl ").print(db.getName()).print(' ');
+													out.print("hostnossl \"").print(db.getName()).print("\" ");
 													writeList(dbUsers, out);
 													out.print(" ::1/128      md5\n");
 												} else {
@@ -429,27 +437,27 @@ public final class PgHbaManager extends BuilderThread {
 													}
 													// peer used from local
 													if(!identDbUsers.isEmpty()) {
-														out.print("local ").print(name).print(' ');
+														out.print("local \"").print(name).print("\" ");
 														writeList(identDbUsers, noIdentDbUsers, out);
 														out.print("              peer\n");
 													}
 
 													// ident used from 127.0.0.1/32
 													if(!identDbUsers.isEmpty()) {
-														out.print("host  ").print(name).print(' ');
+														out.print("host  \"").print(name).print("\" ");
 														writeList(identDbUsers, noIdentDbUsers, out);
 														out.print(" 127.0.0.1/32 ident\n");
 													}
 
 													// ident used from ::1/128
 													if(!identDbUsers.isEmpty()) {
-														out.print("host  ").print(db.getName()).print(' ');
+														out.print("host  \"").print(db.getName()).print("\" ");
 														writeList(identDbUsers, noIdentDbUsers, out);
 														out.print(" ::1/128      ident\n");
 													}
 
 													// md5 used for other connections
-													out.print("host  ").print(db.getName()).print(' ');
+													out.print("host  \"").print(db.getName()).print("\" ");
 													writeList(dbUsers, out);
 													out.print(" all          md5\n");
 												}

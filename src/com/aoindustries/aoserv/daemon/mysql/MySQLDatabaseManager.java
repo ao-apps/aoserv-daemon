@@ -128,7 +128,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 								// Get the list of all existing databases
 								Set<Database.Name> existing = new HashSet<>();
 								try (Statement stmt = conn.createStatement()) {
-									try (ResultSet results = stmt.executeQuery("show databases")) {
+									try (ResultSet results = stmt.executeQuery("SHOW DATABASES")) {
 										while(results.next()) {
 											try {
 												Database.Name name = Database.Name.valueOf(results.getString(1));
@@ -151,8 +151,8 @@ final public class MySQLDatabaseManager extends BuilderThread {
 												);
 											} else {
 												// Create the database
-												stmt.executeUpdate("create database " + name);
-												modified=true;
+												stmt.executeUpdate("CREATE DATABASE `" + name + '`');
+												modified = true;
 											}
 										}
 									}
@@ -180,8 +180,8 @@ final public class MySQLDatabaseManager extends BuilderThread {
 												true
 											);
 											// Now drop
-											stmt.executeUpdate("drop database " + dbName);
-											modified=true;
+											stmt.executeUpdate("DROP DATABASE `" + dbName + '`');
+											modified = true;
 										}
 									}
 								}
@@ -489,13 +489,13 @@ final public class MySQLDatabaseManager extends BuilderThread {
 					try (
 						Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, port);
 						Statement stmt = conn.createStatement()
-						) {
+					) {
 						boolean isMySQL40;
-						try (ResultSet results = stmt.executeQuery("SELECT version()")) {
+						try (ResultSet results = stmt.executeQuery("SELECT VERSION()")) {
 							if(!results.next()) throw new SQLException("No row returned");
 							isMySQL40 = results.getString(1).startsWith(Server.VERSION_4_0_PREFIX);
 						}
-						try (ResultSet results = stmt.executeQuery("SHOW TABLE STATUS FROM "+databaseName)) {
+						try (ResultSet results = stmt.executeQuery("SHOW TABLE STATUS FROM `" + databaseName + '`')) {
 							while(results.next()) {
 								String engine = results.getString(isMySQL40 ? "Type" : "Engine");
 								Integer version;
@@ -664,7 +664,8 @@ final public class MySQLDatabaseManager extends BuilderThread {
 				} else {
 					try {
 						allTableResults.addAll(
-							checkTableLimiter.executeSerialized(new CheckTableConcurrencyKey(
+							checkTableLimiter.executeSerialized(
+								new CheckTableConcurrencyKey(
 									failoverRoot,
 									port,
 									databaseName,
@@ -676,7 +677,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 									try (
 										Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, port);
 										Statement stmt = conn.createStatement();
-										ResultSet results = stmt.executeQuery("CHECK TABLE `"+databaseName+"`.`"+tableName+"` FAST QUICK")
+										ResultSet results = stmt.executeQuery("CHECK TABLE `" + databaseName + "`.`" + tableName + "` FAST QUICK")
 									) {
 										long duration = System.currentTimeMillis() - startTime;
 										if(duration<0) duration = 0; // System time possibly reset

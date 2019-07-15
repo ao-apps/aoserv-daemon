@@ -619,6 +619,8 @@ final public class AOServDaemonServerThread extends Thread {
 								if(mysqlServer == null) throw new SQLException("Unable to find Server: " + id);
 								String encryptedPassword=MySQLUserManager.getEncryptedPassword(mysqlServer, username);
 								out.write(AOServDaemonProtocol.DONE);
+								// TODO: How is this used?  Should it just be a flag true/false if set?
+								// TODO: Does the master actually need the raw value?  Is it used to copy passwords between accounts?  Should a copy password command exist?
 								out.writeUTF(encryptedPassword);
 							}
 							break;

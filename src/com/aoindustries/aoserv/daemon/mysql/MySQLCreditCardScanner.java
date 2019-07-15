@@ -86,7 +86,7 @@ final public class MySQLCreditCardScanner implements CronJob {
 
 	@Override
 	public int getCronJobThreadPriority() {
-		return Thread.NORM_PRIORITY-2;
+		return Thread.NORM_PRIORITY - 2;
 	}
 
 	public static void main(String[] args) {
@@ -154,7 +154,7 @@ final public class MySQLCreditCardScanner implements CronJob {
 				String table = tables.getString(3);
 				if(Database.isSafeName(table)) {
 					StringBuilder buffer = new StringBuilder();
-					buffer.append("select count(*) from `").append(table).append("` where ");
+					buffer.append("SELECT COUNT(*) FROM `").append(table).append("` WHERE ");
 					try (ResultSet columns = metaData.getColumns(catalog, null, table, null)) {
 						boolean isFirst = true;
 						while(columns.next()) {
@@ -163,7 +163,7 @@ final public class MySQLCreditCardScanner implements CronJob {
 								if(isFirst) isFirst = false;
 								else buffer.append(" OR ");
 
-								buffer.append("(length(`").append(column).append("`)<25 && `").append(column).append("` regexp '^\\w*(");
+								buffer.append("(LENGTH(`").append(column).append("`)<25 && `").append(column).append("` REGEXP '^\\w*(");
 
 								// AmEx
 								buffer.append("3[47][0-9]{2}[\\w-]?[0-9]{2}[\\w-]?[0-9]{4}[\\w-]?[0-9]{5}");
@@ -191,7 +191,7 @@ final public class MySQLCreditCardScanner implements CronJob {
 					long rowCount;
 					long ccCount;
 					try (Statement stmt = conn.createStatement()) {
-						try (ResultSet results = stmt.executeQuery("select count(*) from `"+table+"`")) {
+						try (ResultSet results = stmt.executeQuery("SELECT COUNT(*) FROM `" + table + "`")) {
 							if(!results.next()) throw new SQLException("No results returned!");
 							rowCount = results.getLong(1);
 						}
