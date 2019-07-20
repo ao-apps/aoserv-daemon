@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2009, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2001-2009, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -64,9 +64,9 @@ final public class BackupManager {
 			// Backup
 			createTarball(deleteFileList, backupFile);
 			// Remove the files that have been backed up.
-			Server thisAoServer = AOServDaemon.getThisAOServer();
-			int uid_min = thisAoServer.getUidMin().getId();
-			int gid_min = thisAoServer.getGidMin().getId();
+			Server thisServer = AOServDaemon.getThisServer();
+			int uid_min = thisServer.getUidMin().getId();
+			int gid_min = thisServer.getGidMin().getId();
 			for(File file : deleteFileList) {
 				new UnixFile(file).secureDeleteRecursive(uid_min, gid_min);
 			}
@@ -150,7 +150,7 @@ final public class BackupManager {
 		try {
 			AOServDaemon.executorService.submit(timer);
 			try {
-				for(Server ms : AOServDaemon.getThisAOServer().getMySQLServers()) {
+				for(Server ms : AOServDaemon.getThisServer().getMySQLServers()) {
 					for(Database md : ms.getMySQLDatabases()) {
 						if(md.getBackupLevel().getLevel()>0) {
 							long startTime=System.currentTimeMillis();
@@ -191,7 +191,7 @@ final public class BackupManager {
 		try {
 			AOServDaemon.executorService.submit(timer);
 			try {
-				for(Server ps : AOServDaemon.getThisAOServer().getPostgresServers()) {
+				for(Server ps : AOServDaemon.getThisServer().getPostgresServers()) {
 					for(Database pd : ps.getPostgresDatabases()) {
 						if(pd.allowsConnections() && pd.getBackupLevel().getLevel()>0) {
 							long startTime=System.currentTimeMillis();

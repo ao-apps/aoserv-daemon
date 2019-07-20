@@ -257,11 +257,11 @@ final public class ImapManager extends BuilderThread {
 	 * @return  The (IP address, port, starttls) or <code>null</code> if not an IMAP server.
 	 */
 	private static Tuple3<InetAddress,Port,Boolean> getImapServer() throws IOException, SQLException {
-		Server aoServer = AOServDaemon.getThisAOServer();
-		CyrusImapdServer cyrusServer = aoServer.getCyrusImapdServer();
+		Server thisServer = AOServDaemon.getThisServer();
+		CyrusImapdServer cyrusServer = thisServer.getCyrusImapdServer();
 		if(cyrusServer == null) return null;
 		// Look for primary IP match
-		InetAddress primaryIp = aoServer.getPrimaryIPAddress().getInetAddress();
+		InetAddress primaryIp = thisServer.getPrimaryIPAddress().getInetAddress();
 		Tuple3<InetAddress,Port,Boolean> firstImap = null;
 		for(CyrusImapdBind cib : cyrusServer.getCyrusImapdBinds()) {
 			Bind nb = cib.getNetBind();
@@ -342,7 +342,7 @@ final public class ImapManager extends BuilderThread {
 		return getUserStore(
 			logOut,
 			new Tuple3<>(
-				AOServDaemon.getThisAOServer().getPrimaryIPAddress().getInetAddress(),
+				AOServDaemon.getThisServer().getPrimaryIPAddress().getInetAddress(),
 				wuPort,
 				false
 			),
@@ -430,7 +430,7 @@ final public class ImapManager extends BuilderThread {
 	 * @see  Fail2banManager
 	 */
 	public static boolean hasSecondaryService() throws IOException, SQLException {
-		CyrusImapdServer cyrusServer = AOServDaemon.getThisAOServer().getCyrusImapdServer();
+		CyrusImapdServer cyrusServer = AOServDaemon.getThisServer().getCyrusImapdServer();
 		if(cyrusServer != null) {
 			Set<AppProtocol> foundProtocols = new HashSet<>();
 			for(CyrusImapdBind cib : cyrusServer.getCyrusImapdBinds()) {
@@ -471,8 +471,8 @@ final public class ImapManager extends BuilderThread {
 		Logger logger = LogFactory.getLogger(ImapManager.class);
 		boolean isFine = logger.isLoggable(Level.FINE);
 		try {
-			Server thisAOServer = AOServDaemon.getThisAOServer();
-			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+			Server thisServer = AOServDaemon.getThisServer();
+			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
@@ -482,7 +482,7 @@ final public class ImapManager extends BuilderThread {
 				ByteArrayOutputStream bout = new ByteArrayOutputStream();
 
 				synchronized(rebuildLock) {
-					CyrusImapdServer cyrusServer = thisAOServer.getCyrusImapdServer();
+					CyrusImapdServer cyrusServer = thisServer.getCyrusImapdServer();
 
 					List<CyrusImapdBind> imapBinds;
 					List<CyrusImapdBind> imapsBinds;
@@ -1089,7 +1089,7 @@ final public class ImapManager extends BuilderThread {
 											+ "# Proper hostname in chroot fail-over state\n"
 											+ "servername: ");
 									DomainName servername = cyrusServer.getServername();
-									if(servername == null) servername = thisAOServer.getHostname();
+									if(servername == null) servername = thisServer.getHostname();
 									out.print(servername).print("\n"
 											+ "\n"
 											+ "# Sieve\n"
@@ -1737,7 +1737,7 @@ final public class ImapManager extends BuilderThread {
 			IMAPStore store = getAdminStore();
 			if(store == null) throw new SQLException("Not an IMAP server");
 			// Verify all email users - only users who have a home under /home/ are considered
-			List<UserServer> lsas = AOServDaemon.getThisAOServer().getLinuxServerAccounts();
+			List<UserServer> lsas = AOServDaemon.getThisServer().getLinuxServerAccounts();
 			Set<String> validEmailUsernames = new HashSet<>(lsas.size()*4/3+1);
 			// Conversions are done concurrently
 			Map<UserServer,Future<Object>> convertors = WUIMAP_CONVERSION_ENABLED ? new HashMap<>(lsas.size()*4/3+1) : null;
@@ -2026,7 +2026,7 @@ final public class ImapManager extends BuilderThread {
 				System.out.println(folders[c]+": "+sizes[c]);
 			}
 
-			for(UserServer lsa : AOServDaemon.getThisAOServer().getLinuxServerAccounts()) {
+			for(UserServer lsa : AOServDaemon.getThisServer().getLinuxServerAccounts()) {
 				User la = lsa.getLinuxAccount();
 				if(la.getType().isEmail() && lsa.getHome().startsWith("/home/")) {
 					String username = la.getUsername().getUsername();
@@ -2041,8 +2041,8 @@ final public class ImapManager extends BuilderThread {
 	}*/
 
 	public static void start() throws IOException, SQLException {
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
@@ -2087,11 +2087,11 @@ final public class ImapManager extends BuilderThread {
 	}
 
 	public static long[] getImapFolderSizes(User.Name username, String[] folderNames) throws IOException, SQLException, MessagingException {
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
-		UserServer lsa = thisAOServer.getLinuxServerAccount(username);
-		if(lsa == null) throw new SQLException("Unable to find UserServer: " + username + " on " + thisAOServer);
+		UserServer lsa = thisServer.getLinuxServerAccount(username);
+		if(lsa == null) throw new SQLException("Unable to find UserServer: " + username + " on " + thisServer);
 		long[] sizes = new long[folderNames.length];
 		if(
 			osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
@@ -2311,8 +2311,8 @@ final public class ImapManager extends BuilderThread {
 	}
 
 	public static long getInboxSize(User.Name username) throws IOException, SQLException, MessagingException {
-		Server thisAOServer=AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
 			osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
@@ -2333,8 +2333,8 @@ ad OK Completed
 	}
 
 	public static long getInboxModified(User.Name username) throws IOException, SQLException, MessagingException, ParseException {
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
 			osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
@@ -2462,15 +2462,15 @@ ad OK Completed
 	 * @see Protocol#SIEVE
 	 */
 	public static boolean isCyrusImapdEnabled() throws IOException, SQLException {
-		return AOServDaemon.getThisAOServer().getCyrusImapdServer() != null;
+		return AOServDaemon.getThisServer().getCyrusImapdServer() != null;
 	}
 
 	/**
 	 * Configures backups for cyrus-imapd
 	 */
 	public static void addFilesystemIteratorRules(FileReplication ffr, Map<String,FilesystemIteratorRule> filesystemRules) throws IOException, SQLException {
-		Server thisServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
 			osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64

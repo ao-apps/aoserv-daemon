@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2017 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2017, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -25,7 +25,7 @@ final public class PostgresCount extends DBReportData {
 	public PostgresCount() throws IOException, SQLException {
 		int total=0;
 		// Only the outer-most server counts the postgres processes
-		if(AOServDaemon.getThisAOServer().getFailoverServer()==null) {
+		if(AOServDaemon.getThisServer().getFailoverServer() == null) {
 			String[] list=proc.list();
 			int len=list.length;
 			for(int c=0;c<len;c++) {
@@ -35,8 +35,7 @@ final public class PostgresCount extends DBReportData {
 					File file=new File(proc, filename);
 					if(file.isDirectory()) {
 						try {
-							FileInputStream in=new FileInputStream(new File(file, "cmdline"));
-							try {
+							try (FileInputStream in = new FileInputStream(new File(file, "cmdline"))) {
 								if(
 									in.read()=='/'
 									&& in.read()=='u'
@@ -56,8 +55,6 @@ final public class PostgresCount extends DBReportData {
 									&& in.read()=='e'
 									&& in.read()=='s'
 								) total++;
-							} finally {
-								in.close();
 							}
 						} catch(FileNotFoundException err) {
 							// Normal, if process has exited

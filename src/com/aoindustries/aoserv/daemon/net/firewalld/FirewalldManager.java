@@ -126,9 +126,9 @@ final public class FirewalldManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			Server thisAoServer = AOServDaemon.getThisAOServer();
-			Host thisServer = thisAoServer.getServer();
-			OperatingSystemVersion osv = thisServer.getOperatingSystemVersion();
+			Server thisServer = AOServDaemon.getThisServer();
+			Host thisHost = thisServer.getHost();
+			OperatingSystemVersion osv = thisHost.getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 
 			synchronized(rebuildLock) {
@@ -137,7 +137,7 @@ final public class FirewalldManager extends BuilderThread {
 					// Manage firewalld only when installed
 					&& PackageManager.getInstalledPackage(PackageManager.PackageName.FIREWALLD) != null
 				) {
-					List<Bind> netBinds = thisServer.getNetBinds();
+					List<Bind> netBinds = thisHost.getNetBinds();
 					if(logger.isLoggable(Level.FINE)) logger.fine("netBinds: " + netBinds);
 					// TODO: The zones should be added per-port, but this release is constrained by the current implementation
 					//       of the underlying ao-firewalld package.  Thus any single port associated with a zone will open that
@@ -564,8 +564,8 @@ final public class FirewalldManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		synchronized(System.out) {
 			if(

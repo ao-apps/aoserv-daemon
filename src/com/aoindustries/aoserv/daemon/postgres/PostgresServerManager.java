@@ -62,8 +62,8 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 	@Override
 	protected boolean doRebuild() {
 		try {
-			com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
-			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+			com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
@@ -72,13 +72,13 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 
 			synchronized(rebuildLock) {
 				Set<Port> postgresqlPorts = new HashSet<>();
-				for(Server postgresServer : thisAOServer.getPostgresServers()) {
+				for(Server postgresServer : thisServer.getPostgresServers()) {
 					postgresqlPorts.add(postgresServer.getBind().getPort());
 					// TODO: Add and initialize any missing /var/lib/pgsql/name
 					// TODO: Add/update any /etc/rc.d/init.d/postgresql-name
 				}
 				// Add any other local MySQL port (such as tunneled)
-				for(Bind nb : thisAOServer.getServer().getNetBinds()) {
+				for(Bind nb : thisServer.getHost().getNetBinds()) {
 					String protocol = nb.getAppProtocol().getProtocol();
 					if(AppProtocol.POSTGRESQL.equals(protocol)) {
 						postgresqlPorts.add(nb.getPort());
@@ -148,7 +148,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 					|| version.startsWith(Version.VERSION_11 + 'R')
 				) {
 					// Connect to 127.0.0.1 or ::1
-					com.aoindustries.aoserv.client.linux.Server ao = ps.getAoServer();
+					com.aoindustries.aoserv.client.linux.Server linuxServer = ps.getLinuxServer();
 					StringBuilder jdbcUrlSB = new StringBuilder();
 					jdbcUrlSB.append("jdbc:postgresql://");
 					Bind nb = ps.getBind();
@@ -192,8 +192,8 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 
 	private static PostgresServerManager postgresServerManager;
 	public static void start() throws IOException, SQLException {
-		com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
@@ -281,7 +281,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 	public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
 		try {
 			AOServConnector conn = AOServDaemon.getConnector();
-			for(Server postgresServer : AOServDaemon.getThisAOServer().getPostgresServers()) {
+			for(Server postgresServer : AOServDaemon.getThisServer().getPostgresServers()) {
 				String version=postgresServer.getVersion().getTechnologyVersion(conn).getVersion();
 				if(
 					!version.startsWith(Version.VERSION_7_1 + '.')

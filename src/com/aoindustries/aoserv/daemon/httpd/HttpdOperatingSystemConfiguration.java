@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -140,7 +140,7 @@ public enum HttpdOperatingSystemConfiguration {
 	 * @see  AOServDaemon#getThisServer()
 	 */
 	public static HttpdOperatingSystemConfiguration getHttpOperatingSystemConfiguration() throws IOException, SQLException {
-		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		switch(osvId) {
 			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013, 2014, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2014, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -35,7 +35,7 @@ final public class ServerManager {
 	/** One lock per process name */
 	private static final Map<String,Object> processLocks=new HashMap<>();
 	public static void controlProcess(String process, String command) throws IOException, SQLException {
-		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		Object lock;
@@ -179,7 +179,7 @@ final public class ServerManager {
 	}
 
 	public static String getFilesystemsCsvReport() throws IOException, SQLException {
-		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
 			osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64

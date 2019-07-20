@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -132,7 +132,7 @@ public abstract class HttpdSiteManager {
 			// Get values used in the rest of the method.
 			HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 			String optSlash = osConfig.getHttpdSitesOptSlash();
-			Server aoServer = AOServDaemon.getThisAOServer();
+			Server thisServer = AOServDaemon.getThisServer();
 
 			// The www directories that exist but are not used will be removed
 			UnixFile wwwDirectory = new UnixFile(osConfig.getHttpdSitesDirectory().toString());
@@ -146,7 +146,7 @@ public abstract class HttpdSiteManager {
 			}
 
 			// Iterate through each site
-			for(Site httpdSite : aoServer.getHttpdSites()) {
+			for(Site httpdSite : thisServer.getHttpdSites()) {
 				final HttpdSiteManager manager = getInstance(httpdSite);
 
 				// Install any required RPMs
@@ -173,7 +173,7 @@ public abstract class HttpdSiteManager {
 				// Stop and disable any daemons
 				stopAndDisableDaemons(removeFile);
 				// Only remove the directory when not used by a home directory
-				if(!aoServer.isHomeUsed(PosixPath.valueOf(removeFile.getPath()))) {
+				if(!thisServer.isHomeUsed(PosixPath.valueOf(removeFile.getPath()))) {
 					File toDelete = removeFile.getFile();
 					if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
 					deleteFileList.add(toDelete);
@@ -195,7 +195,7 @@ public abstract class HttpdSiteManager {
 	 * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
 	 */
 	static void stopStartAndRestart(Set<Site> sitesNeedingRestarted) throws IOException, SQLException {
-		for(Site httpdSite : AOServDaemon.getThisAOServer().getHttpdSites()) {
+		for(Site httpdSite : AOServDaemon.getThisServer().getHttpdSites()) {
 			HttpdSiteManager manager = getInstance(httpdSite);
 			if(manager instanceof StopStartable) {
 				final StopStartable stopStartRestartable = (StopStartable)manager;
@@ -259,7 +259,7 @@ public abstract class HttpdSiteManager {
 			int daemonUid=daemonDirectoryStat.getUid();
 			UserServer daemonLsa;
 			try {
-				daemonLsa = AOServDaemon.getThisAOServer().getLinuxServerAccount(LinuxId.valueOf(daemonUid));
+				daemonLsa = AOServDaemon.getThisServer().getLinuxServerAccount(LinuxId.valueOf(daemonUid));
 			} catch(ValidationException e) {
 				throw new IOException(e);
 			}
@@ -305,8 +305,8 @@ public abstract class HttpdSiteManager {
 		AOServConnector conn = AOServDaemon.getConnector();
 
 		Site httpdSite = conn.getWeb().getSite().get(sitePKey);
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		if(!httpdSite.getAoServer().equals(thisAOServer)) return "Site #"+sitePKey+" has server of "+httpdSite.getAoServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')';
+		Server thisServer = AOServDaemon.getThisServer();
+		if(!httpdSite.getLinuxServer().equals(thisServer)) return "Site #"+sitePKey+" has server of "+httpdSite.getLinuxServer().getHostname()+", which is not this server ("+thisServer.getHostname()+')';
 
 		HttpdSiteManager manager = getInstance(httpdSite);
 		if(manager instanceof StopStartable) {
@@ -340,8 +340,8 @@ public abstract class HttpdSiteManager {
 		AOServConnector conn = AOServDaemon.getConnector();
 
 		Site httpdSite = conn.getWeb().getSite().get(sitePKey);
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		if(!httpdSite.getAoServer().equals(thisAOServer)) return "Site #"+sitePKey+" has server of "+httpdSite.getAoServer().getHostname()+", which is not this server ("+thisAOServer.getHostname()+')';
+		Server thisServer = AOServDaemon.getThisServer();
+		if(!httpdSite.getLinuxServer().equals(thisServer)) return "Site #"+sitePKey+" has server of "+httpdSite.getLinuxServer().getHostname()+", which is not this server ("+thisServer.getHostname()+')';
 
 		HttpdSiteManager manager = getInstance(httpdSite);
 		if(manager instanceof StopStartable) {
@@ -377,7 +377,7 @@ public abstract class HttpdSiteManager {
 			+ "\n"
 			+ "  Control Panel: https://www.aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey="+httpdSite.getPkey()+"\n"
 			+ "\n"
-			+ "  AOSH: "+Command.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getName()+" "+httpdSite.getAoServer().getHostname()+" true\n"
+			+ "  AOSH: "+Command.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getName()+" "+httpdSite.getLinuxServer().getHostname()+" true\n"
 			+ "\n"
 			+ "  support@aoindustries.com\n"
 			+ "  (205) 454-2556\n"
@@ -399,7 +399,7 @@ public abstract class HttpdSiteManager {
 			+ "\n"
 			+ "  Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey="+httpdSite.getPkey()+"\n"
 			+ "\n"
-			+ "  AOSH: "+Command.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getName()+" "+httpdSite.getAoServer().getHostname()+" true\n"
+			+ "  AOSH: "+Command.SET_HTTPD_SITE_IS_MANUAL+" "+httpdSite.getName()+" "+httpdSite.getLinuxServer().getHostname()+" true\n"
 			+ "\n"
 			+ "  support@aoindustries.com\n"
 			+ "  (205) 454-2556\n"
@@ -517,8 +517,8 @@ public abstract class HttpdSiteManager {
 		UnixFile phpFile = new UnixFile(cgibinDirectory, "php", false);
 		// TODO: If every server this site runs as uses mod_php, then don't make the script? (and the config that refers to this script)
 		if(enableCgi() && enablePhp()) {
-			Server thisAoServer = AOServDaemon.getThisAOServer();
-			final OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+			Server thisServer = AOServDaemon.getThisServer();
+			final OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			final int osvId = osv.getPkey();
 
 			PackageManager.PackageName requiredPackage;
@@ -742,9 +742,9 @@ public abstract class HttpdSiteManager {
 			}
 		}
 		if(uid==-1) {
-			Server aoServer = AOServDaemon.getThisAOServer();
-			UserServer apacheLsa = aoServer.getLinuxServerAccount(User.APACHE);
-			if(apacheLsa==null) throw new SQLException("Unable to find UserServer: "+User.APACHE+" on "+aoServer.getHostname());
+			Server thisServer = AOServDaemon.getThisServer();
+			UserServer apacheLsa = thisServer.getLinuxServerAccount(User.APACHE);
+			if(apacheLsa==null) throw new SQLException("Unable to find UserServer: "+User.APACHE+" on "+thisServer.getHostname());
 			uid = apacheLsa.getUid().getId();
 		}
 		return uid;
@@ -842,7 +842,7 @@ public abstract class HttpdSiteManager {
 	 * Gets an unmodifiable map of URL patterns that should be rejected.
 	 */
 	public Map<String,List<Location>> getRejectedLocations() throws IOException, SQLException {
-		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 			// Protection is built into the config files

@@ -229,7 +229,7 @@ public class HttpdServerManager {
 	 * Gets the workers#.properties or workers[@&lt;name&gt;].properties file path.
 	 */
 	private static String getWorkersFile(HttpdServer hs) throws IOException, SQLException {
-		OperatingSystemVersion osv = hs.getAOServer().getServer().getOperatingSystemVersion();
+		OperatingSystemVersion osv = hs.getLinuxServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		switch(osvId) {
 			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
@@ -248,7 +248,7 @@ public class HttpdServerManager {
 	 * Gets the httpd#.conf or httpd[@&lt;name&gt;].conf file name.
 	 */
 	private static String getHttpdConfFile(HttpdServer hs) throws IOException, SQLException {
-		OperatingSystemVersion osv = hs.getAOServer().getServer().getOperatingSystemVersion();
+		OperatingSystemVersion osv = hs.getLinuxServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		switch(osvId) {
 			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
@@ -273,22 +273,22 @@ public class HttpdServerManager {
 	) throws IOException, SQLException {
 		// Used below
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
-		Server aoServer = AOServDaemon.getThisAOServer();
+		Server thisServer = AOServDaemon.getThisServer();
 
 		// Rebuild /etc/httpd/conf/hosts/ or /etc/httpd/sites-available and /etc/httpd/sites-enabled files
-		doRebuildConfHosts(aoServer, bout, deleteFileList, serversNeedingReloaded, restorecon);
+		doRebuildConfHosts(thisServer, bout, deleteFileList, serversNeedingReloaded, restorecon);
 
 		// Rebuild /etc/httpd/conf/ files
 		Set<Port> enabledAjpPorts = new HashSet<>();
 		boolean[] hasAnyCgi = {false};
 		boolean[] hasAnyModPhp = {false};
-		doRebuildConf(aoServer, bout, deleteFileList, serversNeedingReloaded, enabledAjpPorts, restorecon, hasAnyCgi, hasAnyModPhp);
+		doRebuildConf(thisServer, bout, deleteFileList, serversNeedingReloaded, enabledAjpPorts, restorecon, hasAnyCgi, hasAnyModPhp);
 
 		// Control the /etc/rc.d/init.d/httpd# files or /etc/systemd/system/multi-user.target.wants/httpd[@<name>].service links
-		doRebuildInitScripts(aoServer, bout, deleteFileList, serversNeedingReloaded, restorecon);
+		doRebuildInitScripts(thisServer, bout, deleteFileList, serversNeedingReloaded, restorecon);
 
 		// Configure SELinux
-		doRebuildSELinux(aoServer, serversNeedingReloaded, enabledAjpPorts, hasAnyCgi[0], hasAnyModPhp[0]);
+		doRebuildSELinux(thisServer, serversNeedingReloaded, enabledAjpPorts, hasAnyCgi[0], hasAnyModPhp[0]);
 
 		// Other filesystem fixes related to logging
 		fixFilesystem(deleteFileList);
@@ -299,13 +299,13 @@ public class HttpdServerManager {
 	 * or /etc/httpd/sites-available and /etc/httpd/sites-enabled
 	 */
 	private static void doRebuildConfHosts(
-		Server thisAoServer,
+		Server thisServer,
 		ByteArrayOutputStream bout,
 		List<File> deleteFileList,
 		Set<HttpdServer> serversNeedingReloaded,
 		Set<UnixFile> restorecon
 	) throws IOException, SQLException {
-		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		switch(osvId) {
 			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 : {
@@ -315,7 +315,7 @@ public class HttpdServerManager {
 				extraFiles.addAll(Arrays.asList(list));
 
 				// Iterate through each site
-				for(Site httpdSite : thisAoServer.getHttpdSites()) {
+				for(Site httpdSite : thisServer.getHttpdSites()) {
 					// Some values used below
 					final String siteName = httpdSite.getName();
 					final HttpdSiteManager manager = HttpdSiteManager.getInstance(httpdSite);
@@ -435,7 +435,7 @@ public class HttpdServerManager {
 				}
 
 				// Iterate through each site
-				for(Site httpdSite : thisAoServer.getHttpdSites()) {
+				for(Site httpdSite : thisServer.getHttpdSites()) {
 					// Some values used below
 					final String siteName = httpdSite.getName();
 					final HttpdSiteManager manager = HttpdSiteManager.getInstance(httpdSite);
@@ -559,7 +559,7 @@ public class HttpdServerManager {
 				}
 
 				// Iterate through each site
-				for(Site httpdSite : thisAoServer.getHttpdSites()) {
+				for(Site httpdSite : thisServer.getHttpdSites()) {
 					// Some values used below
 					final String siteName = httpdSite.getName();
 					// Each of the binds
@@ -630,7 +630,7 @@ public class HttpdServerManager {
 		// Build to a temporary buffer
 		bout.reset();
 		try (ChainWriter out = new ChainWriter(bout)) {
-			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+			OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			switch(osvId) {
 				case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 : {
@@ -1227,7 +1227,7 @@ public class HttpdServerManager {
 	 * </ul>
 	 */
 	private static void doRebuildConf(
-		Server thisAoServer,
+		Server thisServer,
 		ByteArrayOutputStream bout,
 		List<File> deleteFileList,
 		Set<HttpdServer> serversNeedingReloaded,
@@ -1236,9 +1236,9 @@ public class HttpdServerManager {
 		boolean[] hasAnyCgi,
 		boolean[] hasAnyModPhp
 	) throws IOException, SQLException {
-		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
-		List<HttpdServer> hss = thisAoServer.getHttpdServers();
+		List<HttpdServer> hss = thisServer.getHttpdServers();
 		// The files that should exist in /etc/httpd/conf
 		Set<String> httpdConfFilenames = new HashSet<>(hss.size()*4/3+1);
 		// The files that whould exist in /var/lib/php
@@ -1517,7 +1517,7 @@ public class HttpdServerManager {
 		final String dollarVariable = CENTOS_5_DOLLAR_VARIABLE;
 		final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		if(osConfig != HttpdOperatingSystemConfiguration.CENTOS_5_I686_AND_X86_64) throw new AssertionError("This method is for CentOS 5 only");
-		OperatingSystemVersion osv = hs.getAOServer().getServer().getOperatingSystemVersion();
+		OperatingSystemVersion osv = hs.getLinuxServer().getHost().getOperatingSystemVersion();
 		assert osv.getPkey() == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64;
 		final int serverNum;
 		{
@@ -1703,7 +1703,7 @@ public class HttpdServerManager {
 			// Only include mod_jk when at least one site has jk settings
 			if(hasJkSettings) out.print("Include conf/modules_conf/mod_jk\n");
 			out.print("\n"
-					+ "ServerAdmin ").print(escape(dollarVariable, "root@" + hs.getAOServer().getHostname())).print("\n"
+					+ "ServerAdmin ").print(escape(dollarVariable, "root@" + hs.getLinuxServer().getHostname())).print("\n"
 					+ "\n"
 					+ "<IfModule mod_ssl.c>\n"
 					+ "    SSLSessionCache shmcb:/var/cache/httpd/mod_ssl/ssl_scache").print(serverNum).print("(512000)\n"
@@ -1718,7 +1718,7 @@ public class HttpdServerManager {
 						+ "Group ").print(escape(dollarVariable, Group.APACHE.toString())).print('\n');
 			}
 			out.print("\n"
-					+ "ServerName ").print(escape(dollarVariable, hs.getAOServer().getHostname().toString())).print("\n"
+					+ "ServerName ").print(escape(dollarVariable, hs.getLinuxServer().getHostname().toString())).print("\n"
 					+ "\n"
 					+ "ErrorLog /var/log/httpd/httpd").print(serverNum).print("/error_log\n"
 					+ "CustomLog /var/log/httpd/httpd").print(serverNum).print("/access_log combined\n"
@@ -1789,7 +1789,7 @@ public class HttpdServerManager {
 		final String dollarVariable = CENTOS_7_DOLLAR_VARIABLE;
 		final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		if(osConfig != HttpdOperatingSystemConfiguration.CENTOS_7_X86_64) throw new AssertionError("This method is for CentOS 7 only");
-		OperatingSystemVersion osv = hs.getAOServer().getServer().getOperatingSystemVersion();
+		OperatingSystemVersion osv = hs.getLinuxServer().getHost().getOperatingSystemVersion();
 		assert osv.getPkey() == OperatingSystemVersion.CENTOS_7_X86_64;
 		PackageManager.installPackages(
 			PackageManager.PackageName.HTTPD,
@@ -1814,8 +1814,8 @@ public class HttpdServerManager {
 				errorLog = "/var/log/httpd/error_log";
 			}
 			out.print("ErrorLog ").print(escape(dollarVariable, errorLog)).print("\n"
-					+ "ServerAdmin ").print(escape(dollarVariable, "root@" + hs.getAOServer().getHostname())).print("\n"
-					+ "ServerName ").print(escape(dollarVariable, hs.getAOServer().getHostname().toString())).print("\n"
+					+ "ServerAdmin ").print(escape(dollarVariable, "root@" + hs.getLinuxServer().getHostname())).print("\n"
+					+ "ServerName ").print(escape(dollarVariable, hs.getLinuxServer().getHostname().toString())).print("\n"
 					+ "TimeOut ").print(hs.getTimeOut()).print("\n"
 					+ "\n"
 					+ "#\n"
@@ -2702,7 +2702,7 @@ public class HttpdServerManager {
 	 */
 	private static byte[] buildHttpdSiteBindFile(HttpdSiteManager manager, VirtualHost bind, String siteInclude, ByteArrayOutputStream bout) throws IOException, SQLException {
 		OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
-		OperatingSystemVersion osv = manager.httpdSite.getAoServer().getServer().getOperatingSystemVersion();
+		// OperatingSystemVersion osv = manager.httpdSite.getLinuxServer().getHost().getOperatingSystemVersion();
 		HttpdBind httpdBind = bind.getHttpdBind();
 		Bind netBind = httpdBind.getNetBind();
 		int port = netBind.getPort().getPort();
@@ -3018,7 +3018,7 @@ public class HttpdServerManager {
 
 	private static final Object processControlLock = new Object();
 	private static void reloadConfigs(HttpdServer hs) throws IOException, SQLException {
-		OperatingSystemVersion osv = hs.getAOServer().getServer().getOperatingSystemVersion();
+		OperatingSystemVersion osv = hs.getLinuxServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		synchronized(processControlLock) {
 			switch(osvId) {
@@ -3050,12 +3050,12 @@ public class HttpdServerManager {
 	 * Calls all Apache instances with the provided command.
 	 */
 	private static void controlApache(String command) throws IOException, SQLException {
-		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		synchronized(processControlLock) {
 			switch(osvId) {
 				case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
-					for(HttpdServer hs : AOServDaemon.getThisAOServer().getHttpdServers()) {
+					for(HttpdServer hs : AOServDaemon.getThisServer().getHttpdServers()) {
 						String name = hs.getName();
 						int num = (name == null) ? 1 : Integer.parseInt(name);
 						AOServDaemon.exec(
@@ -3065,7 +3065,7 @@ public class HttpdServerManager {
 					}
 					break;
 				case OperatingSystemVersion.CENTOS_7_X86_64 :
-					for(HttpdServer hs : AOServDaemon.getThisAOServer().getHttpdServers()) {
+					for(HttpdServer hs : AOServDaemon.getThisServer().getHttpdServers()) {
 						String escapedName = hs.getSystemdEscapedName();
 						AOServDaemon.exec(
 							"/usr/bin/systemctl",
@@ -3171,14 +3171,14 @@ public class HttpdServerManager {
 	 * Also stops and disables instances that should no longer exist.
 	 */
 	private static void doRebuildInitScripts(
-		Server thisAoServer,
+		Server thisServer,
 		ByteArrayOutputStream bout,
 		List<File> deleteFileList,
 		Set<HttpdServer> serversNeedingReloaded,
 		Set<UnixFile> restorecon
 	) throws IOException, SQLException {
-		List<HttpdServer> hss = thisAoServer.getHttpdServers();
-		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+		List<HttpdServer> hss = thisServer.getHttpdServers();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		switch(osvId) {
 			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 : {
@@ -3376,13 +3376,13 @@ public class HttpdServerManager {
 	 * Manages SELinux.
 	 */
 	private static void doRebuildSELinux(
-		Server aoServer,
+		Server linuxServer,
 		Set<HttpdServer> serversNeedingReloaded,
 		Set<Port> enabledAjpPorts,
 		boolean hasAnyCgi,
 		boolean hasAnyModPhp
 	) throws IOException, SQLException {
-		OperatingSystemVersion osv = aoServer.getServer().getOperatingSystemVersion();
+		OperatingSystemVersion osv = linuxServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		switch(osvId) {
 			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
@@ -3393,14 +3393,14 @@ public class HttpdServerManager {
 				PackageManager.installPackage(PackageManager.PackageName.POLICYCOREUTILS_PYTHON);
 				// Find the set of distinct ports used by Apache
 				SortedSet<Port> httpdPorts = new TreeSet<>();
-				List<HttpdServer> hss = aoServer.getHttpdServers();
+				List<HttpdServer> hss = linuxServer.getHttpdServers();
 				for(HttpdServer hs : hss) {
 					for(HttpdBind hb : hs.getHttpdBinds()) {
 						httpdPorts.add(hb.getNetBind().getPort());
 					}
 				}
 				// Add any other local HTTP server (such as proxied user-space applications)
-				for(Bind nb : aoServer.getServer().getNetBinds()) {
+				for(Bind nb : linuxServer.getHost().getNetBinds()) {
 					String protocol = nb.getAppProtocol().getProtocol();
 					if(AppProtocol.HTTP.equals(protocol) || AppProtocol.HTTPS.equals(protocol)) {
 						httpdPorts.add(nb.getPort());
@@ -3459,8 +3459,8 @@ public class HttpdServerManager {
 				httpdServer,
 				() -> {
 					AOServConnector conn = AOServDaemon.getConnector();
-					Server thisAOServer = AOServDaemon.getThisAOServer();
-					OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+					Server thisServer = AOServDaemon.getThisServer();
+					OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 					int osvId = osv.getPkey();
 					HttpdServer hs = conn.getWeb().getHttpdServer().get(httpdServer);
 					if(hs == null) throw new SQLException("HttpdServer not found: " + httpdServer);

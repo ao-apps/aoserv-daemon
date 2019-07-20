@@ -45,8 +45,8 @@ final public class MySQLDBUserManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
-			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+			com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -246,8 +246,8 @@ final public class MySQLDBUserManager extends BuilderThread {
 
 	private static MySQLDBUserManager mysqlDBUserManager;
 	public static void start() throws IOException, SQLException {
-		com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {

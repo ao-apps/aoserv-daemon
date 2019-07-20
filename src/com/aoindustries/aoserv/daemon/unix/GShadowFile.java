@@ -1,5 +1,5 @@
 /*
- * Copyright 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -264,7 +264,7 @@ final public class GShadowFile {
 		// Determine permissions
 		long mode;
 		{
-			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+			OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586

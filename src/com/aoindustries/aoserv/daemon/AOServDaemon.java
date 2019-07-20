@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2015, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -146,13 +146,13 @@ final public class AOServDaemon {
 		}
 	}
 
-	public static Server getThisAOServer() throws IOException, SQLException {
+	public static Server getThisServer() throws IOException, SQLException {
 		String hostname = AOServDaemonConfiguration.getServerHostname();
 		Host host = getConnector().getNet().getHost().get(hostname);
 		if(host == null) throw new SQLException("Unable to find Host: " + hostname);
-		Server ao = host.getAOServer();
-		if(ao == null) throw new SQLException("Host is not an Server: " + hostname);
-		return ao;
+		Server linuxServer = host.getLinuxServer();
+		if(linuxServer == null) throw new SQLException("Host is not a linux.Server: " + hostname);
+		return linuxServer;
 	}
 
 	/**
@@ -182,7 +182,7 @@ final public class AOServDaemon {
 					System.setProperty("javax.net.ssl.keyStorePassword", keyStorePassword);
 				}
 
-				OperatingSystemVersion osv = getThisAOServer().getServer().getOperatingSystemVersion();
+				OperatingSystemVersion osv = getThisServer().getHost().getOperatingSystemVersion();
 				int osvId = osv.getPkey();
 				// TODO: Verify operating system version is correct on start-up to protect against config mistakes.
 				// TODO: Verify operating system version matches via /etc/release...
@@ -250,7 +250,7 @@ final public class AOServDaemon {
 				LinuxAccountManager.start();
 
 				// Start up the AOServDaemonServers
-				Bind bind = getThisAOServer().getDaemonBind();
+				Bind bind = getThisServer().getDaemonBind();
 				if(bind != null) {
 					AOServDaemonServer server = new AOServDaemonServer(
 						bind.getIpAddress().getInetAddress(),

@@ -126,9 +126,9 @@ final public class DistroManager implements Runnable {
 					isSleeping = false;
 
 					// It is time to run if it is the backup hour and the backup has not been run for at least 12 hours
-					Server thisAOServer = AOServDaemon.getThisAOServer();
+					Server thisServer = AOServDaemon.getThisServer();
 					long distroStartTime = System.currentTimeMillis();
-					Timestamp lastDistroTime = thisAOServer.getLastDistroTime();
+					Timestamp lastDistroTime = thisServer.getLastDistroTime();
 					Logger logger = LogFactory.getLogger(DistroManager.class);
 					boolean isFiner = logger.isLoggable(Level.FINER);
 					if(isFiner) {
@@ -144,7 +144,7 @@ final public class DistroManager implements Runnable {
 						// Has been at least 12 hours since the last run
 						|| (distroStartTime - lastDistroTime.getTime()) >= 12L*60*60*1000
 					) {
-						int distroHour = thisAOServer.getDistroHour();
+						int distroHour = thisServer.getDistroHour();
 						Calendar cal = Calendar.getInstance();
 						cal.setTimeInMillis(distroStartTime);
 						int currentHour = cal.get(Calendar.HOUR_OF_DAY);
@@ -166,7 +166,7 @@ final public class DistroManager implements Runnable {
 							) {
 								AOServDaemon.executorService.submit(timer);
 
-								AOServDaemon.getThisAOServer().setLastDistroTime(new Timestamp(distroStartTime));
+								AOServDaemon.getThisServer().setLastDistroTime(new Timestamp(distroStartTime));
 
 								DistroReportStats stats = new DistroReportStats();
 								List<DistroReportFile> results = checkFilesystem(stats, null);
@@ -363,8 +363,8 @@ final public class DistroManager implements Runnable {
 			// Verify all the files, from the root to the lowest directory, accumulating the results in the results List
 			List<DistroReportFile> results = new ArrayList<>();
 			checkDistroFile(
-				AOServDaemon.getThisAOServer(),
-				AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion().getPkey(),
+				AOServDaemon.getThisServer(),
+				AOServDaemon.getThisServer().getHost().getOperatingSystemVersion().getPkey(),
 				MessageDigestUtils.getSha256(),
 				distroFiles,
 				foundFiles,
@@ -418,7 +418,7 @@ final public class DistroManager implements Runnable {
 	 */
 	//@SuppressWarnings({"unchecked"})
 	private static void checkDistroFile(
-		Server aoServer,
+		Server thisServer,
 		Integer osVersionPKey,
 		MessageDigest digest,
 		List<DistroFile> distroFiles,
@@ -453,7 +453,7 @@ final public class DistroManager implements Runnable {
 				foundFiles[index] = true;
 			} else {
 				// Check for hostname substitution
-				String hostname = aoServer.getHostname().toString();
+				String hostname = thisServer.getHostname().toString();
 				int pos = filename.indexOf(hostname);
 				if(pos >= 0) {
 					filename = filename.substring(0, pos) + "$h" + filename.substring(pos+hostname.length());
@@ -489,8 +489,8 @@ final public class DistroManager implements Runnable {
 			// Check owner
 			int fileUID = fileStat.getUid();
 			User la = distroFile.getLinuxAccount();
-			UserServer lsa = la.getLinuxServerAccount(aoServer);
-			if(lsa == null) throw new SQLException("Unable to find UserServer for " + la + " on " + aoServer + ", path=" + file);
+			UserServer lsa = la.getLinuxServerAccount(thisServer);
+			if(lsa == null) throw new SQLException("Unable to find UserServer for " + la + " on " + thisServer + ", path=" + file);
 			int distroUID = lsa.getUid().getId();
 			if(fileUID != distroUID) {
 				addResult(
@@ -507,8 +507,8 @@ final public class DistroManager implements Runnable {
 			// Check group
 			int fileGID = fileStat.getGid();
 			Group lg = distroFile.getLinuxGroup();
-			GroupServer lsg = lg.getLinuxServerGroup(aoServer);
-			if(lsg == null) throw new SQLException("Unable to find GroupServer for " + lg + " on " + aoServer + ", path=" + file);
+			GroupServer lsg = lg.getLinuxServerGroup(thisServer);
+			if(lsg == null) throw new SQLException("Unable to find GroupServer for " + lg + " on " + thisServer + ", path=" + file);
 			int distroGID = lsg.getGid().getId();
 			if(fileGID != distroGID) {
 				addResult(
@@ -747,7 +747,7 @@ final public class DistroManager implements Runnable {
 							stats.systemCount--;
 							if(includeUser) {
 								stats.userCount++;
-								checkUserDirectory(aoServer, file, results, stats, verboseOut);
+								checkUserDirectory(thisServer, file, results, stats, verboseOut);
 							} else {
 								stats.noRecurseCount++;
 							}
@@ -774,7 +774,7 @@ final public class DistroManager implements Runnable {
 									}
 									for(int c = 0; c < len; c++) {
 										checkDistroFile(
-											aoServer,
+											thisServer,
 											osVersionPKey,
 											digest,
 											distroFiles,
@@ -796,7 +796,7 @@ final public class DistroManager implements Runnable {
 	}
 
 	private static void checkUserDirectory(
-		Server aoServer,
+		Server thisServer,
 		UnixFile file,
 		List<DistroReportFile> results,
 		DistroReportStats stats,
@@ -839,7 +839,7 @@ final public class DistroManager implements Runnable {
 
 						// Make sure is a valid user
 						int uid = ufStat.getUid();
-						if(aoServer.getLinuxServerAccount(LinuxId.valueOf(uid)) == null) {
+						if(thisServer.getLinuxServerAccount(LinuxId.valueOf(uid)) == null) {
 							addResult(
 								results,
 								verboseOut,
@@ -852,7 +852,7 @@ final public class DistroManager implements Runnable {
 
 						// Make sure is a valid group
 						int gid = ufStat.getGid();
-						if(aoServer.getLinuxServerGroup(LinuxId.valueOf(gid)) == null) {
+						if(thisServer.getLinuxServerGroup(LinuxId.valueOf(gid)) == null) {
 							addResult(
 								results,
 								verboseOut,
@@ -868,8 +868,8 @@ final public class DistroManager implements Runnable {
 						if(
 							(fileMode & (UnixFile.SET_UID | UnixFile.SET_GID)) != 0
 							&& (
-								uid < aoServer.getUidMin().getId()
-								|| gid < aoServer.getGidMin().getId()
+								uid < thisServer.getUidMin().getId()
+								|| gid < thisServer.getGidMin().getId()
 							)
 						) {
 							// Allow setUID for /etc/mail/majordomo/*/wrapper 4750 root.mail
@@ -884,7 +884,7 @@ final public class DistroManager implements Runnable {
 										fname.equals("wrapper")
 										&& fileMode == 04750
 										&& ufStat.getUid() == UnixFile.ROOT_UID
-										&& aoServer.getLinuxServerGroup(LinuxId.valueOf(ufStat.getGid())).getLinuxGroup().getName().equals(Group.MAIL)
+										&& thisServer.getLinuxServerGroup(LinuxId.valueOf(ufStat.getGid())).getLinuxGroup().getName().equals(Group.MAIL)
 									) {
 										found = true;
 									}
@@ -914,7 +914,7 @@ final public class DistroManager implements Runnable {
 						// Recurse
 						if(!ufStat.isSymLink() && ufStat.isDirectory()) {
 							if(includeUser) {
-								checkUserDirectory(aoServer, uf, results, stats, verboseOut);
+								checkUserDirectory(thisServer, uf, results, stats, verboseOut);
 							} else {
 								stats.userCount--;
 								stats.noRecurseCount++;

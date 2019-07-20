@@ -67,8 +67,8 @@ final public class NullRouteManager {
 	volatile private static NullRouteManager instance;
 
 	public static void start() throws IOException, SQLException {
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
@@ -91,8 +91,8 @@ final public class NullRouteManager {
 					|| osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
-					Administrator ba = conn.getThisBusinessAdministrator();
-					User mu = ba.getMasterUser();
+					Administrator administrator = conn.getCurrentAdministrator();
+					User mu = administrator.getMasterUser();
 					if(mu == null) throw new AssertionError("Administrator is not a User");
 					if(mu.isRouter()) {
 						instance = new NullRouteManager();
@@ -251,8 +251,8 @@ final public class NullRouteManager {
 												null // SELinux disabled on dom0
 											)
 										) {
-											Server thisAOServer = AOServDaemon.getThisAOServer();
-											OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+											Server thisServer = AOServDaemon.getThisServer();
+											OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 											int osvId = osv.getPkey();
 											if(
 												osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686

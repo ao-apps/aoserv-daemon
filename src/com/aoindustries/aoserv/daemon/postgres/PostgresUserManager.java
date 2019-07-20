@@ -148,8 +148,8 @@ final public class PostgresUserManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
-			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+			com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -160,7 +160,7 @@ final public class PostgresUserManager extends BuilderThread {
 
 			AOServConnector connector = AOServDaemon.getConnector();
 			synchronized (rebuildLock) {
-				for (Server ps : thisAOServer.getPostgresServers()) {
+				for (Server ps : thisServer.getPostgresServers()) {
 					// Get the list of all users that should exist
 					List<UserServer> users = ps.getPostgresServerUsers();
 					if(users.isEmpty()) {
@@ -485,8 +485,8 @@ final public class PostgresUserManager extends BuilderThread {
 
 	private static PostgresUserManager postgresUserManager;
 	public static void start() throws IOException, SQLException {
-		com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {

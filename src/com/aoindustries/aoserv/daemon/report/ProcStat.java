@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2017 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2017, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -56,10 +56,9 @@ final public class ProcStat {
 		long _processes=0;
 
 		// Only the outer-most server tracks these stats
-		if(AOServDaemon.getThisAOServer().getFailoverServer()==null) {
+		if(AOServDaemon.getThisServer().getFailoverServer() == null) {
 			// Parse for the values
-			BufferedReader in=new BufferedReader(new InputStreamReader(new FileInputStream("/proc/stat")));
-			try {
+			try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream("/proc/stat")))) {
 				String line;
 				while((line=in.readLine())!=null) {
 					String[] words=StringUtility.splitString(line);
@@ -83,8 +82,6 @@ final public class ProcStat {
 						_processes=Long.parseLong(words[1]);
 					}
 				}
-			} finally {
-				in.close();
 			}
 		}
 

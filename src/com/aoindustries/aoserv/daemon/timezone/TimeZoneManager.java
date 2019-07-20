@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2006-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -40,8 +40,8 @@ public class TimeZoneManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
@@ -78,10 +78,10 @@ public class TimeZoneManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			Server thisAoServer = AOServDaemon.getThisAOServer();
-			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+			Server thisServer = AOServDaemon.getThisServer();
+			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
-			String timeZone = thisAoServer.getTimeZone().getName();
+			String timeZone = thisServer.getTimeZone().getName();
 			synchronized(rebuildLock) {
 				if(
 					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -141,8 +141,8 @@ public class TimeZoneManager extends BuilderThread {
 								UnixFile.ROOT_GID,
 								0755,
 								true,
-								thisAoServer.getUidMin().getId(),
-								thisAoServer.getGidMin().getId()
+								thisServer.getUidMin().getId(),
+								thisServer.getGidMin().getId()
 							)
 						) {
 							newClockOut.write(newBytes);

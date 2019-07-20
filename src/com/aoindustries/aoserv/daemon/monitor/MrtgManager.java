@@ -96,19 +96,19 @@ final public class MrtgManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			Server thisAoServer = AOServDaemon.getThisAOServer();
-			Host thisServer = thisAoServer.getServer();
-			OperatingSystemVersion osv = thisServer.getOperatingSystemVersion();
+			Server thisServer = AOServDaemon.getThisServer();
+			Host thisHost = thisServer.getHost();
+			OperatingSystemVersion osv = thisHost.getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
-			int uid_min = thisAoServer.getUidMin().getId();
-			int gid_min = thisAoServer.getGidMin().getId();
+			int uid_min = thisServer.getUidMin().getId();
+			int gid_min = thisServer.getGidMin().getId();
 
-			Server failoverServer = thisAoServer.getFailoverServer();
+			Server failoverServer = thisServer.getFailoverServer();
 			String aoservMrtgBin;
 			UnixFile cfgFile;
 			UnixFile cfgFileNew;
@@ -148,7 +148,7 @@ final public class MrtgManager extends BuilderThread {
 				List<String> dfSafeNames = getSafeNames(dfDevices);
 
 				// Get the set of HttpdServer that will have their concurrency monitored
-				List<HttpdServer> httpdServers = thisAoServer.getHttpdServers();
+				List<HttpdServer> httpdServers = thisServer.getHttpdServers();
 
 				{
 					/*
@@ -178,7 +178,7 @@ final public class MrtgManager extends BuilderThread {
 								+ "  <div style='text-align:center'>\n"
 								+ "  <h1>\n"
 								+ "  <img src=\"https://aoindustries.com/images/clientarea/accounting/SendInvoices.jpg\" width=\"452\" height=\"127\" alt=\"\" /><br />\n"
-								+ "  <span style=\"color:#000000\">").encodeXhtml(thisAoServer.getHostname());
+								+ "  <span style=\"color:#000000\">").encodeXhtml(thisServer.getHostname());
 						if(failoverServer != null) out.print(" on ").encodeXhtml(failoverServer.getHostname());
 						out.print("</span>\n"
 								+ "  </h1>\n"
@@ -193,7 +193,7 @@ final public class MrtgManager extends BuilderThread {
 						}
 						out.print("  <a href=\"mem.html\">Memory</a> |\n");
 						// Add the network devices
-						List<Device> netDevices = thisServer.getNetDevices();
+						List<Device> netDevices = thisHost.getNetDevices();
 						for(Device netDevice : netDevices) {
 							out.print("  <a href=\"").encodeXmlAttribute(netDevice.getDeviceId().getName()).print(".html\">").encodeXhtml(netDevice.getDescription()).print("</a> |\n");
 						}
@@ -225,7 +225,7 @@ final public class MrtgManager extends BuilderThread {
 									+ "Legend4[").print(deviceId).print("]: Maximal 5 Minute Outgoing Traffic\n"
 									+ "LegendI[").print(deviceId).print("]:  In:\n"
 									+ "LegendO[").print(deviceId).print("]:  Out:\n"
-									+ "Timezone[").print(deviceId).print("]: ").print(thisAoServer.getTimeZone()).print("\n"
+									+ "Timezone[").print(deviceId).print("]: ").print(thisServer.getTimeZone()).print("\n"
 									+ "Title[").print(deviceId).print("]: ").print(netDevice.getDescription()).print(" traffic\n"
 									+ "PageFoot[").print(deviceId).print("]: <p>\n"
 									+ "PageTop[").print(deviceId).print("]: <h2>").print(netDevice.getDescription()).print(" traffic</h2>\n"
@@ -244,7 +244,7 @@ final public class MrtgManager extends BuilderThread {
 								+ "Legend4[load]: Load Average\n"
 								+ "LegendI[load]:  Load:\n"
 								+ "LegendO[load]:\n"
-								+ "Timezone[load]: ").print(thisAoServer.getTimeZone()).print("\n"
+								+ "Timezone[load]: ").print(thisServer.getTimeZone()).print("\n"
 								+ "Title[load]: Load Average (x 1000)\n"
 								+ "PageFoot[load]: <p>\n"
 								+ "PageTop[load]: <h2>Load Average (x 1000)</h2>\n"
@@ -290,7 +290,7 @@ final public class MrtgManager extends BuilderThread {
 						} else {
 							throw new IOException("Unsupported number of CPUs: " + numCPUs);
 						}
-						out.print("Timezone[cpu]: ").print(thisAoServer.getTimeZone()).print("\n"
+						out.print("Timezone[cpu]: ").print(thisServer.getTimeZone()).print("\n"
 								+ "Title[cpu]: Server CPU Utilization (%)\n"
 								+ "PageFoot[cpu]: <p>\n"
 								+ "PageTop[cpu]: <h2>Server CPU Utilization (%)</h2>\n"
@@ -308,7 +308,7 @@ final public class MrtgManager extends BuilderThread {
 								+ "Legend4[mem]: Maximal 5 Minute\n"
 								+ "LegendI[mem]:  Swp:\n"
 								+ "LegendO[mem]:  Mem:\n"
-								+ "Timezone[mem]: ").print(thisAoServer.getTimeZone()).print("\n"
+								+ "Timezone[mem]: ").print(thisServer.getTimeZone()).print("\n"
 								+ "Title[mem]: Server Memory and Swap space\n"
 								+ "PageFoot[mem]: <p>\n"
 								+ "PageTop[mem]: <h2>Server Memory and Swap space</h2>\n"
@@ -326,7 +326,7 @@ final public class MrtgManager extends BuilderThread {
 								+ "Legend4[diskio]: Maximal 5 Minute\n"
 								+ "LegendI[diskio]:  read:\n"
 								+ "LegendO[diskio]:  write:\n"
-								+ "Timezone[diskio]: ").print(thisAoServer.getTimeZone()).print("\n"
+								+ "Timezone[diskio]: ").print(thisServer.getTimeZone()).print("\n"
 								+ "Title[diskio]: Server Disk I/O (blocks per second)\n"
 								+ "PageFoot[diskio]: <p>\n"
 								+ "PageTop[diskio]: <h2>Server Disk I/O (blocks per second)</h2>\n"
@@ -347,7 +347,7 @@ final public class MrtgManager extends BuilderThread {
 									+ "Legend4[").print(safeName).print("]: Maximal 5 Minute\n"
 									+ "LegendI[").print(safeName).print("]:  Space:\n"
 									+ "LegendO[").print(safeName).print("]:  Inodes:\n"
-									+ "Timezone[").print(safeName).print("]: ").print(thisAoServer.getTimeZone()).print("\n"
+									+ "Timezone[").print(safeName).print("]: ").print(thisServer.getTimeZone()).print("\n"
 									+ "Title[").print(safeName).print("]: ").print(device).print(" Space and Inodes (%)\n"
 									+ "PageFoot[").print(safeName).print("]: <p>\n"
 									+ "PageTop[").print(safeName).print("]: <h2>").print(device).print(" Space and Inodes (%)</h2>\n"
@@ -366,7 +366,7 @@ final public class MrtgManager extends BuilderThread {
 								+ "Legend4[swap]: Maximal 5 Minute\n"
 								+ "LegendI[swap]:  swap:\n"
 								+ "LegendO[swap]:  page:\n"
-								+ "Timezone[swap]: ").print(thisAoServer.getTimeZone()).print("\n"
+								+ "Timezone[swap]: ").print(thisServer.getTimeZone()).print("\n"
 								+ "Title[swap]: Server Swap and Paging I/O (in+out blocks per second)\n"
 								+ "PageFoot[swap]: <p>\n"
 								+ "PageTop[swap]: <h2>Server Swap and Paging I/O (in+out blocks per second)</h2>\n"
@@ -387,7 +387,7 @@ final public class MrtgManager extends BuilderThread {
 									+ "Legend4[").print(safeName).print("]: Number of Workers\n"
 									+ "LegendI[").print(safeName).print("]:  Workers:\n"
 									+ "LegendO[").print(safeName).print("]:\n"
-									+ "Timezone[").print(safeName).print("]: ").print(thisAoServer.getTimeZone()).print("\n"
+									+ "Timezone[").print(safeName).print("]: ").print(thisServer.getTimeZone()).print("\n"
 									+ "Title[").print(safeName).print("]: ").print(getHttpdServerDisplay(osv, httpdServer)).print("\n"
 									+ "PageFoot[").print(safeName).print("]: <p>\n"
 									+ "PageTop[").print(safeName).print("]: <h2>").encodeXhtml(getHttpdServerDisplay(osv, httpdServer)).print("</h2>\n"
@@ -503,7 +503,7 @@ final public class MrtgManager extends BuilderThread {
 						out.print("      <div style=\"text-align:center\">\n"
 								+ "        <h1>\n"
 								+ "          <img src=\"https://aoindustries.com/images/clientarea/accounting/SendInvoices.jpg\" width=\"452\" height=\"127\" alt=\"\" /><br />\n"
-								+ "	  <span style=\"color:#000000\">").encodeXhtml(thisAoServer.getHostname());
+								+ "	  <span style=\"color:#000000\">").encodeXhtml(thisServer.getHostname());
 						if(failoverServer != null) out.print(" on ").encodeXhtml(failoverServer.getHostname());
 						out.print("</span>\n"
 								+ "        </h1>\n"
@@ -520,7 +520,7 @@ final public class MrtgManager extends BuilderThread {
 						}
 						out.print("          <a href=\"mem.html\">Memory</a> |\n");
 						// Add the network devices
-						List<Device> netDevices = thisServer.getNetDevices();
+						List<Device> netDevices = thisHost.getNetDevices();
 						for(Device netDevice : netDevices) {
 							out.print("          <a href=\"").encodeXmlAttribute(netDevice.getDeviceId().getName()).print(".html\">").encodeXhtml(netDevice.getDescription()).print("</a> |\n");
 						}
@@ -647,8 +647,8 @@ final public class MrtgManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
@@ -711,9 +711,9 @@ final public class MrtgManager extends BuilderThread {
 	 * @throws SQLException
 	 */
 	private static List<String> getDFDevices() throws IOException, SQLException {
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		if(thisAOServer.getFailoverServer() != null) return Collections.emptyList();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		if(thisServer.getFailoverServer() != null) return Collections.emptyList();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		List<String> devices = new ArrayList<>();
 		String listPartitionsCommand;
@@ -800,7 +800,7 @@ final public class MrtgManager extends BuilderThread {
 	public static final File centosMrtgDirectory = new File("/var/www/mrtg");
 
 	public static void getMrtgFile(String filename, CompressedDataOutputStream out) throws IOException, SQLException {
-		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		File mrtgDirectory;
 		if(

@@ -378,9 +378,9 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 			}
 		} else {
 			try {
-				Server thisAoServer = AOServDaemon.getThisAOServer();
-				int uid_min = thisAoServer.getUidMin().getId();
-				int gid_min = thisAoServer.getGidMin().getId();
+				Server thisServer = AOServDaemon.getThisServer();
+				int uid_min = thisServer.getUidMin().getId();
+				int gid_min = thisServer.getGidMin().getId();
 				DaemonFileUtils.stripFilePrefix(
 					serverXml,
 					autoWarningOld,
@@ -536,7 +536,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 				+ "\n"
 				+ "Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey=").print(sharedTomcat.getPkey()).print("\n"
 				+ "\n"
-				+ "AOSH: " + Command.SET_HTTPD_SHARED_TOMCAT_VERSION + " ").print(sharedTomcat.getName()).print(' ').print(sharedTomcat.getAOServer().getHostname()).print(" {series}.{major}\n"
+				+ "AOSH: " + Command.SET_HTTPD_SHARED_TOMCAT_VERSION + " ").print(sharedTomcat.getName()).print(' ').print(sharedTomcat.getLinuxServer().getHostname()).print(" {series}.{major}\n"
 				+ "\n"
 				+ "Changing the major version will trigger a full rebuild of this Tomcat\n"
 				+ "installation.  During the major rebuild, any file altered is backed-up with\n"

@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2014, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -92,7 +92,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 			// Get values used in the rest of the method.
 			HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 			String optSlash = osConfig.getHttpdSharedTomcatsOptSlash();
-			Server aoServer = AOServDaemon.getThisAOServer();
+			Server thisServer = AOServDaemon.getThisServer();
 
 			// The www group directories that exist but are not used will be removed
 			UnixFile wwwgroupDirectory = new UnixFile(osConfig.getHttpdSharedTomcatsDirectory().toString());
@@ -106,7 +106,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 			}
 
 			// Iterate through each shared Tomcat
-			for(SharedTomcat sharedTomcat : aoServer.getHttpdSharedTomcats()) {
+			for(SharedTomcat sharedTomcat : thisServer.getHttpdSharedTomcats()) {
 				final HttpdSharedTomcatManager<?> manager = getInstance(sharedTomcat);
 
 				// Install any required RPMs
@@ -135,7 +135,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 				// Stop and disable any daemons
 				stopAndDisableDaemons(removeFile);
 				// Only remove the directory when not used by a home directory
-				if(!aoServer.isHomeUsed(PosixPath.valueOf(removeFile.getPath()))) {
+				if(!thisServer.isHomeUsed(PosixPath.valueOf(removeFile.getPath()))) {
 					File toDelete = removeFile.getFile();
 					if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
 					deleteFileList.add(toDelete);
@@ -157,7 +157,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	 * Only called by the already synchronized <code>HttpdManager.doRebuild()</code> method.
 	 */
 	public static void stopStartAndRestart(Set<SharedTomcat> sharedTomcatsNeedingRestarted) throws IOException, SQLException {
-		for(SharedTomcat sharedTomcat : AOServDaemon.getThisAOServer().getHttpdSharedTomcats()) {
+		for(SharedTomcat sharedTomcat : AOServDaemon.getThisServer().getHttpdSharedTomcats()) {
 			final HttpdSharedTomcatManager<?> manager = getInstance(sharedTomcat);
 
 			boolean hasEnabledSite = false;
@@ -238,7 +238,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 			+ "\n"
 			+ "  Control Panel: https://www.aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey="+sharedTomcat.getPkey()+"\n"
 			+ "\n"
-			+ "  AOSH: "+Command.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+" "+sharedTomcat.getAOServer().getHostname()+" true\n"
+			+ "  AOSH: "+Command.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+" "+sharedTomcat.getLinuxServer().getHostname()+" true\n"
 			+ "\n"
 			+ "  support@aoindustries.com\n"
 			+ "  (866) 270-6195\n"
@@ -260,7 +260,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 			+ "\n"
 			+ "  Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSharedTomcatCP.ao?pkey="+sharedTomcat.getPkey()+"\n"
 			+ "\n"
-			+ "  AOSH: "+Command.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+" "+sharedTomcat.getAOServer().getHostname()+" true\n"
+			+ "  AOSH: "+Command.SET_HTTPD_SHARED_TOMCAT_IS_MANUAL+" "+sharedTomcat.getName()+" "+sharedTomcat.getLinuxServer().getHostname()+" true\n"
 			+ "\n"
 			+ "  support@aoindustries.com\n"
 			+ "  (205) 454-2556\n"

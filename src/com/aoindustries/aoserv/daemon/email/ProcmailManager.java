@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -91,8 +91,8 @@ public final class ProcmailManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			Server thisAoServer = AOServDaemon.getThisAOServer();
-			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+			Server thisServer = AOServDaemon.getThisServer();
+			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
@@ -104,8 +104,8 @@ public final class ProcmailManager extends BuilderThread {
 				if(PackageManager.getInstalledPackage(PackageManager.PackageName.PROCMAIL) != null) {
 					Set<UnixFile> restorecon = new LinkedHashSet<>();
 					try {
-						int uid_min = thisAoServer.getUidMin().getId();
-						int gid_min = thisAoServer.getGidMin().getId();
+						int uid_min = thisServer.getUidMin().getId();
+						int gid_min = thisServer.getGidMin().getId();
 
 						String catPath, bashPath, sedPath;
 						// Capture return-path header if needed
@@ -131,12 +131,12 @@ public final class ProcmailManager extends BuilderThread {
 								spamcConnectPort = spamdBind.getPort();
 								if(spamcConnectAddress.isUnspecified()) {
 									// Connect to primary IP when is unspecified
-									spamcConnectAddress = thisAoServer.getPrimaryIPAddress().getInetAddress();
+									spamcConnectAddress = thisServer.getPrimaryIPAddress().getInetAddress();
 								}
 							}
 						}
-						GroupServer mailLsg = thisAoServer.getLinuxServerGroup(Group.MAIL);
-						if(mailLsg == null) throw new SQLException("Unable to find GroupServer: " + Group.MAIL + " on " + thisAoServer.getHostname());
+						GroupServer mailLsg = thisServer.getLinuxServerGroup(Group.MAIL);
+						if(mailLsg == null) throw new SQLException("Unable to find GroupServer: " + Group.MAIL + " on " + thisServer.getHostname());
 						int mailGid = mailLsg.getGid().getId();
 
 						ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -157,7 +157,7 @@ public final class ProcmailManager extends BuilderThread {
 							}
 						}
 
-						for(UserServer lsa : thisAoServer.getLinuxServerAccounts()) {
+						for(UserServer lsa : thisServer.getLinuxServerAccounts()) {
 							if(lsa.getLinuxAccount().getType().isEmail()) {
 								if(!isManual(lsa)) {
 									PosixPath home = lsa.getHome();
@@ -191,7 +191,7 @@ public final class ProcmailManager extends BuilderThread {
 										List<InboxAddress> addresses = lsa.getLinuxAccAddresses();
 
 										// The same X-Loop is used for attachment filters and autoresponders
-										String xloopAddress = username + "@" + lsa.getAOServer().getHostname();
+										String xloopAddress = username + "@" + lsa.getServer().getHostname();
 
 										// Split the username in to user and domain (used by Cyrus)
 										String user, domain;
@@ -510,8 +510,8 @@ public final class ProcmailManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {

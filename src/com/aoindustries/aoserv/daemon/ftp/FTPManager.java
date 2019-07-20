@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -75,8 +75,8 @@ final public class FTPManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			Server thisAOServer=AOServDaemon.getThisAOServer();
-			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+			Server thisServer = AOServDaemon.getThisServer();
+			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			synchronized(rebuildLock) {
 				if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
@@ -101,10 +101,10 @@ final public class FTPManager extends BuilderThread {
 	 */
 	private static void doRebuildProFtpd() throws IOException, SQLException {
 		AOServConnector conn=AOServDaemon.getConnector();
-		Server thisAoServer=AOServDaemon.getThisAOServer();
-		int uid_min = thisAoServer.getUidMin().getId();
-		int gid_min = thisAoServer.getGidMin().getId();
-		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		int uid_min = thisServer.getUidMin().getId();
+		int gid_min = thisServer.getGidMin().getId();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 			// Rebuild the /etc/proftpd.conf file
@@ -116,7 +116,7 @@ final public class FTPManager extends BuilderThread {
 						+ "#\n"
 						// Overall server settings
 						+ "ServerName \"ProFTPD Host\"\n"
-						+ "ServerIdent on \"ProFTPD Host [").print(thisAoServer.getHostname()).print("]\"\n"
+						+ "ServerIdent on \"ProFTPD Host [").print(thisServer.getHostname()).print("]\"\n"
 						+ "ServerAdmin \"support@aoindustries.com\"\n"
 						+ "ServerType standalone\n"
 						+ "DefaultServer off\n"
@@ -141,7 +141,7 @@ final public class FTPManager extends BuilderThread {
 						+ "</Global>\n"
 				);
 
-				for(Bind bind : thisAoServer.getServer().getNetBinds(conn.getNet().getAppProtocol().get(AppProtocol.FTP))) {
+				for(Bind bind : thisServer.getHost().getNetBinds(conn.getNet().getAppProtocol().get(AppProtocol.FTP))) {
 					TcpRedirect redirect=bind.getNetTcpRedirect();
 					PrivateServer privateServer=bind.getPrivateFTPServer();
 					if(redirect!=null) {
@@ -160,7 +160,7 @@ final public class FTPManager extends BuilderThread {
 							? privateServer.getHostname()
 							: (
 								ia.getInetAddress().isUnspecified()
-								? thisAoServer.getHostname()
+								? thisServer.getHostname()
 								: ia.getHostname()
 							)
 						).print("]\"\n"
@@ -224,11 +224,11 @@ final public class FTPManager extends BuilderThread {
 	 * Rebuilds a vsftpd installation.
 	 */
 	private static void doRebuildVsFtpd() throws IOException, SQLException {
-		AOServConnector conn=AOServDaemon.getConnector();
-		Server thisAoServer=AOServDaemon.getThisAOServer();
-		int uid_min = thisAoServer.getUidMin().getId();
-		int gid_min = thisAoServer.getGidMin().getId();
-		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+		AOServConnector conn = AOServDaemon.getConnector();
+		Server thisServer = AOServDaemon.getThisServer();
+		int uid_min = thisServer.getUidMin().getId();
+		int gid_min = thisServer.getGidMin().getId();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 			// Reused below
@@ -238,7 +238,7 @@ final public class FTPManager extends BuilderThread {
 			{
 				bout.reset();
 				try (ChainWriter out = new ChainWriter(bout)) {
-					for(GuestUser ftpGuestUser : thisAoServer.getFTPGuestUsers()) {
+					for(GuestUser ftpGuestUser : thisServer.getFTPGuestUsers()) {
 						out.print(ftpGuestUser.getLinuxAccount().getUsername().getUsername()).print('\n');
 					}
 				}
@@ -284,7 +284,7 @@ final public class FTPManager extends BuilderThread {
 							+ "\n"
 							+ "# STRING OPTIONS\n"
 							+ "chroot_list_file=/etc/vsftpd/chroot_list\n"
-							+ "ftpd_banner=FTP Host [").print(thisAoServer.getHostname()).print("]\n"
+							+ "ftpd_banner=FTP Host [").print(thisServer.getHostname()).print("]\n"
 							+ "pam_service_name=vsftpd\n");
 				}
 				byte[] newBytes = bout.toByteArray();
@@ -306,7 +306,7 @@ final public class FTPManager extends BuilderThread {
 				}
 
 				// Find all the FTP binds
-				List<Bind> binds = thisAoServer.getServer().getNetBinds(conn.getNet().getAppProtocol().get(AppProtocol.FTP));
+				List<Bind> binds = thisServer.getHost().getNetBinds(conn.getNet().getAppProtocol().get(AppProtocol.FTP));
 
 				// Keep a list of the files that were verified
 				Set<String> existing = new HashSet<>(binds.size()*4/3+1);
@@ -360,7 +360,7 @@ final public class FTPManager extends BuilderThread {
 								? privateServer.getHostname()
 								: (
 									ia.getInetAddress().isUnspecified()
-									? thisAoServer.getHostname()
+									? thisServer.getHostname()
 									: ia.getHostname()
 								)
 							).print("]\n"
@@ -415,7 +415,7 @@ final public class FTPManager extends BuilderThread {
 				}
 			}
 
-			for(Site httpdSite : AOServDaemon.getThisAOServer().getHttpdSites()) {
+			for(Site httpdSite : AOServDaemon.getThisServer().getHttpdSites()) {
 				HttpdSiteManager manager = HttpdSiteManager.getInstance(httpdSite);
 
 				/*
@@ -443,8 +443,8 @@ final public class FTPManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {

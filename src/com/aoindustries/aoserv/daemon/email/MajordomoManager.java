@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -48,19 +48,19 @@ final public class MajordomoManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			Server thisAoServer = AOServDaemon.getThisAOServer();
-			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+			Server thisServer = AOServDaemon.getThisServer();
+			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
-			int uid_min = thisAoServer.getUidMin().getId();
-			int gid_min = thisAoServer.getGidMin().getId();
+			int uid_min = thisServer.getUidMin().getId();
+			int gid_min = thisServer.getGidMin().getId();
 
 			// Reused during processing below
 			final UnixFile serversUF=new UnixFile(MajordomoServer.MAJORDOMO_SERVER_DIRECTORY.toString());
 
 			synchronized(rebuildLock) {
-				final List<MajordomoServer> mss=thisAoServer.getMajordomoServers();
+				final List<MajordomoServer> mss=thisServer.getMajordomoServers();
 
 				if(!mss.isEmpty()) {
 					// Install package if needed
@@ -75,8 +75,8 @@ final public class MajordomoManager extends BuilderThread {
 				{
 					Group mailLG = AOServDaemon.getConnector().getLinux().getGroup().get(Group.MAIL);
 					if(mailLG==null) throw new SQLException("Unable to find Group: "+Group.MAIL);
-					GroupServer mailLSG=mailLG.getLinuxServerGroup(thisAoServer);
-					if(mailLSG==null) throw new SQLException("Unable to find GroupServer: "+Group.MAIL+" on "+thisAoServer.getHostname());
+					GroupServer mailLSG=mailLG.getLinuxServerGroup(thisServer);
+					if(mailLSG==null) throw new SQLException("Unable to find GroupServer: "+Group.MAIL+" on "+thisServer.getHostname());
 					mailGID=mailLSG.getGid().getId();
 				}
 
@@ -973,8 +973,8 @@ final public class MajordomoManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {

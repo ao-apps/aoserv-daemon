@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -45,8 +45,8 @@ public final class EmailDomainManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			Server thisAoServer = AOServDaemon.getThisAOServer();
-			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+			Server thisServer = AOServDaemon.getThisServer();
+			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
@@ -57,7 +57,7 @@ public final class EmailDomainManager extends BuilderThread {
 				Set<UnixFile> restorecon = new LinkedHashSet<>();
 				try {
 					// Grab the list of domains from the database
-					List<Domain> domains = thisAoServer.getEmailDomains();
+					List<Domain> domains = thisServer.getEmailDomains();
 
 					// Install sendmail if needed
 					// Sendmail is enabled/disabled in SendmailCFManager based on net_binds
@@ -117,7 +117,7 @@ public final class EmailDomainManager extends BuilderThread {
 	private static final Object reloadLock = new Object();
 	private static void reloadMTA() throws IOException, SQLException {
 		synchronized(reloadLock) {
-			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+			OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 				PackageManager.installPackage(PackageManager.PackageName.PSMISC);
@@ -141,8 +141,8 @@ public final class EmailDomainManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {

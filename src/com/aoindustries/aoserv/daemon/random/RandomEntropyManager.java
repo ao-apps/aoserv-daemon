@@ -1,5 +1,5 @@
 /*
- * Copyright 2004-2013, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2004-2013, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -162,8 +162,8 @@ public final class RandomEntropyManager implements Runnable {
 	}
 
 	public static void start() throws IOException, SQLException {
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
@@ -186,7 +186,7 @@ public final class RandomEntropyManager implements Runnable {
 					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 				) {
 					// Avoid random manager when in failover mode
-					if(AOServDaemon.getThisAOServer().getFailoverServer() == null) {
+					if(AOServDaemon.getThisServer().getFailoverServer() == null) {
 						thread = new Thread(new RandomEntropyManager());
 						thread.start();
 						System.out.println("Done");

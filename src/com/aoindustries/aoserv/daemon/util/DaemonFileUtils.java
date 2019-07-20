@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2009, 2014, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2008-2009, 2014, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -452,7 +452,7 @@ public class DaemonFileUtils {
 	public static void restorecon(Set<UnixFile> restorecon) throws IOException, SQLException {
 		int size = restorecon.size();
 		if(size > 0) {
-			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+			OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 			switch(osv.getPkey()) {
 				case OperatingSystemVersion.MANDRIVA_2006_0_I586 :
 				case OperatingSystemVersion.REDHAT_ES_4_X86_64 :

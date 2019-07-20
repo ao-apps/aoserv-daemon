@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -167,9 +167,9 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 			}
 		} else {
 			try {
-				Server thisAoServer = AOServDaemon.getThisAOServer();
-				int uid_min = thisAoServer.getUidMin().getId();
-				int gid_min = thisAoServer.getGidMin().getId();
+				Server thisServer = AOServDaemon.getThisServer();
+				int uid_min = thisServer.getUidMin().getId();
+				int gid_min = thisServer.getGidMin().getId();
 				DaemonFileUtils.stripFilePrefix(
 					confServerXMLFile,
 					autoWarningOld,

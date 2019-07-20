@@ -61,8 +61,8 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 	protected boolean doRebuild() {
 		try {
 			AOServConnector connector = AOServDaemon.getConnector();
-			com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
-			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+			com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -72,7 +72,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 			synchronized(rebuildLock) {
-				for(Server ps : thisAOServer.getPostgresServers()) {
+				for(Server ps : thisServer.getPostgresServers()) {
 					List<Database> pds = ps.getPostgresDatabases();
 					if(pds.isEmpty()) {
 						LogFactory.getLogger(PostgresDatabaseManager.class).severe("No databases; refusing to rebuild config: " + ps);
@@ -311,7 +311,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 	) throws IOException, SQLException {
 		String commandPath;
 		{
-			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+			OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
@@ -342,8 +342,8 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 	private static PostgresDatabaseManager postgresDatabaseManager;
 	private static boolean cronStarted = false;
 	public static void start() throws IOException, SQLException {
-		com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
@@ -436,7 +436,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 			boolean isReindexTime=dayOfMonth<=7;
 			List<String> tableNames=new ArrayList<>();
 			List<String> schemas=new ArrayList<>();
-			for(Server postgresServer : AOServDaemon.getThisAOServer().getPostgresServers()) {
+			for(Server postgresServer : AOServDaemon.getThisServer().getPostgresServers()) {
 				Server.Name serverName = postgresServer.getName();
 				String postgresServerVersion=postgresServer.getVersion().getTechnologyVersion(aoservConn).getVersion();
 				boolean postgresServerHasSchemas =

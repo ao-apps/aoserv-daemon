@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2014, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -75,23 +75,23 @@ class HttpdLogManager {
 	) throws IOException, SQLException {
 		// Used below
 		ByteArrayOutputStream bout = new ByteArrayOutputStream();
-		Server aoServer = AOServDaemon.getThisAOServer();
+		Server thisServer = AOServDaemon.getThisServer();
 
 		// Rebuild /logs
-		doRebuildLogs(aoServer, deleteFileList, serversNeedingReloaded);
+		doRebuildLogs(thisServer, deleteFileList, serversNeedingReloaded);
 
 		// Rebuild /etc/logrotate.d or /etc/httpd/conf/logrotate.(d|sites|servers) files
-		doRebuildLogrotate(aoServer, deleteFileList, bout, restorecon);
+		doRebuildLogrotate(thisServer, deleteFileList, bout, restorecon);
 
 		// Rebuild /var/log/httpd
-		doRebuildVarLogHttpd(aoServer, deleteFileList, restorecon);
+		doRebuildVarLogHttpd(thisServer, deleteFileList, restorecon);
 	}
 
 	/**
 	 * Rebuilds the directories under /logs or /var/log/httpd-sites
 	 */
 	private static void doRebuildLogs(
-		Server aoServer,
+		Server thisServer,
 		List<File> deleteFileList,
 		Set<HttpdServer> serversNeedingReloaded
 	) throws IOException, SQLException {
@@ -99,7 +99,7 @@ class HttpdLogManager {
 		final int logfileUID;
 		{
 			final HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
-			final UserServer awstatsLSA = aoServer.getLinuxServerAccount(User.AWSTATS);
+			final UserServer awstatsLSA = thisServer.getLinuxServerAccount(User.AWSTATS);
 			// awstats user is required when RPM is installed
 			PackageManager.PackageName awstatsPackageName = osConfig.getAwstatsPackageName();
 			if(
@@ -119,7 +119,7 @@ class HttpdLogManager {
 		}
 
 		// The log directories that exist but are not used will be removed
-		PosixPath logDir = aoServer.getServer().getOperatingSystemVersion().getHttpdSiteLogsDirectory();
+		PosixPath logDir = thisServer.getHost().getOperatingSystemVersion().getHttpdSiteLogsDirectory();
 		if(logDir != null) {
 			UnixFile logDirUF = new UnixFile(logDir.toString());
 			// Create the logs directory if missing
@@ -142,7 +142,7 @@ class HttpdLogManager {
 				}
 			}
 
-			for(Site httpdSite : aoServer.getHttpdSites()) {
+			for(Site httpdSite : thisServer.getHttpdSites()) {
 				int lsgGID = httpdSite.getLinuxServerGroup().getGid().getId();
 
 				// Create the /logs/<site_name> or /var/log/httpd-sites/<site_name> directory
@@ -220,7 +220,7 @@ class HttpdLogManager {
 	 * Rebuilds the per-site logrotation files.
 	 */
 	private static void doRebuildLogrotate(
-		Server thisAoServer,
+		Server thisServer,
 		List<File> deleteFileList,
 		ByteArrayOutputStream byteOut,
 		Set<UnixFile> restorecon
@@ -240,8 +240,8 @@ class HttpdLogManager {
 				throw new AssertionError("Unexpected value for osConfig: "+osConfig);
 		}
 
-		int uid_min = thisAoServer.getUidMin().getId();
-		int gid_min = thisAoServer.getGidMin().getId();
+		int uid_min = thisServer.getUidMin().getId();
+		int gid_min = thisServer.getGidMin().getId();
 
 		// Create directory if missing
 		DaemonFileUtils.mkdir(siteLogRotationDir, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
@@ -254,7 +254,7 @@ class HttpdLogManager {
 
 		// For each site, build/rebuild the logrotate.d file as necessary and create any necessary log files
 		ChainWriter chainOut=new ChainWriter(byteOut);
-		for(Site site : thisAoServer.getHttpdSites()) {
+		for(Site site : thisServer.getHttpdSites()) {
 			// Write the new file to RAM first
 			byteOut.reset();
 			boolean wroteOne = false;
@@ -316,7 +316,7 @@ class HttpdLogManager {
 			logRotationFiles.addAll(Arrays.asList(new File(serverLogRotationDir).list()));
 
 			boolean isFirst = true;
-			for(HttpdServer hs : thisAoServer.getHttpdServers()) {
+			for(HttpdServer hs : thisServer.getHttpdServers()) {
 				String name = hs.getName();
 				int num = name==null ? 1 : Integer.parseInt(name);
 				String filename = HTTPD_SERVER_PREFIX_OLD + num;
@@ -388,7 +388,7 @@ class HttpdLogManager {
 	 * Rebuilds the /var/log/httpd# or /var/log/httpd[@&lt;name&gt;] directories
 	 */
 	private static void doRebuildVarLogHttpd(
-		Server aoServer,
+		Server thisServer,
 		List<File> deleteFileList,
 		Set<UnixFile> restorecon
 	) throws IOException, SQLException {
@@ -403,7 +403,7 @@ class HttpdLogManager {
 			DaemonFileUtils.mkdir(serverLogDirOld, 0700, UnixFile.ROOT_UID, UnixFile.ROOT_GID);
 
 			// Create all /var/log/httpd/* directories
-			List<HttpdServer> hss = aoServer.getHttpdServers();
+			List<HttpdServer> hss = thisServer.getHttpdServers();
 			Set<String> keepFilenames = new HashSet<>(hss.size()*4/3+1);
 			for(HttpdServer hs : hss) {
 				String name = hs.getName();
@@ -425,7 +425,7 @@ class HttpdLogManager {
 			}
 		} else if(osConfig == HttpdOperatingSystemConfiguration.CENTOS_7_X86_64) {
 			// Create all /var/log/httpd[@<name>] directories
-			List<HttpdServer> hss = aoServer.getHttpdServers();
+			List<HttpdServer> hss = thisServer.getHttpdServers();
 			Set<String> keepFilenames = new HashSet<>(hss.size()*4/3+1);
 			for(HttpdServer hs : hss) {
 				String escapedName = hs.getSystemdEscapedName();

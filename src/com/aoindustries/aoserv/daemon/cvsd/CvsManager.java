@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -45,8 +45,8 @@ final public class CvsManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			Server thisAoServer = AOServDaemon.getThisAOServer();
-			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+			Server thisServer = AOServDaemon.getThisServer();
+			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -55,7 +55,7 @@ final public class CvsManager extends BuilderThread {
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 			synchronized(rebuildLock) {
-				List<CvsRepository> cvsRepositories = thisAoServer.getCvsRepositories();
+				List<CvsRepository> cvsRepositories = thisServer.getCvsRepositories();
 				boolean cvsInstalled;
 				// Install RPM when at least one CVS repository is configured
 				if(
@@ -152,8 +152,8 @@ final public class CvsManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {

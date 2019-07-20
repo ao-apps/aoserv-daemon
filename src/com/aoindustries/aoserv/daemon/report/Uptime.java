@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2018 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -31,11 +31,8 @@ final public class Uptime {
 		Process P=Runtime.getRuntime().exec(cmd);
 		try {
 			P.getOutputStream().close();
-			BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
-			try {
-				line=in.readLine();
-			} finally {
-				in.close();
+			try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
+				line = in.readLine();
 			}
 		} finally {
 			try {
@@ -66,7 +63,7 @@ final public class Uptime {
 		numUsers=Integer.parseInt(line.substring(pos, pos2));
 
 		// Only the top-level server keeps track of load
-		if(AOServDaemon.getThisAOServer().getFailoverServer()==null) {
+		if(AOServDaemon.getThisServer().getFailoverServer() == null) {
 			// Find the next colon
 			pos=line.indexOf(':', pos2+1)+1;
 

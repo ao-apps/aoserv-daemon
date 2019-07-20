@@ -40,8 +40,8 @@ final public class MySQLHostManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
-			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+			com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -85,7 +85,7 @@ final public class MySQLHostManager extends BuilderThread {
 							hosts.add("localhost");
 							hosts.add("localhost.localdomain");
 							// Include all of the local IP addresses
-							for(Device nd : thisAOServer.getServer().getNetDevices()) {
+							for(Device nd : thisServer.getHost().getNetDevices()) {
 								for(IpAddress ia : nd.getIPAddresses()) {
 									InetAddress ip = ia.getInetAddress();
 									if(!ip.isUnspecified()) {
@@ -143,8 +143,8 @@ final public class MySQLHostManager extends BuilderThread {
 
 	private static MySQLHostManager mysqlHostManager;
 	public static void start() throws IOException, SQLException {
-		com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {

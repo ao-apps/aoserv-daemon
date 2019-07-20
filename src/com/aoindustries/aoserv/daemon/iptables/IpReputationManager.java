@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2013, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2012-2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -68,8 +68,8 @@ final public class IpReputationManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
@@ -91,8 +91,8 @@ final public class IpReputationManager extends BuilderThread {
 					|| osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
-					Administrator ba = conn.getThisBusinessAdministrator();
-					User mu = ba.getMasterUser();
+					Administrator administrator = conn.getCurrentAdministrator();
+					User mu = administrator.getMasterUser();
 					if(mu == null) throw new AssertionError("Administrator is not a User");
 					if(mu.isRouter()) {
 						ipReputationManager = new IpReputationManager();
@@ -220,8 +220,8 @@ final public class IpReputationManager extends BuilderThread {
 	protected boolean doRebuild() {
 		try {
 			AOServConnector conn = AOServDaemon.getConnector();
-			Server thisAOServer = AOServDaemon.getThisAOServer();
-			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+			Server thisServer = AOServDaemon.getThisServer();
+			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				// Only runs on Xen dom0 (firewalling done outside virtual servers)

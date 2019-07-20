@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -59,9 +59,9 @@ final public class ProcStates {
 			_user_unknown=0
 		;
 
-		Server thisAoServer = AOServDaemon.getThisAOServer();
-		boolean isOuterServer = thisAoServer.getFailoverServer()==null;
-		int uid_min = thisAoServer.getUidMin().getId();
+		Server thisServer = AOServDaemon.getThisServer();
+		boolean isOuterServer = thisServer.getFailoverServer()==null;
+		int uid_min = thisServer.getUidMin().getId();
 
 		// Parse for the values
 		String[] list=proc.list();
@@ -75,45 +75,45 @@ final public class ProcStates {
 					try {
 						String state=null;
 						int uid=-1;
-						BufferedReader in=new BufferedReader(new InputStreamReader(new FileInputStream(new File(file, "status"))));
-						String line;
-						while((state==null || uid==-1) && (line=in.readLine())!=null) {
-							if(line.startsWith("State:")) {
-								String[] words=StringUtility.splitString(line);
-								state=words[1];
-							} else if(line.startsWith("Uid:")) {
-								String[] words= StringUtility.splitString(line);
-								uid=Integer.parseInt(words[1]);
+						try(BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(new File(file, "status"))))) {
+							String line;
+							while((state==null || uid==-1) && (line=in.readLine())!=null) {
+								if(line.startsWith("State:")) {
+									String[] words=StringUtility.splitString(line);
+									state=words[1];
+								} else if(line.startsWith("Uid:")) {
+									String[] words= StringUtility.splitString(line);
+									uid=Integer.parseInt(words[1]);
+								}
+							}
+							if(isOuterServer) {
+								if(state==null) _total_unknown++;
+								else {
+									ch=state.charAt(0);
+									if(ch=='S') _total_sleep++;
+									else if(ch=='R') _total_run++;
+									else if(ch=='Z') _total_zombie++;
+									else if(ch=='T') _total_trace++;
+									else if(ch=='D') _total_uninterruptible++;
+									else _total_unknown++;
+								}
+							}
+							if(
+								uid >= uid_min
+								&& thisServer.getLinuxServerAccount(LinuxId.valueOf(uid))!=null
+							) {
+								if(state==null) _user_unknown++;
+								else {
+									ch=state.charAt(0);
+									if(ch=='S') _user_sleep++;
+									else if(ch=='R') _user_run++;
+									else if(ch=='Z') _user_zombie++;
+									else if(ch=='T') _user_trace++;
+									else if(ch=='D') _user_uninterruptible++;
+									else _user_unknown++;
+								}
 							}
 						}
-						if(isOuterServer) {
-							if(state==null) _total_unknown++;
-							else {
-								ch=state.charAt(0);
-								if(ch=='S') _total_sleep++;
-								else if(ch=='R') _total_run++;
-								else if(ch=='Z') _total_zombie++;
-								else if(ch=='T') _total_trace++;
-								else if(ch=='D') _total_uninterruptible++;
-								else _total_unknown++;
-							}
-						}
-						if(
-							uid >= uid_min
-							&& thisAoServer.getLinuxServerAccount(LinuxId.valueOf(uid))!=null
-						) {
-							if(state==null) _user_unknown++;
-							else {
-								ch=state.charAt(0);
-								if(ch=='S') _user_sleep++;
-								else if(ch=='R') _user_run++;
-								else if(ch=='Z') _user_zombie++;
-								else if(ch=='T') _user_trace++;
-								else if(ch=='D') _user_uninterruptible++;
-								else _user_unknown++;
-							}
-						}
-						in.close();
 					} catch(FileNotFoundException err) {
 						// Normal if the process has terminated
 					} catch(ValidationException e) {

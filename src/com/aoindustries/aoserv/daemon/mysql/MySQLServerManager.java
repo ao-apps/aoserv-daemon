@@ -51,8 +51,8 @@ final public class MySQLServerManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
-			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+			com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -63,13 +63,13 @@ final public class MySQLServerManager extends BuilderThread {
 
 			synchronized(rebuildLock) {
 				Set<Port> mysqlPorts = new HashSet<>();
-				for(Server mysqlServer : thisAOServer.getMySQLServers()) {
+				for(Server mysqlServer : thisServer.getMySQLServers()) {
 					mysqlPorts.add(mysqlServer.getBind().getPort());
 					// TODO: Add and initialize any missing /var/lib/mysql/name
 					// TODO: Add/update any /etc/rc.d/init.d/mysql-name
 				}
 				// Add any other local MySQL port (such as tunneled)
-				for(Bind nb : thisAOServer.getServer().getNetBinds()) {
+				for(Bind nb : thisServer.getHost().getNetBinds()) {
 					String protocol = nb.getAppProtocol().getProtocol();
 					if(AppProtocol.MYSQL.equals(protocol)) {
 						mysqlPorts.add(nb.getPort());
@@ -138,8 +138,8 @@ final public class MySQLServerManager extends BuilderThread {
 
 	private static MySQLServerManager mysqlServerManager;
 	public static void start() throws IOException, SQLException {
-		com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
@@ -194,7 +194,7 @@ final public class MySQLServerManager extends BuilderThread {
 
 	private static final Object flushLock=new Object();
 	static void flushPrivileges(Server mysqlServer) throws IOException, SQLException {
-		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(flushLock) {

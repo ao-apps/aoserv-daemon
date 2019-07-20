@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -68,9 +68,9 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 	protected boolean doRebuild() {
 		try {
 			AOServConnector connector = AOServDaemon.getConnector();
-			Server thisAoServer = AOServDaemon.getThisAOServer();
-			Host thisServer = thisAoServer.getServer();
-			OperatingSystemVersion osv = thisServer.getOperatingSystemVersion();
+			Server thisServer = AOServDaemon.getThisServer();
+			Host thisHost = thisServer.getHost();
+			OperatingSystemVersion osv = thisHost.getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
@@ -115,7 +115,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 							//}
 
 							// Allow all of the local IP addresses
-							for(Device nd : thisServer.getNetDevices()) {
+							for(Device nd : thisHost.getNetDevices()) {
 								for(IpAddress ia : nd.getIPAddresses()) {
 									String ip = ia.getInetAddress().toString();
 									if(!usedHosts.contains(ip)) {
@@ -126,7 +126,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 							}
 
 							// Deny first
-							List<SmtpRelay> relays = thisAoServer.getEmailSmtpRelays();
+							List<SmtpRelay> relays = thisServer.getEmailSmtpRelays();
 							for(SmtpRelay ssr : relays) {
 								if(!ssr.isDisabled()) {
 									SmtpRelayType esrt = ssr.getType();
@@ -241,7 +241,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 	private static void makeAccessMap(byte[] accessBytes, Set<UnixFile> restorecon) throws IOException, SQLException {
 		/*if(AOServDaemon.getThisAOServer().isQmail()) command = qmailctlCdbCommand;
 		else {*/
-		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 			// Make sure /usr/sbin/makemap is installed as required by make_sendmail_access_map
@@ -277,7 +277,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 					}
 					long time = System.currentTimeMillis();
 					boolean needRebuild = false;
-					for(SmtpRelay relay : AOServDaemon.getThisAOServer().getEmailSmtpRelays()) {
+					for(SmtpRelay relay : AOServDaemon.getThisServer().getEmailSmtpRelays()) {
 						Timestamp expiration = relay.getExpiration();
 						if(
 							expiration != null
@@ -305,8 +305,8 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 	}
 
 	public static void start() throws IOException, SQLException {
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {

@@ -67,8 +67,8 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	protected boolean doRebuild() {
 		try {
 			//AOServConnector connector=AOServDaemon.getConnector();
-			com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
-			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+			com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -78,7 +78,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 			synchronized(rebuildLock) {
-				for(Server mysqlServer : thisAOServer.getMySQLServers()) {
+				for(Server mysqlServer : thisServer.getMySQLServers()) {
 					List<Database> databases = mysqlServer.getMySQLDatabases();
 					if(databases.isEmpty()) {
 						LogFactory.getLogger(MySQLDatabaseManager.class).severe("No databases; refusing to rebuild config: " + mysqlServer);
@@ -257,7 +257,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	) throws IOException, SQLException {
 		String commandPath;
 		{
-			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+			OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 				commandPath = "/usr/aoserv/daemon/bin/dump_mysql_database";
@@ -288,8 +288,8 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	private static MySQLDatabaseManager mysqlDatabaseManager;
 
 	public static void start() throws IOException, SQLException {
-		com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {

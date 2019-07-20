@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2013, 2014, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2012-2013, 2014, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -49,7 +49,7 @@ final public class VirtualServerManager {
 	 * Gets the xm/xl command used for this server.
 	 */
 	public static String getXmCommand() throws IOException, SQLException {
-		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
 			osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
@@ -76,7 +76,7 @@ final public class VirtualServerManager {
 		private final String onReboot;
 
 		XmList(String serverName) throws ParseException, IOException, SQLException {
-			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+			OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
@@ -248,8 +248,7 @@ final public class VirtualServerManager {
 							if(cmdlineFile.exists()) {
 								int pos = 0;
 								int prefixLen = cmdlinePrefix.length();
-								InputStream in = new BufferedInputStream(new FileInputStream(cmdlineFile), cmdlinePrefix.length());
-								try {
+								try (InputStream in = new BufferedInputStream(new FileInputStream(cmdlineFile), cmdlinePrefix.length())) {
 									int b;
 									while(pos < prefixLen && (b = in.read()) != -1) {
 										if((char)b != cmdlinePrefix.charAt(pos)) {
@@ -258,8 +257,6 @@ final public class VirtualServerManager {
 										pos++;
 									}
 									if(pos == prefixLen) return Integer.parseInt(filename);
-								} finally {
-									in.close();
 								}
 							}
 						}

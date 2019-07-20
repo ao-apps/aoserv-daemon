@@ -44,8 +44,8 @@ final public class MySQLUserManager extends BuilderThread {
 	protected boolean doRebuild() {
 		try {
 			//AOServConnector connector = AOServDaemon.getConnector();
-			com.aoindustries.aoserv.client.linux.Server thisAOServer=AOServDaemon.getThisAOServer();
-			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+			com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -55,7 +55,7 @@ final public class MySQLUserManager extends BuilderThread {
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 			synchronized (rebuildLock) {
-				for(Server mysqlServer : thisAOServer.getMySQLServers()) {
+				for(Server mysqlServer : thisServer.getMySQLServers()) {
 					// Get the list of all users that should exist.  By getting the list and reusing it we have a snapshot of the configuration.
 					List<UserServer> users = mysqlServer.getMySQLServerUsers();
 					if(users.isEmpty()) {
@@ -885,8 +885,8 @@ final public class MySQLUserManager extends BuilderThread {
 
 	private static MySQLUserManager mysqlUserManager;
 	public static void start() throws IOException, SQLException {
-		com.aoindustries.aoserv.client.linux.Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {

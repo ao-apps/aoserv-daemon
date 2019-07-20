@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 by AO Industries, Inc.,
+ * Copyright 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -173,9 +173,9 @@ final public class Fail2banManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			Server thisAoServer = AOServDaemon.getThisAOServer();
-			Host thisServer = thisAoServer.getServer();
-			OperatingSystemVersion osv = thisServer.getOperatingSystemVersion();
+			Server thisServer = AOServDaemon.getThisServer();
+			Host thisHost = thisServer.getHost();
+			OperatingSystemVersion osv = thisHost.getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 
 			synchronized(rebuildLock) {
@@ -187,7 +187,7 @@ final public class Fail2banManager extends BuilderThread {
 						Jail[] jails = Jail.values();
 						if(logger.isLoggable(Level.FINE)) logger.fine("jails: " + Arrays.asList(jails));
 
-						List<Bind> netBinds = thisServer.getNetBinds();
+						List<Bind> netBinds = thisHost.getNetBinds();
 						if(logger.isLoggable(Level.FINE)) logger.fine("netBinds: " + netBinds);
 
 						// Resolves the unique ports for each supported jail
@@ -368,8 +368,8 @@ final public class Fail2banManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		synchronized(System.out) {
 			if(

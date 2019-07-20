@@ -302,7 +302,7 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 				+ "\n"
 				+ "Control Panel: https://aoindustries.com/clientarea/control/httpd/HttpdSiteCP.ao?pkey=").print(httpdSite.getPkey()).print("\n"
 				+ "\n"
-				+ "AOSH: " + Command.SET_HTTPD_TOMCAT_STD_SITE_VERSION + " ").print(httpdSite.getName()).print(' ').print(httpdSite.getAoServer().getHostname()).print(" {series}.{major}\n"
+				+ "AOSH: " + Command.SET_HTTPD_TOMCAT_STD_SITE_VERSION + " ").print(httpdSite.getName()).print(' ').print(httpdSite.getLinuxServer().getHostname()).print(" {series}.{major}\n"
 				+ "\n"
 				+ "Changing the major version will trigger a full rebuild of this Tomcat\n"
 				+ "installation.  During the major rebuild, any file altered is backed-up with\n"

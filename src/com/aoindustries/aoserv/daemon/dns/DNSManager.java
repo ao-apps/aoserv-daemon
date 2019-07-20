@@ -139,27 +139,27 @@ final public class DNSManager extends BuilderThread {
 	protected boolean doRebuild() {
 		try {
 			AOServConnector connector = AOServDaemon.getConnector();
-			Server thisAoServer = AOServDaemon.getThisAOServer();
-			Host thisServer = thisAoServer.getServer();
-			OperatingSystemVersion osv = thisServer.getOperatingSystemVersion();
+			Server thisServer = AOServDaemon.getThisServer();
+			Host thisHost = thisServer.getHost();
+			OperatingSystemVersion osv = thisHost.getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
-			int uid_min = thisAoServer.getUidMin().getId();
-			int gid_min = thisAoServer.getGidMin().getId();
+			int uid_min = thisServer.getUidMin().getId();
+			int gid_min = thisServer.getGidMin().getId();
 
 			synchronized(rebuildLock) {
 				AppProtocol dns = AOServDaemon.getConnector().getNet().getAppProtocol().get(AppProtocol.DNS);
 				if(dns == null) throw new SQLException("Unable to find Protocol: " + AppProtocol.DNS);
-				List<Bind> netBinds = thisServer.getNetBinds(dns);
+				List<Bind> netBinds = thisHost.getNetBinds(dns);
 				if(!netBinds.isEmpty()) {
 					final int namedGid;
 					{
-						GroupServer lsg = thisAoServer.getLinuxServerGroup(Group.NAMED);
-						if(lsg == null) throw new SQLException("Unable to find GroupServer: " + Group.NAMED + " on " + thisAoServer.getHostname());
+						GroupServer lsg = thisServer.getLinuxServerGroup(Group.NAMED);
+						if(lsg == null) throw new SQLException("Unable to find GroupServer: " + Group.NAMED + " on " + thisServer.getHostname());
 						namedGid = lsg.getGid().getId();
 					}
 
@@ -462,9 +462,9 @@ final public class DNSManager extends BuilderThread {
 	private static void restart() throws IOException, SQLException {
 		AppProtocol dns = AOServDaemon.getConnector().getNet().getAppProtocol().get(AppProtocol.DNS);
 		if(dns == null) throw new SQLException("Unable to find AppProtocol: " + AppProtocol.DNS);
-		Host thisServer = AOServDaemon.getThisAOServer().getServer();
-		if(!thisServer.getNetBinds(dns).isEmpty()) {
-			OperatingSystemVersion osv = thisServer.getOperatingSystemVersion();
+		Host thisHost = AOServDaemon.getThisServer().getHost();
+		if(!thisHost.getNetBinds(dns).isEmpty()) {
+			OperatingSystemVersion osv = thisHost.getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			synchronized(restartLock) {
 				if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
@@ -479,7 +479,7 @@ final public class DNSManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		synchronized(System.out) {
 			if(

@@ -95,11 +95,11 @@ final public class MySQLCreditCardScanner implements CronJob {
 
 	private static void scanMySQLForCards() {
 		try {
-			com.aoindustries.aoserv.client.linux.Server thisAOServer=AOServDaemon.getThisAOServer();
+			com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
 
 			Map<Account,StringBuilder> reports = new HashMap<>();
 
-			List<Server> mysqlServers = thisAOServer.getMySQLServers();
+			List<Server> mysqlServers = thisServer.getMySQLServers();
 			for(Server mysqlServer : mysqlServers) {
 				Server.Name serverName = mysqlServer.getName();
 				Port port = mysqlServer.getBind().getPort();
@@ -114,19 +114,19 @@ final public class MySQLCreditCardScanner implements CronJob {
 						AOServDaemonConfiguration.getMySqlUser(serverName),
 						AOServDaemonConfiguration.getMySqlPassword(serverName)
 					)) {
-						Account business = database.getPackage().getBusiness();
-						StringBuilder report = reports.get(business);
-						if(report==null) reports.put(business, report=new StringBuilder());
-						scanForCards(thisAOServer, mysqlServer, database, conn, name.toString(), report);
+						Account account = database.getPackage().getAccount();
+						StringBuilder report = reports.get(account);
+						if(report==null) reports.put(account, report=new StringBuilder());
+						scanForCards(thisServer, mysqlServer, database, conn, name.toString(), report);
 					}
 				}
 			}
-			for(Account business : reports.keySet()) {
-				StringBuilder report = reports.get(business);
+			for(Account account : reports.keySet()) {
+				StringBuilder report = reports.get(account);
 				if(report!=null && report.length()>0) {
 					/* TODO
-					AOServDaemon.getConnector().getThisBusinessAdministrator().addTicket(
-						business,
+					AOServDaemon.getConnector().getCurrentAdministrator().addTicket(
+						account,
 						TicketType.TODO_SECURITY,
 						report.toString(),
 						Ticket.NO_DEADLINE,
@@ -146,7 +146,7 @@ final public class MySQLCreditCardScanner implements CronJob {
 		}
 	}
 
-	public static void scanForCards(com.aoindustries.aoserv.client.linux.Server aoServer, Server mysqlServer, Database database, Connection conn, String catalog, StringBuilder report) throws SQLException {
+	public static void scanForCards(com.aoindustries.aoserv.client.linux.Server thisServer, Server mysqlServer, Database database, Connection conn, String catalog, StringBuilder report) throws SQLException {
 		DatabaseMetaData metaData = conn.getMetaData();
 		String[] tableTypes = new String[] {"TABLE"};
 		try (ResultSet tables = metaData.getTables(catalog, null, null, tableTypes)) {
@@ -179,7 +179,7 @@ final public class MySQLCreditCardScanner implements CronJob {
 								report.append('\n')
 									.append("Unable to scan column, unsafe name\n")
 									.append('\n')
-									.append("Host........: ").append(aoServer.getHostname()).append('\n')
+									.append("Host........: ").append(thisServer.getHostname()).append('\n')
 									.append("MySQL Host..: ").append(mysqlServer.toString()).append('\n')
 									.append("Database......: ").append(database.getName()).append('\n')
 									.append("Table.........: ").append(table).append('\n')
@@ -204,7 +204,7 @@ final public class MySQLCreditCardScanner implements CronJob {
 						report.append('\n')
 							.append("Credit cards found in database\n")
 							.append('\n')
-							.append("Host........: ").append(aoServer.getHostname()).append('\n')
+							.append("Host........: ").append(thisServer.getHostname()).append('\n')
 							.append("MySQL Host..: ").append(mysqlServer.toString()).append('\n')
 							.append("Database......: ").append(database.getName()).append('\n')
 							.append("Table.........: ").append(table).append('\n')
@@ -215,7 +215,7 @@ final public class MySQLCreditCardScanner implements CronJob {
 					report.append('\n')
 						.append("Unable to scan table, unsafe name\n")
 						.append('\n')
-						.append("Host........: ").append(aoServer.getHostname()).append('\n')
+						.append("Host........: ").append(thisServer.getHostname()).append('\n')
 						.append("MySQL Host..: ").append(mysqlServer.toString()).append('\n')
 						.append("Database......: ").append(database.getName()).append('\n')
 						.append("Table.........: ").append(table).append('\n');

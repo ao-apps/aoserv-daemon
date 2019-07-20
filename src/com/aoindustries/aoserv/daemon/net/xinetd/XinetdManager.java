@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -59,8 +59,8 @@ public final class XinetdManager extends BuilderThread {
 	protected boolean doRebuild() {
 		try {
 			AOServConnector connector=AOServDaemon.getConnector();
-			Server aoServer=AOServDaemon.getThisAOServer();
-			OperatingSystemVersion osv = aoServer.getServer().getOperatingSystemVersion();
+			Server linuxServer = AOServDaemon.getThisServer();
+			OperatingSystemVersion osv = linuxServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
@@ -71,13 +71,12 @@ public final class XinetdManager extends BuilderThread {
 			final ByteArrayOutputStream bout = new ByteArrayOutputStream();
 
 			synchronized(rebuildLock) {
-				UserServer interbaseUser=aoServer.getLinuxServerAccount(User.INTERBASE);
-				UserServer nobodyUser=aoServer.getLinuxServerAccount(User.NOBODY);
-				UserServer rootUser=aoServer.getLinuxServerAccount(User.ROOT);
-				GroupServer ttyGroup=aoServer.getLinuxServerGroup(Group.TTY);
+				UserServer nobodyUser=linuxServer.getLinuxServerAccount(User.NOBODY);
+				UserServer rootUser=linuxServer.getLinuxServerAccount(User.ROOT);
+				GroupServer ttyGroup=linuxServer.getLinuxServerGroup(Group.TTY);
 
 				// Build a list of services that should be running
-				List<Bind> binds=aoServer.getServer().getNetBinds();
+				List<Bind> binds = linuxServer.getHost().getNetBinds();
 				List<Service> services=new ArrayList<>(binds.size()+(ImapManager.WUIMAP_CONVERSION_ENABLED ? 1 : 0)); // Worst-case all binds are in xinetd
 
 				if(ImapManager.WUIMAP_CONVERSION_ENABLED) {
@@ -92,7 +91,7 @@ public final class XinetdManager extends BuilderThread {
 							null,
 							"wuimap",
 							Protocol.TCP,
-							aoServer.getPrimaryIPAddress(),
+							linuxServer.getPrimaryIPAddress(),
 							Port.valueOf(8143, Protocol.TCP),
 							false,
 							rootUser,
@@ -191,7 +190,7 @@ public final class XinetdManager extends BuilderThread {
 							} else */
 							switch (protocol) {
 								case AppProtocol.CVSPSERVER:
-									List<CvsRepository> repos=aoServer.getCvsRepositories();
+									List<CvsRepository> repos=linuxServer.getCvsRepositories();
 									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
 										StringBuilder server_args=new StringBuilder();
 										for(int d=0;d<repos.size();d++) {
@@ -713,8 +712,8 @@ public final class XinetdManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {

@@ -58,8 +58,8 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 	}
 
 	@Override
-	public Host getThisServer() throws IOException, SQLException {
-		return AOServDaemon.getThisAOServer().getServer();
+	public Host getThisHost() throws IOException, SQLException {
+		return AOServDaemon.getThisServer().getHost();
 	}
 
 	@Override
@@ -81,7 +81,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		// Determine which MySQL Servers are replicated (not mirrored with failover code)
 		short retention = ffr.getRetention().getDays();
 		if(retention==1) {
-			Server toServer = ffr.getBackupPartition().getAOServer();
+			Server toServer = ffr.getBackupPartition().getLinuxServer();
 			List<MysqlReplication> fmrs = ffr.getFailoverMySQLReplications();
 			List<com.aoindustries.aoserv.client.mysql.Server.Name> replicatedMySQLServers = new ArrayList<>(fmrs.size());
 			List<String> replicatedMySQLMinorVersions = new ArrayList<>(fmrs.size());
@@ -126,14 +126,14 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 
 	@Override
 	public int getFailoverBatchSize(FileReplication ffr) throws IOException, SQLException {
-		return AOServDaemon.getThisAOServer().getFailoverBatchSize();
+		return AOServDaemon.getThisServer().getFailoverBatchSize();
 	}
 
 	@Override
 	protected Map<String,FilesystemIteratorRule> getFilesystemIteratorRules(FileReplication ffr) throws IOException, SQLException {
-		final Server thisServer = AOServDaemon.getThisAOServer();
+		final Server thisServer = AOServDaemon.getThisServer();
 		final short retention = ffr.getRetention().getDays();
-		final OperatingSystemVersion osv = thisServer.getServer().getOperatingSystemVersion();
+		final OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		final int osvId = osv.getPkey();
 		final Map<String,FilesystemIteratorRule> filesystemRules=new HashMap<>();
 		if(
@@ -432,7 +432,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 
 	@Override
 	protected Map<String,FilesystemIteratorRule> getFilesystemIteratorPrefixRules(FileReplication ffr) throws IOException, SQLException {
-		final Server thisServer = AOServDaemon.getThisAOServer();
+		final Server thisServer = AOServDaemon.getThisServer();
 		Map<String,FilesystemIteratorRule> filesystemPrefixRules = new HashMap<>();
 		for(com.aoindustries.aoserv.client.mysql.Server mysqlServer : thisServer.getMySQLServers()) {
 			com.aoindustries.aoserv.client.mysql.Server.Name name = mysqlServer.getName();
@@ -444,7 +444,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 
 	@Override
 	public InetAddress getDefaultSourceIPAddress() throws IOException, SQLException {
-		Server thisServer = AOServDaemon.getThisAOServer();
+		Server thisServer = AOServDaemon.getThisServer();
 		// Next, it will use the daemon bind address
 		InetAddress sourceIPAddress = thisServer.getDaemonBind().getIpAddress().getInetAddress();
 		// If daemon is binding to wildcard, then use source IP address of primary IP

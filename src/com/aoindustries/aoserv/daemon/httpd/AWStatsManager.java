@@ -1,5 +1,5 @@
 /*
- * Copyright 2005-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2005-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -74,10 +74,10 @@ final public class AWStatsManager extends BuilderThread {
 			final PackageManager.PackageName awstatsPackageName = osConfig.getAwstatsPackageName();
 
 			// Resolve the UID and GID before obtaining the lock
-			Server thisAoServer = AOServDaemon.getThisAOServer();
-			Host thisServer = thisAoServer.getServer();
-			int uid_min = thisAoServer.getUidMin().getId();
-			int gid_min = thisAoServer.getGidMin().getId();
+			Server thisServer = AOServDaemon.getThisServer();
+			Host thisHost = thisServer.getHost();
+			int uid_min = thisServer.getUidMin().getId();
+			int gid_min = thisServer.getGidMin().getId();
 
 			synchronized(rebuildLock) {
 				Set<UnixFile> restorecon = new LinkedHashSet<>();
@@ -100,7 +100,7 @@ final public class AWStatsManager extends BuilderThread {
 							existingHostDirectories.addAll(Arrays.asList(list));
 						}
 					}
-					final List<Site> sites = thisAoServer.getHttpdSites();
+					final List<Site> sites = thisServer.getHttpdSites();
 					if(!sites.isEmpty()) {
 						// Install awstats[_6] package when first needed
 						if(awstatsPackageName != null) {
@@ -109,13 +109,13 @@ final public class AWStatsManager extends BuilderThread {
 						// User and group required
 						final int awstatsUID;
 						{
-							UserServer awstatsLSA = thisAoServer.getLinuxServerAccount(User.AWSTATS);
+							UserServer awstatsLSA = thisServer.getLinuxServerAccount(User.AWSTATS);
 							if(awstatsLSA == null) throw new SQLException("Unable to find UserServer: " + User.AWSTATS);
 							awstatsUID = awstatsLSA.getUid().getId();
 						}
 						final int awstatsGID;
 						{
-							GroupServer awstatsLSG = thisAoServer.getLinuxServerGroup(Group.AWSTATS);
+							GroupServer awstatsLSG = thisServer.getLinuxServerGroup(Group.AWSTATS);
 							if(awstatsLSG == null) throw new SQLException("Unable to find GroupServer: " + Group.AWSTATS);
 							awstatsGID = awstatsLSG.getGid().getId();
 						}
@@ -210,7 +210,7 @@ final public class AWStatsManager extends BuilderThread {
 											+ "DefaultFile=\"index.html\"\n"
 											+ "SkipHosts=\"");
 									Set<String> finishedIPs = new HashSet<>();
-									for(IpAddress ip : thisServer.getIPAddresses()) {
+									for(IpAddress ip : thisHost.getIPAddresses()) {
 										InetAddress ia = ip.getInetAddress();
 										if(!ia.isUnspecified()) {
 											String addr = ia.toString();
@@ -408,7 +408,7 @@ final public class AWStatsManager extends BuilderThread {
 											+ "DNSLastUpdateCacheFile=\"").print(hostsDirectory).print('/').print(siteName).print("/dnscachelastupdate.txt\"\n"
 											+ "SkipHosts=\"");
 									Set<String> finishedIPs = new HashSet<>();
-									for(IpAddress ip : thisServer.getIPAddresses()) {
+									for(IpAddress ip : thisHost.getIPAddresses()) {
 										InetAddress ia = ip.getInetAddress();
 										if(!ia.isUnspecified()) {
 											String addr = ia.toString();
@@ -666,8 +666,8 @@ final public class AWStatsManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
@@ -713,7 +713,7 @@ final public class AWStatsManager extends BuilderThread {
 
 	public static void getAWStatsFile(String siteName, String path, String queryString, CompressedDataOutputStream out) throws IOException, SQLException {
 		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
-		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
 			osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64

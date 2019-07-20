@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2012, 2014, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2000-2012, 2014, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -34,8 +34,8 @@ final public class EmailListManager {
 	 * Reads the address list from the file system.
 	 */
 	public static String getEmailListFile(PosixPath path) throws IOException, SQLException {
-		Server thisAoServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
 			osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
@@ -50,7 +50,7 @@ final public class EmailListManager {
 	 * new <code>List</code> is stored in the database.
 	 */
 	public static void removeEmailListAddresses(PosixPath path) throws IOException, SQLException {
-		OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+		OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
 			osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
@@ -73,16 +73,16 @@ final public class EmailListManager {
 		int gid,
 		int mode
 	) throws IOException, SQLException {
-		Server thisAoServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
 			osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
-		int uid_min = thisAoServer.getUidMin().getId();
-		int gid_min = thisAoServer.getGidMin().getId();
+		int uid_min = thisServer.getUidMin().getId();
+		int gid_min = thisServer.getGidMin().getId();
 
 		// Remove any '/r'
 		StringBuilder SB=new StringBuilder();

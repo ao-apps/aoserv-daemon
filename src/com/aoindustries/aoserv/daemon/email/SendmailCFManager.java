@@ -155,7 +155,7 @@ final public class SendmailCFManager extends BuilderThread {
 	 */
 	private static void buildSendmailMcCentOS5(
 		ChainWriter out,
-		Server thisAoServer,
+		Server thisServer,
 		SendmailServer sendmailServer,
 		List<SendmailBind> smtpNetBinds,
 		List<SendmailBind> smtpsNetBinds,
@@ -294,11 +294,11 @@ final public class SendmailCFManager extends BuilderThread {
 		if(niceQueueRun == -1) out.print("dnl ");
 		out.print("define(`confNICE_QUEUE_RUN',`").print(niceQueueRun==-1 ? 0 : niceQueueRun).print("')dnl\n");
 		DomainName hostname = (sendmailServer == null) ? null : sendmailServer.getHostname();
-		if(hostname == null) hostname = thisAoServer.getHostname();
+		if(hostname == null) hostname = thisServer.getHostname();
 		out.print("define(`confPROCESS_TITLE_PREFIX',`").print(hostname).print("')dnl\n"
 				+ "dnl\n");
 		// Look for the configured net bind for the jilter
-		IpAddress primaryIpAddress = thisAoServer.getPrimaryIPAddress();
+		IpAddress primaryIpAddress = thisServer.getPrimaryIPAddress();
 		Bind jilterNetBind = JilterConfigurationWriter.getJilterNetBind();
 		// Only configure when the net bind has been found
 		if(jilterNetBind != null) {
@@ -461,7 +461,7 @@ final public class SendmailCFManager extends BuilderThread {
 	 */
 	private static void buildSendmailMcCentOS7(
 		ChainWriter out,
-		Server thisAoServer,
+		Server thisServer,
 		SendmailServer sendmailServer,
 		List<SendmailBind> smtpNetBinds,
 		List<SendmailBind> smtpsNetBinds,
@@ -709,7 +709,7 @@ final public class SendmailCFManager extends BuilderThread {
 				+ "FEATURE(`blacklist_recipients')dnl\n"
 				+ "EXPOSED_USER(`root')dnl\n");
 		// Look for the configured net bind for the jilter
-		IpAddress primaryIpAddress = thisAoServer.getPrimaryIPAddress();
+		IpAddress primaryIpAddress = thisServer.getPrimaryIPAddress();
 		Bind jilterNetBind = JilterConfigurationWriter.getJilterNetBind();
 		// Only configure when the net bind has been found
 		if(jilterNetBind != null) {
@@ -739,7 +739,7 @@ final public class SendmailCFManager extends BuilderThread {
 		if(sendmailServer != null) out.print("dnl ");
 		out.print("DAEMON_OPTIONS(`Port=smtp,Addr=127.0.0.1, Name=MTA')dnl\n");
 		DomainName hostname = sendmailServer == null ? null : sendmailServer.getHostname();
-		if(hostname == null) hostname = thisAoServer.getHostname();
+		if(hostname == null) hostname = thisServer.getHostname();
 		Set<InetAddress> finishedIPs = new HashSet<>();
 		for(SendmailBind sb : smtpNetBinds) {
 			Bind nb = sb.getNetBind();
@@ -1019,16 +1019,16 @@ final public class SendmailCFManager extends BuilderThread {
 	protected boolean doRebuild() {
 		try {
 			// Used on inner processing
-			AOServConnector conn = AOServDaemon.getConnector();
-			Server thisAoServer = AOServDaemon.getThisAOServer();
-			Host thisServer = thisAoServer.getServer();
-			OperatingSystemVersion osv = thisServer.getOperatingSystemVersion();
+			// AOServConnector conn = AOServDaemon.getConnector();
+			Server thisServer = AOServDaemon.getThisServer();
+			Host thisHost = thisServer.getHost();
+			OperatingSystemVersion osv = thisHost.getOperatingSystemVersion();
 			int osvId = osv.getPkey();
-			IpAddress primaryIpAddress = thisAoServer.getPrimaryIPAddress();
+			IpAddress primaryIpAddress = thisServer.getPrimaryIPAddress();
 			ByteArrayOutputStream bout = new ByteArrayOutputStream();
 
 			synchronized(rebuildLock) {
-				List<SendmailServer> sendmailServers = thisAoServer.getSendmailServers();
+				List<SendmailServer> sendmailServers = thisServer.getSendmailServers();
 				// Find the default sendmail instance, if any.
 				SendmailServer defaultServer = null;
 				// Find all named secondary instances.
@@ -1247,7 +1247,7 @@ final public class SendmailCFManager extends BuilderThread {
 									if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 										buildSendmailMcCentOS5(
 											out,
-											thisAoServer,
+											thisServer,
 											sendmailServer,
 											(smtpBinds       == null) ? Collections.emptyList() : smtpBinds.get(sendmailServer),
 											(smtpsBinds      == null) ? Collections.emptyList() : smtpsBinds.get(sendmailServer),
@@ -1256,7 +1256,7 @@ final public class SendmailCFManager extends BuilderThread {
 									} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 										buildSendmailMcCentOS7(
 											out,
-											thisAoServer,
+											thisServer,
 											sendmailServer,
 											(smtpBinds       == null) ? Collections.emptyList() : smtpBinds.get(sendmailServer),
 											(smtpsBinds      == null) ? Collections.emptyList() : smtpsBinds.get(sendmailServer),
@@ -1333,7 +1333,7 @@ final public class SendmailCFManager extends BuilderThread {
 											+ "dnl define(`confDIRECT_SUBMISSION_MODIFIERS',`C')dnl\n"
 											+ "FEATURE(`use_ct_file')dnl\n"
 											+ "FEATURE(`msp', `[").print(primaryIpAddress.getInetAddress().toString()).print("]')dnl\n"
-											+ "define(`confPROCESS_TITLE_PREFIX',`").print(thisAoServer.getHostname()).print("')dnl\n");
+											+ "define(`confPROCESS_TITLE_PREFIX',`").print(thisServer.getHostname()).print("')dnl\n");
 								} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 									InetAddress submitAddress;
 									if(defaultServer == null) {
@@ -1700,8 +1700,8 @@ final public class SendmailCFManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {
@@ -1754,6 +1754,6 @@ final public class SendmailCFManager extends BuilderThread {
 	 * @see Protocol#SUBMISSION
 	 */
 	public static boolean isSendmailEnabled() throws IOException, SQLException {
-		return !AOServDaemon.getThisAOServer().getSendmailServers().isEmpty();
+		return !AOServDaemon.getThisServer().getSendmailServers().isEmpty();
 	}
 }

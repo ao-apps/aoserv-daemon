@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 by AO Industries, Inc.,
+ * Copyright 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -495,8 +495,8 @@ final public class SslCertificateManager {
 
 	public static List<Check> checkSslCertificate(Certificate certificate) throws IOException, SQLException {
 		try {
-			Server thisAOServer = AOServDaemon.getThisAOServer();
-			OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+			Server thisServer = AOServDaemon.getThisServer();
+			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			boolean isNewOpenssl;
 			switch(osvId) {
@@ -693,7 +693,7 @@ final public class SslCertificateManager {
 					// x509 parsing
 					if(certCanonicalExists) {
 						DateFormat df = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.LONG);
-						df.setTimeZone(thisAOServer.getTimeZone().getTimeZone());
+						df.setTimeZone(thisServer.getTimeZone().getTimeZone());
 
 						X509Status x509Status = getX509Status(certCanonical, keyCanonical);
 						Date notBefore = x509Status.getNotBefore();

@@ -115,7 +115,7 @@ final public class AOServDaemonServerThread extends Thread {
 	public void run() {
 		try {
 			final AOServConnector connector = AOServDaemon.getConnector();
-			final Server thisAOServer = AOServDaemon.getThisAOServer();
+			final Server thisServer = AOServDaemon.getThisServer();
 
 			final AOServDaemonProtocol.Version protocolVersion;
 			final String daemonKey;
@@ -167,7 +167,7 @@ final public class AOServDaemonServerThread extends Thread {
 				// Must come from one of the hosts listed in the database
 				String hostAddress = socket.getInetAddress().getHostAddress();
 				boolean isOK=false;
-				for(DaemonAcl allowedHost : thisAOServer.getAOServerDaemonHosts()) {
+				for(DaemonAcl allowedHost : thisServer.getAOServerDaemonHosts()) {
 					String tempAddress = InetAddress.getByName(allowedHost.getHost().toString()).getHostAddress();
 					if (tempAddress.equals(hostAddress)) {
 						isOK=true;
@@ -176,7 +176,7 @@ final public class AOServDaemonServerThread extends Thread {
 				}
 				if(isOK) {
 					// Authenticate the client first
-					HashedPassword correctKey=thisAOServer.getDaemonKey();
+					HashedPassword correctKey=thisServer.getDaemonKey();
 					if(!correctKey.passwordMatches(daemonKey)) {
 						System.err.println("Connection attempted from " + hostAddress + " with invalid key: " + daemonKey);
 						out.writeBoolean(false);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -95,8 +95,8 @@ final public class EmailAddressManager extends BuilderThread {
 	@Override
 	protected boolean doRebuild() {
 		try {
-			Server thisAoServer = AOServDaemon.getThisAOServer();
-			OperatingSystemVersion osv = thisAoServer.getServer().getOperatingSystemVersion();
+			Server thisServer = AOServDaemon.getThisServer();
+			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
@@ -106,9 +106,9 @@ final public class EmailAddressManager extends BuilderThread {
 			synchronized(rebuildLock) {
 				Set<UnixFile> restorecon = new LinkedHashSet<>();
 				try {
-					List<SystemAlias> seas = thisAoServer.getSystemEmailAliases();
-					List<Address> eas = thisAoServer.getEmailAddresses();
-					List<Domain> eds = thisAoServer.getEmailDomains();
+					List<SystemAlias> seas = thisServer.getSystemEmailAliases();
+					List<Address> eas = thisServer.getEmailAddresses();
+					List<Domain> eds = thisServer.getEmailDomains();
 					assert eas.isEmpty() || !eds.isEmpty() : "Email addresses exist without any domains";
 
 					// Install sendmail if needed
@@ -179,7 +179,7 @@ final public class EmailAddressManager extends BuilderThread {
 								throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 							}
 							boolean didOne = false;
-							for(UserServer lsa : thisAoServer.getLinuxServerAccounts()) {
+							for(UserServer lsa : thisServer.getLinuxServerAccounts()) {
 								String username = lsa.getLinuxAccount().getUsername().getUsername().toString();
 								if(!usernamesUsed.contains(username)) {
 									if(username.indexOf('@') == -1) {
@@ -508,7 +508,7 @@ final public class EmailAddressManager extends BuilderThread {
 		synchronized(makeMapLock) {
 			// Run the command
 			String makemap;
-			OperatingSystemVersion osv = AOServDaemon.getThisAOServer().getServer().getOperatingSystemVersion();
+			OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
 				osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
@@ -545,8 +545,8 @@ final public class EmailAddressManager extends BuilderThread {
 	}
 
 	public static void start() throws IOException, SQLException {
-		Server thisAOServer = AOServDaemon.getThisAOServer();
-		OperatingSystemVersion osv = thisAOServer.getServer().getOperatingSystemVersion();
+		Server thisServer = AOServDaemon.getThisServer();
+		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 
 		synchronized(System.out) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2013, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2006-2013, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -46,11 +46,8 @@ final public class DhcpManager implements Runnable {
 				Process P=Runtime.getRuntime().exec(cmd);
 				try {
 					P.getOutputStream().close();
-					BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
-					try {
-						ip=in.readLine();
-					} finally {
-						in.close();
+					try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
+						ip = in.readLine();
 					}
 				} finally {
 					AOServDaemon.waitFor(P, cmd);
@@ -69,7 +66,7 @@ final public class DhcpManager implements Runnable {
 				if(thread == null) {
 					// Only start if at least one IP Address on the server is DHCP-enabled
 					boolean hasDhcp = false;
-					for(IpAddress ia : AOServDaemon.getThisAOServer().getServer().getIPAddresses()) {
+					for(IpAddress ia : AOServDaemon.getThisServer().getHost().getIPAddresses()) {
 						if(ia.isDhcp()) {
 							hasDhcp = true;
 							break;
@@ -98,7 +95,7 @@ final public class DhcpManager implements Runnable {
 					} catch(InterruptedException err) {
 						Thread.currentThread().interrupt();
 					}
-					for(Device nd : AOServDaemon.getThisAOServer().getServer().getNetDevices()) {
+					for(Device nd : AOServDaemon.getThisServer().getHost().getNetDevices()) {
 						IpAddress primaryIP=nd.getPrimaryIPAddress();
 						if(primaryIP.isDhcp()) {
 							InetAddress dhcpAddress=getDhcpAddress(nd.getDeviceId().getName());
