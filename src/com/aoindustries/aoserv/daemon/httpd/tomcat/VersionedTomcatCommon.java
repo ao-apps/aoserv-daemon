@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 by AO Industries, Inc.,
+ * Copyright 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -17,7 +17,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.GregorianCalendar;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * Some common code for all installations of Tomcat 8.5 and above.
@@ -34,7 +33,7 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 	 * Gets the suffix to put after an existing file, but before the extension.
 	 */
 	public static String getBackupSuffix() {
-		return BACKUP_DATE_SEPARATOR + CalendarUtils.formatDate(new GregorianCalendar(Locale.ROOT));
+		return BACKUP_DATE_SEPARATOR + CalendarUtils.formatDate(new GregorianCalendar());
 	}
 
 	public static final int KILL_DELAY_ATTEMPTS = 50;

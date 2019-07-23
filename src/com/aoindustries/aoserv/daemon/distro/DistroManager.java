@@ -46,6 +46,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -145,9 +146,9 @@ final public class DistroManager implements Runnable {
 						|| (distroStartTime - lastDistroTime.getTime()) >= 12L*60*60*1000
 					) {
 						int distroHour = thisServer.getDistroHour();
-						Calendar cal = Calendar.getInstance();
-						cal.setTimeInMillis(distroStartTime);
-						int currentHour = cal.get(Calendar.HOUR_OF_DAY);
+						GregorianCalendar gcal = new GregorianCalendar();
+						gcal.setTimeInMillis(distroStartTime);
+						int currentHour = gcal.get(Calendar.HOUR_OF_DAY);
 						if(isFiner) {
 							logger.finer("distroHour=" + distroHour);
 							logger.finer("currentHour=" + currentHour);

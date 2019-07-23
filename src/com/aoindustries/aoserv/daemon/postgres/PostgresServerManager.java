@@ -35,6 +35,7 @@ import java.net.StandardProtocolFamily;
 import java.net.URLEncoder;
 import java.sql.SQLException;
 import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -338,7 +339,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 									LogFactory.getLogger(PostgresServerManager.class).log(Level.WARNING, null, new IOException("Warning, unexpected filename, will not remove: " + logDirectory.getPath() + "/" + filename));
 								} else {
 									// Determine the timestamp of the file
-									Calendar fileDate = Calendar.getInstance();
+									GregorianCalendar fileDate = new GregorianCalendar();
 									fileDate.set(Calendar.YEAR, Integer.parseInt(filename.substring(11, 15)));
 									fileDate.set(Calendar.MONTH, Integer.parseInt(filename.substring(16, 18)) - 1);
 									fileDate.set(Calendar.DAY_OF_MONTH, Integer.parseInt(filename.substring(19, 21)));
@@ -347,7 +348,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 									fileDate.set(Calendar.SECOND, 0);
 									fileDate.set(Calendar.MILLISECOND, 0);
 
-									Calendar monthAgo = Calendar.getInstance();
+									GregorianCalendar monthAgo = new GregorianCalendar();
 									monthAgo.add(Calendar.MONTH, -1);
 
 									if(fileDate.compareTo(monthAgo) < 0) {

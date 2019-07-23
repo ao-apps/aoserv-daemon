@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013, 2015, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2015, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -44,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -2318,15 +2319,15 @@ final public class FailoverFileReplicationManager {
 		final boolean isFine = logger.isLoggable(Level.FINE);
 		try {
 			// Build the lists of directories based on age, skipping safe deleted and recycled directories
-			Calendar cal = Calendar.getInstance();
-			cal.set(Calendar.YEAR, fromServerYear);
-			cal.set(Calendar.MONTH, fromServerMonth-1);
-			cal.set(Calendar.DAY_OF_MONTH, fromServerDay);
-			cal.set(Calendar.HOUR_OF_DAY, 0);
-			cal.set(Calendar.MINUTE, 0);
-			cal.set(Calendar.SECOND, 0);
-			cal.set(Calendar.MILLISECOND, 0);
-			long fromServerDate = cal.getTimeInMillis();
+			GregorianCalendar gcal = new GregorianCalendar();
+			gcal.set(Calendar.YEAR, fromServerYear);
+			gcal.set(Calendar.MONTH, fromServerMonth-1);
+			gcal.set(Calendar.DAY_OF_MONTH, fromServerDay);
+			gcal.set(Calendar.HOUR_OF_DAY, 0);
+			gcal.set(Calendar.MINUTE, 0);
+			gcal.set(Calendar.SECOND, 0);
+			gcal.set(Calendar.MILLISECOND, 0);
+			long fromServerDate = gcal.getTimeInMillis();
 			Map<Integer,List<String>> directoriesByAge;
 			{
 				String[] list = list(activity, serverRootUF);
@@ -2342,15 +2343,15 @@ final public class FailoverFileReplicationManager {
 										int month = Integer.parseInt(filename.substring(5, 7));
 										if(filename.charAt(7)=='-') {
 											int day = Integer.parseInt(filename.substring(8, 10));
-											cal.set(Calendar.YEAR, year);
-											cal.set(Calendar.MONTH, month-1);
-											cal.set(Calendar.DAY_OF_MONTH, day);
-											cal.set(Calendar.HOUR_OF_DAY, 0);
-											cal.set(Calendar.MINUTE, 0);
-											cal.set(Calendar.SECOND, 0);
-											cal.set(Calendar.MILLISECOND, 0);
+											gcal.set(Calendar.YEAR, year);
+											gcal.set(Calendar.MONTH, month - 1);
+											gcal.set(Calendar.DAY_OF_MONTH, day);
+											gcal.set(Calendar.HOUR_OF_DAY, 0);
+											gcal.set(Calendar.MINUTE, 0);
+											gcal.set(Calendar.SECOND, 0);
+											gcal.set(Calendar.MILLISECOND, 0);
 											int age = SafeMath.castInt(
-												(fromServerDate - cal.getTimeInMillis())
+												(fromServerDate - gcal.getTimeInMillis())
 												/
 												(24l * 60 * 60 * 1000)
 											);

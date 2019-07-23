@@ -66,6 +66,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -2429,16 +2430,17 @@ ad OK Completed
 					if(zoneHours<0) zoneMinutes = -zoneMinutes;
 
 					// Convert to correct time
-					Calendar cal = Calendar.getInstance(Locale.US);
-					cal.set(Calendar.ZONE_OFFSET, zoneHours * 60*60*1000 + zoneMinutes * 60*1000);
-					cal.set(Calendar.YEAR, year);
-					cal.set(Calendar.MONTH, month);
-					cal.set(Calendar.DAY_OF_MONTH, day);
-					cal.set(Calendar.HOUR_OF_DAY, hour);
-					cal.set(Calendar.MINUTE, minute);
-					cal.set(Calendar.SECOND, second);
-					cal.set(Calendar.MILLISECOND, 0);
-					return cal.getTimeInMillis();
+					GregorianCalendar gcal = new GregorianCalendar(Locale.US);
+					// TODO: Use TimeZone instead?
+					gcal.set(Calendar.ZONE_OFFSET, zoneHours * 60*60*1000 + zoneMinutes * 60*1000);
+					gcal.set(Calendar.YEAR, year);
+					gcal.set(Calendar.MONTH, month);
+					gcal.set(Calendar.DAY_OF_MONTH, day);
+					gcal.set(Calendar.HOUR_OF_DAY, hour);
+					gcal.set(Calendar.MINUTE, minute);
+					gcal.set(Calendar.SECOND, second);
+					gcal.set(Calendar.MILLISECOND, 0);
+					return gcal.getTimeInMillis();
 				} finally {
 					if(inboxFolder.isOpen()) inboxFolder.close(false);
 				}

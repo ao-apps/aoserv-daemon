@@ -20,6 +20,7 @@ import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
 import java.sql.SQLException;
 import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -229,7 +230,7 @@ final public class BackupManager {
 				for(String filename : files) {
 					// Construct the Calendar from the filename
 					// Not y10k compatible ;)
-					Calendar fileCal=Calendar.getInstance();
+					GregorianCalendar fileCal = new GregorianCalendar();
 					fileCal.set(Calendar.YEAR, Integer.parseInt(filename.substring(0,4)));
 					fileCal.set(Calendar.MONTH, Integer.parseInt(filename.substring(4,6))-1);
 					fileCal.set(Calendar.DAY_OF_MONTH, Integer.parseInt(filename.substring(6,8)));
@@ -328,35 +329,35 @@ final public class BackupManager {
 	 */
 	public static File getNextBackupFile(String extension) throws IOException {
 		synchronized(BackupManager.class) {
-			Calendar cal=Calendar.getInstance();
-			StringBuilder SB=new StringBuilder(11);
+			GregorianCalendar gcal = new GregorianCalendar();
+			StringBuilder SB = new StringBuilder(11);
 
-			SB.append(cal.get(Calendar.YEAR));
+			SB.append(gcal.get(Calendar.YEAR));
 
-			int month=cal.get(Calendar.MONTH)+1;
-			if(month<10) SB.append('0');
+			int month = gcal.get(Calendar.MONTH)+1;
+			if(month < 10) SB.append('0');
 			SB.append(month);
 
-			int day=cal.get(Calendar.DAY_OF_MONTH);
-			if(day<10) SB.append('0');
+			int day = gcal.get(Calendar.DAY_OF_MONTH);
+			if(day < 10) SB.append('0');
 			SB.append(day).append('_');
 
-			int hour=cal.get(Calendar.HOUR_OF_DAY);
-			if(hour<10) SB.append('0');
+			int hour = gcal.get(Calendar.HOUR_OF_DAY);
+			if(hour < 10) SB.append('0');
 			SB.append(hour);
 
-			int minute=cal.get(Calendar.MINUTE);
-			if(minute<10) SB.append('0');
+			int minute = gcal.get(Calendar.MINUTE);
+			if(minute < 10) SB.append('0');
 			SB.append(minute);
 
-			int second=cal.get(Calendar.SECOND);
-			if(second<10) SB.append('0');
+			int second = gcal.get(Calendar.SECOND);
+			if(second < 10) SB.append('0');
 			SB.append(second).append('_');
 
 			UnixFile oldaccountsDir = getOldaccountsDir();
-			String prefix=SB.toString();
-			for(int c=1;c<Integer.MAX_VALUE;c++) {
-				UnixFile unixFile=new UnixFile(oldaccountsDir, prefix + c + extension, true);
+			String prefix = SB.toString();
+			for(int c = 1; c < Integer.MAX_VALUE; c++) {
+				UnixFile unixFile = new UnixFile(oldaccountsDir, prefix + c + extension, true);
 				if(!unixFile.getStat().exists()) {
 					File file = unixFile.getFile();
 					new FileOutputStream(file).close();
@@ -364,7 +365,7 @@ final public class BackupManager {
 					return file;
 				}
 			}
-			throw new IOException("Unable to allocate backup file for "+oldaccountsDir.getPath()+'/'+prefix + '*' + extension);
+			throw new IOException("Unable to allocate backup file for " + oldaccountsDir.getPath() + '/' + prefix + '*' + extension);
 		}
 	}
 
