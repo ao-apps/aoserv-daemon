@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2014, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2014, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -18,12 +18,12 @@ import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion
 import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion.VERSION_7_DOM0;
 import com.aoindustries.aoserv.client.distribution.management.DistroFileType;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.encoding.TextInPsqlEncoder;
 import com.aoindustries.io.ByteCountInputStream;
 import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.SysExits;
-import com.aoindustries.sql.SQLUtility;
 import com.aoindustries.util.AoArrays;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.StringUtility;
@@ -358,7 +358,7 @@ final public class DistroGenerator {
 				}
 				usernames.put(osv, realNames);
 			}
-			String username = realNames.get(Integer.valueOf(fileUID));
+			String username = realNames.get(fileUID);
 			if(username == null) throw new IOException("Unable to find username: " + fileUID + " for file " + osFilename);
 			return username;
 		}
@@ -392,7 +392,7 @@ final public class DistroGenerator {
 				}
 				groupnames.put(I, realGroups);
 			}
-			String groupname = realGroups.get(Integer.valueOf(fileGID));
+			String groupname = realGroups.get(fileGID);
 			if(groupname == null) throw new IOException("Unable to find group name " + fileGID + " for file " + osFilename);
 			return groupname;
 		}
@@ -810,19 +810,26 @@ final public class DistroGenerator {
 						SB
 							.append("insert into distro_files_tmp values (nextval('distro_files_pkey_seq'), ")
 							.append(osFilename.osv)
-							.append(", E'")
-							.append(SQLUtility.escapeSQL(osFilename.filename.length() == 0 ? "/" : osFilename.filename))
-							.append("', ")
+							.append(", ");
+						TextInPsqlEncoder.textInPsqlEncoder.writePrefixTo(SB);
+						TextInPsqlEncoder.textInPsqlEncoder.append(osFilename.filename.length() == 0 ? "/" : osFilename.filename, SB);
+						TextInPsqlEncoder.textInPsqlEncoder.writeSuffixTo(SB);
+						SB
+							.append(", ")
 							.append(runState.isOptional(osFilename) ? "true" : "false")
 							.append(", '")
 							.append(type)
 							.append("', ")
 							.append(statMode)
-							.append("::int8, E'")
-							.append(SQLUtility.escapeSQL(getUsername(osFilename, fileStat.getUid())))
-							.append("', E'")
-							.append(SQLUtility.escapeSQL(getGroupname(osFilename, fileStat.getGid())))
-							.append("', ");
+							.append("::int8, ");
+						TextInPsqlEncoder.textInPsqlEncoder.writePrefixTo(SB);
+						TextInPsqlEncoder.textInPsqlEncoder.append(getUsername(osFilename, fileStat.getUid()), SB);
+						TextInPsqlEncoder.textInPsqlEncoder.writeSuffixTo(SB);
+						SB.append(", ");
+						TextInPsqlEncoder.textInPsqlEncoder.writePrefixTo(SB);
+						TextInPsqlEncoder.textInPsqlEncoder.append(getGroupname(osFilename, fileStat.getGid()), SB);
+						TextInPsqlEncoder.textInPsqlEncoder.writeSuffixTo(SB);
+						SB.append(", ");
 						if(doHash) {
 							assert storeSize;
 							if(type.equals(DistroFileType.SYSTEM)) {
@@ -934,7 +941,9 @@ final public class DistroGenerator {
 						}
 						SB.append(", ");
 						if(UnixFile.isSymLink(statMode)) {
-							SB.append("E'").append(SQLUtility.escapeSQL(file.readLink())).append('\'');
+							TextInPsqlEncoder.textInPsqlEncoder.writePrefixTo(SB);
+							TextInPsqlEncoder.textInPsqlEncoder.append(file.readLink(), SB);
+							TextInPsqlEncoder.textInPsqlEncoder.writeSuffixTo(SB);
 						} else {
 							SB.append("null");
 						}

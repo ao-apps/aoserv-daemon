@@ -1466,7 +1466,7 @@ final public class ImapManager extends BuilderThread {
 					appendCounter = 0;
 				} else if(span >= 60000) {
 					long milliMessagesPerSecond = appendCounter * 1000000 / span;
-					if(logger.isLoggable(Level.INFO)) logger.info("Copied " + SQLUtility.getMilliDecimal(milliMessagesPerSecond) + " messages per second");
+					if(logger.isLoggable(Level.INFO)) logger.info("Copied " + SQLUtility.formatDecimal3(milliMessagesPerSecond) + " messages per second");
 					appendCounterStart = currentTime;
 					appendCounter = 0;
 				}
