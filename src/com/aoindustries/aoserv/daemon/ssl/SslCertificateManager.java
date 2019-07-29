@@ -109,11 +109,11 @@ final public class SslCertificateManager {
 	 *
 	 * @implNote  This synchronizes on {@link #getHashedCache} which will serialize all commands.  This is OK as results will be cached normally.
 	 */
-	private static String getCommandHash(UnixFile file, String type, long modifiedTime, String ... command) throws IOException {
+	private static String getCommandHash(UnixFile file, String type, long modifiedTime, boolean allowCached, String ... command) throws IOException {
 		try {
 			Tuple2<UnixFile,String> cacheKey = new Tuple2<>(file, type);
 			synchronized(getHashedCache) {
-				Tuple2<Long,String> cached = getHashedCache.get(cacheKey);
+				Tuple2<Long,String> cached = allowCached ? getHashedCache.get(cacheKey) : null;
 				if(cached != null && cached.getElement1() == modifiedTime) return cached.getElement2();
 				String hashed = StringUtility.convertToHex(
 					MessageDigest.getInstance(ALGORITHM).digest(
@@ -173,11 +173,11 @@ final public class SslCertificateManager {
 	/**
 	 * Gets the x509 status.
 	 */
-	private static X509Status getX509Status(UnixFile certCanonical, UnixFile keyCanonical) throws IOException {
+	private static X509Status getX509Status(UnixFile certCanonical, UnixFile keyCanonical, boolean allowCached) throws IOException {
 		synchronized(x509Cache) {
 			long certModifyTime = certCanonical.getStat().getModifyTime();
 
-			X509Status cached = x509Cache.get(certCanonical);
+			X509Status cached = allowCached ? x509Cache.get(certCanonical) : null;
 			if(
 				cached != null
 				&& certModifyTime == cached.certModifyTime
@@ -366,7 +366,7 @@ final public class SslCertificateManager {
 	/**
 	 * Gets the certificate status from certbot.
 	 */
-	private static CertbotStatus getCertbotStatus(String certbotName) throws IOException {
+	private static CertbotStatus getCertbotStatus(String certbotName, boolean allowCached) throws IOException {
 		synchronized(certbotCache) {
 			long currentTime = System.currentTimeMillis();
 			UnixFile certCanonicalFile = new UnixFile(new File("/etc/letsencrypt/live/" + certbotName + "/cert.pem").getCanonicalFile());
@@ -379,7 +379,7 @@ final public class SslCertificateManager {
 			long privkeyModifyTime = privkeyCanonicalFile.getStat().getModifyTime();
 			UnixFile renewalFile = new UnixFile("/etc/letsencrypt/renewal/" + certbotName + ".conf");
 			long renewalModifyTime = renewalFile.getStat().getModifyTime();
-			CertbotStatus cached = certbotCache.get(certbotName);
+			CertbotStatus cached = allowCached ? certbotCache.get(certbotName) : null;
 			if(
 				cached != null
 				&& (currentTime - cached.cacheTime) < CERTBOT_CACHE_DURATION
@@ -491,9 +491,9 @@ final public class SslCertificateManager {
 		}
 	}
 
-	private static final ConcurrencyLimiter<Certificate,List<Check>> checkSslCertificateConcurrencyLimiter = new ConcurrencyLimiter<>();
+	private static final ConcurrencyLimiter<Tuple2<Certificate,Boolean>,List<Check>> checkSslCertificateConcurrencyLimiter = new ConcurrencyLimiter<>();
 
-	public static List<Check> checkSslCertificate(Certificate certificate) throws IOException, SQLException {
+	public static List<Check> checkSslCertificate(Certificate certificate, boolean allowCached) throws IOException, SQLException {
 		try {
 			Server thisServer = AOServDaemon.getThisServer();
 			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
@@ -513,7 +513,7 @@ final public class SslCertificateManager {
 					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 			}
 			return checkSslCertificateConcurrencyLimiter.executeSerialized(
-				certificate,
+				new Tuple2<>(certificate, allowCached),
 				() -> {
 					long currentTime = System.currentTimeMillis();
 
@@ -635,6 +635,7 @@ final public class SslCertificateManager {
 						keyCanonical,
 						isNewOpenssl ? "pkey" : "rsa",
 						keyModifyTime,
+						allowCached,
 						isNewOpenssl
 							? new String[] {"openssl", "pkey", "-outform", "PEM", "-in", keyCanonical.getPath(), "-pubout"}
 							: new String[] {"openssl", "rsa", "-in", keyCanonical.getPath(), "-noout", "-modulus"}
@@ -643,6 +644,7 @@ final public class SslCertificateManager {
 						csrCanonical,
 						"req",
 						csrModifyTime,
+						allowCached,
 						isNewOpenssl
 							? new String[] {"openssl", "req", "-outform", "PEM", "-in", csrCanonical.getPath(), "-pubkey", "-noout"}
 							: new String[] {"openssl", "req", "-in", csrCanonical.getPath(), "-noout", "-modulus"}
@@ -651,6 +653,7 @@ final public class SslCertificateManager {
 						certCanonical,
 						"x509",
 						certModifyTime,
+						allowCached,
 						isNewOpenssl
 							? new String[] {"openssl", "x509", "-outform", "PEM", "-in", certCanonical.getPath(), "-pubkey", "-noout"}
 							: new String[] {"openssl", "x509", "-in", certCanonical.getPath(), "-noout", "-modulus"}
@@ -695,7 +698,7 @@ final public class SslCertificateManager {
 						DateFormat df = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.LONG);
 						df.setTimeZone(thisServer.getTimeZone().getTimeZone());
 
-						X509Status x509Status = getX509Status(certCanonical, keyCanonical);
+						X509Status x509Status = getX509Status(certCanonical, keyCanonical, allowCached);
 						Date notBefore = x509Status.getNotBefore();
 						if(notBefore != null) {
 							results.add(
@@ -768,7 +771,7 @@ final public class SslCertificateManager {
 
 					// Let's Encrypt certificate status
 					if(certbotName != null) {
-						CertbotStatus certbotStatus = getCertbotStatus(certbotName);
+						CertbotStatus certbotStatus = getCertbotStatus(certbotName, allowCached);
 
 						String status = certbotStatus.getStatus();
 						results.add(new Check("Certbot status", status, "VALID".equals(status) ? NONE : CRITICAL, null));

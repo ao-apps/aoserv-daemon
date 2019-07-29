@@ -73,6 +73,7 @@ final public class AOServDaemonServerThread extends Thread {
 	 * The set of supported versions, with the most preferred versions first.
 	 */
 	private static final AOServDaemonProtocol.Version[] SUPPORTED_VERSIONS = {
+		AOServDaemonProtocol.Version.VERSION_1_83_0,
 		AOServDaemonProtocol.Version.VERSION_1_81_10,
 		AOServDaemonProtocol.Version.VERSION_1_80_1,
 		AOServDaemonProtocol.Version.VERSION_1_80_0,
@@ -528,10 +529,16 @@ final public class AOServDaemonServerThread extends Thread {
 							{
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing CHECK_SSL_CERTIFICATE, Thread="+toString());
 								int id = in.readCompressedInt();
+								boolean allowCached;
+								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_83_0) < 0) {
+									allowCached = true;
+								} else {
+									allowCached = in.readBoolean();
+								}
 								if(daemonKey==null) throw new IOException("Only the master server may CHECK_SSL_CERTIFICATE");
 								Certificate certificate = connector.getPki().getCertificate().get(id);
 								if(certificate == null) throw new SQLException("Unable to find Certificate: " + id);
-								List<Certificate.Check> results = SslCertificateManager.checkSslCertificate(certificate);
+								List<Certificate.Check> results = SslCertificateManager.checkSslCertificate(certificate, allowCached);
 								out.write(AOServDaemonProtocol.NEXT);
 								int size = results.size();
 								out.writeCompressedInt(size);
