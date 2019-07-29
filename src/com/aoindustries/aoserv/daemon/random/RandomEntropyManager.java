@@ -35,12 +35,17 @@ public final class RandomEntropyManager implements Runnable {
 	/**
 	 * The maximum delay between scans when obtaining from the master.
 	 */
-	public static final long MAX_OBTAIN_DELAY = 5 * 1000;
+	public static final long MAX_OBTAIN_DELAY = 1 * 1000;
 
 	/**
 	 * The maximum delay between scans when at the desired entropy.
 	 */
 	public static final long MAX_DESIRED_DELAY = 15 * 1000;
+
+	/**
+	 * The minimum interval between calls to {@code getMasterEntropyNeeded()}
+	 */
+	public static final long GET_MASTER_ENTROPY_NEEDED_INTERVAL = 5 * 60 * 1000;
 
 	/**
 	 * The delay after an error occurs.
@@ -136,6 +141,8 @@ public final class RandomEntropyManager implements Runnable {
 				}
 				long obtainThreshold = havegedInstalled ? OBTAIN_THRESHOLD_WITH_HAVEGED : OBTAIN_THRESHOLD_NO_HAVEGED;
 
+				long masterNeeded = Long.MIN_VALUE;
+				long masterLastCheckedTime = Long.MIN_VALUE;
 				boolean lastObtain = true;
 				while(true) {
 					long sleepyTime;
@@ -186,10 +193,16 @@ public final class RandomEntropyManager implements Runnable {
 						if(entropyAvail >= DESIRED_BITS) {
 							lastObtain = false;
 						}
-						long masterNeeded = -1;
 						if(entropyAvail >= PROVIDE_THRESHOLD) {
 							int provideBytes = (entropyAvail - DESIRED_BITS) / 8;
-							masterNeeded = conn.getMasterEntropyNeeded();
+							long currentTime = System.currentTimeMillis();
+							if(
+								masterNeeded == Long.MIN_VALUE
+								|| Math.abs(currentTime - masterLastCheckedTime) >= GET_MASTER_ENTROPY_NEEDED_INTERVAL
+							) {
+								masterNeeded = conn.getMasterEntropyNeeded();
+								masterLastCheckedTime = currentTime;
+							}
 							if(provideBytes > masterNeeded) provideBytes = (int)masterNeeded;
 							if(provideBytes > 0) {
 								if(provideBytes > BufferManager.BUFFER_SIZE) provideBytes = BufferManager.BUFFER_SIZE;
@@ -197,24 +210,14 @@ public final class RandomEntropyManager implements Runnable {
 								byte[] buff = BufferManager.getBytes();
 								try {
 									DevRandom.nextBytesStatic(buff, 0, provideBytes);
-									conn.addMasterEntropy(buff, provideBytes);
+									masterNeeded = conn.addMasterEntropy(buff, provideBytes);
+									masterLastCheckedTime = currentTime;
 								} finally {
 									BufferManager.release(buff, true);
 								}
-								masterNeeded -= provideBytes;
 							}
 						}
-						if(lastObtain) {
-							sleepyTime = MAX_OBTAIN_DELAY;
-						} else {
-							// Sleep for the longest delay or shorter if master needs more entropy
-							if(masterNeeded > 0) {
-								// Sleep proportional to the amount of master pool needed
-								sleepyTime = MAX_DESIRED_DELAY - masterNeeded * (MAX_DESIRED_DELAY - MIN_DELAY) / AOServConnector.MASTER_ENTROPY_POOL_SIZE;
-							} else {
-								sleepyTime = MAX_DESIRED_DELAY;
-							}
-						}
+						sleepyTime = lastObtain ? MAX_OBTAIN_DELAY : MAX_DESIRED_DELAY;
 					}
 
 					try {
