@@ -28,37 +28,54 @@ public final class RandomEntropyManager implements Runnable {
 	/**
 	 * The minimum delay between scans.
 	 */
-	public static final int MIN_DELAY=1*1000;
+	public static final long MIN_DELAY = 100;
 
 	/**
-	 * The maximum delay between scans.
+	 * The maximum delay between scans when obtaining from the master.
 	 */
-	public static final int MAX_OBTAIN_DELAY=15*1000;
+	public static final long MAX_OBTAIN_DELAY = 15 * 1000;
 
 	/**
-	 * The maximum delay between scans.
+	 * The maximum delay between scans when providing to the master.
 	 */
-	public static final int MAX_PROVIDE_DELAY=5*60*1000;
+	public static final long MAX_PROVIDE_DELAY = 5 * 60 * 1000;
 
 	/**
 	 * The delay after an error occurs.
 	 */
-	public static final int ERROR_DELAY=60*1000;
+	public static final long ERROR_DELAY = 60 * 1000;
 
 	/**
 	 * The number of bits available where will provide to master server.
+	 * <p>
+	 * This is scaled from an expected pool size of <code>4096</code>.
+	 * See <code>/proc/sys/kernel/random/poolsize</code>
+	 * </p>
 	 */
-	public static final int PROVIDE_THRESHOLD=3584;
+	public static final int PROVIDE_THRESHOLD = 3584;
 
 	/**
 	 * The number of bits available after providing to the master server.
+	 * <p>
+	 * This is scaled from an expected pool size of <code>4096</code>.
+	 * See <code>/proc/sys/kernel/random/poolsize</code>
+	 * </p>
 	 */
-	public static final int DESIRED_BITS=3072;
+	public static final int DESIRED_BITS = 3072;
 
 	/**
 	 * The number of bits available where will obtain from master server.
+	 * <p>
+	 * This is scaled from an expected pool size of <code>4096</code>.
+	 * See <code>/proc/sys/kernel/random/poolsize</code>
+	 * </p>
 	 */
-	public static final int OBTAIN_THRESHOLD=2048;
+	public static final int OBTAIN_THRESHOLD = 2048;
+
+	static {
+		assert PROVIDE_THRESHOLD > DESIRED_BITS;
+		assert DESIRED_BITS > OBTAIN_THRESHOLD;
+	}
 
 	private static Thread thread;
 
@@ -69,76 +86,68 @@ public final class RandomEntropyManager implements Runnable {
 	public void run() {
 		while(true) {
 			try {
-				AOServConnector conn=AOServDaemon.getConnector();
-				boolean lastObtain=true;
+				AOServConnector conn = AOServDaemon.getConnector();
+				boolean lastObtain = true;
 				while(true) {
-					int sleepyTime;
-					int entropyAvail=DevRandom.getEntropyAvail();
-					if(entropyAvail<=OBTAIN_THRESHOLD) {
-						lastObtain=true;
-						int bitsNeeded=DESIRED_BITS-entropyAvail;
-						int bytesNeeded=bitsNeeded>>>3;
-						if(bytesNeeded>BufferManager.BUFFER_SIZE) bytesNeeded=BufferManager.BUFFER_SIZE;
-						byte[] buff=BufferManager.getBytes();
+					long sleepyTime;
+					int entropyAvail = DevRandom.getEntropyAvail();
+					if(entropyAvail < OBTAIN_THRESHOLD) {
+						lastObtain = true;
+						int bytesNeeded = (DESIRED_BITS - entropyAvail) / 8;
+						if(bytesNeeded > BufferManager.BUFFER_SIZE) bytesNeeded = BufferManager.BUFFER_SIZE;
+						byte[] buff = BufferManager.getBytes();
 						try {
-							int obtained=conn.getMasterEntropy(buff, bytesNeeded);
-							if(obtained>0) {
-								if(obtained==BufferManager.BUFFER_SIZE) DevRandom.addEntropy(buff);
-								else {
-									byte[] newBuff=new byte[obtained];
+							int obtained = conn.getMasterEntropy(buff, bytesNeeded);
+							if(obtained > 0) {
+								if(obtained == BufferManager.BUFFER_SIZE) {
+									DevRandom.addEntropy(buff);
+								} else {
+									byte[] newBuff = new byte[obtained];
 									System.arraycopy(buff, 0, newBuff, 0, obtained);
 									DevRandom.addEntropy(newBuff);
 								}
+								entropyAvail += obtained * 8;
 							}
 						} finally {
 							BufferManager.release(buff, true);
 						}
-						// Sleep proportional to the amount of pool needed
-						sleepyTime=
-							MIN_DELAY
-							+(int)(
-								(
-									(double)entropyAvail/(double)DESIRED_BITS
-								)*(MAX_OBTAIN_DELAY-MIN_DELAY)
-							)
-						;
+						if(entropyAvail < OBTAIN_THRESHOLD) {
+							// Sleep proportional to the amount of pool needed
+							sleepyTime = MIN_DELAY + entropyAvail * (MAX_OBTAIN_DELAY - MIN_DELAY) / DESIRED_BITS;
+						} else {
+							sleepyTime = MAX_OBTAIN_DELAY;
+						}
 					} else {
-						long masterNeeded=-1;
-						if(entropyAvail>=PROVIDE_THRESHOLD) {
-							lastObtain=false;
-							int provideBits=entropyAvail-DESIRED_BITS;
-							int provideBytes=provideBits>>>3;
-							masterNeeded=conn.getMasterEntropyNeeded();
-							if(provideBytes>masterNeeded) provideBytes=(int)masterNeeded;
-							if(provideBytes>0) {
-								if(provideBytes>BufferManager.BUFFER_SIZE) provideBytes=BufferManager.BUFFER_SIZE;
-								if(AOServDaemon.DEBUG) System.err.println("DEBUG: RandomEntropyManager: Providing "+provideBytes+" bytes ("+(provideBytes<<3)+" bits) of entropy to master server");
-								byte[] buff=BufferManager.getBytes();
+						long masterNeeded = -1;
+						if(entropyAvail >= PROVIDE_THRESHOLD) {
+							lastObtain = false;
+							int provideBytes = (entropyAvail - DESIRED_BITS) / 8;
+							masterNeeded = conn.getMasterEntropyNeeded();
+							if(provideBytes > masterNeeded) provideBytes = (int)masterNeeded;
+							if(provideBytes > 0) {
+								if(provideBytes > BufferManager.BUFFER_SIZE) provideBytes = BufferManager.BUFFER_SIZE;
+								if(AOServDaemon.DEBUG) System.err.println("DEBUG: RandomEntropyManager: Providing " + provideBytes + " bytes (" + (provideBytes * 8) + " bits) of entropy to master server");
+								byte[] buff = BufferManager.getBytes();
 								try {
 									DevRandom.nextBytesStatic(buff, 0, provideBytes);
 									conn.addMasterEntropy(buff, provideBytes);
 								} finally {
 									BufferManager.release(buff, true);
 								}
+								masterNeeded -= provideBytes;
 							}
 						}
-						if(lastObtain) sleepyTime=MAX_OBTAIN_DELAY;
-						else {
+						if(lastObtain) {
+							sleepyTime = MAX_OBTAIN_DELAY;
+						} else {
 							// Sleep for the longest delay or shorter if master needs more entropy
-							if(masterNeeded==-1) masterNeeded=conn.getMasterEntropyNeeded();
-							if(masterNeeded>0) {
+							if(masterNeeded == -1) masterNeeded = conn.getMasterEntropyNeeded();
+							if(masterNeeded > 0) {
 								// Sleep proportional to the amount of master pool needed
-								sleepyTime=
-									MIN_DELAY
-									+(int)(
-										(
-											1.0d-(
-												(double)masterNeeded/(double)AOServConnector.MASTER_ENTROPY_POOL_SIZE
-											)
-										)*(MAX_PROVIDE_DELAY-MIN_DELAY)
-									)
-								;
-							} else sleepyTime=MAX_PROVIDE_DELAY;
+								sleepyTime = MAX_PROVIDE_DELAY - masterNeeded * (MAX_PROVIDE_DELAY - MIN_DELAY) / AOServConnector.MASTER_ENTROPY_POOL_SIZE;
+							} else {
+								sleepyTime = MAX_PROVIDE_DELAY;
+							}
 						}
 					}
 
