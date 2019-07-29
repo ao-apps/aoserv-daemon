@@ -467,11 +467,11 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 	}
 
 	/**
-	 * Uses the random source from AOServDaemon.
+	 * Uses the fast random source from AOServDaemon.
 	 */
 	@Override
 	public Random getRandom() {
-		return AOServDaemon.getRandom();
+		return AOServDaemon.getFastRandom();
 	}
 
 	@Override

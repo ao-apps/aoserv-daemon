@@ -196,7 +196,7 @@ final public class AOServDaemonServerThread extends Thread {
 			final long startSeq;
 			if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0) >= 0) {
 				out.writeUTF(protocolVersion.getVersion());
-				startSeq = AOServDaemon.getRandom().nextLong();
+				startSeq = AOServDaemon.getSecureRandom().nextLong();
 				out.writeLong(startSeq);
 			} else {
 				startSeq = 0;

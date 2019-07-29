@@ -100,7 +100,7 @@ final public class BackupManager {
 	static void backupInterBaseDatabases() throws IOException, SQLException {
 		if(AOServDaemon.getThisAOServer().isInterBase()) {
 			ProcessTimer timer=new ProcessTimer(
-				AOServDaemon.getRandom(),
+				AOServDaemon.getFastRandom(),
 				AOServDaemonConfiguration.getWarningSmtpServer(),
 				AOServDaemonConfiguration.getWarningEmailFrom(),
 				AOServDaemonConfiguration.getWarningEmailTo(),
@@ -139,7 +139,7 @@ final public class BackupManager {
 	/*
 	static void backupMySQLDatabases() throws IOException, SQLException {
 		ProcessTimer timer=new ProcessTimer(
-			AOServDaemon.getRandom(),
+			AOServDaemon.getFastRandom(),
 			AOServDaemonConfiguration.getWarningSmtpServer(),
 			AOServDaemonConfiguration.getWarningEmailFrom(),
 			AOServDaemonConfiguration.getWarningEmailTo(),
@@ -180,7 +180,7 @@ final public class BackupManager {
 	/*
 	static void backupPostgresDatabases() throws IOException, SQLException {
 		ProcessTimer timer=new ProcessTimer(
-			AOServDaemon.getRandom(),
+			AOServDaemon.getFastRandom(),
 			AOServDaemonConfiguration.getWarningSmtpServer(),
 			AOServDaemonConfiguration.getWarningEmailFrom(),
 			AOServDaemonConfiguration.getWarningEmailTo(),

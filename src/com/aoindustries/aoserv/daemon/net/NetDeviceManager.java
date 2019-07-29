@@ -763,7 +763,7 @@ final public class NetDeviceManager extends BuilderThread {
 	private final static List<Integer> privilegedPorts = new ArrayList<>();
 
 	/**
-	 * Gets the next privileged source port in the range 1<=port<=1023.  Will never return
+	 * Gets the next privileged source port in the range 1 &lt;= port &lt;= 1023.  Will never return
 	 * any port referenced in the NetBinds for this server.  Will return all ports before
 	 * cycling back through the ports.  The ports are returned in a random order.
 	 * The returned port may be in use, and the resulting exception must be caught and
@@ -782,7 +782,7 @@ final public class NetDeviceManager extends BuilderThread {
 			int size = privilegedPorts.size();
 			if(size==0) throw new AssertionError("privilegedPorts is empty");
 			if(size==1) return privilegedPorts.remove(0);
-			return privilegedPorts.remove(AOServDaemon.getRandom().nextInt(size));
+			return privilegedPorts.remove(AOServDaemon.getFastRandom().nextInt(size));
 		}
 	}
 

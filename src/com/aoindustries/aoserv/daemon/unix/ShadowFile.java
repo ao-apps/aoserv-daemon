@@ -547,7 +547,7 @@ final public class ShadowFile {
 			username,
 			plaintext == null || plaintext.isEmpty()
 				? User.NO_PASSWORD_CONFIG_VALUE
-				: UnixFile.crypt(plaintext, cryptAlgorithm, AOServDaemon.getRandom()),
+				: UnixFile.crypt(plaintext, cryptAlgorithm, AOServDaemon.getSecureRandom()),
 			updateChangedDate ? Entry.getCurrentDate() : null
 		);
 	}

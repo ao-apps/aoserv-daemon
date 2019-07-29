@@ -86,9 +86,17 @@ final public class AOServDaemon {
 	/**
 	 * A single random number generator is shared by all daemon resources to provide better randomness.
 	 */
-	private static final Random random = new SecureRandom();
-	public static Random getRandom() {
-		return random;
+	private static final SecureRandom secureRandom = new SecureRandom();
+	public static SecureRandom getSecureRandom() {
+		return secureRandom;
+	}
+
+	/**
+	 * A fast pseudo-random number generated seeded by secure random.
+	 */
+	private static final Random fastRandom = new Random(IoUtils.bufferToLong(secureRandom.generateSeed(8)));
+	public static Random getFastRandom() {
+		return fastRandom;
 	}
 
 	/**

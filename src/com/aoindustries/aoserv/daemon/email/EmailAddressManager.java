@@ -103,6 +103,9 @@ final public class EmailAddressManager extends BuilderThread {
 				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
+			// Use pseudo-random number generated seeded by secure random
+			Random random = AOServDaemon.getFastRandom();
+
 			synchronized(rebuildLock) {
 				Set<UnixFile> restorecon = new LinkedHashSet<>();
 				try {
@@ -220,6 +223,7 @@ final public class EmailAddressManager extends BuilderThread {
 										didOne = true;
 									}
 									writeEmailAddressConfigs(
+										random,
 										ea,
 										usernamesUsed,
 										devNullUsername,
@@ -269,6 +273,7 @@ final public class EmailAddressManager extends BuilderThread {
 										didOne = true;
 									}
 									writeEmailAddressConfigs(
+										random,
 										ea,
 										usernamesUsed,
 										devNullUsername,
@@ -331,6 +336,7 @@ final public class EmailAddressManager extends BuilderThread {
 	}
 
 	private static void writeEmailAddressConfigs(
+		Random random,
 		Address ea,
 		Set<String> usernamesUsed,
 		String[] devNullUsername,
@@ -375,7 +381,7 @@ final public class EmailAddressManager extends BuilderThread {
 			// 1) /dev/null only
 			tieUsername = devNullUsername[0];
 			if(tieUsername == null) {
-				tieUsername = getTieUsername(usernamesUsed);
+				tieUsername = getTieUsername(random, usernamesUsed);
 				devNullUsername[0] = tieUsername;
 				aliasesOut.print(tieUsername).println(": /dev/null");
 			}
@@ -389,7 +395,7 @@ final public class EmailAddressManager extends BuilderThread {
 			Email destination = efs.get(0).getDestination();
 			tieUsername = singleForwardingTies.get(destination);
 			if(tieUsername == null) {
-				tieUsername = getTieUsername(usernamesUsed);
+				tieUsername = getTieUsername(random, usernamesUsed);
 				singleForwardingTies.put(destination, tieUsername);
 				aliasesOut.print(tieUsername).print(": ").println(destination);
 			}
@@ -403,7 +409,7 @@ final public class EmailAddressManager extends BuilderThread {
 			PosixPath path = elas.get(0).getEmailList().getPath();
 			tieUsername = singleListTies.get(path);
 			if(tieUsername == null) {
-				tieUsername = getTieUsername(usernamesUsed);
+				tieUsername = getTieUsername(random, usernamesUsed);
 				singleListTies.put(path, tieUsername);
 				aliasesOut.print(tieUsername).print(": :include:").println(path);
 			}
@@ -417,7 +423,7 @@ final public class EmailAddressManager extends BuilderThread {
 			String command = epas.get(0).getEmailPipe().getCommand();
 			tieUsername = singlePipeTies.get(command);
 			if(tieUsername == null) {
-				tieUsername = getTieUsername(usernamesUsed);
+				tieUsername = getTieUsername(random, usernamesUsed);
 				singlePipeTies.put(command, tieUsername);
 				aliasesOut.print(tieUsername).print(": \"| ").print(command).println('"');
 			}
@@ -433,7 +439,7 @@ final public class EmailAddressManager extends BuilderThread {
 				User.Name username = lsa.getLinuxAccount_username_id();
 				tieUsername = singleInboxTies.get(username);
 				if(tieUsername == null) {
-					tieUsername = getTieUsername(usernamesUsed);
+					tieUsername = getTieUsername(random, usernamesUsed);
 					singleInboxTies.put(username, tieUsername);
 					aliasesOut.print(tieUsername).print(": \\").println(StringUtility.replace(username.toString(), '@', "\\@"));
 				}
@@ -447,7 +453,7 @@ final public class EmailAddressManager extends BuilderThread {
 			|| !laas.isEmpty()
 		) {
 			// 6) Multiple destinations, BEA ignored (list each)
-			tieUsername = getTieUsername(usernamesUsed);
+			tieUsername = getTieUsername(random, usernamesUsed);
 			aliasesOut.print(tieUsername).print(": ");
 			boolean done = false;
 			for(Forwarding ef : efs) {
@@ -483,8 +489,7 @@ final public class EmailAddressManager extends BuilderThread {
 	private static final String TIE_PREFIX = "tmp_";
 	private static final String TIE_CHARS = "0123456789abcdefghijklmnopqrstuvwxyz";
 
-	private static String getTieUsername(Set<String> usernamesUsed) {
-		Random random = AOServDaemon.getRandom();
+	private static String getTieUsername(Random random, Set<String> usernamesUsed) {
 		StringBuilder SB = new StringBuilder(4 + TIE_USERNAME_DIGITS);
 		SB.append(TIE_PREFIX);
 		while(true) {

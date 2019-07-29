@@ -185,7 +185,7 @@ abstract public class BuilderThread implements TableListener, PackageManager.Pac
 		if(min>max) throw new RuntimeException("getMinimumDelay() is greater than getMaximumDelay()");
 		int deviation=max-min;
 		if(deviation==0) return min;
-		return min+AOServDaemon.getRandom().nextInt(deviation);
+		return min+AOServDaemon.getFastRandom().nextInt(deviation);
 	}
 
 	/**
