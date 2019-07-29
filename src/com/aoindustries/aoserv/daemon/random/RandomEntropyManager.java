@@ -30,12 +30,18 @@ public final class RandomEntropyManager implements Runnable {
 	/**
 	 * The minimum delay between scans.
 	 */
-	public static final long MIN_DELAY = 1000;
+	public static final long MIN_DELAY = 100;
 
 	/**
 	 * The maximum delay between scans when obtaining from the master.
 	 */
 	public static final long MAX_OBTAIN_DELAY = 5 * 1000;
+
+	/**
+	 * The delay when obtaining from the master is incomplete (master out of entropy).
+	 * This is used to avoid hitting the master stupid-hard when it is depleted.
+	 */
+	public static final long MAX_OBTAIN_INCOMPLETE_DELAY = 60 * 1000;
 
 	/**
 	 * The maximum delay between scans when at the desired entropy.
@@ -151,9 +157,11 @@ public final class RandomEntropyManager implements Runnable {
 						lastObtain = true;
 						int bytesNeeded = (DESIRED_BITS - entropyAvail) / 8;
 						if(bytesNeeded > BufferManager.BUFFER_SIZE) bytesNeeded = BufferManager.BUFFER_SIZE;
+						boolean obtainedComplete;
 						byte[] buff = BufferManager.getBytes();
 						try {
 							int obtained = conn.getMasterEntropy(buff, bytesNeeded);
+							obtainedComplete = obtained == bytesNeeded;
 							if(obtained > 0) {
 								if(obtained == BufferManager.BUFFER_SIZE) {
 									DevRandom.addEntropy(buff);
@@ -182,7 +190,9 @@ public final class RandomEntropyManager implements Runnable {
 							havegedInstalled = true;
 							obtainThreshold = OBTAIN_THRESHOLD_WITH_HAVEGED;
 						}
-						if(entropyAvail < obtainThreshold) {
+						if(!obtainedComplete) {
+							sleepyTime = MAX_OBTAIN_INCOMPLETE_DELAY;
+						} else if(entropyAvail < obtainThreshold) {
 							// Sleep proportional to the amount of pool needed
 							sleepyTime = MIN_DELAY + entropyAvail * (MAX_OBTAIN_DELAY - MIN_DELAY) / DESIRED_BITS;
 						} else {
