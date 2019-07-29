@@ -121,17 +121,33 @@ public final class RandomEntropyManager implements Runnable {
 							BufferManager.release(buff, true);
 						}
 						if(entropyAvail < HAVEGED_THRESHOLD) {
-							PackageManager.installPackage(
-								PackageManager.PackageName.HAVEGED,
-								() -> {
-									try {
-										AOServDaemon.exec("/usr/bin/systemctl", "enable", "haveged.service");
-										AOServDaemon.exec("/usr/bin/systemctl", "start",  "haveged.service");
-									} catch(IOException e) {
-										throw new WrappedException(e);
+							Server thisServer = AOServDaemon.getThisServer();
+							OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
+							int osvId = osv.getPkey();
+							if(
+								// Supported operating systems that will automatically install haveged
+								osvId == OperatingSystemVersion.CENTOS_7_X86_64
+							) {
+								PackageManager.installPackage(
+									PackageManager.PackageName.HAVEGED,
+									() -> {
+										try {
+											AOServDaemon.exec("/usr/bin/systemctl", "enable", "haveged.service");
+											AOServDaemon.exec("/usr/bin/systemctl", "start",  "haveged.service");
+										} catch(IOException e) {
+											throw new WrappedException(e);
+										}
 									}
-								}
-							);
+								);
+							} else if(
+								// Supported operating systems that will not automatically install haveged
+								osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
+								&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+								&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+								&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+							) {
+								System.out.println("Unsupported OperatingSystemVersion: " + osv);
+							}
 						}
 						if(entropyAvail < OBTAIN_THRESHOLD) {
 							// Sleep proportional to the amount of pool needed
@@ -208,9 +224,7 @@ public final class RandomEntropyManager implements Runnable {
 				System.out.print("Starting RandomEntropyManager: ");
 				// Must be a supported operating system
 				if(
-					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-					|| osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
+					osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
 					|| osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
 					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 					|| osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
