@@ -30,12 +30,12 @@ public final class RandomEntropyManager implements Runnable {
 	/**
 	 * The minimum delay between scans.
 	 */
-	public static final long MIN_DELAY = 100;
+	public static final long MIN_DELAY = 1000;
 
 	/**
 	 * The maximum delay between scans when obtaining from the master.
 	 */
-	public static final long MAX_OBTAIN_DELAY = 1 * 1000;
+	public static final long MAX_OBTAIN_DELAY = 5 * 1000;
 
 	/**
 	 * The maximum delay between scans when at the desired entropy.
