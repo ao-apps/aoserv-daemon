@@ -57,7 +57,7 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 			new Mkdir        ("bin", 0770),
 			new Symlink      ("bin/bootstrap.jar"),
 			new ProfileScript("bin/catalina.sh"),
-			new Delete       ("bin/ciphers.sh"), // Tomcat 9.0
+			new ProfileScript("bin/ciphers.sh"), // Tomcat 8.5+
 			new ProfileScript("bin/configtest.sh"),
 			new Symlink      ("bin/commons-daemon.jar"),
 			new Delete       ("bin/commons-logging-api.jar"), // Tomcat 5.5
@@ -223,9 +223,7 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_5_40) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
-			} else if(
-				rpmVersion.equals("8.5.42")
-			) {
+			} else if(rpmVersion.equals("8.5.42")) {
 				UpgradeSymlink[] upgradeSymlinks_8_5_42 = {
 					// postgresql-42.2.5.jar -> postgresql-42.2.6.jar
 					new UpgradeSymlink(
@@ -247,6 +245,34 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_5_42) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+			} else if(rpmVersion.equals("8.5.43")) {
+				UpgradeSymlink[] upgradeSymlinks_8_5_43 = {
+					// mysql-connector-java-8.0.16.jar -> mysql-connector-java-8.0.17.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.16.jar",
+						"/dev/null",
+						"lib/mysql-connector-java-8.0.17.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.16.jar",
+						"../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.16.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.17.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.17.jar"
+					)
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_5_43) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+				// New file bin/ciphers.sh
+				UnixFile ciphersSh = new UnixFile(tomcatDirectory, "bin/ciphers.sh", true);
+				if(!ciphersSh.getStat().exists()) {
+					new ProfileScript("bin/ciphers.sh").install(optSlash, getApacheTomcatDir(), tomcatDirectory, uid, gid, VersionedTomcatCommon.getBackupSuffix());
 				}
 			} else {
 				throw new IllegalStateException("Unexpected version of Tomcat: " + rpmVersion);
