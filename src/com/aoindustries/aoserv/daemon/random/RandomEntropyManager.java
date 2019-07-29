@@ -35,12 +35,12 @@ public final class RandomEntropyManager implements Runnable {
 	/**
 	 * The maximum delay between scans when obtaining from the master.
 	 */
-	public static final long MAX_OBTAIN_DELAY = 15 * 1000;
+	public static final long MAX_OBTAIN_DELAY = 5 * 1000;
 
 	/**
-	 * The maximum delay between scans when providing to the master.
+	 * The maximum delay between scans when at the desired entropy.
 	 */
-	public static final long MAX_PROVIDE_DELAY = 5 * 60 * 1000;
+	public static final long MAX_DESIRED_DELAY = 15 * 1000;
 
 	/**
 	 * The delay after an error occurs.
@@ -66,24 +66,38 @@ public final class RandomEntropyManager implements Runnable {
 	public static final int DESIRED_BITS = 3072;
 
 	/**
-	 * The number of bits available where will obtain from master server.
+	 * The number of bits available where will obtain from master server when haveged is not supported or is not currently installed.
 	 * <p>
 	 * This is scaled from an expected pool size of <code>4096</code>.
 	 * See <code>/proc/sys/kernel/random/poolsize</code>
 	 * </p>
 	 */
-	public static final int OBTAIN_THRESHOLD = 2048;
+	public static final int OBTAIN_THRESHOLD_NO_HAVEGED = 2048;
 
 	/**
 	 * The number of bits below which haveged will be automatically installed.
 	 * This is an attempt to keep the system non-blocking with good entropy.
+	 * <p>
+	 * This matches the default number of bits where haveged kicks-in (<code>-w 1024</code>).
+	 * </p>
 	 */
 	public static final int HAVEGED_THRESHOLD = 1024;
 
+	/**
+	 * The number of bits available where will obtain from master server when haveged is supported and installed.
+	 * We try to let haveged take care of things before pulling from the master.
+	 * <p>
+	 * This is scaled from an expected pool size of <code>4096</code>.
+	 * See <code>/proc/sys/kernel/random/poolsize</code>
+	 * </p>
+	 */
+	public static final int OBTAIN_THRESHOLD_WITH_HAVEGED = 512;
+
 	static {
 		assert PROVIDE_THRESHOLD > DESIRED_BITS;
-		assert DESIRED_BITS > OBTAIN_THRESHOLD;
-		assert OBTAIN_THRESHOLD > HAVEGED_THRESHOLD;
+		assert DESIRED_BITS > OBTAIN_THRESHOLD_NO_HAVEGED;
+		assert OBTAIN_THRESHOLD_NO_HAVEGED > HAVEGED_THRESHOLD;
+		assert HAVEGED_THRESHOLD > OBTAIN_THRESHOLD_WITH_HAVEGED;
 	}
 
 	private static Thread thread;
@@ -96,11 +110,37 @@ public final class RandomEntropyManager implements Runnable {
 		while(true) {
 			try {
 				AOServConnector conn = AOServDaemon.getConnector();
+				Server thisServer = AOServDaemon.getThisServer();
+				OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
+				int osvId = osv.getPkey();
+
+				boolean havegedSupported;
+				boolean havegedInstalled;
+				if(
+					// Supported operating systems that will automatically install haveged
+					osvId == OperatingSystemVersion.CENTOS_7_X86_64
+				) {
+					havegedSupported = true;
+					havegedInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.HAVEGED) != null;
+				} else if(
+					// Supported operating systems that will not automatically install haveged
+					osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
+					|| osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					|| osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
+				) {
+					havegedSupported = false;
+					havegedInstalled = false;
+				} else {
+					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+				}
+				long obtainThreshold = havegedInstalled ? OBTAIN_THRESHOLD_WITH_HAVEGED : OBTAIN_THRESHOLD_NO_HAVEGED;
+
 				boolean lastObtain = true;
 				while(true) {
 					long sleepyTime;
 					int entropyAvail = DevRandom.getEntropyAvail();
-					if(entropyAvail < OBTAIN_THRESHOLD) {
+					if(entropyAvail < obtainThreshold) {
 						lastObtain = true;
 						int bytesNeeded = (DESIRED_BITS - entropyAvail) / 8;
 						if(bytesNeeded > BufferManager.BUFFER_SIZE) bytesNeeded = BufferManager.BUFFER_SIZE;
@@ -120,45 +160,34 @@ public final class RandomEntropyManager implements Runnable {
 						} finally {
 							BufferManager.release(buff, true);
 						}
-						if(entropyAvail < HAVEGED_THRESHOLD) {
-							Server thisServer = AOServDaemon.getThisServer();
-							OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
-							int osvId = osv.getPkey();
-							if(
-								// Supported operating systems that will automatically install haveged
-								osvId == OperatingSystemVersion.CENTOS_7_X86_64
-							) {
-								PackageManager.installPackage(
-									PackageManager.PackageName.HAVEGED,
-									() -> {
-										try {
-											AOServDaemon.exec("/usr/bin/systemctl", "enable", "haveged.service");
-											AOServDaemon.exec("/usr/bin/systemctl", "start",  "haveged.service");
-										} catch(IOException e) {
-											throw new WrappedException(e);
-										}
+						if(havegedSupported && entropyAvail < HAVEGED_THRESHOLD) {
+							PackageManager.installPackage(
+								PackageManager.PackageName.HAVEGED,
+								() -> {
+									try {
+										AOServDaemon.exec("/usr/bin/systemctl", "enable", "haveged.service");
+										AOServDaemon.exec("/usr/bin/systemctl", "start",  "haveged.service");
+									} catch(IOException e) {
+										throw new WrappedException(e);
 									}
-								);
-							} else if(
-								// Supported operating systems that will not automatically install haveged
-								osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
-								&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
-								&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-								&& osvId != OperatingSystemVersion.CENTOS_7_DOM0_X86_64
-							) {
-								System.out.println("Unsupported OperatingSystemVersion: " + osv);
-							}
+								}
+							);
+							havegedInstalled = true;
+							obtainThreshold = OBTAIN_THRESHOLD_WITH_HAVEGED;
 						}
-						if(entropyAvail < OBTAIN_THRESHOLD) {
+						if(entropyAvail < obtainThreshold) {
 							// Sleep proportional to the amount of pool needed
 							sleepyTime = MIN_DELAY + entropyAvail * (MAX_OBTAIN_DELAY - MIN_DELAY) / DESIRED_BITS;
 						} else {
 							sleepyTime = MAX_OBTAIN_DELAY;
 						}
 					} else {
+						// Sleep longer once desired bits built-up
+						if(entropyAvail >= DESIRED_BITS) {
+							lastObtain = false;
+						}
 						long masterNeeded = -1;
 						if(entropyAvail >= PROVIDE_THRESHOLD) {
-							lastObtain = false;
 							int provideBytes = (entropyAvail - DESIRED_BITS) / 8;
 							masterNeeded = conn.getMasterEntropyNeeded();
 							if(provideBytes > masterNeeded) provideBytes = (int)masterNeeded;
@@ -179,12 +208,11 @@ public final class RandomEntropyManager implements Runnable {
 							sleepyTime = MAX_OBTAIN_DELAY;
 						} else {
 							// Sleep for the longest delay or shorter if master needs more entropy
-							if(masterNeeded == -1) masterNeeded = conn.getMasterEntropyNeeded();
 							if(masterNeeded > 0) {
 								// Sleep proportional to the amount of master pool needed
-								sleepyTime = MAX_PROVIDE_DELAY - masterNeeded * (MAX_PROVIDE_DELAY - MIN_DELAY) / AOServConnector.MASTER_ENTROPY_POOL_SIZE;
+								sleepyTime = MAX_DESIRED_DELAY - masterNeeded * (MAX_DESIRED_DELAY - MIN_DELAY) / AOServConnector.MASTER_ENTROPY_POOL_SIZE;
 							} else {
-								sleepyTime = MAX_PROVIDE_DELAY;
+								sleepyTime = MAX_DESIRED_DELAY;
 							}
 						}
 					}
