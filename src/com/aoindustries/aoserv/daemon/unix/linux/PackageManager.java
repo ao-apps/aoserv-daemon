@@ -1,5 +1,5 @@
 /*
- * Copyright 2013, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -75,6 +75,7 @@ public class PackageManager {
 		FAIL2BAN_SERVER("fail2ban-server"),
 		FIREWALLD("firewalld"),
 		GZIP("gzip"),
+		HAVEGED("haveged"),
 		HDDTEMP("hddtemp"),
 		HTTPD("httpd"),
 		HTTPD_AFTER_NETWORK_ONLINE("httpd-after-network-online"),

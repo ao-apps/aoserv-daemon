@@ -11,8 +11,10 @@ import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.LogFactory;
+import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.io.unix.linux.DevRandom;
 import com.aoindustries.util.BufferManager;
+import com.aoindustries.util.WrappedException;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.logging.Level;
@@ -72,9 +74,16 @@ public final class RandomEntropyManager implements Runnable {
 	 */
 	public static final int OBTAIN_THRESHOLD = 2048;
 
+	/**
+	 * The number of bits below which haveged will be automatically installed.
+	 * This is an attempt to keep the system non-blocking with good entropy.
+	 */
+	public static final int HAVEGED_THRESHOLD = 1024;
+
 	static {
 		assert PROVIDE_THRESHOLD > DESIRED_BITS;
 		assert DESIRED_BITS > OBTAIN_THRESHOLD;
+		assert OBTAIN_THRESHOLD > HAVEGED_THRESHOLD;
 	}
 
 	private static Thread thread;
@@ -110,6 +119,19 @@ public final class RandomEntropyManager implements Runnable {
 							}
 						} finally {
 							BufferManager.release(buff, true);
+						}
+						if(entropyAvail < HAVEGED_THRESHOLD) {
+							PackageManager.installPackage(
+								PackageManager.PackageName.HAVEGED,
+								() -> {
+									try {
+										AOServDaemon.exec("/usr/bin/systemctl", "enable", "haveged.service");
+										AOServDaemon.exec("/usr/bin/systemctl", "start",  "haveged.service");
+									} catch(IOException e) {
+										throw new WrappedException(e);
+									}
+								}
+							);
 						}
 						if(entropyAvail < OBTAIN_THRESHOLD) {
 							// Sleep proportional to the amount of pool needed
