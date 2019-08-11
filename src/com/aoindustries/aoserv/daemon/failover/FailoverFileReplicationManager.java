@@ -18,13 +18,13 @@ import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
 import com.aoindustries.cron.CronJobScheduleMode;
 import com.aoindustries.cron.Schedule;
-import com.aoindustries.io.CompressedDataInputStream;
-import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.io.ParallelDelete;
 import com.aoindustries.io.filesystems.Path;
 import com.aoindustries.io.filesystems.unix.DedupDataIndex;
 import com.aoindustries.io.filesystems.unix.DefaultUnixFileSystem;
 import com.aoindustries.io.filesystems.unix.UnixFileSystem;
+import com.aoindustries.io.stream.StreamableInput;
+import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.math.SafeMath;
@@ -642,8 +642,8 @@ final public class FailoverFileReplicationManager {
 	 */
 	public static void failoverServer(
 		final Socket socket,
-		final CompressedDataInputStream rawIn,
-		final CompressedDataOutputStream out,
+		final StreamableInput rawIn,
+		final StreamableOutput out,
 		final int failoverFileReplicationPkey,
 		final String fromServer,
 		final boolean useCompression,
@@ -924,9 +924,9 @@ final public class FailoverFileReplicationManager {
 					if(linkToRoot.equals(finalMirrorRoot)) throw new AssertionError("linkToRoot==finalMirrorRoot: "+linkToRoot);
 				}
 
-				final CompressedDataInputStream in =
+				final StreamableInput in =
 					/*useCompression
-					? new CompressedDataInputStream(new GZIPInputStream(new DontCloseInputStream(rawIn), BufferManager.BUFFER_SIZE))
+					? new StreamableInput(new GZIPInputStream(new DontCloseInputStream(rawIn), BufferManager.BUFFER_SIZE))
 					:*/ rawIn
 				;
 

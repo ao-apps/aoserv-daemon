@@ -28,7 +28,7 @@ import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.CompressedDataOutputStream;
+import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.util.BufferManager;
@@ -657,9 +657,7 @@ final public class AWStatsManager extends BuilderThread {
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
+		} catch(RuntimeException | IOException | SQLException T) {
 			LogFactory.getLogger(AWStatsManager.class).log(Level.SEVERE, null, T);
 			return false;
 		}
@@ -711,7 +709,7 @@ final public class AWStatsManager extends BuilderThread {
 		return 15L*60*1000;
 	}
 
-	public static void getAWStatsFile(String siteName, String path, String queryString, CompressedDataOutputStream out) throws IOException, SQLException {
+	public static void getAWStatsFile(String siteName, String path, String queryString, StreamableOutput out) throws IOException, SQLException {
 		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();

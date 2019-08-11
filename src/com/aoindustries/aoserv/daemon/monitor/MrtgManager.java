@@ -18,8 +18,8 @@ import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.io.FileUtils;
+import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.util.BufferManager;
 import com.aoindustries.util.StringUtility;
@@ -638,9 +638,7 @@ final public class MrtgManager extends BuilderThread {
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
+		} catch(RuntimeException | IOException | SQLException T) {
 			LogFactory.getLogger(MrtgManager.class).log(Level.SEVERE, null, T);
 			return false;
 		}
@@ -799,7 +797,7 @@ final public class MrtgManager extends BuilderThread {
 
 	public static final File centosMrtgDirectory = new File("/var/www/mrtg");
 
-	public static void getMrtgFile(String filename, CompressedDataOutputStream out) throws IOException, SQLException {
+	public static void getMrtgFile(String filename, StreamableOutput out) throws IOException, SQLException {
 		OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		File mrtgDirectory;

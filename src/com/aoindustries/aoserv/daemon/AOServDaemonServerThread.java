@@ -41,8 +41,8 @@ import com.aoindustries.aoserv.daemon.server.ServerManager;
 import com.aoindustries.aoserv.daemon.server.VirtualServerManager;
 import com.aoindustries.aoserv.daemon.ssl.SslCertificateManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
-import com.aoindustries.io.CompressedDataInputStream;
-import com.aoindustries.io.CompressedDataOutputStream;
+import com.aoindustries.io.stream.StreamableInput;
+import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.net.Port;
 import com.aoindustries.net.Protocol;
 import com.aoindustries.noc.monitor.portmon.PortMonitor;
@@ -91,14 +91,14 @@ final public class AOServDaemonServerThread extends Thread {
 	private final Socket socket;
 
 	/**
-	 * The <code>CompressedDataInputStream</code> that is being read from.
+	 * The <code>StreamableInput</code> that is being read from.
 	 */
-	private final CompressedDataInputStream in;
+	private final StreamableInput in;
 
 	/**
-	 * The <code>CompressedDataOutputStream</code> that is being written to.
+	 * The <code>StreamableOutput</code> that is being written to.
 	 */
-	private final CompressedDataOutputStream out;
+	private final StreamableOutput out;
 
 	/**
 	 * Creates a new, running <code>AOServServerThread</code>.
@@ -107,8 +107,8 @@ final public class AOServDaemonServerThread extends Thread {
 		setName("AOServ Daemon Host Thread #" + getId() + " - " + socket.getInetAddress().getHostAddress());
 		//this.server = server;
 		this.socket = socket;
-		this.in = new CompressedDataInputStream(new BufferedInputStream(socket.getInputStream()));
-		this.out = new CompressedDataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
+		this.in = new StreamableInput(new BufferedInputStream(socket.getInputStream()));
+		this.out = new StreamableOutput(new BufferedOutputStream(socket.getOutputStream()));
 		this.out.flush();
 	}
 
@@ -1348,8 +1348,6 @@ final public class AOServDaemonServerThread extends Thread {
 		} catch(SSLHandshakeException err) {
 			String message = err.getMessage();
 			if(!"Remote host closed connection during handshake".equals(message)) LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.SEVERE, null, err);
-		} catch(ThreadDeath TD) {
-			throw TD;
 		} catch(SocketException err) {
 			String message=err.getMessage();
 			if(
@@ -1358,7 +1356,7 @@ final public class AOServDaemonServerThread extends Thread {
 			) {
 				LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.SEVERE, null, err);
 			}
-		} catch(Throwable T) {
+		} catch(Exception T) {
 			LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.SEVERE, null, T);
 		} finally {
 			// Close the socket

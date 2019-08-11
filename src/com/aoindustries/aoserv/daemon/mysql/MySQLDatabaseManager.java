@@ -18,7 +18,7 @@ import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.io.CompressedDataOutputStream;
+import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.Port;
 import com.aoindustries.sql.AOConnectionPool;
@@ -196,9 +196,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
+		} catch(RuntimeException | IOException | SQLException T) {
 			LogFactory.getLogger(MySQLDatabaseManager.class).log(Level.SEVERE, null, T);
 			return false;
 		}
@@ -207,7 +205,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	public static void dumpDatabase(
 		Database md,
 		AOServDaemonProtocol.Version protocolVersion,
-		CompressedDataOutputStream masterOut,
+		StreamableOutput masterOut,
 		boolean gzip
 	) throws IOException, SQLException {
 		UnixFile tempFile=UnixFile.mktemp(
@@ -330,7 +328,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		return "Rebuild MySQL Databases";
 	}
 
-	public static void getMasterStatus(int mysqlServer, CompressedDataOutputStream out) throws IOException, SQLException {
+	public static void getMasterStatus(int mysqlServer, StreamableOutput out) throws IOException, SQLException {
 		// Use the existing pools
 		Server ms = AOServDaemon.getConnector().getMysql().getServer().get(mysqlServer);
 		if(ms == null) throw new SQLException("Unable to find Server: " + mysqlServer);
@@ -409,7 +407,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		}
 	}
 
-	public static void getSlaveStatus(PosixPath failoverRoot, int nestedOperatingSystemVersion, Port port, CompressedDataOutputStream out) throws IOException, SQLException {
+	public static void getSlaveStatus(PosixPath failoverRoot, int nestedOperatingSystemVersion, Port port, StreamableOutput out) throws IOException, SQLException {
 		try (
 			Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, port);
 			Statement stmt = conn.createStatement();
@@ -481,7 +479,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 
 	private static final ConcurrencyLimiter<TableStatusConcurrencyKey,List<Database.TableStatus>> tableStatusLimiter = new ConcurrencyLimiter<>();
 
-	public static void getTableStatus(PosixPath failoverRoot, int nestedOperatingSystemVersion, Port port, Database.Name databaseName, CompressedDataOutputStream out) throws IOException, SQLException {
+	public static void getTableStatus(PosixPath failoverRoot, int nestedOperatingSystemVersion, Port port, Database.Name databaseName, StreamableOutput out) throws IOException, SQLException {
 		List<Database.TableStatus> tableStatuses;
 		try {
 			tableStatuses = tableStatusLimiter.executeSerialized(
@@ -653,7 +651,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		final Port port,
 		final Database.Name databaseName,
 		final List<Table_Name> tableNames,
-		CompressedDataOutputStream out
+		StreamableOutput out
 	) throws IOException, SQLException {
 		Future<List<Database.CheckTableResult>> future = AOServDaemon.executorService.submit(() -> {
 			List<Database.CheckTableResult> allTableResults = new ArrayList<>();

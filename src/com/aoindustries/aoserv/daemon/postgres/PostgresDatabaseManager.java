@@ -23,7 +23,7 @@ import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
 import com.aoindustries.cron.CronJobScheduleMode;
 import com.aoindustries.cron.Schedule;
-import com.aoindustries.io.CompressedDataOutputStream;
+import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.util.BufferManager;
@@ -250,9 +250,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
+		} catch(RuntimeException | IOException | SQLException T) {
 			LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.SEVERE, null, T);
 			return false;
 		}
@@ -261,7 +259,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 	public static void dumpDatabase(
 		Database pd,
 		AOServDaemonProtocol.Version protocolVersion,
-		CompressedDataOutputStream masterOut,
+		StreamableOutput masterOut,
 		boolean gzip
 	) throws IOException, SQLException {
 		UnixFile tempFile=UnixFile.mktemp(
@@ -535,9 +533,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 					}
 				}
 			}
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
+		} catch(RuntimeException | ReflectiveOperationException | IOException | SQLException T) {
 			LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.SEVERE, null, T);
 		}
 	}

@@ -11,8 +11,8 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
-import com.aoindustries.io.CompressedDataInputStream;
-import com.aoindustries.io.CompressedDataOutputStream;
+import com.aoindustries.io.stream.StreamableInput;
+import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.lang.ProcessResult;
 import com.aoindustries.util.StringUtility;
 import com.google.gson.Gson;
@@ -275,8 +275,8 @@ final public class VirtualServerManager {
 	 */
 	public static void vncConsole(
 		final Socket socket,
-		final CompressedDataInputStream socketIn,
-		CompressedDataOutputStream socketOut,
+		final StreamableInput socketIn,
+		StreamableOutput socketOut,
 		String serverName
 	) throws IOException, SQLException {
 		try {
@@ -363,9 +363,7 @@ final public class VirtualServerManager {
 												LogFactory.getLogger(VirtualServerManager.class).log(Level.FINE, null, e);
 											}
 										}
-									} catch(ThreadDeath TD) {
-										throw TD;
-									} catch(Throwable T) {
+									} catch(RuntimeException | IOException T) {
 										LogFactory.getLogger(VirtualServerManager.class).log(Level.SEVERE, null, T);
 									}
 								});

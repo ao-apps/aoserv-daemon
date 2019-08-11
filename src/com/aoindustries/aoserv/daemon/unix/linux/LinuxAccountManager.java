@@ -29,9 +29,9 @@ import com.aoindustries.aoserv.daemon.unix.PasswdFile;
 import com.aoindustries.aoserv.daemon.unix.ShadowFile;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
-import com.aoindustries.io.CompressedDataInputStream;
-import com.aoindustries.io.CompressedDataOutputStream;
 import com.aoindustries.io.FileUtils;
+import com.aoindustries.io.stream.StreamableInput;
+import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.util.BufferManager;
@@ -116,9 +116,7 @@ public class LinuxAccountManager extends BuilderThread {
 		try {
 			rebuildLinuxAccountSettings();
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
+		} catch(RuntimeException | IOException | SQLException T) {
 			logger.log(Level.SEVERE, null, T);
 			return false;
 		}
@@ -1056,7 +1054,7 @@ public class LinuxAccountManager extends BuilderThread {
 		}
 	}
 
-	public static void tarHomeDirectory(CompressedDataOutputStream out, User.Name username) throws IOException, SQLException {
+	public static void tarHomeDirectory(StreamableOutput out, User.Name username) throws IOException, SQLException {
 		UserServer lsa = AOServDaemon.getThisServer().getLinuxServerAccount(username);
 		PosixPath home = lsa.getHome();
 		UnixFile tempUF = UnixFile.mktemp("/tmp/tar_home_directory.tar.", true);
@@ -1088,7 +1086,7 @@ public class LinuxAccountManager extends BuilderThread {
 		}
 	}
 
-	public static void untarHomeDirectory(CompressedDataInputStream in, User.Name username) throws IOException, SQLException {
+	public static void untarHomeDirectory(StreamableInput in, User.Name username) throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		int uid_min = thisServer.getUidMin().getId();
 		int gid_min = thisServer.getGidMin().getId();
