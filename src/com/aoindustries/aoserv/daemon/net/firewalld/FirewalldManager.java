@@ -442,6 +442,111 @@ final public class FirewalldManager extends BuilderThread {
 							)
 						);
 					}
+					// Redis
+					{
+						List<Target> targets = new ArrayList<>();
+						Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+						List<Bind> firewalldNetBinds = new ArrayList<>();
+						for(Bind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(AppProtocol.REDIS)) {
+								addTarget(nb, targets, zones, firewalldNetBinds);
+							}
+						}
+						if(logger.isLoggable(Level.FINE)) logger.fine("redis targets: " + targets + ", zones: " + zones);
+						warnZoneMismatch(zones, firewalldNetBinds);
+						serviceSets.add(
+							new Tuple2<>(
+								ServiceSet.createOptimizedServiceSet(
+									new Service(
+										"redis",
+										null,
+										"Redis",
+										"Redis client data port",
+										Collections.singletonList(
+											Port.valueOf(6379, Protocol.TCP)
+										),
+										Collections.emptySet(), // protocols
+										Collections.emptySet(), // sourcePorts
+										Collections.emptySet(), // modules
+										InetAddressPrefixes.UNSPECIFIED_IPV4,
+										InetAddressPrefixes.UNSPECIFIED_IPV6
+									),
+									targets
+								),
+								zones
+							)
+						);
+					}
+					// Redis Cluster
+					{
+						List<Target> targets = new ArrayList<>();
+						Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+						List<Bind> firewalldNetBinds = new ArrayList<>();
+						for(Bind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(AppProtocol.REDIS_CLUSTER)) {
+								addTarget(nb, targets, zones, firewalldNetBinds);
+							}
+						}
+						if(logger.isLoggable(Level.FINE)) logger.fine("redis-cluster targets: " + targets + ", zones: " + zones);
+						warnZoneMismatch(zones, firewalldNetBinds);
+						serviceSets.add(
+							new Tuple2<>(
+								ServiceSet.createOptimizedServiceSet(
+									new Service(
+										"redis-cluster",
+										null,
+										"Redis Cluster bus",
+										"Redis Cluster node-to-node communication",
+										Collections.singletonList(
+											Port.valueOf(16379, Protocol.TCP)
+										),
+										Collections.emptySet(), // protocols
+										Collections.emptySet(), // sourcePorts
+										Collections.emptySet(), // modules
+										InetAddressPrefixes.UNSPECIFIED_IPV4,
+										InetAddressPrefixes.UNSPECIFIED_IPV6
+									),
+									targets
+								),
+								zones
+							)
+						);
+					}
+					// Redis Sentinel
+					{
+						List<Target> targets = new ArrayList<>();
+						Set<FirewallZone.Name> zones = new LinkedHashSet<>();
+						List<Bind> firewalldNetBinds = new ArrayList<>();
+						for(Bind nb : netBinds) {
+							if(nb.getAppProtocol().getProtocol().equals(AppProtocol.REDIS_SENTINEL)) {
+								addTarget(nb, targets, zones, firewalldNetBinds);
+							}
+						}
+						if(logger.isLoggable(Level.FINE)) logger.fine("redis-sentinel targets: " + targets + ", zones: " + zones);
+						warnZoneMismatch(zones, firewalldNetBinds);
+						serviceSets.add(
+							new Tuple2<>(
+								ServiceSet.createOptimizedServiceSet(
+									new Service(
+										"redis-sentinel",
+										null,
+										"Redis Sentinel",
+										"Redis Sentinel node-to-node communication",
+										Collections.singletonList(
+											Port.valueOf(26379, Protocol.TCP)
+										),
+										Collections.emptySet(), // protocols
+										Collections.emptySet(), // sourcePorts
+										Collections.emptySet(), // modules
+										InetAddressPrefixes.UNSPECIFIED_IPV4,
+										InetAddressPrefixes.UNSPECIFIED_IPV6
+									),
+									targets
+								),
+								zones
+							)
+						);
+					}
 					// SMTP
 					{
 						List<Target> targets = new ArrayList<>();
