@@ -277,6 +277,47 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 				if(!ciphersSh.getStat().exists()) {
 					new ProfileScript("bin/ciphers.sh").install(optSlash, getApacheTomcatDir(), tomcatDirectory, uid, gid, VersionedTomcatCommon.getBackupSuffix());
 				}
+			} else if(
+				rpmVersion.equals("8.5.46")
+			) {
+				UpgradeSymlink[] upgradeSymlinks_8_5_46 = {
+					// postgresql-42.2.6.jar -> postgresql-42.2.8.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.6.jar",
+						"/dev/null",
+						"lib/postgresql-42.2.8.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.6.jar",
+						"../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.6.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.8.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.8.jar"
+					),
+					// New lib/tomcat-i18n-*.jar
+					new UpgradeSymlink(
+						"lib/tomcat-i18n-de.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.5/lib/tomcat-i18n-de.jar"
+					),
+					new UpgradeSymlink(
+						"lib/tomcat-i18n-ko.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.5/lib/tomcat-i18n-ko.jar"
+					),
+					new UpgradeSymlink(
+						"lib/tomcat-i18n-zh-CN.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.5/lib/tomcat-i18n-zh-CN.jar"
+					),
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_5_46) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
 			} else {
 				throw new IllegalStateException("Unexpected version of Tomcat: " + rpmVersion);
 			}
