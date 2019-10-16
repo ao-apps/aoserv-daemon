@@ -318,6 +318,31 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_5_46) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
+			} else if(
+				rpmVersion.equals("8.5.47")
+			) {
+				UpgradeSymlink[] upgradeSymlinks_8_5_47 = {
+					// mysql-connector-java-8.0.17.jar -> mysql-connector-java-8.0.18.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.17.jar",
+						"/dev/null",
+						"lib/mysql-connector-java-8.0.18.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.17.jar",
+						"../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.17.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.18.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.18.jar"
+					),
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_5_47) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
 			} else {
 				throw new IllegalStateException("Unexpected version of Tomcat: " + rpmVersion);
 			}
