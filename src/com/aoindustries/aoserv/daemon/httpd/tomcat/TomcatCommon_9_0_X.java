@@ -406,6 +406,42 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_26) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
+			} else if(
+				rpmVersion.equals("9.0.27")
+			) {
+				UpgradeSymlink[] upgradeSymlinks_9_0_27 = {
+					// ecj-4.12.jar -> ecj-4.13.jar
+					new UpgradeSymlink(
+						"lib/ecj-4.12.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/ecj-4.12.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/ecj-4.13.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/ecj-4.13.jar"
+					),
+					// mysql-connector-java-8.0.17.jar -> mysql-connector-java-8.0.18.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.17.jar",
+						"/dev/null",
+						"lib/mysql-connector-java-8.0.18.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.17.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.17.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.18.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.18.jar"
+					),
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_27) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
 			} else {
 				throw new IllegalStateException("Unexpected version of Tomcat: " + rpmVersion);
 			}
