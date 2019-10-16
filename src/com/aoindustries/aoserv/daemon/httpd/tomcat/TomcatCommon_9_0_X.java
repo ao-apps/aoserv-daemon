@@ -410,6 +410,23 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 				rpmVersion.equals("9.0.27")
 			) {
 				UpgradeSymlink[] upgradeSymlinks_9_0_27 = {
+					// postgresql-42.2.6.jar -> postgresql-42.2.8.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.6.jar",
+						"/dev/null",
+						"lib/postgresql-42.2.8.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.6.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.6.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.8.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.8.jar"
+					),
 					// ecj-4.12.jar -> ecj-4.13.jar
 					new UpgradeSymlink(
 						"lib/ecj-4.12.jar",
