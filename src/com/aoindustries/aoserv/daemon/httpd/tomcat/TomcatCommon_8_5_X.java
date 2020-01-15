@@ -1,5 +1,5 @@
 /*
- * Copyright 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -416,6 +416,31 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 					),
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_5_49) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+			} else if(
+				rpmVersion.equals("8.5.50")
+			) {
+				UpgradeSymlink[] upgradeSymlinks_8_5_50 = {
+					// mysql-connector-java-8.0.18.jar -> mysql-connector-java-8.0.19.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.18.jar",
+						"/dev/null",
+						"lib/mysql-connector-java-8.0.19.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.18.jar",
+						"../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.18.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.19.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.19.jar"
+					),
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_5_50) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			} else {

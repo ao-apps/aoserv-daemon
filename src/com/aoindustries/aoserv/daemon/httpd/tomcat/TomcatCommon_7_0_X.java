@@ -1,5 +1,5 @@
 /*
- * Copyright 2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2013, 2015, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -381,6 +381,34 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 					),
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_96) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+			} else if(rpmVersion.equals("7.0.99")) {
+				UpgradeSymlink[] upgradeSymlinks_7_0_99 = {
+					// New conf/tomcat-users.xsd
+					new UpgradeSymlink(
+						"conf/tomcat-users.xsd",
+						null,
+						"../" + optSlash + "apache-tomcat-7.0/conf/tomcat-users.xsd"
+					),
+					// New lib/tomcat-i18n-*.jar
+					new UpgradeSymlink(
+						"lib/tomcat-i18n-de.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-7.0/lib/tomcat-i18n-de.jar"
+					),
+					new UpgradeSymlink(
+						"lib/tomcat-i18n-ko.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-7.0/lib/tomcat-i18n-ko.jar"
+					),
+					new UpgradeSymlink(
+						"lib/tomcat-i18n-zh-CN.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-7.0/lib/tomcat-i18n-zh-CN.jar"
+					),
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_99) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			} else {
