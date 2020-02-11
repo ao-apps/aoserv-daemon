@@ -503,6 +503,23 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 						null,
 						"../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.19.jar"
 					),
+					// postgresql-42.2.9.jar -> postgresql-42.2.10.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.9.jar",
+						"/dev/null",
+						"lib/postgresql-42.2.10.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.9.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.9.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.10.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.10.jar"
+					),
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_30) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
