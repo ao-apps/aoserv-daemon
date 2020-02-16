@@ -333,20 +333,20 @@ class HttpdTomcatStdSiteManager_7_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 					+ "      maxPostSize=\"").encodeXmlAttribute(tomcatStdSite.getMaxPostSize()).print("\"\n"
 					+ "      protocol=\"AJP/1.3\"\n"
 					+ "      redirectPort=\"8443\"\n"
-					+ "      URIEncoding=\"UTF-8\"\n"
-					+ "    />\n"
+					+ "      URIEncoding=\"UTF-8\"\n");
+			// Do not include when is default "true"
+			if(!tomcatStdSite.getTomcatAuthentication()) {
+				out.print("        tomcatAuthentication=\"").encodeXmlAttribute(tomcatStdSite.getTomcatAuthentication()).print("\"\n");
+			}
+			out.print("    />\n"
 					+ "    <Engine name=\"Catalina\" defaultHost=\"localhost\">\n"
 					+ "      <Realm className=\"org.apache.catalina.realm.UserDatabaseRealm\" resourceName=\"UserDatabase\" />\"\n"
 					+ "      <Host\n"
 					+ "        name=\"localhost\"\n"
 					+ "        appBase=\"webapps\"\n"
 					+ "        unpackWARs=\"").encodeXmlAttribute(tomcatStdSite.getUnpackWARs()).print("\"\n"
-					+ "        autoDeploy=\"").encodeXmlAttribute(tomcatStdSite.getAutoDeploy()).print("\"\n");
-			// Do not include when is default "true"
-			if(!tomcatStdSite.getTomcatAuthentication()) {
-				out.print("        tomcatAuthentication=\"").encodeXmlAttribute(tomcatStdSite.getTomcatAuthentication()).print("\"\n");
-			}
-			out.print("        xmlValidation=\"false\"\n"
+					+ "        autoDeploy=\"").encodeXmlAttribute(tomcatStdSite.getAutoDeploy()).print("\"\n"
+					+ "        xmlValidation=\"false\"\n"
 					+ "        xmlNamespaceAware=\"false\"\n"
 					+ "      >\n");
 			for(Context htc : tomcatSite.getHttpdTomcatContexts()) {

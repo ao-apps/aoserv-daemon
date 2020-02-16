@@ -322,8 +322,12 @@ class HttpdTomcatStdSiteManager_6_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 					+ "      address=\"").encodeXmlAttribute(IpAddress.LOOPBACK_IP).print("\"\n"
 					+ "      maxPostSize=\"").encodeXmlAttribute(tomcatStdSite.getMaxPostSize()).print("\"\n"
 					+ "      protocol=\"AJP/1.3\"\n"
-					+ "      redirectPort=\"8443\"\n"
-					+ "    />\n"
+					+ "      redirectPort=\"8443\"\n");
+			// Do not include when is default "true"
+			if(!tomcatStdSite.getTomcatAuthentication()) {
+				out.print("        tomcatAuthentication=\"").encodeXmlAttribute(tomcatStdSite.getTomcatAuthentication()).print("\"\n");
+			}
+			out.print("    />\n"
 					+ "    <Engine name=\"Catalina\" defaultHost=\"localhost\">\n"
 					+ "      <Realm className=\"org.apache.catalina.realm.UserDatabaseRealm\"\n"
 					+ "             resourceName=\"UserDatabase\" />\"\n"
@@ -331,12 +335,8 @@ class HttpdTomcatStdSiteManager_6_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 					+ "        name=\"localhost\"\n"
 					+ "        appBase=\"webapps\"\n"
 					+ "        unpackWARs=\"").encodeXmlAttribute(tomcatStdSite.getUnpackWARs()).print("\"\n"
-					+ "        autoDeploy=\"").encodeXmlAttribute(tomcatStdSite.getAutoDeploy()).print("\"\n");
-			// Do not include when is default "true"
-			if(!tomcatStdSite.getTomcatAuthentication()) {
-				out.print("        tomcatAuthentication=\"").encodeXmlAttribute(tomcatStdSite.getTomcatAuthentication()).print("\"\n");
-			}
-			out.print("        xmlValidation=\"false\"\n"
+					+ "        autoDeploy=\"").encodeXmlAttribute(tomcatStdSite.getAutoDeploy()).print("\"\n"
+					+ "        xmlValidation=\"false\"\n"
 					+ "        xmlNamespaceAware=\"false\"\n"
 					+ "      >\n");
 			for(Context htc : tomcatSite.getHttpdTomcatContexts()) {

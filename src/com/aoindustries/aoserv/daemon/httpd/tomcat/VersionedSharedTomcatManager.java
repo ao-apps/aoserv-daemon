@@ -123,8 +123,12 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 				+ "      maxPostSize=\"").encodeXmlAttribute(sharedTomcat.getMaxPostSize()).print("\"\n"
 				+ "      protocol=\"AJP/1.3\"\n"
 				+ "      redirectPort=\"8443\"\n"
-				+ "      URIEncoding=\"UTF-8\"\n"
-				+ "    />\n"
+				+ "      URIEncoding=\"UTF-8\"\n");
+		// Do not include when is default "true"
+		if(!sharedTomcat.getTomcatAuthentication()) {
+			out.print("        tomcatAuthentication=\"").encodeXmlAttribute(sharedTomcat.getTomcatAuthentication()).print("\"\n");
+		}
+		out.print("    />\n"
 				+ "\n");
 		// Find the first host (same order as hosts added below)
 		String defaultHostPrimaryHostname = null;
@@ -159,12 +163,8 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 							+ "        name=\"").encodeXmlAttribute(primaryHostname).print("\"\n"
 							+ "        appBase=\"").encodeXmlAttribute(wwwDirectory).print('/').encodeXmlAttribute(hs.getName()).print("/webapps\"\n"
 							+ "        unpackWARs=\"").encodeXmlAttribute(sharedTomcat.getUnpackWARs()).print("\"\n"
-							+ "        autoDeploy=\"").encodeXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n");
-					// Do not include when is default "true"
-					if(!sharedTomcat.getTomcatAuthentication()) {
-						out.print("        tomcatAuthentication=\"").encodeXmlAttribute(sharedTomcat.getTomcatAuthentication()).print("\"\n");
-					}
-					out.print("      >\n");
+							+ "        autoDeploy=\"").encodeXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n"
+							+ "      >\n");
 					List<String> usedHostnames = new SortedArrayList<>();
 					usedHostnames.add(primaryHostname);
 					List<VirtualHost> binds = hs.getHttpdSiteBinds();

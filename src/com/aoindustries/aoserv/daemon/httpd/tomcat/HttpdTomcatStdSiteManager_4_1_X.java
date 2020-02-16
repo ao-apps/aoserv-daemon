@@ -325,8 +325,12 @@ class HttpdTomcatStdSiteManager_4_1_X extends HttpdTomcatStdSiteManager<TomcatCo
 					+ "      acceptCount=\"10\"\n"
 					+ "      debug=\"0\"\n"
 					+ "      maxPostSize=\"").encodeXmlAttribute(tomcatStdSite.getMaxPostSize()).print("\"\n"
-					+ "      protocol=\"AJP/1.3\"\n"
-					+ "    />\n"
+					+ "      protocol=\"AJP/1.3\"\n");
+			// Do not include when is default "true"
+			if(!tomcatStdSite.getTomcatAuthentication()) {
+				out.print("        tomcatAuthentication=\"").encodeXmlAttribute(tomcatStdSite.getTomcatAuthentication()).print("\"\n");
+			}
+			out.print("    />\n"
 					+ "    <Engine name=\"Tomcat-Apache\" defaultHost=\"localhost\" debug=\"0\">\n"
 					+ "      <Logger\n"
 					+ "        className=\"org.apache.catalina.logger.FileLogger\"\n"
@@ -341,12 +345,8 @@ class HttpdTomcatStdSiteManager_4_1_X extends HttpdTomcatStdSiteManager<TomcatCo
 					+ "        debug=\"0\"\n"
 					+ "        appBase=\"webapps\"\n"
 					+ "        unpackWARs=\"").encodeXmlAttribute(tomcatStdSite.getUnpackWARs()).print("\"\n"
-					+ "        autoDeploy=\"").encodeXmlAttribute(tomcatStdSite.getAutoDeploy()).print("\"\n");
-			// Do not include when is default "true"
-			if(!tomcatStdSite.getTomcatAuthentication()) {
-				out.print("        tomcatAuthentication=\"").encodeXmlAttribute(tomcatStdSite.getTomcatAuthentication()).print("\"\n");
-			}
-			out.print("      >\n"
+					+ "        autoDeploy=\"").encodeXmlAttribute(tomcatStdSite.getAutoDeploy()).print("\"\n"
+					+ "      >\n"
 					+ "        <Logger\n"
 					+ "          className=\"org.apache.catalina.logger.FileLogger\"\n"
 					+ "          directory=\"var/log\"\n"

@@ -398,8 +398,12 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 						+ "      acceptCount=\"10\"\n"
 						+ "      debug=\"0\"\n"
 						+ "      maxPostSize=\"").encodeXmlAttribute(sharedTomcat.getMaxPostSize()).print("\"\n"
-						+ "      protocol=\"AJP/1.3\"\n"
-						+ "    />\n"
+						+ "      protocol=\"AJP/1.3\"\n");
+				// Do not include when is default "true"
+				if(!sharedTomcat.getTomcatAuthentication()) {
+					out.print("        tomcatAuthentication=\"").encodeXmlAttribute(sharedTomcat.getTomcatAuthentication()).print("\"\n");
+				}
+				out.print("    />\n"
 						+ "    <Engine name=\"Catalina\" defaultHost=\"localhost\" debug=\"0\">\n"
 						+ "      <Realm className=\"org.apache.catalina.realm.UserDatabaseRealm\"\n"
 						+ "          resourceName=\"UserDatabase\" />\"\n");
@@ -412,12 +416,8 @@ class HttpdSharedTomcatManager_5_5_X extends HttpdSharedTomcatManager<TomcatComm
 								+ "        debug=\"0\"\n"
 								+ "        appBase=\"").encodeXmlAttribute(wwwDirectory).print('/').encodeXmlAttribute(hs.getName()).print("/webapps\"\n"
 								+ "        unpackWARs=\"").encodeXmlAttribute(sharedTomcat.getUnpackWARs()).print("\"\n"
-								+ "        autoDeploy=\"").encodeXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n");
-						// Do not include when is default "true"
-						if(!sharedTomcat.getTomcatAuthentication()) {
-							out.print("        tomcatAuthentication=\"").encodeXmlAttribute(sharedTomcat.getTomcatAuthentication()).print("\"\n");
-						}
-						out.print("        xmlValidation=\"false\"\n"
+								+ "        autoDeploy=\"").encodeXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n"
+								+ "        xmlValidation=\"false\"\n"
 								+ "        xmlNamespaceAware=\"false\"\n"
 								+ "      >\n");
 						List<String> usedHostnames=new SortedArrayList<>();
