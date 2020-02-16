@@ -1,5 +1,5 @@
 /*
- * Copyright 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -354,8 +354,12 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 					+ "        name=\"localhost\"\n"
 					+ "        appBase=\"webapps\"\n"
 					+ "        unpackWARs=\"").encodeXmlAttribute(tomcatStdSite.getUnpackWARs()).print("\"\n"
-					+ "        autoDeploy=\"").encodeXmlAttribute(tomcatStdSite.getAutoDeploy()).print("\"\n"
-					+ "      >\n");
+					+ "        autoDeploy=\"").encodeXmlAttribute(tomcatStdSite.getAutoDeploy()).print("\"\n");
+			// Do not include when is default "true"
+			if(!tomcatStdSite.getTomcatAuthentication()) {
+				out.print("        tomcatAuthentication=\"").encodeXmlAttribute(tomcatStdSite.getTomcatAuthentication()).print("\"\n");
+			}
+			out.print("      >\n");
 			for(Context htc : tomcatSite.getHttpdTomcatContexts()) {
 				if(!htc.isServerXmlConfigured()) out.print("        <!--\n");
 				out.print("        <Context\n");

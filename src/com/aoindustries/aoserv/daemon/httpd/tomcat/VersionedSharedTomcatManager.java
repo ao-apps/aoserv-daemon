@@ -1,5 +1,5 @@
 /*
- * Copyright 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -159,8 +159,12 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 							+ "        name=\"").encodeXmlAttribute(primaryHostname).print("\"\n"
 							+ "        appBase=\"").encodeXmlAttribute(wwwDirectory).print('/').encodeXmlAttribute(hs.getName()).print("/webapps\"\n"
 							+ "        unpackWARs=\"").encodeXmlAttribute(sharedTomcat.getUnpackWARs()).print("\"\n"
-							+ "        autoDeploy=\"").encodeXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n"
-							+ "      >\n");
+							+ "        autoDeploy=\"").encodeXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n");
+					// Do not include when is default "true"
+					if(!sharedTomcat.getTomcatAuthentication()) {
+						out.print("        tomcatAuthentication=\"").encodeXmlAttribute(sharedTomcat.getTomcatAuthentication()).print("\"\n");
+					}
+					out.print("      >\n");
 					List<String> usedHostnames = new SortedArrayList<>();
 					usedHostnames.add(primaryHostname);
 					List<VirtualHost> binds = hs.getHttpdSiteBinds();

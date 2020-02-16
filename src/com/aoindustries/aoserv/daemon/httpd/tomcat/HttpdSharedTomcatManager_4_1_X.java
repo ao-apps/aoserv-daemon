@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -413,6 +413,10 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 								+ "        appBase=\"").encodeXmlAttribute(wwwDirectory).print('/').encodeXmlAttribute(hs.getName()).print("/webapps\"\n"
 								+ "        unpackWARs=\"").encodeXmlAttribute(sharedTomcat.getUnpackWARs()).print("\"\n");
 						out.print("        autoDeploy=\"").encodeXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n");
+						// Do not include when is default "true"
+						if(!sharedTomcat.getTomcatAuthentication()) {
+							out.print("        tomcatAuthentication=\"").encodeXmlAttribute(sharedTomcat.getTomcatAuthentication()).print("\"\n");
+						}
 						out.print("      >\n");
 						List<String> usedHostnames=new SortedArrayList<>();
 						usedHostnames.add(primaryHostname);
