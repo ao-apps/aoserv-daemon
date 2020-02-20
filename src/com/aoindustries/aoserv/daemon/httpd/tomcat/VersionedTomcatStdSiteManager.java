@@ -141,7 +141,8 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 					+ "      URIEncoding=\"UTF-8\"\n");
 			// Do not include when is default "true"
 			if(!tomcatStdSite.getTomcatAuthentication()) {
-				out.print("        tomcatAuthentication=\"").encodeXmlAttribute(tomcatStdSite.getTomcatAuthentication()).print("\"\n");
+				out.print("      tomcatAuthentication=\"false\"\n"
+					+ "      tomcatAuthorization=\"true\"\n");
 			}
 			out.print("    />\n"
 					+ "\n"

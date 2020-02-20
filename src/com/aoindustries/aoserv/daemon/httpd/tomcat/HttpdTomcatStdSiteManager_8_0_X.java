@@ -347,7 +347,8 @@ class HttpdTomcatStdSiteManager_8_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 					+ "      URIEncoding=\"UTF-8\"\n");
 			// Do not include when is default "true"
 			if(!tomcatStdSite.getTomcatAuthentication()) {
-				out.print("        tomcatAuthentication=\"").encodeXmlAttribute(tomcatStdSite.getTomcatAuthentication()).print("\"\n");
+				out.print("      tomcatAuthentication=\"false\"\n"
+					+ "      tomcatAuthorization=\"true\"\n");
 			}
 			out.print("    />\n"
 					+ "    <Engine name=\"Catalina\" defaultHost=\"localhost\">\n"

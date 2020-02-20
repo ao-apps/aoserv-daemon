@@ -126,7 +126,8 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 				+ "      URIEncoding=\"UTF-8\"\n");
 		// Do not include when is default "true"
 		if(!sharedTomcat.getTomcatAuthentication()) {
-			out.print("        tomcatAuthentication=\"").encodeXmlAttribute(sharedTomcat.getTomcatAuthentication()).print("\"\n");
+			out.print("      tomcatAuthentication=\"false\"\n"
+				+ "      tomcatAuthorization=\"true\"\n");
 		}
 		out.print("    />\n"
 				+ "\n");

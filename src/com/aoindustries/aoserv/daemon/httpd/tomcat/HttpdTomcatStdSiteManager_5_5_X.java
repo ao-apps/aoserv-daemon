@@ -353,7 +353,7 @@ class HttpdTomcatStdSiteManager_5_5_X extends HttpdTomcatStdSiteManager<TomcatCo
 					+ "      protocol=\"AJP/1.3\"\n");
 			// Do not include when is default "true"
 			if(!tomcatStdSite.getTomcatAuthentication()) {
-				out.print("        tomcatAuthentication=\"").encodeXmlAttribute(tomcatStdSite.getTomcatAuthentication()).print("\"\n");
+				out.print("      tomcatAuthentication=\"false\"\n");
 			}
 			out.print("    />\n"
 					+ "    <Engine name=\"Catalina\" defaultHost=\"localhost\" debug=\"0\">\n"

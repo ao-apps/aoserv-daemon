@@ -395,7 +395,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 						+ "      protocol=\"AJP/1.3\"\n");
 				// Do not include when is default "true"
 				if(!sharedTomcat.getTomcatAuthentication()) {
-					out.print("        tomcatAuthentication=\"").encodeXmlAttribute(sharedTomcat.getTomcatAuthentication()).print("\"\n");
+					out.print("      tomcatAuthentication=\"false\"\n");
 				}
 				out.print("    />\n"
 						+ "    <Engine name=\"Tomcat-Apache\" defaultHost=\"localhost\" debug=\"0\">\n"
