@@ -123,6 +123,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 				+ "      maxPostSize=\"").encodeXmlAttribute(sharedTomcat.getMaxPostSize()).print("\"\n"
 				+ "      protocol=\"AJP/1.3\"\n"
 				+ "      redirectPort=\"8443\"\n"
+				+ "      secretRequired=\"false\"\n"
 				+ "      URIEncoding=\"UTF-8\"\n");
 		// Do not include when is default "true"
 		if(!sharedTomcat.getTomcatAuthentication()) {

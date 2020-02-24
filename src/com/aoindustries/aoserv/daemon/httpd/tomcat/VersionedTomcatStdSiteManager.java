@@ -138,6 +138,7 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 					+ "      maxPostSize=\"").encodeXmlAttribute(tomcatStdSite.getMaxPostSize()).print("\"\n"
 					+ "      protocol=\"AJP/1.3\"\n"
 					+ "      redirectPort=\"8443\"\n"
+					+ "      secretRequired=\"false\"\n"
 					+ "      URIEncoding=\"UTF-8\"\n");
 			// Do not include when is default "true"
 			if(!tomcatStdSite.getTomcatAuthentication()) {
