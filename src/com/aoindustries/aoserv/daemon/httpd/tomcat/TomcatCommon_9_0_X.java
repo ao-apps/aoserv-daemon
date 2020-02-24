@@ -478,6 +478,7 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 				}
 			} else if(
 				rpmVersion.equals("9.0.30")
+				|| rpmVersion.equals("9.0.31")
 			) {
 				UpgradeSymlink[] upgradeSymlinks_9_0_30 = {
 					// New lib/catalina-ssi.jar
@@ -502,6 +503,23 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 						"lib/mysql-connector-java-8.0.19.jar",
 						null,
 						"../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.19.jar"
+					),
+					// postgresql-42.2.8.jar -> postgresql-42.2.9.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.8.jar",
+						"/dev/null",
+						"lib/postgresql-42.2.9.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.8.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.8.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.9.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.9.jar"
 					),
 					// postgresql-42.2.9.jar -> postgresql-42.2.10.jar
 					new UpgradeSymlink(
