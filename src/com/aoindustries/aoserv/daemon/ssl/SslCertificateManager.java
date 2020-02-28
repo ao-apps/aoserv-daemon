@@ -1,5 +1,5 @@
 /*
- * Copyright 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -73,7 +73,10 @@ final public class SslCertificateManager {
 	private static final String ALGORITHM = "SHA-256";
 
 	/**
-	 * @implNote  This is 5 minutes less than "NONE_SLEEP_DELAY" in noc-monitor/SslCertificateNodeWorker.java
+	 * <p>
+	 * <b>Implementation Note:</b><br />
+	 * This is 5 minutes less than "NONE_SLEEP_DELAY" in noc-monitor/SslCertificateNodeWorker.java
+	 * </p>
 	 */
 	private static final long CERTBOT_CACHE_DURATION = 55L * 60 * 1000; // 55 minutes
 
@@ -106,8 +109,10 @@ final public class SslCertificateManager {
 
 	/**
 	 * Gets the SHA-256 hashed output from a command, caching results when the file has not changed modified times.
-	 *
-	 * @implNote  This synchronizes on {@link #getHashedCache} which will serialize all commands.  This is OK as results will be cached normally.
+	 * <p>
+	 * <b>Implementation Note:</b><br />
+	 * This synchronizes on {@link #getHashedCache} which will serialize all commands.  This is OK as results will be cached normally.
+	 * </p>
 	 */
 	private static String getCommandHash(UnixFile file, String type, long modifiedTime, boolean allowCached, String ... command) throws IOException {
 		try {
