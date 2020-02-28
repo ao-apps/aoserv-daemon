@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2013, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2006-2013, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -9,7 +9,6 @@ import com.aoindustries.aoserv.client.net.Device;
 import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.validation.ValidationException;
@@ -18,11 +17,14 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.sql.SQLException;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Watches the IP address of the server and tells the master when the IP address changes.
  */
 final public class DhcpManager implements Runnable {
+
+	private static final Logger logger = Logger.getLogger(DhcpManager.class.getName());
 
 	public static final int POLL_INTERVAL=5*60*1000;
 
@@ -108,11 +110,11 @@ final public class DhcpManager implements Runnable {
 			} catch(ThreadDeath TD) {
 				throw TD;
 			} catch(Throwable T) {
-				LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, T);
+				logger.log(Level.SEVERE, null, T);
 				try {
 					Thread.sleep(POLL_INTERVAL);
 				} catch(InterruptedException err) {
-					LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
+					logger.log(Level.WARNING, null, err);
 				}
 			}
 		}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -12,7 +12,6 @@ import com.aoindustries.aoserv.client.net.Device;
 import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.sql.AOConnectionPool;
@@ -25,6 +24,7 @@ import java.sql.Statement;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Controls the MySQL Hosts.
@@ -32,6 +32,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 final public class MySQLHostManager extends BuilderThread {
+
+	private static final Logger logger = Logger.getLogger(MySQLHostManager.class.getName());
 
 	private MySQLHostManager() {
 	}
@@ -136,7 +138,7 @@ final public class MySQLHostManager extends BuilderThread {
 		} catch(ThreadDeath TD) {
 			throw TD;
 		} catch(Throwable T) {
-			LogFactory.getLogger(MySQLHostManager.class).log(Level.SEVERE, null, T);
+			logger.log(Level.SEVERE, null, T);
 			return false;
 		}
 	}

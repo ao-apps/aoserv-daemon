@@ -1,5 +1,5 @@
 /*
- * Copyright 2005-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2005-2013, 2015, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -20,7 +20,6 @@ import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
@@ -58,6 +57,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * The primary purpose of the manager is to decouple the IMAP server from the SpamAssassin training.
@@ -84,6 +84,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 public class SpamAssassinManager extends BuilderThread implements Runnable {
+
+	private static final Logger logger = Logger.getLogger(SpamAssassinManager.class.getName());
 
 	/**
 	 * The interval to sleep after each pass.
@@ -147,7 +149,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 						try {
 							Thread.sleep(DELAY_INTERVAL);
 						} catch(InterruptedException err) {
-							LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, null, err);
+							logger.log(Level.WARNING, null, err);
 						}
 					}
 					lastStartTime = System.currentTimeMillis();
@@ -158,11 +160,11 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 			} catch(ThreadDeath TD) {
 				throw TD;
 			} catch(Throwable T) {
-				LogFactory.getLogger(SpamAssassinManager.class).log(Level.SEVERE, null, T);
+				logger.log(Level.SEVERE, null, T);
 				try {
 					Thread.sleep(60000);
 				} catch(InterruptedException err) {
-					LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, null, err);
+					logger.log(Level.WARNING, null, err);
 				}
 			}
 		}
@@ -196,7 +198,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 					PackageManager.addPackageListener(spamAssassinManager);
 					new Thread(spamAssassinManager, "SpamAssassinManager").start();
 					// Once per day, the razor logs will be trimmed to only include the last 1000 lines
-					CronDaemon.addCronJob(new RazorLogTrimmer(), LogFactory.getLogger(SpamAssassinManager.class));
+					CronDaemon.addCronJob(new RazorLogTrimmer(), logger);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);
@@ -271,15 +273,15 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 						UserServer lsa = thisServer.getLinuxServerAccount(User.Name.valueOf(incomingDirectoryFilename));
 						if(lsa == null) {
 							// user not found, backup and then remove
-							LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectoryFilename = " + incomingDirectoryFilename, new IOException("User not found, deleting"));
+							logger.log(Level.WARNING, "incomingDirectoryFilename = " + incomingDirectoryFilename, new IOException("User not found, deleting"));
 							deleteFileList.add(userDirectoryFile);
 						} else if(!lsa.getLinuxAccount().getType().isEmail()) {
 							// user not email type, backup and then remove
-							LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectoryFilename = " + incomingDirectoryFilename, new IOException("User not email type, deleting"));
+							logger.log(Level.WARNING, "incomingDirectoryFilename = " + incomingDirectoryFilename, new IOException("User not email type, deleting"));
 							deleteFileList.add(userDirectoryFile);
 						} else if(!lsa.getHome().toString().startsWith("/home/")) {
 							// user doesn't have home directory in /home/, backup and then remove
-							LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "incomingDirectoryFilename = " + incomingDirectoryFilename, new IOException("User home not in /home/, deleting"));
+							logger.log(Level.WARNING, "incomingDirectoryFilename = " + incomingDirectoryFilename, new IOException("User home not in /home/, deleting"));
 							deleteFileList.add(userDirectoryFile);
 						} else {
 							// Check permissions and ownership
@@ -328,26 +330,26 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 																oldestTimestamp = timestamp;
 															}
 														} else {
-															LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "userDirectoryUf = " + userDirectoryUf.getPath() + ", userFilename = " + userFilename, new IOException("Invalid character in filename, deleting"));
+															logger.log(Level.WARNING, "userDirectoryUf = " + userDirectoryUf.getPath() + ", userFilename = " + userFilename, new IOException("Invalid character in filename, deleting"));
 															deleteFileList.add(userFile);
 														}
 													}
 												} catch(NumberFormatException err) {
 													IOException ioErr = new IOException("Unable to find parse timestamp in filename, deleting");
 													ioErr.initCause(err);
-													LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "userDirectoryUf = " + userDirectoryUf.getPath() + ", userFilename = " + userFilename, ioErr);
+													logger.log(Level.WARNING, "userDirectoryUf = " + userDirectoryUf.getPath() + ", userFilename = " + userFilename, ioErr);
 													deleteFileList.add(userFile);
 												}
 											} else {
-												LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "userDirectoryUf = " + userDirectoryUf.getPath() + ", userFilename = " + userFilename, new IOException("Unable to find second underscore (_) in filename, deleting"));
+												logger.log(Level.WARNING, "userDirectoryUf = " + userDirectoryUf.getPath() + ", userFilename = " + userFilename, new IOException("Unable to find second underscore (_) in filename, deleting"));
 												deleteFileList.add(userFile);
 											}
 										} else {
-											LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "userDirectoryUf = " + userDirectoryUf.getPath() + ", userFilename = " + userFilename, new IOException("Not a regular file, deleting"));
+											logger.log(Level.WARNING, "userDirectoryUf = " + userDirectoryUf.getPath() + ", userFilename = " + userFilename, new IOException("Not a regular file, deleting"));
 											deleteFileList.add(userFile);
 										}
 									} else {
-										LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "userDirectoryUf = " + userDirectoryUf.getPath() + ", userFilename = " + userFilename, new IOException("Unexpected filename, should start with \"spam_\" or \"ham_\", deleting"));
+										logger.log(Level.WARNING, "userDirectoryUf = " + userDirectoryUf.getPath() + ", userFilename = " + userFilename, new IOException("Unexpected filename, should start with \"spam_\" or \"ham_\", deleting"));
 										deleteFileList.add(userFile);
 									}
 								}
@@ -863,7 +865,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 		} catch(ThreadDeath TD) {
 			throw TD;
 		} catch(Throwable T) {
-			LogFactory.getLogger(SpamAssassinManager.class).log(Level.SEVERE, null, T);
+			logger.log(Level.SEVERE, null, T);
 			return false;
 		}
 	}
@@ -957,7 +959,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 										}
 									}
 								} catch(IOException err) {
-									LogFactory.getLogger(SpamAssassinManager.class).log(Level.WARNING, "lsa = " + lsa, err);
+									logger.log(Level.WARNING, "lsa = " + lsa, err);
 								}
 							}
 						}
@@ -968,7 +970,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 			} catch(ThreadDeath td) {
 				throw td;
 			} catch(Throwable t) {
-				LogFactory.getLogger(SpamAssassinManager.class).log(Level.SEVERE, null, t);
+				logger.log(Level.SEVERE, null, t);
 			}
 		}
 

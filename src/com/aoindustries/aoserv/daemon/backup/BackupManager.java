@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2009, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2001-2009, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -8,7 +8,6 @@ package com.aoindustries.aoserv.daemon.backup;
 import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.util.StringUtility;
@@ -23,6 +22,7 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * The BackupManager handles the storing and retrieval of backup data from
@@ -32,6 +32,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 final public class BackupManager {
+
+	private static final Logger logger = Logger.getLogger(BackupManager.class.getName());
 
 	/**
 	 * The directory that old files are backed-up to.  This thread cleans up
@@ -118,7 +120,7 @@ final public class BackupManager {
 							try {
 								id.backup();
 							} catch(RuntimeException err) {
-								LogFactory.getLogger(this.getClass()).log(Level.SEVERE, 
+								logger.log(Level.SEVERE, 
 									err,
 									new Object[] {"id="+id}
 								);
@@ -128,7 +130,7 @@ final public class BackupManager {
 				} catch(ThreadDeath TD) {
 					throw TD;
 				} catch(Throwable T) {
-					LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, T);
+					logger.log(Level.SEVERE, null, T);
 				}
 			} finally {
 				timer.stop();
@@ -158,7 +160,7 @@ final public class BackupManager {
 							try {
 								md.backup();
 							} catch(RuntimeException err) {
-								LogFactory.getLogger(this.getClass()).log(Level.SEVERE, 
+								logger.log(Level.SEVERE, 
 									err,
 									new Object[] {"md="+md}
 								);
@@ -169,7 +171,7 @@ final public class BackupManager {
 			} catch(ThreadDeath TD) {
 				throw TD;
 			} catch(Throwable T) {
-				LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, T);
+				logger.log(Level.SEVERE, null, T);
 			}
 		} finally {
 			timer.stop();
@@ -199,7 +201,7 @@ final public class BackupManager {
 							try {
 								pd.backup();
 							} catch(RuntimeException err) {
-								LogFactory.getLogger(this.getClass()).log(Level.SEVERE, 
+								logger.log(Level.SEVERE, 
 									err,
 									new Object[] {"pd="+pd}
 								);
@@ -210,7 +212,7 @@ final public class BackupManager {
 			} catch(ThreadDeath TD) {
 				throw TD;
 			} catch(Throwable T) {
-				LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, T);
+				logger.log(Level.SEVERE, null, T);
 			}
 		} finally {
 			timer.stop();
@@ -241,7 +243,7 @@ final public class BackupManager {
 					// If more than double the max age, we might have a system time problem or an extended down time
 					long age = (System.currentTimeMillis() - fileCal.getTime().getTime());
 					if(age >= (MAX_OLDACCOUNTS_AGE * 2)) {
-						LogFactory.getLogger(BackupManager.class).warning(
+						logger.warning(
 							filename + "\n"
 								+ "File date unexpectedly far in the past; refusing to delete.\n"
 								+ "This could be due to a system time change or a very long outage.\n"
@@ -250,7 +252,7 @@ final public class BackupManager {
 					} else if(age >= MAX_OLDACCOUNTS_AGE) {
 						new UnixFile(oldaccountsDir, filename, true).delete();
 					} else if(age < 0) {
-						LogFactory.getLogger(BackupManager.class).warning(
+						logger.warning(
 							filename + "\n"
 								+ "File date is in the future.\n"
 								+ "This could be due to a system time change or a clock problem.\n"
@@ -262,7 +264,7 @@ final public class BackupManager {
 		} catch(ThreadDeath TD) {
 			throw TD;
 		} catch(Throwable T) {
-			LogFactory.getLogger(BackupManager.class).log(Level.SEVERE, null, T);
+			logger.log(Level.SEVERE, null, T);
 		}
 	}
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2015, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -21,7 +21,6 @@ import com.aoindustries.aoserv.client.password.PasswordGenerator;
 import com.aoindustries.aoserv.client.pki.Certificate;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.net.fail2ban.Fail2banManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
@@ -140,6 +139,8 @@ import javax.mail.StoreClosedException;
  * @author  AO Industries, Inc.
  */
 final public class ImapManager extends BuilderThread {
+
+	private static final Logger logger = Logger.getLogger(ImapManager.class.getName());
 
 	public static final boolean WUIMAP_CONVERSION_ENABLED = false;
 	private static final int WUIMAP_CONVERSION_CONCURRENCY = 20;
@@ -316,7 +317,7 @@ final public class ImapManager extends BuilderThread {
 				try {
 					_adminStore.close();
 				} catch(MessagingException err) {
-					LogFactory.getLogger(ImapManager.class).log(Level.SEVERE, null, err);
+					logger.log(Level.SEVERE, null, err);
 				}
 				_adminSession = null;
 				_adminStore = null;
@@ -469,7 +470,6 @@ final public class ImapManager extends BuilderThread {
 	private static final Object rebuildLock = new Object();
 	@Override
 	protected boolean doRebuild() {
-		Logger logger = LogFactory.getLogger(ImapManager.class);
 		boolean isFine = logger.isLoggable(Level.FINE);
 		try {
 			Server thisServer = AOServDaemon.getThisServer();
@@ -1228,7 +1228,6 @@ final public class ImapManager extends BuilderThread {
 	 * @param  rights  the rights, one character to right
 	 */
 	private static void rebuildAcl(IMAPFolder folder, String user, String domain, Rights rights) throws MessagingException {
-		Logger logger = LogFactory.getLogger(ImapManager.class);
 		boolean isDebug = logger.isLoggable(Level.FINE);
 		// Determine the username
 		String username = domain.equals("default") ? user : (user + '@' + domain);
@@ -1303,7 +1302,6 @@ final public class ImapManager extends BuilderThread {
 	private static void addUserDirectories(File directory, Set<String> ignoreList, String domain, Map<String,Set<String>> allUsers) throws IOException {
 		String[] hashFilenames = directory.list();
 		if(hashFilenames != null) {
-			Logger logger = LogFactory.getLogger(ImapManager.class);
 			boolean isTrace = logger.isLoggable(Level.FINER);
 			Arrays.sort(hashFilenames);
 			for(String hashFilename : hashFilenames) {
@@ -1459,7 +1457,6 @@ final public class ImapManager extends BuilderThread {
 			} else {
 				appendCounter++;
 				long span = currentTime - appendCounterStart;
-				Logger logger = LogFactory.getLogger(ImapManager.class);
 				if(span < 0) {
 					logger.warning("incAppendCounter: span < 0: System time reset?");
 					appendCounterStart = currentTime;
@@ -1721,7 +1718,6 @@ final public class ImapManager extends BuilderThread {
 	 * Logs a message as trace on commons-logging and on the per-user log.
 	 */
 	private static void log(PrintWriter userLogOut, Level level, User.Name username, String message) {
-		Logger logger = LogFactory.getLogger(ImapManager.class);
 		if(logger.isLoggable(level)) logger.log(level, username + " - " + message);
 		synchronized(userLogOut) {
 			userLogOut.println("[" + level + "] " + System.currentTimeMillis() + " - " + message);
@@ -1732,7 +1728,6 @@ final public class ImapManager extends BuilderThread {
 	private static void rebuildUsers() throws IOException, SQLException, MessagingException {
 		try {
 			// Connect to the store (will be null when not an IMAP server)
-			final Logger logger = LogFactory.getLogger(ImapManager.class);
 			final boolean isDebug = logger.isLoggable(Level.FINE);
 			final boolean isTrace = logger.isLoggable(Level.FINER);
 			IMAPStore store = getAdminStore();
@@ -2295,7 +2290,6 @@ final public class ImapManager extends BuilderThread {
 				} catch(MessagingException messagingException) {
 					String message = messagingException.getMessage();
 					if(message == null || !message.contains("* BYE idle for too long")) throw messagingException;
-					Logger logger = LogFactory.getLogger(ImapManager.class);
 					logger.log(Level.SEVERE, "attempt=" + attempt, messagingException);
 					try {
 						Thread.sleep(100);

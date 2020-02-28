@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -15,7 +15,6 @@ import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.client.linux.UserServer;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
@@ -33,11 +32,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * @author  AO Industries, Inc.
  */
 final public class MajordomoManager extends BuilderThread {
+
+	private static final Logger logger = Logger.getLogger(MajordomoManager.class.getName());
 
 	private static MajordomoManager majordomoManager;
 
@@ -967,7 +969,7 @@ final public class MajordomoManager extends BuilderThread {
 		} catch(ThreadDeath TD) {
 			throw TD;
 		} catch(Throwable T) {
-			LogFactory.getLogger(MajordomoManager.class).log(Level.SEVERE, null, T);
+			logger.log(Level.SEVERE, null, T);
 			return false;
 		}
 	}

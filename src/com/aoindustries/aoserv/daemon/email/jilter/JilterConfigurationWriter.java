@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2015, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -22,7 +22,6 @@ import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.jilter.config.EmailLimit;
@@ -41,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Writes new configuration files for the JilterConfiguration when AOServ tables have been updated.
@@ -50,6 +50,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 public class JilterConfigurationWriter extends BuilderThread {
+
+	private static final Logger logger = Logger.getLogger(JilterConfigurationWriter.class.getName());
 
 	private static JilterConfigurationWriter configurationWriter;
 
@@ -173,7 +175,7 @@ public class JilterConfigurationWriter extends BuilderThread {
 							allowRelays.add(host);
 							break;
 						default:
-							LogFactory.getLogger(JilterConfigurationWriter.class).log(Level.WARNING, null, new SQLException("Unexpected value for type: "+type));
+							logger.log(Level.WARNING, null, new SQLException("Unexpected value for type: "+type));
 					}
 				}
 
@@ -252,7 +254,7 @@ public class JilterConfigurationWriter extends BuilderThread {
 		} catch(ThreadDeath TD) {
 			throw TD;
 		} catch(Throwable T) {
-			LogFactory.getLogger(JilterConfigurationWriter.class).log(Level.SEVERE, null, T);
+			logger.log(Level.SEVERE, null, T);
 			return false;
 		}
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2015, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -13,7 +13,6 @@ import com.aoindustries.aoserv.client.mysql.Server;
 import com.aoindustries.aoserv.client.mysql.Table_Name;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
@@ -51,6 +50,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Controls the MySQL databases.
@@ -58,6 +58,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 final public class MySQLDatabaseManager extends BuilderThread {
+
+	private static final Logger logger = Logger.getLogger(MySQLDatabaseManager.class.getName());
 
 	private MySQLDatabaseManager() {
 	}
@@ -81,7 +83,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 				for(Server mysqlServer : thisServer.getMySQLServers()) {
 					List<Database> databases = mysqlServer.getMySQLDatabases();
 					if(databases.isEmpty()) {
-						LogFactory.getLogger(MySQLDatabaseManager.class).severe("No databases; refusing to rebuild config: " + mysqlServer);
+						logger.severe("No databases; refusing to rebuild config: " + mysqlServer);
 					} else {
 						String version = mysqlServer.getVersion().getVersion();
 						// Different versions of MySQL have different sets of system databases
@@ -120,7 +122,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 							}
 						}
 						if(!requiredDatabases.isEmpty()) {
-							LogFactory.getLogger(MySQLUserManager.class).severe("Required databases not found; refusing to rebuild config: " + mysqlServer + " -> " + requiredDatabases);
+							logger.severe("Required databases not found; refusing to rebuild config: " + mysqlServer + " -> " + requiredDatabases);
 						} else {
 							boolean modified = false;
 							// Get the connection to work through
@@ -146,7 +148,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 										Database.Name name = database.getName();
 										if(!existing.remove(name)) {
 											if(database.isSpecial()) {
-												LogFactory.getLogger(MySQLDatabaseManager.class).log(
+												logger.log(
 													Level.WARNING,
 													null,
 													new SQLException("Refusing to create special database: " + name + " on " + mysqlServer.getName())
@@ -162,13 +164,13 @@ final public class MySQLDatabaseManager extends BuilderThread {
 									// Remove the extra databases
 									for(Database.Name dbName : existing) {
 										if(systemDatabases.contains(dbName)) {
-											LogFactory.getLogger(MySQLDatabaseManager.class).log(
+											logger.log(
 												Level.WARNING,
 												null,
 												new SQLException("Refusing to drop system database: " + dbName + " on " + mysqlServer.getName())
 											);
 										} else if(Database.isSpecial(dbName)) {
-											LogFactory.getLogger(MySQLDatabaseManager.class).log(
+											logger.log(
 												Level.WARNING,
 												null,
 												new SQLException("Refusing to drop special database: " + dbName + " on " + mysqlServer.getName())
@@ -197,7 +199,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 			}
 			return true;
 		} catch(RuntimeException | IOException | SQLException T) {
-			LogFactory.getLogger(MySQLDatabaseManager.class).log(Level.SEVERE, null, T);
+			logger.log(Level.SEVERE, null, T);
 			return false;
 		}
 	}
@@ -402,7 +404,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 				password
 			);
 		} catch(SQLException err) {
-			//LogFactory.getLogger(MySQLDatabaseManager.class).log(Level.SEVERE, null, err);
+			//logger.log(Level.SEVERE, null, err);
 			throw new SQLException("Unable to connect to MySQL database: jdbcUrl=" + jdbcUrl, err);
 		}
 	}

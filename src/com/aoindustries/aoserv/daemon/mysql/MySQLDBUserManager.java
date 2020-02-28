@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -14,7 +14,6 @@ import com.aoindustries.aoserv.client.mysql.User;
 import com.aoindustries.aoserv.client.mysql.UserServer;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.util.Tuple2;
@@ -30,6 +29,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Controls the MySQL DB Users.
@@ -37,6 +37,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 final public class MySQLDBUserManager extends BuilderThread {
+
+	private static final Logger logger = Logger.getLogger(MySQLDBUserManager.class.getName());
 
 	private MySQLDBUserManager() {
 	}
@@ -61,7 +63,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 					// Get the list of all db entries that should exist
 					List<DatabaseUser> dbUsers = mysqlServer.getMySQLDBUsers();
 					if(dbUsers.isEmpty()) {
-						LogFactory.getLogger(MySQLDBUserManager.class).severe("No users; refusing to rebuild config: " + mysqlServer);
+						logger.severe("No users; refusing to rebuild config: " + mysqlServer);
 					} else {
 						String version = mysqlServer.getVersion().getVersion();
 						// Different versions of MySQL have different sets of system db users
@@ -92,7 +94,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 							}
 						}
 						if(!requiredDbUsers.isEmpty()) {
-							LogFactory.getLogger(MySQLUserManager.class).severe("Required db users not found; refusing to rebuild config: " + mysqlServer + " -> " + requiredDbUsers);
+							logger.severe("Required db users not found; refusing to rebuild config: " + mysqlServer + " -> " + requiredDbUsers);
 						} else {
 							boolean modified = false;
 
@@ -212,7 +214,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 									try (PreparedStatement pstmt = conn.prepareStatement("DELETE FROM db WHERE db=? AND user=?")) {
 										for (Tuple2<Database.Name,User.Name> key : existing) {
 											if(systemDbUsers.contains(key)) {
-												LogFactory.getLogger(MySQLDatabaseManager.class).log(
+												logger.log(
 													Level.WARNING,
 													null,
 													new SQLException("Refusing to delete system MySQL db user: " + key + " on " + mysqlServer)
@@ -239,7 +241,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 		} catch(ThreadDeath TD) {
 			throw TD;
 		} catch(Throwable T) {
-			LogFactory.getLogger(MySQLDBUserManager.class).log(Level.SEVERE, null, T);
+			logger.log(Level.SEVERE, null, T);
 			return false;
 		}
 	}

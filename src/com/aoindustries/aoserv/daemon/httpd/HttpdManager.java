@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -13,7 +13,6 @@ import com.aoindustries.aoserv.client.web.Site;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdSharedTomcatManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
@@ -30,6 +29,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Manages all configuration and control over HTTP-related systems.
@@ -37,6 +37,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 final public class HttpdManager extends BuilderThread {
+
+	private static final Logger logger = Logger.getLogger(HttpdManager.class.getName());
 
 	private static HttpdManager httpdManager;
 
@@ -98,7 +100,7 @@ final public class HttpdManager extends BuilderThread {
 		} catch(ThreadDeath TD) {
 			throw TD;
 		} catch(Throwable T) {
-			LogFactory.getLogger(HttpdManager.class).log(Level.SEVERE, null, T);
+			logger.log(Level.SEVERE, null, T);
 			return false;
 		}
 	}

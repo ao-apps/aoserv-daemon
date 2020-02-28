@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -18,7 +18,6 @@ import com.aoindustries.aoserv.client.net.TcpRedirect;
 import com.aoindustries.aoserv.client.scm.CvsRepository;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.email.ImapManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
@@ -36,11 +35,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Handles the building of xinetd configs and files.
  */
 public final class XinetdManager extends BuilderThread {
+
+	private static final Logger logger = Logger.getLogger(XinetdManager.class.getName());
 
 	/**
 	 * The type used for UNLISTED services.
@@ -677,7 +679,7 @@ public final class XinetdManager extends BuilderThread {
 									}
 								);
 							} catch(IOException err) {
-								LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, err);*/
+								logger.log(Level.SEVERE, null, err);*/
 
 								// Try more forceful stop/start
 								try {
@@ -686,12 +688,12 @@ public final class XinetdManager extends BuilderThread {
 										"stop"
 									);
 								} catch(IOException err2) {
-									LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, err2);
+									logger.log(Level.SEVERE, null, err2);
 								}
 								try {
 									Thread.sleep(1000);
 								} catch(InterruptedException err2) {
-									LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err2);
+									logger.log(Level.WARNING, null, err2);
 								}
 								AOServDaemon.exec(
 									"/etc/rc.d/init.d/xinetd",
@@ -706,7 +708,7 @@ public final class XinetdManager extends BuilderThread {
 		} catch(ThreadDeath TD) {
 			throw TD;
 		} catch(Throwable T) {
-			LogFactory.getLogger(XinetdManager.class).log(Level.SEVERE, null, T);
+			logger.log(Level.SEVERE, null, T);
 			return false;
 		}
 	}

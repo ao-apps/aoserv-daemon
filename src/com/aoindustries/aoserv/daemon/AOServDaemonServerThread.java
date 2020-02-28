@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2014, 2015, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2014, 2015, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -60,6 +60,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.net.ssl.SSLHandshakeException;
 
 /**
@@ -68,6 +69,8 @@ import javax.net.ssl.SSLHandshakeException;
  * @author  AO Industries, Inc.
  */
 final public class AOServDaemonServerThread extends Thread {
+
+	private static final Logger logger = Logger.getLogger(AOServDaemonServerThread.class.getName());
 
 	/**
 	 * The set of supported versions, with the most preferred versions first.
@@ -185,7 +188,7 @@ final public class AOServDaemonServerThread extends Thread {
 						return;
 					}
 				} else {
-					LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.WARNING, "Connection attempted from " + hostAddress + " but not listed in server_daemon_hosts");
+					logger.log(Level.WARNING, "Connection attempted from " + hostAddress + " but not listed in server_daemon_hosts");
 					out.writeBoolean(false);
 					out.flush();
 					return;
@@ -1331,12 +1334,12 @@ final public class AOServDaemonServerThread extends Thread {
 						logIOException
 						&& !"Connection reset by peer".equals(message)
 					) {
-						LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.SEVERE, null, err);
+						logger.log(Level.SEVERE, null, err);
 					}
 					out.write(AOServDaemonProtocol.IO_EXCEPTION);
 					out.writeUTF(message == null ? "null" : message);
 				} catch (SQLException err) {
-					LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.SEVERE, null, err);
+					logger.log(Level.SEVERE, null, err);
 					out.write(AOServDaemonProtocol.SQL_EXCEPTION);
 					String message = err.getMessage();
 					out.writeUTF(message == null ? "null" : message);
@@ -1347,17 +1350,19 @@ final public class AOServDaemonServerThread extends Thread {
 			// Normal for abrupt connection closing
 		} catch(SSLHandshakeException err) {
 			String message = err.getMessage();
-			if(!"Remote host closed connection during handshake".equals(message)) LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.SEVERE, null, err);
+			if(!"Remote host closed connection during handshake".equals(message)) {
+				logger.log(Level.SEVERE, null, err);
+			}
 		} catch(SocketException err) {
 			String message=err.getMessage();
 			if(
 				!"Socket closed".equals(message)
 				&& !"Socket is closed".equals(message)
 			) {
-				LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.SEVERE, null, err);
+				logger.log(Level.SEVERE, null, err);
 			}
 		} catch(Exception T) {
-			LogFactory.getLogger(AOServDaemonServerThread.class).log(Level.SEVERE, null, T);
+			logger.log(Level.SEVERE, null, T);
 		} finally {
 			// Close the socket
 			try {

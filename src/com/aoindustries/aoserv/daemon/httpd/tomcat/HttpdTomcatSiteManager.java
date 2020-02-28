@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2017, 2018, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -15,7 +15,6 @@ import com.aoindustries.aoserv.client.web.tomcat.SharedTomcatSite;
 import com.aoindustries.aoserv.client.web.tomcat.Site;
 import com.aoindustries.aoserv.client.web.tomcat.Worker;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.httpd.HttpdSiteManager;
 import com.aoindustries.aoserv.daemon.httpd.StopStartable;
 import com.aoindustries.aoserv.daemon.httpd.jboss.HttpdJBossSiteManager;
@@ -37,6 +36,7 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Manages Site configurations.
@@ -44,6 +44,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends HttpdSiteManager implements StopStartable {
+
+	private static final Logger logger = Logger.getLogger(HttpdTomcatSiteManager.class.getName());
 
 	/**
 	 * Gets the specific manager for one type of web site.
@@ -160,7 +162,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 					return true;
 				}
 			} catch(NumberFormatException err) {
-				LogFactory.getLogger(HttpdTomcatSiteManager.class).log(Level.WARNING, null, err);
+				logger.log(Level.WARNING, null, err);
 			}
 			return false;
 		}

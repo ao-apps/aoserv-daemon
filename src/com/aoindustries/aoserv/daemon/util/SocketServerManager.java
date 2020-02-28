@@ -1,18 +1,18 @@
 /*
- * Copyright 2002-2013, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2017, 2018, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.util;
 
 import com.aoindustries.aoserv.client.net.Bind;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.net.InetAddress;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Manages a group of <code>SocketServer</code>.  Servers may be
@@ -21,6 +21,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 abstract public class SocketServerManager {
+
+	private static final Logger logger = Logger.getLogger(SocketServerManager.class.getName());
 
 	/** All of the servers that are currently running */
 	private final List<SocketServerThread> socketServers=new ArrayList<>();
@@ -45,11 +47,11 @@ abstract public class SocketServerManager {
 						} catch(ThreadDeath TD) {
 							throw TD;
 						} catch(Throwable T) {
-							LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, T);
+							logger.log(Level.SEVERE, null, T);
 							try {
 								Thread.sleep(15000);
 							} catch(InterruptedException err) {
-								LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
+								logger.log(Level.WARNING, null, err);
 							}
 						}
 					}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -15,7 +15,6 @@ import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
@@ -33,6 +32,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Controls access to the mail server, supports auto-expiring SMTP access.
@@ -40,6 +40,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 public class SmtpRelayManager extends BuilderThread implements Runnable {
+
+	private static final Logger logger = Logger.getLogger(SmtpRelayManager.class.getName());
 
 	private static final int REFRESH_PERIOD = 15 * 60 * 1000;
 
@@ -208,7 +210,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 		} catch(ThreadDeath TD) {
 			throw TD;
 		} catch(Throwable T) {
-			LogFactory.getLogger(SmtpRelayManager.class).log(Level.SEVERE, null, T);
+			logger.log(Level.SEVERE, null, T);
 			return false;
 		}
 	}
@@ -273,7 +275,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 					try {
 						Thread.sleep(REFRESH_PERIOD);
 					} catch(InterruptedException err) {
-						LogFactory.getLogger(SmtpRelayManager.class).log(Level.WARNING, null, err);
+						logger.log(Level.WARNING, null, err);
 					}
 					long time = System.currentTimeMillis();
 					boolean needRebuild = false;
@@ -294,11 +296,11 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 			} catch(ThreadDeath TD) {
 				throw TD;
 			} catch(Throwable T) {
-				LogFactory.getLogger(SmtpRelayManager.class).log(Level.SEVERE, null, T);
+				logger.log(Level.SEVERE, null, T);
 				try {
 					Thread.sleep(REFRESH_PERIOD);
 				} catch(InterruptedException err) {
-					LogFactory.getLogger(SmtpRelayManager.class).log(Level.WARNING, null, err);
+					logger.log(Level.WARNING, null, err);
 				}
 			}
 		}

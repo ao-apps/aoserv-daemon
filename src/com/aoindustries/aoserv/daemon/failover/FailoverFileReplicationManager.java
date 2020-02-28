@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013, 2015, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2015, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -11,7 +11,6 @@ import com.aoindustries.aoserv.client.mysql.Server;
 import com.aoindustries.aoserv.client.scm.CvsRepository;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.backup.AOServerEnvironment;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.cron.CronDaemon;
@@ -165,6 +164,8 @@ Maximum number of chunks per file: 2 ^ (44 - 20): 2 ^ 24
  * @author  AO Industries, Inc.
  */
 final public class FailoverFileReplicationManager {
+
+	private static final Logger logger = Logger.getLogger(FailoverFileReplicationManager.class.getName());
 
 	/**
 	 * The extension added to the directory name when it is a partial pass.
@@ -348,7 +349,6 @@ final public class FailoverFileReplicationManager {
 				|| relativePath.startsWith("/opt/mysql-")
 			)
 		) {
-			Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
 			if(logger.isLoggable(Level.FINE)) logger.fine("Flagging postPassChecklist.restartMySQLs=true for path="+relativePath);
 			postPassChecklist.restartMySQLs=true;
 		}
@@ -585,7 +585,6 @@ final public class FailoverFileReplicationManager {
 				);
 				activity.update("data-index: Opening data index: ", dataIndexDir);
 				DedupDataIndex newDedupIndex = DedupDataIndex.getInstance(fileSystem, dataIndexDir);
-				Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
 				/**
 				 * Add the CronJob that cleans orphaned data in the background.
 				 */
@@ -662,7 +661,6 @@ final public class FailoverFileReplicationManager {
 		final String toPath = backupPartition + '/' + fromServer;
 		try {
 			final PostPassChecklist postPassChecklist = new PostPassChecklist();
-			Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
 			boolean isInfo = logger.isLoggable(Level.INFO);
 			boolean isFine = logger.isLoggable(Level.FINE);
 			boolean isTrace = logger.isLoggable(Level.FINER);
@@ -2260,7 +2258,6 @@ final public class FailoverFileReplicationManager {
 	 * Don't delete anything in /proc/*, /sys/*, /selinux/*, /dev/pts/*, or MySQL replication-related files
 	 */
 	private static boolean deleteOnCleanup(String fromServer, int retention, String relativePath, List<Server.Name> replicatedMySQLServers, List<String> replicatedMySQLMinorVersions) {
-		Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
 		boolean isDebug = logger.isLoggable(Level.FINE);
 		if(
 			relativePath.equals("/proc")
@@ -2315,7 +2312,6 @@ final public class FailoverFileReplicationManager {
 	}
 
 	private static void cleanAndRecycleBackups(Activity activity, short retention, UnixFile serverRootUF, short fromServerYear, short fromServerMonth, short fromServerDay) throws IOException, SQLException {
-		final Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
 		final boolean isFine = logger.isLoggable(Level.FINE);
 		try {
 			// Build the lists of directories based on age, skipping safe deleted and recycled directories
@@ -2638,7 +2634,6 @@ final public class FailoverFileReplicationManager {
 	 */
 	private static boolean copyIfHardLinked(Activity activity, UnixFile uf, Stat ufStat) throws IOException {
 		if(ufStat.isRegularFile() && ufStat.getNumberLinks()>1) {
-			Logger logger = LogFactory.getLogger(FailoverFileReplicationManager.class);
 			if(logger.isLoggable(Level.FINER)) logger.finer("Copying file due to hard link: "+uf);
 			UnixFile temp = mktemp(activity, uf);
 			activity.update("file: copy: ", uf, " to ", temp);

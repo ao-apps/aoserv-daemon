@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2013, 2014, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2012-2013, 2014, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -8,7 +8,6 @@ package com.aoindustries.aoserv.daemon.server;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.infrastructure.VirtualServer;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.io.stream.StreamableInput;
@@ -32,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -41,6 +41,8 @@ import java.util.regex.Pattern;
  * @author  AO Industries, Inc.
  */
 final public class VirtualServerManager {
+
+	private static final Logger logger = Logger.getLogger(VirtualServerManager.class.getName());
 
 	private VirtualServerManager() {
 	}
@@ -263,7 +265,7 @@ final public class VirtualServerManager {
 					}
 				} catch(IOException err) {
 					// Log as warning
-					LogFactory.getLogger(VirtualServerManager.class).log(Level.FINE, null, err);
+					logger.log(Level.FINE, null, err);
 				}
 			}
 		}
@@ -360,11 +362,11 @@ final public class VirtualServerManager {
 											try {
 												vncSocket.close();
 											} catch(SocketException e) {
-												LogFactory.getLogger(VirtualServerManager.class).log(Level.FINE, null, e);
+												logger.log(Level.FINE, null, e);
 											}
 										}
 									} catch(RuntimeException | IOException T) {
-										LogFactory.getLogger(VirtualServerManager.class).log(Level.SEVERE, null, T);
+										logger.log(Level.SEVERE, null, T);
 									}
 								});
 								inThread.start();
@@ -392,14 +394,14 @@ final public class VirtualServerManager {
 								try {
 									vncOut.close();
 								} catch(SocketException e) {
-									LogFactory.getLogger(VirtualServerManager.class).log(Level.FINE, null, e);
+									logger.log(Level.FINE, null, e);
 								}
 							}
 						} finally {
 							try {
 								vncIn.close();
 							} catch(SocketException e) {
-								LogFactory.getLogger(VirtualServerManager.class).log(Level.FINE, null, e);
+								logger.log(Level.FINE, null, e);
 							}
 						}
 					} finally {
@@ -409,14 +411,14 @@ final public class VirtualServerManager {
 					try {
 						socketIn.close();
 					} catch(SocketException e) {
-						LogFactory.getLogger(VirtualServerManager.class).log(Level.FINE, null, e);
+						logger.log(Level.FINE, null, e);
 					}
 				}
 			} finally {
 				try {
 					socketOut.close();
 				} catch(SocketException e) {
-					LogFactory.getLogger(VirtualServerManager.class).log(Level.FINE, null, e);
+					logger.log(Level.FINE, null, e);
 				}
 			}
 		} catch(ParseException err) {
@@ -425,7 +427,7 @@ final public class VirtualServerManager {
 			try {
 				socket.close();
 			} catch(SocketException e) {
-				LogFactory.getLogger(VirtualServerManager.class).log(Level.FINE, null, e);
+				logger.log(Level.FINE, null, e);
 			}
 		}
 	}
@@ -451,7 +453,7 @@ final public class VirtualServerManager {
 				try {
 					existingSocket.close();
 				} catch(IOException err) {
-					LogFactory.getLogger(VirtualServerManager.class).log(Level.INFO, null, err);
+					logger.log(Level.INFO, null, err);
 				}
 			}
 			Socket vncSocket = new Socket("127.0.0.1", vncPort);
@@ -470,7 +472,7 @@ final public class VirtualServerManager {
 			try {
 				vncSocket.close();
 			} catch(IOException err) {
-				LogFactory.getLogger(VirtualServerManager.class).log(Level.INFO, null, err);
+				logger.log(Level.INFO, null, err);
 			}
 			if(openVncSockets.get(vncPort)==vncSocket) openVncSockets.remove(vncPort);
 		}

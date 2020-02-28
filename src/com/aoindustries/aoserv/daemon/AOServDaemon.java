@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2015, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -52,6 +52,7 @@ import com.aoindustries.aoserv.daemon.postgres.PostgresUserManager;
 import com.aoindustries.aoserv.daemon.random.RandomEntropyManager;
 import com.aoindustries.aoserv.daemon.timezone.TimeZoneManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
+import com.aoindustries.exception.ConfigurationException;
 import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -81,7 +82,9 @@ import java.util.logging.Logger;
  */
 final public class AOServDaemon {
 
-	public static final boolean DEBUG=false;
+	private static final Logger logger = Logger.getLogger(AOServDaemon.class.getName());
+
+	public static final boolean DEBUG = false;
 
 	/**
 	 * A single random number generator is shared by all daemon resources to provide better randomness.
@@ -144,11 +147,11 @@ final public class AOServDaemon {
 		}
 	}
 
-	public static AOServConnector getConnector() throws IOException {
+	public static AOServConnector getConnector() throws ConfigurationException {
 		synchronized(AOServDaemon.class) {
-			if(conn==null) {
+			if(conn == null) {
 				// Get the connector that will be used
-				conn=AOServConnector.getConnector(Logger.getLogger(AOServConnector.class.getName()));
+				conn = AOServConnector.getConnector(logger);
 			}
 			return conn;
 		}
@@ -271,7 +274,6 @@ final public class AOServDaemon {
 			} catch (ThreadDeath TD) {
 				throw TD;
 			} catch (Throwable T) {
-				Logger logger = LogFactory.getLogger(AOServDaemon.class);
 				logger.log(Level.SEVERE, null, T);
 				try {
 					Thread.sleep(60000);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2013, 2015, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2012-2013, 2015, 2017, 2018, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -17,6 +17,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 
@@ -30,6 +31,8 @@ import javax.net.ssl.SSLServerSocketFactory;
  * @author  AO Industries, Inc.
  */
 final public class AOServDaemonServer extends Thread {
+
+	private static final Logger logger = Logger.getLogger(AOServDaemonServer.class.getName());
 
 	/**
 	 * The address that this server will bind to.
@@ -94,8 +97,8 @@ final public class AOServDaemonServer extends Thread {
 	}
 
 	public static DaemonAccessEntry getDaemonAccessEntry(long key) throws IOException {
-		DaemonAccessEntry dae=accessKeys.remove(Long.valueOf(key));
-		if(dae==null) throw new IOException("Unable to find DaemonAccessEntry: "+key);
+		DaemonAccessEntry dae = accessKeys.remove(key);
+		if(dae == null) throw new IOException("Unable to find DaemonAccessEntry: " + key);
 		return dae;
 	}
 
@@ -141,7 +144,7 @@ final public class AOServDaemonServer extends Thread {
 								} catch(ThreadDeath TD) {
 									throw TD;
 								} catch(Throwable T) {
-									LogFactory.getLogger(AOServDaemonServer.class).log(Level.SEVERE, null, T);
+									logger.log(Level.SEVERE, null, T);
 								}
 							}
 						} finally {
@@ -154,12 +157,12 @@ final public class AOServDaemonServer extends Thread {
 			} catch (ThreadDeath TD) {
 				throw TD;
 			} catch (Throwable T) {
-				LogFactory.getLogger(AOServDaemonServer.class).log(Level.SEVERE, null, T);
+				logger.log(Level.SEVERE, null, T);
 			}
 			try {
 				sleep(60000);
 			} catch (InterruptedException err) {
-				LogFactory.getLogger(AOServDaemonServer.class).log(Level.WARNING, null, err);
+				logger.log(Level.WARNING, null, err);
 			}
 		}
 	}

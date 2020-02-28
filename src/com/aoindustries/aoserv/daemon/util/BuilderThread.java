@@ -1,12 +1,11 @@
 /*
- * Copyright 2002-2012, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2002-2012, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.util;
 
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.table.Table;
 import com.aoindustries.table.TableListener;
@@ -21,6 +20,8 @@ import java.util.logging.Logger;
  * @author  AO Industries, Inc.
  */
 abstract public class BuilderThread implements TableListener, PackageManager.PackageListener {
+
+	private static final Logger logger = Logger.getLogger(BuilderThread.class.getName());
 
 	public static final long
 		DEFAULT_PROCESS_TIMER_MAXIMUM_TIME=5*60*1000,
@@ -61,7 +62,6 @@ abstract public class BuilderThread implements TableListener, PackageManager.Pac
 				rebuildThread = new Thread() {
 					@Override
 					public void run() {
-						Logger logger = LogFactory.getLogger(getClass().getName());
 						try {
 							long lastBuilt = -1;
 							long updateCopy;
@@ -155,7 +155,7 @@ abstract public class BuilderThread implements TableListener, PackageManager.Pac
 					try {
 						wait();
 					} catch(InterruptedException err) {
-						LogFactory.getLogger(getClass()).log(Level.WARNING, null, err);
+						logger.log(Level.WARNING, null, err);
 					}
 				}
 			} finally {

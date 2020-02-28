@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2014, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2014, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -13,7 +13,6 @@ import com.aoindustries.aoserv.client.postgresql.UserServer;
 import com.aoindustries.aoserv.client.postgresql.Version;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.validation.ValidationException;
@@ -31,6 +30,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.commons.lang3.NotImplementedException;
 
 /**
@@ -39,6 +39,8 @@ import org.apache.commons.lang3.NotImplementedException;
  * @author  AO Industries, Inc.
  */
 final public class PostgresUserManager extends BuilderThread {
+
+	private static final Logger logger = Logger.getLogger(PostgresUserManager.class.getName());
 
 	private static final boolean DEBUG = false;
 
@@ -164,7 +166,7 @@ final public class PostgresUserManager extends BuilderThread {
 					// Get the list of all users that should exist
 					List<UserServer> users = ps.getPostgresServerUsers();
 					if(users.isEmpty()) {
-						LogFactory.getLogger(PostgresUserManager.class).severe("No users; refusing to rebuild config: " + ps);
+						logger.severe("No users; refusing to rebuild config: " + ps);
 					} else {
 						String version = ps.getVersion().getTechnologyVersion(connector).getVersion();
 						Set<User.Name> systemRoles = getSystemRoles(version);
@@ -209,7 +211,7 @@ final public class PostgresUserManager extends BuilderThread {
 							for (User.Name username : existing) {
 								if(!systemRoles.contains(username)) {
 									if(User.isSpecial(username)) {
-										LogFactory.getLogger(PostgresUserManager.class).log(
+										logger.log(
 											Level.WARNING,
 											null,
 											new SQLException("Refusing to drop special user: " + username + " on " + ps.getName())
@@ -230,7 +232,7 @@ final public class PostgresUserManager extends BuilderThread {
 								if(!systemRoles.contains(username)) {
 									// Add the user
 									if(psu.isSpecial()) {
-										LogFactory.getLogger(PostgresUserManager.class).log(
+										logger.log(
 											Level.WARNING,
 											null,
 											new SQLException("Refusing to create special user: " + username + " on " + ps.getName())
@@ -341,7 +343,7 @@ final public class PostgresUserManager extends BuilderThread {
 		} catch(ThreadDeath TD) {
 			throw TD;
 		} catch(Throwable T) {
-			LogFactory.getLogger(PostgresUserManager.class).log(Level.SEVERE, null, T);
+			logger.log(Level.SEVERE, null, T);
 			return false;
 		}
 	}

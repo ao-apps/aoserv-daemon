@@ -1,12 +1,11 @@
 /*
- * Copyright 2012-2013, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2012-2013, 2017, 2018, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.iptables;
 
 import com.aoindustries.aoserv.client.net.IpAddress;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.ProcessResult;
 import java.io.BufferedReader;
@@ -22,6 +21,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Handles access to ipset.
@@ -29,6 +29,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 final public class Ipset {
+
+	private static final Logger logger = Logger.getLogger(Ipset.class.getName());
 
 	public static final int MAX_IPSET_SIZE = 65535;
 
@@ -202,7 +204,7 @@ final public class Ipset {
 	) throws IOException {
 		Set<Integer> unusedEntries;
 		if(entries.size()>MAX_IPSET_SIZE) {
-			LogFactory.getLogger(Ipset.class).log(
+			logger.log(
 				Level.WARNING,
 				"Only the first {0} entries used for ipset \"{1}\"",
 				new Object[] {

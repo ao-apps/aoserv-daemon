@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2006-2013, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -13,7 +13,6 @@ import com.aoindustries.aoserv.client.net.AppProtocol;
 import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.server.ServerManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
@@ -29,6 +28,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Controls the MySQL servers.
@@ -36,6 +36,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 final public class MySQLServerManager extends BuilderThread {
+
+	private static final Logger logger = Logger.getLogger(MySQLServerManager.class.getName());
 
 	/**
 	 * The SELinux type for MySQL.
@@ -100,7 +102,7 @@ final public class MySQLServerManager extends BuilderThread {
 		} catch(ThreadDeath TD) {
 			throw TD;
 		} catch(Throwable T) {
-			LogFactory.getLogger(MySQLServerManager.class).log(Level.SEVERE, null, T);
+			logger.log(Level.SEVERE, null, T);
 			return false;
 		}
 	}
@@ -128,7 +130,7 @@ final public class MySQLServerManager extends BuilderThread {
 					AOServDaemonConfiguration.getMySqlPassword(serverName),
 					AOServDaemonConfiguration.getMySqlConnections(serverName),
 					AOServDaemonConfiguration.getMySqlMaxConnectionAge(serverName),
-					LogFactory.getLogger(MySQLServerManager.class)
+					logger
 				);
 				pools.put(I, pool);
 			}

@@ -1,14 +1,14 @@
 /*
- * Copyright 2000-2009, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2000-2009, 2017, 2018, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.unix;
 
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import java.io.IOException;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * A <code>UnixProcess</code> represents a process
@@ -17,6 +17,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 abstract public class UnixProcess {
+
+	private static final Logger logger = Logger.getLogger(UnixProcess.class.getName());
 
 	protected int pid;
 
@@ -65,7 +67,7 @@ abstract public class UnixProcess {
 			try {
 				Thread.sleep(2000);
 			} catch(InterruptedException err) {
-				LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
+				logger.log(Level.WARNING, null, err);
 			}
 		}
 		if(isRunning()) {

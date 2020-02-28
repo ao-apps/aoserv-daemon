@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -14,7 +14,6 @@ import com.aoindustries.aoserv.client.postgresql.UserServer;
 import com.aoindustries.aoserv.client.postgresql.Version;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
@@ -45,6 +44,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Controls the PostgreSQL server.
@@ -52,6 +52,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 final public class PostgresDatabaseManager extends BuilderThread implements CronJob {
+
+	private static final Logger logger = Logger.getLogger(PostgresDatabaseManager.class.getName());
 
 	private PostgresDatabaseManager() {
 	}
@@ -75,7 +77,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 				for(Server ps : thisServer.getPostgresServers()) {
 					List<Database> pds = ps.getPostgresDatabases();
 					if(pds.isEmpty()) {
-						LogFactory.getLogger(PostgresDatabaseManager.class).severe("No databases; refusing to rebuild config: " + ps);
+						logger.severe("No databases; refusing to rebuild config: " + ps);
 					} else {
 						int port = ps.getBind().getPort().getPort();
 						Version pv = ps.getVersion();
@@ -106,7 +108,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 								Database.Name name = database.getName();
 								if(!existing.remove(name)) {
 									if(database.isSpecial()) {
-										LogFactory.getLogger(PostgresDatabaseManager.class).log(
+										logger.log(
 											Level.WARNING,
 											null,
 											new SQLException("Refusing to create special database: " + name + " on " + ps.getName())
@@ -211,7 +213,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 													stmt.executeUpdate("DROP DATABASE \"" + name + '"');
 												}
 											} catch(SQLException err2) {
-												LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.SEVERE, null, err2);
+												logger.log(Level.SEVERE, null, err2);
 												throw err2;
 											}
 											throw err;
@@ -224,7 +226,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 							for(Database.Name dbName : existing) {
 								// Remove the extra database
 								if(Database.isSpecial(dbName)) {
-									LogFactory.getLogger(PostgresDatabaseManager.class).log(
+									logger.log(
 										Level.WARNING,
 										null,
 										new SQLException("Refusing to drop special database: " + dbName + " on " + ps)
@@ -251,7 +253,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 			}
 			return true;
 		} catch(RuntimeException | IOException | SQLException T) {
-			LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.SEVERE, null, T);
+			logger.log(Level.SEVERE, null, T);
 			return false;
 		}
 	}
@@ -371,7 +373,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 						conn.getPostgresql().getDatabase().addTableListener(postgresDatabaseManager, 0);
 					}
 					if(!cronStarted) {
-						CronDaemon.addCronJob(postgresDatabaseManager, LogFactory.getLogger(PostgresDatabaseManager.class));
+						CronDaemon.addCronJob(postgresDatabaseManager, logger);
 						cronStarted = true;
 					}
 					System.out.println("Done");
@@ -520,10 +522,10 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 											}
 										}
 									} else {
-										LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.WARNING, "schema=" + schema, new SQLWarning("Warning: not calling VACUUM or REINDEX because schema name does not pass the database name checks.  This is to make sure specially-crafted schema names cannot be used to execute arbitrary SQL with administrative privileges."));
+										logger.log(Level.WARNING, "schema=" + schema, new SQLWarning("Warning: not calling VACUUM or REINDEX because schema name does not pass the database name checks.  This is to make sure specially-crafted schema names cannot be used to execute arbitrary SQL with administrative privileges."));
 									}
 								} else {
-									LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.WARNING, "tableName=" + tableName, new SQLWarning("Warning: not calling VACUUM or REINDEX because table name does not pass the database name checks.  This is to make sure specially-crafted table names cannot be used to execute arbitrary SQL with administrative privileges."));
+									logger.log(Level.WARNING, "tableName=" + tableName, new SQLWarning("Warning: not calling VACUUM or REINDEX because table name does not pass the database name checks.  This is to make sure specially-crafted table names cannot be used to execute arbitrary SQL with administrative privileges."));
 								}
 							}
 						} finally {
@@ -534,7 +536,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 				}
 			}
 		} catch(RuntimeException | ReflectiveOperationException | IOException | SQLException T) {
-			LogFactory.getLogger(PostgresDatabaseManager.class).log(Level.SEVERE, null, T);
+			logger.log(Level.SEVERE, null, T);
 		}
 	}
 }

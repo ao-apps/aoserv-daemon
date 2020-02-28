@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -15,7 +15,6 @@ import com.aoindustries.aoserv.client.postgresql.User;
 import com.aoindustries.aoserv.client.postgresql.Version;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.server.ServerManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
@@ -41,6 +40,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Controls the PostgreSQL servers.
@@ -48,6 +48,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 final public class PostgresServerManager extends BuilderThread implements CronJob {
+
+	private static final Logger logger = Logger.getLogger(PostgresServerManager.class.getName());
 
 	/**
 	 * The SELinux type for PostgreSQL.
@@ -110,7 +112,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 		} catch(ThreadDeath TD) {
 			throw TD;
 		} catch(Throwable T) {
-			LogFactory.getLogger(PostgresServerManager.class).log(Level.SEVERE, null, T);
+			logger.log(Level.SEVERE, null, T);
 			return false;
 		}
 	}
@@ -183,7 +185,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 					AOServDaemonConfiguration.getPostgresPassword(serverName),
 					AOServDaemonConfiguration.getPostgresConnections(serverName),
 					AOServDaemonConfiguration.getPostgresMaxConnectionAge(serverName),
-					LogFactory.getLogger(PostgresServerManager.class)
+					logger
 				);
 				pools.put(pkeyObj, pool);
 			}
@@ -217,7 +219,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 					postgresServerManager = new PostgresServerManager();
 					conn.getPostgresql().getServer().addTableListener(postgresServerManager, 0);
 					// Register in CronDaemon
-					CronDaemon.addCronJob(postgresServerManager, LogFactory.getLogger(PostgresServerManager.class));
+					CronDaemon.addCronJob(postgresServerManager, logger);
 					System.out.println("Done");
 				} else {
 					System.out.println("Unsupported OperatingSystemVersion: " + osv);
@@ -336,7 +338,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 										)
 									)
 								) {
-									LogFactory.getLogger(PostgresServerManager.class).log(Level.WARNING, null, new IOException("Warning, unexpected filename, will not remove: " + logDirectory.getPath() + "/" + filename));
+									logger.log(Level.WARNING, null, new IOException("Warning, unexpected filename, will not remove: " + logDirectory.getPath() + "/" + filename));
 								} else {
 									// Determine the timestamp of the file
 									GregorianCalendar fileDate = new GregorianCalendar();
@@ -363,7 +365,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 		} catch(ThreadDeath TD) {
 			throw TD;
 		} catch(Throwable T) {
-			LogFactory.getLogger(PostgresServerManager.class).log(Level.SEVERE, null, T);
+			logger.log(Level.SEVERE, null, T);
 		}
 	}
 }

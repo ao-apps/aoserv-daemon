@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -12,7 +12,6 @@ import com.aoindustries.aoserv.client.mysql.User;
 import com.aoindustries.aoserv.client.mysql.UserServer;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.util.Tuple2;
@@ -28,6 +27,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Controls the MySQL Users.
@@ -35,6 +35,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 final public class MySQLUserManager extends BuilderThread {
+
+	private static final Logger logger = Logger.getLogger(MySQLUserManager.class.getName());
 
 	private MySQLUserManager() {
 	}
@@ -59,7 +61,7 @@ final public class MySQLUserManager extends BuilderThread {
 					// Get the list of all users that should exist.  By getting the list and reusing it we have a snapshot of the configuration.
 					List<UserServer> users = mysqlServer.getMySQLServerUsers();
 					if(users.isEmpty()) {
-						LogFactory.getLogger(MySQLUserManager.class).severe("No users; refusing to rebuild config: " + mysqlServer);
+						logger.severe("No users; refusing to rebuild config: " + mysqlServer);
 					} else {
 						// Must have root user
 						boolean foundRoot = false;
@@ -70,7 +72,7 @@ final public class MySQLUserManager extends BuilderThread {
 							}
 						}
 						if(!foundRoot) {
-							LogFactory.getLogger(MySQLUserManager.class).severe(User.ROOT + " user not found; refusing to rebuild config: " + mysqlServer);
+							logger.severe(User.ROOT + " user not found; refusing to rebuild config: " + mysqlServer);
 						} else {
 							final String version=mysqlServer.getVersion().getVersion();
 
@@ -579,7 +581,7 @@ final public class MySQLUserManager extends BuilderThread {
 										if(!existing.remove(key)) {
 											// Add the user
 											if(mu.isSpecial()) {
-												LogFactory.getLogger(MySQLUserManager.class).log(
+												logger.log(
 													Level.WARNING,
 													null,
 													new SQLException("Refusing to create special user: " + username + " on " + mysqlServer.getName())
@@ -658,7 +660,7 @@ final public class MySQLUserManager extends BuilderThread {
 											String host = key.getElement1();
 											User.Name user = key.getElement2();
 											if(User.isSpecial(user)) {
-												LogFactory.getLogger(MySQLUserManager.class).log(
+												logger.log(
 													Level.WARNING,
 													null,
 													new SQLException("Refusing to drop special user: " + user + " user for host " + host + " on " + mysqlServer.getName())
@@ -719,7 +721,7 @@ final public class MySQLUserManager extends BuilderThread {
 		} catch(ThreadDeath TD) {
 			throw TD;
 		} catch(Throwable T) {
-			LogFactory.getLogger(MySQLUserManager.class).log(Level.SEVERE, null, T);
+			logger.log(Level.SEVERE, null, T);
 			return false;
 		}
 	}

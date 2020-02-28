@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -13,7 +13,6 @@ import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcatSite;
 import com.aoindustries.aoserv.client.web.tomcat.Version;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.HttpdSiteManager;
 import com.aoindustries.aoserv.daemon.httpd.StopStartable;
@@ -177,7 +176,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 							try {
 								Thread.sleep(5000);
 							} catch(InterruptedException err) {
-								LogFactory.getLogger(HttpdSharedTomcatManager.class).log(Level.WARNING, null, err);
+								logger.log(Level.WARNING, null, err);
 							}
 						}
 						manager.start();
@@ -204,9 +203,9 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 				Future<Object> commandFuture = AOServDaemon.executorService.submit(commandCallable);
 				commandFuture.get(60, TimeUnit.SECONDS);
 			} catch(InterruptedException err) {
-				LogFactory.getLogger(HttpdSharedTomcatManager.class).log(Level.WARNING, null, err);
+				logger.log(Level.WARNING, null, err);
 			} catch(ExecutionException | TimeoutException err) {
-				LogFactory.getLogger(HttpdSharedTomcatManager.class).log(Level.WARNING, null, err);
+				logger.log(Level.WARNING, null, err);
 			}
 		}
 	}
@@ -422,7 +421,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 					return true;
 				}
 			} catch(NumberFormatException err) {
-				LogFactory.getLogger(HttpdSharedTomcatManager.class).log(Level.WARNING, null, err);
+				logger.log(Level.WARNING, null, err);
 			}
 			return false;
 		}

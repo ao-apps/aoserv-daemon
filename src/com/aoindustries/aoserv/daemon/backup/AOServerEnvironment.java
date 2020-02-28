@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -16,7 +16,6 @@ import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.client.scm.CvsRepository;
 import com.aoindustries.aoserv.client.web.HttpdServer;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.email.ImapManager;
 import com.aoindustries.io.FileExistsRule;
 import com.aoindustries.io.FilesystemIteratorRule;
@@ -51,6 +50,8 @@ import java.util.logging.Logger;
  * @author  AO Industries, Inc.
  */
 public class AOServerEnvironment extends UnixFileEnvironment {
+
+	private static final Logger logger = Logger.getLogger(AOServerEnvironment.class.getName());
 
 	@Override
 	public AOServConnector getConnector() throws IOException, SQLException {
@@ -476,6 +477,6 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 
 	@Override
 	public Logger getLogger() {
-		return LogFactory.getLogger(AOServerEnvironment.class);
+		return logger;
 	}
 }

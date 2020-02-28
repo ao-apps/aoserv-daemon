@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -23,7 +23,6 @@ import com.aoindustries.aoserv.client.sql.SQLComparator;
 import com.aoindustries.aoserv.client.sql.SQLExpression;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.io.ByteCountInputStream;
 import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.Stat;
@@ -58,6 +57,8 @@ import java.util.stream.IntStream;
  * @author  AO Industries, Inc.
  */
 final public class DistroManager implements Runnable {
+
+	private static final Logger logger = Logger.getLogger(DistroManager.class.getName());
 
 	/**
 	 * The number of entries in a directory that will be reported as a warning.
@@ -130,7 +131,6 @@ final public class DistroManager implements Runnable {
 					Server thisServer = AOServDaemon.getThisServer();
 					long distroStartTime = System.currentTimeMillis();
 					Timestamp lastDistroTime = thisServer.getLastDistroTime();
-					Logger logger = LogFactory.getLogger(DistroManager.class);
 					boolean isFiner = logger.isLoggable(Level.FINER);
 					if(isFiner) {
 						logger.finer("runNow=" + runNow);
@@ -156,7 +156,7 @@ final public class DistroManager implements Runnable {
 						if(runNow || currentHour == distroHour) {
 							try (
 								ProcessTimer timer = new ProcessTimer(
-									LogFactory.getLogger(DistroManager.class),
+									logger,
 									DistroManager.class.getName(),
 									"run",
 									"Distro verification taking too long",
@@ -191,11 +191,11 @@ final public class DistroManager implements Runnable {
 			} catch(ThreadDeath TD) {
 				throw TD;
 			} catch(Throwable T) {
-				LogFactory.getLogger(DistroManager.class).log(Level.SEVERE, null, T);
+				logger.log(Level.SEVERE, null, T);
 				try {
 					Thread.sleep(MAX_SLEEP_TIME);
 				} catch(InterruptedException err) {
-					LogFactory.getLogger(DistroManager.class).log(Level.WARNING, null, err);
+					logger.log(Level.WARNING, null, err);
 					// Restore the interrupted status
 					Thread.currentThread().interrupt();
 				}
@@ -668,7 +668,7 @@ final public class DistroManager implements Runnable {
 									try {
 										Thread.sleep(timeSpan);
 									} catch(InterruptedException err) {
-										LogFactory.getLogger(DistroManager.class).log(Level.WARNING, null, err);
+										logger.log(Level.WARNING, null, err);
 										// Restore the interrupted status
 										Thread.currentThread().interrupt();
 									}
@@ -734,7 +734,7 @@ final public class DistroManager implements Runnable {
 										try {
 											Thread.sleep(timeSpan);
 										} catch(InterruptedException err) {
-											LogFactory.getLogger(DistroManager.class).log(Level.WARNING, null, err);
+											logger.log(Level.WARNING, null, err);
 											// Restore the interrupted status
 											Thread.currentThread().interrupt();
 										}
@@ -924,7 +924,7 @@ final public class DistroManager implements Runnable {
 					} catch(ValidationException e) {
 						throw new IOException(e);
 					} catch(RuntimeException err) {
-						LogFactory.getLogger(DistroManager.class).severe("RuntimeException while accessing: " + uf);
+						logger.severe("RuntimeException while accessing: " + uf);
 						throw err;
 					}
 				} catch(FileNotFoundException err) {

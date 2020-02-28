@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -19,7 +19,6 @@ import com.aoindustries.aoserv.client.web.VirtualHost;
 import com.aoindustries.aoserv.client.web.VirtualHostName;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import static com.aoindustries.aoserv.daemon.httpd.HttpdServerManager.PHP_SESSION;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
@@ -208,7 +207,7 @@ public abstract class HttpdSiteManager {
 								try {
 									Thread.sleep(5000);
 								} catch(InterruptedException err) {
-									LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
+									logger.log(Level.WARNING, null, err);
 								}
 							}
 							stopStartRestartable.start();
@@ -235,9 +234,9 @@ public abstract class HttpdSiteManager {
 					Future<Object> commandFuture = AOServDaemon.executorService.submit(commandCallable);
 					commandFuture.get(60, TimeUnit.SECONDS);
 				} catch(InterruptedException err) {
-					LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
+					logger.log(Level.WARNING, null, err);
 				} catch(ExecutionException | TimeoutException err) {
-					LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
+					logger.log(Level.WARNING, null, err);
 				}
 			}
 		}
@@ -283,9 +282,9 @@ public abstract class HttpdSiteManager {
 								});
 								stopFuture.get(60, TimeUnit.SECONDS);
 							} catch(InterruptedException err) {
-								LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
+								logger.log(Level.WARNING, null, err);
 							} catch(ExecutionException | TimeoutException err) {
-								LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
+								logger.log(Level.WARNING, null, err);
 							}
 						}
 						// Remove the file
@@ -316,7 +315,7 @@ public abstract class HttpdSiteManager {
 					try {
 						Thread.sleep(5000);
 					} catch(InterruptedException err) {
-						LogFactory.getLogger(HttpdSiteManager.class).log(Level.WARNING, null, err);
+						logger.log(Level.WARNING, null, err);
 					}
 				}
 				stopStartable.start();

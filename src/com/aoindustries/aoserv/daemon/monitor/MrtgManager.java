@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2006-2013, 2015, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -13,7 +13,6 @@ import com.aoindustries.aoserv.client.net.Host;
 import com.aoindustries.aoserv.client.web.HttpdServer;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
@@ -41,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Handles the building of name server processes and files.
@@ -48,6 +48,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 final public class MrtgManager extends BuilderThread {
+
+	private static final Logger logger = Logger.getLogger(MrtgManager.class.getName());
 
 	public static final int GRAPH_WIDTH = 600;
 	public static final int GRAPH_HEIGHT = 150;
@@ -639,7 +641,7 @@ final public class MrtgManager extends BuilderThread {
 			}
 			return true;
 		} catch(RuntimeException | IOException | SQLException T) {
-			LogFactory.getLogger(MrtgManager.class).log(Level.SEVERE, null, T);
+			logger.log(Level.SEVERE, null, T);
 			return false;
 		}
 	}
@@ -729,7 +731,7 @@ final public class MrtgManager extends BuilderThread {
 				String line;
 				while((line = in.readLine()) != null) {
 					if(devices.contains(line)) {
-						LogFactory.getLogger(MrtgManager.class).log(Level.WARNING, null, new Throwable("Warning: duplicate device from list_partitions: " + line));
+						logger.log(Level.WARNING, null, new Throwable("Warning: duplicate device from list_partitions: " + line));
 					} else {
 						devices.add(line);
 					}

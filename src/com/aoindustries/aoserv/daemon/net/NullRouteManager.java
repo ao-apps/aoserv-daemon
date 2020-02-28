@@ -1,5 +1,5 @@
 /*
- * Copyright 2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2013, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -13,7 +13,6 @@ import com.aoindustries.aoserv.client.master.User;
 import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.server.VirtualServerManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxProcess;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
@@ -28,6 +27,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Manages the null route config file.
@@ -35,6 +35,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 final public class NullRouteManager {
+
+	private static final Logger logger = Logger.getLogger(NullRouteManager.class.getName());
 
 	private static final boolean DEBUG = true;
 
@@ -261,7 +263,7 @@ final public class NullRouteManager {
 												// kill -HUP bird if updated
 												int pid = VirtualServerManager.findPid("/opt/bird/sbin/bird\u0000-u\u0000bird\u0000-g\u0000bird");
 												if(pid == -1) {
-													LogFactory.getLogger(NullRouteManager.class).log(Level.SEVERE, "bird not running");
+													logger.log(Level.SEVERE, "bird not running");
 												} else {
 													new LinuxProcess(pid).signal("HUP");
 												}
@@ -269,7 +271,7 @@ final public class NullRouteManager {
 												try {
 													AOServDaemon.exec("/usr/bin/systemctl", "reload-or-try-restart", "bird-1.service");
 												} catch(IOException e) {
-													LogFactory.getLogger(NullRouteManager.class).log(Level.SEVERE, "Unable to reload bird configuration", e);
+													logger.log(Level.SEVERE, "Unable to reload bird configuration", e);
 												}
 											} else {
 												throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -289,12 +291,12 @@ final public class NullRouteManager {
 							} catch (ThreadDeath TD) {
 								throw TD;
 							} catch (Throwable T) {
-								LogFactory.getLogger(NullRouteManager.class).log(Level.SEVERE, null, T);
+								logger.log(Level.SEVERE, null, T);
 							}
 							try {
 								sleep(1000);
 							} catch (InterruptedException err) {
-								LogFactory.getLogger(NullRouteManager.class).log(Level.WARNING, null, err);
+								logger.log(Level.WARNING, null, err);
 							}
 						}
 					}

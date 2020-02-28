@@ -1,5 +1,5 @@
 /*
- * Copyright 2013, 2014, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2013, 2014, 2017, 2018, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -7,7 +7,6 @@ package com.aoindustries.aoserv.daemon.monitor;
 
 import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.net.NullRouteManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.io.FileUtils;
@@ -24,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Monitoring network traffic using the ip_counts command.
@@ -32,6 +32,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 final public class NetworkMonitor {
+
+	private static final Logger logger = Logger.getLogger(NetworkMonitor.class.getName());
 
 	private static final boolean DEBUG = false;
 
@@ -358,7 +360,7 @@ final public class NetworkMonitor {
 										} catch (ThreadDeath TD) {
 											throw TD;
 										} catch (Throwable T) {
-											LogFactory.getLogger(NetworkMonitor.class).log(Level.SEVERE, null, T);
+											logger.log(Level.SEVERE, null, T);
 										}
 									}
 								}.start();
@@ -602,13 +604,13 @@ final public class NetworkMonitor {
 						} catch (ThreadDeath TD) {
 							throw TD;
 						} catch (Throwable T) {
-							LogFactory.getLogger(NetworkMonitor.class).log(Level.SEVERE, null, T);
+							logger.log(Level.SEVERE, null, T);
 						}
 						try {
 							// Sleep less on error when controlling null routes
 							sleep(controllingNullRoutes ? 1000 : 10000);
 						} catch (InterruptedException err) {
-							LogFactory.getLogger(NetworkMonitor.class).log(Level.WARNING, null, err);
+							logger.log(Level.WARNING, null, err);
 						}
 					}
 				}

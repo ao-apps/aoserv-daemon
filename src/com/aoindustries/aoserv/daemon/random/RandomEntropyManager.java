@@ -1,5 +1,5 @@
 /*
- * Copyright 2004-2013, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2004-2013, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -10,7 +10,6 @@ import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.io.unix.linux.DevRandom;
 import com.aoindustries.util.BufferManager;
@@ -18,6 +17,7 @@ import com.aoindustries.util.WrappedException;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Watches the amount of entropy available in the system, obtains entropy from the master when running low,
@@ -26,6 +26,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 public final class RandomEntropyManager implements Runnable {
+
+	private static final Logger logger = Logger.getLogger(RandomEntropyManager.class.getName());
 
 	/**
 	 * The minimum delay between scans.
@@ -233,17 +235,17 @@ public final class RandomEntropyManager implements Runnable {
 					try {
 						Thread.sleep(sleepyTime);
 					} catch(InterruptedException err) {
-						LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
+						logger.log(Level.WARNING, null, err);
 					}
 				}
 			} catch(ThreadDeath TD) {
 				throw TD;
 			} catch(Throwable T) {
-				LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, T);
+				logger.log(Level.SEVERE, null, T);
 				try {
 					Thread.sleep(ERROR_DELAY);
 				} catch(InterruptedException err) {
-					LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
+					logger.log(Level.WARNING, null, err);
 				}
 			}
 		}

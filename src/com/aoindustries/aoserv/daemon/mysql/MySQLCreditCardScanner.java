@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -10,7 +10,6 @@ import com.aoindustries.aoserv.client.mysql.Database;
 import com.aoindustries.aoserv.client.mysql.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
 import com.aoindustries.cron.CronJobScheduleMode;
@@ -28,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Controls the MySQL databases.
@@ -37,6 +37,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 final public class MySQLCreditCardScanner implements CronJob {
+
+	private static final Logger logger = Logger.getLogger(MySQLCreditCardScanner.class.getName());
 
 	private MySQLCreditCardScanner() {
 	}
@@ -49,7 +51,7 @@ final public class MySQLCreditCardScanner implements CronJob {
 				if(mySQLCreditCardScanner==null) {
 					System.out.print("Starting MySQLCreditCardScanner: ");
 					mySQLCreditCardScanner=new MySQLCreditCardScanner();
-					CronDaemon.addCronJob(mySQLCreditCardScanner, LogFactory.getLogger(MySQLCreditCardScanner.class));
+					CronDaemon.addCronJob(mySQLCreditCardScanner, logger);
 					System.out.println("Done");
 				}
 			}
@@ -142,7 +144,7 @@ final public class MySQLCreditCardScanner implements CronJob {
 		} catch(ThreadDeath td) {
 			throw td;
 		} catch(Throwable t) {
-			LogFactory.getLogger(MySQLCreditCardScanner.class).log(Level.SEVERE, null, t);
+			logger.log(Level.SEVERE, null, t);
 		}
 	}
 

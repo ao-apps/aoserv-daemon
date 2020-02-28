@@ -1,17 +1,17 @@
 /*
- * Copyright 2001-2013, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2017, 2018, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.util;
 
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.io.AOPool;
 import com.aoindustries.net.InetAddress;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Handles incoming connections on one <code>ServerSocket</code>.
@@ -19,6 +19,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 abstract public class SocketServerThread extends Thread {
+
+	private static final Logger logger = Logger.getLogger(SocketServerThread.class.getName());
 
     final InetAddress ipAddress;
     final int port;
@@ -60,11 +62,11 @@ abstract public class SocketServerThread extends Thread {
             } catch(ThreadDeath TD) {
                 throw TD;
             } catch(Throwable T) {
-                LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, T);
+                logger.log(Level.SEVERE, null, T);
                 try {
                     Thread.sleep(60000);
                 } catch(InterruptedException err) {
-                    LogFactory.getLogger(this.getClass()).log(Level.WARNING, null, err);
+                    logger.log(Level.WARNING, null, err);
                 }
             }
         }
@@ -75,7 +77,7 @@ abstract public class SocketServerThread extends Thread {
         try {
             SS.close();
         } catch(IOException err) {
-            LogFactory.getLogger(this.getClass()).log(Level.SEVERE, null, err);
+            logger.log(Level.SEVERE, null, err);
         }
     }
 

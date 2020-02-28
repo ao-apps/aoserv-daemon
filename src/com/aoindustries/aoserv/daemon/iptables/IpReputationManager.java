@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2012-2013, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -15,7 +15,6 @@ import com.aoindustries.aoserv.client.net.reputation.Network;
 import com.aoindustries.aoserv.client.net.reputation.Set;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.io.unix.UnixFile;
@@ -32,6 +31,7 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Handles the IP reputation system.
@@ -39,6 +39,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 final public class IpReputationManager extends BuilderThread {
+
+	private static final Logger logger = Logger.getLogger(IpReputationManager.class.getName());
 
 	private static IpReputationManager ipReputationManager;
 
@@ -334,7 +336,7 @@ final public class IpReputationManager extends BuilderThread {
 		} catch(ThreadDeath TD) {
 			throw TD;
 		} catch(Throwable T) {
-			LogFactory.getLogger(IpReputationManager.class).log(Level.SEVERE, null, T);
+			logger.log(Level.SEVERE, null, T);
 			return false;
 		}
 	}

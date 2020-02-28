@@ -1,5 +1,5 @@
 /*
- * Copyright 2003-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -15,7 +15,6 @@ import com.aoindustries.aoserv.client.postgresql.UserServer;
 import com.aoindustries.aoserv.client.postgresql.Version;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
-import com.aoindustries.aoserv.daemon.LogFactory;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxProcess;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
@@ -36,6 +35,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Controls the pg_hba.conf files for the PostgreSQL installations.
@@ -43,6 +43,8 @@ import java.util.logging.Level;
  * @author  AO Industries, Inc.
  */
 public final class PgHbaManager extends BuilderThread {
+
+	private static final Logger logger = Logger.getLogger(PgHbaManager.class.getName());
 
 	private PgHbaManager() {
 	}
@@ -93,11 +95,11 @@ public final class PgHbaManager extends BuilderThread {
 					for(Server ps : thisServer.getPostgresServers()) {
 						List<UserServer> users = ps.getPostgresServerUsers();
 						if(users.isEmpty()) {
-							LogFactory.getLogger(PgHbaManager.class).severe("No users; refusing to rebuild config: " + ps);
+							logger.severe("No users; refusing to rebuild config: " + ps);
 						} else {
 							List<Database> pds = ps.getPostgresDatabases();
 							if(pds.isEmpty()) {
-								LogFactory.getLogger(PgHbaManager.class).severe("No databases; refusing to rebuild config: " + ps);
+								logger.severe("No databases; refusing to rebuild config: " + ps);
 							} else {
 								String version = ps.getVersion().getTechnologyVersion(connector).getVersion();
 								int postgresUID = thisServer.getLinuxServerAccount(com.aoindustries.aoserv.client.linux.User.POSTGRES).getUid().getId();
@@ -496,7 +498,7 @@ public final class PgHbaManager extends BuilderThread {
 										}
 										new LinuxProcess(Integer.parseInt(pid)).signal("HUP");
 									} else {
-										LogFactory.getLogger(PgHbaManager.class).log(
+										logger.log(
 											Level.WARNING,
 											"PID file not found for PostgreSQL server \""
 												+ serverName
@@ -516,7 +518,7 @@ public final class PgHbaManager extends BuilderThread {
 		} catch(ThreadDeath TD) {
 			throw TD;
 		} catch(Throwable T) {
-			LogFactory.getLogger(PgHbaManager.class).log(Level.SEVERE, null, T);
+			logger.log(Level.SEVERE, null, T);
 			return false;
 		}
 	}
