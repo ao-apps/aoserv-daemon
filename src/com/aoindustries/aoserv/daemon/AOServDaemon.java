@@ -151,7 +151,7 @@ final public class AOServDaemon {
 		synchronized(AOServDaemon.class) {
 			if(conn == null) {
 				// Get the connector that will be used
-				conn = AOServConnector.getConnector(logger);
+				conn = AOServConnector.getConnector();
 			}
 			return conn;
 		}
@@ -288,6 +288,7 @@ final public class AOServDaemon {
 	 * Gets a single-String representation of the command.  This should be used
 	 * for display purposes only, because it doesn't quote things in a shell-safe way.
 	 */
+	// TODO: Use ao-encoding SH encoder?
 	public static String getCommandString(String... command) {
 		StringBuilder SB = new StringBuilder();
 		for(int c=0;c<command.length;c++) {
