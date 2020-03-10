@@ -106,7 +106,7 @@ import javax.mail.StoreClosedException;
  *
  * TODO: Future
  *     Control the synchronous mode for ext2/ext3 automatically?
- *         file:///home/o/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
+ *         file:///home/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
  *         cd /var/imap
  *         chattr +S user quota user/* quota/*
  *         chattr +S /var/spool/imap /var/spool/imap/*
@@ -975,7 +975,7 @@ final public class ImapManager extends BuilderThread {
 											+ "tls_key_file: ").print(keyFile).print("\n"
 											+ "tls_ca_file: ").print(chainFile).print("\n");
 									// service-specific certificates
-									//     file:///home/o/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
+									//     file:///home/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
 									//     value of "disabled='disabled'" if the certificate file doesn't exist (or use server default)
 									//     openssl req -new -x509 -nodes -out cyrus-imapd.pem -keyout cyrus-imapd.pem -days 3650
 									for(Map.Entry<String,CyrusImapdBind> entry : tlsServices.entrySet()) {

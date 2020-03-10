@@ -222,9 +222,9 @@ final public class FailoverFileReplicationManager {
 		encryptedLoopFilePaths.add("/www.aes128.img");
 		encryptedLoopFilePaths.add("/www.aes256.img");
 		// AO desktop home directories in Debian seem to update modified times
-		//encryptedLoopFilePaths.add("/home/b/bugnugger.aes256.img");
-		//encryptedLoopFilePaths.add("/home/k/kaori.aes256.img");
-		//encryptedLoopFilePaths.add("/home/o/orion.aes256.img");
+		//encryptedLoopFilePaths.add("/home/bugnugger.aes256.img");
+		//encryptedLoopFilePaths.add("/home/kaori.aes256.img");
+		//encryptedLoopFilePaths.add("/home/orion.aes256.img");
 	}
 	private static boolean isEncryptedLoopFile(String path) {
 		return encryptedLoopFilePaths.contains(path);
