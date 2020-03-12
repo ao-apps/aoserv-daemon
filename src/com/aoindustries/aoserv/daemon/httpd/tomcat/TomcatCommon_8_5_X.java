@@ -418,10 +418,7 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_5_49) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
-			} else if(
-				rpmVersion.equals("8.5.50")
-				|| rpmVersion.equals("8.5.51")
-			) {
+			} else if(rpmVersion.equals("8.5.50")) {
 				UpgradeSymlink[] upgradeSymlinks_8_5_50 = {
 					// mysql-connector-java-8.0.18.jar -> mysql-connector-java-8.0.19.jar
 					new UpgradeSymlink(
@@ -476,6 +473,29 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 					),
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_5_50) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+			} else if(rpmVersion.equals("8.5.51")) {
+				UpgradeSymlink[] upgradeSymlinks_8_5_51 = {
+					// postgresql-42.2.10.jar -> postgresql-42.2.11.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.10.jar",
+						"/dev/null",
+						"lib/postgresql-42.2.11.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.10.jar",
+						"../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.10.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.11.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.11.jar"
+					),
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_5_51) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			} else {

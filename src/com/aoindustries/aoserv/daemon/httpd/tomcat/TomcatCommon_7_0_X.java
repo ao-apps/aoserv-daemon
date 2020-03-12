@@ -383,10 +383,7 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_96) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
-			} else if(
-				rpmVersion.equals("7.0.99")
-				|| rpmVersion.equals("7.0.100")
-			) {
+			} else if(rpmVersion.equals("7.0.99")) {
 				UpgradeSymlink[] upgradeSymlinks_7_0_99 = {
 					// New conf/tomcat-users.xsd
 					new UpgradeSymlink(
@@ -446,6 +443,29 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 					),
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_99) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+			} else if(rpmVersion.equals("7.0.100")) {
+				UpgradeSymlink[] upgradeSymlinks_7_0_100 = {
+					// postgresql-42.2.10.jre6.jar -> postgresql-42.2.11.jre6.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.10.jre6.jar",
+						"/dev/null",
+						"lib/postgresql-42.2.11.jre6.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.10.jre6.jar",
+						"../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.10.jre6.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.11.jre6.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.11.jre6.jar"
+					),
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_100) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			} else {

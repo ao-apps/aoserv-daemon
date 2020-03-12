@@ -476,10 +476,7 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_27) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
-			} else if(
-				rpmVersion.equals("9.0.30")
-				|| rpmVersion.equals("9.0.31")
-			) {
+			} else if(rpmVersion.equals("9.0.30")) {
 				UpgradeSymlink[] upgradeSymlinks_9_0_30 = {
 					// New lib/catalina-ssi.jar
 					new UpgradeSymlink(
@@ -540,6 +537,29 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 					),
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_30) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+			} else if(rpmVersion.equals("9.0.31")) {
+				UpgradeSymlink[] upgradeSymlinks_9_0_31 = {
+					// postgresql-42.2.10.jar -> postgresql-42.2.11.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.10.jar",
+						"/dev/null",
+						"lib/postgresql-42.2.11.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.10.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.10.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.11.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.11.jar"
+					),
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_31) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			} else {
