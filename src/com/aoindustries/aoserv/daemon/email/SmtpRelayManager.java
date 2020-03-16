@@ -21,7 +21,7 @@ import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.util.StringUtility;
+import com.aoindustries.lang.Strings;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -216,8 +216,8 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 	}
 
 	private static void writeAccessLine(ChainWriter out, String host, SmtpRelayType type/*, boolean isQmail*/) throws IOException, SQLException {
-		/*if(isQmail) out.print(host).print(':').print(StringUtility.replace(type.getQmailConfig(), "%h", host)).print('\n');
-		else*/ out.print("Connect:").print(host).print('\t').print(StringUtility.replace(type.getSendmailConfig(), "%h", host)).print('\n');
+		/*if(isQmail) out.print(host).print(':').print(Strings.replace(type.getQmailConfig(), "%h", host)).print('\n');
+		else*/ out.print("Connect:").print(host).print('\t').print(Strings.replace(type.getSendmailConfig(), "%h", host)).print('\n');
 	}
 	/**
 	 * Gets the number of dots in the String, returning a maximum of 3 even if there are more

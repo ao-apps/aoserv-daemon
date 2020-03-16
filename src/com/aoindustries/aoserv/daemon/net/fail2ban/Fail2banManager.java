@@ -20,9 +20,9 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.Strings;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.util.AoCollections;
-import com.aoindustries.util.StringUtility;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -285,7 +285,7 @@ final public class Fail2banManager extends BuilderThread {
 										out.print("enabled = true\n");
 										out.print("port = ");
 										assert !ports.isEmpty();
-										StringUtility.join(ports, ",", out);
+										Strings.join(ports, ",", out);
 										out.print('\n');
 									}
 									if(

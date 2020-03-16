@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -37,15 +37,15 @@ import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxProcess;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
+import com.aoindustries.concurrent.ConcurrencyLimiter;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.Strings;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.Port;
 import com.aoindustries.selinux.SEManagePort;
-import com.aoindustries.util.StringUtility;
-import com.aoindustries.util.concurrent.ConcurrencyLimiter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -729,7 +729,7 @@ public class HttpdServerManager {
 							if(hsal.getRequire().length() > 0) {
 								out.print("    require");
 								// Split on space, escaping each term
-								for(String term : StringUtility.splitString(hsal.getRequire(), ' ')) {
+								for(String term : Strings.splitString(hsal.getRequire(), ' ')) {
 									if(!term.isEmpty()) {
 										out.print(' ').print(escape(dollarVariable, term));
 									}
@@ -994,7 +994,7 @@ public class HttpdServerManager {
 									.print(indent).print("    <IfModule authz_core_module>\n")
 									.print(indent).print("        Require");
 								// Split on space, escaping each term
-								for(String term : StringUtility.splitString(hsal.getRequire(), ' ')) {
+								for(String term : Strings.splitString(hsal.getRequire(), ' ')) {
 									if(!term.isEmpty()) {
 										out.print(' ').print(escape(dollarVariable, term));
 									}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -8,8 +8,8 @@ package com.aoindustries.aoserv.daemon.report;
 import com.aoindustries.aoserv.client.linux.LinuxId;
 import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.lang.Strings;
 import com.aoindustries.util.ErrorPrinter;
-import com.aoindustries.util.StringUtility;
 import com.aoindustries.validation.ValidationException;
 import java.io.BufferedReader;
 import java.io.File;
@@ -79,10 +79,10 @@ final public class ProcStates {
 							String line;
 							while((state==null || uid==-1) && (line=in.readLine())!=null) {
 								if(line.startsWith("State:")) {
-									String[] words=StringUtility.splitString(line);
+									String[] words=Strings.splitString(line);
 									state=words[1];
 								} else if(line.startsWith("Uid:")) {
-									String[] words= StringUtility.splitString(line);
+									String[] words= Strings.splitString(line);
 									uid=Integer.parseInt(words[1]);
 								}
 							}

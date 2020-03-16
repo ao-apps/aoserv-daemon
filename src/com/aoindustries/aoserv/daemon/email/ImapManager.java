@@ -31,11 +31,11 @@ import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.FilesystemIteratorRule;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.Strings;
 import com.aoindustries.net.DomainName;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.Port;
 import com.aoindustries.sql.SQLUtility;
-import com.aoindustries.util.StringUtility;
 import com.aoindustries.util.Tuple3;
 import com.aoindustries.validation.ValidationException;
 import com.sun.mail.iap.Argument;
@@ -1562,7 +1562,7 @@ final public class ImapManager extends BuilderThread {
 								Message oldMessage = oldMessages[c];
 								// Make sure not already finished this message
 								if(oldMessage.isSet(Flags.Flag.DELETED)) {
-									log(logOut, Level.FINER, username, "\"" + folderName + "\": Skipping deleted message " + (c + 1) + " of " + len + " (" + StringUtility.getApproximateSize(oldMessage.getSize()) + ")");
+									log(logOut, Level.FINER, username, "\"" + folderName + "\": Skipping deleted message " + (c + 1) + " of " + len + " (" + Strings.getApproximateSize(oldMessage.getSize()) + ")");
 								} else {
 									long messageAge = (System.currentTimeMillis() - oldMessage.getReceivedDate().getTime()) / (24L*60*60*1000);
 									if(
@@ -1570,17 +1570,17 @@ final public class ImapManager extends BuilderThread {
 										&& "Junk".equals(folderName)
 										&& messageAge > junkRetention
 									) {
-										log(logOut, Level.FINER, username, "\"" + folderName + "\": Deleting old junk message (" + messageAge + ">" + junkRetention + " days) " + (c + 1) + " of " + len + " (" + StringUtility.getApproximateSize(oldMessage.getSize()) + ")");
+										log(logOut, Level.FINER, username, "\"" + folderName + "\": Deleting old junk message (" + messageAge + ">" + junkRetention + " days) " + (c + 1) + " of " + len + " (" + Strings.getApproximateSize(oldMessage.getSize()) + ")");
 										oldMessage.setFlag(Flags.Flag.DELETED, true);
 									} else if(
 										trashRetention != -1
 										&& "Trash".equals(folderName)
 										&& messageAge > trashRetention
 									) {
-										log(logOut, Level.FINER, username, "\"" + folderName + "\": Deleting old trash message (" + messageAge + ">" + trashRetention + " days) " + (c + 1) + " of " + len + " (" + StringUtility.getApproximateSize(oldMessage.getSize()) + ")");
+										log(logOut, Level.FINER, username, "\"" + folderName + "\": Deleting old trash message (" + messageAge + ">" + trashRetention + " days) " + (c + 1) + " of " + len + " (" + Strings.getApproximateSize(oldMessage.getSize()) + ")");
 										oldMessage.setFlag(Flags.Flag.DELETED, true);
 									} else {
-										log(logOut, Level.FINER, username, "\"" + folderName + "\": Copying message " + (c + 1) + " of " + len + " (" + StringUtility.getApproximateSize(oldMessage.getSize()) + ")");
+										log(logOut, Level.FINER, username, "\"" + folderName + "\": Copying message " + (c + 1) + " of " + len + " (" + Strings.getApproximateSize(oldMessage.getSize()) + ")");
 										try {
 											Flags oldFlags = oldMessage.getFlags();
 

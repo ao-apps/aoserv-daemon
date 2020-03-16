@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2015, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -11,8 +11,8 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.Strings;
 import com.aoindustries.math.SafeMath;
-import com.aoindustries.util.StringUtility;
 import com.aoindustries.util.Tuple2;
 import com.aoindustries.validation.ValidationException;
 import java.io.BufferedReader;
@@ -101,7 +101,7 @@ final public class ShadowFile {
 		 * (disabled).
 		 */
 		public Entry(String line) throws ValidationException {
-			List<String> values = StringUtility.splitString(line, ':');
+			List<String> values = Strings.splitString(line, ':');
 			int len = values.size();
 			if(len < 1) throw new IllegalArgumentException("At least the first field of shadow file required: " + line);
 

@@ -27,9 +27,9 @@ import com.aoindustries.io.ByteCountInputStream;
 import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.Strings;
 import com.aoindustries.lang.SysExits;
 import com.aoindustries.util.ErrorPrinter;
-import com.aoindustries.util.StringUtility;
 import com.aoindustries.util.logging.ProcessTimer;
 import com.aoindustries.validation.ValidationException;
 import java.io.FileInputStream;
@@ -560,7 +560,7 @@ final public class DistroManager implements Runnable {
 				if(distroLink != null) {
 					String fileLink = file.readLink();
 					// Allow multiple destinations separated by |
-					if(!StringUtility.splitString(distroLink, '|').contains(fileLink)) {
+					if(!Strings.splitString(distroLink, '|').contains(fileLink)) {
 						addResult(
 							results,
 							verboseOut,
@@ -997,7 +997,7 @@ final public class DistroManager implements Runnable {
 			out.println("Time");
 			out.print("  Start.....: "); out.println(new Date(stats.startTime).toString());
 			out.print("  End.......: "); out.println(new Date(stats.endTime).toString());
-			out.print("  Duration..: "); out.println(StringUtility.getDecimalTimeLengthString(stats.endTime - stats.startTime));
+			out.print("  Duration..: "); out.println(Strings.getDecimalTimeLengthString(stats.endTime - stats.startTime));
 			out.println("Scan");
 			out.print("  Total.....: "); out.println(stats.scanned);
 			out.print("  System....: "); out.println(stats.systemCount);
@@ -1005,10 +1005,10 @@ final public class DistroManager implements Runnable {
 			out.print("  No Recurse: "); out.println(stats.noRecurseCount);
 			out.println("Prelink Verify");
 			out.print("  Files.....: "); out.println(stats.prelinkFiles);
-			out.print("  Bytes.....: "); out.print(stats.prelinkBytes); out.print(" ("); out.print(StringUtility.getApproximateSize(stats.prelinkBytes)); out.println(')');
+			out.print("  Bytes.....: "); out.print(stats.prelinkBytes); out.print(" ("); out.print(Strings.getApproximateSize(stats.prelinkBytes)); out.println(')');
 			out.println("SHA-256");
 			out.print("  Files.....: "); out.println(stats.sha256Files);
-			out.print("  Bytes.....: "); out.print(stats.sha256Bytes); out.print(" ("); out.print(StringUtility.getApproximateSize(stats.sha256Bytes)); out.println(')');
+			out.print("  Bytes.....: "); out.print(stats.sha256Bytes); out.print(" ("); out.print(Strings.getApproximateSize(stats.sha256Bytes)); out.println(')');
 		}
 		if(retVal != 0) System.exit(retVal);
 	}

@@ -10,7 +10,7 @@ import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.util.StringUtility;
+import com.aoindustries.lang.Strings;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -298,7 +298,7 @@ final public class BackupManager {
 				if(line==null) throw new IOException("EOF when trying to read column labels");
 				line=in.readLine();
 				if(line==null) throw new IOException("EOF when trying to read values");
-				String[] columns=StringUtility.splitString(line);
+				String[] columns=Strings.splitString(line);
 				size = 1024 * Long.parseLong(columns[column]);
 			}
 		} finally {

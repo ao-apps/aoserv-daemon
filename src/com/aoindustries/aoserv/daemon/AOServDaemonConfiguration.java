@@ -7,8 +7,8 @@ package com.aoindustries.aoserv.daemon;
 
 import com.aoindustries.exception.ConfigurationException;
 import com.aoindustries.io.AOPool;
+import com.aoindustries.lang.Strings;
 import com.aoindustries.util.PropertiesUtils;
-import com.aoindustries.util.StringUtility;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -245,7 +245,7 @@ final public class AOServDaemonConfiguration {
 		if(networkNamesProp == null || networkNamesProp.isEmpty()) {
 			return Collections.emptyMap();
 		} else {
-			List<String> networkNames = StringUtility.splitStringCommaSpace(networkNamesProp);
+			List<String> networkNames = Strings.splitStringCommaSpace(networkNamesProp);
 			Map<String,NetworkMonitorConfiguration> networkMonitors = new LinkedHashMap<>(networkNames.size()*4/3+1);
 			for(String name : networkNames) {
 				String nullRouteFifoErrorRate = getProperty("monitor.NetworkMonitor.network." + name + ".nullRoute.fifoErrorRate", null);
@@ -258,7 +258,7 @@ final public class AOServDaemonConfiguration {
 						new NetworkMonitorConfiguration(
 							name,
 							getProperty("monitor.NetworkMonitor.network." + name + ".device", null, true),
-							Collections.unmodifiableList(StringUtility.splitStringCommaSpace(getProperty("monitor.NetworkMonitor.network." + name + ".networkRanges", null, true))),
+							Collections.unmodifiableList(Strings.splitStringCommaSpace(getProperty("monitor.NetworkMonitor.network." + name + ".networkRanges", null, true))),
 							NetworkMonitorConfiguration.NetworkDirection.valueOf(getProperty("monitor.NetworkMonitor.network." + name + ".in.networkDirection", null, true)),
 							NetworkMonitorConfiguration.CountDirection.valueOf(getProperty("monitor.NetworkMonitor.network." + name + ".in.countDirection", null, true)),
 							NetworkMonitorConfiguration.NetworkDirection.valueOf(getProperty("monitor.NetworkMonitor.network." + name + ".out.networkDirection", null, true)),

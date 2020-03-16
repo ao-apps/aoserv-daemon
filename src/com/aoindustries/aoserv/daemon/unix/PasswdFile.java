@@ -1,5 +1,5 @@
 /*
- * Copyright 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -11,7 +11,7 @@ import com.aoindustries.aoserv.client.linux.User.Gecos;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.util.StringUtility;
+import com.aoindustries.lang.Strings;
 import com.aoindustries.validation.ValidationException;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -98,7 +98,7 @@ final public class PasswdFile {
 		 * the trailing newline (<code>'\n'</code>).
 		 */
 		public Entry(String line) throws ValidationException {
-			List<String> values = StringUtility.splitString(line, ':');
+			List<String> values = Strings.splitString(line, ':');
 			int len = values.size();
 			if(len < 7) throw new IllegalArgumentException("At least the first seven fields of passwd file required: " + line);
 
@@ -114,7 +114,7 @@ final public class PasswdFile {
 
 			List<String> fields;
 			if(len > 4 && (S = values.get(4)).length() > 0) {
-				fields = StringUtility.splitString(S, ',');
+				fields = Strings.splitString(S, ',');
 			} else {
 				fields = Collections.emptyList();
 			}

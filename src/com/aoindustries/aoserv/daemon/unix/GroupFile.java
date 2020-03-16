@@ -1,5 +1,5 @@
 /*
- * Copyright 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2017, 2018, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -10,8 +10,8 @@ import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.Strings;
 import com.aoindustries.util.AoCollections;
-import com.aoindustries.util.StringUtility;
 import com.aoindustries.validation.ValidationException;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -67,7 +67,7 @@ final public class GroupFile {
 		 * the trailing newline (<code>'\n'</code>).
 		 */
 		public Entry(String line) throws ValidationException {
-			List<String> values = StringUtility.splitString(line, ':');
+			List<String> values = Strings.splitString(line, ':');
 			int len = values.size();
 			if(len < 3) throw new IllegalArgumentException("At least the first three fields of group file required: " + line);
 

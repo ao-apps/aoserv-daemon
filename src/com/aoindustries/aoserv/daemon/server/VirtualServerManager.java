@@ -13,7 +13,7 @@ import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.io.stream.StreamableInput;
 import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.lang.ProcessResult;
-import com.aoindustries.util.StringUtility;
+import com.aoindustries.lang.Strings;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import java.io.BufferedInputStream;
@@ -312,7 +312,7 @@ final public class VirtualServerManager {
 						"-F",
 						"0pPnT"
 					);
-					List<String> values = StringUtility.splitString(lsof, '\u0000');
+					List<String> values = Strings.splitString(lsof, '\u0000');
 					//System.out.println("values.size()="+values.size());
 					if(
 						values.size()<7
@@ -615,7 +615,7 @@ final public class VirtualServerManager {
 
 	public static int getVirtualServerStatus(String virtualServer) throws IOException, SQLException {
 		try {
-			List<String> lines = StringUtility.splitLines(
+			List<String> lines = Strings.splitLines(
 				AOServDaemon.execAndCapture(
 					getXmCommand(),
 					"list",

@@ -1,13 +1,13 @@
 /*
- * Copyright 2001-2013, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.report;
 
 import com.aoindustries.aoserv.client.net.IpAddress;
+import com.aoindustries.lang.Strings;
 import com.aoindustries.util.ErrorPrinter;
-import com.aoindustries.util.StringUtility;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -64,7 +64,7 @@ final public class MySQLAdmin extends DBReportData {
 			}
 
 			// Parse out the number of users
-			String[] words = StringUtility.splitString(line);
+			String[] words = Strings.splitString(line);
 			numUsers=Integer.parseInt(words[3]);
 			questions=Integer.parseInt(words[5]);
 			slow_queries=Integer.parseInt(words[8]);

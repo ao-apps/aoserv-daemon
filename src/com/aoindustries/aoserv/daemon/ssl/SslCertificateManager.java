@@ -23,12 +23,12 @@ import com.aoindustries.aoserv.client.pki.CertificateName;
 import com.aoindustries.aoserv.client.pki.CertificateOtherUse;
 import com.aoindustries.aoserv.client.web.VirtualHost;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.concurrent.ConcurrencyLimiter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.Strings;
 import com.aoindustries.security.SmallIdentifier;
-import com.aoindustries.util.StringUtility;
 import com.aoindustries.util.Tuple2;
-import com.aoindustries.util.concurrent.ConcurrencyLimiter;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -120,7 +120,7 @@ final public class SslCertificateManager {
 			synchronized(getHashedCache) {
 				Tuple2<Long,String> cached = allowCached ? getHashedCache.get(cacheKey) : null;
 				if(cached != null && cached.getElement1() == modifiedTime) return cached.getElement2();
-				String hashed = StringUtility.convertToHex(
+				String hashed = Strings.convertToHex(
 					MessageDigest.getInstance(ALGORITHM).digest(
 						AOServDaemon.execAndCaptureBytes(command)
 					)

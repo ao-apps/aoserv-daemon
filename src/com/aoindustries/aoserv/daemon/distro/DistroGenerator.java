@@ -1,5 +1,5 @@
 /*
- * Copyright 2001-2013, 2014, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2001-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -23,10 +23,10 @@ import com.aoindustries.io.ByteCountInputStream;
 import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.Strings;
 import com.aoindustries.lang.SysExits;
 import com.aoindustries.util.AoArrays;
 import com.aoindustries.util.ErrorPrinter;
-import com.aoindustries.util.StringUtility;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -350,7 +350,7 @@ final public class DistroGenerator {
 				)) {
 					String line;
 					while ((line = in.readLine()) != null) {
-						List<String> fields = StringUtility.splitString(line, ':');
+						List<String> fields = Strings.splitString(line, ':');
 						String username = fields.get(0);
 						Integer userID = Integer.parseInt(fields.get(2));
 						if(!realNames.containsKey(userID)) realNames.put(userID, username);
@@ -384,7 +384,7 @@ final public class DistroGenerator {
 				)) {
 					String line;
 					while ((line = in.readLine()) != null) {
-						List<String> fields = StringUtility.splitString(line, ':');
+						List<String> fields = Strings.splitString(line, ':');
 						String groupname = fields.get(0);
 						Integer groupID = Integer.parseInt(fields.get(2));
 						if(!realGroups.containsKey(groupID)) realGroups.put(groupID, groupname);

@@ -29,9 +29,9 @@ import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.Strings;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.util.BufferManager;
-import com.aoindustries.util.StringUtility;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -719,7 +719,7 @@ final public class AWStatsManager extends BuilderThread {
 
 		if("awstats.pl".equals(path)) {
 			// Check the queryStrings
-			String escapedSiteName = StringUtility.replace(siteName, '.', "\\.");
+			String escapedSiteName = Strings.replace(siteName, '.', "\\.");
 			if(
 				// Protect for use in '...' below:
 				queryString.indexOf('\'') == -1

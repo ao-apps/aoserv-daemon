@@ -1,13 +1,13 @@
 /*
- * Copyright 2000-2013, 2017, 2019 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2017, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.report;
 
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.lang.Strings;
 import com.aoindustries.util.ErrorPrinter;
-import com.aoindustries.util.StringUtility;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -62,7 +62,7 @@ final public class ProcMemory {
 			try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream("/proc/meminfo")))) {
 				String line;
 				while((line=in.readLine())!=null) {
-					String[] words = StringUtility.splitString(line);
+					String[] words = Strings.splitString(line);
 					String label=words[0];
 					if(label.equals("MemTotal:")) _mem_total=Integer.parseInt(words[1]);
 					else if(label.equals("MemFree:")) _mem_free=Integer.parseInt(words[1]);

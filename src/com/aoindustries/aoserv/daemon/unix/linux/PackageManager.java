@@ -7,9 +7,9 @@ package com.aoindustries.aoserv.daemon.unix.linux;
 
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
+import com.aoindustries.concurrent.ConcurrentListenerManager;
 import com.aoindustries.io.DirectoryMetaSnapshot;
-import com.aoindustries.util.StringUtility;
-import com.aoindustries.util.concurrent.ConcurrentListenerManager;
+import com.aoindustries.lang.Strings;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -570,7 +570,7 @@ public class PackageManager {
 			if(!currentDirectorySnapshot.equals(lastSnapshot)) {
 				// Get all RPMs
 				SortedSet<RPM> newAllRpms = new TreeSet<>();
-				List<String> lines = StringUtility.splitLines(
+				List<String> lines = Strings.splitLines(
 					AOServDaemon.execAndCapture(
 						RPM_EXE_PATH,
 						"-q",

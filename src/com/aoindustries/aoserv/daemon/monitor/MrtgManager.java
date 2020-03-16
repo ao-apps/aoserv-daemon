@@ -20,8 +20,8 @@ import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.Strings;
 import com.aoindustries.util.BufferManager;
-import com.aoindustries.util.StringUtility;
 import com.aoindustries.util.WrappedException;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -817,7 +817,7 @@ final public class MrtgManager extends BuilderThread {
 			if(filename.endsWith(".html")) {
 				// Find-replace the hard-coded charset created by MRTG
 				in = new ByteArrayInputStream(
-					StringUtility.replace(
+					Strings.replace(
 						FileUtils.readFileAsString(file, StandardCharsets.UTF_8),
 						"charset=iso-8859-1",
 						"charset=utf-8"

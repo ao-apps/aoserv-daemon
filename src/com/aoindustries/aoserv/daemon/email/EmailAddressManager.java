@@ -27,9 +27,9 @@ import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.Strings;
 import com.aoindustries.net.DomainName;
 import com.aoindustries.net.Email;
-import com.aoindustries.util.StringUtility;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -443,7 +443,7 @@ final public class EmailAddressManager extends BuilderThread {
 				if(tieUsername == null) {
 					tieUsername = getTieUsername(random, usernamesUsed);
 					singleInboxTies.put(username, tieUsername);
-					aliasesOut.print(tieUsername).print(": \\").println(StringUtility.replace(username.toString(), '@', "\\@"));
+					aliasesOut.print(tieUsername).print(": \\").println(Strings.replace(username.toString(), '@', "\\@"));
 				}
 			} else {
 				tieUsername = null;
@@ -476,7 +476,7 @@ final public class EmailAddressManager extends BuilderThread {
 			for(InboxAddress laa : laas) {
 				if(done) aliasesOut.print(",\n\t");
 				else done = true;
-				aliasesOut.print('\\').print(StringUtility.replace(laa.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername().toString(),'@',"\\@"));
+				aliasesOut.print('\\').print(Strings.replace(laa.getLinuxServerAccount().getLinuxAccount().getUsername().getUsername().toString(),'@',"\\@"));
 			}
 			aliasesOut.println();
 		} else {

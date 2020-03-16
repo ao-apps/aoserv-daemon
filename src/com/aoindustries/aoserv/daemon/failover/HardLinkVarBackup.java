@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2013, 2015, 2017 by AO Industries, Inc.,
+ * Copyright 2006-2013, 2015, 2017, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -9,7 +9,7 @@ import com.aoindustries.io.FilesystemIterator;
 import com.aoindustries.io.FilesystemIteratorRule;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.util.StringUtility;
+import com.aoindustries.lang.Strings;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -372,9 +372,9 @@ final public class HardLinkVarBackup {
 		out.print("Total Directories.......: "); out.println(totalDirectories);
 		out.print("Total Regular Files.....: "); out.println(totalFiles);
 		out.print("Total Symbolic Links....: "); out.println(totalSymlinks);
-		out.print("Total Regular File Bytes: "); out.println(StringUtility.getApproximateSize(totalNumberFileBytes));
+		out.print("Total Regular File Bytes: "); out.println(Strings.getApproximateSize(totalNumberFileBytes));
 		out.print("New Hard Link Count.....: "); out.println(newHardLinkCount);
-		out.print("Bytes Saved by New Links: "); out.println(StringUtility.getApproximateSize(bytesSaved));
+		out.print("Bytes Saved by New Links: "); out.println(Strings.getApproximateSize(bytesSaved));
 		out.println();
 	}
 }
