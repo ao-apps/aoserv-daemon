@@ -311,7 +311,7 @@ class HttpdTomcatStdSiteManager_7_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 			String shutdownKey=tomcatStdSite.getTomcat4ShutdownKey();
 			if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for PrivateTomcatSite="+tomcatStdSite);
 			out.print(//"<?xml version='1.0' encoding='utf-8'?>\n"
-					"<Server port=\"").encodeXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").encodeXmlAttribute(shutdownKey).print("\">\n"
+					"<Server port=\"").textInXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").textInXmlAttribute(shutdownKey).print("\">\n"
 					+ "  <Listener className=\"org.apache.catalina.startup.VersionLoggerListener\" />\n" // Added Tomcat 7.0.68
 					+ "  <Listener className=\"org.apache.catalina.core.AprLifecycleListener\" SSLEngine=\"on\" />\n"
 					+ "  <Listener className=\"org.apache.catalina.core.JasperListener\" />\n"
@@ -328,9 +328,9 @@ class HttpdTomcatStdSiteManager_7_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 					+ "  </GlobalNamingResources>\n"
 					+ "  <Service name=\"Catalina\">\n"
 					+ "    <Connector\n"
-					+ "      port=\"").encodeXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
-					+ "      address=\"").encodeXmlAttribute(IpAddress.LOOPBACK_IP).print("\"\n"
-					+ "      maxPostSize=\"").encodeXmlAttribute(tomcatStdSite.getMaxPostSize()).print("\"\n"
+					+ "      port=\"").textInXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
+					+ "      address=\"").textInXmlAttribute(IpAddress.LOOPBACK_IP).print("\"\n"
+					+ "      maxPostSize=\"").textInXmlAttribute(tomcatStdSite.getMaxPostSize()).print("\"\n"
 					+ "      protocol=\"AJP/1.3\"\n"
 					+ "      redirectPort=\"8443\"\n"
 					+ "      secretRequired=\"false\"\n"
@@ -346,26 +346,26 @@ class HttpdTomcatStdSiteManager_7_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 					+ "      <Host\n"
 					+ "        name=\"localhost\"\n"
 					+ "        appBase=\"webapps\"\n"
-					+ "        unpackWARs=\"").encodeXmlAttribute(tomcatStdSite.getUnpackWARs()).print("\"\n"
-					+ "        autoDeploy=\"").encodeXmlAttribute(tomcatStdSite.getAutoDeploy()).print("\"\n"
+					+ "        unpackWARs=\"").textInXmlAttribute(tomcatStdSite.getUnpackWARs()).print("\"\n"
+					+ "        autoDeploy=\"").textInXmlAttribute(tomcatStdSite.getAutoDeploy()).print("\"\n"
 					+ "        xmlValidation=\"false\"\n"
 					+ "        xmlNamespaceAware=\"false\"\n"
 					+ "      >\n");
 			for(Context htc : tomcatSite.getHttpdTomcatContexts()) {
 				if(!htc.isServerXmlConfigured()) out.print("        <!--\n");
 				out.print("        <Context\n");
-				if(htc.getClassName()!=null) out.print("          className=\"").encodeXmlAttribute(htc.getClassName()).print("\"\n");
-				out.print("          cookies=\"").encodeXmlAttribute(htc.useCookies()).print("\"\n"
-						+ "          crossContext=\"").encodeXmlAttribute(htc.allowCrossContext()).print("\"\n"
-						+ "          docBase=\"").encodeXmlAttribute(htc.getDocBase()).print("\"\n"
-						+ "          override=\"").encodeXmlAttribute(htc.allowOverride()).print("\"\n"
-						+ "          path=\"").encodeXmlAttribute(htc.getPath()).print("\"\n"
-						+ "          privileged=\"").encodeXmlAttribute(htc.isPrivileged()).print("\"\n"
-						+ "          reloadable=\"").encodeXmlAttribute(htc.isReloadable()).print("\"\n"
-						+ "          useNaming=\"").encodeXmlAttribute(htc.useNaming()).print("\"\n");
-				if(htc.getWrapperClass()!=null) out.print("          wrapperClass=\"").encodeXmlAttribute(htc.getWrapperClass()).print("\"\n");
-				out.print("          debug=\"").encodeXmlAttribute(htc.getDebugLevel()).print("\"\n");
-				if(htc.getWorkDir()!=null) out.print("          workDir=\"").encodeXmlAttribute(htc.getWorkDir()).print("\"\n");
+				if(htc.getClassName()!=null) out.print("          className=\"").textInXmlAttribute(htc.getClassName()).print("\"\n");
+				out.print("          cookies=\"").textInXmlAttribute(htc.useCookies()).print("\"\n"
+						+ "          crossContext=\"").textInXmlAttribute(htc.allowCrossContext()).print("\"\n"
+						+ "          docBase=\"").textInXmlAttribute(htc.getDocBase()).print("\"\n"
+						+ "          override=\"").textInXmlAttribute(htc.allowOverride()).print("\"\n"
+						+ "          path=\"").textInXmlAttribute(htc.getPath()).print("\"\n"
+						+ "          privileged=\"").textInXmlAttribute(htc.isPrivileged()).print("\"\n"
+						+ "          reloadable=\"").textInXmlAttribute(htc.isReloadable()).print("\"\n"
+						+ "          useNaming=\"").textInXmlAttribute(htc.useNaming()).print("\"\n");
+				if(htc.getWrapperClass()!=null) out.print("          wrapperClass=\"").textInXmlAttribute(htc.getWrapperClass()).print("\"\n");
+				out.print("          debug=\"").textInXmlAttribute(htc.getDebugLevel()).print("\"\n");
+				if(htc.getWorkDir()!=null) out.print("          workDir=\"").textInXmlAttribute(htc.getWorkDir()).print("\"\n");
 				List<ContextParameter> parameters=htc.getHttpdTomcatParameters();
 				List<ContextDataSource> dataSources=htc.getHttpdTomcatDataSources();
 				if(parameters.isEmpty() && dataSources.isEmpty()) {

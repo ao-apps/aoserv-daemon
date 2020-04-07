@@ -20,7 +20,6 @@ import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
-import com.aoindustries.cron.CronJobScheduleMode;
 import com.aoindustries.cron.Schedule;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.InetAddress;
@@ -249,16 +248,6 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 		ServerManager.controlProcess("postgresql-" + ps.getName(), "stop");
 	}
 
-	@Override
-	public String getCronJobName() {
-		return PostgresServerManager.class.getName();
-	}
-
-	@Override
-	public CronJobScheduleMode getCronJobScheduleMode() {
-		return CronJobScheduleMode.SKIP;
-	}
-
 	/**
 	 * This task will be ran once per day at 1:30am.
 	 */
@@ -266,12 +255,12 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 		-> minute==30 && hour==1;
 
 	@Override
-	public Schedule getCronJobSchedule() {
+	public Schedule getSchedule() {
 		return schedule;
 	}
 
 	@Override
-	public int getCronJobThreadPriority() {
+	public int getThreadPriority() {
 		return Thread.NORM_PRIORITY - 2;
 	}
 
@@ -281,7 +270,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 	 * TODO: Should use standard log file rotation, so configuration still works if aoserv-daemon disabled or removed.
 	 */
 	@Override
-	public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
+	public void run(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
 		try {
 			AOServConnector conn = AOServDaemon.getConnector();
 			for(Server postgresServer : AOServDaemon.getThisServer().getPostgresServers()) {

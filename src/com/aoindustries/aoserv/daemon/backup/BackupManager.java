@@ -298,7 +298,7 @@ final public class BackupManager {
 				if(line==null) throw new IOException("EOF when trying to read column labels");
 				line=in.readLine();
 				if(line==null) throw new IOException("EOF when trying to read values");
-				String[] columns=Strings.splitString(line);
+				String[] columns=Strings.split(line);
 				size = 1024 * Long.parseLong(columns[column]);
 			}
 		} finally {

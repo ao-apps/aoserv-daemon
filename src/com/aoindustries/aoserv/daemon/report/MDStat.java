@@ -1,11 +1,11 @@
 /*
- * Copyright 2000-2013, 2014 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2014, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.report;
 
-import com.aoindustries.util.AoArrays;
+import com.aoindustries.lang.EmptyArrays;
 
 /**
  * Encapsulates the output of the /proc/mdstat file
@@ -14,12 +14,12 @@ import com.aoindustries.util.AoArrays;
  */
 final public class MDStat {
 
-    final public int[] device_majors;       // *** In data
-    final public int[] device_minors;       // *** In data
-    final public int[] total_partitions;    // *** In data
-    final public int[] active_partitions;   // *** In data
+	final public int[] device_majors;       // *** In data
+	final public int[] device_minors;       // *** In data
+	final public int[] total_partitions;    // *** In data
+	final public int[] active_partitions;   // *** In data
 
-    public MDStat() {
-        device_majors=device_minors=total_partitions=active_partitions = AoArrays.EMPTY_INT_ARRAY;
-    }
+	public MDStat() {
+		device_majors=device_minors=total_partitions=active_partitions = EmptyArrays.EMPTY_INT_ARRAY;
+	}
 }

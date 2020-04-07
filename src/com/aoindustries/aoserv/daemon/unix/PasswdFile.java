@@ -98,7 +98,7 @@ final public class PasswdFile {
 		 * the trailing newline (<code>'\n'</code>).
 		 */
 		public Entry(String line) throws ValidationException {
-			List<String> values = Strings.splitString(line, ':');
+			List<String> values = Strings.split(line, ':');
 			int len = values.size();
 			if(len < 7) throw new IllegalArgumentException("At least the first seven fields of passwd file required: " + line);
 
@@ -114,7 +114,7 @@ final public class PasswdFile {
 
 			List<String> fields;
 			if(len > 4 && (S = values.get(4)).length() > 0) {
-				fields = Strings.splitString(S, ',');
+				fields = Strings.split(S, ',');
 			} else {
 				fields = Collections.emptyList();
 			}

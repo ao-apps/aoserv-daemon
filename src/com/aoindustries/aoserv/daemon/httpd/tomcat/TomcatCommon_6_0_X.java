@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2015, 2016, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2015, 2016, 2017, 2018, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -42,27 +42,27 @@ class TomcatCommon_6_0_X extends TomcatCommon {
 	@Override
     public void writeHttpdTomcatDataSource(ContextDataSource dataSource, ChainWriter out) throws SQLException, IOException {
         out.print("          <Resource\n"
-                + "            name=\"").encodeXmlAttribute(dataSource.getName()).print("\"\n"
+                + "            name=\"").textInXmlAttribute(dataSource.getName()).print("\"\n"
                 + "            auth=\"Container\"\n"
                 + "            type=\"javax.sql.DataSource\"\n");
 		String username = dataSource.getUsername();
 		if(username != null && !username.isEmpty()) {
-			out.print("            username=\"").encodeXmlAttribute(username).print("\"\n");
+			out.print("            username=\"").textInXmlAttribute(username).print("\"\n");
 		}
 		String password = dataSource.getPassword();
 		if(password != null && !password.isEmpty()) {
-			out.print("            password=\"").encodeXmlAttribute(password).print("\"\n");
+			out.print("            password=\"").textInXmlAttribute(password).print("\"\n");
 		}
 		String driverClassName = dataSource.getDriverClassName();
 		if(driverClassName != null && !driverClassName.isEmpty()) {
-			out.print("            driverClassName=\"").encodeXmlAttribute(driverClassName).print("\"\n");
+			out.print("            driverClassName=\"").textInXmlAttribute(driverClassName).print("\"\n");
 		}
-		out.print("            url=\"").encodeXmlAttribute(dataSource.getUrl()).print("\"\n"
-                + "            maxActive=\"").encodeXmlAttribute(dataSource.getMaxActive()).print("\"\n"
-                + "            maxIdle=\"").encodeXmlAttribute(dataSource.getMaxIdle()).print("\"\n"
-                + "            maxWait=\"").encodeXmlAttribute(dataSource.getMaxWait()).print("\"\n");
+		out.print("            url=\"").textInXmlAttribute(dataSource.getUrl()).print("\"\n"
+                + "            maxActive=\"").textInXmlAttribute(dataSource.getMaxActive()).print("\"\n"
+                + "            maxIdle=\"").textInXmlAttribute(dataSource.getMaxIdle()).print("\"\n"
+                + "            maxWait=\"").textInXmlAttribute(dataSource.getMaxWait()).print("\"\n");
         if(dataSource.getValidationQuery()!=null) {
-            out.print("            validationQuery=\"").encodeXmlAttribute(dataSource.getValidationQuery()).print("\"\n");
+            out.print("            validationQuery=\"").textInXmlAttribute(dataSource.getValidationQuery()).print("\"\n");
         }
         out.print("            removeAbandoned=\"true\"\n"
                 + "            removeAbandonedTimeout=\"300\"\n"

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013, 2014, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2002-2013, 2014, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -8,7 +8,7 @@ package com.aoindustries.aoserv.daemon.server;
 import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
-import com.aoindustries.util.AoArrays;
+import com.aoindustries.lang.EmptyArrays;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -229,6 +229,6 @@ final public class ServerManager {
 			String[] list = xenAutoStartDirectory.list();
 			if(list != null) return list;
 		}
-		return AoArrays.EMPTY_STRING_ARRAY;
+		return EmptyArrays.EMPTY_STRING_ARRAY;
 	}
 }

@@ -12,7 +12,6 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
-import com.aoindustries.cron.CronJobScheduleMode;
 import com.aoindustries.cron.Schedule;
 import com.aoindustries.net.Port;
 import java.io.IOException;
@@ -64,30 +63,20 @@ final public class MySQLCreditCardScanner implements CronJob {
 		&& dayOfWeek==Calendar.SUNDAY;
 
 	@Override
-	public Schedule getCronJobSchedule() {
+	public Schedule getSchedule() {
 		return schedule;
-	}
-
-	@Override
-	public CronJobScheduleMode getCronJobScheduleMode() {
-		 return CronJobScheduleMode.SKIP;
-	}
-
-	@Override
-	public String getCronJobName() {
-		return "MySQLCreditCardScanner";
 	}
 
 	/**
 	 * Performs the scheduled task.
 	 */
 	@Override
-	public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
+	public void run(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
 		scanMySQLForCards();
 	}
 
 	@Override
-	public int getCronJobThreadPriority() {
+	public int getThreadPriority() {
 		return Thread.NORM_PRIORITY - 2;
 	}
 

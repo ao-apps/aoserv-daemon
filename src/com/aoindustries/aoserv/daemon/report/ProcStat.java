@@ -61,7 +61,7 @@ final public class ProcStat {
 			try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream("/proc/stat")))) {
 				String line;
 				while((line=in.readLine())!=null) {
-					String[] words=Strings.splitString(line);
+					String[] words=Strings.split(line);
 					String label=words[0];
 					if(
 						label.length()>3

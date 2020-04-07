@@ -20,7 +20,6 @@ import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
-import com.aoindustries.cron.CronJobScheduleMode;
 import com.aoindustries.cron.Schedule;
 import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.UnixFile;
@@ -404,31 +403,21 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 	;
 
 	@Override
-	public Schedule getCronJobSchedule() {
+	public Schedule getSchedule() {
 		return schedule;
-	}
-
-	@Override
-	public CronJobScheduleMode getCronJobScheduleMode() {
-		return CronJobScheduleMode.SKIP;
-	}
-
-	@Override
-	public String getCronJobName() {
-		return "PostgresDatabaseManager";
 	}
 
 	/**
 	 * Since the VACUUM FULL and REINDEX commands use exclusive locks on each table, we want it to finish as soon as possible.
 	 */
 	@Override
-	public int getCronJobThreadPriority() {
+	public int getThreadPriority() {
 		return Thread.NORM_PRIORITY + 2;
 	}
 
 	// TODO: This should be moved to scripts in the relevant postgresql-* packages, so the system still works correctly with disabled aoserv-daemon
 	@Override
-	public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
+	public void run(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
 		try {
 			AOServConnector aoservConn = AOServDaemon.getConnector();
 			//DatabaseTable postgresDatabaseTable = aoservConn.getPostgresql().getDatabase();

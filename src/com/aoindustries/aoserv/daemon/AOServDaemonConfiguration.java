@@ -245,7 +245,7 @@ final public class AOServDaemonConfiguration {
 		if(networkNamesProp == null || networkNamesProp.isEmpty()) {
 			return Collections.emptyMap();
 		} else {
-			List<String> networkNames = Strings.splitStringCommaSpace(networkNamesProp);
+			List<String> networkNames = Strings.splitCommaSpace(networkNamesProp);
 			Map<String,NetworkMonitorConfiguration> networkMonitors = new LinkedHashMap<>(networkNames.size()*4/3+1);
 			for(String name : networkNames) {
 				String nullRouteFifoErrorRate = getProperty("monitor.NetworkMonitor.network." + name + ".nullRoute.fifoErrorRate", null);
@@ -258,7 +258,7 @@ final public class AOServDaemonConfiguration {
 						new NetworkMonitorConfiguration(
 							name,
 							getProperty("monitor.NetworkMonitor.network." + name + ".device", null, true),
-							Collections.unmodifiableList(Strings.splitStringCommaSpace(getProperty("monitor.NetworkMonitor.network." + name + ".networkRanges", null, true))),
+							Collections.unmodifiableList(Strings.splitCommaSpace(getProperty("monitor.NetworkMonitor.network." + name + ".networkRanges", null, true))),
 							NetworkMonitorConfiguration.NetworkDirection.valueOf(getProperty("monitor.NetworkMonitor.network." + name + ".in.networkDirection", null, true)),
 							NetworkMonitorConfiguration.CountDirection.valueOf(getProperty("monitor.NetworkMonitor.network." + name + ".in.countDirection", null, true)),
 							NetworkMonitorConfiguration.NetworkDirection.valueOf(getProperty("monitor.NetworkMonitor.network." + name + ".out.networkDirection", null, true)),

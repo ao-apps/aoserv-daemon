@@ -8,10 +8,10 @@ package com.aoindustries.aoserv.daemon.unix;
 import com.aoindustries.aoserv.client.linux.Group;
 import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.Strings;
-import com.aoindustries.util.AoCollections;
 import com.aoindustries.validation.ValidationException;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -67,7 +67,7 @@ final public class GroupFile {
 		 * the trailing newline (<code>'\n'</code>).
 		 */
 		public Entry(String line) throws ValidationException {
-			List<String> values = Strings.splitString(line, ':');
+			List<String> values = Strings.split(line, ':');
 			int len = values.size();
 			if(len < 3) throw new IllegalArgumentException("At least the first three fields of group file required: " + line);
 

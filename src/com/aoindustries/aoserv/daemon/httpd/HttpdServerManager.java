@@ -729,7 +729,7 @@ public class HttpdServerManager {
 							if(hsal.getRequire().length() > 0) {
 								out.print("    require");
 								// Split on space, escaping each term
-								for(String term : Strings.splitString(hsal.getRequire(), ' ')) {
+								for(String term : Strings.split(hsal.getRequire(), ' ')) {
 									if(!term.isEmpty()) {
 										out.print(' ').print(escape(dollarVariable, term));
 									}
@@ -994,7 +994,7 @@ public class HttpdServerManager {
 									.print(indent).print("    <IfModule authz_core_module>\n")
 									.print(indent).print("        Require");
 								// Split on space, escaping each term
-								for(String term : Strings.splitString(hsal.getRequire(), ' ')) {
+								for(String term : Strings.split(hsal.getRequire(), ' ')) {
 									if(!term.isEmpty()) {
 										out.print(' ').print(escape(dollarVariable, term));
 									}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -420,11 +420,11 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 			if(!httpdSite.isManual()) out.print(autoWarning);
 			out.print("<Host>\n"
 					+ "  <xmlmapper:debug level=\"0\" />\n"
-					+ "  <Logger name=\"tc_log\" verbosityLevel = \"INFORMATION\" path=\"").encodeXmlAttribute(siteDir).print("/var/log/tomcat.log\" />\n"
-					+ "  <Logger name=\"servlet_log\" path=\"").encodeXmlAttribute(siteDir).print("/var/log/servlet.log\" />\n"
-					+ "  <Logger name=\"JASPER_LOG\" path=\"").encodeXmlAttribute(siteDir).print("/var/log/jasper.log\" verbosityLevel = \"INFORMATION\" />\n"
+					+ "  <Logger name=\"tc_log\" verbosityLevel = \"INFORMATION\" path=\"").textInXmlAttribute(siteDir).print("/var/log/tomcat.log\" />\n"
+					+ "  <Logger name=\"servlet_log\" path=\"").textInXmlAttribute(siteDir).print("/var/log/servlet.log\" />\n"
+					+ "  <Logger name=\"JASPER_LOG\" path=\"").textInXmlAttribute(siteDir).print("/var/log/jasper.log\" verbosityLevel = \"INFORMATION\" />\n"
 					+ "\n"
-					+ "  <ContextManager debug=\"0\" home=\"").encodeXmlAttribute(siteDir).print("\" workDir=\"").encodeXmlAttribute(siteDir).print("/work\" showDebugInfo=\"true\" >\n"
+					+ "  <ContextManager debug=\"0\" home=\"").textInXmlAttribute(siteDir).print("\" workDir=\"").textInXmlAttribute(siteDir).print("/work\" showDebugInfo=\"true\" >\n"
 					+ "    <ContextInterceptor className=\"org.apache.tomcat.context.WebXmlReader\" />\n"
 					+ "    <ContextInterceptor className=\"org.apache.tomcat.context.LoaderInterceptor\" />\n"
 					+ "    <ContextInterceptor className=\"org.apache.tomcat.context.DefaultCMSetter\" />\n"
@@ -456,9 +456,9 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 						throw new IllegalArgumentException("Unknown AJP version: "+htv);
 				}
 				out.print("\"/>\n"
-						+ "      <Parameter name=\"port\" value=\"").encodeXmlAttribute(netBind.getPort().getPort()).print("\"/>\n");
+						+ "      <Parameter name=\"port\" value=\"").textInXmlAttribute(netBind.getPort().getPort()).print("\"/>\n");
 				InetAddress ip=netBind.getIpAddress().getInetAddress();
-				if(!ip.isUnspecified()) out.print("      <Parameter name=\"inet\" value=\"").encodeXmlAttribute(ip).print("\"/>\n");
+				if(!ip.isUnspecified()) out.print("      <Parameter name=\"inet\" value=\"").textInXmlAttribute(ip).print("\"/>\n");
 				out.print("      <Parameter name=\"max_threads\" value=\"30\"/>\n"
 						+ "      <Parameter name=\"max_spare_threads\" value=\"10\"/>\n"
 						+ "      <Parameter name=\"min_spare_threads\" value=\"1\"/>\n"
@@ -466,7 +466,7 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 				);
 			}
 			for(Context htc : tomcatSite.getHttpdTomcatContexts()) {
-				out.print("    <Context path=\"").encodeXmlAttribute(htc.getPath()).print("\" docBase=\"").encodeXmlAttribute(htc.getDocBase()).print("\" debug=\"").encodeXmlAttribute(htc.getDebugLevel()).print("\" reloadable=\"").encodeXmlAttribute(htc.isReloadable()).print("\" />\n");
+				out.print("    <Context path=\"").textInXmlAttribute(htc.getPath()).print("\" docBase=\"").textInXmlAttribute(htc.getDocBase()).print("\" debug=\"").textInXmlAttribute(htc.getDebugLevel()).print("\" reloadable=\"").textInXmlAttribute(htc.isReloadable()).print("\" />\n");
 			}
 			out.print("  </ContextManager>\n"
 					+ "</Server>\n");

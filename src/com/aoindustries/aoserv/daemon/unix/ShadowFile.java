@@ -101,7 +101,7 @@ final public class ShadowFile {
 		 * (disabled).
 		 */
 		public Entry(String line) throws ValidationException {
-			List<String> values = Strings.splitString(line, ':');
+			List<String> values = Strings.split(line, ':');
 			int len = values.size();
 			if(len < 1) throw new IllegalArgumentException("At least the first field of shadow file required: " + line);
 

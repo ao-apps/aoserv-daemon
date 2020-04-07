@@ -1,5 +1,5 @@
 /*
- * Copyright 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -64,27 +64,27 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 	public void writeHttpdTomcatDataSource(ContextDataSource dataSource, ChainWriter out) throws IOException, SQLException {
 		int maxActive = dataSource.getMaxActive();
 		out.print("          <Resource\n"
-				+ "            name=\"").encodeXmlAttribute(dataSource.getName()).print("\"\n"
+				+ "            name=\"").textInXmlAttribute(dataSource.getName()).print("\"\n"
 				+ "            auth=\"Container\"\n"
 				+ "            type=\"javax.sql.DataSource\"\n");
 		String username = dataSource.getUsername();
 		if(username != null && !username.isEmpty()) {
-			out.print("            username=\"").encodeXmlAttribute(username).print("\"\n");
+			out.print("            username=\"").textInXmlAttribute(username).print("\"\n");
 		}
 		String password = dataSource.getPassword();
 		if(password != null && !password.isEmpty()) {
-			out.print("            password=\"").encodeXmlAttribute(password).print("\"\n");
+			out.print("            password=\"").textInXmlAttribute(password).print("\"\n");
 		}
 		String driverClassName = dataSource.getDriverClassName();
 		if(driverClassName != null && !driverClassName.isEmpty()) {
-			out.print("            driverClassName=\"").encodeXmlAttribute(driverClassName).print("\"\n");
+			out.print("            driverClassName=\"").textInXmlAttribute(driverClassName).print("\"\n");
 		}
-		out.print("            url=\"").encodeXmlAttribute(dataSource.getUrl()).print("\"\n"
-				+ "            maxTotal=\"").encodeXmlAttribute(maxActive).print("\"\n"
-				+ "            maxIdle=\"").encodeXmlAttribute(dataSource.getMaxIdle()).print("\"\n"
-				+ "            maxWaitMillis=\"").encodeXmlAttribute(dataSource.getMaxWait()).print("\"\n");
+		out.print("            url=\"").textInXmlAttribute(dataSource.getUrl()).print("\"\n"
+				+ "            maxTotal=\"").textInXmlAttribute(maxActive).print("\"\n"
+				+ "            maxIdle=\"").textInXmlAttribute(dataSource.getMaxIdle()).print("\"\n"
+				+ "            maxWaitMillis=\"").textInXmlAttribute(dataSource.getMaxWait()).print("\"\n");
 		if(dataSource.getValidationQuery()!=null) {
-			out.print("            validationQuery=\"").encodeXmlAttribute(dataSource.getValidationQuery()).print("\"\n"
+			out.print("            validationQuery=\"").textInXmlAttribute(dataSource.getValidationQuery()).print("\"\n"
 					+ "            validationQueryTimeout=\"30\"\n"
 					+ "            testWhileIdle=\"true\"\n");
 					// The default is "true": + "            testOnBorrow=\"true\"\n");
@@ -98,8 +98,8 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 			numTestsPerEvictionRun = 50;
 		}
 		
-		out.print("            timeBetweenEvictionRunsMillis=\"").encodeXmlAttribute(timeBetweenEvictionRunsMillis).print("\"\n"
-				+ "            numTestsPerEvictionRun=\"").encodeXmlAttribute(numTestsPerEvictionRun).print("\"\n"
+		out.print("            timeBetweenEvictionRunsMillis=\"").textInXmlAttribute(timeBetweenEvictionRunsMillis).print("\"\n"
+				+ "            numTestsPerEvictionRun=\"").textInXmlAttribute(numTestsPerEvictionRun).print("\"\n"
 				+ "            removeAbandonedOnMaintenance=\"true\"\n"
 				+ "            removeAbandonedOnBorrow=\"true\"\n"
 				// The default is 300: + "            removeAbandonedTimeout=\"300\"\n"

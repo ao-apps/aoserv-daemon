@@ -701,9 +701,9 @@ public abstract class HttpdSiteManager {
 			try {
 				try (ChainWriter out = new ChainWriter(new FileOutputStream(tempFile.getFile()))) {
 					out.print("<html>\n"
-							+ "  <head><title>Test HTML Page for ").encodeXhtml(primaryUrl).print("</title></head>\n"
+							+ "  <head><title>Test HTML Page for ").textInXhtml(primaryUrl).print("</title></head>\n"
 							+ "  <body>\n"
-							+ "    Test HTML Page for ").encodeXhtml(primaryUrl).print("\n"
+							+ "    Test HTML Page for ").textInXhtml(primaryUrl).print("\n"
 							+ "  </body>\n"
 							+ "</html>\n");
 				}

@@ -15,7 +15,6 @@ import com.aoindustries.aoserv.daemon.backup.AOServerEnvironment;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
-import com.aoindustries.cron.CronJobScheduleMode;
 import com.aoindustries.cron.Schedule;
 import com.aoindustries.io.ParallelDelete;
 import com.aoindustries.io.filesystems.Path;
@@ -590,23 +589,15 @@ final public class FailoverFileReplicationManager {
 				 */
 				CronJob cleanupJob = new CronJob() {
 					@Override
-					public Schedule getCronJobSchedule() {
+					public Schedule getSchedule() {
 						return CLEAN_ORPHANS_SCHEDULE;
 					}
 					@Override
-					public CronJobScheduleMode getCronJobScheduleMode() {
-						return CronJobScheduleMode.SKIP;
-					}
-					@Override
-					public String getCronJobName() {
+					public String getName() {
 						return DedupDataIndex.class.getName()+".cleanOrphans()";
 					}
 					@Override
-					public int getCronJobThreadPriority() {
-						return Thread.NORM_PRIORITY;
-					}
-					@Override
-					public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
+					public void run(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
 						try {
 							newDedupIndex.verify(false);
 						} catch(IOException e) {

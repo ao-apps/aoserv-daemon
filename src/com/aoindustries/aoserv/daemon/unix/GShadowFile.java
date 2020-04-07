@@ -10,10 +10,10 @@ import com.aoindustries.aoserv.client.linux.Group;
 import com.aoindustries.aoserv.client.linux.User;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.Strings;
-import com.aoindustries.util.AoCollections;
 import com.aoindustries.validation.ValidationException;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -71,7 +71,7 @@ final public class GShadowFile {
 		private final Set<User.Name> groupMembers;
 
 		static Set<User.Name> parseUserIds(String s) throws ValidationException {
-			List<String> usernames = Strings.splitStringCommaSpace(s);
+			List<String> usernames = Strings.splitCommaSpace(s);
 			int size = usernames.size();
 			if(size == 0) return Collections.emptySet();
 			if(size == 1) return Collections.singleton(User.Name.valueOf(usernames.get(0)));
@@ -88,7 +88,7 @@ final public class GShadowFile {
 		 * the trailing newline (<code>'\n'</code>).
 		 */
 		public Entry(String line) throws ValidationException {
-			List<String> values = Strings.splitString(line, ':');
+			List<String> values = Strings.split(line, ':');
 			int len = values.size();
 			if(len < 1) throw new IllegalArgumentException("At least the first field of gshadow file required: " + line);
 

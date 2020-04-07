@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2015, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2015, 2017, 2018, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -40,21 +40,21 @@ class TomcatCommon_4_1_X extends TomcatCommon {
 	@Override
 	public void writeHttpdTomcatDataSource(ContextDataSource dataSource, ChainWriter out) throws IOException, SQLException {
 		out.print("          <Resource\n"
-				+ "            name=\"").encodeXmlAttribute(dataSource.getName()).print("\"\n"
+				+ "            name=\"").textInXmlAttribute(dataSource.getName()).print("\"\n"
 				+ "            auth=\"Container\"\n"
 				+ "            type=\"javax.sql.DataSource\"\n"
 				+ "          />\n"
-				+ "          <ResourceParams name=\"").encodeXmlAttribute(dataSource.getName()).print("\">\n"
+				+ "          <ResourceParams name=\"").textInXmlAttribute(dataSource.getName()).print("\">\n"
 				+ "            <parameter><name>factory</name><value>org.apache.commons.dbcp.BasicDataSourceFactory</value></parameter>\n"
-				+ "            <parameter><name>username</name><value>").encodeXhtml(dataSource.getUsername()).print("</value></parameter>\n"
-				+ "            <parameter><name>password</name><value>").encodeXhtml(dataSource.getPassword()).print("</value></parameter>\n"
-				+ "            <parameter><name>driverClassName</name><value>").encodeXhtml(dataSource.getDriverClassName()).print("</value></parameter>\n"
-				+ "            <parameter><name>url</name><value>").encodeXhtml(dataSource.getUrl()).print("</value></parameter>\n"
-				+ "            <parameter><name>maxActive</name><value>").encodeXhtml(dataSource.getMaxActive()).print("</value></parameter>\n"
-				+ "            <parameter><name>maxIdle</name><value>").encodeXhtml(dataSource.getMaxIdle()).print("</value></parameter>\n"
-				+ "            <parameter><name>maxWait</name><value>").encodeXhtml(dataSource.getMaxWait()).print("</value></parameter>\n");
+				+ "            <parameter><name>username</name><value>").textInXhtml(dataSource.getUsername()).print("</value></parameter>\n"
+				+ "            <parameter><name>password</name><value>").textInXhtml(dataSource.getPassword()).print("</value></parameter>\n"
+				+ "            <parameter><name>driverClassName</name><value>").textInXhtml(dataSource.getDriverClassName()).print("</value></parameter>\n"
+				+ "            <parameter><name>url</name><value>").textInXhtml(dataSource.getUrl()).print("</value></parameter>\n"
+				+ "            <parameter><name>maxActive</name><value>").textInXhtml(dataSource.getMaxActive()).print("</value></parameter>\n"
+				+ "            <parameter><name>maxIdle</name><value>").textInXhtml(dataSource.getMaxIdle()).print("</value></parameter>\n"
+				+ "            <parameter><name>maxWait</name><value>").textInXhtml(dataSource.getMaxWait()).print("</value></parameter>\n");
 		if(dataSource.getValidationQuery()!=null) {
-			out.print("            <parameter><name>validationQuery</name><value>").encodeXhtml(dataSource.getValidationQuery()).print("</value></parameter>\n");
+			out.print("            <parameter><name>validationQuery</name><value>").textInXhtml(dataSource.getValidationQuery()).print("</value></parameter>\n");
 		}
 		out.print("            <parameter><name>removeAbandoned</name><value>true</value></parameter>\n"
 				+ "            <parameter><name>removeAbandonedTimeout</name><value>300</value></parameter>\n"

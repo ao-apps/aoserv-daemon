@@ -17,12 +17,12 @@ import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
+import com.aoindustries.exception.WrappedException;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.Strings;
 import com.aoindustries.util.BufferManager;
-import com.aoindustries.util.WrappedException;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -180,8 +180,8 @@ final public class MrtgManager extends BuilderThread {
 								+ "  <div style='text-align:center'>\n"
 								+ "  <h1>\n"
 								+ "  <img src=\"https://aoindustries.com/images/clientarea/accounting/SendInvoices.jpg\" width=\"452\" height=\"127\" alt=\"\" /><br />\n"
-								+ "  <span style=\"color:#000000\">").encodeXhtml(thisServer.getHostname());
-						if(failoverServer != null) out.print(" on ").encodeXhtml(failoverServer.getHostname());
+								+ "  <span style=\"color:#000000\">").textInXhtml(thisServer.getHostname());
+						if(failoverServer != null) out.print(" on ").textInXhtml(failoverServer.getHostname());
 						out.print("</span>\n"
 								+ "  </h1>\n"
 								+ "  <hr /><span style=\"font-size:large\">\n"
@@ -191,18 +191,18 @@ final public class MrtgManager extends BuilderThread {
 								+ "  <a href=\"cpu.html\">CPU</a> |\n"
 								+ "  <a href=\"diskio.html\">DiskIO</a> |\n");
 						for(int c = 0;c < dfDevices.size(); c++) {
-							out.print("  <a href=\"").encodeXmlAttribute(dfSafeNames.get(c)).print(".html\">").encodeXhtml(dfDevices.get(c)).print("</a> |\n");
+							out.print("  <a href=\"").textInXmlAttribute(dfSafeNames.get(c)).print(".html\">").textInXhtml(dfDevices.get(c)).print("</a> |\n");
 						}
 						out.print("  <a href=\"mem.html\">Memory</a> |\n");
 						// Add the network devices
 						List<Device> netDevices = thisHost.getNetDevices();
 						for(Device netDevice : netDevices) {
-							out.print("  <a href=\"").encodeXmlAttribute(netDevice.getDeviceId().getName()).print(".html\">").encodeXhtml(netDevice.getDescription()).print("</a> |\n");
+							out.print("  <a href=\"").textInXmlAttribute(netDevice.getDeviceId().getName()).print(".html\">").textInXhtml(netDevice.getDescription()).print("</a> |\n");
 						}
 						out.print("  <a href=\"swap.html\">Swap</a> |\n");
 						for(HttpdServer httpdServer : httpdServers) {
 							String safeName = getHttpdServerSafeName(httpdServer);
-							out.print("  <a href=\"").encodeXmlAttribute(safeName).print(".html\">").encodeXhtml(getHttpdServerDisplay(osv, httpdServer)).print("</a> |\n");
+							out.print("  <a href=\"").textInXmlAttribute(safeName).print(".html\">").textInXhtml(getHttpdServerDisplay(osv, httpdServer)).print("</a> |\n");
 						}
 						out.print("  </span>\n"
 								+ "  </div>\n"
@@ -392,7 +392,7 @@ final public class MrtgManager extends BuilderThread {
 									+ "Timezone[").print(safeName).print("]: ").print(thisServer.getTimeZone()).print("\n"
 									+ "Title[").print(safeName).print("]: ").print(getHttpdServerDisplay(osv, httpdServer)).print("\n"
 									+ "PageFoot[").print(safeName).print("]: <p>\n"
-									+ "PageTop[").print(safeName).print("]: <h2>").encodeXhtml(getHttpdServerDisplay(osv, httpdServer)).print("</h2>\n"
+									+ "PageTop[").print(safeName).print("]: <h2>").textInXhtml(getHttpdServerDisplay(osv, httpdServer)).print("</h2>\n"
 									+ "XSize[").print(safeName).print("]: ").print(GRAPH_WIDTH).print("\n"
 									+ "YSize[").print(safeName).print("]: ").print(GRAPH_HEIGHT).print("\n");
 						}
@@ -505,8 +505,8 @@ final public class MrtgManager extends BuilderThread {
 						out.print("      <div style=\"text-align:center\">\n"
 								+ "        <h1>\n"
 								+ "          <img src=\"https://aoindustries.com/images/clientarea/accounting/SendInvoices.jpg\" width=\"452\" height=\"127\" alt=\"\" /><br />\n"
-								+ "	  <span style=\"color:#000000\">").encodeXhtml(thisServer.getHostname());
-						if(failoverServer != null) out.print(" on ").encodeXhtml(failoverServer.getHostname());
+								+ "	  <span style=\"color:#000000\">").textInXhtml(thisServer.getHostname());
+						if(failoverServer != null) out.print(" on ").textInXhtml(failoverServer.getHostname());
 						out.print("</span>\n"
 								+ "        </h1>\n"
 								+ "        <hr />\n"
@@ -518,18 +518,18 @@ final public class MrtgManager extends BuilderThread {
 								+ "          <a href=\"cpu.html\">CPU</a> |\n"
 								+ "          <a href=\"diskio.html\">DiskIO</a> |\n");
 						for(int c = 0; c < dfDevices.size(); c++) {
-							out.print("          <a href=\"").encodeXmlAttribute(dfSafeNames.get(c)).print(".html\">").encodeXhtml(dfDevices.get(c)).print("</a> |\n");
+							out.print("          <a href=\"").textInXmlAttribute(dfSafeNames.get(c)).print(".html\">").textInXhtml(dfDevices.get(c)).print("</a> |\n");
 						}
 						out.print("          <a href=\"mem.html\">Memory</a> |\n");
 						// Add the network devices
 						List<Device> netDevices = thisHost.getNetDevices();
 						for(Device netDevice : netDevices) {
-							out.print("          <a href=\"").encodeXmlAttribute(netDevice.getDeviceId().getName()).print(".html\">").encodeXhtml(netDevice.getDescription()).print("</a> |\n");
+							out.print("          <a href=\"").textInXmlAttribute(netDevice.getDeviceId().getName()).print(".html\">").textInXhtml(netDevice.getDescription()).print("</a> |\n");
 						}
 						out.print("          <a href=\"swap.html\">Swap</a> |\n");
 						for(HttpdServer httpdServer : httpdServers) {
 							String safeName = getHttpdServerSafeName(httpdServer);
-							out.print("          <a href=\"").encodeXmlAttribute(safeName).print(".html\">").encodeXhtml(getHttpdServerDisplay(osv, httpdServer)).print("</a> |\n");
+							out.print("          <a href=\"").textInXmlAttribute(safeName).print(".html\">").textInXhtml(getHttpdServerDisplay(osv, httpdServer)).print("</a> |\n");
 						}
 						out.print("        </span>\n"
 								+ "      </div>\n"
@@ -551,9 +551,9 @@ final public class MrtgManager extends BuilderThread {
 								+ "      </p>\n");
 						for(int c = 0; c < dfDevices.size(); c++) {
 							out.print("      <hr />\n"
-									+ "      <h2>").encodeXhtml(dfDevices.get(c)).print(" Space and Inodes (%)</h2>\n"
+									+ "      <h2>").textInXhtml(dfDevices.get(c)).print(" Space and Inodes (%)</h2>\n"
 									+ "      <p>\n"
-									+ "        <a href=\"").encodeXmlAttribute(dfSafeNames.get(c)).print(".html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"").encodeXmlAttribute(dfSafeNames.get(c)).print("-day.png\" alt=\"").encodeXmlAttribute(dfDevices.get(c)).print("\" /></a>\n"
+									+ "        <a href=\"").textInXmlAttribute(dfSafeNames.get(c)).print(".html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"").textInXmlAttribute(dfSafeNames.get(c)).print("-day.png\" alt=\"").textInXmlAttribute(dfDevices.get(c)).print("\" /></a>\n"
 									+ "      </p>\n");
 						}
 						out.print("      <hr />\n"
@@ -564,9 +564,9 @@ final public class MrtgManager extends BuilderThread {
 						for(Device netDevice : netDevices) {
 							String deviceId = netDevice.getDeviceId().getName();
 							out.print("      <hr />\n"
-									+ "      <h2>").encodeXhtml(netDevice.getDescription()).print(" traffic</h2>\n"
+									+ "      <h2>").textInXhtml(netDevice.getDescription()).print(" traffic</h2>\n"
 									+ "      <p>\n"
-									+ "        <a href=\"").encodeXmlAttribute(deviceId).print(".html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"").encodeXmlAttribute(deviceId).print("-day.png\" alt=\"").encodeXmlAttribute(deviceId).print("\" /></a>\n"
+									+ "        <a href=\"").textInXmlAttribute(deviceId).print(".html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"").textInXmlAttribute(deviceId).print("-day.png\" alt=\"").textInXmlAttribute(deviceId).print("\" /></a>\n"
 									+ "      </p>\n");
 						}
 						out.print("      <hr />\n"
@@ -577,9 +577,9 @@ final public class MrtgManager extends BuilderThread {
 						for(HttpdServer httpdServer : httpdServers) {
 							String safeName = getHttpdServerSafeName(httpdServer);
 							out.print("      <hr />\n"
-									+ "      <h2>").encodeXhtml(getHttpdServerDisplay(osv, httpdServer)).print("</h2>\n"
+									+ "      <h2>").textInXhtml(getHttpdServerDisplay(osv, httpdServer)).print("</h2>\n"
 									+ "      <p>\n"
-									+ "        <a href=\"").encodeXmlAttribute(safeName).print(".html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"").encodeXmlAttribute(safeName).print("-day.png\" alt=\"").encodeXmlAttribute(getHttpdServerDisplay(osv, httpdServer)).print("\" /></a>\n"
+									+ "        <a href=\"").textInXmlAttribute(safeName).print(".html\"><img style=\"border:0px; display:block;\" width=\"" + TOTAL_GRAPH_WIDTH + "\" height=\"" + TOTAL_GRAPH_HEIGHT + "\" src=\"").textInXmlAttribute(safeName).print("-day.png\" alt=\"").textInXmlAttribute(getHttpdServerDisplay(osv, httpdServer)).print("\" /></a>\n"
 									+ "      </p>\n");
 						}
 						if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {

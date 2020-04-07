@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2015, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2015, 2017, 2018, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -33,12 +33,12 @@ public abstract class TomcatCommon {
 	 */
 	public void writeHttpdTomcatParameter(ContextParameter parameter, ChainWriter out) throws IOException {
 		out.print("          <Parameter\n"
-				+ "            name=\"").encodeXmlAttribute(parameter.getName()).print("\"\n"
-				+ "            value=\"").encodeXmlAttribute(parameter.getValue()).print("\"\n");
+				+ "            name=\"").textInXmlAttribute(parameter.getName()).print("\"\n"
+				+ "            value=\"").textInXmlAttribute(parameter.getValue()).print("\"\n");
 		boolean override = parameter.getOverride();
-		if(!override) out.print("            override=\"").encodeXmlAttribute(override).print("\"\n");
+		if(!override) out.print("            override=\"").textInXmlAttribute(override).print("\"\n");
 		String description = parameter.getDescription();
-		if(description != null) out.print("            description=\"").encodeXmlAttribute(description).print("\"\n");
+		if(description != null) out.print("            description=\"").textInXmlAttribute(description).print("\"\n");
 		out.print("          />\n");
 	}
 

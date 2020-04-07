@@ -64,7 +64,7 @@ final public class MySQLAdmin extends DBReportData {
 			}
 
 			// Parse out the number of users
-			String[] words = Strings.splitString(line);
+			String[] words = Strings.split(line);
 			numUsers=Integer.parseInt(words[3]);
 			questions=Integer.parseInt(words[5]);
 			slow_queries=Integer.parseInt(words[8]);

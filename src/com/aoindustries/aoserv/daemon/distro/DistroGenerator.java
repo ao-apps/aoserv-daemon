@@ -23,9 +23,9 @@ import com.aoindustries.io.ByteCountInputStream;
 import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.EmptyArrays;
 import com.aoindustries.lang.Strings;
 import com.aoindustries.lang.SysExits;
-import com.aoindustries.util.AoArrays;
 import com.aoindustries.util.ErrorPrinter;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -350,7 +350,7 @@ final public class DistroGenerator {
 				)) {
 					String line;
 					while ((line = in.readLine()) != null) {
-						List<String> fields = Strings.splitString(line, ':');
+						List<String> fields = Strings.split(line, ':');
 						String username = fields.get(0);
 						Integer userID = Integer.parseInt(fields.get(2));
 						if(!realNames.containsKey(userID)) realNames.put(userID, username);
@@ -384,7 +384,7 @@ final public class DistroGenerator {
 				)) {
 					String line;
 					while ((line = in.readLine()) != null) {
-						List<String> fields = Strings.splitString(line, ':');
+						List<String> fields = Strings.split(line, ':');
 						String groupname = fields.get(0);
 						Integer groupID = Integer.parseInt(fields.get(2));
 						if(!realGroups.containsKey(groupID)) realGroups.put(groupID, groupname);
@@ -592,7 +592,7 @@ final public class DistroGenerator {
 							// Push on stacks for next level
 							currentDirectories.push(filename);
 							String[] list = unixFile.list();
-							if(list == null) list = AoArrays.EMPTY_STRING_ARRAY;
+							if(list == null) list = EmptyArrays.EMPTY_STRING_ARRAY;
 							Arrays.sort(list);
 							currentLists.push(list);
 							currentIndexes.push(0);

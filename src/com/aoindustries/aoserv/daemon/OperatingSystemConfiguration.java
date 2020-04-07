@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -9,7 +9,7 @@ import com.aoindustries.aoserv.client.distribution.OperatingSystemVersion;
 import com.aoindustries.aoserv.client.linux.PosixPath;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
-import com.aoindustries.util.WrappedException;
+import com.aoindustries.exception.WrappedException;
 import com.aoindustries.validation.ValidationException;
 import java.io.IOException;
 import java.sql.SQLException;

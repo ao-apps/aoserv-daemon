@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2015, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2015, 2017, 2018, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -50,15 +50,15 @@ class HttpdTomcatStdSiteManager_3_1 extends HttpdTomcatStdSiteManager_3_X<Tomcat
 			out.print("<Host>\n"
 					+ "    <xmlmapper:debug level=\"0\" />\n"
 					+ "    <Logger name=\"tc_log\"\n"
-					+ "            path=\"").encodeXmlAttribute(siteDir).print("/var/log/tomcat.log\"\n"
+					+ "            path=\"").textInXmlAttribute(siteDir).print("/var/log/tomcat.log\"\n"
 					+ "            customOutput=\"yes\" />\n"
 					+ "    <Logger name=\"servlet_log\"\n"
-					+ "            path=\"").encodeXmlAttribute(siteDir).print("/var/log/servlet.log\"\n"
+					+ "            path=\"").textInXmlAttribute(siteDir).print("/var/log/servlet.log\"\n"
 					+ "            customOutput=\"yes\" />\n"
 					+ "    <Logger name=\"JASPER_LOG\"\n"
-					+ "            path=\"").encodeXmlAttribute(siteDir).print("/var/log/jasper.log\"\n"
+					+ "            path=\"").textInXmlAttribute(siteDir).print("/var/log/jasper.log\"\n"
 					+ "            verbosityLevel = \"INFORMATION\" />\n"
-					+ "    <ContextManager debug=\"0\" home=\"").encodeXmlAttribute(siteDir).print("\" workDir=\"").encodeXmlAttribute(siteDir).print("/work\" >\n"
+					+ "    <ContextManager debug=\"0\" home=\"").textInXmlAttribute(siteDir).print("\" workDir=\"").textInXmlAttribute(siteDir).print("/work\" >\n"
 					+ "        <ContextInterceptor className=\"org.apache.tomcat.context.DefaultCMSetter\" />\n"
 					+ "        <ContextInterceptor className=\"org.apache.tomcat.context.WorkDirInterceptor\" />\n"
 					+ "        <ContextInterceptor className=\"org.apache.tomcat.context.WebXmlReader\" />\n"
@@ -78,9 +78,9 @@ class HttpdTomcatStdSiteManager_3_1 extends HttpdTomcatStdSiteManager_3_X<Tomcat
 				else if(protocol.equals(JkProtocol.AJP13)) throw new IllegalArgumentException("Tomcat Version "+htv+" does not support AJP version: "+protocol);
 				else throw new IllegalArgumentException("Unknown AJP version: "+htv);
 				out.print("\"/>\n"
-						+ "            <Parameter name=\"port\" value=\"").encodeXmlAttribute(netBind.getPort().getPort()).print("\"/>\n");
+						+ "            <Parameter name=\"port\" value=\"").textInXmlAttribute(netBind.getPort().getPort()).print("\"/>\n");
 				InetAddress ip=netBind.getIpAddress().getInetAddress();
-				if(!ip.isUnspecified()) out.print("            <Parameter name=\"inet\" value=\"").encodeXmlAttribute(ip).print("\"/>\n");
+				if(!ip.isUnspecified()) out.print("            <Parameter name=\"inet\" value=\"").textInXmlAttribute(ip).print("\"/>\n");
 				out.print("            <Parameter name=\"max_threads\" value=\"30\"/>\n"
 						+ "            <Parameter name=\"max_spare_threads\" value=\"10\"/>\n"
 						+ "            <Parameter name=\"min_spare_threads\" value=\"1\"/>\n"
@@ -88,7 +88,7 @@ class HttpdTomcatStdSiteManager_3_1 extends HttpdTomcatStdSiteManager_3_X<Tomcat
 				);
 			}
 			for(Context htc : tomcatSite.getHttpdTomcatContexts()) {
-				out.print("    <Context path=\"").encodeXmlAttribute(htc.getPath()).print("\" docBase=\"").encodeXmlAttribute(htc.getDocBase()).print("\" debug=\"").encodeXmlAttribute(htc.getDebugLevel()).print("\" reloadable=\"").encodeXmlAttribute(htc.isReloadable()).print("\" />\n");
+				out.print("    <Context path=\"").textInXmlAttribute(htc.getPath()).print("\" docBase=\"").textInXmlAttribute(htc.getDocBase()).print("\" debug=\"").textInXmlAttribute(htc.getDebugLevel()).print("\" reloadable=\"").textInXmlAttribute(htc.isReloadable()).print("\" />\n");
 			}
 			out.print("  </ContextManager>\n"
 					+ "</Server>\n");

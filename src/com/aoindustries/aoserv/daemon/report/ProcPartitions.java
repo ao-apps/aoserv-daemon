@@ -1,11 +1,11 @@
 /*
- * Copyright 2000-2013, 2014 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2014, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
 package com.aoindustries.aoserv.daemon.report;
 
-import com.aoindustries.util.AoArrays;
+import com.aoindustries.lang.EmptyArrays;
 
 /**
  * Encapsulates the output of the /proc/partitions file
@@ -14,27 +14,27 @@ import com.aoindustries.util.AoArrays;
  */
 final public class ProcPartitions {
 
-    final public int[] device_majors;
-    final public int[] device_minors;
-    final public long[]
-        blocks,
-        rios,
-        rmerges,
-        rsect,
-        ruse,
-        wios,
-        wmerge,
-        wsect,
-        wuse
-    ;
-    final public int[] runnings;
-    final public long[]
-        uses,
-        aveq
-    ;
+	final public int[] device_majors;
+	final public int[] device_minors;
+	final public long[]
+		blocks,
+		rios,
+		rmerges,
+		rsect,
+		ruse,
+		wios,
+		wmerge,
+		wsect,
+		wuse
+	;
+	final public int[] runnings;
+	final public long[]
+		uses,
+		aveq
+	;
 
-    public ProcPartitions() {
-        device_majors=device_minors=runnings = AoArrays.EMPTY_INT_ARRAY;
-        blocks=rios=rmerges=rsect=ruse=wios=wmerge=wsect=wuse=uses=aveq = AoArrays.EMPTY_LONG_ARRAY;
-    }
+	public ProcPartitions() {
+		device_majors=device_minors=runnings = EmptyArrays.EMPTY_INT_ARRAY;
+		blocks=rios=rmerges=rsect=ruse=wios=wmerge=wsect=wuse=uses=aveq = EmptyArrays.EMPTY_LONG_ARRAY;
+	}
 }

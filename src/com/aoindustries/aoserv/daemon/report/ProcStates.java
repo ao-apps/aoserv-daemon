@@ -79,10 +79,10 @@ final public class ProcStates {
 							String line;
 							while((state==null || uid==-1) && (line=in.readLine())!=null) {
 								if(line.startsWith("State:")) {
-									String[] words=Strings.splitString(line);
+									String[] words=Strings.split(line);
 									state=words[1];
 								} else if(line.startsWith("Uid:")) {
-									String[] words= Strings.splitString(line);
+									String[] words= Strings.split(line);
 									uid=Integer.parseInt(words[1]);
 								}
 							}

@@ -62,7 +62,7 @@ final public class ProcMemory {
 			try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream("/proc/meminfo")))) {
 				String line;
 				while((line=in.readLine())!=null) {
-					String[] words = Strings.splitString(line);
+					String[] words = Strings.split(line);
 					String label=words[0];
 					if(label.equals("MemTotal:")) _mem_total=Integer.parseInt(words[1]);
 					else if(label.equals("MemFree:")) _mem_free=Integer.parseInt(words[1]);

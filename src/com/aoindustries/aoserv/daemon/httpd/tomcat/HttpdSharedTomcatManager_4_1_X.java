@@ -25,10 +25,10 @@ import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
+import com.aoindustries.collections.SortedArrayList;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.util.SortedArrayList;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -355,7 +355,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 				if(shutdownPort==null) throw new SQLException("Unable to find shutdown key for SharedTomcat: "+sharedTomcat);
 				String shutdownKey=sharedTomcat.getTomcat4ShutdownKey();
 				if(shutdownKey==null) throw new SQLException("Unable to find shutdown key for SharedTomcat: "+sharedTomcat);
-				out.print("<Server port=\"").encodeXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").encodeXmlAttribute(shutdownKey).print("\" debug=\"0\">\n");
+				out.print("<Server port=\"").textInXmlAttribute(shutdownPort.getPort().getPort()).print("\" shutdown=\"").textInXmlAttribute(shutdownKey).print("\" debug=\"0\">\n");
 				out.print("  <Listener className=\"org.apache.catalina.mbeans.ServerLifecycleListener\" debug=\"0\"/>\n"
 						+ "  <Listener className=\"org.apache.catalina.mbeans.GlobalResourcesLifecycleListener\" debug=\"0\"/>\n"
 						+ "  <GlobalNamingResources>\n"
@@ -385,13 +385,13 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 						//+ "      useURIValidationHack=\"false\"\n"
 						//+ "      protocolHandlerClassName=\"org.apache.jk.server.JkCoyoteHandler\"\n"
 						+ "      className=\"org.apache.ajp.tomcat4.Ajp13Connector\"\n"
-						+ "      port=\"").encodeXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
+						+ "      port=\"").textInXmlAttribute(hw.getBind().getPort().getPort()).print("\"\n"
 						+ "      minProcessors=\"2\"\n"
 						+ "      maxProcessors=\"200\"\n"
-						+ "      address=\"").encodeXmlAttribute(IpAddress.LOOPBACK_IP).print("\"\n"
+						+ "      address=\"").textInXmlAttribute(IpAddress.LOOPBACK_IP).print("\"\n"
 						+ "      acceptCount=\"10\"\n"
 						+ "      debug=\"0\"\n"
-						+ "      maxPostSize=\"").encodeXmlAttribute(sharedTomcat.getMaxPostSize()).print("\"\n"
+						+ "      maxPostSize=\"").textInXmlAttribute(sharedTomcat.getMaxPostSize()).print("\"\n"
 						+ "      protocol=\"AJP/1.3\"\n");
 				// Do not include when is default "true"
 				if(!sharedTomcat.getTomcatAuthentication()) {
@@ -412,11 +412,11 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 					if(!hs.isDisabled()) {
 						String primaryHostname=hs.getPrimaryHttpdSiteURL().getHostname().toString();
 						out.print("      <Host\n"
-								+ "        name=\"").encodeXmlAttribute(primaryHostname).print("\"\n"
+								+ "        name=\"").textInXmlAttribute(primaryHostname).print("\"\n"
 								+ "        debug=\"0\"\n"
-								+ "        appBase=\"").encodeXmlAttribute(wwwDirectory).print('/').encodeXmlAttribute(hs.getName()).print("/webapps\"\n"
-								+ "        unpackWARs=\"").encodeXmlAttribute(sharedTomcat.getUnpackWARs()).print("\"\n"
-								+ "        autoDeploy=\"").encodeXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n"
+								+ "        appBase=\"").textInXmlAttribute(wwwDirectory).print('/').textInXmlAttribute(hs.getName()).print("/webapps\"\n"
+								+ "        unpackWARs=\"").textInXmlAttribute(sharedTomcat.getUnpackWARs()).print("\"\n"
+								+ "        autoDeploy=\"").textInXmlAttribute(sharedTomcat.getAutoDeploy()).print("\"\n"
 								+ "      >\n");
 						List<String> usedHostnames=new SortedArrayList<>();
 						usedHostnames.add(primaryHostname);
@@ -426,7 +426,7 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 							for (VirtualHostName url : urls) {
 								String hostname = url.getHostname().toString();
 								if(!usedHostnames.contains(hostname)) {
-									out.print("        <Alias>").encodeXhtml(hostname).print("</Alias>\n");
+									out.print("        <Alias>").textInXhtml(hostname).print("</Alias>\n");
 									usedHostnames.add(hostname);
 								}
 							}
@@ -434,15 +434,15 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 							if(hs.getListFirst()) {
 								String ip=bind.getHttpdBind().getNetBind().getIpAddress().getInetAddress().toString();
 								if(!usedHostnames.contains(ip)) {
-									out.print("        <Alias>").encodeXhtml(ip).print("</Alias>\n");
+									out.print("        <Alias>").textInXhtml(ip).print("</Alias>\n");
 									usedHostnames.add(ip);
 								}
 							}
 						}
 						out.print("        <Logger\n"
 								+ "          className=\"org.apache.catalina.logger.FileLogger\"\n"
-								+ "          directory=\"").encodeXmlAttribute(wwwDirectory).print('/').encodeXmlAttribute(hs.getName()).print("/var/log\"\n"
-								+ "          prefix=\"").encodeXmlAttribute(primaryHostname).print("_log.\"\n"
+								+ "          directory=\"").textInXmlAttribute(wwwDirectory).print('/').textInXmlAttribute(hs.getName()).print("/var/log\"\n"
+								+ "          prefix=\"").textInXmlAttribute(primaryHostname).print("_log.\"\n"
 								+ "          suffix=\".txt\"\n"
 								+ "          timestamp=\"true\"\n"
 								+ "        />\n");
@@ -450,18 +450,18 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 						for(Context htc : tomcatSite.getHttpdTomcatContexts()) {
 							if(!htc.isServerXmlConfigured()) out.print("        <!--\n");
 							out.print("        <Context\n");
-							if(htc.getClassName()!=null) out.print("          className=\"").encodeXmlAttribute(htc.getClassName()).print("\"\n");
-							out.print("          cookies=\"").encodeXmlAttribute(htc.useCookies()).print("\"\n"
-									+ "          crossContext=\"").encodeXmlAttribute(htc.allowCrossContext()).print("\"\n"
-									+ "          docBase=\"").encodeXmlAttribute(htc.getDocBase()).print("\"\n"
-									+ "          override=\"").encodeXmlAttribute(htc.allowOverride()).print("\"\n"
-									+ "          path=\"").encodeXmlAttribute(htc.getPath()).print("\"\n"
-									+ "          privileged=\"").encodeXmlAttribute(htc.isPrivileged()).print("\"\n"
-									+ "          reloadable=\"").encodeXmlAttribute(htc.isReloadable()).print("\"\n"
-									+ "          useNaming=\"").encodeXmlAttribute(htc.useNaming()).print("\"\n");
-							if(htc.getWrapperClass()!=null) out.print("          wrapperClass=\"").encodeXmlAttribute(htc.getWrapperClass()).print("\"\n");
-							out.print("          debug=\"").encodeXmlAttribute(htc.getDebugLevel()).print("\"\n");
-							if(htc.getWorkDir()!=null) out.print("          workDir=\"").encodeXmlAttribute(htc.getWorkDir()).print("\"\n");
+							if(htc.getClassName()!=null) out.print("          className=\"").textInXmlAttribute(htc.getClassName()).print("\"\n");
+							out.print("          cookies=\"").textInXmlAttribute(htc.useCookies()).print("\"\n"
+									+ "          crossContext=\"").textInXmlAttribute(htc.allowCrossContext()).print("\"\n"
+									+ "          docBase=\"").textInXmlAttribute(htc.getDocBase()).print("\"\n"
+									+ "          override=\"").textInXmlAttribute(htc.allowOverride()).print("\"\n"
+									+ "          path=\"").textInXmlAttribute(htc.getPath()).print("\"\n"
+									+ "          privileged=\"").textInXmlAttribute(htc.isPrivileged()).print("\"\n"
+									+ "          reloadable=\"").textInXmlAttribute(htc.isReloadable()).print("\"\n"
+									+ "          useNaming=\"").textInXmlAttribute(htc.useNaming()).print("\"\n");
+							if(htc.getWrapperClass()!=null) out.print("          wrapperClass=\"").textInXmlAttribute(htc.getWrapperClass()).print("\"\n");
+							out.print("          debug=\"").textInXmlAttribute(htc.getDebugLevel()).print("\"\n");
+							if(htc.getWorkDir()!=null) out.print("          workDir=\"").textInXmlAttribute(htc.getWorkDir()).print("\"\n");
 							List<ContextParameter> parameters=htc.getHttpdTomcatParameters();
 							List<ContextDataSource> dataSources=htc.getHttpdTomcatDataSources();
 							if(parameters.isEmpty() && dataSources.isEmpty()) {

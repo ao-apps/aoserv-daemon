@@ -312,7 +312,7 @@ final public class VirtualServerManager {
 						"-F",
 						"0pPnT"
 					);
-					List<String> values = Strings.splitString(lsof, '\u0000');
+					List<String> values = Strings.split(lsof, '\u0000');
 					//System.out.println("values.size()="+values.size());
 					if(
 						values.size()<7

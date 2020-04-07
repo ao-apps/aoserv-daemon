@@ -26,7 +26,6 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
-import com.aoindustries.cron.CronJobScheduleMode;
 import com.aoindustries.cron.Schedule;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.Stat;
@@ -897,25 +896,15 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 		;
 
 		@Override
-		public Schedule getCronJobSchedule() {
+		public Schedule getSchedule() {
 			return schedule;
-		}
-
-		@Override
-		public CronJobScheduleMode getCronJobScheduleMode() {
-			return CronJobScheduleMode.SKIP;
-		}
-
-		@Override
-		public String getCronJobName() {
-			return "RazorLogTrimmer";
 		}
 
 		/**
 		 * Once a day, all of the razor-agent.log files are cleaned to only include the last 1000 lines.
 		 */
 		@Override
-		public void runCronJob(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
+		public void run(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
 			try {
 				Set<UnixFile> restorecon = new LinkedHashSet<>();
 				try {
@@ -975,7 +964,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 		}
 
 		@Override
-		public int getCronJobThreadPriority() {
+		public int getThreadPriority() {
 			return Thread.MIN_PRIORITY;
 		}
 	}
