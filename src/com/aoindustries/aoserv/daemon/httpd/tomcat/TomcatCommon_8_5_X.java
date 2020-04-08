@@ -497,6 +497,23 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 						null,
 						"../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.11.jar"
 					),
+					// postgresql-42.2.11.jar -> postgresql-42.2.12.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.11.jar",
+						"/dev/null",
+						"lib/postgresql-42.2.12.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.11.jar",
+						"../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.11.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.12.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.12.jar"
+					),
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_5_51) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
