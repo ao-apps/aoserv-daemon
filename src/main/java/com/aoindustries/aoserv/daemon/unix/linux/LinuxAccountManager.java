@@ -176,6 +176,14 @@ public class LinuxAccountManager extends BuilderThread {
 								entry.getGid() < gidMin
 								|| entry.getGid() > gidMax
 								|| groupName.equals(Group.AOADMIN)
+								// AOServ Schema:
+								|| groupName.equals(Group.ACCOUNTING)
+								|| groupName.equals(Group.BILLING)
+								|| groupName.equals(Group.DISTRIBUTION)
+								|| groupName.equals(Group.INFRASTRUCTURE)
+								|| groupName.equals(Group.MANAGEMENT)
+								|| groupName.equals(Group.MONITORING)
+								|| groupName.equals(Group.RESELLER)
 							) {
 								boolean found = false;
 								for(GroupServer lsg : lsgs) {
@@ -209,6 +217,14 @@ public class LinuxAccountManager extends BuilderThread {
 								entry.getUid() < uidMin
 								|| entry.getUid() > uidMax
 								|| username.equals(User.AOADMIN)
+								// AOServ Schema:
+								|| username.equals(User.ACCOUNTING)
+								|| username.equals(User.BILLING)
+								|| username.equals(User.DISTRIBUTION)
+								|| username.equals(User.INFRASTRUCTURE)
+								|| username.equals(User.MANAGEMENT)
+								|| username.equals(User.MONITORING)
+								|| username.equals(User.RESELLER)
 							) {
 								boolean found = false;
 								for(UserServer lsa : lsas) {
