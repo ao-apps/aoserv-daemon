@@ -392,8 +392,8 @@ final public class MySQLDatabaseManager extends BuilderThread {
 
 		// For simplicity, doesn't use connection pools
 		try {
-			Class.forName(AOServDaemonConfiguration.getMySqlDriver()).newInstance();
-		} catch(ClassNotFoundException|InstantiationException|IllegalAccessException err) {
+			Class.forName(AOServDaemonConfiguration.getMySqlDriver()).getConstructor().newInstance();
+		} catch(ReflectiveOperationException err) {
 			throw new SQLException(err);
 		}
 		final String jdbcUrl = getJdbcUrl(port, Database.MYSQL);

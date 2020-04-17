@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2013, 2018 by AO Industries, Inc.,
+ * Copyright 2000-2013, 2018, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -91,8 +91,7 @@ public class LinuxProcess extends UnixProcess {
 		List<String> split = new ArrayList<>();
 		StringBuilder sb = new StringBuilder();
 		File cmdlineFile = new File(getProc(), "cmdline");
-		Reader in = new FileReader(cmdlineFile);
-		try {
+		try (Reader in = new FileReader(cmdlineFile)) {
 			int ch;
 			while((ch = in.read()) != -1) {
 				if(ch == 0) {
@@ -102,8 +101,6 @@ public class LinuxProcess extends UnixProcess {
 					sb.append((char)ch);
 				}
 			}
-		} finally {
-			in.close();
 		}
 		if(sb.length() != 0) split.add(sb.toString());
 		return split.toArray(new String[split.size()]);
@@ -119,8 +116,7 @@ public class LinuxProcess extends UnixProcess {
 		File statusFile = new File(getProc(), "status");
 		final int expectedMaxLength = 45; // "wc -l /proc/*/status" shows maximum 45 lines in kernel 3.10.0-514.16.1.el7.x86_64
 		Map<String,String> status = new LinkedHashMap<>(expectedMaxLength *4/3+1);
-		BufferedReader in = new BufferedReader(new FileReader(statusFile));
-		try {
+		try (BufferedReader in = new BufferedReader(new FileReader(statusFile))) {
 			String line;
 			while((line = in.readLine()) != null) {
 				// Have seen empty lines, skip them
@@ -134,8 +130,6 @@ public class LinuxProcess extends UnixProcess {
 					if(status.put(name, value) != null) throw new IOException("Duplicate name from " + statusFile + ": " + name);
 				}
 			}
-		} finally {
-			in.close();
 		}
 		return status;
 	}
@@ -150,8 +144,7 @@ public class LinuxProcess extends UnixProcess {
 	 */
 	public String getStatus(String name) throws IOException {
 		File statusFile = new File(getProc(), "status");
-		BufferedReader in = new BufferedReader(new FileReader(statusFile));
-		try {
+		try (BufferedReader in = new BufferedReader(new FileReader(statusFile))) {
 			String line;
 			while((line = in.readLine()) != null) {
 				// Have seen empty lines, skip them
@@ -165,8 +158,6 @@ public class LinuxProcess extends UnixProcess {
 					}
 				}
 			}
-		} finally {
-			in.close();
 		}
 		return null;
 	}

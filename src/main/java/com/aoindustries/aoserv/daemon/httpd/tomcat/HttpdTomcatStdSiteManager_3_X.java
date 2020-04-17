@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -96,12 +96,13 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 		DaemonFileUtils.mkdir(siteDir+"/work", 0750, uid, gid);
 		final String profileFile=siteDir+"/bin/profile";
 		LinuxAccountManager.setBashProfile(lsa, profileFile);
-		ChainWriter out=new ChainWriter(
-			new BufferedOutputStream(
-				new UnixFile(profileFile).getSecureOutputStream(uid, gid, 0750, false, uid_min, gid_min)
+		try (
+			ChainWriter out = new ChainWriter(
+				new BufferedOutputStream(
+					new UnixFile(profileFile).getSecureOutputStream(uid, gid, 0750, false, uid_min, gid_min)
+				)
 			)
-		);
-		try {
+		) {
 			out.print("#!/bin/sh\n"
 					+ "\n"
 					+ ". /etc/profile\n"
@@ -158,27 +159,26 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 					+ "done\n"
 					+ "\n"
 					+ "export CLASSPATH\n");
-		} finally {
-			out.close();
 		}
 
 		/*
 		 * Write the bin/tomcat script.
 		 */
 		String tomcatScript=siteDir+"/bin/tomcat";
-		out=new ChainWriter(
-			new BufferedOutputStream(
-				new UnixFile(tomcatScript).getSecureOutputStream(
-					uid,
-					gid,
-					0700,
-					false,
-					uid_min,
-					gid_min
+		try (
+			ChainWriter out = new ChainWriter(
+				new BufferedOutputStream(
+					new UnixFile(tomcatScript).getSecureOutputStream(
+						uid,
+						gid,
+						0700,
+						false,
+						uid_min,
+						gid_min
+					)
 				)
 			)
-		);
-		try {
+		) {
 			out.print("#!/bin/sh\n"
 					+ "\n"
 					+ "TOMCAT_HOME=\"").print(siteDir).print("\"\n"
@@ -223,17 +223,16 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 					+ "    echo \"        start - start tomcat\"\n"
 					+ "    echo \"        stop  - stop tomcat\"\n"
 					+ "fi\n");
-		} finally {
-			out.close();
 		}
 		DaemonFileUtils.mkdir(siteDir+"/classes", 0770, uid, gid);
 		String confManifestServlet=siteDir+"/conf/manifest.servlet";
-		out=new ChainWriter(
-			new BufferedOutputStream(
-				new UnixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+		try (
+			ChainWriter out = new ChainWriter(
+				new BufferedOutputStream(
+					new UnixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+				)
 			)
-		);
-		try {
+		) {
 			out.print("Manifest-version: 1.0\n"
 					+ "Name: javax/servlet\n"
 					+ "Sealed: true\n"
@@ -252,16 +251,15 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 					+ "Implementation-Title: \"javax.servlet\"\n"
 					+ "Implementation-Version: \"2.1.1\"\n"
 					+ "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n");
-		} finally {
-			out.close();
 		}
 		String confServerDTD=siteDir+"/conf/server.dtd";
-		out=new ChainWriter(
-			new BufferedOutputStream(
-				new UnixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+		try (
+			ChainWriter out = new ChainWriter(
+				new BufferedOutputStream(
+					new UnixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+				)
 			)
-		);
-		try {
+		) {
 			out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
 					+ "\n"
 					+ "<!ELEMENT Host (ContextManager+)>\n"
@@ -298,19 +296,16 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 					+ "<!ATTLIST Parameter\n"
 					+ "    name CDATA #REQUIRED\n"
 					+ "    value CDATA \"\">\n");
-		} finally {
-			out.close();
 		}
 		tomcatCommon.createTestTomcatXml(siteDir+"/conf", uid, gid, 0660, uid_min, gid_min);
-		out=new ChainWriter(
-			new BufferedOutputStream(
-				new UnixFile(siteDir+"/conf/tomcat-users.xml").getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+		try (
+			ChainWriter out = new ChainWriter(
+				new BufferedOutputStream(
+					new UnixFile(siteDir+"/conf/tomcat-users.xml").getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+				)
 			)
-		);
-		try {
+		) {
 			tomcatCommon.printTomcatUsers(out);
-		} finally {
-			out.close();
 		}
 		tomcatCommon.createWebDtd(siteDir+"/conf", uid, gid, 0660, uid_min, gid_min);
 		tomcatCommon.createWebXml(siteDir+"/conf", uid, gid, 0660, uid_min, gid_min);
@@ -319,35 +314,32 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 			new UnixFile(filename).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min).close();
 		}
 		final String manifestFile=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/META-INF/MANIFEST.MF";
-		new ChainWriter(new UnixFile(manifestFile).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)).print("Manifest-Version: 1.0").close();
+		try (ChainWriter out = new ChainWriter(new UnixFile(manifestFile).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min))) {
+			out.print("Manifest-Version: 1.0");
+		}
 
 		/*
 		 * Write the cocoon.properties file.
 		 */
-		OutputStream fileOut=new BufferedOutputStream(new UnixFile(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties").getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min));
-		try {
+		try (OutputStream fileOut = new BufferedOutputStream(new UnixFile(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties").getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min))) {
 			tomcatCommon.copyCocoonProperties1(fileOut);
-			out=new ChainWriter(fileOut);
-			try {
+			try (ChainWriter out = new ChainWriter(fileOut)) {
 				out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/cocoon\n");
 				out.flush();
 				tomcatCommon.copyCocoonProperties2(fileOut);
-			} finally {
-				out.flush();
 			}
-		} finally {
-			fileOut.close();
 		}
 
 		/*
 		 * Write the ROOT/WEB-INF/web.xml file.
 		 */
-		out=new ChainWriter(
-			new BufferedOutputStream(
-				new UnixFile(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/web.xml").getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+		try (
+			ChainWriter out = new ChainWriter(
+				new BufferedOutputStream(
+					new UnixFile(siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/web.xml").getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+				)
 			)
-		);
-		try {
+		) {
 			out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
 					+ "\n"
 					+ "<!DOCTYPE web-app\n"
@@ -373,8 +365,6 @@ abstract class HttpdTomcatStdSiteManager_3_X<TC extends TomcatCommon_3_X> extend
 					+ " </servlet-mapping>\n"
 					+ "\n"
 					+ "</web-app>\n");
-		} finally {
-			out.close();
 		}
 	}
 

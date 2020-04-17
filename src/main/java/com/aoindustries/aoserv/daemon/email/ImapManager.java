@@ -1373,8 +1373,7 @@ final public class ImapManager extends BuilderThread {
 				String folderName = folderPath.length() == 0 ? childName : (folderPath + '/' + childName);
 
 				// Get New Store
-				IMAPStore newStore = getNewUserStore(logOut, username, tempPassword, passwordBackup);
-				try {
+				try (IMAPStore newStore = getNewUserStore(logOut, username, tempPassword, passwordBackup)) {
 					// Get New Folder
 					IMAPFolder newFolder = (IMAPFolder)newStore.getFolder(folderName);
 					try {
@@ -1394,8 +1393,6 @@ final public class ImapManager extends BuilderThread {
 					} finally {
 						if(newFolder.isOpen()) newFolder.close(false);
 					}
-				} finally {
-					newStore.close();
 				}
 
 				// Recurse
@@ -1534,16 +1531,14 @@ final public class ImapManager extends BuilderThread {
 		} else {
 			// Get Old Store
 			boolean deleteOldFolder;
-			IMAPStore oldStore = getOldUserStore(logOut, username, tempPassword, passwordBackup);
-			try {
+			try (IMAPStore oldStore = getOldUserStore(logOut, username, tempPassword, passwordBackup)) {
 				// Get Old Folder
 				IMAPFolder oldFolder = (IMAPFolder)oldStore.getFolder(folderName);
 				try {
 					if(!oldFolder.exists()) throw new MessagingException(username + ": Old folder doesn't exist: " + folderName);
 					oldFolder.open(Folder.READ_WRITE);
 					// Get New Store
-					IMAPStore newStore = getNewUserStore(logOut, username, tempPassword, passwordBackup);
-					try {
+					try (IMAPStore newStore = getNewUserStore(logOut, username, tempPassword, passwordBackup)) {
 						// Get New Folder
 						IMAPFolder newFolder = (IMAPFolder)newStore.getFolder(folderName);
 						try {
@@ -1674,8 +1669,6 @@ final public class ImapManager extends BuilderThread {
 						} finally {
 							if(newFolder.isOpen()) newFolder.close(false);
 						}
-					} finally {
-						newStore.close();
 					}
 					// Confirm that all messages in the old folder have delete flag
 					int notDeletedCount = 0;
@@ -1698,8 +1691,6 @@ final public class ImapManager extends BuilderThread {
 					log(logOut, Level.FINE, username, "Deleting mailbox: " + folderName);
 					if(!oldFolder.delete(false)) throw new IOException(username + ": Unable to delete mailbox: " + folderName);
 				}
-			} finally {
-				oldStore.close();
 			}
 			if(deleteOldFolder && file.getStat().exists()) {
 				// If INBOX, need to remove file

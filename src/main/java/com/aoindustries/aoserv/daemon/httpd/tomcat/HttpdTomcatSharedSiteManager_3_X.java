@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019 by AO Industries, Inc.,
+ * Copyright 2007-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -87,12 +87,13 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
 		 * Write the manifest.servlet file.
 		 */
 		String confManifestServlet=siteDir+"/conf/manifest.servlet";
-		ChainWriter out=new ChainWriter(
-			new BufferedOutputStream(
-				new UnixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+		try (
+			ChainWriter out = new ChainWriter(
+				new BufferedOutputStream(
+					new UnixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+				)
 			)
-		);
-		try {
+		) {
 			out.print("Manifest-version: 1.0\n"
 					  + "Name: javax/servlet\n"
 					  + "Sealed: true\n"
@@ -112,20 +113,19 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
 					  + "Implementation-Version: \"2.1.1\"\n"
 					  + "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n"
 					  );
-		} finally {
-			out.close();
 		}
 
 		/*
 		 * Create the conf/server.dtd file.
 		 */
 		String confServerDTD=siteDir+"/conf/server.dtd";
-		out=new ChainWriter(
-			new BufferedOutputStream(
-				new UnixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+		try (
+			ChainWriter out = new ChainWriter(
+				new BufferedOutputStream(
+					new UnixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+				)
 			)
-		);
-		try {
+		) {
 			out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
 					  + "\n"
 					  + "<!ELEMENT Host (ContextManager+)>\n"
@@ -163,8 +163,6 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
 					  + "    name CDATA #REQUIRED\n"
 					  + "    value CDATA \"\">\n"
 					  );
-		} finally {
-			out.close();
 		}
 
 		// Create the test-tomcat.xml file.
@@ -174,15 +172,14 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
 		 * Create the tomcat-users.xml file
 		 */
 		String confTomcatUsers=siteDir+"/conf/tomcat-users.xml";
-		out=new ChainWriter(
-			new BufferedOutputStream(
-				new UnixFile(confTomcatUsers).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+		try (
+			ChainWriter out = new ChainWriter(
+				new BufferedOutputStream(
+					new UnixFile(confTomcatUsers).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+				)
 			)
-		);
-		try {
+		) {
 			tomcatCommon.printTomcatUsers(out);
-		} finally {
-			out.close();
 		}
 
 		/*
@@ -207,46 +204,45 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
 		 * Create the manifest file.
 		 */
 		String manifestFile=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/META-INF/MANIFEST.MF";
-		new ChainWriter(
-			new UnixFile(manifestFile).getSecureOutputStream(
-				uid,
-				gid,
-				0664,
-				false,
-				uid_min,
-				gid_min
+		try (
+			ChainWriter out = new ChainWriter(
+				new UnixFile(manifestFile).getSecureOutputStream(
+					uid,
+					gid,
+					0664,
+					false,
+					uid_min,
+					gid_min
+				)
 			)
-		).print("Manifest-Version: 1.0").close();
+		) {
+			out.print("Manifest-Version: 1.0");
+		}
 
 		/*
 		 * Write the cocoon.properties file.
 		 */
 		String cocoonProps=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties";
-		OutputStream fileOut=new BufferedOutputStream(new UnixFile(cocoonProps).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min));
-		try {
+		try (OutputStream fileOut = new BufferedOutputStream(new UnixFile(cocoonProps).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min))) {
 			tomcatCommon.copyCocoonProperties1(fileOut);
-			out=new ChainWriter(fileOut);
-			try {
+			try (ChainWriter out = new ChainWriter(fileOut)) {
 				out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/cocoon\n");
 				out.flush();
 				tomcatCommon.copyCocoonProperties2(fileOut);
-			} finally {
-				out.flush();
 			}
-		} finally {
-			fileOut.close();
 		}
 
 		/*
 		 * Write the ROOT/WEB-INF/web.xml file.
 		 */
 		String webXML=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/web.xml";
-		out=new ChainWriter(
-			new BufferedOutputStream(
-				new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+		try (
+			ChainWriter out = new ChainWriter(
+				new BufferedOutputStream(
+					new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+				)
 			)
-		);
-		try {
+		) {
 			out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
 					  + "\n"
 					  + "<!DOCTYPE web-app\n"
@@ -272,8 +268,6 @@ abstract class HttpdTomcatSharedSiteManager_3_X<TC extends TomcatCommon_3_X> ext
 					  + " </servlet-mapping>\n"
 					  + "\n"
 					  + "</web-app>\n");
-		} finally {
-			out.close();
 		}
 	}
 

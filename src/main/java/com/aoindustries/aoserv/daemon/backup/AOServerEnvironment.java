@@ -86,8 +86,8 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 			List<MysqlReplication> fmrs = ffr.getFailoverMySQLReplications();
 			List<com.aoindustries.aoserv.client.mysql.Server.Name> replicatedMySQLServers = new ArrayList<>(fmrs.size());
 			List<String> replicatedMySQLMinorVersions = new ArrayList<>(fmrs.size());
-			Logger logger = getLogger();
-			boolean isDebug = logger.isLoggable(Level.FINE);
+			Logger _logger = getLogger();
+			boolean isDebug = _logger.isLoggable(Level.FINE);
 			for(MysqlReplication fmr : fmrs) {
 				com.aoindustries.aoserv.client.mysql.Server mysqlServer = fmr.getMySQLServer();
 				com.aoindustries.aoserv.client.mysql.Server.Name name = mysqlServer.getName();
@@ -95,8 +95,8 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 				replicatedMySQLServers.add(name);
 				replicatedMySQLMinorVersions.add(minorVersion);
 				if(isDebug) {
-					logger.logp(Level.FINE, getClass().getName(), "init", "runFailoverCopy to "+toServer+", replicatedMySQLServer: "+name);
-					logger.logp(Level.FINE, getClass().getName(), "init", "runFailoverCopy to "+toServer+", replicatedMySQLMinorVersion: "+minorVersion);
+					_logger.logp(Level.FINE, getClass().getName(), "init", "runFailoverCopy to "+toServer+", replicatedMySQLServer: "+name);
+					_logger.logp(Level.FINE, getClass().getName(), "init", "runFailoverCopy to "+toServer+", replicatedMySQLMinorVersion: "+minorVersion);
 				}
 			}
 			synchronized(replicatedMySQLServerses) {

@@ -449,7 +449,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 						} else {
 							// For other databases, establish a connection directly
 							pool = null;
-							Class.forName(postgresDatabase.getJdbcDriver()).newInstance();
+							Class.forName(postgresDatabase.getJdbcDriver()).getConstructor().newInstance();
 							conn = DriverManager.getConnection(
 								postgresDatabase.getJdbcUrl(true),
 								User.POSTGRES.toString(),

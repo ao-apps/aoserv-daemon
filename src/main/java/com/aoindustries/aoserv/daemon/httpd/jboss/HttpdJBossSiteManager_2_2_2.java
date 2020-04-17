@@ -176,12 +176,13 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		 * Write the manifest.servlet file.
 		 */
 		String confManifestServlet=siteDir+"/conf/manifest.servlet";
-		ChainWriter out=new ChainWriter(
-			new BufferedOutputStream(
-				new UnixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+		try (
+			ChainWriter out = new ChainWriter(
+				new BufferedOutputStream(
+					new UnixFile(confManifestServlet).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+				)
 			)
-		);
-		try {
+		) {
 			out.print("Manifest-version: 1.0\n"
 					  + "Name: javax/servlet\n"
 					  + "Sealed: true\n"
@@ -201,20 +202,19 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 					  + "Implementation-Version: \"2.1.1\"\n"
 					  + "Implementation-Vendor: \"Sun Microsystems, Inc.\"\n"
 					  );
-		} finally {
-			out.close();
 		}
 
 		/*
 		 * Create the conf/server.dtd file.
 		 */
 		String confServerDTD=siteDir+"/conf/server.dtd";
-		out=new ChainWriter(
-			new BufferedOutputStream(
-				new UnixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+		try (
+			ChainWriter out = new ChainWriter(
+				new BufferedOutputStream(
+					new UnixFile(confServerDTD).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+				)
 			)
-		);
-		try {
+		) {
 			out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
 					  + "\n"
 					  + "<!ELEMENT Host (ContextManager+)>\n"
@@ -252,8 +252,6 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 					  + "    name CDATA #REQUIRED\n"
 					  + "    value CDATA \"\">\n"
 					  );
-		} finally {
-			out.close();
 		}
 
 		/*
@@ -265,15 +263,14 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		 * Create the tomcat-users.xml file
 		 */
 		String confTomcatUsers=siteDir+"/conf/tomcat-users.xml";
-		out=new ChainWriter(
-			new BufferedOutputStream(
-				new UnixFile(confTomcatUsers).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+		try (
+			ChainWriter out = new ChainWriter(
+				new BufferedOutputStream(
+					new UnixFile(confTomcatUsers).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min)
+				)
 			)
-		);
-		try {
+		) {
 			tomcatCommon.printTomcatUsers(out);
-		} finally {
-			out.close();
 		}
 
 		/*
@@ -298,46 +295,45 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 		 * Create the manifest file.
 		 */
 		String manifestFile=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/META-INF/MANIFEST.MF";
-		new ChainWriter(
-			new UnixFile(manifestFile).getSecureOutputStream(
-				uid,
-				gid,
-				0664,
-				false,
-				uid_min,
-				gid_min
+		try (
+			ChainWriter out = new ChainWriter(
+				new UnixFile(manifestFile).getSecureOutputStream(
+					uid,
+					gid,
+					0664,
+					false,
+					uid_min,
+					gid_min
+				)
 			)
-		).print("Manifest-Version: 1.0").close();
+		) {
+			out.print("Manifest-Version: 1.0");
+		}
 
 		/*
 		 * Write the cocoon.properties file.
 		 */
 		String cocoonProps=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/conf/cocoon.properties";
-		OutputStream fileOut=new BufferedOutputStream(new UnixFile(cocoonProps).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min));
-		try {
+		try (OutputStream fileOut = new BufferedOutputStream(new UnixFile(cocoonProps).getSecureOutputStream(uid, gid, 0660, false, uid_min, gid_min))) {
 			tomcatCommon.copyCocoonProperties1(fileOut);
-			out=new ChainWriter(fileOut);
-			try {
+			try (ChainWriter out = new ChainWriter(fileOut)) {
 				out.print("processor.xsp.repository = ").print(siteDir).print("/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/cocoon\n");
 				out.flush();
 				tomcatCommon.copyCocoonProperties2(fileOut);
-			} finally {
-				out.flush();
 			}
-		} finally {
-			fileOut.close();
 		}
 
 		/*
 		 * Write the ROOT/WEB-INF/web.xml file.
 		 */
 		String webXML=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/web.xml";
-		out=new ChainWriter(
-			new BufferedOutputStream(
-				new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+		try 
+			(ChainWriter out = new ChainWriter(
+				new BufferedOutputStream(
+					new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+				)
 			)
-		);
-		try {
+		) {
 			out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
 					  + "\n"
 					  + "<!DOCTYPE web-app\n"
@@ -363,8 +359,6 @@ class HttpdJBossSiteManager_2_2_2 extends HttpdJBossSiteManager<TomcatCommon_3_2
 					  + " </servlet-mapping>\n"
 					  + "\n"
 					  + "</web-app>\n");
-		} finally {
-			out.close();
 		}
 	}
 

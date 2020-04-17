@@ -365,8 +365,7 @@ final public class NetworkMonitor {
 									}
 								}.start();
 								// Read standard in
-								DataInputStream in = new DataInputStream(new BufferedInputStream(process.getInputStream()));
-								try {
+								try (DataInputStream in = new DataInputStream(new BufferedInputStream(process.getInputStream()))) {
 									// Must be at least 5 seconds between FIFO-generate null routes
 									Long lastFifoErrors = null;
 									while(true) {
@@ -594,8 +593,6 @@ final public class NetworkMonitor {
 										// TODO: Build statistics database/history (in master since roles can change?  Or history per gateway?)
 										// TODO: Report to any listeners
 									}
-								} finally {
-									in.close();
 								}
 							} finally {
 								int retVal = process.waitFor();

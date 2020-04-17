@@ -112,12 +112,13 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 			LinuxAccountManager.setBashProfile(lsa, profileFile);
 
 			UnixFile profileUF = new UnixFile(profileFile);
-			ChainWriter out = new ChainWriter(
-				new BufferedOutputStream(
-					profileUF.getSecureOutputStream(lsaUID, lsgGID, 0750, false, uid_min, gid_min)
+			try (
+				ChainWriter out = new ChainWriter(
+					new BufferedOutputStream(
+						profileUF.getSecureOutputStream(lsaUID, lsgGID, 0750, false, uid_min, gid_min)
+					)
 				)
-			);
-			try {
+			) {
 				out.print("#!/bin/sh\n"
 						+ "\n"
 						+ ". /etc/profile\n"
@@ -143,19 +144,18 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 						+ "do\n"
 						+ "    export PATH=\"${PATH}:").print(wwwDirectory).print("/${SITE}/bin\"\n"
 						+ "done\n");
-			} finally {
-				out.close();
 			}
 
 			// 004
 
 			UnixFile tomcatUF = new UnixFile(wwwGroupDir + "/bin/tomcat");
-			out=new ChainWriter(
-				new BufferedOutputStream(
-					tomcatUF.getSecureOutputStream(lsaUID, lsgGID, 0700, false, uid_min, gid_min)
+			try (
+				ChainWriter out = new ChainWriter(
+					new BufferedOutputStream(
+						tomcatUF.getSecureOutputStream(lsaUID, lsgGID, 0700, false, uid_min, gid_min)
+					)
 				)
-			);
-			try {
+			) {
 				out.print("#!/bin/sh\n"
 						+ "\n"
 						+ "TOMCAT_HOME=\"").print(wwwGroupDir).print("\"\n"
@@ -201,28 +201,20 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 						+ "    echo \"        stop  - stop tomcat\"\n"
 						+ "fi\n"
 				);
-			} finally {
-				out.close();
 			}
 
 			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-4.1/bin/setclasspath.sh", wwwGroupDir+"/bin/setclasspath.sh", lsaUID, lsgGID);
 
 			UnixFile shutdown=new UnixFile(wwwGroupDir+"/bin/shutdown.sh");
-			out=new ChainWriter(shutdown.getSecureOutputStream(lsaUID, lsgGID, 0700, true, uid_min, gid_min));
-			try {
+			try (ChainWriter out = new ChainWriter(shutdown.getSecureOutputStream(lsaUID, lsgGID, 0700, true, uid_min, gid_min))) {
 				out.print("#!/bin/sh\n"
 						+ "exec \"").print(wwwGroupDir).print("/bin/tomcat\" stop\n");
-			} finally {
-				out.close();
 			}
 
 			UnixFile startup=new UnixFile(wwwGroupDir+"/bin/startup.sh");
-			out=new ChainWriter(startup.getSecureOutputStream(lsaUID, lsgGID, 0700, true, uid_min, gid_min));
-			try {
+			try (ChainWriter out = new ChainWriter(startup.getSecureOutputStream(lsaUID, lsgGID, 0700, true, uid_min, gid_min))) {
 				out.print("#!/bin/sh\n"
 						+ "exec \"").print(wwwGroupDir).print("/bin/tomcat\" start\n");
-			} finally {
-				out.close();
 			}
 
 			DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-4.1/bin/tomcat-jni.jar", wwwGroupDir+"/bin/tomcat-jni.jar", lsaUID, lsgGID);
@@ -273,14 +265,15 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 		}
 
 		// always rebuild profile.sites file
-		UnixFile newSitesFileUF = new UnixFile(sharedTomcatDirectory, "bin/profile.sites.new", false);
-		ChainWriter out = new ChainWriter(
-			new BufferedOutputStream(
-				newSitesFileUF.getSecureOutputStream(lsaUID, lsgGID, 0750, true, uid_min, gid_min)
-			)
-		);
 		List<SharedTomcatSite> sites = sharedTomcat.getHttpdTomcatSharedSites();
-		try {
+		UnixFile newSitesFileUF = new UnixFile(sharedTomcatDirectory, "bin/profile.sites.new", false);
+		try (
+			ChainWriter out = new ChainWriter(
+				new BufferedOutputStream(
+					newSitesFileUF.getSecureOutputStream(lsaUID, lsgGID, 0750, true, uid_min, gid_min)
+				)
+			)
+		) {
 			out.print("export SITES=\"");
 			boolean didOne=false;
 			for(SharedTomcatSite site : sites) {
@@ -292,8 +285,6 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 				}
 			}
 			out.print("\"\n");
-		} finally {
-			out.close();
 		}
 		// flag as needing a restart if this file is different than any existing
 		UnixFile sitesFile = new UnixFile(sharedTomcatDirectory, "bin/profile.sites", false);
@@ -343,12 +334,13 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 		if(!sharedTomcat.isManual() || !confServerXMLUF.getStat().exists()) {
 			String newConfServerXML=wwwGroupDir+"/conf/server.xml.new";
 			UnixFile newConfServerXMLUF=new UnixFile(newConfServerXML);
-			out=new ChainWriter(
-				new BufferedOutputStream(
-					newConfServerXMLUF.getSecureOutputStream(lsaUID, lsgGID, 0660, true, uid_min, gid_min)
+			try (
+				ChainWriter out = new ChainWriter(
+					new BufferedOutputStream(
+						newConfServerXMLUF.getSecureOutputStream(lsaUID, lsgGID, 0660, true, uid_min, gid_min)
+					)
 				)
-			);
-			try {
+			) {
 				Worker hw=sharedTomcat.getTomcat4Worker();
 				if(!sharedTomcat.isManual()) out.print(autoWarning);
 				Bind shutdownPort = sharedTomcat.getTomcat4ShutdownPort();
@@ -486,8 +478,6 @@ class HttpdSharedTomcatManager_4_1_X extends HttpdSharedTomcatManager<TomcatComm
 				out.print("    </Engine>\n"
 						+ "  </Service>\n"
 						+ "</Server>\n");
-			} finally {
-				out.close();
 			}
 
 			// Must restart JVM if this file has changed

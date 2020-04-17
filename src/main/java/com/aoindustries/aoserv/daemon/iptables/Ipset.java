@@ -87,8 +87,7 @@ final public class Ipset {
 		);
 		if(result.getExitVal()==0) {
 			// Skip any comments
-			BufferedReader in = new BufferedReader(new StringReader(result.getStdout()));
-			try {
+			try (BufferedReader in = new BufferedReader(new StringReader(result.getStdout()))) {
 				StringWriter out = new StringWriter();
 				try {
 					String line;
@@ -103,8 +102,6 @@ final public class Ipset {
 					out.close();
 				}
 				return out.toString();
-			} finally {
-				in.close();
 			}
 		} else {
 			String stderr = result.getStderr().trim();
@@ -169,8 +166,7 @@ final public class Ipset {
 	 * Parses an ipset save file, returning the mutable set of IP addresses in order dumped.
 	 */
 	public static void parse(String save, Set<Integer> entries) throws IOException {
-		BufferedReader in = new BufferedReader(new StringReader(save));
-		try {
+		try (BufferedReader in = new BufferedReader(new StringReader(save))) {
 			String line;
 			while((line=in.readLine())!=null) {
 				line = line.trim();
@@ -180,8 +176,6 @@ final public class Ipset {
 					entries.add(IpAddress. getIntForIPAddress(line.substring(spacePos+1)));
 				}
 			}
-		} finally {
-			in.close();
 		}
 	}
 
@@ -280,11 +274,9 @@ final public class Ipset {
 		) {
 			// Create in new file
 			UnixFile newSetFile = new UnixFile(setDir, setName+".ipset.new", true);
-			OutputStream out = new FileOutputStream(newSetFile.getFile());
-			try {
+			try (OutputStream out = new FileOutputStream(newSetFile.getFile())) {
 				out.write(contents);
 			} finally {
-				out.close();
 				newSetFile.setMode(0600);
 			}
 			// Move over old file

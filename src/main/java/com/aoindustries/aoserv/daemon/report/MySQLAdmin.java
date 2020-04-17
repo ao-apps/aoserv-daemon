@@ -46,11 +46,8 @@ final public class MySQLAdmin extends DBReportData {
 			Process P=Runtime.getRuntime().exec(cmd);
 			try {
 				P.getOutputStream().close();
-				BufferedReader in=new BufferedReader(new InputStreamReader(P.getInputStream()));
-				try {
-					line=in.readLine();
-				} finally {
-					in.close();
+				try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
+					line = in.readLine();
 				}
 			} finally {
 				try {

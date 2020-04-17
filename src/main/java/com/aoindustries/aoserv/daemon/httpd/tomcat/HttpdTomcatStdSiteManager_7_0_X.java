@@ -83,19 +83,20 @@ class HttpdTomcatStdSiteManager_7_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 		 */
 		String profileFile=siteDir+"/bin/profile";
 		LinuxAccountManager.setBashProfile(lsa, profileFile);
-		ChainWriter out=new ChainWriter(
-			new BufferedOutputStream(
-				new UnixFile(profileFile).getSecureOutputStream(
-					uid,
-					gid,
-					0750,
-					false,
-					uid_min,
-					gid_min
+		try (
+			ChainWriter out = new ChainWriter(
+				new BufferedOutputStream(
+					new UnixFile(profileFile).getSecureOutputStream(
+						uid,
+						gid,
+						0750,
+						false,
+						uid_min,
+						gid_min
+					)
 				)
 			)
-		);
-		try {
+		) {
 			out.print("#!/bin/sh\n"
 					+ "\n"
 					+ ". /etc/profile\n"
@@ -117,27 +118,26 @@ class HttpdTomcatStdSiteManager_7_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 					+ "export PATH=\"${PATH}:").print(siteDir).print("/bin\"\n"
 					+ "\n"
 					+ "export JAVA_OPTS='-server -Djava.awt.headless=true -Xmx128M -Djdk.disableLastUsageTracking=true'\n");
-		} finally {
-			out.close();
 		}
 
 		/*
 		 * Write the bin/tomcat script.
 		 */
 		String tomcatScript=siteDir+"/bin/tomcat";
-		out=new ChainWriter(
-			new BufferedOutputStream(
-				new UnixFile(tomcatScript).getSecureOutputStream(
-					uid,
-					gid,
-					0700,
-					false,
-					uid_min,
-					gid_min
+		try (
+			ChainWriter out = new ChainWriter(
+				new BufferedOutputStream(
+					new UnixFile(tomcatScript).getSecureOutputStream(
+						uid,
+						gid,
+						0700,
+						false,
+						uid_min,
+						gid_min
+					)
 				)
 			)
-		);
-		try {
+		) {
 			out.print("#!/bin/sh\n"
 					+ "\n"
 					+ "TOMCAT_HOME=\"").print(siteDir).print("\"\n"
@@ -180,25 +180,17 @@ class HttpdTomcatStdSiteManager_7_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 					+ "    echo \"        stop  - stop tomcat\"\n"
 					+ "fi\n"
 			);
-		} finally {
-			out.close();
 		}
 		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-7.0/bin/setclasspath.sh", siteDir+"/bin/setclasspath.sh", uid, gid);
 
-		out=new ChainWriter(new UnixFile(siteDir+"/bin/shutdown.sh").getSecureOutputStream(uid, gid, 0700, true, uid_min, gid_min));
-		try {
+		try (ChainWriter out = new ChainWriter(new UnixFile(siteDir+"/bin/shutdown.sh").getSecureOutputStream(uid, gid, 0700, true, uid_min, gid_min))) {
 			out.print("#!/bin/sh\n"
 					+ "exec \"").print(siteDir).print("/bin/tomcat\" stop\n");
-		} finally {
-			out.close();
 		}
 
-		out=new ChainWriter(new UnixFile(siteDir+"/bin/startup.sh").getSecureOutputStream(uid, gid, 0700, true, uid_min, gid_min));
-		try {
+		try (ChainWriter out = new ChainWriter(new UnixFile(siteDir+"/bin/startup.sh").getSecureOutputStream(uid, gid, 0700, true, uid_min, gid_min))) {
 			out.print("#!/bin/sh\n"
 					+ "exec \"").print(siteDir).print("/bin/tomcat\" start\n");
-		} finally {
-			out.close();
 		}
 
 		DaemonFileUtils.ln("../" + optSlash + "apache-tomcat-7.0/bin/tomcat-juli.jar", siteDir+"/bin/tomcat-juli.jar", uid, gid);
@@ -260,12 +252,13 @@ class HttpdTomcatStdSiteManager_7_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 		 * Write the ROOT/WEB-INF/web.xml file.
 		 */
 		String webXML=siteDir+"/webapps/"+Context.ROOT_DOC_BASE+"/WEB-INF/web.xml";
-		out=new ChainWriter(
-			new BufferedOutputStream(
-				new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+		try (
+			ChainWriter out = new ChainWriter(
+				new BufferedOutputStream(
+					new UnixFile(webXML).getSecureOutputStream(uid, gid, 0664, false, uid_min, gid_min)
+				)
 			)
-		);
-		try {
+		) {
 			out.print("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
 					+ "<web-app xmlns=\"http://java.sun.com/xml/ns/javaee\"\n"
 					+ "  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
@@ -280,8 +273,6 @@ class HttpdTomcatStdSiteManager_7_0_X extends HttpdTomcatStdSiteManager<TomcatCo
 					+ "  </description>\n"
 					+ "\n"
 					+ "</web-app>\n");
-		} finally {
-			out.close();
 		}
 	}
 

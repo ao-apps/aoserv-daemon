@@ -99,7 +99,7 @@ final public class MySQLCreditCardScanner implements CronJob {
 					Database.Name name=database.getName();
 
 					// Get connection to the database
-					Class.forName(AOServDaemonConfiguration.getMySqlDriver()).newInstance();
+					Class.forName(AOServDaemonConfiguration.getMySqlDriver()).getConstructor().newInstance();
 					try (Connection conn = DriverManager.getConnection(
 						MySQLDatabaseManager.getJdbcUrl(port, name),
 						AOServDaemonConfiguration.getMySqlUser(serverName),
