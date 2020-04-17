@@ -54,6 +54,10 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 			>
 				<ul>
 					<li>Project moved to GitHub and Maven.</li>
+					<li>
+						Removed dependency on the special AO build of JavaMail that had implemented <code>writeQString(…)</code>.
+						This allows us to use the current releases from the Central Repository.
+					</li>
 					<!-- TODO:
 					<li>Updated to Java 8 coding standards.</li>
 					-->

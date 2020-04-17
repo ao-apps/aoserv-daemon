@@ -2154,8 +2154,8 @@ final public class ImapManager extends BuilderThread {
 			// Issue command
 			Argument args = new Argument();
 			args.writeString(mailboxName);
-			args.writeQString(entry);
-			args.writeQString(attribute);
+			args.writeString(entry); // TODO: Test is needs quoted-string
+			args.writeString(attribute); // TODO: Test is needs quoted-string
 			Response[] r = p.command("GETANNOTATION", args);
 			Response response = r[r.length-1];
 			// Grab response
@@ -2233,14 +2233,14 @@ final public class ImapManager extends BuilderThread {
 		folder.doCommand((IMAPProtocol p) -> {
 			// Issue command
 			Argument list = new Argument();
-			list.writeQString("value.shared");
-			list.writeQString(newValue);
-			list.writeQString("content-type.shared");
-			list.writeQString(newContentType);
+			list.writeString("value.shared"); // TODO: Test is needs quoted-string
+			list.writeString(newValue); // TODO: Test is needs quoted-string
+			list.writeString("content-type.shared"); // TODO: Test is needs quoted-string
+			list.writeString(newContentType); // TODO: Test is needs quoted-string
 
 			Argument args = new Argument();
 			args.writeString(mailboxName);
-			args.writeQString(entry);
+			args.writeString(entry); // TODO: Test is needs quoted-string
 			args.writeArgument(list);
 
 			Response[] r = p.command("SETANNOTATION", args);
