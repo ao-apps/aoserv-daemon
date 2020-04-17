@@ -22,64 +22,64 @@ abstract public class SocketServerThread extends Thread {
 
 	private static final Logger logger = Logger.getLogger(SocketServerThread.class.getName());
 
-    final InetAddress ipAddress;
-    final int port;
+	final InetAddress ipAddress;
+	final int port;
 
-    public SocketServerThread(String name, InetAddress ipAddress, int port) {
-        super(name+" on "+ipAddress.toBracketedString()+":"+port);
-        this.ipAddress=ipAddress;
-        this.port=port;
-    }
+	public SocketServerThread(String name, InetAddress ipAddress, int port) {
+		super(name+" on "+ipAddress.toBracketedString()+":"+port);
+		this.ipAddress=ipAddress;
+		this.port=port;
+	}
 
-    public InetAddress getIPAddress() {
-        return ipAddress;
-    }
-    
-    public int getPort() {
-        return port;
-    }
+	public InetAddress getIPAddress() {
+		return ipAddress;
+	}
 
-    boolean runMore=true;
+	public int getPort() {
+		return port;
+	}
 
-    private ServerSocket SS;
+	boolean runMore=true;
 
-    @Override
-    public void run() {
-        while(runMore) {
-            try {
-                SS=new ServerSocket(port, 50, java.net.InetAddress.getByName(ipAddress.toString()));
-                try {
-                    while(runMore) {
-                        Socket socket=SS.accept();
-                        socket.setKeepAlive(true);
-                        socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
-                        //socket.setTcpNoDelay(true);
-                        socketConnected(socket);
-                    }
-                } finally {
-                    SS.close();
-                }
-            } catch(ThreadDeath TD) {
-                throw TD;
-            } catch(Throwable T) {
-                logger.log(Level.SEVERE, null, T);
-                try {
-                    Thread.sleep(60000);
-                } catch(InterruptedException err) {
-                    logger.log(Level.WARNING, null, err);
-                }
-            }
-        }
-    }
+	private ServerSocket SS;
 
-    final public void close() {
-        runMore=false;
-        try {
-            SS.close();
-        } catch(IOException err) {
-            logger.log(Level.SEVERE, null, err);
-        }
-    }
+	@Override
+	public void run() {
+		while(runMore) {
+			try {
+				SS=new ServerSocket(port, 50, java.net.InetAddress.getByName(ipAddress.toString()));
+				try {
+					while(runMore) {
+						Socket socket=SS.accept();
+						socket.setKeepAlive(true);
+						socket.setSoLinger(true, AOPool.DEFAULT_SOCKET_SO_LINGER);
+						//socket.setTcpNoDelay(true);
+						socketConnected(socket);
+					}
+				} finally {
+					SS.close();
+				}
+			} catch(ThreadDeath TD) {
+				throw TD;
+			} catch(Throwable T) {
+				logger.log(Level.SEVERE, null, T);
+				try {
+					Thread.sleep(60000);
+				} catch(InterruptedException err) {
+					logger.log(Level.WARNING, null, err);
+				}
+			}
+		}
+	}
 
-    protected abstract void socketConnected(Socket socket) throws IOException;
+	final public void close() {
+		runMore=false;
+		try {
+			SS.close();
+		} catch(IOException err) {
+			logger.log(Level.SEVERE, null, err);
+		}
+	}
+
+	protected abstract void socketConnected(Socket socket) throws IOException;
 }

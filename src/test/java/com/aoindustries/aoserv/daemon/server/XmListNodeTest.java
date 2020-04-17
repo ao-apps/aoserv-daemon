@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 by AO Industries, Inc.,
+ * Copyright 2013, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -19,25 +19,25 @@ import junit.framework.TestSuite;
  */
 public class XmListNodeTest extends TestCase {
 
-    public XmListNodeTest(String testName) {
-        super(testName);
-    }
+	public XmListNodeTest(String testName) {
+		super(testName);
+	}
 
-    public static Test suite() {
-        TestSuite suite = new TestSuite(XmListNodeTest.class);
-        return suite;
-    }
+	public static Test suite() {
+		TestSuite suite = new TestSuite(XmListNodeTest.class);
+		return suite;
+	}
 
-    public void testXmListNode() throws IOException, ParseException {
-        String parseme;
-        Reader in = new InputStreamReader(XmListNodeTest.class.getResourceAsStream("XmListNode-test1.txt"));
-        try {
-            StringBuilder sb = new StringBuilder();
-            IoUtils.copy(in, sb);
-            parseme = sb.toString();
-        } finally {
-            in.close();
-        }
-        XmListNode.parseResult(parseme);
-    }
+	public void testXmListNode() throws IOException, ParseException {
+		String parseme;
+		Reader in = new InputStreamReader(XmListNodeTest.class.getResourceAsStream("XmListNode-test1.txt"));
+		try {
+			StringBuilder sb = new StringBuilder();
+			IoUtils.copy(in, sb);
+			parseme = sb.toString();
+		} finally {
+			in.close();
+		}
+		XmListNode.parseResult(parseme);
+	}
 }

@@ -43,7 +43,7 @@ final public class NetworkMonitor {
 	private static final Map<String,NetworkMonitor> outMonitors = new LinkedHashMap<>();
 
 	public static void start() throws IOException {
-        if(AOServDaemonConfiguration.isManagerEnabled(NetworkMonitor.class)) {
+		if(AOServDaemonConfiguration.isManagerEnabled(NetworkMonitor.class)) {
 			for(AOServDaemonConfiguration.NetworkMonitorConfiguration config : AOServDaemonConfiguration.getNetworkMonitors().values()) {
 				final String networkName = config.getName();
 				synchronized(System.out) {
@@ -83,8 +83,8 @@ final public class NetworkMonitor {
 					}
 				}
 			}
-        }
-    }
+		}
+	}
 
 	private final String device;
 	private final String direction;
@@ -118,7 +118,7 @@ final public class NetworkMonitor {
 		this.nullRouteFifoErrorRateMinPps = nullRouteFifoErrorRateMinPps;
 		this.nullRoutePacketRate = nullRoutePacketRate;
 		this.nullRouteBitRate = nullRouteBitRate;
-    }
+	}
 
 	static class Counts {
 		final long packets;

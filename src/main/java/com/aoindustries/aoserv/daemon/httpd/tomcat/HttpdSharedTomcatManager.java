@@ -53,9 +53,9 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 	 */
 	private static final Set<String> keepWwwgroupDirs = new HashSet<>(Arrays.asList(
 		// Other filesystem patterns
-        "lost+found",
-        "aquota.group",
-        "aquota.user"
+		"lost+found",
+		"aquota.group",
+		"aquota.user"
 	));
 
 	/**

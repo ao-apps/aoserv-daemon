@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2013, 2017, 2018 by AO Industries, Inc.,
+ * Copyright 2008-2013, 2017, 2018, 2020 by AO Industries, Inc.,
  * 7262 Bull Pen Cir, Mobile, Alabama, 36695, U.S.A.
  * All rights reserved.
  */
@@ -14,14 +14,14 @@ import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
  */
 class HttpdSharedTomcatManager_3_2_4 extends HttpdSharedTomcatManager_3_X<TomcatCommon_3_2_4> {
 
-    HttpdSharedTomcatManager_3_2_4(SharedTomcat sharedTomcat) {
-        super(sharedTomcat);
-    }
-    
+	HttpdSharedTomcatManager_3_2_4(SharedTomcat sharedTomcat) {
+		super(sharedTomcat);
+	}
+
 	@Override
-    TomcatCommon_3_2_4 getTomcatCommon() {
-        return TomcatCommon_3_2_4.getInstance();
-    }
+	TomcatCommon_3_2_4 getTomcatCommon() {
+		return TomcatCommon_3_2_4.getInstance();
+	}
 
 	@Override
 	protected String getOptDir() {

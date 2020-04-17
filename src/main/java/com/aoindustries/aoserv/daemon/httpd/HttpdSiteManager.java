@@ -67,20 +67,20 @@ public abstract class HttpdSiteManager {
 	 * </p>
 	 */
 	private static final Set<String> keepWwwDirs = new HashSet<>(Arrays.asList(
-        "disabled", // Provided by aoserv-httpd-site-disabled package
-        // CentOS 5 only
-        "cache", // nginx only?
-        "fastcgi",
-        "error",
-        "icons",
-        // CentOS 7
-        "cgi-bin",
-        "html",
-        "mrtg",
+		"disabled", // Provided by aoserv-httpd-site-disabled package
+		// CentOS 5 only
+		"cache", // nginx only?
+		"fastcgi",
+		"error",
+		"icons",
+		// CentOS 7
+		"cgi-bin",
+		"html",
+		"mrtg",
 		// Other filesystem patterns
-        "lost+found",
-        "aquota.group",
-        "aquota.user"
+		"lost+found",
+		"aquota.group",
+		"aquota.user"
 	));
 
 	/**

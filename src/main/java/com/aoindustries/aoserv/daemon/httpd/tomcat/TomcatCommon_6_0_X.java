@@ -24,12 +24,12 @@ import java.util.Set;
  */
 class TomcatCommon_6_0_X extends TomcatCommon {
 
-    private static final TomcatCommon_6_0_X instance = new TomcatCommon_6_0_X();
-    static TomcatCommon_6_0_X getInstance() {
-        return instance;
-    }
+	private static final TomcatCommon_6_0_X instance = new TomcatCommon_6_0_X();
+	static TomcatCommon_6_0_X getInstance() {
+		return instance;
+	}
 
-    private TomcatCommon_6_0_X() {}
+	private TomcatCommon_6_0_X() {}
 
 	@Override
 	protected Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException {
@@ -40,11 +40,11 @@ class TomcatCommon_6_0_X extends TomcatCommon {
 	}
 
 	@Override
-    public void writeHttpdTomcatDataSource(ContextDataSource dataSource, ChainWriter out) throws SQLException, IOException {
-        out.print("          <Resource\n"
-                + "            name=\"").textInXmlAttribute(dataSource.getName()).print("\"\n"
-                + "            auth=\"Container\"\n"
-                + "            type=\"javax.sql.DataSource\"\n");
+	public void writeHttpdTomcatDataSource(ContextDataSource dataSource, ChainWriter out) throws SQLException, IOException {
+		out.print("          <Resource\n"
+				+ "            name=\"").textInXmlAttribute(dataSource.getName()).print("\"\n"
+				+ "            auth=\"Container\"\n"
+				+ "            type=\"javax.sql.DataSource\"\n");
 		String username = dataSource.getUsername();
 		if(username != null && !username.isEmpty()) {
 			out.print("            username=\"").textInXmlAttribute(username).print("\"\n");
@@ -58,17 +58,17 @@ class TomcatCommon_6_0_X extends TomcatCommon {
 			out.print("            driverClassName=\"").textInXmlAttribute(driverClassName).print("\"\n");
 		}
 		out.print("            url=\"").textInXmlAttribute(dataSource.getUrl()).print("\"\n"
-                + "            maxActive=\"").textInXmlAttribute(dataSource.getMaxActive()).print("\"\n"
-                + "            maxIdle=\"").textInXmlAttribute(dataSource.getMaxIdle()).print("\"\n"
-                + "            maxWait=\"").textInXmlAttribute(dataSource.getMaxWait()).print("\"\n");
-        if(dataSource.getValidationQuery()!=null) {
-            out.print("            validationQuery=\"").textInXmlAttribute(dataSource.getValidationQuery()).print("\"\n");
-        }
-        out.print("            removeAbandoned=\"true\"\n"
-                + "            removeAbandonedTimeout=\"300\"\n"
-                + "            logAbandoned=\"true\"\n"
-                + "          />\n");
-    }
+				+ "            maxActive=\"").textInXmlAttribute(dataSource.getMaxActive()).print("\"\n"
+				+ "            maxIdle=\"").textInXmlAttribute(dataSource.getMaxIdle()).print("\"\n"
+				+ "            maxWait=\"").textInXmlAttribute(dataSource.getMaxWait()).print("\"\n");
+		if(dataSource.getValidationQuery()!=null) {
+			out.print("            validationQuery=\"").textInXmlAttribute(dataSource.getValidationQuery()).print("\"\n");
+		}
+		out.print("            removeAbandoned=\"true\"\n"
+				+ "            removeAbandonedTimeout=\"300\"\n"
+				+ "            logAbandoned=\"true\"\n"
+				+ "          />\n");
+	}
 
 	/**
 	 * Upgrades the Tomcat 6.0.X installed in the provided directory.
