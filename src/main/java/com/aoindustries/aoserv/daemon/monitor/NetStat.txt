@@ -1,0 +1,106 @@
+/*
+ * aoserv-daemon - Server management daemon for the AOServ Platform.
+ * Copyright (C) 2001-2009, 2018  AO Industries, Inc.
+ *     support@aoindustries.com
+ *     7262 Bull Pen Cir
+ *     Mobile, AL 36695
+ *
+ * This file is part of aoserv-daemon.
+ *
+ * aoserv-daemon is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * aoserv-daemon is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package com.aoindustries.aoserv.daemon.monitor;
+
+import com.aoindustries.aoserv.client.net.IpAddress;
+
+/**
+ * TODO: Move this to NOC
+ *
+ * @author  AO Industries, Inc.
+ */
+final public class NetStat {
+
+	public String net_protocol;
+	public String ip_address;
+	public int port;
+
+	public NetStat(String net_protocol, String ip_address, int port) {
+		this.net_protocol=net_protocol;
+		this.ip_address=ip_address;
+		this.port=port;
+	}
+
+	@Override
+	public boolean equals(Object O) {
+		if(O instanceof NetStat) {
+			NetStat ns=(NetStat)O;
+			return
+				net_protocol.equals(ns.net_protocol)
+				&& ip_address.equals(ns.ip_address)
+				&& port==ns.port
+			;
+		} else return false;
+	}
+
+	@Override
+	public int hashCode() {
+		return ip_address.hashCode()+port;
+	}
+
+	public static NetStat parseNetStat(String line) {
+		int len=line.length();
+
+		// find the first word
+		int pos=line.indexOf(' ');
+		if(pos==-1) return null;
+		String protocol=line.substring(0,pos);
+		if(
+			protocol.equals("Active")
+			|| protocol.equals("Proto")
+			|| protocol.equals("unix")
+		) return null;
+
+		/*
+		 * Find the fourth word, which is the IP address/port combination
+		 */
+		// skip past first blank
+		while((++pos)<len && line.charAt(pos)==' ');
+		// skip past second word
+		pos=line.indexOf(' ', pos);
+		if(pos==-1) return null;
+		// skip past second blank
+		while((++pos)<len && line.charAt(pos)==' ');
+		// skip past third word
+		pos=line.indexOf(' ', pos);
+		if(pos==-1) return null;
+		// skip past th-ee-ald blank
+		while((++pos)<len && line.charAt(pos)==' ');
+		// Find the end of the IP:port column
+		int pos2=line.indexOf(' ', pos+1);
+		if(pos2==-1) pos2=len;
+		// Find the last : in the IP:port area
+		int colonPos=line.lastIndexOf(':', pos2);
+		if(colonPos==-1) return null;
+		String ip=convertIP(line.substring(pos, colonPos));
+		int port=Integer.parseInt(line.substring(colonPos+1, pos2));
+		return new NetStat(protocol, ip, port);
+	}
+
+	private static String convertIP(String ip) {
+		if("::ffff:127.0.0.1".equals(ip)) return IpAddress.LOOPBACK_IP;
+		if("::".equals(ip)) return IpAddress.WILDCARD_IP;
+		if("::1".equals(ip)) return IpAddress.LOOPBACK_IP;
+		return ip;
+	}
+}
