@@ -122,6 +122,8 @@ import java.util.logging.Logger;
  *     <li>A directory is put in place of the filename</li>
  *     <li>An empty surrogate named "&lt;A&lt;O&lt;SURROGATE&gt;O&gt;A&gt;" is created</li>
  *     <li>A series of hard linked data chunks</li>
+ *   </ol>
+ * </li>
  * </ol>
  * <p>
  * A surrogate file contain all the ownership, mode, and (in the future) will
@@ -136,6 +138,7 @@ import java.util.logging.Logger;
  * Data indexes are verified once per day as well as a quick verification on
  * start-up.
  * </p>
+ * <p>
  * depending on the length of the filename.
  *
 16 TiB = 2 ^ (10 + 10 + 10 + 10 + 4) = 2 ^ 44

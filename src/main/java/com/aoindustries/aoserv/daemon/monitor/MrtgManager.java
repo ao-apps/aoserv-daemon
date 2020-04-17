@@ -690,8 +690,6 @@ final public class MrtgManager extends BuilderThread {
 
 	/**
 	 * Reads /proc/cpuinfo and determines the number of CPUs.
-	 * @return
-	 * @throws IOException
 	 */
 	public static int getNumberOfCPUs() throws IOException {
 		try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream("/proc/cpuinfo")))) {
@@ -706,9 +704,6 @@ final public class MrtgManager extends BuilderThread {
 
 	/**
 	 * Gets the list of devices for df commands.  When in a failover state, returns empty list.
-	 * @return
-	 * @throws IOException
-	 * @throws SQLException
 	 */
 	private static List<String> getDFDevices() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();

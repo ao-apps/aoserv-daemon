@@ -19,6 +19,7 @@ import com.aoindustries.aoserv.client.web.VirtualHost;
 import com.aoindustries.aoserv.client.web.VirtualHostName;
 import com.aoindustries.aoserv.client.web.tomcat.SharedTomcat;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.aoserv.daemon.ftp.FTPManager;
 import static com.aoindustries.aoserv.daemon.httpd.HttpdServerManager.PHP_SESSION;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.HttpdTomcatSiteManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
@@ -470,7 +471,7 @@ public abstract class HttpdSiteManager {
 	 * Manual mode has no impact on the ownership and permissions set.
 	 *
 	 * @see  #enableAnonymousFtp()
-	 * @see  FTPManager#doRebuildSharedFtpDirectory
+	 * @see  FTPManager#doRebuildSharedFtpDirectory()
 	 */
 	public void configureFtpDirectory(UnixFile ftpDirectory, Set<UnixFile> restorecon) throws IOException, SQLException {
 		if(httpdSite.isDisabled()) {

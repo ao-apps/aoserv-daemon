@@ -95,7 +95,10 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 								<link>https://aoindustries.com/aoserv/daemon/client/apidocs/</link>
 								<link>https://aoindustries.com/aoserv/jilter/config/apidocs/</link>
 								<link>https://commons.apache.org/proper/commons-lang/javadocs/api-${org.apache.commons.commons-lang3.version}/</link>
+								<!-- TODO: Add this once building with Java 12+, due to:
+									"javadoc: error - The code being documented uses packages in the unnamed module, but the packages defined in https://javadoc.io/doc/com.google.code.gson/gson/2.8.6/ are in named modules."
 								<link>https://javadoc.io/doc/com.google.code.gson/gson/${com.google.code.gson.gson.version}/</link>
+								-->
 								<link>https://aoindustries.com/noc/monitor/portmon/apidocs/</link>
 							</links>
 						</configuration>

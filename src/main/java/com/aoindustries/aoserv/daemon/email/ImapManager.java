@@ -2451,11 +2451,11 @@ ad OK Completed
 	 * This is used to know when to enable saslauthd (See {@link SaslauthdManager}.
 	 * </p>
 	 *
-	 * @see Protocol#IMAP2
-	 * @see Protocol#SIMAP
-	 * @see Protocol#POP3
-	 * @see Protocol#SPOP3
-	 * @see Protocol#SIEVE
+	 * @see AppProtocol#IMAP2
+	 * @see AppProtocol#SIMAP
+	 * @see AppProtocol#POP3
+	 * @see AppProtocol#SPOP3
+	 * @see AppProtocol#SIEVE
 	 */
 	public static boolean isCyrusImapdEnabled() throws IOException, SQLException {
 		return AOServDaemon.getThisServer().getCyrusImapdServer() != null;

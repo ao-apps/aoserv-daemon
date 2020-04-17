@@ -572,7 +572,7 @@ public abstract class VersionedSharedTomcatManager<TC extends VersionedTomcatCom
 	 * Gets the set of files that are installed during install and upgrade/downgrade.
 	 * Each path is relative to CATALINA_HOME/CATALINA_BASE.
 	 *
-	 * @see  VersionedTomcatCommon#getInstallFiles(com.aoindustries.io.unix.UnixFile)
+	 * @see  VersionedTomcatCommon#getInstallFiles(java.lang.String, com.aoindustries.io.unix.UnixFile, int)
 	 */
 	protected List<Install> getInstallFiles(String optSlash, UnixFile installDir) throws IOException, SQLException {
 		List<Install> installFiles = new ArrayList<>();

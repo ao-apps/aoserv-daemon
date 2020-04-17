@@ -1751,9 +1751,9 @@ final public class SendmailCFManager extends BuilderThread {
 	 * This is used to know when to enable saslauthd (See {@link SaslauthdManager}.
 	 * </p>
 	 *
-	 * @see Protocol#SMTP
-	 * @see Protocol#SMTPS
-	 * @see Protocol#SUBMISSION
+	 * @see AppProtocol#SMTP
+	 * @see AppProtocol#SMTPS
+	 * @see AppProtocol#SUBMISSION
 	 */
 	public static boolean isSendmailEnabled() throws IOException, SQLException {
 		return !AOServDaemon.getThisServer().getSendmailServers().isEmpty();

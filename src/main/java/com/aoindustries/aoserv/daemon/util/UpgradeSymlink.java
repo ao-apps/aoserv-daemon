@@ -24,10 +24,7 @@ public class UpgradeSymlink {
 	private final String newLinkTarget;
 
 	/**
-	 * @param oldLinkPath
 	 * @param oldLinkTarget  if {@code null} the link will be created if missing
-	 * @param newLinkPath
-	 * @param newLinkTarget
 	 */
 	public UpgradeSymlink(String oldLinkPath, String oldLinkTarget, String newLinkPath, String newLinkTarget) {
 		NullArgumentException.checkNotNull(oldLinkPath, "oldLinkPath");
@@ -43,9 +40,7 @@ public class UpgradeSymlink {
 	}
 
 	/**
-	 * @param linkPath
 	 * @param oldLinkTarget  if {@code null} the link will be created if missing
-	 * @param newLinkTarget
 	 */
 	public UpgradeSymlink(String linkPath, String oldLinkTarget, String newLinkTarget) {
 		this(linkPath, oldLinkTarget, newLinkTarget == null ? null : linkPath, newLinkTarget);
