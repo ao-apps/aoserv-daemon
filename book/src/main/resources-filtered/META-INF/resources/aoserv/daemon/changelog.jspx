@@ -37,6 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
+		dateModified="2020-04-20T01:48:52-05:00"
 	>
 		<!-- The current snapshot, unreleased version -->
 		<c:set var="version" value="@{com.aoindustries:aoserv-daemon:pom.version}" />
@@ -59,6 +60,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 						This allows us to use the current releases from the Central Repository.
 					</li>
 					<li>Updated to Java 8 coding standards.</li>
+					<li>Added support for Apache Tomcat 8.5.54 and 9.0.34.</li>
 				</ul>
 			</changelog:release>
 		</c:if>

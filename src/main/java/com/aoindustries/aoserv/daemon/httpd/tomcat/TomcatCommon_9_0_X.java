@@ -559,6 +559,7 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 			} else if(
 				rpmVersion.equals("9.0.31")
 				|| rpmVersion.equals("9.0.33")
+				|| rpmVersion.equals("9.0.34")
 			) {
 				UpgradeSymlink[] upgradeSymlinks_9_0_31 = {
 					// postgresql-42.2.10.jar -> postgresql-42.2.11.jar
@@ -594,6 +595,17 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 						"lib/postgresql-42.2.12.jar",
 						null,
 						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.12.jar"
+					),
+					// ecj-4.13.jar -> ecj-4.15.jar
+					new UpgradeSymlink(
+						"lib/ecj-4.13.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/ecj-4.13.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/ecj-4.15.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/ecj-4.15.jar"
 					),
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_31) {
