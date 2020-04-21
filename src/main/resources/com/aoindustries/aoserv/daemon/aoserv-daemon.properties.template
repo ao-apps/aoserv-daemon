@@ -50,7 +50,7 @@ aoserv.daemon.postgres.max_connection_age=
 # aoserv.daemon.postgres.[POSTGRES_SERVER_NAME].max_connection_age=
 
 # The MySQL server
-aoserv.daemon.mysql.driver=com.mysql.cj.jdbc.Driver
+aoserv.daemon.mysql.driver=com.mysql.jdbc.Driver
 # Default settings:
 aoserv.daemon.mysql.user=root
 aoserv.daemon.mysql.password=[MYSQL_PASSWORD]
