@@ -187,14 +187,11 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 			</dependency>
 			<!-- Runtime Direct -->
 			<dependency>
-				<groupId>mysql</groupId><artifactId>mysql-connector-java</artifactId><version>8.0.19</version>
+				<!-- Stay on 5.1.* until all servers are MySQL 5.6 or newer -->
+				<groupId>mysql</groupId><artifactId>mysql-connector-java</artifactId><version>5.1.48</version>
 			</dependency>
 			<dependency>
 				<groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.2.12</version>
-			</dependency>
-			<!-- Runtime Transitive -->
-			<dependency>
-				<groupId>com.google.protobuf</groupId><artifactId>protobuf-java</artifactId><version>3.11.4</version>
 			</dependency>
 			<!-- Test Direct -->
 			<dependency>
