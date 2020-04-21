@@ -136,9 +136,9 @@ final public class MySQLServerManager extends BuilderThread {
 				Server.Name serverName = ms.getName();
 				String jdbcUrl;
 				if(port == Server.DEFAULT_PORT) {
-					jdbcUrl = "jdbc:mysql://127.0.0.1/" + URLEncoder.encode(md.getName().toString(), "UTF-8");
+					jdbcUrl = "jdbc:mysql://127.0.0.1/" + URLEncoder.encode(md.getName().toString(), "UTF-8") + "?useSSL=false";
 				} else {
-					jdbcUrl = "jdbc:mysql://127.0.0.1:" + port.getPort() + "/" + URLEncoder.encode(md.getName().toString(), "UTF-8");
+					jdbcUrl = "jdbc:mysql://127.0.0.1:" + port.getPort() + "/" + URLEncoder.encode(md.getName().toString(), "UTF-8") + "?useSSL=false";
 				}
 				pool = new AOConnectionPool(
 					AOServDaemonConfiguration.getMySqlDriver(),

@@ -375,9 +375,9 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	public static String getJdbcUrl(Port port, Database.Name database) {
 		try {
 			if(port == Server.DEFAULT_PORT) {
-				return "jdbc:mysql://127.0.0.1/" + URLEncoder.encode(database.toString(), "UTF-8");
+				return "jdbc:mysql://127.0.0.1/" + URLEncoder.encode(database.toString(), "UTF-8") + "?useSSL=false";
 			} else {
-				return "jdbc:mysql://127.0.0.1:" + port.getPort() + "/" + URLEncoder.encode(database.toString(), "UTF-8");
+				return "jdbc:mysql://127.0.0.1:" + port.getPort() + "/" + URLEncoder.encode(database.toString(), "UTF-8") + "?useSSL=false";
 			}
 		} catch(UnsupportedEncodingException e) {
 			throw new AssertionError("UTF-8 encoding should be always supported", e);
