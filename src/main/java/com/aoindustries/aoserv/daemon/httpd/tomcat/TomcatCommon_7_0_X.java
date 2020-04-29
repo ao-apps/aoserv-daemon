@@ -501,6 +501,23 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 						null,
 						"../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.12.jre6.jar"
 					),
+					// mysql-connector-java-5.1.48-bin.jar -> mysql-connector-java-5.1.49-bin.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-5.1.48-bin.jar",
+						"/dev/null",
+						"lib/mysql-connector-java-5.1.49-bin.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-5.1.48-bin.jar",
+						"../" + optSlash + "apache-tomcat-7.0/lib/mysql-connector-java-5.1.48-bin.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-5.1.49-bin.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-7.0/lib/mysql-connector-java-5.1.49-bin.jar"
+					),
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_100) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;

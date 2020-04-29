@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2020-04-26T00:13:59-05:00"
+		dateModified="2020-04-29T05:46:23-05:00"
 	>
 		<!-- The current snapshot, unreleased version -->
 		<c:set var="version" value="@{com.aoindustries:aoserv-daemon:pom.version}" />
@@ -52,7 +52,13 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 				groupId="@{project.groupId}"
 				artifactId="@{documented.artifactId}"
 				scmUrl="@{project.scm.url}"
-			/>
+			>
+				<ul>
+					<li>Updated MySQL JDBC Drivers to 5.1.49.</li>
+					<li>Updated MySQL JDBC Drivers to 5.1.49 for Apache Tomcat 7.0.103.</li>
+					<li>Updated MySQL JDBC Drivers to 8.0.20 for Apache Tomcat 8.5.54 and 9.0.34.</li>
+				</ul>
+			</changelog:release>
 		</c:if>
 
 		<changelog:release
