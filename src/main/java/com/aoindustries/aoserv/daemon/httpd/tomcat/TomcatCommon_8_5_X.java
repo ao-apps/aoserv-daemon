@@ -496,6 +496,7 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 				rpmVersion.equals("8.5.51")
 				|| rpmVersion.equals("8.5.53")
 				|| rpmVersion.equals("8.5.54")
+				|| rpmVersion.equals("8.5.55")
 			) {
 				UpgradeSymlink[] upgradeSymlinks_8_5_51 = {
 					// postgresql-42.2.10.jar -> postgresql-42.2.11.jar

@@ -560,6 +560,7 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 				rpmVersion.equals("9.0.31")
 				|| rpmVersion.equals("9.0.33")
 				|| rpmVersion.equals("9.0.34")
+				|| rpmVersion.equals("9.0.35")
 			) {
 				UpgradeSymlink[] upgradeSymlinks_9_0_31 = {
 					// postgresql-42.2.10.jar -> postgresql-42.2.11.jar
