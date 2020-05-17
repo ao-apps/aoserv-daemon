@@ -112,6 +112,8 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 								<link>https://javadoc.io/doc/com.google.code.gson/gson/${com.google.code.gson.gson.version}/</link>
 								-->
 								<link>https://aoindustries.com/noc/monitor/portmon/apidocs/</link>
+								<!-- Test Direct -->
+								<link>https://junit.org/junit4/javadoc/latest/</link>
 							</links>
 						</configuration>
 					</plugin>
