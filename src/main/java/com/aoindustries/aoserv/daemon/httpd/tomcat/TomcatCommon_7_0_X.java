@@ -465,6 +465,7 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 			} else if(
 				rpmVersion.equals("7.0.100")
 				|| rpmVersion.equals("7.0.103")
+				|| rpmVersion.equals("7.0.104")
 			) {
 				UpgradeSymlink[] upgradeSymlinks_7_0_100 = {
 					// postgresql-42.2.10.jre6.jar -> postgresql-42.2.11.jre6.jar
