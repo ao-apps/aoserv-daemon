@@ -180,6 +180,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.google.code.gson/gson</outputDirectory>
 										</artifactItem>
+										<!-- ao-javadoc-offline: <groupId>com.sun.mail</groupId><artifactId>javax.mail</artifactId> -->
 										<artifactItem>
 											<groupId>com.aoindustries</groupId><artifactId>noc-monitor-portmon</artifactId>
 											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
@@ -200,15 +201,6 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 						<groupId>org.apache.maven.plugins</groupId><artifactId>maven-javadoc-plugin</artifactId>
 						<configuration>
 							<offlineLinks>
-								<offlineLink>
-									<url>${javadoc.link.javase}</url>
-									<location>${project.build.directory}/offlineLinks/com/aoindustries/javadoc/offline/javase/${javase.release}</location>
-								</offlineLink>
-								<!-- Java EE -->
-								<offlineLink>
-									<url>${javadoc.link.javamail}</url><!-- Must be before javadoc.link.javaee -->
-									<location>${project.build.directory}/offlineLinks/com/aoindustries/javadoc/offline/com.sun.mail/javax.mail</location>
-								</offlineLink>
 								<!-- Direct -->
 								<offlineLink>
 									<url>https://aoindustries.com/ao-collections/apidocs/</url>
@@ -285,6 +277,10 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 								</offlineLink>
 								-->
 								<offlineLink>
+									<url>${javadoc.link.javamail}</url>
+									<location>${project.build.directory}/offlineLinks/com/aoindustries/javadoc/offline/com.sun.mail/javax.mail</location>
+								</offlineLink>
+								<offlineLink>
 									<url>https://aoindustries.com/noc/monitor/portmon/apidocs/</url>
 									<location>${project.build.directory}/offlineLinks/com.aoindustries/noc-monitor-portmon</location>
 								</offlineLink>
@@ -292,6 +288,11 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 								<offlineLink>
 									<url>https://junit.org/junit4/javadoc/latest/</url>
 									<location>${project.build.directory}/offlineLinks/junit/junit</location>
+								</offlineLink>
+								<!-- Java SE -->
+								<offlineLink>
+									<url>${javadoc.link.javase}</url>
+									<location>${project.build.directory}/offlineLinks/com/aoindustries/javadoc/offline/javase/${javase.release}</location>
 								</offlineLink>
 							</offlineLinks>
 						</configuration>
@@ -303,10 +304,6 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 
 	<dependencyManagement>
 		<dependencies>
-			<!-- Java EE -->
-			<dependency>
-				<groupId>com.sun.mail</groupId><artifactId>javax.mail</artifactId><version>1.6.2</version>
-			</dependency>
 			<!-- Direct -->
 			<dependency>
 				<groupId>com.aoindustries</groupId><artifactId>ao-collections</artifactId><version>1.1.0${POST-SNAPSHOT}</version>
@@ -363,6 +360,9 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 				<groupId>com.google.code.gson</groupId><artifactId>gson</artifactId><version>${gson.version}</version>
 			</dependency>
 			<dependency>
+				<groupId>com.sun.mail</groupId><artifactId>javax.mail</artifactId><version>1.6.2</version>
+			</dependency>
+			<dependency>
 				<groupId>com.aoindustries</groupId><artifactId>noc-monitor-portmon</artifactId><version>1.0.0${POST-SNAPSHOT}</version>
 			</dependency>
 			<!-- Transitive -->
@@ -402,10 +402,6 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 	</dependencyManagement>
 
 	<dependencies>
-		<!-- Java EE -->
-		<dependency>
-			<groupId>com.sun.mail</groupId><artifactId>javax.mail</artifactId>
-		</dependency>
 		<!-- Direct -->
 		<dependency>
 			<groupId>com.aoindustries</groupId><artifactId>ao-collections</artifactId>
@@ -460,6 +456,9 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		</dependency>
 		<dependency>
 			<groupId>com.google.code.gson</groupId><artifactId>gson</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.sun.mail</groupId><artifactId>javax.mail</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>com.aoindustries</groupId><artifactId>noc-monitor-portmon</artifactId>
