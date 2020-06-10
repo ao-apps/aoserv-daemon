@@ -554,6 +554,31 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_5_51) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
+			} else if(
+				rpmVersion.equals("8.5.56")
+			) {
+				UpgradeSymlink[] upgradeSymlinks_8_5_56 = {
+					// postgresql-42.2.12.jar -> postgresql-42.2.13.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.12.jar",
+						"/dev/null",
+						"lib/postgresql-42.2.13.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.12.jar",
+						"../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.12.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.13.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.13.jar"
+					),
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_5_56) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
 			} else {
 				throw new IllegalStateException("Unexpected version of Tomcat: " + rpmVersion);
 			}
