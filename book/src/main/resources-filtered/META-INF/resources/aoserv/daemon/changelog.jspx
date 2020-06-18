@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2020-06-11T09:16:35-05:00"
+		dateModified="2020-06-18T13:17:16-05:00"
 	>
 		<!-- The current snapshot, unreleased version -->
 		<c:set var="version" value="@{com.aoindustries:aoserv-daemon:pom.version}" />
@@ -52,7 +52,15 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 				groupId="@{project.groupId}"
 				artifactId="@{documented.artifactId}"
 				scmUrl="@{project.scm.url}"
-			/>
+			>
+				<ul>
+					<li>
+						Tomcat 8.5 and 9.0: Improved <code>bin/profile.d/umask.sh</code>
+						now sets the <code>UMASK</code> environment variable, as used by
+						<code>catalina.sh</code>.  The umask defaults to <code>0027</code>.
+					</li>
+				</ul>
+			</changelog:release>
 		</c:if>
 
 		<changelog:release

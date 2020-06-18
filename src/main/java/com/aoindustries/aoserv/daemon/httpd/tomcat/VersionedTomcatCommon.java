@@ -176,11 +176,10 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 	}
 
 	protected static byte[] generateProfileUmaskSh(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException {
-		ByteArrayOutputStream bout = new ByteArrayOutputStream();
-		try (ChainWriter out = new ChainWriter(new OutputStreamWriter(bout, StandardCharsets.UTF_8))) {
-			out.print("umask 002\n");
-		}
-		return bout.toByteArray();
+		return (
+			"umask 0027\n"
+			+ "export UMASK=0027\n"
+		).getBytes(StandardCharsets.UTF_8);
 	}
 
 	protected static byte[] generateShutdownSh(String optSlash, String apacheTomcatDir, UnixFile installDir) throws IOException {
