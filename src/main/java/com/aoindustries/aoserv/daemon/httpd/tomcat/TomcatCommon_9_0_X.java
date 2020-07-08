@@ -629,9 +629,7 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_31) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
-			} else if(
-				rpmVersion.equals("9.0.36")
-			) {
+			} else if(rpmVersion.equals("9.0.36")) {
 				UpgradeSymlink[] upgradeSymlinks_9_0_36 = {
 					// postgresql-42.2.12.jar -> postgresql-42.2.13.jar
 					new UpgradeSymlink(
@@ -652,6 +650,29 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 					),
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_36) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
+			} else if(rpmVersion.equals("9.0.37")) {
+				UpgradeSymlink[] upgradeSymlinks_9_0_37 = {
+					// postgresql-42.2.13.jar -> postgresql-42.2.14.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.13.jar",
+						"/dev/null",
+						"lib/postgresql-42.2.14.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.13.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.13.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.14.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.14.jar"
+					),
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_37) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
 			} else {
