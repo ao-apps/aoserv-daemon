@@ -80,6 +80,7 @@ public class PackageManager {
 		BIND("bind"),
 		CA_TRUST_HASH("ca-trust-hash"),
 		CACHING_NAMESERVER("caching-nameserver"), // This is a distinct package in CentOS 5, but provided by "bind" in CentOS 7
+		CLOUD_INIT("cloud-init"), // Amazon EC2 cloud-init
 		CVS("cvs"),
 		CYRUS_IMAPD("cyrus-imapd"),
 		CYRUS_IMAPD_AFTER_NETWORK_ONLINE("cyrus-imapd-after-network-online"),

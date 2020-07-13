@@ -202,6 +202,8 @@ public class LinuxAccountManager extends BuilderThread {
 								|| groupName.equals(Group.MANAGEMENT)
 								|| groupName.equals(Group.MONITORING)
 								|| groupName.equals(Group.RESELLER)
+								// Amazon EC2 cloud-init
+								|| groupName.equals(Group.CENTOS)
 							) {
 								boolean found = false;
 								for(GroupServer lsg : lsgs) {
@@ -243,6 +245,8 @@ public class LinuxAccountManager extends BuilderThread {
 								|| username.equals(User.MANAGEMENT)
 								|| username.equals(User.MONITORING)
 								|| username.equals(User.RESELLER)
+								// Amazon EC2 cloud-init
+								|| username.equals(User.CENTOS)
 							) {
 								boolean found = false;
 								for(UserServer lsa : lsas) {
@@ -682,6 +686,7 @@ public class LinuxAccountManager extends BuilderThread {
 							sudoers.put(lsa.getLinuxAccount().getUsername().getUsername().toString(), sudo);
 						}
 					}
+					Set<String> sudoersFiles = new HashSet<>(sudoers.size()*4/3+1); // Filenames might not match username when added by a package
 					if(!sudoers.isEmpty()) {
 						// Install package when first needed
 						PackageManager.installPackage(PackageManager.PackageName.SUDO);
@@ -708,8 +713,19 @@ public class LinuxAccountManager extends BuilderThread {
 								out.write(sudo);
 								out.write('\n');
 							}
+							String sudoersFilename;
+							if(
+								// Amazon EC2 cloud-init
+								username.equals(User.CENTOS.toString())
+								&& PackageManager.getInstalledPackage(PackageManager.PackageName.CLOUD_INIT) != null
+							) {
+								// Overwrite the file that is created by the "cloud-init" package on boot
+								sudoersFilename = "90-cloud-init-users";
+							} else {
+								sudoersFilename = username;
+							}
 							DaemonFileUtils.atomicWrite(
-								new UnixFile(SUDOERS_D, username, true),
+								new UnixFile(SUDOERS_D, sudoersFilename, true),
 								bout.toByteArray(),
 								0440,
 								UnixFile.ROOT_UID,
@@ -717,6 +733,7 @@ public class LinuxAccountManager extends BuilderThread {
 								null,
 								restorecon
 							);
+							sudoersFiles.add(sudoersFilename);
 						}
 					}
 					// restorecon any new config files
@@ -726,7 +743,7 @@ public class LinuxAccountManager extends BuilderThread {
 					String[] list = SUDOERS_D.list();
 					if(list != null) {
 						for(String filename : list) {
-							if(!sudoers.containsKey(filename)) {
+							if(!sudoersFiles.contains(filename)) {
 								File toDelete = new File(SUDOERS_D.getFile(), filename);
 								if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + toDelete);
 								deleteFileList.add(toDelete);

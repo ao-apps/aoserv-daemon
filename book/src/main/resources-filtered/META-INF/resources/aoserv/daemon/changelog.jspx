@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2020-07-07T20:13:56-05:00"
+		dateModified="2020-07-12T19:23:42-05:00"
 	>
 		<!-- The current snapshot, unreleased version -->
 		<c:set var="version" value="@{com.aoindustries:aoserv-daemon:pom.version}" />
@@ -52,7 +52,15 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 				groupId="@{project.groupId}"
 				artifactId="@{documented.artifactId}"
 				scmUrl="@{project.scm.url}"
-			/>
+			>
+				<ul>
+					<li>
+						New Linux group and user "centos" to support deployments in
+						<ao:a href="https://aws.amazon.com/ec2/">Amazon EC2</ao:a> (and other cloud environments) via
+						the <ao:a href="https://cloud-init.io/">cloud-init</ao:a> package.
+					</li>
+				</ul>
+			</changelog:release>
 		</c:if>
 
 		<changelog:release
