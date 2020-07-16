@@ -22,6 +22,7 @@
  */
 package com.aoindustries.aoserv.daemon;
 
+import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.exception.ConfigurationException;
 import com.aoindustries.io.AOPool;
 import com.aoindustries.lang.Strings;
@@ -132,13 +133,17 @@ final public class AOServDaemonConfiguration {
 	}
 
 	public static String getMySqlUser(com.aoindustries.aoserv.client.mysql.Server.Name serverName) throws ConfigurationException {
-		String user = getProperty("mysql." + serverName + ".user", null);
+		// Assertion here, only to hint to update code when support of protocol 1.83.0 is removed
+		assert true : "serverName is only null for protocol <= " + AOServDaemonProtocol.Version.VERSION_1_83_0;
+		String user = (serverName == null) ? null : getProperty("mysql." + serverName + ".user", null);
 		if(user == null || user.isEmpty()) user = getProperty("mysql.user", null, true);
 		return user;
 	}
 
 	public static String getMySqlPassword(com.aoindustries.aoserv.client.mysql.Server.Name serverName) throws ConfigurationException {
-		String password = getProperty("mysql." + serverName + ".password", "[MYSQL_PASSWORD]");
+		// Assertion here, only to hint to update code when support of protocol 1.83.0 is removed
+		assert true : "serverName is only null for protocol <= " + AOServDaemonProtocol.Version.VERSION_1_83_0;
+		String password = (serverName == null) ? null : getProperty("mysql." + serverName + ".password", "[MYSQL_PASSWORD]");
 		if(password == null || password.isEmpty()) password = getProperty("mysql.password", "[MYSQL_PASSWORD]", true);
 		return password;
 	}

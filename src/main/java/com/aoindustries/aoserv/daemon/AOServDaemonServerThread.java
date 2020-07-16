@@ -93,6 +93,7 @@ final public class AOServDaemonServerThread extends Thread {
 	 * The set of supported versions, with the most preferred versions first.
 	 */
 	private static final AOServDaemonProtocol.Version[] SUPPORTED_VERSIONS = {
+		AOServDaemonProtocol.Version.VERSION_1_84_11,
 		AOServDaemonProtocol.Version.VERSION_1_83_0,
 		AOServDaemonProtocol.Version.VERSION_1_81_10,
 		AOServDaemonProtocol.Version.VERSION_1_80_1,
@@ -721,12 +722,18 @@ final public class AOServDaemonServerThread extends Thread {
 									failoverRoot = failoverRootStr.isEmpty() ? null : PosixPath.valueOf(failoverRootStr);
 								}	
 								int nestedOperatingSystemVersion = in.readCompressedInt();
+								com.aoindustries.aoserv.client.mysql.Server.Name serverName;
+								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_84_11) < 0) {
+									serverName = null;
+								} else {
+									serverName = com.aoindustries.aoserv.client.mysql.Server.Name.valueOf(in.readUTF());
+								}
 								Port port = Port.valueOf(
 									in.readCompressedInt(),
 									Protocol.TCP
 								);
 								if(daemonKey==null) throw new IOException("Only the master server may GET_MYSQL_SLAVE_STATUS");
-								MySQLDatabaseManager.getSlaveStatus(failoverRoot, nestedOperatingSystemVersion, port, out);
+								MySQLDatabaseManager.getSlaveStatus(failoverRoot, nestedOperatingSystemVersion, serverName, port, out);
 							}
 							break;
 						case AOServDaemonProtocol.GET_MYSQL_TABLE_STATUS :
@@ -738,13 +745,19 @@ final public class AOServDaemonServerThread extends Thread {
 									failoverRoot = failoverRootStr.isEmpty() ? null : PosixPath.valueOf(failoverRootStr);
 								}	
 								int nestedOperatingSystemVersion = in.readCompressedInt();
+								com.aoindustries.aoserv.client.mysql.Server.Name serverName;
+								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_84_11) < 0) {
+									serverName = null;
+								} else {
+									serverName = com.aoindustries.aoserv.client.mysql.Server.Name.valueOf(in.readUTF());
+								}
 								Port port = Port.valueOf(
 									in.readCompressedInt(),
 									Protocol.TCP
 								);
 								com.aoindustries.aoserv.client.mysql.Database.Name databaseName = com.aoindustries.aoserv.client.mysql.Database.Name.valueOf(in.readUTF());
 								if(daemonKey==null) throw new IOException("Only the master server may GET_MYSQL_TABLE_STATUS");
-								MySQLDatabaseManager.getTableStatus(failoverRoot, nestedOperatingSystemVersion, port, databaseName, out);
+								MySQLDatabaseManager.getTableStatus(failoverRoot, nestedOperatingSystemVersion, serverName, port, databaseName, out);
 							}
 							break;
 						case AOServDaemonProtocol.CHECK_MYSQL_TABLES :
@@ -756,6 +769,12 @@ final public class AOServDaemonServerThread extends Thread {
 									failoverRoot = failoverRootStr.isEmpty() ? null : PosixPath.valueOf(failoverRootStr);
 								}	
 								int nestedOperatingSystemVersion = in.readCompressedInt();
+								com.aoindustries.aoserv.client.mysql.Server.Name serverName;
+								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_84_11) < 0) {
+									serverName = null;
+								} else {
+									serverName = com.aoindustries.aoserv.client.mysql.Server.Name.valueOf(in.readUTF());
+								}
 								Port port = Port.valueOf(
 									in.readCompressedInt(),
 									Protocol.TCP
@@ -767,7 +786,7 @@ final public class AOServDaemonServerThread extends Thread {
 									tableNames.add(Table_Name.valueOf(in.readUTF()));
 								}
 								if(daemonKey==null) throw new IOException("Only the master server may CHECK_MYSQL_TABLES");
-								MySQLDatabaseManager.checkTables(failoverRoot, nestedOperatingSystemVersion, port, databaseName, tableNames, out);
+								MySQLDatabaseManager.checkTables(failoverRoot, nestedOperatingSystemVersion, serverName, port, databaseName, tableNames, out);
 							}
 							break;
 						case AOServDaemonProtocol.GET_POSTGRES_PASSWORD :

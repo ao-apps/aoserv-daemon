@@ -29,7 +29,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		<relativePath>../../ao-oss-parent/pom.xml</relativePath>
 	</parent>
 
-	<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon</artifactId><version>1.84.10-POST-SNAPSHOT</version>
+	<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon</artifactId><version>1.84.11-SNAPSHOT</version>
 	<packaging>bundle</packaging>
 
 	<properties>
@@ -348,7 +348,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 				<groupId>com.aoindustries</groupId><artifactId>aoserv-client</artifactId><version>1.84.10${POST-SNAPSHOT}</version>
 			</dependency>
 			<dependency>
-				<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><version>1.84.0${POST-SNAPSHOT}</version>
+				<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><version>1.84.11-SNAPSHOT<!-- ${POST-SNAPSHOT} --></version>
 			</dependency>
 			<dependency>
 				<groupId>com.aoindustries</groupId><artifactId>aoserv-jilter-config</artifactId><version>1.84.2${POST-SNAPSHOT}</version>

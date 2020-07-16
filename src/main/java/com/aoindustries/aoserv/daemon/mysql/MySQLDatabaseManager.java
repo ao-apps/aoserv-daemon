@@ -387,25 +387,45 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	/**
 	 * Gets a connection to the MySQL server, this handles both master and slave scenarios.
 	 */
-	public static Connection getMySQLConnection(PosixPath failoverRoot, int nestedOperatingSystemVersion, Port port) throws IOException, SQLException {
+	public static Connection getMySQLConnection(PosixPath failoverRoot, int nestedOperatingSystemVersion, Server.Name serverName, Port port) throws IOException, SQLException {
 		if(port.getProtocol() != com.aoindustries.net.Protocol.TCP) throw new IllegalArgumentException("Only TCP supported: " + port);
-		// Load the properties from the failover image
-		File file;
-		if(nestedOperatingSystemVersion == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-			file = new File((failoverRoot==null ? "" : failoverRoot.toString()) + "/etc/aoserv/daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
-		} else if(
-			nestedOperatingSystemVersion == OperatingSystemVersion.REDHAT_ES_4_X86_64
-			|| nestedOperatingSystemVersion == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-			|| nestedOperatingSystemVersion == OperatingSystemVersion.CENTOS_7_X86_64
-		) {
-			file = new File((failoverRoot==null ? "" : failoverRoot.toString()) + "/etc/opt/aoserv-daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
+		String user, password;
+		if(failoverRoot == null) {
+			user = AOServDaemonConfiguration.getMySqlUser(serverName);
+			password = AOServDaemonConfiguration.getMySqlPassword(serverName);
 		} else {
-			throw new AssertionError("Unsupported nested OperatingSystemVersion: #" + nestedOperatingSystemVersion);
+			// Load the properties from the failover image
+			File file;
+			if(nestedOperatingSystemVersion == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
+				file = new File(failoverRoot + "/etc/aoserv/daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
+			} else if(
+				nestedOperatingSystemVersion == OperatingSystemVersion.REDHAT_ES_4_X86_64
+				|| nestedOperatingSystemVersion == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				|| nestedOperatingSystemVersion == OperatingSystemVersion.CENTOS_7_X86_64
+			) {
+				file = new File(failoverRoot + "/etc/opt/aoserv-daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
+			} else {
+				throw new AssertionError("Unsupported nested OperatingSystemVersion: #" + nestedOperatingSystemVersion);
+			}
+			if(!file.exists()) throw new IOException("Properties file doesn't exist: " + file.getPath());
+
+			// TODO: Might be worth making AOServDaemonConfiguration more reusable, than duplicating so much here:
+			Properties nestedProps = PropertiesUtils.loadFromFile(file);
+			if(serverName == null) {
+				// Assertion here, only to hint to update code when support of protocol 1.83.0 is removed
+				assert true : "serverName is only null for protocol <= " + AOServDaemonProtocol.Version.VERSION_1_83_0;
+				user = password = null;
+			} else {
+				user = nestedProps.getProperty("aoserv.daemon.mysql." + serverName + ".user");
+				password = nestedProps.getProperty("aoserv.daemon.mysql." + serverName + ".password");
+				if("[MYSQL_PASSWORD]".equals(password)) password = null;
+			}
+			if(user == null || user.isEmpty()) user = nestedProps.getProperty("aoserv.daemon.mysql.user");
+			if(password == null || password.isEmpty()) {
+				password = nestedProps.getProperty("aoserv.daemon.mysql.password");
+				if("[MYSQL_PASSWORD]".equals(password)) password = null;
+			}
 		}
-		if(!file.exists()) throw new SQLException("Properties file doesn't exist: " + file.getPath());
-		Properties nestedProps = PropertiesUtils.loadFromFile(file);
-		String user = nestedProps.getProperty("aoserv.daemon.mysql.user");
-		String password = nestedProps.getProperty("aoserv.daemon.mysql.password");
 
 		// For simplicity, doesn't use connection pools
 		try {
@@ -426,9 +446,9 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		}
 	}
 
-	public static void getSlaveStatus(PosixPath failoverRoot, int nestedOperatingSystemVersion, Port port, StreamableOutput out) throws IOException, SQLException {
+	public static void getSlaveStatus(PosixPath failoverRoot, int nestedOperatingSystemVersion, Server.Name serverName, Port port, StreamableOutput out) throws IOException, SQLException {
 		try (
-			Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, port);
+			Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, serverName, port);
 			Statement stmt = conn.createStatement();
 			ResultSet results = stmt.executeQuery("SHOW SLAVE STATUS")
 		) {
@@ -498,7 +518,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 
 	private static final ConcurrencyLimiter<TableStatusConcurrencyKey,List<Database.TableStatus>> tableStatusLimiter = new ConcurrencyLimiter<>();
 
-	public static void getTableStatus(PosixPath failoverRoot, int nestedOperatingSystemVersion, Port port, Database.Name databaseName, StreamableOutput out) throws IOException, SQLException {
+	public static void getTableStatus(PosixPath failoverRoot, int nestedOperatingSystemVersion, Server.Name serverName, Port port, Database.Name databaseName, StreamableOutput out) throws IOException, SQLException {
 		List<Database.TableStatus> tableStatuses;
 		try {
 			tableStatuses = tableStatusLimiter.executeSerialized(
@@ -510,7 +530,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 				() -> {
 					List<Database.TableStatus> statuses = new ArrayList<>();
 					try (
-						Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, port);
+						Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, serverName, port);
 						Statement stmt = conn.createStatement()
 					) {
 						boolean isMySQL40;
@@ -665,11 +685,12 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	 * Checks all tables, times-out in one minute.
 	 */
 	public static void checkTables(
-		final PosixPath failoverRoot,
-		final int nestedOperatingSystemVersion,
-		final Port port,
-		final Database.Name databaseName,
-		final List<Table_Name> tableNames,
+		PosixPath failoverRoot,
+		int nestedOperatingSystemVersion,
+		Server.Name serverName,
+		Port port,
+		Database.Name databaseName,
+		List<Table_Name> tableNames,
 		StreamableOutput out
 	) throws IOException, SQLException {
 		Future<List<Database.CheckTableResult>> future = AOServDaemon.executorService.submit(() -> {
@@ -690,6 +711,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 							checkTableLimiter.executeSerialized(
 								new CheckTableConcurrencyKey(
 									failoverRoot,
+									// serverName, // Not needed, is already unique by port
 									port,
 									databaseName,
 									tableName
@@ -698,7 +720,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 									final String dbNamePrefix = databaseName.toString()+'.';
 									final long startTime = System.currentTimeMillis();
 									try (
-										Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, port);
+										Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, serverName, port);
 										Statement stmt = conn.createStatement();
 										ResultSet results = stmt.executeQuery("CHECK TABLE `" + databaseName + "`.`" + tableName + "` FAST QUICK")
 									) {
