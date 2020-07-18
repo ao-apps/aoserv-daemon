@@ -274,6 +274,7 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 				FilesystemIteratorRule.OK
 			)
 		);
+		filesystemRules.put("/var/lib/fail2ban/fail2ban.sqlite3", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lib/mysql/.journal", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lib/mysql/lost+found", FilesystemIteratorRule.SKIP); // TODO: just iterate all mounts points and exclude lost+found instead?
 		final DomainName hostname = thisServer.getHostname();

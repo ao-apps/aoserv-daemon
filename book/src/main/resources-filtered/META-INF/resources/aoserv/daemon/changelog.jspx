@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2020-07-15T23:21:51-05:00"
+		dateModified="2020-07-17T23:37:22-05:00"
 	>
 		<!-- The current snapshot, unreleased version -->
 		<c:set var="version" value="@{com.aoindustries:aoserv-daemon:pom.version}" />
@@ -57,6 +57,11 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 					<li>
 						Now correctly uses per-instance MySQL settings in <code>aoserv-daemon.properties</code> when
 						accessing slave servers.  Previously, only the default settings were used on slaves.
+					</li>
+					<li>
+						Now excluding <code>/var/lib/fail2ban/fail2ban.sqlite3</code> from backups in default generated
+						backup rules.  In the unexpected case this file should be backed-up, the default exclusion may
+						be overridden in <ao:a href="https://aoindustries.com/aoserv/components/client/tables/TableDefinitions.ao?table_name=file_backup_settings">file_backup_settings</ao:a>.
 					</li>
 				</ul>
 			</changelog:release>
