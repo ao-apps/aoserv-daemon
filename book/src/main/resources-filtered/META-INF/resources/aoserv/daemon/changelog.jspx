@@ -59,9 +59,14 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 						accessing slave servers.  Previously, only the default settings were used on slaves.
 					</li>
 					<li>
-						Now excluding <code>/var/lib/fail2ban/fail2ban.sqlite3</code> from backups in default generated
-						backup rules.  In the unexpected case this file should be backed-up, the default exclusion may
-						be overridden in <ao:a href="https://aoindustries.com/aoserv/components/client/tables/TableDefinitions.ao?table_name=file_backup_settings">file_backup_settings</ao:a>.
+						<p>
+							Now excluding <code>/var/lib/fail2ban/fail2ban.sqlite3</code> from backups in default generated
+							backup rules.  In the unexpected case this file should be backed-up, the default exclusion may
+							be overridden in <ao:a href="https://aoindustries.com/aoserv/components/client/tables/TableDefinitions.ao?table_name=file_backup_settings">file_backup_settings</ao:a>.
+						</p>
+						<p>
+							We saved <strong>490 GiB</strong> of space on our backup servers from this exclusion alone.
+						</p>
 					</li>
 				</ul>
 			</changelog:release>
