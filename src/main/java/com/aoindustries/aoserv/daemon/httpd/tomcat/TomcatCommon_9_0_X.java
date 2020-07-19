@@ -671,6 +671,23 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 						null,
 						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.14.jar"
 					),
+					// mysql-connector-java-8.0.20.jar -> mysql-connector-java-8.0.21.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.20.jar",
+						"/dev/null",
+						"lib/mysql-connector-java-8.0.21.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.20.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.20.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.21.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.21.jar"
+					),
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_37) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
