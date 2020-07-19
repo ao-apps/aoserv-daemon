@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2020-07-18T23:01:30-05:00"
+		dateModified="2020-07-18T23:51:33-05:00"
 	>
 		<!-- The current snapshot, unreleased version -->
 		<c:set var="version" value="@{com.aoindustries:aoserv-daemon:pom.version}" />
@@ -52,26 +52,35 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 				groupId="@{project.groupId}"
 				artifactId="@{documented.artifactId}"
 				scmUrl="@{project.scm.url}"
-			>
-				<ul>
-					<li>
-						Now correctly uses per-instance MySQL settings in <code>aoserv-daemon.properties</code> when
-						accessing slave servers.  Previously, only the default settings were used on slaves.
-					</li>
-					<li>
-						<p>
-							Now excluding <code>/var/lib/fail2ban/fail2ban.sqlite3</code> from backups in default generated
-							backup rules.  In the unexpected case this file should be backed-up, the default exclusion may
-							be overridden in <ao:a href="https://aoindustries.com/aoserv/components/client/tables/TableDefinitions.ao?table_name=file_backup_settings">file_backup_settings</ao:a>.
-						</p>
-						<p>
-							We saved <strong>490 GiB</strong> of space on our backup servers from this exclusion alone.
-						</p>
-					</li>
-					<li>Updated MySQL JDBC Drivers to 8.0.21 for Apache Tomcat 8.5.57 and 9.0.37.</li>
-				</ul>
-			</changelog:release>
+			/>
 		</c:if>
+
+		<changelog:release
+			projectName="@{documented.name}"
+			version="1.84.11"
+			datePublished="2020-07-18T23:51:33-05:00"
+			groupId="@{project.groupId}"
+			artifactId="@{documented.artifactId}"
+			scmUrl="@{project.scm.url}"
+		>
+			<ul>
+				<li>
+					Now correctly uses per-instance MySQL settings in <code>aoserv-daemon.properties</code> when
+					accessing slave servers.  Previously, only the default settings were used on slaves.
+				</li>
+				<li>
+					<p>
+						Now excluding <code>/var/lib/fail2ban/fail2ban.sqlite3</code> from backups in default generated
+						backup rules.  In the unexpected case this file should be backed-up, the default exclusion may
+						be overridden in <ao:a href="https://aoindustries.com/aoserv/components/client/tables/TableDefinitions.ao?table_name=file_backup_settings">file_backup_settings</ao:a>.
+					</p>
+					<p>
+						We saved <strong>490 GiB</strong> of space on our backup servers from this exclusion alone.
+					</p>
+				</li>
+				<li>Updated MySQL JDBC Drivers to 8.0.21 for Apache Tomcat 8.5.57 and 9.0.37.</li>
+			</ul>
+		</changelog:release>
 
 		<changelog:release
 			projectName="@{documented.name}"
