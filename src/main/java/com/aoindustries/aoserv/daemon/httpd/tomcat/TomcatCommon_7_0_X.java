@@ -559,6 +559,23 @@ class TomcatCommon_7_0_X extends TomcatCommon {
 						null,
 						"../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.14.jre6.jar"
 					),
+					// postgresql-42.2.14.jre6.jar -> postgresql-42.2.16.jre6.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.14.jre6.jar",
+						"/dev/null",
+						"lib/postgresql-42.2.16.jre6.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.14.jre6.jar",
+						"../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.14.jre6.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.16.jre6.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-7.0/lib/postgresql-42.2.16.jre6.jar"
+					),
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_7_0_105) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;

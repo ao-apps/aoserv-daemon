@@ -613,6 +613,23 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 						null,
 						"../" + optSlash + "apache-tomcat-8.5/lib/mysql-connector-java-8.0.21.jar"
 					),
+					// postgresql-42.2.14.jar -> postgresql-42.2.16.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.14.jar",
+						"/dev/null",
+						"lib/postgresql-42.2.16.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.14.jar",
+						"../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.14.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.16.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-8.5/lib/postgresql-42.2.16.jar"
+					),
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_8_5_57) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
