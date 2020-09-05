@@ -91,7 +91,7 @@ final public class DistroManager implements Runnable {
 
 	private static Thread thread;
 
-	private static final String EOL = System.getProperty("line.separator");
+	private static final String EOL = System.lineSeparator();
 
 	public static void startDistro(boolean includeUser) {
 		DistroManager.includeUser = includeUser;
