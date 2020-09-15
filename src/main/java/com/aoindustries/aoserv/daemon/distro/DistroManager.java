@@ -625,8 +625,6 @@ final public class DistroManager implements Runnable {
 											int retCode = P.waitFor();
 											if(retCode != 0) throw new IOException("Non-zero response from command: " + AOServDaemon.getCommandString(prelinkVerifyCommand));
 										} catch(InterruptedException err) {
-											// Restore the interrupted status
-											Thread.currentThread().interrupt();
 											IOException ioErr = new InterruptedIOException();
 											ioErr.initCause(err);
 											throw ioErr;
@@ -941,7 +939,7 @@ final public class DistroManager implements Runnable {
 					} catch(ValidationException e) {
 						throw new IOException(e);
 					} catch(RuntimeException err) {
-						logger.severe("RuntimeException while accessing: " + uf);
+						if(logger.isLoggable(Level.SEVERE)) logger.severe("RuntimeException while accessing: " + uf);
 						throw err;
 					}
 				} catch(FileNotFoundException err) {
