@@ -63,6 +63,7 @@ import com.aoindustries.lang.Strings;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.Port;
 import com.aoindustries.selinux.SEManagePort;
+import com.aoindustries.util.concurrent.ExecutionExceptions;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -358,7 +359,9 @@ public class HttpdServerManager {
 							)
 						) {
 							// File changed, all servers that use this site need restarted
-							for(VirtualHost hsb : binds) serversNeedingReloaded.add(hsb.getHttpdBind().getHttpdServer());
+							for(VirtualHost hsb : binds) {
+								serversNeedingReloaded.add(hsb.getHttpdBind().getHttpdServer());
+							}
 						}
 					}
 
@@ -479,7 +482,9 @@ public class HttpdServerManager {
 							)
 						) {
 							// File changed, all servers that use this site need restarted
-							for(VirtualHost hsb : binds) serversNeedingReloaded.add(hsb.getHttpdBind().getHttpdServer());
+							for(VirtualHost hsb : binds) {
+								serversNeedingReloaded.add(hsb.getHttpdBind().getHttpdServer());
+							}
 						}
 					}
 
@@ -1793,6 +1798,7 @@ public class HttpdServerManager {
 	/**
 	 * Builds the httpd[@&lt;name&gt;].conf file for CentOS 7
 	 */
+	@SuppressWarnings("UnnecessaryLabelOnBreakStatement")
 	private static byte[] buildHttpdConfCentOs7(
 		HttpdServer hs,
 		List<Site> sites,
@@ -3030,7 +3036,9 @@ public class HttpdServerManager {
 	 * Reloads the configs for all provided <code>HttpdServer</code>s.
 	 */
 	public static void reloadConfigs(Set<HttpdServer> serversNeedingReloaded) throws IOException, SQLException {
-		for(HttpdServer hs : serversNeedingReloaded) reloadConfigs(hs);
+		for(HttpdServer hs : serversNeedingReloaded) {
+			reloadConfigs(hs);
+		}
 	}
 
 	private static final Object processControlLock = new Object();
@@ -3567,9 +3575,9 @@ public class HttpdServerManager {
 			ioErr.initCause(e);
 			throw ioErr;
 		} catch(ExecutionException e) {
-			Throwable cause = e.getCause();
-			if(cause instanceof IOException) throw (IOException)cause;
-			if(cause instanceof SQLException) throw (SQLException)cause;
+			// Maintain expected exception types while not losing stack trace
+			ExecutionExceptions.wrapAndThrow(e, IOException.class, IOException::new);
+			ExecutionExceptions.wrapAndThrowSQLException(e);
 			throw new IOException(e);
 		}
 	}

@@ -32,7 +32,6 @@ import com.aoindustries.aoserv.client.mysql.UserServer;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.util.Tuple2;
 import com.aoindustries.validation.ValidationException;
 import java.io.IOException;
@@ -62,6 +61,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
@@ -116,9 +116,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 							boolean modified = false;
 
 							// Get the connection to work through
-							AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
-							Connection conn = pool.getConnection();
-							try {
+							try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection()) {
 								// TODO: This does not update existing records; add update phase.
 								// TODO: As written, updates to mysql_users table (which are very rare) will be represented here.
 
@@ -246,8 +244,6 @@ final public class MySQLDBUserManager extends BuilderThread {
 									}
 									modified = true;
 								}
-							} finally {
-								pool.releaseConnection(conn);
 							}
 							if(modified) MySQLServerManager.flushPrivileges(mysqlServer);
 						}
@@ -255,15 +251,16 @@ final public class MySQLDBUserManager extends BuilderThread {
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
 
 	private static MySQLDBUserManager mysqlDBUserManager;
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();

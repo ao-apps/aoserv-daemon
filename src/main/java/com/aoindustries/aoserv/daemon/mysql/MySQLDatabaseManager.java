@@ -38,9 +38,9 @@ import com.aoindustries.concurrent.ConcurrencyLimiter;
 import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.Port;
-import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.util.BufferManager;
 import com.aoindustries.util.PropertiesUtils;
+import com.aoindustries.util.concurrent.ExecutionExceptions;
 import com.aoindustries.validation.ValidationException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -83,6 +83,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			//AOServConnector connector=AOServDaemon.getConnector();
@@ -143,9 +144,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 						} else {
 							boolean modified = false;
 							// Get the connection to work through
-							AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
-							Connection conn = pool.getConnection(false);
-							try {
+							try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection()) {
 								// Get the list of all existing databases
 								Set<Database.Name> existing = new HashSet<>();
 								try (Statement stmt = conn.createStatement()) {
@@ -206,8 +205,6 @@ final public class MySQLDatabaseManager extends BuilderThread {
 										}
 									}
 								}
-							} finally {
-								pool.releaseConnection(conn);
 							}
 							if(modified) MySQLServerManager.flushPrivileges(mysqlServer);
 						}
@@ -215,8 +212,10 @@ final public class MySQLDatabaseManager extends BuilderThread {
 				}
 			}
 			return true;
-		} catch(RuntimeException | IOException | SQLException T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
@@ -304,6 +303,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 
 	private static MySQLDatabaseManager mysqlDatabaseManager;
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
@@ -352,9 +352,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		Server ms = AOServDaemon.getConnector().getMysql().getServer().get(mysqlServer);
 		if(ms == null) throw new SQLException("Unable to find Server: " + mysqlServer);
 
-		AOConnectionPool pool = MySQLServerManager.getPool(ms);
-		Connection conn = pool.getConnection(true);
-		try {
+		try (Connection conn = MySQLServerManager.getPool(ms).getConnection(true)) {
 			try (
 				Statement stmt = conn.createStatement();
 				ResultSet results = stmt.executeQuery("SHOW MASTER STATUS")
@@ -367,8 +365,6 @@ final public class MySQLDatabaseManager extends BuilderThread {
 					out.write(AOServDaemonProtocol.DONE);
 				}
 			}
-		} finally {
-			pool.releaseConnection(conn);
 		}
 	}
 
@@ -603,7 +599,12 @@ final public class MySQLDatabaseManager extends BuilderThread {
 					return Collections.unmodifiableList(statuses);
 				}
 			);
-		} catch(InterruptedException | ExecutionException e) {
+		} catch(InterruptedException e) {
+			throw new SQLException(e);
+		} catch(ExecutionException e) {
+			// Maintain expected exception types while not losing stack trace
+			ExecutionExceptions.wrapAndThrow(e, IOException.class, IOException::new);
+			ExecutionExceptions.wrapAndThrowSQLException(e);
 			throw new SQLException(e);
 		}
 		out.write(AOServDaemonProtocol.NEXT);
@@ -751,7 +752,12 @@ final public class MySQLDatabaseManager extends BuilderThread {
 								}
 							)
 						);
-					} catch(InterruptedException | ExecutionException e) {
+					} catch(InterruptedException e) {
+						throw new SQLException(e);
+					} catch(ExecutionException e) {
+						// Maintain expected exception types while not losing stack trace
+						ExecutionExceptions.wrapAndThrow(e, IOException.class, IOException::new);
+						ExecutionExceptions.wrapAndThrowSQLException(e);
 						throw new SQLException(e);
 					}
 				}
@@ -770,12 +776,17 @@ final public class MySQLDatabaseManager extends BuilderThread {
 				out.writeNullEnum(checkTableResult.getMsgType());
 				out.writeNullUTF(checkTableResult.getMsgText());
 			}
-		} catch(InterruptedException exc) {
+		} catch(InterruptedException e) {
 			IOException ioErr = new InterruptedIOException();
-			ioErr.initCause(exc);
+			ioErr.initCause(e);
 			throw ioErr;
-		} catch(ExecutionException|TimeoutException exc) {
-			throw new SQLException(exc);
+		} catch(TimeoutException e) {
+			throw new SQLException(e);
+		} catch(ExecutionException e) {
+			// Maintain expected exception types while not losing stack trace
+			ExecutionExceptions.wrapAndThrow(e, IOException.class, IOException::new);
+			ExecutionExceptions.wrapAndThrowSQLException(e);
+			throw new SQLException(e);
 		} finally {
 			future.cancel(false);
 		}

@@ -39,6 +39,7 @@ import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.Strings;
+import com.aoindustries.lang.Throwables;
 import com.aoindustries.util.BufferManager;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -113,6 +114,7 @@ final public class MrtgManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			Server thisServer = AOServDaemon.getThisServer();
@@ -657,12 +659,15 @@ final public class MrtgManager extends BuilderThread {
 				}
 			}
 			return true;
-		} catch(RuntimeException | IOException | SQLException T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
@@ -722,6 +727,7 @@ final public class MrtgManager extends BuilderThread {
 	/**
 	 * Gets the list of devices for df commands.  When in a failover state, returns empty list.
 	 */
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	private static List<String> getDFDevices() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		if(thisServer.getFailoverServer() != null) return Collections.emptyList();
@@ -737,6 +743,7 @@ final public class MrtgManager extends BuilderThread {
 		} else throw new AssertionError("Unsupporter OperatingSystemVersion: " + osv);
 
 		Process P = Runtime.getRuntime().exec(new String[] {listPartitionsCommand});
+		Throwable t0 = null;
 		try {
 			P.getOutputStream().close();
 			try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
@@ -749,7 +756,10 @@ final public class MrtgManager extends BuilderThread {
 					}
 				}
 			}
-		} finally {
+		} catch(Throwable t) {
+			t0 = Throwables.addSuppressed(t0, t);
+		}
+		try {
 			try {
 				int retCode = P.waitFor();
 				if(retCode != 0) throw new IOException("Non-zero return value from list_partitions: " + retCode);
@@ -758,12 +768,19 @@ final public class MrtgManager extends BuilderThread {
 				ioErr.initCause(err);
 				throw ioErr;
 			}
+		} catch(Throwable t) {
+			t0 = Throwables.addSuppressed(t0, t);
 		}
-
-		Collections.sort(devices);
-		return devices;
+		if(t0 != null) {
+			if(t0 instanceof SQLException) throw (SQLException)t0;
+			throw Throwables.wrap(t0, IOException.class, IOException::new);
+		} else {
+			Collections.sort(devices);
+			return devices;
+		}
 	}
 
+	@SuppressWarnings("AssignmentToForLoopParameter")
 	private static List<String> getSafeNames(List<String> devices) throws IOException {
 		if(devices.isEmpty()) return Collections.emptyList();
 		List<String> safeNames = new ArrayList<>(devices.size());

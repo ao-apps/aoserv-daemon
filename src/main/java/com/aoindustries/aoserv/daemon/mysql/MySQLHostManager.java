@@ -31,7 +31,6 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.net.InetAddress;
-import com.aoindustries.sql.AOConnectionPool;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -57,6 +56,7 @@ final public class MySQLHostManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
@@ -82,9 +82,7 @@ final public class MySQLHostManager extends BuilderThread {
 					) {
 						boolean modified = false;
 						// Get the connection to work through
-						AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
-						Connection conn = pool.getConnection();
-						try {
+						try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection()) {
 							// Get the list of all existing hosts
 							Set<String> existing = new HashSet<>();
 							try (
@@ -144,23 +142,22 @@ final public class MySQLHostManager extends BuilderThread {
 								}
 								modified = true;
 							}
-						} finally {
-							pool.releaseConnection(conn);
 						}
 						if(modified) MySQLServerManager.flushPrivileges(mysqlServer);
 					}
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
 
 	private static MySQLHostManager mysqlHostManager;
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();

@@ -36,6 +36,7 @@ import static com.aoindustries.aoserv.client.distribution.OperatingSystemVersion
 import com.aoindustries.aoserv.client.distribution.management.DistroFileType;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.encoding.TextInPsqlEncoder;
+import com.aoindustries.exception.WrappedException;
 import com.aoindustries.io.ByteCountInputStream;
 import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.Stat;
@@ -43,7 +44,7 @@ import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.EmptyArrays;
 import com.aoindustries.lang.Strings;
 import com.aoindustries.lang.SysExits;
-import com.aoindustries.util.ErrorPrinter;
+import com.aoindustries.lang.Throwables;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -121,11 +122,13 @@ final public class DistroGenerator {
 			this.foundNevers = foundNevers;
 		}
 
+		@SuppressWarnings("ReturnOfCollectionOrArrayField")
 		public Set<String> getFoundNevers() {
-			return foundNevers;
+			return Collections.unmodifiableSet(foundNevers);
 		}
 	}
 
+	@SuppressWarnings({"UseOfSystemOutOrSystemErr", "UseSpecificCatch", "TooBroadCatch"})
 	public static void main(String[] args) {
 		try {
 			DistroGenerator generator;
@@ -142,9 +145,6 @@ final public class DistroGenerator {
 				out.flush();
 				err.flush();
 			}
-		} catch(IOException e) {
-			ErrorPrinter.printStackTraces(e);
-			System.exit(SysExits.EX_IOERR);
 		} catch(FoundNeversException e) {
 			System.err.println("Files exist but are listed in nevers:");
 			for(String filename : e.getFoundNevers()) {
@@ -152,9 +152,8 @@ final public class DistroGenerator {
 			}
 			System.err.flush();
 			System.exit(SysExits.EX_SOFTWARE);
-		} catch(InterruptedException | RuntimeException e) {
-			ErrorPrinter.printStackTraces(e);
-			System.exit(SysExits.EX_SOFTWARE);
+		} catch(Throwable t) {
+			System.exit(SysExits.getSysExit(t));
 		}
 	}
 
@@ -738,8 +737,7 @@ final public class DistroGenerator {
 				if(generator.foundNeversException != null) throw generator.foundNeversException;
 				Throwable t = generator.throwable;
 				if(t != null) {
-					if(t instanceof RuntimeException) throw (RuntimeException)t;
-					throw new RuntimeException(t);
+					throw Throwables.wrap(t, WrappedException.class, WrappedException::new);
 				}
 			}
 		}
@@ -793,6 +791,7 @@ final public class DistroGenerator {
 		}
 
 		@Override
+		@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 		public void run() {
 			try {
 				MessageDigest digest = MessageDigestUtils.getSha256();
@@ -877,6 +876,7 @@ final public class DistroGenerator {
 								};
 								//try {
 									Process P = Runtime.getRuntime().exec(prelinkVerifyCommand);
+									Throwable t0 = null;
 									try {
 										P.getOutputStream().close();
 										byte[] sha256;
@@ -893,7 +893,10 @@ final public class DistroGenerator {
 											.append(IoUtils.bufferToLong(sha256, 8)).append("::int8, ")
 											.append(IoUtils.bufferToLong(sha256, 16)).append("::int8, ")
 											.append(IoUtils.bufferToLong(sha256, 24)).append("::int8");
-									} finally {
+									} catch(Throwable t) {
+										t0 = Throwables.addSuppressed(t0, t);
+									}
+									try {
 										try {
 											int retCode = P.waitFor();
 											if(retCode != 0) throw new IOException("Non-zero response from command: " + AOServDaemon.getCommandString(prelinkVerifyCommand));
@@ -902,7 +905,10 @@ final public class DistroGenerator {
 											ioErr.initCause(err);
 											throw ioErr;
 										}
+									} catch(Throwable t) {
+										t0 = Throwables.addSuppressed(t0, t);
 									}
+									if(t0 != null) throw t0;
 								/* No longer doing undo, trying one-shot only
 								} catch(IOException e) {
 									runState.err.println("Undoing prelink on \"" + osFilename.filename + "\": " + e.toString());
@@ -980,8 +986,8 @@ final public class DistroGenerator {
 				synchronized(exceptionLock) {
 					this.foundNeversException = e;
 				}
-			} catch(ThreadDeath TD) {
-				throw TD;
+			} catch(ThreadDeath td) {
+				throw td;
 			} catch(Throwable t) {
 				synchronized(exceptionLock) {
 					this.throwable = t;

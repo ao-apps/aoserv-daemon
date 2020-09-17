@@ -76,6 +76,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			AOServConnector connector = AOServDaemon.getConnector();
@@ -101,9 +102,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 						String minorVersion = pv.getMinorVersion();
 
 						// Get the connection to work through
-						AOConnectionPool pool = PostgresServerManager.getPool(ps);
-						Connection conn = pool.getConnection(false);
-						try {
+						try (Connection conn = PostgresServerManager.getPool(ps).getConnection()) {
 							// Get the list of all existing databases
 							Set<Database.Name> existing = new HashSet<>();
 							try (Statement stmt = conn.createStatement()) {
@@ -261,15 +260,15 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 									}
 								}
 							}
-						} finally {
-							pool.releaseConnection(conn);
 						}
 					}
 				}
 			}
 			return true;
-		} catch(RuntimeException | IOException | SQLException T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
@@ -357,6 +356,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 
 	private static PostgresDatabaseManager postgresDatabaseManager;
 	private static boolean cronStarted = false;
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
@@ -434,6 +434,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 
 	// TODO: This should be moved to scripts in the relevant postgresql-* packages, so the system still works correctly with disabled aoserv-daemon
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	public void run(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
 		try {
 			AOServConnector aoservConn = AOServDaemon.getConnector();
@@ -457,16 +458,13 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 						!postgresDatabase.isTemplate()
 						&& postgresDatabase.allowsConnections()
 					) {
-						AOConnectionPool pool;
 						Connection conn;
 						if(postgresDatabase.getName().equals(Database.AOSERV)) {
 							// If the aoserv database, use the existing connection pools
-							pool = PostgresServerManager.getPool(postgresServer);
-							conn = pool.getConnection();
+							conn = PostgresServerManager.getPool(postgresServer).getConnection();
 						} else {
 							// For other databases, establish a connection directly
-							pool = null;
-							Class.forName(postgresDatabase.getJdbcDriver()).getConstructor().newInstance();
+							Class.forName(postgresDatabase.getJdbcDriver()).getConstructor().newInstance(); // TODO: Only once per classname?
 							conn = DriverManager.getConnection(
 								postgresDatabase.getJdbcUrl(true),
 								User.POSTGRES.toString(),
@@ -535,14 +533,15 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 								}
 							}
 						} finally {
-							if(pool != null) pool.releaseConnection(conn);
-							else conn.close();
+							conn.close();
 						}
 					}
 				}
 			}
-		} catch(RuntimeException | ReflectiveOperationException | IOException | SQLException T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 		}
 	}
 }

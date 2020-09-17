@@ -31,7 +31,6 @@ import com.aoindustries.aoserv.client.postgresql.Version;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.validation.ValidationException;
 import java.io.IOException;
 import java.sql.Connection;
@@ -58,14 +57,6 @@ import org.apache.commons.lang3.NotImplementedException;
 final public class PostgresUserManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(PostgresUserManager.class.getName());
-
-	private static final boolean DEBUG = false;
-
-	private static void debug(String message) {
-		if(DEBUG) {
-			System.err.println("DEBUG: [" + PostgresUserManager.class.getName() +"]: " + message);
-		}
-	}
 
 	private PostgresUserManager() {
 	}
@@ -165,6 +156,7 @@ final public class PostgresUserManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
@@ -189,10 +181,8 @@ final public class PostgresUserManager extends BuilderThread {
 						Set<User.Name> systemRoles = getSystemRoles(version);
 						boolean supportsRoles = supportsRoles(version);
 						// Get the connection to work through
-						AOConnectionPool pool = PostgresServerManager.getPool(ps);
-						Connection conn = pool.getConnection(false);
 						boolean disableEnableDone = false;
-						try {
+						try (Connection conn = PostgresServerManager.getPool(ps).getConnection()) {
 							// Get the list of all existing users
 							Set<User.Name> existing = new HashSet<>();
 							try (Statement stmt = conn.createStatement()) {
@@ -205,7 +195,7 @@ final public class PostgresUserManager extends BuilderThread {
 								) {
 									while (results.next()) {
 										String username = results.getString(1);
-										if(DEBUG) debug("Found user " + username);
+										if(logger.isLoggable(Level.FINE)) logger.fine("Found user " + username);
 										try {
 											User.Name usename = User.Name.valueOf(username);
 											if(!existing.add(usename)) throw new SQLException("Duplicate username: " + usename);
@@ -234,7 +224,7 @@ final public class PostgresUserManager extends BuilderThread {
 											new SQLException("Refusing to drop special user: " + username + " on " + ps.getName())
 										);
 									} else {
-										if(DEBUG) debug("Dropping user: " + username);
+										if(logger.isLoggable(Level.FINE)) logger.fine("Dropping user: " + username);
 										try (Statement stmt = conn.createStatement()) {
 											stmt.executeUpdate("DROP USER \"" + username + '"');
 										}
@@ -255,7 +245,7 @@ final public class PostgresUserManager extends BuilderThread {
 											new SQLException("Refusing to create special user: " + username + " on " + ps.getName())
 										);
 									} else {
-										if(DEBUG) debug("Adding user: " + username);
+										if(logger.isLoggable(Level.FINE)) logger.fine("Adding user: " + username);
 										StringBuilder sql = new StringBuilder();
 										sql.append(
 											supportsRoles
@@ -310,7 +300,7 @@ final public class PostgresUserManager extends BuilderThread {
 											if(!psu.isDisabled()) {
 												// Enable if needed
 												if(!rolcanlogin) {
-													if(DEBUG) debug("Adding login role: " + username);
+													if(logger.isLoggable(Level.FINE)) logger.fine("Adding login role: " + username);
 													try (Statement stmt = conn.createStatement()) {
 														stmt.executeUpdate("ALTER ROLE \"" + username + "\" LOGIN");
 													}
@@ -318,7 +308,7 @@ final public class PostgresUserManager extends BuilderThread {
 											} else {
 												// Disable if needed
 												if(rolcanlogin) {
-													if(DEBUG) debug("Removing login role: " + username);
+													if(logger.isLoggable(Level.FINE)) logger.fine("Removing login role: " + username);
 													try (Statement stmt = conn.createStatement()) {
 														stmt.executeUpdate("ALTER ROLE \"" + username + "\" NOLOGIN");
 													}
@@ -329,8 +319,6 @@ final public class PostgresUserManager extends BuilderThread {
 								}
 								disableEnableDone = true;
 							}
-						} finally {
-							pool.releaseConnection(conn);
 						}
 
 						if(!disableEnableDone) {
@@ -357,10 +345,10 @@ final public class PostgresUserManager extends BuilderThread {
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
@@ -372,9 +360,7 @@ final public class PostgresUserManager extends BuilderThread {
 		Server ps = psu.getPostgresServer();
 		String version = ps.getVersion().getTechnologyVersion(AOServDaemon.getConnector()).getVersion();
 		boolean supportsRoles = supportsRoles(version);
-		AOConnectionPool pool=PostgresServerManager.getPool(ps);
-		Connection conn=pool.getConnection(true);
-		try {
+		try (Connection conn = PostgresServerManager.getPool(ps).getConnection(true)) {
 			try (
 				PreparedStatement pstmt = conn.prepareStatement(
 					supportsRoles
@@ -391,8 +377,6 @@ final public class PostgresUserManager extends BuilderThread {
 					}
 				}
 			}
-		} finally {
-			pool.releaseConnection(conn);
 		}
 	}
 
@@ -406,9 +390,7 @@ final public class PostgresUserManager extends BuilderThread {
 		String version = ps.getVersion().getTechnologyVersion(aoservConn).getVersion();
 		boolean supportsRoles = supportsRoles(version);
 		User.Name username = psu.getPostgresUser_username();
-		AOConnectionPool pool = PostgresServerManager.getPool(ps);
-		Connection conn = pool.getConnection(false);
-		try {
+		try (Connection conn = PostgresServerManager.getPool(ps).getConnection()) {
 			if(supportsRoles) {
 				// TODO: Find a way to use PreparedStatement here for PostgreSQL 8.1+
 				try (Statement stmt = conn.createStatement()) {
@@ -449,8 +431,6 @@ final public class PostgresUserManager extends BuilderThread {
 					pstmt.executeUpdate();
 				}
 			}
-		} finally {
-			pool.releaseConnection(conn);
 		}
 	}
 
@@ -503,6 +483,7 @@ final public class PostgresUserManager extends BuilderThread {
 	}
 
 	private static PostgresUserManager postgresUserManager;
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();

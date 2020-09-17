@@ -2010,7 +2010,7 @@ final public class ImapManager extends BuilderThread {
 					}
 				}
 			}
-		} catch(RuntimeException | IOException | SQLException | MessagingException err) {
+		} catch(Error | RuntimeException | IOException | SQLException | MessagingException err) {
 			closeAdminStore();
 			throw err;
 		}
@@ -2307,7 +2307,7 @@ final public class ImapManager extends BuilderThread {
 				}
 			}
 			throw new MessagingException("Unable to get folder size after " + (attempt - 1) + " attempts");
-		} catch(RuntimeException | IOException | SQLException | MessagingException err) {
+		} catch(Error | RuntimeException | IOException | SQLException | MessagingException err) {
 			closeAdminStore();
 			throw err;
 		}
@@ -2446,7 +2446,7 @@ ad OK Completed
 				} finally {
 					if(inboxFolder.isOpen()) inboxFolder.close(false);
 				}
-			} catch(RuntimeException | IOException | SQLException | MessagingException err) {
+			} catch(Error | RuntimeException | IOException | SQLException | MessagingException err) {
 				closeAdminStore();
 				throw err;
 			}

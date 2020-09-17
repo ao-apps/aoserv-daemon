@@ -51,6 +51,7 @@ import com.aoindustries.io.stream.StreamableInput;
 import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.SysExits;
 import com.aoindustries.util.BufferManager;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.Tuple2;
@@ -129,12 +130,15 @@ public class LinuxAccountManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			rebuildLinuxAccountSettings();
 			return true;
-		} catch(RuntimeException | IOException | SQLException T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
@@ -907,7 +911,9 @@ public class LinuxAccountManager extends BuilderThread {
 			) {
 				// TODO: This is assuming ISO-8859-1 encoding.  Is this correct here?
 				int ch;
-				while((ch = in.read()) != -1) SB.append((char)ch);
+				while((ch = in.read()) != -1) {
+					SB.append((char)ch);
+				}
 			}
 			content = SB.toString();
 		} else {
@@ -924,7 +930,9 @@ public class LinuxAccountManager extends BuilderThread {
 			try (InputStream in = new BufferedInputStream(new FileInputStream(cronFile))) {
 				// TODO: This is assuming ISO-8859-1 encoding.  Is this correct here?
 				int ch;
-				while((ch = in.read()) != -1) SB.append((char)ch);
+				while((ch = in.read()) != -1) {
+					SB.append((char)ch);
+				}
 			}
 			cronTable = SB.toString();
 		} else {
@@ -1063,6 +1071,7 @@ public class LinuxAccountManager extends BuilderThread {
 	}
 
 	private static LinuxAccountManager linuxAccountManager;
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
@@ -1195,11 +1204,15 @@ public class LinuxAccountManager extends BuilderThread {
 	/**
 	 * Allows manual rebuild without the necessity of running the entire daemon (use carefully, only when main daemon not running).
 	 */
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch", "UseOfSystemOutOrSystemErr"})
 	public static void main(String[] args) {
 		try {
 			rebuildLinuxAccountSettings();
-		} catch(RuntimeException | IOException | SQLException err) {
-			ErrorPrinter.printStackTraces(err);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			ErrorPrinter.printStackTraces(t, System.err);
+			System.exit(SysExits.getSysExit(t));
 		}
 	}
 

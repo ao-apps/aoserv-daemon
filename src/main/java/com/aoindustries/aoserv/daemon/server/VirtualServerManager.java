@@ -366,6 +366,7 @@ final public class VirtualServerManager {
 							final OutputStream vncOut = vncSocket.getOutputStream();
 							try {
 								// socketIn -> vncOut in another thread
+								@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 								Thread inThread = new Thread(() -> {
 									try {
 										try {
@@ -382,8 +383,10 @@ final public class VirtualServerManager {
 												logger.log(Level.FINE, null, e);
 											}
 										}
-									} catch(RuntimeException | IOException T) {
-										logger.log(Level.SEVERE, null, T);
+									} catch(ThreadDeath td) {
+										throw td;
+									} catch(Throwable t) {
+										logger.log(Level.SEVERE, null, t);
 									}
 								});
 								inThread.start();
@@ -507,7 +510,7 @@ final public class VirtualServerManager {
 		String stderr = result.getStderr();
 		if(result.getExitVal()==0) {
 			// Log any errors
-			if(stderr.length()>0) System.err.println(stderr);
+			if(stderr.length()>0) logger.fine(stderr);
 			return result.getStdout();
 		} else {
 			throw new IOException(stderr);
@@ -525,7 +528,7 @@ final public class VirtualServerManager {
 		String stderr = result.getStderr();
 		if(result.getExitVal()==0) {
 			// Log any errors
-			if(stderr.length()>0) System.err.println(stderr);
+			if(stderr.length()>0) logger.fine(stderr);
 			return result.getStdout();
 		} else {
 			throw new IOException(stderr);
@@ -543,7 +546,7 @@ final public class VirtualServerManager {
 		String stderr = result.getStderr();
 		if(result.getExitVal()==0) {
 			// Log any errors
-			if(stderr.length()>0) System.err.println(stderr);
+			if(stderr.length()>0) logger.fine(stderr);
 			return result.getStdout();
 		} else {
 			throw new IOException(stderr);
@@ -561,7 +564,7 @@ final public class VirtualServerManager {
 		String stderr = result.getStderr();
 		if(result.getExitVal()==0) {
 			// Log any errors
-			if(stderr.length()>0) System.err.println(stderr);
+			if(stderr.length()>0) logger.fine(stderr);
 			return result.getStdout();
 		} else {
 			throw new IOException(stderr);
@@ -579,7 +582,7 @@ final public class VirtualServerManager {
 		String stderr = result.getStderr();
 		if(result.getExitVal()==0) {
 			// Log any errors
-			if(stderr.length()>0) System.err.println(stderr);
+			if(stderr.length()>0) logger.fine(stderr);
 			return result.getStdout();
 		} else {
 			throw new IOException(stderr);
@@ -597,7 +600,7 @@ final public class VirtualServerManager {
 		String stderr = result.getStderr();
 		if(result.getExitVal()==0) {
 			// Log any errors
-			if(stderr.length()>0) System.err.println(stderr);
+			if(stderr.length()>0) logger.fine(stderr);
 			return result.getStdout();
 		} else {
 			throw new IOException(stderr);

@@ -47,6 +47,7 @@ import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.Strings;
+import com.aoindustries.lang.Throwables;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.util.BufferManager;
 import java.io.BufferedReader;
@@ -82,6 +83,7 @@ final public class AWStatsManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
@@ -446,7 +448,7 @@ final public class AWStatsManager extends BuilderThread {
 											+ "Logo=\"\"\n"
 											+ "LogoLink=\"\"\n");
 								} else {
-									System.out.println("Unsupported HttpdOperatingSystemConfiguration: " + osConfig);
+									if(logger.isLoggable(Level.WARNING)) logger.warning("Unsupported HttpdOperatingSystemConfiguration: " + osConfig);
 								}
 							}
 							newFileContent = bout.toByteArray();
@@ -506,7 +508,7 @@ final public class AWStatsManager extends BuilderThread {
 									if(usedLogs.isEmpty()) out.print(" \\\n\t/dev/null\n");
 									else out.print('\n');
 								} else {
-									System.out.println("Unsupported HttpdOperatingSystemConfiguration: " + osConfig);
+									if(logger.isLoggable(Level.WARNING)) logger.warning("Unsupported HttpdOperatingSystemConfiguration: " + osConfig);
 								}
 							}
 							newFileContent = bout.toByteArray();
@@ -593,7 +595,7 @@ final public class AWStatsManager extends BuilderThread {
 											+ "export SERVER_SOFTWARE='Apache-AdvancedExtranetServer/1.3.31'\n")
 											.print(binDirectory).print("/wwwroot/cgi-bin/awstats.pl -config='").print(siteName).print("'\n");
 								} else {
-									System.out.println("Unsupported HttpdOperatingSystemConfiguration: " + osConfig);
+									if(logger.isLoggable(Level.WARNING)) logger.warning("Unsupported HttpdOperatingSystemConfiguration: " + osConfig);
 								}
 							}
 							newFileContent = bout.toByteArray();
@@ -620,7 +622,7 @@ final public class AWStatsManager extends BuilderThread {
 											+ "cd '").print(hostsDirectory).print('/').print(siteName).print("'\n"
 											+ "/usr/bin/perl '").print(binDirectory).print("/wwwroot/cgi-bin/awstats.pl' -config='").print(siteName).print("' -update\n");
 								} else {
-									System.out.println("Unsupported HttpdOperatingSystemConfiguration: " + osConfig);
+									if(logger.isLoggable(Level.WARNING)) logger.warning("Unsupported HttpdOperatingSystemConfiguration: " + osConfig);
 								}
 							}
 							newFileContent = bout.toByteArray();
@@ -673,12 +675,15 @@ final public class AWStatsManager extends BuilderThread {
 				}
 			}
 			return true;
-		} catch(RuntimeException | IOException | SQLException T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
@@ -725,6 +730,7 @@ final public class AWStatsManager extends BuilderThread {
 		return 15L*60*1000;
 	}
 
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	public static void getAWStatsFile(String siteName, String path, String queryString, StreamableOutput out) throws IOException, SQLException {
 		HttpdOperatingSystemConfiguration osConfig = HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration();
 		OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
@@ -774,6 +780,7 @@ final public class AWStatsManager extends BuilderThread {
 					User.AWSTATS.toString()
 				};
 				Process P = Runtime.getRuntime().exec(cmd);
+				Throwable t0 = null;
 				try {
 					P.getOutputStream().close();
 					try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
@@ -791,7 +798,9 @@ final public class AWStatsManager extends BuilderThread {
 								int ret;
 								while((ret = in.read(chars, 0, BufferManager.BUFFER_SIZE))!=-1) {
 									// Convert to bytes by simple cast - assumes ISO8859-1 encoding
-									for(int c = 0; c < ret; c++) buff[c] = (byte)chars[c];
+									for(int c = 0; c < ret; c++) {
+										buff[c] = (byte)chars[c];
+									}
 
 									out.write(AOServDaemonProtocol.NEXT);
 									out.writeShort(ret);
@@ -804,7 +813,10 @@ final public class AWStatsManager extends BuilderThread {
 							BufferManager.release(buff, false);
 						}
 					}
-				} finally {
+				} catch(Throwable t) {
+					t0 = Throwables.addSuppressed(t0, t);
+				}
+				try {
 					// Wait for the process to complete
 					try {
 						int retCode = P.waitFor();
@@ -814,6 +826,12 @@ final public class AWStatsManager extends BuilderThread {
 						ioErr.initCause(err);
 						throw ioErr;
 					}
+				} catch(Throwable t) {
+					t0 = Throwables.addSuppressed(t0, t);
+				}
+				if(t0 != null) {
+					if(t0 instanceof SQLException) throw (SQLException)t0;
+					throw Throwables.wrap(t0, IOException.class, IOException::new);
 				}
 			} else {
 				throw new IOException("Unsupported queryString for awstats.pl: "+queryString);

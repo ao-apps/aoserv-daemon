@@ -68,6 +68,7 @@ final public class MySQLServerManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
@@ -116,10 +117,10 @@ final public class MySQLServerManager extends BuilderThread {
 				// TODO: restart any that need started/restarted
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
@@ -156,6 +157,7 @@ final public class MySQLServerManager extends BuilderThread {
 	}
 
 	private static MySQLServerManager mysqlServerManager;
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
@@ -221,16 +223,13 @@ final public class MySQLServerManager extends BuilderThread {
 			This did not work properly, so we now invoke a native process instead.
 
 			synchronized(flushLock) {
-				Connection conn=getPool().getConnection();
-				try {
+				try (Connection conn = getPool().getConnection()) {
 					Statement stmt=conn.createStatement();
 					try {
 						stmt.executeUpdate("flush privileges");
 					} finally {
 						stmt.close();
 					}
-				} finally {
-					getPool().releaseConnection(conn);
 				}
 			}
 			*/

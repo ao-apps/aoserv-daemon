@@ -46,6 +46,7 @@ import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.Strings;
 import com.aoindustries.security.SmallIdentifier;
 import com.aoindustries.util.Tuple2;
+import com.aoindustries.util.concurrent.ExecutionExceptions;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -172,10 +173,12 @@ final public class SslCertificateManager {
 			this.altNames = altNames;
 		}
 
+		@SuppressWarnings("ReturnOfDateField") // private use only
 		private Date getNotBefore() {
 			return notBefore;
 		}
 
+		@SuppressWarnings("ReturnOfDateField") // private use only
 		private Date getNotAfter() {
 			return notAfter;
 		}
@@ -184,6 +187,7 @@ final public class SslCertificateManager {
 			return commonName;
 		}
 
+		@SuppressWarnings("ReturnOfCollectionOrArrayField") // private use only
 		private Set<String> getAltNames() {
 			return altNames;
 		}
@@ -368,6 +372,7 @@ final public class SslCertificateManager {
 			this.days = days;
 		}
 
+		@SuppressWarnings("ReturnOfCollectionOrArrayField") // private use only
 		private Set<String> getDomains() {
 			return domains;
 		}
@@ -388,6 +393,7 @@ final public class SslCertificateManager {
 	/**
 	 * Gets the certificate status from certbot.
 	 */
+	@SuppressWarnings({"SleepWhileHoldingLock", "SleepWhileInLoop"})
 	private static CertbotStatus getCertbotStatus(String certbotName, boolean allowCached) throws IOException {
 		synchronized(certbotCache) {
 			long currentTime = System.currentTimeMillis();
@@ -515,6 +521,7 @@ final public class SslCertificateManager {
 
 	private static final ConcurrencyLimiter<Tuple2<Certificate,Boolean>,List<Check>> checkSslCertificateConcurrencyLimiter = new ConcurrencyLimiter<>();
 
+	@SuppressWarnings("null")
 	public static List<Check> checkSslCertificate(Certificate certificate, boolean allowCached) throws IOException, SQLException {
 		try {
 			Server thisServer = AOServDaemon.getThisServer();
@@ -631,16 +638,14 @@ final public class SslCertificateManager {
 						certCanonicalStat = certStat;
 						certCanonicalExists = certExists;
 					}
-					UnixFile chainCanonical;
 					Stat chainCanonicalStat;
 					boolean chainCanonicalExists;
 					if(chainExists && chainStat.isSymLink()) {
-						chainCanonical = new UnixFile(chainFile.getFile().getCanonicalPath());
+						UnixFile chainCanonical = new UnixFile(chainFile.getFile().getCanonicalPath());
 						chainCanonicalStat = chainCanonical.getStat();
 						chainCanonicalExists = chainCanonicalStat.exists();
 						results.add(new Check("Canonical chain exists?", Boolean.toString(chainCanonicalExists), chainCanonicalExists ? NONE : CRITICAL, chainCanonical.toString()));
 					} else {
-						chainCanonical = chainFile;
 						chainCanonicalStat = chainStat;
 						chainCanonicalExists = chainExists;
 					}
@@ -922,10 +927,10 @@ final public class SslCertificateManager {
 			ioErr.initCause(e);
 			throw ioErr;
 		} catch(ExecutionException e) {
-			Throwable cause = e.getCause();
-			if(cause instanceof IOException) throw (IOException)cause;
-			if(cause instanceof SQLException) throw (SQLException)cause;
-			throw new IOException(cause);
+			// Maintain expected exception types while not losing stack trace
+			ExecutionExceptions.wrapAndThrow(e, IOException.class, IOException::new);
+			ExecutionExceptions.wrapAndThrowSQLException(e);
+			throw new IOException(e);
 		}
 	}
 

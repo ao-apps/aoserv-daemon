@@ -28,6 +28,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.Strings;
+import com.aoindustries.lang.Throwables;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -110,7 +111,9 @@ final public class BackupManager {
 		cmd[3]="-czf";
 		cmd[4]=backupFile.getPath();
 		// strips the leading / as it builds the command
-		for(int c=0;c<len;c++) cmd[c+5]=files.get(c).getPath().substring(1);
+		for(int c = 0; c < len; c++) {
+			cmd[c + 5] = files.get(c).getPath().substring(1);
+		}
 
 		AOServDaemon.exec(cmd);
 	}
@@ -136,8 +139,9 @@ final public class BackupManager {
 							long startTime=System.currentTimeMillis();
 							try {
 								id.backup();
-							} catch(RuntimeException err) {
-								logger.log(Level.SEVERE, 
+							} catch(Error | RuntimeException err) {
+								logger.log(
+									Level.SEVERE, 
 									err,
 									new Object[] {"id="+id}
 								);
@@ -176,8 +180,9 @@ final public class BackupManager {
 							long startTime=System.currentTimeMillis();
 							try {
 								md.backup();
-							} catch(RuntimeException err) {
-								logger.log(Level.SEVERE, 
+							} catch(Error | RuntimeException err) {
+								logger.log(
+									Level.SEVERE, 
 									err,
 									new Object[] {"md="+md}
 								);
@@ -217,8 +222,9 @@ final public class BackupManager {
 							long startTime=System.currentTimeMillis();
 							try {
 								pd.backup();
-							} catch(RuntimeException err) {
-								logger.log(Level.SEVERE, 
+							} catch(Error | RuntimeException err) {
+								logger.log(
+									Level.SEVERE, 
 									err,
 									new Object[] {"pd="+pd}
 								);
@@ -241,6 +247,7 @@ final public class BackupManager {
 	 * TODO: Only auto-delete from oldaccounts when all configured and enabled backups have had a full, successful pass that starts after the file was created.
 	 *       This way we know the files have been carried off the server before deleting this auto-backup.
 	 */
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	static void cleanVarOldaccounts() {
 		try {
 			UnixFile oldaccountsDir = getOldaccountsDir();
@@ -278,10 +285,10 @@ final public class BackupManager {
 					}
 				}
 			}
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 		}
 	}
 
@@ -298,6 +305,7 @@ final public class BackupManager {
 		return getDFColumn(path, 2);
 	}
 
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	private static long getDFColumn(PosixPath path, int column) throws IOException {
 		String[] dfCommand={
 			DF,
@@ -307,6 +315,7 @@ final public class BackupManager {
 		};
 		long size;
 		Process P=Runtime.getRuntime().exec(dfCommand);
+		Throwable t0 = null;
 		try {
 			P.getOutputStream().close();
 			try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
@@ -318,7 +327,11 @@ final public class BackupManager {
 				String[] columns=Strings.split(line);
 				size = 1024 * Long.parseLong(columns[column]);
 			}
-		} finally {
+		} catch(Throwable t) {
+			t0 = Throwables.addSuppressed(t0, t);
+			size = -1;
+		}
+		try {
 			try {
 				int retCode=P.waitFor();
 				if(retCode!=0) throw new IOException(DF+" exited with non-zero return status: "+retCode);
@@ -327,8 +340,14 @@ final public class BackupManager {
 				ioErr.initCause(err);
 				throw ioErr;
 			}
+		} catch(Throwable t) {
+			t0 = Throwables.addSuppressed(t0, t);
 		}
-		return size;
+		if(t0 != null) {
+			throw Throwables.wrap(t0, IOException.class, IOException::new);
+		} else {
+			return size;
+		}
 	}
 
 	/**

@@ -42,6 +42,8 @@ import com.aoindustries.io.stream.StreamableInput;
 import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.AutoCloseables;
+import com.aoindustries.lang.Throwables;
 import com.aoindustries.math.SafeMath;
 import com.aoindustries.md5.MD5;
 import java.io.EOFException;
@@ -650,6 +652,7 @@ final public class FailoverFileReplicationManager {
 	 * @param backupPartition  the full path to the root of the backup partition, without any hostnames, packages, or names
 	 * @param quota_gid  the quota_gid or <code>-1</code> for no quotas
 	 */
+	@SuppressWarnings({"UnusedAssignment", "UseSpecificCatch", "TooBroadCatch"})
 	public static void failoverServer(
 		final Socket socket,
 		final StreamableInput rawIn,
@@ -675,6 +678,7 @@ final public class FailoverFileReplicationManager {
 			boolean isInfo = logger.isLoggable(Level.INFO);
 			boolean isFine = logger.isLoggable(Level.FINE);
 			boolean isTrace = logger.isLoggable(Level.FINER);
+			Throwable t0 = null;
 			try {
 				if(isInfo) {
 					logger.info(
@@ -2003,11 +2007,12 @@ final public class FailoverFileReplicationManager {
 				activity.update("socket: write: AOServDaemonProtocol.DONE");
 				out.write(AOServDaemonProtocol.DONE);
 				out.flush();
-			} catch(RuntimeException | IOException err) {
+			} catch(Throwable t) {
+				t0 = Throwables.addSuppressed(t0, t);
 				activity.update("socket: close");
-				socket.close();
-				throw err;
-			} finally {
+				t0 = AutoCloseables.closeAndCatch(t0, socket);
+			}
+			try {
 				if(postPassChecklist.restartMySQLs && retention==1) {
 					for(Server.Name mysqlServer : replicatedMySQLServers) {
 						String message = "Restarting MySQL "+mysqlServer+" in \""+toPath+'"';
@@ -2048,8 +2053,15 @@ final public class FailoverFileReplicationManager {
 						}
 					}
 				}
+			} catch(Throwable t) {
+				t0 = Throwables.addSuppressed(t0, t);
 			}
-			success = true;
+			if(t0 != null) {
+				if(t0 instanceof SQLException) throw (SQLException)t0;
+				throw Throwables.wrap(t0, IOException.class, IOException::new);
+			} else {
+				success = true;
+			}
 		} finally {
 			activity.update(success ? "logic: return: successful" : "logic: return: unsuccessful");
 		}
@@ -2322,6 +2334,7 @@ final public class FailoverFileReplicationManager {
 		return true;
 	}
 
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	private static void cleanAndRecycleBackups(Activity activity, short retention, UnixFile serverRootUF, short fromServerYear, short fromServerMonth, short fromServerDay) throws IOException, SQLException {
 		final boolean isFine = logger.isLoggable(Level.FINE);
 		try {
@@ -2583,8 +2596,10 @@ final public class FailoverFileReplicationManager {
 					}
 				}
 			}
-		} catch(RuntimeException | IOException err) {
-			logger.log(Level.SEVERE, null, err);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 		}
 	}
 
@@ -2620,6 +2635,7 @@ final public class FailoverFileReplicationManager {
 	}
 
 	private static boolean started = false;
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		if(AOServDaemonConfiguration.isManagerEnabled(FailoverFileReplicationManager.class)) {
 			synchronized(System.out) {

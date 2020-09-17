@@ -30,7 +30,6 @@ import com.aoindustries.aoserv.client.mysql.UserServer;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.util.Tuple2;
 import com.aoindustries.validation.ValidationException;
 import java.io.IOException;
@@ -60,6 +59,7 @@ final public class MySQLUserManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			//AOServConnector connector = AOServDaemon.getConnector();
@@ -96,9 +96,7 @@ final public class MySQLUserManager extends BuilderThread {
 							boolean modified = false;
 
 							// Get the connection to work through
-							AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
-							Connection conn = pool.getConnection();
-							try {
+							try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection()) {
 								// Get the list of all existing users
 								Set<Tuple2<String,User.Name>> existing = new HashSet<>();
 								try (
@@ -691,8 +689,6 @@ final public class MySQLUserManager extends BuilderThread {
 										}
 									}
 								}
-							} finally {
-								pool.releaseConnection(conn);
 							}
 
 							// Disable and enable accounts
@@ -735,10 +731,10 @@ final public class MySQLUserManager extends BuilderThread {
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
@@ -764,9 +760,7 @@ final public class MySQLUserManager extends BuilderThread {
 		} else {
 			throw new SQLException("Unsupported version of MySQL: " + version);
 		}
-		AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
-		Connection conn = pool.getConnection(true);
-		try {
+		try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection(true)) {
 			try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
 				pstmt.setString(1, username.toString());
 				try (ResultSet result = pstmt.executeQuery()) {
@@ -777,8 +771,6 @@ final public class MySQLUserManager extends BuilderThread {
 					}
 				}
 			}
-		} finally {
-			pool.releaseConnection(conn);
 		}
 	}
 
@@ -791,9 +783,7 @@ final public class MySQLUserManager extends BuilderThread {
 		}
 		final String version = mysqlServer.getVersion().getVersion();
 		// Get the connection to work through
-		AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
-		Connection conn = pool.getConnection();
-		try {
+		try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection()) {
 			if(Objects.equals(password, User.NO_PASSWORD)) {
 				// Disable the account
 				String sql;
@@ -836,8 +826,6 @@ final public class MySQLUserManager extends BuilderThread {
 					pstmt.executeUpdate();
 				}
 			}
-		} finally {
-			pool.releaseConnection(conn);
 		}
 		MySQLServerManager.flushPrivileges(mysqlServer);
 	}
@@ -851,9 +839,7 @@ final public class MySQLUserManager extends BuilderThread {
 		}
 		final String version = mysqlServer.getVersion().getVersion();
 		// Get the connection to work through
-		AOConnectionPool pool = MySQLServerManager.getPool(mysqlServer);
-		Connection conn = pool.getConnection();
-		try {
+		try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection()) {
 			if(Objects.equals(password, User.NO_PASSWORD)) {
 				// Disable the account
 				String sql;
@@ -896,13 +882,12 @@ final public class MySQLUserManager extends BuilderThread {
 					pstmt.executeUpdate();
 				}
 			}
-		} finally {
-			pool.releaseConnection(conn);
 		}
 		MySQLServerManager.flushPrivileges(mysqlServer);
 	}
 
 	private static MySQLUserManager mysqlUserManager;
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
