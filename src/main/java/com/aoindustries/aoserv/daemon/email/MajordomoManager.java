@@ -35,6 +35,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -45,7 +46,6 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -65,6 +65,7 @@ final public class MajordomoManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			Server thisServer = AOServDaemon.getThisServer();
@@ -105,8 +106,12 @@ final public class MajordomoManager extends BuilderThread {
 				// Get the list of all things in /etc/mail/majordomo
 				String[] list = serversUF.list();
 				Set<DomainName> existingServers;
-				existingServers = new HashSet<>(list==null ? 16 : (list.length*4/3+1));
-				if(list!=null) for(String filename : list) existingServers.add(DomainName.valueOf(filename));
+				existingServers = AoCollections.newHashSet((list == null) ? -1 : list.length);
+				if(list != null) {
+					for(String filename : list) {
+						existingServers.add(DomainName.valueOf(filename));
+					}
+				}
 
 				// Take care of all servers
 				for(MajordomoServer ms : mss) {
@@ -532,7 +537,7 @@ final public class MajordomoManager extends BuilderThread {
 
 					// Verify the correct lists are installed
 					String[] listFiles=listsUF.list();
-					Set<String> existingListFiles=new HashSet<>(listFiles.length*4/3+1);
+					Set<String> existingListFiles = AoCollections.newHashSet(listFiles.length);
 					existingListFiles.addAll(Arrays.asList(listFiles));
 
 					// Add any new files, allow some files to stay
@@ -983,14 +988,15 @@ final public class MajordomoManager extends BuilderThread {
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();

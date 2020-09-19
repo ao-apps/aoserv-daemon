@@ -92,7 +92,7 @@ final public class GShadowFile {
 			int size = usernames.size();
 			if(size == 0) return Collections.emptySet();
 			if(size == 1) return Collections.singleton(User.Name.valueOf(usernames.get(0)));
-			Set<User.Name> userIds = new LinkedHashSet<>(size*4/3+1);
+			Set<User.Name> userIds = AoCollections.newLinkedHashSet(size);
 			for(String username : usernames) {
 				User.Name userId = User.Name.valueOf(username);
 				if(!userIds.add(userId)) throw new IllegalStateException("Duplicate userId: " + userId);

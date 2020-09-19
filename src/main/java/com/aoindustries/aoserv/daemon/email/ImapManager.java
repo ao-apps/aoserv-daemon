@@ -44,6 +44,7 @@ import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.FilesystemIteratorRule;
 import com.aoindustries.io.unix.Stat;
@@ -486,6 +487,7 @@ final public class ImapManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		boolean isFine = logger.isLoggable(Level.FINE);
 		try {
@@ -1211,10 +1213,10 @@ final public class ImapManager extends BuilderThread {
 			if("* BYE idle for too long".equals(err.getMessage())) logger.log(Level.INFO, null, err);
 			else logger.log(Level.SEVERE, null, err);
 			return false;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
@@ -1316,6 +1318,7 @@ final public class ImapManager extends BuilderThread {
 	 * The directories should be in the format ?/user/*
 	 * The ? should be equal to the first letter of *
 	 */
+	@SuppressWarnings("AssignmentToForLoopParameter")
 	private static void addUserDirectories(File directory, Set<String> ignoreList, String domain, Map<String,Set<String>> allUsers) throws IOException {
 		String[] hashFilenames = directory.list();
 		if(hashFilenames != null) {
@@ -1742,9 +1745,9 @@ final public class ImapManager extends BuilderThread {
 			if(store == null) throw new SQLException("Not an IMAP server");
 			// Verify all email users - only users who have a home under /home/ are considered
 			List<UserServer> lsas = AOServDaemon.getThisServer().getLinuxServerAccounts();
-			Set<String> validEmailUsernames = new HashSet<>(lsas.size()*4/3+1);
+			Set<String> validEmailUsernames = AoCollections.newHashSet(lsas.size());
 			// Conversions are done concurrently
-			Map<UserServer,Future<Object>> convertors = WUIMAP_CONVERSION_ENABLED ? new HashMap<>(lsas.size()*4/3+1) : null;
+			Map<UserServer,Future<Object>> convertors = WUIMAP_CONVERSION_ENABLED ? AoCollections.newHashMap(lsas.size()) : null;
 			ExecutorService executorService = WUIMAP_CONVERSION_ENABLED ? Executors.newFixedThreadPool(WUIMAP_CONVERSION_CONCURRENCY) : null;
 			try {
 				for(final UserServer lsa : lsas) {
@@ -1955,7 +1958,9 @@ final public class ImapManager extends BuilderThread {
 								// This is OK, will just retry on next loop
 							}
 						}
-						for(UserServer lsa : deleteMe) convertors.remove(lsa);
+						for(UserServer lsa : deleteMe) {
+							convertors.remove(lsa);
+						}
 					}
 				}
 			} finally {
@@ -2044,6 +2049,7 @@ final public class ImapManager extends BuilderThread {
 		}
 	}*/
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
@@ -2179,7 +2185,7 @@ final public class ImapManager extends BuilderThread {
 							String[] list = ir.readStringList();
 							// Must be even number of elements in list
 							if((list.length & 1) != 0) throw new ProtocolException("Uneven number of elements in attribute list: " + list.length);
-							Map<String,String> attributes = new HashMap<>(list.length * 2/3 + 1);
+							Map<String,String> attributes = AoCollections.newHashMap(list.length >> 1);
 							for(int j = 0; j < list.length; j += 2) {
 								attributes.put(list[j], list[j + 1]);
 							}
@@ -2274,6 +2280,7 @@ final public class ImapManager extends BuilderThread {
 	/**
 	 * @param notFoundOK if <code>true</code> will return <code>0</code> if annotation not found, MessagingException otherwise
 	 */
+	@SuppressWarnings("SleepWhileInLoop")
 	private static long getCyrusFolderSize(String user, String folder, String domain, boolean notFoundOK) throws IOException, SQLException, MessagingException {
 		try {
 			// Connect to the store (will be null when not an IMAP server)

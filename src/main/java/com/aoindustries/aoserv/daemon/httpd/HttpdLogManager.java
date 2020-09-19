@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019  AO Industries, Inc.
+ * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -32,6 +32,7 @@ import com.aoindustries.aoserv.client.web.VirtualHost;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -147,7 +148,7 @@ class HttpdLogManager {
 			Set<String> logDirectories;
 			{
 				String[] list = logDirUF.list();
-				logDirectories = new HashSet<>(list.length*4/3+1);
+				logDirectories = AoCollections.newHashSet(list.length);
 				for(String dirname : list) {
 					if(
 						!dirname.equals("lost+found")
@@ -267,7 +268,7 @@ class HttpdLogManager {
 		Set<String> logRotationFiles = new HashSet<>(Arrays.asList(new File(siteLogRotationDir).list()));
 
 		// Each log file will be only rotated at most once
-		Set<PosixPath> completedPaths = new HashSet<>(logRotationFiles.size()*4/3+1);
+		Set<PosixPath> completedPaths = AoCollections.newHashSet(logRotationFiles.size());
 
 		// For each site, build/rebuild the logrotate.d file as necessary and create any necessary log files
 		ChainWriter chainOut=new ChainWriter(byteOut);
@@ -421,7 +422,7 @@ class HttpdLogManager {
 
 			// Create all /var/log/httpd/* directories
 			List<HttpdServer> hss = thisServer.getHttpdServers();
-			Set<String> keepFilenames = new HashSet<>(hss.size()*4/3+1);
+			Set<String> keepFilenames = AoCollections.newHashSet(hss.size());
 			for(HttpdServer hs : hss) {
 				String name = hs.getName();
 				int num = name==null ? 1 : Integer.parseInt(name);
@@ -443,7 +444,7 @@ class HttpdLogManager {
 		} else if(osConfig == HttpdOperatingSystemConfiguration.CENTOS_7_X86_64) {
 			// Create all /var/log/httpd[@<name>] directories
 			List<HttpdServer> hss = thisServer.getHttpdServers();
-			Set<String> keepFilenames = new HashSet<>(hss.size()*4/3+1);
+			Set<String> keepFilenames = AoCollections.newHashSet(hss.size());
 			for(HttpdServer hs : hss) {
 				String escapedName = hs.getSystemdEscapedName();
 				String dirname = escapedName == null ? "httpd" : ("httpd@" + escapedName);

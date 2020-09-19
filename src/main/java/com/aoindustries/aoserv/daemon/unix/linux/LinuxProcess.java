@@ -23,6 +23,7 @@
 package com.aoindustries.aoserv.daemon.unix.linux;
 
 import com.aoindustries.aoserv.daemon.unix.UnixProcess;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.BufferedReader;
 import java.io.File;
@@ -30,7 +31,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -132,7 +132,7 @@ public class LinuxProcess extends UnixProcess {
 	public Map<String,String> getStatus() throws IOException {
 		File statusFile = new File(getProc(), "status");
 		final int expectedMaxLength = 45; // "wc -l /proc/*/status" shows maximum 45 lines in kernel 3.10.0-514.16.1.el7.x86_64
-		Map<String,String> status = new LinkedHashMap<>(expectedMaxLength *4/3+1);
+		Map<String,String> status = AoCollections.newLinkedHashMap(expectedMaxLength);
 		try (BufferedReader in = new BufferedReader(new FileReader(statusFile))) {
 			String line;
 			while((line = in.readLine()) != null) {

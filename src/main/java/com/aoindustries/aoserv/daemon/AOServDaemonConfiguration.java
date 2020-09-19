@@ -23,13 +23,13 @@
 package com.aoindustries.aoserv.daemon;
 
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.exception.ConfigurationException;
 import com.aoindustries.io.AOPool;
 import com.aoindustries.lang.Strings;
 import com.aoindustries.util.PropertiesUtils;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -268,7 +268,7 @@ final public class AOServDaemonConfiguration {
 			return Collections.emptyMap();
 		} else {
 			List<String> networkNames = Strings.splitCommaSpace(networkNamesProp);
-			Map<String,NetworkMonitorConfiguration> networkMonitors = new LinkedHashMap<>(networkNames.size()*4/3+1);
+			Map<String,NetworkMonitorConfiguration> networkMonitors = AoCollections.newLinkedHashMap(networkNames.size());
 			for(String name : networkNames) {
 				String nullRouteFifoErrorRate = getProperty("monitor.NetworkMonitor.network." + name + ".nullRoute.fifoErrorRate", null);
 				String nullRouteFifoErrorRateMinPps = getProperty("monitor.NetworkMonitor.network." + name + ".nullRoute.fifoErrorRateMinPps", null);

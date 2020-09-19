@@ -22,6 +22,7 @@
  */
 package com.aoindustries.aoserv.daemon.failover;
 
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.io.FilesystemIterator;
 import com.aoindustries.io.FilesystemIteratorRule;
 import com.aoindustries.io.unix.Stat;
@@ -33,8 +34,6 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -79,9 +78,12 @@ final public class HardLinkVarBackup {
 
 	private static final int DISPLAY_INTERVAL = 10000;
 
+	@SuppressWarnings("UnusedAssignment")
 	public static void main(String[] args) {
 		final boolean debug = args.length>0 && args[0].equalsIgnoreCase("debug");
+		@SuppressWarnings("UseOfSystemOutOrSystemErr")
 		final PrintStream out = System.out;
+		@SuppressWarnings("UseOfSystemOutOrSystemErr")
 		final PrintStream err = System.err;
 
 		// Keep statistics during the pass
@@ -164,10 +166,10 @@ final public class HardLinkVarBackup {
 			}
 
 			// During each unique path, the links created are tracked to improve performance when source and destination devices and inodes match
-			final Map<LinkKey,String> links = new HashMap<>(numIterators * 4/3 + 1);
+			final Map<LinkKey,String> links = AoCollections.newHashMap(numIterators);
 
 			// When two files are compared but don't match, they are added here to avoid repetative comparisions for the same device/inode pairs
-			final Set<LinkKey> contentNotEquals = new HashSet<>(numIterators * 4/3 + 1);
+			final Set<LinkKey> contentNotEquals = AoCollections.newHashSet(numIterators);
 
 			long lastDisplayTime = System.currentTimeMillis();
 

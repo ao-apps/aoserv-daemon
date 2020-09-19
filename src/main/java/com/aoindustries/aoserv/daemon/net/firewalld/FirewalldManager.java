@@ -33,6 +33,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.firewalld.Service;
 import com.aoindustries.firewalld.ServiceSet;
 import com.aoindustries.firewalld.Target;
@@ -117,7 +118,7 @@ final public class FirewalldManager extends BuilderThread {
 				firewalldZones.iterator().next().toString()
 			);
 		}
-		Set<String> strings = new LinkedHashSet<>(size*4/3+1);
+		Set<String> strings = AoCollections.newLinkedHashSet(size);
 		for(FirewallZone.Name firewalldZone : firewalldZones) {
 			if(!strings.add(firewalldZone.toString())) throw new AssertionError();
 		}
@@ -140,6 +141,7 @@ final public class FirewalldManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			Server thisServer = AOServDaemon.getThisServer();
@@ -676,14 +678,15 @@ final public class FirewalldManager extends BuilderThread {
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();

@@ -46,6 +46,7 @@ import com.aoindustries.aoserv.daemon.unix.PasswdFile;
 import com.aoindustries.aoserv.daemon.unix.ShadowFile;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.stream.StreamableInput;
 import com.aoindustries.io.stream.StreamableOutput;
@@ -310,12 +311,12 @@ public class LinuxAccountManager extends BuilderThread {
 
 					// Build passwd data
 					{
-						int initialCapacity = lsas.size()*4/3+1;
-						usernames     = new LinkedHashSet<>(initialCapacity);
-						usernameStrs  = new LinkedHashSet<>(initialCapacity);
-						uids          = new LinkedHashSet<>(initialCapacity);
-						homeDirs      = new LinkedHashSet<>(initialCapacity);
-						passwdEntries = new LinkedHashMap<>(initialCapacity);
+						int size = lsas.size();
+						usernames     = AoCollections.newLinkedHashSet(size);
+						usernameStrs  = AoCollections.newLinkedHashSet(size);
+						uids          = AoCollections.newLinkedHashSet(size);
+						homeDirs      = AoCollections.newLinkedHashSet(size);
+						passwdEntries = AoCollections.newLinkedHashMap(size);
 						boolean hasRoot = false;
 						for(UserServer lsa : lsas) {
 							User la = lsa.getLinuxAccount();
@@ -366,9 +367,9 @@ public class LinuxAccountManager extends BuilderThread {
 
 					// Build group data
 					{
-						int initialCapacity = lsgs.size()*4/3+1;
-						groups = new LinkedHashMap<>(initialCapacity);
-						groupEntries = new LinkedHashMap<>(initialCapacity);
+						int size = lsgs.size();
+						groups = AoCollections.newLinkedHashMap(size);
+						groupEntries = AoCollections.newLinkedHashMap(size);
 						boolean hasRoot = false;
 						for(GroupServer lsg : lsgs) {
 							Group.Name groupName = lsg.getLinuxGroup().getName();
@@ -690,7 +691,7 @@ public class LinuxAccountManager extends BuilderThread {
 							sudoers.put(lsa.getLinuxAccount().getUsername().getUsername().toString(), sudo);
 						}
 					}
-					Set<String> sudoersFiles = new HashSet<>(sudoers.size()*4/3+1); // Filenames might not match username when added by a package
+					Set<String> sudoersFiles = AoCollections.newHashSet(sudoers.size()); // Filenames might not match username when added by a package
 					if(!sudoers.isEmpty()) {
 						// Install package when first needed
 						PackageManager.installPackage(PackageManager.PackageName.SUDO);

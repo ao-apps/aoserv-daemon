@@ -41,6 +41,7 @@ import com.aoindustries.aoserv.daemon.httpd.HttpdServerManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -54,7 +55,6 @@ import java.net.StandardProtocolFamily;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -1035,6 +1035,7 @@ final public class SendmailCFManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			// Used on inner processing
@@ -1076,11 +1077,11 @@ final public class SendmailCFManager extends BuilderThread {
 					submissionBinds = null;
 					certbotNames = Collections.emptySet();
 				} else {
-					int initialCapacity = sendmailServers.size()*4/3+1;
-					smtpBinds = new HashMap<>(initialCapacity);
-					smtpsBinds = new HashMap<>(initialCapacity);
-					submissionBinds = new HashMap<>(initialCapacity);
-					certbotNames = new HashSet<>(initialCapacity);
+					int size = sendmailServers.size();
+					smtpBinds = AoCollections.newHashMap(size);
+					smtpsBinds = AoCollections.newHashMap(size);
+					submissionBinds = AoCollections.newHashMap(size);
+					certbotNames = AoCollections.newHashSet(size);
 					for(SendmailServer ss : sendmailServers) {
 						List<SendmailBind> smtpList = new ArrayList<>();
 						List<SendmailBind> smtpsList = new ArrayList<>();
@@ -1493,7 +1494,7 @@ final public class SendmailCFManager extends BuilderThread {
 							}
 						} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 							// Enable instances
-							Set<String> dontDeleteFilenames = new HashSet<>(sendmailServers.size()*4/3+1);
+							Set<String> dontDeleteFilenames = AoCollections.newHashSet(sendmailServers.size());
 							for(SendmailServer ss : sendmailServers) {
 								String escapedName = ss.getSystemdEscapedName();
 								String filename = (escapedName == null) ? "sendmail.service" : ("sendmail@" + escapedName + ".service");
@@ -1584,12 +1585,12 @@ final public class SendmailCFManager extends BuilderThread {
 								}
 							}
 							// Backup and delete secondary instances that no longer exist before any restarts
-							int initialCapacity = sendmailServers.size()*4/3+1;
-							Set<String> expectedSendmailCf = new LinkedHashSet<>(initialCapacity);
-							Set<String> expectedSendmailMc = new LinkedHashSet<>(initialCapacity);
-							Set<String> expectedSendmailPid = new LinkedHashSet<>(initialCapacity);
-							Set<String> expectedStatistics = new LinkedHashSet<>(initialCapacity);
-							Set<String> expectedMqueue = new LinkedHashSet<>(initialCapacity);
+							int size = sendmailServers.size();
+							Set<String> expectedSendmailCf = AoCollections.newLinkedHashSet(size);
+							Set<String> expectedSendmailMc = AoCollections.newLinkedHashSet(size);
+							Set<String> expectedSendmailPid = AoCollections.newLinkedHashSet(size);
+							Set<String> expectedStatistics = AoCollections.newLinkedHashSet(size);
+							Set<String> expectedMqueue = AoCollections.newLinkedHashSet(size);
 							for(SendmailServer namedServer : namedServers) {
 								String systemdName = namedServer.getSystemdEscapedName();
 								expectedSendmailCf.add("sendmail@" + systemdName + ".cf");
@@ -1710,14 +1711,15 @@ final public class SendmailCFManager extends BuilderThread {
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();

@@ -40,6 +40,7 @@ import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.httpd.HttpdSiteManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.BufferedOutputStream;
@@ -89,6 +90,7 @@ final public class FTPManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			Server thisServer = AOServDaemon.getThisServer();
@@ -104,10 +106,10 @@ final public class FTPManager extends BuilderThread {
 				doRebuildSharedFtpDirectory();
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
@@ -321,7 +323,7 @@ final public class FTPManager extends BuilderThread {
 				List<Bind> binds = thisServer.getHost().getNetBinds(conn.getNet().getAppProtocol().get(AppProtocol.FTP));
 
 				// Keep a list of the files that were verified
-				Set<String> existing = new HashSet<>(binds.size()*4/3+1);
+				Set<String> existing = AoCollections.newHashSet(binds.size());
 
 				// Write each config file
 				for(Bind bind : binds) {
@@ -422,8 +424,7 @@ final public class FTPManager extends BuilderThread {
 				if(list == null) {
 					ftpDirectories = new HashSet<>();
 				} else {
-					ftpDirectories = new HashSet<>(list.length*4/3+1);
-					ftpDirectories.addAll(Arrays.asList(list));
+					ftpDirectories = new HashSet<>(Arrays.asList(list));
 				}
 			}
 
@@ -454,6 +455,7 @@ final public class FTPManager extends BuilderThread {
 		}
 	}
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();

@@ -35,6 +35,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxProcess;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.InetAddress;
@@ -93,6 +94,7 @@ public final class PgHbaManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			AOServConnector connector=AOServDaemon.getConnector();
@@ -421,7 +423,7 @@ public final class PgHbaManager extends BuilderThread {
 													}
 												}
 												// Merge identDbUsers then noIdentDbUsers into total list
-												Set<User.Name> dbUsers = new LinkedHashSet<>((identDbUsers.size() + noIdentDbUsers.size())*4/3+1);
+												Set<User.Name> dbUsers = AoCollections.newLinkedHashSet(identDbUsers.size() + noIdentDbUsers.size());
 												dbUsers.addAll(identDbUsers);
 												dbUsers.addAll(noIdentDbUsers);
 												assert dbUsers.size() == identDbUsers.size() + noIdentDbUsers.size();
@@ -532,15 +534,16 @@ public final class PgHbaManager extends BuilderThread {
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
 
 	private static PgHbaManager pgHbaManager;
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();

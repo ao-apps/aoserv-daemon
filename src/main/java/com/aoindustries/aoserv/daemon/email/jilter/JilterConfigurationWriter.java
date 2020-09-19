@@ -43,6 +43,7 @@ import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.jilter.config.EmailLimit;
 import com.aoindustries.aoserv.jilter.config.JilterConfiguration;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -72,6 +73,7 @@ public class JilterConfigurationWriter extends BuilderThread {
 
 	private static JilterConfigurationWriter configurationWriter;
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
@@ -135,6 +137,7 @@ public class JilterConfigurationWriter extends BuilderThread {
 	}
 
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			Server thisServer = AOServDaemon.getThisServer();
@@ -159,14 +162,16 @@ public class JilterConfigurationWriter extends BuilderThread {
 					domainPackages.put(domain.toString(), ed.getPackage().getName().toString());
 					// domainAddresses
 					List<Address> eas = ed.getEmailAddresses();
-					Set<String> addresses = new HashSet<>(eas.size()*4/3+1);
-					for(Address ea : eas) addresses.add(ea.getAddress());
+					Set<String> addresses = AoCollections.newHashSet(eas.size());
+					for(Address ea : eas) {
+						addresses.add(ea.getAddress());
+					}
 					domainAddresses.put(domain.toString(), addresses);
 				}
 
 				// ips
 				List<IpAddress> ias = thisHost.getIPAddresses();
-				Set<String> ips = new HashSet<>(ias.size()*4/3+1);
+				Set<String> ips = AoCollections.newHashSet(ias.size());
 				for(IpAddress ia : ias) {
 					InetAddress ip = ia.getInetAddress();
 					if(!ip.isUnspecified()) {
@@ -197,10 +202,10 @@ public class JilterConfigurationWriter extends BuilderThread {
 				}
 
 				// Builds email limits only for the packages referenced in domainPackages
-				int noGrowSize = domainPackages.size() * 4 / 3 + 1;
-				Map<String,EmailLimit> emailInLimits = new HashMap<>(noGrowSize);
-				Map<String,EmailLimit> emailOutLimits = new HashMap<>(noGrowSize);
-				Map<String,EmailLimit> emailRelayLimits = new HashMap<>(noGrowSize);
+				int size = domainPackages.size();
+				Map<String,EmailLimit> emailInLimits = AoCollections.newHashMap(size);
+				Map<String,EmailLimit> emailOutLimits = AoCollections.newHashMap(size);
+				Map<String,EmailLimit> emailRelayLimits = AoCollections.newHashMap(size);
 				for(String packageName : domainPackages.values()) {
 					Package pk = AOServDaemon.getConnector().getBilling().getPackage().get(Account.Name.valueOf(packageName));
 					if(pk == null) throw new SQLException("Unable to find Package: " + packageName);
@@ -268,10 +273,10 @@ public class JilterConfigurationWriter extends BuilderThread {
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}

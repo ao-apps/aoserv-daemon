@@ -54,6 +54,7 @@ import com.aoindustries.aoserv.daemon.OperatingSystemConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxProcess;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.concurrent.ConcurrencyLimiter;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.FileUtils;
@@ -329,7 +330,7 @@ public class HttpdServerManager {
 			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 : {
 				// The config directory should only contain files referenced in the database, or "disabled"
 				String[] list = new File(CONF_HOSTS).list();
-				Set<String> extraFiles = new HashSet<>(list.length*4/3+1);
+				Set<String> extraFiles = AoCollections.newHashSet(list.length);
 				extraFiles.addAll(Arrays.asList(list));
 
 				// Iterate through each site
@@ -1262,13 +1263,13 @@ public class HttpdServerManager {
 		int osvId = osv.getPkey();
 		List<HttpdServer> hss = thisServer.getHttpdServers();
 		// The files that should exist in /etc/httpd/conf
-		Set<String> httpdConfFilenames = new HashSet<>(hss.size()*4/3+1);
+		Set<String> httpdConfFilenames = AoCollections.newHashSet(hss.size());
 		// The files that whould exist in /var/lib/php
-		Set<String> varLibPhpFilenames = new HashSet<>(hss.size()*4/3+1);
+		Set<String> varLibPhpFilenames = AoCollections.newHashSet(hss.size());
 		// The files that should exist in /etc/tmpfiles.d/httpd[@<name>].conf
-		Set<String> etcTmpfilesFilenames = new HashSet<>(hss.size()*4/3+1);
+		Set<String> etcTmpfilesFilenames = AoCollections.newHashSet(hss.size());
 		// The files that should exist in /run/httpd[@<name>]
-		Set<String> runFilenames = new HashSet<>(hss.size()*4/3+1);
+		Set<String> runFilenames = AoCollections.newHashSet(hss.size());
 		// Track if has any alternate (named) instances
 		boolean hasAlternateInstance = false;
 		// Track which httpd[-n]-after-network-online packages are needed
@@ -3207,7 +3208,7 @@ public class HttpdServerManager {
 		int osvId = osv.getPkey();
 		switch(osvId) {
 			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 : {
-				Set<String> dontDeleteFilenames = new HashSet<>(hss.size()*4/3+1);
+				Set<String> dontDeleteFilenames = AoCollections.newHashSet(hss.size());
 				for(HttpdServer hs : hss) {
 					String name = hs.getName();
 					int num = (name == null) ? 1 : Integer.parseInt(name);
@@ -3334,7 +3335,7 @@ public class HttpdServerManager {
 			}
 			case OperatingSystemVersion.CENTOS_7_X86_64 : {
 				boolean hasAlternateInstance = false;
-				Set<String> dontDeleteFilenames = new HashSet<>(hss.size()*4/3+1);
+				Set<String> dontDeleteFilenames = AoCollections.newHashSet(hss.size());
 				for(HttpdServer hs : hss) {
 					String escapedName = hs.getSystemdEscapedName();
 					if(escapedName != null) hasAlternateInstance = true;

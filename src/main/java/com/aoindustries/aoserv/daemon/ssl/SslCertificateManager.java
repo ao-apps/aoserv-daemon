@@ -40,6 +40,7 @@ import com.aoindustries.aoserv.client.pki.CertificateName;
 import com.aoindustries.aoserv.client.pki.CertificateOtherUse;
 import com.aoindustries.aoserv.client.web.VirtualHost;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.concurrent.ConcurrencyLimiter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -302,7 +303,7 @@ final public class SslCertificateManager {
 				if(sans == null) {
 					altNames = Collections.emptySet();
 				} else {
-					altNames = new LinkedHashSet<>(sans.size() *4/3+1);
+					altNames = AoCollections.newLinkedHashSet(sans.size());
 					for(List<?> san : sans) {
 						int type = (Integer)san.get(0);
 						if(type == 2 /* dNSName */) {
@@ -463,7 +464,7 @@ final public class SslCertificateManager {
 						if(!domains.isEmpty()) throw new IOException("Domains already set: " + line);
 						String[] split = StringUtils.split(line.substring(domainsPrefix.length()), ' ');
 						if(split.length == 0) throw new IOException("No domains: " + line);
-						domains = new LinkedHashSet<>(split.length*4/3+1);
+						domains = AoCollections.newLinkedHashSet(split.length);
 						for(String domain : split) {
 							if(!domains.add(domain)) throw new IOException("Duplicate domain from certbot: " + line);
 						}
@@ -553,8 +554,8 @@ final public class SslCertificateManager {
 					Set<String> expectedAltsLower;
 					{
 						List<CertificateName> altNames = certificate.getAltNames();
-						expectedAlts = new LinkedHashSet<>(altNames.size()*4/3+1);
-						expectedAltsLower = new LinkedHashSet<>(altNames.size()*4/3+1);
+						expectedAlts = AoCollections.newLinkedHashSet(altNames.size());
+						expectedAltsLower = AoCollections.newLinkedHashSet(altNames.size());
 						for(CertificateName altName : altNames) {
 							String name = altName.getName();
 							if(!expectedAlts.add(name)) throw new SQLException("Duplicate alt name: " + name);
@@ -779,7 +780,7 @@ final public class SslCertificateManager {
 						if(altNamesMatch) {
 							altNamesMatchLower = true;
 						} else {
-							Set<String> lowerAltnames = new LinkedHashSet<>(altNames.size() *4/3+1);
+							Set<String> lowerAltnames = AoCollections.newLinkedHashSet(altNames.size());
 							for(String altName : altNames) {
 								String lower = altName.toLowerCase(Locale.ROOT);
 								if(!lowerAltnames.add(lower)) throw new IOException("Duplicate lower alt name: " + lower);
@@ -848,7 +849,7 @@ final public class SslCertificateManager {
 							if(altNamesMatch) {
 								altNamesMatchLower = true;
 							} else {
-								Set<String> lowerDomains = new LinkedHashSet<>(domains.size() *4/3+1);
+								Set<String> lowerDomains = AoCollections.newLinkedHashSet(domains.size());
 								for(String domain : domains) {
 									String lower = domain.toLowerCase(Locale.ROOT);
 									if(!lowerDomains.add(lower)) throw new IOException("Duplicate lower domain: " + lower);

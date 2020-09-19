@@ -23,6 +23,7 @@
 package com.aoindustries.aoserv.daemon.iptables;
 
 import com.aoindustries.aoserv.client.net.IpAddress;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.ProcessResult;
 import java.io.BufferedReader;
@@ -33,9 +34,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -223,7 +222,7 @@ final public class Ipset {
 					setName
 				}
 			);
-			unusedEntries = new HashSet<>((entries.size() - MAX_IPSET_SIZE) *4/3+1);
+			unusedEntries = AoCollections.newHashSet(entries.size() - MAX_IPSET_SIZE);
 			int count = 0;
 			for(Integer entry : entries) {
 				if(count>=MAX_IPSET_SIZE) unusedEntries.add(entry);
@@ -253,9 +252,9 @@ final public class Ipset {
 		boolean modified = false;
 
 		// Parse current set, deleting any that should no longer exist, flagging as modified
-		Set<Integer> existingEntries = new LinkedHashSet<>(
-			// Normally use 4/3+1, 5/3+1 here to leave room for 25% growth before any rehash
-			entries.size() * 5/3 + 1
+		Set<Integer> existingEntries = AoCollections.newLinkedHashSet(
+			// Leave room for 25% growth before any rehash
+			(entries.size() * 5) >> 2
 		);
 		parse(save, existingEntries);
 		Iterator<Integer> iter = existingEntries.iterator();

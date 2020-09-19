@@ -33,6 +33,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -62,6 +63,7 @@ final public class CvsManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			Server thisServer = AOServDaemon.getThisServer();
@@ -102,8 +104,10 @@ final public class CvsManager extends BuilderThread {
 					String[] list = cvsDir.list();
 					if(list != null) {
 						int listLen = list.length;
-						existing = new HashSet<>(listLen*4/3+1);
-						for(int c = 0; c < listLen; c++) existing.add(CvsRepository.DEFAULT_CVS_DIRECTORY + "/" + list[c]);
+						existing = AoCollections.newHashSet(listLen);
+						for(int c = 0; c < listLen; c++) {
+							existing.add(CvsRepository.DEFAULT_CVS_DIRECTORY + "/" + list[c]);
+						}
 					} else {
 						existing = new HashSet<>();
 					}
@@ -152,7 +156,9 @@ final public class CvsManager extends BuilderThread {
 				// Back-up and delete the files scheduled for removal.
 				if(!existing.isEmpty()) {
 					List<File> deleteFileList = new ArrayList<>(existing.size());
-					for(String deleteFilename : existing) deleteFileList.add(new File(deleteFilename));
+					for(String deleteFilename : existing) {
+						deleteFileList.add(new File(deleteFilename));
+					}
 					BackupManager.backupAndDeleteFiles(deleteFileList);
 				}
 				// Remove /var/cvs if empty
@@ -162,14 +168,15 @@ final public class CvsManager extends BuilderThread {
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();

@@ -37,6 +37,7 @@ import com.aoindustries.aoserv.daemon.httpd.StopStartable;
 import com.aoindustries.aoserv.daemon.httpd.jboss.HttpdJBossSiteManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -44,7 +45,6 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -121,7 +121,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 				locations.add(new Location(false, path + "/META-INF"));
 				locations.add(new Location(false, path + "/WEB-INF"));
 			}
-			Map<String,List<Location>> rejectedLocations = new LinkedHashMap<>((standardRejectedLocations.size()+1)*4/3+1);
+			Map<String,List<Location>> rejectedLocations = AoCollections.newLinkedHashMap(standardRejectedLocations.size() + 1);
 			rejectedLocations.putAll(standardRejectedLocations);
 			rejectedLocations.put(
 				"Protect Tomcat webapps",

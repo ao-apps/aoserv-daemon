@@ -34,6 +34,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.math.SafeMath;
 import java.io.File;
@@ -42,8 +43,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -86,6 +85,7 @@ final public class IpReputationManager extends BuilderThread {
 	private IpReputationManager() {
 	}
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
@@ -197,7 +197,7 @@ final public class IpReputationManager extends BuilderThread {
 		String identifier,
 		UnixFile setDir
 	) throws IOException {
-		java.util.Set<Integer> entries = new LinkedHashSet<>(Math.min(Ipset.MAX_IPSET_SIZE+1, hosts.size())*4/3+1);
+		java.util.Set<Integer> entries = AoCollections.newLinkedHashSet(Math.min(Ipset.MAX_IPSET_SIZE + 1, hosts.size()));
 		for(Host host : hosts) {
 			entries.add(host.getHost());
 			if(entries.size()>Ipset.MAX_IPSET_SIZE) break;
@@ -221,7 +221,7 @@ final public class IpReputationManager extends BuilderThread {
 		String identifier,
 		UnixFile setDir
 	) throws IOException {
-		java.util.Set<Integer> entries = new LinkedHashSet<>(Math.min(Ipset.MAX_IPSET_SIZE+1, networks.size())*4/3+1);
+		java.util.Set<Integer> entries = AoCollections.newLinkedHashSet(Math.min(Ipset.MAX_IPSET_SIZE+1, networks.size()));
 		for(Network network : networks) {
 			entries.add(network.getNetwork());
 			if(entries.size()>Ipset.MAX_IPSET_SIZE) break;
@@ -236,6 +236,7 @@ final public class IpReputationManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			AOServConnector conn = AOServDaemon.getConnector();
@@ -254,7 +255,7 @@ final public class IpReputationManager extends BuilderThread {
 				final Collection<Set> sets = conn.getNet().getReputation().getSet().getRows();
 
 				// Track the names of each set, used to remove extra directories
-				final java.util.Set<String> setIdentifiers = new HashSet<>(sets.size()*4/3+1);
+				final java.util.Set<String> setIdentifiers = AoCollections.newHashSet(sets.size());
 
 				for(Set set : sets) {
 					// Set settings
@@ -350,10 +351,10 @@ final public class IpReputationManager extends BuilderThread {
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}

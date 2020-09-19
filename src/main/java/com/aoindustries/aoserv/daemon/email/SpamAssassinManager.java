@@ -41,6 +41,7 @@ import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
 import com.aoindustries.cron.Schedule;
@@ -64,7 +65,6 @@ import java.net.StandardProtocolFamily;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -150,6 +150,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 	}
 
 	@Override
+	@SuppressWarnings({"SleepWhileInLoop", "UseSpecificCatch", "TooBroadCatch"})
 	public void run() {
 		long lastStartTime = -1;
 		while(true) {
@@ -173,10 +174,10 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 					// Process incoming messages
 					processIncomingMessages();
 				}
-			} catch(ThreadDeath TD) {
-				throw TD;
-			} catch(Throwable T) {
-				logger.log(Level.SEVERE, null, T);
+			} catch(ThreadDeath td) {
+				throw td;
+			} catch(Throwable t) {
+				logger.log(Level.SEVERE, null, t);
 				try {
 					Thread.sleep(60000);
 				} catch(InterruptedException err) {
@@ -186,6 +187,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 		}
 	}
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
@@ -318,7 +320,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 							// Check each filename, searching if this lsa has the oldest timestamp (older or newer than one minute)
 							String[] userDirectoryList = userDirectoryUf.list();
 							if(userDirectoryList != null && userDirectoryList.length > 0) {
-								Map<UnixFile,Long> readyMap = new HashMap<>(userDirectoryList.length * 4/3+1);
+								Map<UnixFile,Long> readyMap = AoCollections.newHashMap(userDirectoryList.length);
 								for(String userFilename : userDirectoryList) {
 									UnixFile userUf = new UnixFile(userDirectoryUf, userFilename, false);
 									File userFile = userUf.getFile();
@@ -419,7 +421,9 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 						boolean isNoSync = thisPass.size() >= SALEARN_NOSYNC_THRESHOLD;
 						if(isNoSync) tempSB.append(" --no-sync");
 						tempSB.append(firstIsHam ? " --ham" : " --spam");
-						for(UnixFile uf : thisPass) tempSB.append(' ').append(uf.getPath());
+						for(UnixFile uf : thisPass) {
+							tempSB.append(' ').append(uf.getPath());
+						}
 						String command = tempSB.toString();
 						//System.err.println("DEBUG: "+SpamAssassinManager.class.getName()+": processIncomingMessagesCentOs: username="+username+" and command=\""+command+"\"");
 						try {
@@ -442,7 +446,9 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 					}
 
 					// Remove the files processed (or not processed based on integration mode) in this pass
-					for(UnixFile uf : thisPass) uf.delete();
+					for(UnixFile uf : thisPass) {
+						uf.delete();
+					}
 				}
 			}
 		} catch(ValidationException e) {
@@ -474,6 +480,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			Server thisServer = AOServDaemon.getThisServer();
@@ -878,10 +885,10 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
@@ -921,6 +928,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 		 * Once a day, all of the razor-agent.log files are cleaned to only include the last 1000 lines.
 		 */
 		@Override
+		@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 		public void run(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
 			try {
 				Set<UnixFile> restorecon = new LinkedHashSet<>();
@@ -956,7 +964,9 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 										UnixFile tempFile = UnixFile.mktemp(razorAgentLog.getPath() + '.');
 										try {
 											try (PrintWriter out = new PrintWriter(new BufferedOutputStream(tempFile.getSecureOutputStream(uid, gid, 0644, true, uid_min, gid_min)))) {
-												while(!queuedLines.isEmpty()) out.println(queuedLines.remove());
+												while(!queuedLines.isEmpty()) {
+													out.println(queuedLines.remove());
+												}
 											}
 											tempFile.renameTo(razorAgentLog);
 											restorecon.add(razorAgentLog);

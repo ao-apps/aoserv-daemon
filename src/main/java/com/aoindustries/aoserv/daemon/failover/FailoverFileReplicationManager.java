@@ -30,6 +30,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.AOServerEnvironment;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
 import com.aoindustries.cron.Schedule;
@@ -2351,7 +2352,7 @@ final public class FailoverFileReplicationManager {
 			Map<Integer,List<String>> directoriesByAge;
 			{
 				String[] list = list(activity, serverRootUF);
-				directoriesByAge = new HashMap<>(list==null ? 0 : (list.length*4/3 + 1));
+				directoriesByAge = AoCollections.newHashMap((list == null) ? -1 : list.length);
 				if(list != null) {
 					for(String filename : list) {
 						if(!filename.endsWith(SAFE_DELETE_EXTENSION) && !filename.endsWith(RECYCLED_EXTENSION)) {

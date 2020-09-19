@@ -32,6 +32,7 @@ import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
+import com.aoindustries.collections.AoCollections;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.AOPool;
 import com.aoindustries.io.unix.UnixFile;
@@ -87,6 +88,7 @@ final public class NetDeviceManager extends BuilderThread {
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			Server thisServer = AOServDaemon.getThisServer();
@@ -441,14 +443,15 @@ final public class NetDeviceManager extends BuilderThread {
 				}
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
@@ -506,7 +509,9 @@ final public class NetDeviceManager extends BuilderThread {
 			StringBuilder SB=new StringBuilder();
 			try (InputStream in = new BufferedInputStream(new FileInputStream(procFile))) {
 				int ch;
-				while((ch=in.read())!=-1) SB.append((char)ch);
+				while((ch = in.read()) != -1) {
+					SB.append((char)ch); // Assuming ISO-8859-1
+				}
 			}
 			report = SB.toString();
 		} else report="";
@@ -520,7 +525,9 @@ final public class NetDeviceManager extends BuilderThread {
 		tempSB.setLength(0);
 		try (InputStream in = new BufferedInputStream(new FileInputStream(file))) {
 			int ch;
-			while((ch=in.read())!=-1) tempSB.append((char)ch);
+			while((ch = in.read()) != -1) {
+				tempSB.append((char)ch); // Assuming ISO-8859-1
+			}
 		}
 		return Long.parseLong(tempSB.toString().trim());
 	}
@@ -721,6 +728,7 @@ final public class NetDeviceManager extends BuilderThread {
 		if(!is64 && _netDeviceStatisticsThread==null) {
 			_netDeviceStatisticsThread = new Thread("netDeviceStatisticsThread") {
 				@Override
+				@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch", "SleepWhileInLoop"})
 				public void run() {
 					// Reuse these two objects to reduce heap allocation
 					final List<Device> netDevices = new ArrayList<>();
@@ -740,10 +748,10 @@ final public class NetDeviceManager extends BuilderThread {
 									}
 								}
 							}
-						} catch(ThreadDeath TD) {
-							throw TD;
-						} catch(Throwable T) {
-							logger.log(Level.SEVERE, null, T);
+						} catch(ThreadDeath td) {
+							throw td;
+						} catch(Throwable t) {
+							logger.log(Level.SEVERE, null, t);
 						}
 						try {
 							Thread.sleep(5000);
@@ -792,7 +800,7 @@ final public class NetDeviceManager extends BuilderThread {
 		synchronized(privilegedPorts) {
 			if(privilegedPorts.isEmpty()) {
 				List<Bind> netBinds = AOServDaemon.getThisServer().getHost().getNetBinds();
-				Set<Integer> netBindPorts = new HashSet<>(netBinds.size()*4/3+1);
+				Set<Integer> netBindPorts = AoCollections.newHashSet(netBinds.size());
 				for(Bind netBind : netBinds) netBindPorts.add(netBind.getPort().getPort());
 				for(Integer port=1; port<=1023; port++) {
 					if(!netBindPorts.contains(port)) privilegedPorts.add(port);
@@ -834,7 +842,7 @@ final public class NetDeviceManager extends BuilderThread {
 				}
 			} catch(IOException err) {
 				// TODO: Catch specific exception for local port in use
-				ErrorPrinter.printStackTraces(err);
+				ErrorPrinter.printStackTraces(err, System.err);
 				throw err;
 			}
 		}
