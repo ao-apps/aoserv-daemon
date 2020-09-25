@@ -40,7 +40,6 @@ import com.aoindustries.cron.CronJob;
 import com.aoindustries.cron.Schedule;
 import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.sql.AOConnectionPool;
 import com.aoindustries.util.BufferManager;
 import com.aoindustries.validation.ValidationException;
 import java.io.File;
@@ -464,7 +463,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 							conn = PostgresServerManager.getPool(postgresServer).getConnection();
 						} else {
 							// For other databases, establish a connection directly
-							Class.forName(postgresDatabase.getJdbcDriver()).getConstructor().newInstance(); // TODO: Only once per classname?
+							Class.forName(postgresDatabase.getJdbcDriver());
 							conn = DriverManager.getConnection(
 								postgresDatabase.getJdbcUrl(true),
 								User.POSTGRES.toString(),

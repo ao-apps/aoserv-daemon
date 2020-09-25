@@ -61,6 +61,7 @@ final public class MySQLCreditCardScanner implements CronJob {
 
 	private static MySQLCreditCardScanner mySQLCreditCardScanner;
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		if(AOServDaemonConfiguration.isManagerEnabled(MySQLCreditCardScanner.class) && mySQLCreditCardScanner==null) {
 			synchronized(System.out) {
@@ -101,6 +102,7 @@ final public class MySQLCreditCardScanner implements CronJob {
 		scanMySQLForCards();
 	}
 
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	private static void scanMySQLForCards() {
 		try {
 			com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
@@ -116,7 +118,7 @@ final public class MySQLCreditCardScanner implements CronJob {
 					Database.Name name=database.getName();
 
 					// Get connection to the database
-					Class.forName(AOServDaemonConfiguration.getMySqlDriver()).getConstructor().newInstance();
+					Class.forName(AOServDaemonConfiguration.getMySqlDriver());
 					try (Connection conn = DriverManager.getConnection(
 						MySQLDatabaseManager.getJdbcUrl(port, name),
 						AOServDaemonConfiguration.getMySqlUser(serverName),
