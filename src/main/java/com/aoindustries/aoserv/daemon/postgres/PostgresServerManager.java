@@ -42,7 +42,7 @@ import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.Port;
 import com.aoindustries.selinux.SEManagePort;
-import com.aoindustries.sql.AOConnectionPool;
+import com.aoindustries.sql.pool.AOConnectionPool;
 import java.io.File;
 import java.io.IOException;
 import java.net.ProtocolFamily;
