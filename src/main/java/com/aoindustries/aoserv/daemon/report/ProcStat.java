@@ -114,15 +114,16 @@ final public class ProcStat {
 		this.processes=_processes;
 	}
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void main(String[] args) {
 		try {
 			System.err.println(new ProcStat());
 			System.exit(0);
 		} catch(IOException err) {
-			ErrorPrinter.printStackTraces(err);
+			ErrorPrinter.printStackTraces(err, System.err);
 			System.exit(1);
 		} catch(SQLException err) {
-			ErrorPrinter.printStackTraces(err);
+			ErrorPrinter.printStackTraces(err, System.err);
 			System.exit(2);
 		}
 	}

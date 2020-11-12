@@ -39,6 +39,8 @@ import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.Port;
 import com.aoindustries.sql.SQLExceptions;
+import com.aoindustries.tempfiles.TempFile;
+import com.aoindustries.tempfiles.TempFileContext;
 import com.aoindustries.util.BufferManager;
 import com.aoindustries.util.PropertiesUtils;
 import com.aoindustries.util.concurrent.ExecutionExceptions;
@@ -227,20 +229,17 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		StreamableOutput masterOut,
 		boolean gzip
 	) throws IOException, SQLException {
-		UnixFile tempFile=UnixFile.mktemp(
-			gzip
-				? "/tmp/dump_mysql_database.sql.gz."
-				: "/tmp/dump_mysql_database.sql.",
-			true
-		);
-		try {
+		try (
+			TempFileContext context = new TempFileContext();
+			TempFile tempFile = context.createTempFile("dump_mysql_database.", gzip ? ".sql.gz" : ".sql")
+		) {
 			dumpDatabase(
 				md.getMySQLServer(),
 				md.getName(),
 				tempFile.getFile(),
 				gzip
 			);
-			long dumpSize = tempFile.getStat().getSize();
+			long dumpSize = new UnixFile(tempFile.getFile()).getStat().getSize();
 			if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0) >= 0) {
 				masterOut.writeLong(dumpSize);
 			}
@@ -261,8 +260,6 @@ final public class MySQLDatabaseManager extends BuilderThread {
 				}
 			}
 			if(bytesRead < dumpSize) throw new IOException("Too few bytes read: " + bytesRead + " < " + dumpSize);
-		} finally {
-			if(tempFile.getStat().exists()) tempFile.delete();
 		}
 	}
 

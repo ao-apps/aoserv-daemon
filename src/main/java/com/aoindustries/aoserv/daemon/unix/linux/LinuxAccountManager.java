@@ -53,6 +53,8 @@ import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.SysExits;
+import com.aoindustries.tempfiles.TempFile;
+import com.aoindustries.tempfiles.TempFileContext;
 import com.aoindustries.util.BufferManager;
 import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.Tuple2;
@@ -64,6 +66,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -1118,18 +1121,20 @@ public class LinuxAccountManager extends BuilderThread {
 	public static void tarHomeDirectory(StreamableOutput out, User.Name username) throws IOException, SQLException {
 		UserServer lsa = AOServDaemon.getThisServer().getLinuxServerAccount(username);
 		PosixPath home = lsa.getHome();
-		UnixFile tempUF = UnixFile.mktemp("/tmp/tar_home_directory.tar.", true);
-		try {
+		try (
+			TempFileContext context = new TempFileContext();
+			TempFile tempFile = context.createTempFile("tar_home_directory.", ".tar")
+		) {
 			AOServDaemon.exec(
 				"/bin/tar",
 				"-c",
 				"-C",
 				home.toString(),
 				"-f",
-				tempUF.getPath(),
+				tempFile.getFile().getPath(),
 				"."
 			);
-			try (InputStream in = new FileInputStream(tempUF.getFile())) {
+			try (InputStream in = new FileInputStream(tempFile.getFile())) {
 				byte[] buff = BufferManager.getBytes();
 				try {
 					int ret;
@@ -1142,8 +1147,6 @@ public class LinuxAccountManager extends BuilderThread {
 					BufferManager.release(buff, false);
 				}
 			}
-		} finally {
-			tempUF.delete();
 		}
 	}
 
@@ -1154,10 +1157,12 @@ public class LinuxAccountManager extends BuilderThread {
 		synchronized(rebuildLock) {
 			UserServer lsa = thisServer.getLinuxServerAccount(username);
 			PosixPath home = lsa.getHome();
-			UnixFile tempUF = UnixFile.mktemp("/tmp/untar_home_directory.tar.", true);
-			try {
+			try (
+				TempFileContext context = new TempFileContext();
+				TempFile tempFile = context.createTempFile("untar_home_directory.", ".tar")
+			) {
 				int code;
-				try (OutputStream out = tempUF.getSecureOutputStream(UnixFile.ROOT_UID, UnixFile.ROOT_GID, 0600, true, uid_min, gid_min)) {
+				try (OutputStream out = new FileOutputStream(tempFile.getFile())) {
 					byte[] buff = BufferManager.getBytes();
 					try {
 						while((code = in.readByte()) == AOServDaemonProtocol.NEXT) {
@@ -1180,10 +1185,8 @@ public class LinuxAccountManager extends BuilderThread {
 					"-C",
 					home.toString(),
 					"-f",
-					tempUF.getPath()
+					tempFile.getFile().getPath()
 				);
-			} finally {
-				tempUF.delete();
 			}
 		}
 	}

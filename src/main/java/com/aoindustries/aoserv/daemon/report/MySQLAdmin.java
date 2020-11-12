@@ -92,12 +92,13 @@ final public class MySQLAdmin extends DBReportData {
 		}
 	}
 
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void main(String[] args) {
 		try {
 			System.err.println(new MySQLAdmin());
 			System.exit(0);
 		} catch(IOException err) {
-			ErrorPrinter.printStackTraces(err);
+			ErrorPrinter.printStackTraces(err, System.err);
 			System.exit(1);
 		}
 	}

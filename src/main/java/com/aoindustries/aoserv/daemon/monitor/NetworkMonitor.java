@@ -27,7 +27,6 @@ import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.net.NullRouteManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.io.FileUtils;
-import com.aoindustries.math.SafeMath;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
@@ -307,11 +306,11 @@ final public class NetworkMonitor {
 	}
 
 	private static long getBitRate(long bytes, long timeSpanMicros) {
-		return SafeMath.multiply(bytes, 8 * MICROS_PER_SECOND) / timeSpanMicros;
+		return Math.multiplyExact(bytes, 8 * MICROS_PER_SECOND) / timeSpanMicros;
 	}
 
 	private static long getPacketRate(long packets, long timeSpanMicros) {
-		return SafeMath.multiply(packets, MICROS_PER_SECOND) / timeSpanMicros;
+		return Math.multiplyExact(packets, MICROS_PER_SECOND) / timeSpanMicros;
 	}
 
 	synchronized private void startThread() {

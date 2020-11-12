@@ -40,6 +40,8 @@ import com.aoindustries.cron.CronJob;
 import com.aoindustries.cron.Schedule;
 import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.tempfiles.TempFile;
+import com.aoindustries.tempfiles.TempFileContext;
 import com.aoindustries.util.BufferManager;
 import com.aoindustries.validation.ValidationException;
 import java.io.File;
@@ -278,20 +280,17 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 		StreamableOutput masterOut,
 		boolean gzip
 	) throws IOException, SQLException {
-		UnixFile tempFile=UnixFile.mktemp(
-			gzip
-				? "/tmp/dump_postgres_database.sql.gz."
-				: "/tmp/dump_postgres_database.sql.",
-			true
-		);
-		try {
+		try (
+			TempFileContext context = new TempFileContext();
+			TempFile tempFile = context.createTempFile("dump_postgres_database.", gzip ? ".sql.gz" : ".sql")
+		) {
 			dumpDatabase(
 				pd.getPostgresServer(),
 				pd.getName(),
 				tempFile.getFile(),
 				gzip
 			);
-			long dumpSize = tempFile.getStat().getSize();
+			long dumpSize = new UnixFile(tempFile.getFile()).getStat().getSize();
 			if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_0) >= 0) {
 				masterOut.writeLong(dumpSize);
 			}
@@ -312,8 +311,6 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 				}
 			}
 			if(bytesRead < dumpSize) throw new IOException("Too few bytes read: " + bytesRead + " < " + dumpSize);
-		} finally {
-			if(tempFile.getStat().exists()) tempFile.delete();
 		}
 	}
 
