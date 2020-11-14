@@ -281,8 +281,8 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 		boolean gzip
 	) throws IOException, SQLException {
 		try (
-			TempFileContext context = new TempFileContext();
-			TempFile tempFile = context.createTempFile("dump_postgres_database.", gzip ? ".sql.gz" : ".sql")
+			TempFileContext tempFileContext = new TempFileContext();
+			TempFile tempFile = tempFileContext.createTempFile("dump_postgres_database_", gzip ? ".sql.gz" : ".sql")
 		) {
 			dumpDatabase(
 				pd.getPostgresServer(),

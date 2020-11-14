@@ -44,6 +44,8 @@ import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.tempfiles.TempFile;
+import com.aoindustries.tempfiles.TempFileContext;
 import com.aoindustries.validation.ValidationException;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -715,8 +717,10 @@ public abstract class HttpdSiteManager {
 			VirtualHostName primaryHsu = httpdSite.getPrimaryHttpdSiteURL();
 			String primaryUrl = primaryHsu==null ? httpdSite.getName() : primaryHsu.getHostname().toString();
 			// Write to temp file first
-			UnixFile tempFile = UnixFile.mktemp(indexFile.getPath()+".");
-			try {
+			try (
+				TempFileContext tempFileContext = new TempFileContext(indexFile.getFile().getParent());
+				TempFile tempFile = tempFileContext.createTempFile(indexFile.getFile().getName())
+			) {
 				try (ChainWriter out = new ChainWriter(new FileOutputStream(tempFile.getFile()))) {
 					out.print("<html>\n"
 							+ "  <head><title>Test HTML Page for ").textInXhtml(primaryUrl).print("</title></head>\n"
@@ -726,13 +730,11 @@ public abstract class HttpdSiteManager {
 							+ "</html>\n");
 				}
 				// Set permissions and ownership
-				tempFile.setMode(0664);
-				tempFile.chown(httpdSite.getLinuxServerAccount().getUid().getId(), httpdSite.getLinuxServerGroup().getGid().getId());
+				UnixFile tempUF = new UnixFile(tempFile.getFile());
+				tempUF.setMode(0664);
+				tempUF.chown(httpdSite.getLinuxServerAccount().getUid().getId(), httpdSite.getLinuxServerGroup().getGid().getId());
 				// Move into place
-				tempFile.renameTo(indexFile);
-			} finally {
-				// If still exists then there was a problem, clean-up
-				if(tempFile.getStat().exists()) tempFile.delete();
+				tempUF.renameTo(indexFile);
 			}
 		}
 	}

@@ -44,13 +44,13 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.jilter.config.EmailLimit;
 import com.aoindustries.aoserv.jilter.config.JilterConfiguration;
 import com.aoindustries.collections.AoCollections;
-import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.DomainName;
 import com.aoindustries.net.InetAddress;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -267,9 +267,9 @@ public class JilterConfigurationWriter extends BuilderThread {
 
 					// Remove any left-over config file and directory
 					File rpmSaveFile = new File(JilterConfiguration.PROPS_FILE + ".rpmsave");
-					if(rpmSaveFile.exists()) FileUtils.delete(rpmSaveFile);
+					if(rpmSaveFile.exists()) Files.delete(rpmSaveFile.toPath());
 					File configDir = rpmSaveFile.getParentFile();
-					if(configDir.exists()) FileUtils.delete(configDir);
+					if(configDir.exists()) Files.delete(configDir.toPath());
 				}
 			}
 			return true;

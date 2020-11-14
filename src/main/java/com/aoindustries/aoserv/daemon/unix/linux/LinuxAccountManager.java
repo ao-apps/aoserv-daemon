@@ -47,7 +47,6 @@ import com.aoindustries.aoserv.daemon.unix.ShadowFile;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.collections.AoCollections;
-import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.stream.StreamableInput;
 import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.Stat;
@@ -78,6 +77,7 @@ import java.io.Writer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -998,7 +998,7 @@ public class LinuxAccountManager extends BuilderThread {
 		File file=new File(path.toString());
 		synchronized(rebuildLock) {
 			if(content==null) {
-				if(file.exists()) FileUtils.delete(file);
+				if(file.exists()) Files.delete(file.toPath());
 			} else {
 				try (
 					PrintWriter out = new PrintWriter(
@@ -1020,7 +1020,7 @@ public class LinuxAccountManager extends BuilderThread {
 		File cronFile = new File(cronDirectory, username.toString());
 		synchronized(rebuildLock) {
 			if(cronTable.isEmpty()) {
-				if(cronFile.exists()) FileUtils.delete(cronFile);
+				if(cronFile.exists()) Files.delete(cronFile.toPath());
 			} else {
 				try (
 					PrintWriter out = new PrintWriter(
@@ -1122,8 +1122,8 @@ public class LinuxAccountManager extends BuilderThread {
 		UserServer lsa = AOServDaemon.getThisServer().getLinuxServerAccount(username);
 		PosixPath home = lsa.getHome();
 		try (
-			TempFileContext context = new TempFileContext();
-			TempFile tempFile = context.createTempFile("tar_home_directory.", ".tar")
+			TempFileContext tempFileContext = new TempFileContext();
+			TempFile tempFile = tempFileContext.createTempFile("tar_home_directory_", ".tar")
 		) {
 			AOServDaemon.exec(
 				"/bin/tar",
@@ -1158,8 +1158,8 @@ public class LinuxAccountManager extends BuilderThread {
 			UserServer lsa = thisServer.getLinuxServerAccount(username);
 			PosixPath home = lsa.getHome();
 			try (
-				TempFileContext context = new TempFileContext();
-				TempFile tempFile = context.createTempFile("untar_home_directory.", ".tar")
+				TempFileContext tempFileContext = new TempFileContext();
+				TempFile tempFile = tempFileContext.createTempFile("untar_home_directory_", ".tar")
 			) {
 				int code;
 				try (OutputStream out = new FileOutputStream(tempFile.getFile())) {

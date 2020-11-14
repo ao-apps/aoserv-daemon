@@ -46,10 +46,13 @@ import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
 import com.aoindustries.cron.Schedule;
 import com.aoindustries.encoding.ChainWriter;
+import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.Port;
+import com.aoindustries.tempfiles.TempFile;
+import com.aoindustries.tempfiles.TempFileContext;
 import com.aoindustries.validation.ValidationException;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -961,17 +964,18 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 									if(removed) {
 										int uid = lsa.getUid().getId();
 										int gid = lsa.getPrimaryLinuxServerGroup().getGid().getId();
-										UnixFile tempFile = UnixFile.mktemp(razorAgentLog.getPath() + '.');
-										try {
-											try (PrintWriter out = new PrintWriter(new BufferedOutputStream(tempFile.getSecureOutputStream(uid, gid, 0644, true, uid_min, gid_min)))) {
+										try (
+											TempFileContext tempFileContext = new TempFileContext(razorAgentLog.getFile().getParentFile());
+											TempFile tempFile = tempFileContext.createTempFile(razorAgentLog.getFile().getName())
+										) {
+											UnixFile tempUF = new UnixFile(tempFile.getFile());
+											try (PrintWriter out = new PrintWriter(new BufferedOutputStream(tempUF.getSecureOutputStream(uid, gid, 0644, true, uid_min, gid_min)))) {
 												while(!queuedLines.isEmpty()) {
 													out.println(queuedLines.remove());
 												}
 											}
-											tempFile.renameTo(razorAgentLog);
+											FileUtils.rename(tempFile.getFile(), razorAgentLog.getFile());
 											restorecon.add(razorAgentLog);
-										} finally {
-											if(tempFile.getStat().exists()) tempFile.delete();
 										}
 									}
 								} catch(IOException err) {

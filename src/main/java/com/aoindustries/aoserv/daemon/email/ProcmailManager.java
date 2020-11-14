@@ -45,6 +45,8 @@ import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.Port;
+import com.aoindustries.tempfiles.TempFile;
+import com.aoindustries.tempfiles.TempFileContext;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
@@ -452,21 +454,26 @@ public final class ProcmailManager extends BuilderThread {
 									byte[] newBytes = bout.toByteArray();
 									if(!procmailrcStat.exists() || !procmailrc.contentEquals(newBytes)) {
 										// Create the new autoresponder config
-										UnixFile tempUF = UnixFile.mktemp(home + "/.procmailrc.");
 										try (
-											FileOutputStream fout = tempUF.getSecureOutputStream(
-												lsa.getUid().getId(),
-												lsa.getPrimaryLinuxServerGroup().getGid().getId(),
-												0600,
-												true,
-												uid_min,
-												gid_min
-											)
+											TempFileContext tempFileContext = new TempFileContext(home.toString());
+											TempFile tempFile = tempFileContext.createTempFile(".procmailrc", null)
 										) {
-											fout.write(newBytes);
+											UnixFile tempUF = new UnixFile(tempFile.getFile());
+											try (
+												FileOutputStream fout = tempUF.getSecureOutputStream(
+													lsa.getUid().getId(),
+													lsa.getPrimaryLinuxServerGroup().getGid().getId(),
+													0600,
+													true,
+													uid_min,
+													gid_min
+												)
+											) {
+												fout.write(newBytes);
+											}
+											tempUF.renameTo(procmailrc);
+											restorecon.add(procmailrc);
 										}
-										tempUF.renameTo(procmailrc);
-										restorecon.add(procmailrc);
 									}
 								}
 							}

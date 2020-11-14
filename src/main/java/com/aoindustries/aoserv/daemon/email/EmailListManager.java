@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2000-2012, 2014, 2016, 2017, 2018, 2019  AO Industries, Inc.
+ * Copyright (C) 2000-2012, 2014, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -29,12 +29,15 @@ import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.tempfiles.TempFile;
+import com.aoindustries.tempfiles.TempFileContext;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.sql.SQLException;
 
 /**
@@ -75,7 +78,7 @@ final public class EmailListManager {
 		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
 		File file = new File(path.toString());
-		if(file.exists()) FileUtils.delete(file);
+		if(file.exists()) Files.delete(file.toPath());
 		// TODO: Clean-up directories, up to and possibly including /etc/mail/lists itself
 		// TODO: Background clean-up of orphaned lists
 	}
@@ -128,17 +131,22 @@ final public class EmailListManager {
 		}
 
 		// TODO: Atomic write and restorecon
-		UnixFile tempUF = UnixFile.mktemp(path+".new.");
+		File pathFile = new File(path.toString());
 		try (
-			Writer out = new OutputStreamWriter(
-				tempUF.getSecureOutputStream(uid, gid, mode, true, uid_min, gid_min),
-				ENCODING
-			)
+			TempFileContext tempFileContext = new TempFileContext(pathFile.getParentFile());
+			TempFile tempFile = tempFileContext.createTempFile(pathFile.getName())
 		) {
-			out.write(SB.toString());
-		}
+			try (
+				Writer out = new OutputStreamWriter(
+					new UnixFile(tempFile.getFile()).getSecureOutputStream(uid, gid, mode, true, uid_min, gid_min),
+					ENCODING
+				)
+			) {
+				out.write(SB.toString());
+			}
 
-		// Move the new file into place
-		tempUF.renameTo(new UnixFile(path.toString()));
+			// Move the new file into place
+			FileUtils.rename(tempFile.getFile(), pathFile);
+		}
 	}
 }

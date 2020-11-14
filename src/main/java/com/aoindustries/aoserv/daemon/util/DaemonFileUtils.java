@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008, 2009, 2014, 2015, 2016, 2017, 2018, 2019  AO Industries, Inc.
+ * Copyright (C) 2008, 2009, 2014, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -29,6 +29,8 @@ import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.tempfiles.TempFile;
+import com.aoindustries.tempfiles.TempFileContext;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
@@ -310,12 +312,12 @@ public class DaemonFileUtils {
 	 * If the file starts with the provided prefix, strips that prefix from the
 	 * file.  A new temp file is created and then renamed over the old.
 	 */
+	@SuppressWarnings("try")
 	public static void stripFilePrefix(UnixFile uf, String prefix, int uid_min, int gid_min) throws IOException {
 		// Remove the auto warning if the site has recently become manual
 		int prefixLen=prefix.length();
 		Stat ufStat = uf.getStat();
 		if(ufStat.getSize()>=prefixLen) {
-			UnixFile newUF=null;
 			try (InputStream in = new BufferedInputStream(uf.getSecureInputStream(uid_min, gid_min))) {
 				StringBuilder SB=new StringBuilder(prefixLen);
 				int ch;
@@ -323,22 +325,27 @@ public class DaemonFileUtils {
 					SB.append((char)ch);
 				}
 				if(SB.toString().equals(prefix)) {
-					newUF=UnixFile.mktemp(uf.getPath()+'.');
-					try (OutputStream out = new BufferedOutputStream(
-						newUF.getSecureOutputStream(
-							ufStat.getUid(),
-							ufStat.getGid(),
-							ufStat.getMode(),
-							true,
-							uid_min,
-							gid_min
-						)
-					)) {
-						IoUtils.copy(in, out);
+					try (
+						TempFileContext tempFileContext = new TempFileContext(uf.getFile().getParent());
+						TempFile tempFile = tempFileContext.createTempFile(uf.getFile().getName())
+					) {
+						try (OutputStream out = new BufferedOutputStream(
+							new UnixFile(tempFile.getFile()).getSecureOutputStream(
+								ufStat.getUid(),
+								ufStat.getGid(),
+								ufStat.getMode(),
+								true,
+								uid_min,
+								gid_min
+							)
+						)) {
+							IoUtils.copy(in, out);
+						}
+						in.close(); // Close now before overwriting the file
+						FileUtils.rename(tempFile.getFile(), uf.getFile());
 					}
 				}
 			}
-			if(newUF!=null) newUF.renameTo(uf);
 		}
 	}
 
@@ -378,70 +385,72 @@ public class DaemonFileUtils {
 			// TODO: Find some way to avoid race condition and redirects while not doing funny file permission changes
 			|| !file.contentEquals(newContents)
 		) {
-			UnixFile backupTemp;
-			if(backupFile != null && fileStat.exists()) {
-				// Create temp backup
-				backupTemp = UnixFile.mktemp(backupFile.getPath());
-				if(logger.isLoggable(Level.FINE)) logger.fine("mktemp \"" + backupFile + "\" -> \"" + backupTemp + '"');
-				long numBytes = FileUtils.copy(file.getFile(), backupTemp.getFile());
-				if(logger.isLoggable(Level.FINE)) logger.fine("cp \"" + file + "\" \"" + backupTemp + "\", " + numBytes + " bytes copied");
-				if(fileStat.getSize() != numBytes) throw new IOException("File size mismatch: " + fileStat.getSize() + " != " + numBytes);
-				Stat backupTempStat = backupTemp.getStat();
-				if(backupTempStat.getSize() != numBytes) throw new IOException("File size mismatch: " + backupTempStat.getSize() + " != " + numBytes);
+			try (TempFileContext tempFileContext = new TempFileContext(file.getFile().getParentFile())) {
+				UnixFile backupTemp;
+				if(backupFile != null && fileStat.exists()) {
+					// Create temp backup
+					backupTemp = new UnixFile(tempFileContext.createTempFile(backupFile.getFile().getName()).getFile());
+					if(logger.isLoggable(Level.FINE)) logger.fine("mktemp \"" + backupFile + "\" -> \"" + backupTemp + '"');
+					long numBytes = FileUtils.copy(file.getFile(), backupTemp.getFile());
+					if(logger.isLoggable(Level.FINE)) logger.fine("cp \"" + file + "\" \"" + backupTemp + "\", " + numBytes + " bytes copied");
+					if(fileStat.getSize() != numBytes) throw new IOException("File size mismatch: " + fileStat.getSize() + " != " + numBytes);
+					Stat backupTempStat = backupTemp.getStat();
+					if(backupTempStat.getSize() != numBytes) throw new IOException("File size mismatch: " + backupTempStat.getSize() + " != " + numBytes);
+					// Set ownership
+					if(backupTempStat.getUid() != uid || backupTempStat.getGid() != gid) {
+						if(logger.isLoggable(Level.FINE)) logger.fine("chown " + uid + ':' + gid + " \"" + backupTemp + '"');
+						backupTemp.chown(uid, gid);
+					}
+					// Set permissions
+					if(backupTempStat.getMode() != mode) {
+						if(logger.isLoggable(Level.FINE)) logger.fine("chmod " + Long.toOctalString(mode) + " \"" + backupTemp + '"');
+						backupTemp.setMode(mode);
+					}
+					// Set modified time
+					if(
+						backupTempStat.getAccessTime() != fileStat.getAccessTime()
+						|| backupTempStat.getModifyTime() != fileStat.getModifyTime()
+					) {
+						if(logger.isLoggable(Level.FINE)) logger.fine("utime " + fileStat.getAccessTime() + ' ' + fileStat.getModifyTime() + " \"" + backupTemp + '"');
+						backupTemp.utime(
+							fileStat.getAccessTime(),
+							fileStat.getModifyTime()
+						);
+					}
+				} else {
+					// No backup
+					backupTemp = null;
+				}
+				// Write the new contents into a temp file
+				UnixFile fileTemp = new UnixFile(tempFileContext.createTempFile(file.getFile().getName()).getFile());
+				if(logger.isLoggable(Level.FINE)) logger.fine("mktemp \"" + file + "\" -> \"" + fileTemp + '"');
+				// TODO: Find some way to avoid race condition and redirects while not doing funny file permission changes
+				try (FileOutputStream out = new FileOutputStream(fileTemp.getFile())) {
+					out.write(newContents);
+				}
+				if(logger.isLoggable(Level.FINE)) logger.fine("Wrote " + newContents.length + " bytes to \"" + fileTemp + '"');
+				Stat fileTempStat = fileTemp.getStat();
+				if(fileTempStat.getSize() != newContents.length) throw new IOException("File size mismatch: " + fileTempStat.getSize() + " != " + newContents.length);
 				// Set ownership
-				if(backupTempStat.getUid() != uid || backupTempStat.getGid() != gid) {
-					if(logger.isLoggable(Level.FINE)) logger.fine("chown " + uid + ':' + gid + " \"" + backupTemp + '"');
-					backupTemp.chown(uid, gid);
+				if(fileTempStat.getUid() != uid || fileTempStat.getGid() != gid) {
+					if(logger.isLoggable(Level.FINE)) logger.fine("chown " + uid + ':' + gid + " \"" + fileTemp + '"');
+					fileTemp.chown(uid, gid);
 				}
 				// Set permissions
-				if(backupTempStat.getMode() != mode) {
-					if(logger.isLoggable(Level.FINE)) logger.fine("chmod " + Long.toOctalString(mode) + " \"" + backupTemp + '"');
-					backupTemp.setMode(mode);
+				if(fileTempStat.getMode() != mode) {
+					if(logger.isLoggable(Level.FINE)) logger.fine("chmod " + Long.toOctalString(mode) + " \"" + fileTemp + '"');
+					fileTemp.setMode(mode);
 				}
-				// Set modified time
-				if(
-					backupTempStat.getAccessTime() != fileStat.getAccessTime()
-					|| backupTempStat.getModifyTime() != fileStat.getModifyTime()
-				) {
-					if(logger.isLoggable(Level.FINE)) logger.fine("utime " + fileStat.getAccessTime() + ' ' + fileStat.getModifyTime() + " \"" + backupTemp + '"');
-					backupTemp.utime(
-						fileStat.getAccessTime(),
-						fileStat.getModifyTime()
-					);
+				// Move backup into place
+				if(backupTemp != null) {
+					if(logger.isLoggable(Level.FINE)) logger.fine("mv \"" + backupTemp + "\" \"" + backupFile + '"');
+					backupTemp.renameTo(backupFile);
+					if(restorecon != null) restorecon.add(backupFile);
 				}
-			} else {
-				// No backup
-				backupTemp = null;
+				// Move file into place
+				if(logger.isLoggable(Level.FINE)) logger.fine("mv \"" + fileTemp + "\" \"" + file + '"');
+				fileTemp.renameTo(file);
 			}
-			// Write the new contents into a temp file
-			UnixFile fileTemp = UnixFile.mktemp(file.getPath());
-			if(logger.isLoggable(Level.FINE)) logger.fine("mktemp \"" + file + "\" -> \"" + fileTemp + '"');
-			// TODO: Find some way to avoid race condition and redirects while not doing funny file permission changes
-			try (FileOutputStream out = new FileOutputStream(fileTemp.getFile())) {
-				out.write(newContents);
-			}
-			if(logger.isLoggable(Level.FINE)) logger.fine("Wrote " + newContents.length + " bytes to \"" + fileTemp + '"');
-			Stat fileTempStat = fileTemp.getStat();
-			if(fileTempStat.getSize() != newContents.length) throw new IOException("File size mismatch: " + fileTempStat.getSize() + " != " + newContents.length);
-			// Set ownership
-			if(fileTempStat.getUid() != uid || fileTempStat.getGid() != gid) {
-				if(logger.isLoggable(Level.FINE)) logger.fine("chown " + uid + ':' + gid + " \"" + fileTemp + '"');
-				fileTemp.chown(uid, gid);
-			}
-			// Set permissions
-			if(fileTempStat.getMode() != mode) {
-				if(logger.isLoggable(Level.FINE)) logger.fine("chmod " + Long.toOctalString(mode) + " \"" + fileTemp + '"');
-				fileTemp.setMode(mode);
-			}
-			// Move backup into place
-			if(backupTemp != null) {
-				if(logger.isLoggable(Level.FINE)) logger.fine("mv \"" + backupTemp + "\" \"" + backupFile + '"');
-				backupTemp.renameTo(backupFile);
-				if(restorecon != null) restorecon.add(backupFile);
-			}
-			// Move file into place
-			if(logger.isLoggable(Level.FINE)) logger.fine("mv \"" + fileTemp + "\" \"" + file + '"');
-			fileTemp.renameTo(file);
 			if(restorecon != null) restorecon.add(file);
 			updated = true;
 		} else {

@@ -230,8 +230,8 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		boolean gzip
 	) throws IOException, SQLException {
 		try (
-			TempFileContext context = new TempFileContext();
-			TempFile tempFile = context.createTempFile("dump_mysql_database.", gzip ? ".sql.gz" : ".sql")
+			TempFileContext tempFileContext = new TempFileContext();
+			TempFile tempFile = tempFileContext.createTempFile("dump_mysql_database_", gzip ? ".sql.gz" : ".sql")
 		) {
 			dumpDatabase(
 				md.getMySQLServer(),

@@ -57,6 +57,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.net.Socket;
+import java.nio.file.Files;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -486,12 +487,20 @@ final public class FailoverFileReplicationManager {
 	/**
 	 * Makes a temporary file based on the given file.
 	 */
+	// TODO: Use TempFileContext to automatically delete when interrupted?
 	private static UnixFile mktemp(Activity activity, UnixFile uf) throws IOException {
-		String name = uf.getFile().getName();
-		UnixFile templateUF = name.length() > 64 ? new UnixFile(uf.getParent(), name.substring(0, 64), false) : uf;
-		String tempPath = templateUF.getPath()+'.';
-		activity.update("file: mktemp: ", tempPath);
-		return UnixFile.mktemp(tempPath);
+		File file = uf.getFile();
+		File dir = file.getParentFile();
+		String name = file.getName();
+		if(name.length() > 64) name = name.substring(0, 64);
+		activity.update("file: mktemp: ", new File(dir, name));
+		return new UnixFile(
+			Files.createTempFile(
+				dir.toPath(),
+				name,
+				null
+			).toFile()
+		);
 	}
 
 	private static void delete(Activity activity, UnixFile uf) throws IOException {

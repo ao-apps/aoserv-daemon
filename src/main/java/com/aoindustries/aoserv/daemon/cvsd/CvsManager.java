@@ -34,11 +34,11 @@ import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.collections.AoCollections;
-import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -164,7 +164,7 @@ final public class CvsManager extends BuilderThread {
 				// Remove /var/cvs if empty
 				if(!cvsInstalled && cvsDir.exists()) {
 					String[] list = cvsDir.list();
-					if(list == null || list.length == 0) FileUtils.delete(cvsDir);
+					if(list == null || list.length == 0) Files.delete(cvsDir.toPath());
 				}
 			}
 			return true;

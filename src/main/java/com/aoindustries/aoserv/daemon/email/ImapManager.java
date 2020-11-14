@@ -46,6 +46,7 @@ import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.collections.AoCollections;
 import com.aoindustries.encoding.ChainWriter;
+import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.FilesystemIteratorRule;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
@@ -54,6 +55,8 @@ import com.aoindustries.net.DomainName;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.Port;
 import com.aoindustries.sql.SQLUtility;
+import com.aoindustries.tempfiles.TempFile;
+import com.aoindustries.tempfiles.TempFileContext;
 import com.aoindustries.util.Tuple3;
 import com.aoindustries.validation.ValidationException;
 import com.sun.mail.iap.Argument;
@@ -415,11 +418,15 @@ final public class ImapManager extends BuilderThread {
 			if(!passwordBackup.getStat().exists()) {
 				log(logOut, Level.FINE, username, "Backing-up password");
 				String encryptedPassword = LinuxAccountManager.getEncryptedPassword(username).getElement1();
-				UnixFile tempFile = UnixFile.mktemp(passwordBackup.getPath() + ".");
-				try (PrintWriter out = new PrintWriter(new FileOutputStream(tempFile.getFile()))) {
-					out.println(encryptedPassword);
+				try (
+					TempFileContext tempFileContext = new TempFileContext(passwordBackup.getFile().getParentFile());
+					TempFile tempFile = tempFileContext.createTempFile(passwordBackup.getFile().getName())
+				) {
+					try (PrintWriter out = new PrintWriter(new FileOutputStream(tempFile.getFile()))) {
+						out.println(encryptedPassword);
+					}
+					FileUtils.rename(tempFile.getFile(), passwordBackup.getFile());
 				}
-				tempFile.renameTo(passwordBackup);
 			}
 			// Change the password to a random value
 			password = PasswordGenerator.generatePassword();
@@ -1528,9 +1535,14 @@ final public class ImapManager extends BuilderThread {
 		// Backup file
 		if(!backupFile.getStat().exists()) {
 			log(logOut, Level.FINE, username, "Backing-up \"" + folderName + "\" to \"" + backupFile.getPath() + "\"");
-			UnixFile tempFile = UnixFile.mktemp(backupFile.getPath() + ".");
-			file.copyTo(tempFile, true);
-			tempFile.chown(UnixFile.ROOT_UID, UnixFile.ROOT_GID).setMode(0600).renameTo(backupFile);
+			try (
+				TempFileContext tempFileContext = new TempFileContext(backupFile.getFile().getParentFile());
+				TempFile tempFile = tempFileContext.createTempFile(backupFile.getFile().getName())
+			) {
+				UnixFile tempUF = new UnixFile(tempFile.getFile());
+				file.copyTo(tempUF, true);
+				tempUF.chown(UnixFile.ROOT_UID, UnixFile.ROOT_GID).setMode(0600).renameTo(backupFile);
+			}
 		}
 
 		// Delete the file if it is not a mailbox or is empty
@@ -1869,9 +1881,14 @@ final public class ImapManager extends BuilderThread {
 											UnixFile mailBoxListBackup = new UnixFile(userBackupDirectory, "mailboxlist", false);
 											if(!mailBoxListBackup.getStat().exists()) {
 												log(logOut, Level.FINE, laUsername, "Backing-up mailboxlist");
-												UnixFile tempFile = UnixFile.mktemp(mailBoxListBackup.getPath() + ".");
-												mailBoxListFile.copyTo(tempFile, true);
-												tempFile.chown(UnixFile.ROOT_UID, UnixFile.ROOT_GID).setMode(0600).renameTo(mailBoxListBackup);
+												try (
+													TempFileContext tempFileContext = new TempFileContext(mailBoxListBackup.getFile().getParentFile());
+													TempFile tempFile = tempFileContext.createTempFile(mailBoxListBackup.getFile().getName())
+												) {
+													UnixFile tempUF = new UnixFile(tempFile.getFile());
+													mailBoxListFile.copyTo(tempUF, true);
+													tempUF.chown(UnixFile.ROOT_UID, UnixFile.ROOT_GID).setMode(0600).renameTo(mailBoxListBackup);
+												}
 											}
 										}
 
