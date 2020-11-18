@@ -34,7 +34,6 @@ import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.exception.WrappedException;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.UnixFile;
@@ -52,6 +51,7 @@ import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -156,7 +156,7 @@ final public class MrtgManager extends BuilderThread {
 								AOServDaemon.exec("/usr/bin/systemctl", "enable", "mrtg");
 								AOServDaemon.exec("/usr/bin/systemctl", "restart", "mrtg");
 							} catch(IOException e) {
-								throw new WrappedException(e);
+								throw new UncheckedIOException(e);
 							}
 						}
 					}

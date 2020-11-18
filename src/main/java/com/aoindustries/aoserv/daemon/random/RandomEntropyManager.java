@@ -28,10 +28,10 @@ import com.aoindustries.aoserv.client.linux.Server;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
-import com.aoindustries.exception.WrappedException;
 import com.aoindustries.io.unix.linux.DevRandom;
 import com.aoindustries.util.BufferManager;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -202,7 +202,7 @@ public final class RandomEntropyManager implements Runnable {
 										AOServDaemon.exec("/usr/bin/systemctl", "enable", "haveged.service");
 										AOServDaemon.exec("/usr/bin/systemctl", "start",  "haveged.service");
 									} catch(IOException e) {
-										throw new WrappedException(e);
+										throw new UncheckedIOException(e);
 									}
 								}
 							);

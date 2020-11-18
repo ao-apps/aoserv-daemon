@@ -37,7 +37,6 @@ import com.aoindustries.aoserv.daemon.ftp.FTPManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.encoding.ChainWriter;
-import com.aoindustries.exception.WrappedException;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.InetAddress;
@@ -45,6 +44,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.io.UncheckedIOException;
 import java.net.ProtocolFamily;
 import java.net.StandardProtocolFamily;
 import java.sql.SQLException;
@@ -198,7 +198,7 @@ final public class DNSManager extends BuilderThread {
 								try {
 									AOServDaemon.exec("/usr/bin/systemctl", "enable", "named");
 								} catch(IOException e) {
-									throw new WrappedException(e);
+									throw new UncheckedIOException(e);
 								}
 								needsRestart[0] = true;
 							}
