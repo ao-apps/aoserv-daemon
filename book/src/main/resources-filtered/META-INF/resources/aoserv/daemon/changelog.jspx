@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2020-11-04T16:28:48-06:00"
+		dateModified="2020-11-19T05:48:30-06:00"
 	>
 		<!-- The current snapshot, unreleased version -->
 		<c:set var="version" value="@{com.aoindustries:aoserv-daemon:pom.version}" />
@@ -56,6 +56,18 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 				<ul>
 					<li>Updated PostgreSQL JDBC Drivers to 42.2.16.</li>
 					<li>Updated dependencies.</li>
+					<li>
+						<p>
+							Fixed bug in automatic cleanup performed by the <code>bin/tomcat</code> script during JVM restarts.
+							The script was deleting <code>*.java</code> files while leaving their <code>*.class</code> counterparts.
+							This could cause JSP recompilation failures when an application is deployed with incompatible
+							dependency changes.
+						</p>
+						<p>
+							We will not be manually updating existing Tomcat instances.  New instances will have the
+							scripts correctly generated, as will in-place Tomcat upgrades.
+						</p>
+					</li>
 				</ul>
 			</changelog:release>
 		</c:if>
