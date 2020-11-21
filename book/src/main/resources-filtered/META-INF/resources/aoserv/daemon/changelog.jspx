@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2020-11-19T05:48:30-06:00"
+		dateModified="2020-11-20T21:36:36-06:00"
 	>
 		<!-- The current snapshot, unreleased version -->
 		<c:set var="version" value="@{com.aoindustries:aoserv-daemon:pom.version}" />
@@ -54,7 +54,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 				scmUrl="@{project.scm.url}"
 			>
 				<ul>
-					<li>Updated PostgreSQL JDBC Drivers to 42.2.16.</li>
+					<li>Updated PostgreSQL JDBC Drivers to 42.2.18.</li>
 					<li>Updated dependencies.</li>
 					<li>
 						<p>
@@ -68,6 +68,9 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 							scripts correctly generated, as will in-place Tomcat upgrades.
 						</p>
 					</li>
+					<li>Added support for Apache Tomcat 7.0.106 with MySQL JDBC 5.1.49 and PostgreSQL JDBC 42.2.18.</li>
+					<li>Added support for Apache Tomcat 8.5.60 with MySQL JDBC 8.0.22 and PostgreSQL JDBC 42.2.18.</li>
+					<li>Added support for Apache Tomcat 9.0.40 with MySQL JDBC 8.0.22 and PostgreSQL JDBC 42.2.18.</li>
 				</ul>
 			</changelog:release>
 		</c:if>

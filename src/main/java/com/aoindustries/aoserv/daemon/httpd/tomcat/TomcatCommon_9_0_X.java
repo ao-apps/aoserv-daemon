@@ -709,6 +709,74 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_37) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
+			} else if(rpmVersion.equals("9.0.40")) {
+				UpgradeSymlink[] upgradeSymlinks_9_0_40 = {
+					// ecj-4.15.jar.jar -> ecj-4.17.jar
+					new UpgradeSymlink(
+						"lib/ecj-4.15.jar.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/ecj-4.15.jar.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/ecj-4.17.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/ecj-4.17.jar"
+					),
+					// mysql-connector-java-8.0.21.jar -> mysql-connector-java-8.0.22.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.21.jar",
+						"/dev/null",
+						"lib/mysql-connector-java-8.0.22.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.21.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.21.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.22.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.22.jar"
+					),
+					// postgresql-42.2.14.jar -> postgresql-42.2.16.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.14.jar",
+						"/dev/null",
+						"lib/postgresql-42.2.16.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.14.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.14.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.16.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.16.jar"
+					),
+					// postgresql-42.2.16.jar -> postgresql-42.2.18.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.16.jar",
+						"/dev/null",
+						"lib/postgresql-42.2.18.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.16.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.16.jar",
+						null
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.18.jar",
+						null,
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.18.jar"
+					),
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_40) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
 			} else {
 				throw new IllegalStateException("Unexpected version of Tomcat: " + rpmVersion);
 			}
