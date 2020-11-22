@@ -713,8 +713,8 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 				UpgradeSymlink[] upgradeSymlinks_9_0_40 = {
 					// ecj-4.15.jar.jar -> ecj-4.17.jar
 					new UpgradeSymlink(
-						"lib/ecj-4.15.jar.jar",
-						"../" + optSlash + "apache-tomcat-9.0/lib/ecj-4.15.jar.jar",
+						"lib/ecj-4.15.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/ecj-4.15.jar",
 						null
 					),
 					new UpgradeSymlink(
