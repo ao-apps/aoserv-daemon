@@ -75,7 +75,7 @@ final public class AOServDaemonConfiguration {
 	}
 
 	public static boolean isNested() throws ConfigurationException {
-		return "true".equalsIgnoreCase(getProperty("nested", null));
+		return Boolean.parseBoolean(getProperty("nested", null));
 	}
 
 	public static String getMonitorEmailFullTo() throws ConfigurationException {

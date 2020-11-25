@@ -2833,7 +2833,7 @@ public class HttpdServerManager {
 						if(hasRedirectAll) includeSiteConfig = "IfModule !rewrite_module";
 					}
 					out.print('\n');
-					if("false".equals(includeSiteConfig)) {
+					if("false".equalsIgnoreCase(includeSiteConfig)) {
 						out.print("    # Include ").print(escapedSiteInclude).print("\n");
 					} else if(includeSiteConfig != null && includeSiteConfig.startsWith("IfModule ")) {
 						out.print("    <" + includeSiteConfig + ">\n"
@@ -3003,7 +3003,7 @@ public class HttpdServerManager {
 						if(hasRedirectAll) includeSiteConfig = "IfModule !rewrite_module";
 					}
 					out.print('\n');
-					if("false".equals(includeSiteConfig)) {
+					if("false".equalsIgnoreCase(includeSiteConfig)) {
 						out.print("    # Include ").print(escapedSiteInclude).print("\n");
 					} else if(includeSiteConfig != null && includeSiteConfig.startsWith("IfModule ")) {
 						out.print("    <" + includeSiteConfig + ">\n"
