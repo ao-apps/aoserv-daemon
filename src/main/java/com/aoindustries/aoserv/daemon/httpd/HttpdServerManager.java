@@ -64,7 +64,6 @@ import com.aoindustries.lang.Strings;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.Port;
 import com.aoindustries.selinux.SEManagePort;
-import com.aoindustries.sql.SQLExceptions;
 import com.aoindustries.util.concurrent.ExecutionExceptions;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -3579,7 +3578,7 @@ public class HttpdServerManager {
 		} catch(ExecutionException e) {
 			// Maintain expected exception types while not losing stack trace
 			ExecutionExceptions.wrapAndThrow(e, IOException.class, IOException::new);
-			SQLExceptions.wrapAndThrowSQLException(e);
+			ExecutionExceptions.wrapAndThrow(e, SQLException.class, SQLException::new);
 			throw new IOException(e);
 		}
 	}

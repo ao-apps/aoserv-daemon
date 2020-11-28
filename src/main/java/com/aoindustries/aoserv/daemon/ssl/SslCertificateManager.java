@@ -46,7 +46,6 @@ import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.Strings;
 import com.aoindustries.security.SmallIdentifier;
-import com.aoindustries.sql.SQLExceptions;
 import com.aoindustries.util.Tuple2;
 import com.aoindustries.util.concurrent.ExecutionExceptions;
 import java.io.BufferedReader;
@@ -931,7 +930,7 @@ final public class SslCertificateManager {
 		} catch(ExecutionException e) {
 			// Maintain expected exception types while not losing stack trace
 			ExecutionExceptions.wrapAndThrow(e, IOException.class, IOException::new);
-			SQLExceptions.wrapAndThrowSQLException(e);
+			ExecutionExceptions.wrapAndThrow(e, SQLException.class, SQLException::new);
 			throw new IOException(e);
 		}
 	}

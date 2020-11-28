@@ -38,7 +38,6 @@ import com.aoindustries.concurrent.ConcurrencyLimiter;
 import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.Port;
-import com.aoindustries.sql.SQLExceptions;
 import com.aoindustries.tempfiles.TempFile;
 import com.aoindustries.tempfiles.TempFileContext;
 import com.aoindustries.util.BufferManager;
@@ -602,7 +601,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		} catch(ExecutionException e) {
 			// Maintain expected exception types while not losing stack trace
 			ExecutionExceptions.wrapAndThrow(e, IOException.class, IOException::new);
-			SQLExceptions.wrapAndThrowSQLException(e);
+			ExecutionExceptions.wrapAndThrow(e, SQLException.class, SQLException::new);
 			throw new SQLException(e);
 		}
 		out.write(AOServDaemonProtocol.NEXT);
@@ -755,7 +754,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 					} catch(ExecutionException e) {
 						// Maintain expected exception types while not losing stack trace
 						ExecutionExceptions.wrapAndThrow(e, IOException.class, IOException::new);
-						SQLExceptions.wrapAndThrowSQLException(e);
+						ExecutionExceptions.wrapAndThrow(e, SQLException.class, SQLException::new);
 						throw new SQLException(e);
 					}
 				}
@@ -783,7 +782,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		} catch(ExecutionException e) {
 			// Maintain expected exception types while not losing stack trace
 			ExecutionExceptions.wrapAndThrow(e, IOException.class, IOException::new);
-			SQLExceptions.wrapAndThrowSQLException(e);
+			ExecutionExceptions.wrapAndThrow(e, SQLException.class, SQLException::new);
 			throw new SQLException(e);
 		} finally {
 			future.cancel(false);
