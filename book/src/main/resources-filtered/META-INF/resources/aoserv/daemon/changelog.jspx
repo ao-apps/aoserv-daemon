@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2020-11-20T21:36:36-06:00"
+		dateModified="2020-11-29T04:59:23-06:00"
 	>
 		<!-- The current snapshot, unreleased version -->
 		<c:set var="version" value="@{com.aoindustries:aoserv-daemon:pom.version}" />
@@ -52,28 +52,37 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 				groupId="@{project.groupId}"
 				artifactId="@{documented.artifactId}"
 				scmUrl="@{project.scm.url}"
-			>
-				<ul>
-					<li>Updated PostgreSQL JDBC Drivers to 42.2.18.</li>
-					<li>Updated dependencies.</li>
-					<li>
-						<p>
-							Fixed bug in automatic cleanup performed by the <code>bin/tomcat</code> script during JVM restarts.
-							The script was deleting <code>*.java</code> files while leaving their <code>*.class</code> counterparts.
-							This could cause JSP recompilation failures when an application is deployed with incompatible
-							dependency changes.
-						</p>
-						<p>
-							We will not be manually updating existing Tomcat instances.  New instances will have the
-							scripts correctly generated, as will in-place Tomcat upgrades.
-						</p>
-					</li>
-					<li>Added support for Apache Tomcat 7.0.106 with MySQL JDBC 5.1.49 and PostgreSQL JDBC 42.2.18.</li>
-					<li>Added support for Apache Tomcat 8.5.60 with MySQL JDBC 8.0.22 and PostgreSQL JDBC 42.2.18.</li>
-					<li>Added support for Apache Tomcat 9.0.40 with MySQL JDBC 8.0.22 and PostgreSQL JDBC 42.2.18.</li>
-				</ul>
-			</changelog:release>
+			/>
 		</c:if>
+
+		<changelog:release
+			projectName="@{documented.name}"
+			version="1.84.12"
+			datePublished="2020-11-29T04:59:23-06:00"
+			groupId="@{project.groupId}"
+			artifactId="@{documented.artifactId}"
+			scmUrl="@{project.scm.url}"
+		>
+			<ul>
+				<li>Updated PostgreSQL JDBC Drivers to 42.2.18.</li>
+				<li>Updated dependencies.</li>
+				<li>
+					<p>
+						Fixed bug in automatic cleanup performed by the <code>bin/tomcat</code> script during JVM restarts.
+						The script was deleting <code>*.java</code> files while leaving their <code>*.class</code> counterparts.
+						This could cause JSP recompilation failures when an application is deployed with incompatible
+						dependency changes.
+					</p>
+					<p>
+						We will not be manually updating existing Tomcat instances.  New instances will have the
+						scripts correctly generated, as will in-place Tomcat upgrades.
+					</p>
+				</li>
+				<li>Added support for Apache Tomcat 7.0.106 with MySQL JDBC 5.1.49 and PostgreSQL JDBC 42.2.18.</li>
+				<li>Added support for Apache Tomcat 8.5.60 with MySQL JDBC 8.0.22 and PostgreSQL JDBC 42.2.18.</li>
+				<li>Added support for Apache Tomcat 9.0.40 with MySQL JDBC 8.0.22 and PostgreSQL JDBC 42.2.18.</li>
+			</ul>
+		</changelog:release>
 
 		<changelog:release
 			projectName="@{documented.name}"
