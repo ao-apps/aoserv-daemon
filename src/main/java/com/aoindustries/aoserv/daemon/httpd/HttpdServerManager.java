@@ -860,7 +860,7 @@ public class HttpdServerManager {
 						out.print('\n');
 						String indent = "";
 						for(int modPhpMajorVersion : modPhpMajorVersions) {
-							out.print(indent).print("<IfModule !php").print(modPhpMajorVersion).print("_module>\n");
+							out.print(indent).print("<IfModule !php").print(modPhpMajorVersion == 8 ? "" : Integer.toString(modPhpMajorVersion)).print("_module>\n"); // TODO: PHP 9: Avoid duplicates of just "php_module" here
 							indent += "    ";
 						}
 						out
@@ -887,7 +887,7 @@ public class HttpdServerManager {
 						out.print("\n"
 								+ "# Use per-site PHP session directory when using mod_php\n");
 						for(int modPhpMajorVersion : modPhpMajorVersions) {
-							out.print("<IfModule php").print(modPhpMajorVersion).print("_module>\n"
+							out.print("<IfModule php").print(modPhpMajorVersion == 8 ? "" : Integer.toString(modPhpMajorVersion)).print("_module>\n" // TODO: PHP 9: Avoid duplicates of just "php_module" here
 									+ "    php_value session.save_path ").print(escape(dollarVariable, sessionDir.toString())).print("\n"
 									+ "</IfModule>\n");
 						}
@@ -2533,8 +2533,8 @@ public class HttpdServerManager {
 							+ "#\n"
 							+ "# Enable mod_php\n"
 							+ "#\n"
-							+ "LoadModule ").print(escape(dollarVariable, "php" + phpMajorVersion + "_module")).print(' ').print(escape(dollarVariable, "/opt/php-" + phpMinorVersion + "/lib/apache/libphp" + phpMajorVersion + ".so")).print("\n"
-							+ "<IfModule php").print(phpMajorVersion).print("_module>\n"
+							+ "LoadModule ").print(escape(dollarVariable, "php" + (phpMajorVersion.equals("8") ? "" : phpMajorVersion) + "_module")).print(' ').print(escape(dollarVariable, "/opt/php-" + phpMinorVersion + "/lib/apache/libphp" + phpMajorVersion + ".so")).print("\n" // TODO: PHP 9: Avoid duplicates of just "php_module" here
+							+ "<IfModule php").print(phpMajorVersion.equals("8") ? "" : phpMajorVersion).print("_module>\n" // TODO: PHP 9: Avoid duplicates of just "php_module" here
 							+ "    PHPIniDir ").print(escape(dollarVariable, phpIniDir.toString())).print("\n"
 							+ "    php_value session.save_path ").print(escape(dollarVariable, sessionDir.toString())).print("\n"
 							+ "    <IfModule mime_module>\n"

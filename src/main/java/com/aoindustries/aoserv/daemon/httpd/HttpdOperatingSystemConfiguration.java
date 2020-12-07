@@ -106,6 +106,7 @@ public enum HttpdOperatingSystemConfiguration {
 			try {
 				if(minorVersion.startsWith("5.")) return PosixPath.valueOf("/opt/php-" + minorVersion + "/bin/php-cgi");
 				else if(minorVersion.startsWith("7.")) return PosixPath.valueOf("/opt/php-" + minorVersion + "/bin/php-cgi");
+				else if(minorVersion.startsWith("8.")) return PosixPath.valueOf("/opt/php-" + minorVersion + "/bin/php-cgi");
 				else throw new AssertionError("Unexpected PHP version: "+minorVersion);
 			} catch(ValidationException e) {
 				throw new WrappedException(e);
