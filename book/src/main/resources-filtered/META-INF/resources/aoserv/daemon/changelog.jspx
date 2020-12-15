@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2020-12-07T17:48:12-06:00"
+		dateModified="2020-12-15T16:12:07-06:00"
 	>
 		<c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
 			<changelog:release
@@ -50,6 +50,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 				<ul>
 					<li>Added support for Apache Tomcat 7.0.107.</li>
 					<li>Added support for <ao:a href="https://www.php.net/releases/8.0/">PHP 8.0</ao:a>.</li>
+					<li>Added missing newline in server.xml generator.</li>
 				</ul>
 			</changelog:release>
 		</c:if>

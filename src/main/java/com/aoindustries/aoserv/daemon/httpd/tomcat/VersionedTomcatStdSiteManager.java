@@ -171,7 +171,7 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 					+ "        <!-- This Realm uses the UserDatabase configured in the global JNDI\n"
 					+ "             resources under the key \"UserDatabase\".  Any edits\n"
 					+ "             that are performed against this UserDatabase are immediately\n"
-					+ "             available for use by the Realm.  -->"
+					+ "             available for use by the Realm.  -->\n"
 					+ "        <Realm className=\"org.apache.catalina.realm.UserDatabaseRealm\"\n"
 					+ "               resourceName=\"UserDatabase\"/>\n"
 					+ "      </Realm>\n"
