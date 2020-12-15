@@ -272,11 +272,8 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		{
 			OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
-			if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-				commandPath = "/usr/aoserv/daemon/bin/dump_mysql_database";
-			} else if(
-				osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-				|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			if(
+				osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 				|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 			) {
 				commandPath = "/opt/aoserv-daemon/bin/dump_mysql_database";
@@ -291,6 +288,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 			commandPath,
 			dbName.toString(),
 			ms.getMinorVersion(),
+			ms.getName().toString(),
 			Integer.toString(ms.getBind().getPort().getPort()),
 			output.getPath(),
 			Boolean.toString(gzip)

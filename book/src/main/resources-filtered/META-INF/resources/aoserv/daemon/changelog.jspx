@@ -51,6 +51,10 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 					<li>Added support for Apache Tomcat 7.0.107.</li>
 					<li>Added support for <ao:a href="https://www.php.net/releases/8.0/">PHP 8.0</ao:a>.</li>
 					<li>Added missing newline in server.xml generator.</li>
+					<li>
+						<code>dump_mysql_database</code> script now uses <code>--login-path=mysql=<var>\${name}</var></code>
+						instead of using the password on the command line.
+					</li>
 				</ul>
 			</changelog:release>
 		</c:if>
