@@ -28,7 +28,6 @@ import java.io.BufferedReader;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.InterruptedIOException;
 import java.sql.SQLException;
 
 /**
@@ -44,23 +43,14 @@ final public class Uptime {
 	final public float load;
 
 	public Uptime() throws IOException, SQLException {
-		String line;
-		Process P=Runtime.getRuntime().exec(cmd);
-		try {
-			P.getOutputStream().close();
-			try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
-				line = in.readLine();
-			}
-		} finally {
-			try {
-				int retCode=P.waitFor();
-				if(retCode!=0) throw new IOException("/usr/bin/uptime exited with non-zero status: "+retCode);
-			} catch(InterruptedException err) {
-				InterruptedIOException ioErr=new InterruptedIOException();
-				ioErr.initCause(err);
-				throw ioErr;
-			}
-		}
+		String line = AOServDaemon.execCall(
+			stdout -> {
+				try (BufferedReader in = new BufferedReader(new InputStreamReader(stdout))) {
+					return in.readLine();
+				}
+			},
+			cmd
+		);
 		if(line==null) throw new EOFException("Nothing output by /usr/bin/uptime");
 
 		// Find the third colon, then back two commas

@@ -47,12 +47,12 @@ import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.Strings;
 import com.aoindustries.lang.SysExits;
 import com.aoindustries.util.ErrorPrinter;
+import com.aoindustries.util.Tuple2;
 import com.aoindustries.util.logging.ProcessTimer;
 import com.aoindustries.validation.ValidationException;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InterruptedIOException;
 import java.io.PrintStream;
 import java.security.MessageDigest;
 import java.sql.SQLException;
@@ -606,30 +606,23 @@ final public class DistroManager implements Runnable {
 								byte[] sha256;
 								long fileLen;
 								{
-									String[] prelinkVerifyCommand = {
+									Tuple2<byte[],Long> result = AOServDaemon.execCall(
+										stdout -> {
+											try (ByteCountInputStream countIn = new ByteCountInputStream(stdout)) {
+												return new Tuple2<>(
+													MessageDigestUtils.hashInput(digest, countIn),
+													// Use length of unprelinked file
+													countIn.getCount()
+												);
+											}
+										},
 										"/usr/sbin/prelink",
 										"--verify",
 										file.getPath()
-									};
-									Process P = Runtime.getRuntime().exec(prelinkVerifyCommand);
-									try {
-										P.getOutputStream().close();
-										try (ByteCountInputStream in = new ByteCountInputStream(P.getInputStream())) {
-											sha256 = MessageDigestUtils.hashInput(digest, in);
-											// Use length of unprelinked file
-											fileLen = in.getCount();
-										}
-										if(sha256.length != 32) throw new AssertionError();
-									} finally {
-										try {
-											int retCode = P.waitFor();
-											if(retCode != 0) throw new IOException("Non-zero response from command: " + AOServDaemon.getCommandString(prelinkVerifyCommand));
-										} catch(InterruptedException err) {
-											IOException ioErr = new InterruptedIOException();
-											ioErr.initCause(err);
-											throw ioErr;
-										}
-									}
+									);
+									sha256 = result.getElement1();
+									fileLen = result.getElement2();
+									if(sha256.length != 32) throw new AssertionError();
 								}
 
 								// Prelink MD5

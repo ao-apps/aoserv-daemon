@@ -284,7 +284,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		// Make sure perl is installed as required by dump_mysql_database
 		PackageManager.installPackage(PackageManager.PackageName.PERL);
 		if(gzip) PackageManager.installPackage(PackageManager.PackageName.GZIP);
-		AOServDaemon.exec(
+		String[] command = {
 			commandPath,
 			dbName.toString(),
 			ms.getMinorVersion(),
@@ -292,8 +292,11 @@ final public class MySQLDatabaseManager extends BuilderThread {
 			Integer.toString(ms.getBind().getPort().getPort()),
 			output.getPath(),
 			Boolean.toString(gzip)
-		);
-		if(output.length() == 0) throw new SQLException("Empty dump file: " + output);
+		};
+		AOServDaemon.exec(command);
+		if(output.length() == 0) {
+			throw new SQLException("Empty dump file: " + output + "\nCommand: " + AOServDaemon.getCommandString(command));
+		}
 	}
 
 	private static MySQLDatabaseManager mysqlDatabaseManager;

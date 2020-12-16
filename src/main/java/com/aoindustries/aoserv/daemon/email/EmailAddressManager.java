@@ -51,8 +51,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InterruptedIOException;
-import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -541,30 +539,17 @@ final public class EmailAddressManager extends BuilderThread {
 				makemap = "/usr/sbin/makemap";
 			} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
-			String[] cmd = { makemap, "hash", userTable.getPath() };
-			Process P = Runtime.getRuntime().exec(cmd);
-			try {
-				try (
-					InputStream in = new FileInputStream(userTable.getPath());
-					OutputStream out = P.getOutputStream()
-				) {
-					IoUtils.copy(in, out);
-				}
-			} finally {
-				// Wait for the process to complete
-				try {
-					int retCode = P.waitFor();
-					if(retCode!=0) throw new IOException("Non-zero return status: "+retCode);
-				} catch (InterruptedException err) {
-					InterruptedIOException ioErr = new InterruptedIOException();
-					ioErr.initCause(err);
-					throw ioErr;
-				}
-			}
-
-			// Check for error exit code
-			int exit = P.exitValue();
-			if (exit != 0) throw new IOException("Non-zero exit status: " + exit);
+			AOServDaemon.execRun(
+				stdin -> {
+					try (InputStream in = new FileInputStream(userTable.getPath())) {
+						IoUtils.copy(in, stdin);
+					}
+				},
+				stdout -> {}, // Do nothing with the output
+				makemap,
+				"hash",
+				userTable.getPath()
+			);
 		}
 	}
 

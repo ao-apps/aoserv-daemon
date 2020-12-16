@@ -36,6 +36,7 @@ import com.aoindustries.collections.AoCollections;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.AOPool;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.Throwables;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.net.MacAddress;
 import com.aoindustries.util.ErrorPrinter;
@@ -394,24 +395,20 @@ final public class NetDeviceManager extends BuilderThread {
 								}
 							} else {
 								// Restart the networking
-								Process P=Runtime.getRuntime().exec(new String[] {"/sbin/ifdown", deviceName});
-								int downCode;
+								Throwable t0 = null;
 								try {
-									P.getOutputStream().close();
-									downCode=P.waitFor();
-								} catch(InterruptedException err) {
-									downCode=-1;
+									AOServDaemon.exec("/sbin/ifdown", deviceName);
+								} catch(Throwable t) {
+									t0 = Throwables.addSuppressed(t0, t);
 								}
-								P=Runtime.getRuntime().exec(new String[] {"/sbin/ifup", deviceName});
-								int upCode;
 								try {
-									P.getOutputStream().close();
-									upCode=P.waitFor();
-								} catch(InterruptedException err) {
-									upCode=-1;
+									AOServDaemon.exec("/sbin/ifup", deviceName);
+								} catch(Throwable t) {
+									t0 = Throwables.addSuppressed(t0, t);
 								}
-								if(downCode!=0) throw new IOException("Error calling /sbin/ifdown "+deviceName+", retCode="+(downCode==-1?"Interrupted":Integer.toString(downCode)));
-								if(upCode!=0) throw new IOException("Error calling /sbin/ifup "+deviceName+", retCode="+(upCode==-1?"Interrupted":Integer.toString(upCode)));
+								if(t0 != null) {
+									throw Throwables.wrap(t0, IOException.class, IOException::new);
+								}
 							}
 						}
 					} finally {
@@ -428,15 +425,7 @@ final public class NetDeviceManager extends BuilderThread {
 									System.err.println("--------------------------------------------------------------------------------");
 								}
 							} else {
-								Process P=Runtime.getRuntime().exec(new String[] {command, "start"});
-								int routeCode;
-								try {
-									P.getOutputStream().close();
-									routeCode=P.waitFor();
-								} catch(InterruptedException err) {
-									routeCode=-1;
-								}
-								if(routeCode!=0) throw new IOException("Error calling "+command+" start, retCode="+(routeCode==-1?"Interrupted":Integer.toString(routeCode)));
+								AOServDaemon.exec(command, "start");
 							}
 						}
 					}

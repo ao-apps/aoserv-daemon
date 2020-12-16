@@ -38,7 +38,6 @@ import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.Strings;
-import com.aoindustries.lang.Throwables;
 import com.aoindustries.util.BufferManager;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -48,7 +47,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UncheckedIOException;
@@ -733,7 +731,6 @@ final public class MrtgManager extends BuilderThread {
 		if(thisServer.getFailoverServer() != null) return Collections.emptyList();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
-		List<String> devices = new ArrayList<>();
 		String listPartitionsCommand;
 		if(
 			osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
@@ -742,42 +739,24 @@ final public class MrtgManager extends BuilderThread {
 			listPartitionsCommand = "/opt/aoserv-daemon/bin/list_partitions";
 		} else throw new AssertionError("Unsupporter OperatingSystemVersion: " + osv);
 
-		Process P = Runtime.getRuntime().exec(new String[] {listPartitionsCommand});
-		Throwable t0 = null;
-		try {
-			P.getOutputStream().close();
-			try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
-				String line;
-				while((line = in.readLine()) != null) {
-					if(devices.contains(line)) {
-						logger.log(Level.WARNING, null, new Throwable("Warning: duplicate device from list_partitions: " + line));
-					} else {
-						devices.add(line);
+		List<String> devices = new ArrayList<>();
+		AOServDaemon.execRun(
+			stdout -> {
+				try (BufferedReader in = new BufferedReader(new InputStreamReader(stdout))) {
+					String line;
+					while((line = in.readLine()) != null) {
+						if(devices.contains(line)) {
+							logger.log(Level.WARNING, null, new Throwable("Warning: duplicate device from list_partitions: " + line));
+						} else {
+							devices.add(line);
+						}
 					}
 				}
-			}
-		} catch(Throwable t) {
-			t0 = Throwables.addSuppressed(t0, t);
-		}
-		try {
-			try {
-				int retCode = P.waitFor();
-				if(retCode != 0) throw new IOException("Non-zero return value from list_partitions: " + retCode);
-			} catch(InterruptedException err) {
-				InterruptedIOException ioErr = new InterruptedIOException();
-				ioErr.initCause(err);
-				throw ioErr;
-			}
-		} catch(Throwable t) {
-			t0 = Throwables.addSuppressed(t0, t);
-		}
-		if(t0 != null) {
-			if(t0 instanceof SQLException) throw (SQLException)t0;
-			throw Throwables.wrap(t0, IOException.class, IOException::new);
-		} else {
-			Collections.sort(devices);
-			return devices;
-		}
+			},
+			listPartitionsCommand
+		);
+		Collections.sort(devices);
+		return devices;
 	}
 
 	@SuppressWarnings("AssignmentToForLoopParameter")

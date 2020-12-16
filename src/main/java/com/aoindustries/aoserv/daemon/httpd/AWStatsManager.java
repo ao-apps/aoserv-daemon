@@ -47,7 +47,6 @@ import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.Strings;
-import com.aoindustries.lang.Throwables;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.util.BufferManager;
 import java.io.BufferedReader;
@@ -56,7 +55,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.InterruptedIOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -771,68 +769,46 @@ final public class AWStatsManager extends BuilderThread {
 				} else {
 					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 				}
-				String[] cmd = {
+				AOServDaemon.execRun(
+					stdout -> {
+						try (BufferedReader in = new BufferedReader(new InputStreamReader(stdout))) {
+							// Skip the headers
+							String line;
+							while((line = in.readLine()) != null && line.length() > 0) {
+								// Intentional empty block
+							}
+
+							// Write the rest in blocks
+							byte[] buff = BufferManager.getBytes();
+							try {
+								char[] chars = BufferManager.getChars();
+								try {
+									int ret;
+									while((ret = in.read(chars, 0, BufferManager.BUFFER_SIZE))!=-1) {
+										// Convert to bytes by simple cast - assumes ISO8859-1 encoding
+										for(int c = 0; c < ret; c++) {
+											buff[c] = (byte)chars[c];
+										}
+
+										out.write(AOServDaemonProtocol.NEXT);
+										out.writeShort(ret);
+										out.write(buff, 0, ret);
+									}
+								} finally {
+									BufferManager.release(chars, false);
+								}
+							} finally {
+								BufferManager.release(buff, false);
+							}
+						}
+					},
 					"/bin/su",
 					"-s",
 					Shell.BASH.toString(),
 					"-c",
 					runascgi + " '" + queryString + "'",
 					User.AWSTATS.toString()
-				};
-				Process P = Runtime.getRuntime().exec(cmd);
-				Throwable t0 = null;
-				try {
-					P.getOutputStream().close();
-					try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
-						// Skip the headers
-						String line;
-						while((line = in.readLine()) != null && line.length() > 0) {
-							// Intentional empty block
-						}
-
-						// Write the rest in blocks
-						byte[] buff = BufferManager.getBytes();
-						try {
-							char[] chars = BufferManager.getChars();
-							try {
-								int ret;
-								while((ret = in.read(chars, 0, BufferManager.BUFFER_SIZE))!=-1) {
-									// Convert to bytes by simple cast - assumes ISO8859-1 encoding
-									for(int c = 0; c < ret; c++) {
-										buff[c] = (byte)chars[c];
-									}
-
-									out.write(AOServDaemonProtocol.NEXT);
-									out.writeShort(ret);
-									out.write(buff, 0, ret);
-								}
-							} finally {
-								BufferManager.release(chars, false);
-							}
-						} finally {
-							BufferManager.release(buff, false);
-						}
-					}
-				} catch(Throwable t) {
-					t0 = Throwables.addSuppressed(t0, t);
-				}
-				try {
-					// Wait for the process to complete
-					try {
-						int retCode = P.waitFor();
-						if(retCode!=0) throw new IOException("Non-zero return status: "+retCode);
-					} catch (InterruptedException err) {
-						IOException ioErr = new InterruptedIOException();
-						ioErr.initCause(err);
-						throw ioErr;
-					}
-				} catch(Throwable t) {
-					t0 = Throwables.addSuppressed(t0, t);
-				}
-				if(t0 != null) {
-					if(t0 instanceof SQLException) throw (SQLException)t0;
-					throw Throwables.wrap(t0, IOException.class, IOException::new);
-				}
+				);
 			} else {
 				throw new IOException("Unsupported queryString for awstats.pl: "+queryString);
 			}

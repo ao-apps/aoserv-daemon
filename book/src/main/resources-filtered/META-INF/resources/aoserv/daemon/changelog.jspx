@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2020-12-15T16:12:07-06:00"
+		dateModified="2020-12-15T19:18:32-06:00"
 	>
 		<c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
 			<changelog:release
@@ -54,6 +54,12 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 					<li>
 						<code>dump_mysql_database</code> script now uses <code>--login-path=mysql=<var>\${name}</var></code>
 						instead of using the password on the command line.
+					</li>
+					<li>Logging generated commands when dump results in empty file.</li>
+					<li>
+						Centralized <code>exec</code> calls from Java into a couple methods that are very thorough in
+						logging standard error output, and including the standard error in exceptions.  This should help
+						us in resolving some scripts that work from command line, but not when called by the daemon.
 					</li>
 				</ul>
 			</changelog:release>

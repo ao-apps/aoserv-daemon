@@ -62,15 +62,14 @@ final public class DhcpManager implements Runnable {
 			PackageManager.installPackage(PackageManager.PackageName.NET_TOOLS);
 			String ip;
 			{
-				Process P=Runtime.getRuntime().exec(cmd);
-				try {
-					P.getOutputStream().close();
-					try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
-						ip = in.readLine();
-					}
-				} finally {
-					AOServDaemon.waitFor(P, cmd);
-				}
+				ip = AOServDaemon.execCall(
+					stdout -> {
+						try (BufferedReader in = new BufferedReader(new InputStreamReader(stdout))) {
+							return in.readLine();
+						}
+					},
+					cmd
+				);
 				if(ip==null || (ip=ip.trim()).length()==0) throw new IOException("Unable to find IP address for device: "+device);
 			}
 			return InetAddress.valueOf(ip);

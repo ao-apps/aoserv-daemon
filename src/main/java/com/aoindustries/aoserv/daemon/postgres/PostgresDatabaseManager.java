@@ -339,15 +339,18 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 		// Make sure perl is installed as required by dump_postgres_database
 		PackageManager.installPackage(PackageManager.PackageName.PERL);
 		if(gzip) PackageManager.installPackage(PackageManager.PackageName.GZIP);
-		AOServDaemon.exec(
+		String[] command = {
 			commandPath,
 			ps.getVersion().getMinorVersion(),
 			Integer.toString(ps.getBind().getPort().getPort()),
 			dbName.toString(),
 			output.getPath(),
 			Boolean.toString(gzip)
-		);
-		if(output.length() == 0) throw new SQLException("Empty dump file: " + output);
+		};
+		AOServDaemon.exec(command);
+		if(output.length() == 0) {
+			throw new SQLException("Empty dump file: " + output + "\nCommand: " + AOServDaemon.getCommandString(command));
+		}
 	}
 
 	private static PostgresDatabaseManager postgresDatabaseManager;

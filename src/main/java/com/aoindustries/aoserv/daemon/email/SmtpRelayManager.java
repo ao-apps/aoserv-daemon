@@ -41,7 +41,6 @@ import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.Strings;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.HashSet;
@@ -265,12 +264,13 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 		if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 			// Make sure /usr/sbin/makemap is installed as required by make_sendmail_access_map
 			// access file only built when sendmail installed now: PackageManager.installPackage(PackageManager.PackageName.SENDMAIL);
-			String[] command = {"/usr/sbin/makemap", "hash", NEW_ACCESS_DB.getPath()};
-			Process process = Runtime.getRuntime().exec(command);
-			try (OutputStream out = process.getOutputStream()) {
-				out.write(accessBytes);
-			}
-			AOServDaemon.waitFor(process, command);
+			AOServDaemon.execRun(
+				stdin -> stdin.write(accessBytes),
+				stdout -> {}, // Do nothing with the output
+				"/usr/sbin/makemap",
+				"hash",
+				NEW_ACCESS_DB.getPath()
+			);
 			NEW_ACCESS_DB.renameTo(ACCESS_DB);
 			restorecon.add(ACCESS_DB);
 		} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {

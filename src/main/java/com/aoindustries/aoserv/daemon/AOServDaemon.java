@@ -73,19 +73,26 @@ import com.aoindustries.exception.ConfigurationException;
 import com.aoindustries.io.IoUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import com.aoindustries.lang.Throwables;
+import com.aoindustries.util.concurrent.ExecutionExceptions;
+import com.aoindustries.util.function.ConsumerE;
+import com.aoindustries.util.function.FunctionE;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
+import java.io.OutputStream;
 import java.io.Reader;
 import java.security.SecureRandom;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -320,100 +327,278 @@ final public class AOServDaemon {
 	}
 
 	/**
-	 * TODO: First parameter as PosixPath object?
+	 * Executes a command, performing any arbitrary action with the command's output stream.
+	 * Command's input is written on the current thread.
+	 * Command's output is read, and handled, on a different thread.
+	 * Command's error output is also read on a different thread.
+	 * <p>
+	 * The command's standard error is logged to {@link System#err}.
+	 * </p>
+	 * <p>
+	 * Any non-zero exit value will result in an exception, including the standard error output when available.
+	 * </p>
 	 */
-	public static void exec(String... command) throws IOException {
+	// TODO: First parameter as PosixPath object?
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch", "UseOfSystemOutOrSystemErr","overloads"})
+	public static <V> V execCall(
+		ConsumerE<? super OutputStream, ? extends IOException> stdin,
+		FunctionE<? super InputStream, V, ? extends IOException> stdout,
+		String... command
+	) throws IOException {
 		if(DEBUG) {
-			System.out.print("DEBUG: AOServDaemon.exec(): ");
+			System.out.print("DEBUG: AOServDaemon.execCall(): ");
 			System.out.println(getCommandString(command));
 		}
-		Process P = Runtime.getRuntime().exec(command);
+		Process process = Runtime.getRuntime().exec(command);
+		// Read and handle the standard output concurrently
+		Future<V> outputFuture = executorService.submit(() -> {
+			try (InputStream in = process.getInputStream()) {
+				return stdout.apply(in);
+			}
+		});
+		// Read the standard error concurrently
+		Future<String> errorFuture = executorService.submit(() -> {
+			try (Reader errIn = new InputStreamReader(process.getErrorStream())) {
+				return IoUtils.readFully(errIn);
+			}
+		});
+		// Write any output on the current thread
+		Throwable t0;
 		try {
-			P.getOutputStream().close();
-		} finally {
-			waitFor(P, command);
+			try (OutputStream out = process.getOutputStream()) {
+				stdin.accept(out);
+			}
+			t0 = null;
+		} catch(Throwable t) {
+			t0 = t;
+		}
+		// Finish reading the standard input
+		V result = null;
+		try {
+			try {
+				result = outputFuture.get();
+			} catch(ExecutionException e) {
+				ExecutionExceptions.wrapAndThrow(e, IOException.class, IOException::new);
+			}
+		} catch(Throwable t) {
+			t0 = Throwables.addSuppressed(t0, t);
+		}
+		// Finish reading the standard error
+		String errorString = null;
+		try {
+			try {
+				errorString = errorFuture.get();
+				// Write any standard error to standard error
+				if(!errorString.isEmpty()) {
+					System.err.println("'" + getCommandString(command) + "': " + errorString);
+				}
+			} catch(ExecutionException e) {
+				ExecutionExceptions.wrapAndThrow(e, IOException.class, IOException::new);
+			}
+		} catch(Throwable t) {
+			t0 = Throwables.addSuppressed(t0, t);
+		}
+		try {
+			// Wait for exit status
+			try {
+				int retCode = process.waitFor();
+				if(retCode != 0) {
+					if(errorString == null) {
+						throw new IOException("Non-zero exit status from '" + getCommandString(command) + "': " + retCode + ", standard error unavailable");
+					} else {
+						throw new IOException("Non-zero exit status from '" + getCommandString(command) + "': " + retCode + ", standard error was: " + errorString);
+					}
+				}
+			} catch(InterruptedException err) {
+				InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
+				ioErr.initCause(err);
+				throw ioErr;
+			}
+		} catch(Throwable t) {
+			t0 = Throwables.addSuppressed(t0, t);
+		}
+		if(t0 != null) {
+			throw Throwables.wrap(t0, IOException.class, IOException::new);
+		} else {
+			return result;
 		}
 	}
 
 	/**
-	 * TODO: Capture error stream
+	 * Executes a command, performing any arbitrary action with the command's output stream.
+	 * Command's input is written on the current thread.
+	 * Command's output is read, and handled, on a different thread.
+	 * Command's error output is also read on a different thread.
+	 * <p>
+	 * The command's standard error is logged to {@link System#err}.
+	 * </p>
+	 * <p>
+	 * Any non-zero exit value will result in an exception, including the standard error output when available.
+	 * </p>
 	 */
-	public static void waitFor(Process P, String... command) throws IOException {
-		try {
-			P.waitFor();
-		} catch (InterruptedException err) {
-			InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
-			ioErr.initCause(err);
-			throw ioErr;
+	@SuppressWarnings("overloads")
+	public static void execRun(
+		ConsumerE<? super OutputStream, ? extends IOException> stdin,
+		ConsumerE<? super InputStream, ? extends IOException> stdout,
+		String... command
+	) throws IOException {
+		execCall(
+			stdin,
+			_stdout -> {
+				stdout.accept(_stdout);
+				return null;
+			},
+			command
+		);
+	}
+
+	/**
+	 * Executes a command, performing any arbitrary action with the command's output stream.
+	 * Command's input is opened then immediately closed.
+	 * Command's output is read, and handled, on the current thread.
+	 * Command's error output is read on a different thread.
+	 * <p>
+	 * The command's standard error is logged to {@link System#err}.
+	 * </p>
+	 * <p>
+	 * Any non-zero exit value will result in an exception, including the standard error output when available.
+	 * </p>
+	 */
+	// TODO: First parameter as PosixPath object?
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch", "UseOfSystemOutOrSystemErr", "overloads"})
+	public static <V> V execCall(
+		FunctionE<? super InputStream, V, ? extends IOException> stdout,
+		String... command
+	) throws IOException {
+		if(DEBUG) {
+			System.out.print("DEBUG: AOServDaemon.execCall(): ");
+			System.out.println(getCommandString(command));
 		}
-		int exit = P.exitValue();
-		if(exit!=0) {
-			StringBuilder SB=new StringBuilder();
-			SB.append("Non-zero exit status from '");
-			SB.append(getCommandString(command));
-			SB.append("': ").append(exit);
-			throw new IOException(SB.toString());
+		Process process = Runtime.getRuntime().exec(command);
+		// Read the standard error concurrently
+		Future<String> errorFuture = executorService.submit(() -> {
+			try (Reader errIn = new InputStreamReader(process.getErrorStream())) {
+				return IoUtils.readFully(errIn);
+			}
+		});
+		Throwable t0;
+		// Close the process's stdin
+		try {
+			process.getOutputStream().close();
+			t0 = null;
+		} catch(Throwable t) {
+			t0 = t;
+		}
+		// Read and handle the standard output on current thread
+		V result = null;
+		try {
+			try (InputStream in = process.getInputStream()) {
+				result = stdout.apply(in);
+			}
+		} catch(Throwable t) {
+			t0 = Throwables.addSuppressed(t0, t);
+		}
+		// Finish reading the standard error
+		String errorString = null;
+		try {
+			try {
+				errorString = errorFuture.get();
+				// Write any standard error to standard error
+				if(!errorString.isEmpty()) {
+					System.err.println("'" + getCommandString(command) + "': " + errorString);
+				}
+			} catch(ExecutionException e) {
+				ExecutionExceptions.wrapAndThrow(e, IOException.class, IOException::new);
+			}
+		} catch(Throwable t) {
+			t0 = Throwables.addSuppressed(t0, t);
+		}
+		try {
+			// Wait for exit status
+			try {
+				int retCode = process.waitFor();
+				if(retCode != 0) {
+					if(errorString == null) {
+						throw new IOException("Non-zero exit status from '" + getCommandString(command) + "': " + retCode + ", standard error unavailable");
+					} else {
+						throw new IOException("Non-zero exit status from '" + getCommandString(command) + "': " + retCode + ", standard error was: " + errorString);
+					}
+				}
+			} catch(InterruptedException err) {
+				InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
+				ioErr.initCause(err);
+				throw ioErr;
+			}
+		} catch(Throwable t) {
+			t0 = Throwables.addSuppressed(t0, t);
+		}
+		if(t0 != null) {
+			throw Throwables.wrap(t0, IOException.class, IOException::new);
+		} else {
+			return result;
 		}
 	}
 
 	/**
-	 * Executes a command and captures the output.
+	 * Executes a command, performing any arbitrary action with the command's output stream.
+	 * Command's input is opened then immediately closed.
+	 * Command's output is read, and handled, on the current thread.
+	 * Command's error output is read on a different thread.
+	 * <p>
+	 * The command's standard error is logged to {@link System#err}.
+	 * </p>
+	 * <p>
+	 * Any non-zero exit value will result in an exception, including the standard error output when available.
+	 * </p>
+	 */
+	@SuppressWarnings("overloads")
+	public static void execRun(
+		ConsumerE<? super InputStream, ? extends IOException> stdout,
+		String... command
+	) throws IOException {
+		execCall(
+			_stdout -> {
+				stdout.accept(_stdout);
+				return null;
+			},
+			command
+		);
+	}
+
+	/**
+	 * Executes a command, opens then immediately closes both the command's input and output.
 	 *
-	 * TODO: First parameter as PosixPath object?
+	 * @see  #execRun(com.aoindustries.util.function.ConsumerE, java.lang.String...)
+	 */
+	public static void exec(String... command) throws IOException {
+		execRun(
+			stdout -> {}, // Do nothing with the output
+			command
+		);
+	}
+
+	/**
+	 * Executes a command, opens then immediately closes both the command's input, and captures the output.
 	 */
 	public static String execAndCapture(String... command) throws IOException {
-		Process P = Runtime.getRuntime().exec(command);
-		try {
-			P.getOutputStream().close();
-			try (Reader in = new InputStreamReader(P.getInputStream())) {
-				return IoUtils.readFully(in);
-			}
-		} finally {
-			// Read the standard error
-			String errorString;
-			try (Reader errIn = new InputStreamReader(P.getErrorStream())) {
-				errorString = IoUtils.readFully(errIn);
-			}
-			// Write any standard error to standard error
-			if(errorString.length()>0) System.err.println("'"+getCommandString(command)+"': "+errorString);
-			try {
-				int retCode = P.waitFor();
-				if(retCode!=0) throw new IOException("Non-zero exit status from '"+getCommandString(command)+"': "+retCode+", standard error was: "+errorString);
-			} catch(InterruptedException err) {
-				InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
-				ioErr.initCause(err);
-				throw ioErr;
-			}
-		}
+		return execCall(
+			stdout -> {
+				try (Reader in = new InputStreamReader(stdout)) {
+					return IoUtils.readFully(in);
+				}
+			},
+			command
+		);
 	}
 
 	/**
-	 * Executes a command and captures the output.
+	 * Executes a command, opens then immediately closes both the command's input, and captures the output.
 	 */
 	public static byte[] execAndCaptureBytes(String... command) throws IOException {
-		Process P = Runtime.getRuntime().exec(command);
-		try {
-			P.getOutputStream().close();
-			try (InputStream in = P.getInputStream()) {
-				return IoUtils.readFully(in);
-			}
-		} finally {
-			// Read the standard error
-			String errorString;
-			try (Reader errIn = new InputStreamReader(P.getErrorStream())) {
-				errorString = IoUtils.readFully(errIn);
-			}
-			// Write any standard error to standard error
-			if(errorString.length()>0) System.err.println("'"+getCommandString(command)+"': "+errorString);
-			try {
-				int retCode = P.waitFor();
-				if(retCode!=0) throw new IOException("Non-zero exit status from '"+getCommandString(command)+"': "+retCode+", standard error was: "+errorString);
-			} catch(InterruptedException err) {
-				InterruptedIOException ioErr = new InterruptedIOException("Interrupted while waiting for '"+getCommandString(command)+"'");
-				ioErr.initCause(err);
-				throw ioErr;
-			}
-		}
+		return execCall(
+			stdout -> IoUtils.readFully(stdout),
+			command
+		);
 	}
 
 	/**

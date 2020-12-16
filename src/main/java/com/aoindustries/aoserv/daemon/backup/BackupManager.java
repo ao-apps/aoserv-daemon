@@ -28,13 +28,11 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.Strings;
-import com.aoindustries.lang.Throwables;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.InterruptedIOException;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -307,47 +305,23 @@ final public class BackupManager {
 
 	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	private static long getDFColumn(PosixPath path, int column) throws IOException {
-		String[] dfCommand={
+		return AOServDaemon.execCall(
+			stdout -> {
+				try (BufferedReader in = new BufferedReader(new InputStreamReader(stdout))) {
+					// The first line is the column labels
+					String line = in.readLine();
+					if(line == null) throw new IOException("EOF when trying to read column labels");
+					line = in.readLine();
+					if(line == null) throw new IOException("EOF when trying to read values");
+					String[] columns = Strings.split(line);
+					return 1024 * Long.parseLong(columns[column]);
+				}
+			},
 			DF,
 			"-k",
 			"-P",
 			path.toString()
-		};
-		long size;
-		Process P=Runtime.getRuntime().exec(dfCommand);
-		Throwable t0 = null;
-		try {
-			P.getOutputStream().close();
-			try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
-				// The first line is the column labels
-				String line=in.readLine();
-				if(line==null) throw new IOException("EOF when trying to read column labels");
-				line=in.readLine();
-				if(line==null) throw new IOException("EOF when trying to read values");
-				String[] columns=Strings.split(line);
-				size = 1024 * Long.parseLong(columns[column]);
-			}
-		} catch(Throwable t) {
-			t0 = Throwables.addSuppressed(t0, t);
-			size = -1;
-		}
-		try {
-			try {
-				int retCode=P.waitFor();
-				if(retCode!=0) throw new IOException(DF+" exited with non-zero return status: "+retCode);
-			} catch(InterruptedException err) {
-				IOException ioErr = new InterruptedIOException();
-				ioErr.initCause(err);
-				throw ioErr;
-			}
-		} catch(Throwable t) {
-			t0 = Throwables.addSuppressed(t0, t);
-		}
-		if(t0 != null) {
-			throw Throwables.wrap(t0, IOException.class, IOException::new);
-		} else {
-			return size;
-		}
+		);
 	}
 
 	/**

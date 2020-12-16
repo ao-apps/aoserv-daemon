@@ -51,7 +51,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.InterruptedIOException;
 import java.io.PrintWriter;
 import java.security.MessageDigest;
 import java.util.Arrays;
@@ -867,21 +866,11 @@ final public class DistroGenerator {
 							} else if(type.equals(DistroFileType.PRELINK)) {
 								String chroot = root + '/' + osFilename.getOSName() + '/' + osFilename.getOSVersion() + '/' + osFilename.getOSArchitecture();
 								// Need to do SHA-256 digest in Java since prelink command doesn't support it directly
-								String[] prelinkVerifyCommand = {
-									"/usr/sbin/chroot",
-									chroot,
-									"/usr/sbin/prelink",
-									"--verify",
-									osFilename.filename
-								};
-								//try {
-									Process P = Runtime.getRuntime().exec(prelinkVerifyCommand);
-									Throwable t0 = null;
-									try {
-										P.getOutputStream().close();
+								AOServDaemon.execRun(
+									stdout -> {
 										byte[] sha256;
 										long fileLen;
-										try (ByteCountInputStream in = new ByteCountInputStream(P.getInputStream())) {
+										try (ByteCountInputStream in = new ByteCountInputStream(stdout)) {
 											sha256 = MessageDigestUtils.hashInput(digest, in);
 											// Use length of unprelinked file
 											fileLen = in.getCount();
@@ -893,66 +882,13 @@ final public class DistroGenerator {
 											.append(IoUtils.bufferToLong(sha256, 8)).append("::int8, ")
 											.append(IoUtils.bufferToLong(sha256, 16)).append("::int8, ")
 											.append(IoUtils.bufferToLong(sha256, 24)).append("::int8");
-									} catch(Throwable t) {
-										t0 = Throwables.addSuppressed(t0, t);
-									}
-									try {
-										try {
-											int retCode = P.waitFor();
-											if(retCode != 0) throw new IOException("Non-zero response from command: " + AOServDaemon.getCommandString(prelinkVerifyCommand));
-										} catch(InterruptedException err) {
-											IOException ioErr = new InterruptedIOException();
-											ioErr.initCause(err);
-											throw ioErr;
-										}
-									} catch(Throwable t) {
-										t0 = Throwables.addSuppressed(t0, t);
-									}
-									if(t0 != null) throw t0;
-								/* No longer doing undo, trying one-shot only
-								} catch(IOException e) {
-									runState.err.println("Undoing prelink on \"" + osFilename.filename + "\": " + e.toString());
-									runState.err.flush();
-									AOServDaemon.exec(
-										"/usr/sbin/chroot",
-										chroot,
-										"/usr/sbin/prelink",
-										"--undo",
-										osFilename.filename
-									);
-
-									// Try again after undo
-									Process P = Runtime.getRuntime().exec(prelinkVerifyCommand);
-									try {
-										P.getOutputStream().close();
-										byte[] sha256;
-										long fileLen;
-										try (ByteCountInputStream in = new ByteCountInputStream(P.getInputStream())) {
-											sha256 = MessageDigestUtils.hashInput(digest, in);
-											// Use length of unprelinked file
-											fileLen = in.getCount();
-										}
-										if(sha256.length != 32) throw new AssertionError();
-										SB
-											.append(fileLen).append("::int8, ")
-											.append(PersistentCollections.bufferToLong(sha256)).append("::int8, ")
-											.append(PersistentCollections.bufferToLong(sha256, 8)).append("::int8, ")
-											.append(PersistentCollections.bufferToLong(sha256, 16)).append("::int8, ")
-											.append(PersistentCollections.bufferToLong(sha256, 24)).append("::int8");
-									} finally {
-										try {
-											int retCode = P.waitFor();
-											if(retCode != 0) throw new IOException("Non-zero response from command: " + AOServDaemon.getCommandString(prelinkVerifyCommand));
-										} catch(InterruptedException err2) {
-											// Restore the interrupted status
-											Thread.currentThread().interrupt();
-											IOException ioErr = new InterruptedIOException();
-											ioErr.initCause(err2);
-											throw ioErr;
-										}
-									}
-								}
-								 */
+									},
+									"/usr/sbin/chroot",
+									chroot,
+									"/usr/sbin/prelink",
+									"--verify",
+									osFilename.filename
+								);
 							} else throw new RuntimeException("Unexpected value for type: " + type);
 						} else {
 							if(storeSize) {

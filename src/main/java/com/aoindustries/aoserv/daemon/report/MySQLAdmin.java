@@ -23,12 +23,12 @@
 package com.aoindustries.aoserv.daemon.report;
 
 import com.aoindustries.aoserv.client.net.IpAddress;
+import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.lang.Strings;
 import com.aoindustries.util.ErrorPrinter;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.InterruptedIOException;
 
 /**
  * Encapsulates the output of the /usr/bin/mysqladmin command.
@@ -50,7 +50,12 @@ final public class MySQLAdmin extends DBReportData {
 		String user = "TODO"; // AOServDaemonConfiguration.getMySqlUser();
 		String password = "TODO"; // AOServDaemonConfiguration.getMySqlPassword();
 		if(user!=null && user.length()>0 && password!=null && password.length()>0) {
-			String[] cmd={
+			String line = AOServDaemon.execCall(
+				stdout -> {
+					try (BufferedReader lineIn = new BufferedReader(new InputStreamReader(stdout))) {
+						return lineIn.readLine();
+					}
+				},
 				"/usr/bin/mysqladmin",
 				"-h",
 				IpAddress.LOOPBACK_IP,
@@ -58,25 +63,7 @@ final public class MySQLAdmin extends DBReportData {
 				user,
 				"--password="+password,
 				"status"
-			};
-			String line;
-			Process P=Runtime.getRuntime().exec(cmd);
-			try {
-				P.getOutputStream().close();
-				try (BufferedReader in = new BufferedReader(new InputStreamReader(P.getInputStream()))) {
-					line = in.readLine();
-				}
-			} finally {
-				try {
-					int retCode=P.waitFor();
-					if(retCode!=0) throw new IOException("/usr/bin/mysqladmin returned with non-zero status: "+retCode);
-				} catch(InterruptedException err) {
-					InterruptedIOException ioErr=new InterruptedIOException();
-					ioErr.initCause(err);
-					throw ioErr;
-				}
-			}
-
+			);
 			// Parse out the number of users
 			String[] words = Strings.split(line);
 			numUsers=Integer.parseInt(words[3]);
