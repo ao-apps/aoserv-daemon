@@ -709,7 +709,10 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_37) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
-			} else if(rpmVersion.equals("9.0.40")) {
+			} else if(
+				rpmVersion.equals("9.0.40")
+				|| rpmVersion.equals("9.0.41")
+			) {
 				UpgradeSymlink[] upgradeSymlinks_9_0_40 = {
 					// ecj-4.15.jar.jar -> ecj-4.17.jar
 					new UpgradeSymlink(

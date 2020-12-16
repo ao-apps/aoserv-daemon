@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2020-12-15T19:18:32-06:00"
+		dateModified="2020-12-15T21:42:31-06:00"
 	>
 		<c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
 			<changelog:release
@@ -48,7 +48,6 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 				scmUrl="@{project.scm.url}"
 			>
 				<ul>
-					<li>Added support for Apache Tomcat 7.0.107.</li>
 					<li>Added support for <ao:a href="https://www.php.net/releases/8.0/">PHP 8.0</ao:a>.</li>
 					<li>Added missing newline in server.xml generator.</li>
 					<li>
@@ -61,6 +60,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 						logging standard error output, and including the standard error in exceptions.  This should help
 						us in resolving some scripts that work from command line, but not when called by the daemon.
 					</li>
+					<li>Added support for Apache Tomcat 7.0.107, 8.5.61, and 9.0.41.</li>
 				</ul>
 			</changelog:release>
 		</c:if>
