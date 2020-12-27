@@ -31,6 +31,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.net.InetAddress;
+import com.aoindustries.util.ErrorPrinter;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -83,64 +84,81 @@ final public class MySQLHostManager extends BuilderThread {
 						boolean modified = false;
 						// Get the connection to work through
 						try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection()) {
-							// Get the list of all existing hosts
-							Set<String> existing = new HashSet<>();
-							try (
-								Statement stmt = conn.createStatement();
-								ResultSet results = stmt.executeQuery("SELECT host FROM host")
-							) {
-								while (results.next()) {
-									String host = results.getString(1);
-									if(!existing.add(host)) throw new SQLException("Duplicate host: " + host);
+							try {
+								// Get the list of all existing hosts
+								Set<String> existing = new HashSet<>();
+								String currentSQL = null;
+								try (
+									Statement stmt = conn.createStatement();
+									ResultSet results = stmt.executeQuery(currentSQL = "SELECT host FROM host")
+								) {
+									while (results.next()) {
+										String host = results.getString(1);
+										if(!existing.add(host)) throw new SQLException("Duplicate host: " + host);
+									}
+								} catch(Error | RuntimeException | SQLException e) {
+									ErrorPrinter.addSQL(e, currentSQL);
+									throw e;
 								}
-							}
 
-							// Get the list of all hosts that should exist
-							Set<String> hosts=new HashSet<>();
-							// Always include loopback, just in case of data errors
-							hosts.add(IpAddress.LOOPBACK_IP);
-							hosts.add("localhost");
-							hosts.add("localhost.localdomain");
-							// Include all of the local IP addresses
-							for(Device nd : thisServer.getHost().getNetDevices()) {
-								for(IpAddress ia : nd.getIPAddresses()) {
-									InetAddress ip = ia.getInetAddress();
-									if(!ip.isUnspecified()) {
-										String ipString = ip.toString();
-										if(!hosts.contains(ipString)) hosts.add(ipString);
+								// Get the list of all hosts that should exist
+								Set<String> hosts=new HashSet<>();
+								// Always include loopback, just in case of data errors
+								hosts.add(IpAddress.LOOPBACK_IP);
+								hosts.add("localhost");
+								hosts.add("localhost.localdomain");
+								// Include all of the local IP addresses
+								for(Device nd : thisServer.getHost().getNetDevices()) {
+									for(IpAddress ia : nd.getIPAddresses()) {
+										InetAddress ip = ia.getInetAddress();
+										if(!ip.isUnspecified()) {
+											String ipString = ip.toString();
+											if(!hosts.contains(ipString)) hosts.add(ipString);
+										}
 									}
 								}
-							}
 
-							// Add the hosts that do not exist and should
-							String insertSQL;
-							if(version.startsWith(Server.VERSION_4_0_PREFIX))      insertSQL = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
-							else if(version.startsWith(Server.VERSION_4_1_PREFIX)) insertSQL = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
-							else if(version.startsWith(Server.VERSION_5_0_PREFIX)) insertSQL = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
-							else if(version.startsWith(Server.VERSION_5_1_PREFIX)) insertSQL = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
-							else throw new SQLException("Unsupported MySQL version: "+version);
+								// Add the hosts that do not exist and should
+								String insertSQL;
+								if(version.startsWith(Server.VERSION_4_0_PREFIX))      insertSQL = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
+								else if(version.startsWith(Server.VERSION_4_1_PREFIX)) insertSQL = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y')";
+								else if(version.startsWith(Server.VERSION_5_0_PREFIX)) insertSQL = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
+								else if(version.startsWith(Server.VERSION_5_1_PREFIX)) insertSQL = "INSERT INTO host VALUES (?, '%', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y')";
+								else throw new SQLException("Unsupported MySQL version: "+version);
 
-							try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
-								for (String hostname : hosts) {
-									if(!existing.remove(hostname)) {
-										// Add the host
-										pstmt.setString(1, hostname);
-										pstmt.executeUpdate();
-										modified = true;
+								currentSQL = null;
+								try (PreparedStatement pstmt = conn.prepareStatement(currentSQL = insertSQL)) {
+									for (String hostname : hosts) {
+										if(!existing.remove(hostname)) {
+											// Add the host
+											pstmt.setString(1, hostname);
+											pstmt.executeUpdate();
+											modified = true;
+										}
 									}
+								} catch(Error | RuntimeException | SQLException e) {
+									ErrorPrinter.addSQL(e, currentSQL);
+									throw e;
 								}
-							}
 
-							// Remove the extra hosts
-							if (!existing.isEmpty()) {
-								try (PreparedStatement pstmt = conn.prepareStatement("DELETE FROM host WHERE host=?")) {
-									for (String dbName : existing) {
-										// Remove the extra host entry
-										pstmt.setString(1, dbName);
-										pstmt.executeUpdate();
+								// Remove the extra hosts
+								if (!existing.isEmpty()) {
+									currentSQL = null;
+									try (PreparedStatement pstmt = conn.prepareStatement(currentSQL = "DELETE FROM host WHERE host=?")) {
+										for (String dbName : existing) {
+											// Remove the extra host entry
+											pstmt.setString(1, dbName);
+											pstmt.executeUpdate();
+										}
+									} catch(Error | RuntimeException | SQLException e) {
+										ErrorPrinter.addSQL(e, currentSQL);
+										throw e;
 									}
+									modified = true;
 								}
-								modified = true;
+							} catch(SQLException e) {
+								conn.abort(AOServDaemon.executorService);
+								throw e;
 							}
 						}
 						if(modified) MySQLServerManager.flushPrivileges(mysqlServer);

@@ -224,11 +224,17 @@ final public class MySQLServerManager extends BuilderThread {
 
 			synchronized(flushLock) {
 				try (Connection conn = getPool().getConnection()) {
-					Statement stmt=conn.createStatement();
 					try {
-						stmt.executeUpdate("flush privileges");
-					} finally {
-						stmt.close();
+						String currentSQL = null;
+						try (Statement stmt = conn.createStatement()) {
+							stmt.executeUpdate(currentSQL = "flush privileges");
+						} catch(Error | RuntimeException | SQLException e) {
+							ErrorPrinter.addSQL(e, currentSQL);
+							throw e;
+						}
+					} catch(SQLException e) {
+						conn.abort(AOServDaemon.executorService);
+						throw e;
 					}
 				}
 			}

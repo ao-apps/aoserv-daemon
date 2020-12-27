@@ -41,6 +41,7 @@ import com.aoindustries.net.Port;
 import com.aoindustries.tempfiles.TempFile;
 import com.aoindustries.tempfiles.TempFileContext;
 import com.aoindustries.util.BufferManager;
+import com.aoindustries.util.ErrorPrinter;
 import com.aoindustries.util.PropertiesUtils;
 import com.aoindustries.util.concurrent.ExecutionExceptions;
 import com.aoindustries.validation.ValidationException;
@@ -147,65 +148,74 @@ final public class MySQLDatabaseManager extends BuilderThread {
 							boolean modified = false;
 							// Get the connection to work through
 							try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection()) {
-								// Get the list of all existing databases
-								Set<Database.Name> existing = new HashSet<>();
-								try (Statement stmt = conn.createStatement()) {
-									try (ResultSet results = stmt.executeQuery("SHOW DATABASES")) {
-										while(results.next()) {
-											try {
-												Database.Name name = Database.Name.valueOf(results.getString(1));
-												if(!existing.add(name)) throw new SQLException("Duplicate database name: " + name);
-											} catch(ValidationException e) {
-												throw new SQLException(e);
+								try {
+									// Get the list of all existing databases
+									Set<Database.Name> existing = new HashSet<>();
+									String currentSQL = null;
+									try (Statement stmt = conn.createStatement()) {
+										try (ResultSet results = stmt.executeQuery(currentSQL = "SHOW DATABASES")) {
+											while(results.next()) {
+												try {
+													Database.Name name = Database.Name.valueOf(results.getString(1));
+													if(!existing.add(name)) throw new SQLException("Duplicate database name: " + name);
+												} catch(ValidationException e) {
+													throw new SQLException(e);
+												}
 											}
 										}
-									}
 
-									// Create the databases that do not exist and should
-									for(Database database : databases) {
-										Database.Name name = database.getName();
-										if(!existing.remove(name)) {
-											if(database.isSpecial()) {
+										// Create the databases that do not exist and should
+										for(Database database : databases) {
+											Database.Name name = database.getName();
+											if(!existing.remove(name)) {
+												if(database.isSpecial()) {
+													logger.log(
+														Level.WARNING,
+														null,
+														new SQLException("Refusing to create special database: " + name + " on " + mysqlServer.getName())
+													);
+												} else {
+													// Create the database
+													stmt.executeUpdate(currentSQL = "CREATE DATABASE `" + name + '`');
+													modified = true;
+												}
+											}
+										}
+
+										// Remove the extra databases
+										for(Database.Name dbName : existing) {
+											if(systemDatabases.contains(dbName)) {
 												logger.log(
 													Level.WARNING,
 													null,
-													new SQLException("Refusing to create special database: " + name + " on " + mysqlServer.getName())
+													new SQLException("Refusing to drop system database: " + dbName + " on " + mysqlServer.getName())
+												);
+											} else if(Database.isSpecial(dbName)) {
+												logger.log(
+													Level.WARNING,
+													null,
+													new SQLException("Refusing to drop special database: " + dbName + " on " + mysqlServer.getName())
 												);
 											} else {
-												// Create the database
-												stmt.executeUpdate("CREATE DATABASE `" + name + '`');
+												// Dump database before dropping
+												dumpDatabase(
+													mysqlServer,
+													dbName,
+													BackupManager.getNextBackupFile("-mysql-" + mysqlServer.getName()+"-"+dbName+".sql.gz"),
+													true
+												);
+												// Now drop
+												stmt.executeUpdate(currentSQL = "DROP DATABASE `" + dbName + '`');
 												modified = true;
 											}
 										}
+									} catch(Error | RuntimeException | SQLException e) {
+										ErrorPrinter.addSQL(e, currentSQL);
+										throw e;
 									}
-
-									// Remove the extra databases
-									for(Database.Name dbName : existing) {
-										if(systemDatabases.contains(dbName)) {
-											logger.log(
-												Level.WARNING,
-												null,
-												new SQLException("Refusing to drop system database: " + dbName + " on " + mysqlServer.getName())
-											);
-										} else if(Database.isSpecial(dbName)) {
-											logger.log(
-												Level.WARNING,
-												null,
-												new SQLException("Refusing to drop special database: " + dbName + " on " + mysqlServer.getName())
-											);
-										} else {
-											// Dump database before dropping
-											dumpDatabase(
-												mysqlServer,
-												dbName,
-												BackupManager.getNextBackupFile("-mysql-" + mysqlServer.getName()+"-"+dbName+".sql.gz"),
-												true
-											);
-											// Now drop
-											stmt.executeUpdate("DROP DATABASE `" + dbName + '`');
-											modified = true;
-										}
-									}
+								} catch(SQLException e) {
+									conn.abort(AOServDaemon.executorService);
+									throw e;
 								}
 							}
 							if(modified) MySQLServerManager.flushPrivileges(mysqlServer);
@@ -351,17 +361,26 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		if(ms == null) throw new SQLException("Unable to find Server: " + mysqlServer);
 
 		try (Connection conn = MySQLServerManager.getPool(ms).getConnection(true)) {
-			try (
-				Statement stmt = conn.createStatement();
-				ResultSet results = stmt.executeQuery("SHOW MASTER STATUS")
-			) {
-				if(results.next()) {
-					out.write(AOServDaemonProtocol.NEXT);
-					out.writeNullUTF(results.getString("File"));
-					out.writeNullUTF(results.getString("Position"));
-				} else {
-					out.write(AOServDaemonProtocol.DONE);
+			try {
+				String currentSQL = null;
+				try (
+					Statement stmt = conn.createStatement();
+					ResultSet results = stmt.executeQuery(currentSQL = "SHOW MASTER STATUS")
+				) {
+					if(results.next()) {
+						out.write(AOServDaemonProtocol.NEXT);
+						out.writeNullUTF(results.getString("File"));
+						out.writeNullUTF(results.getString("Position"));
+					} else {
+						out.write(AOServDaemonProtocol.DONE);
+					}
+				} catch(Error | RuntimeException | SQLException e) {
+					ErrorPrinter.addSQL(e, currentSQL);
+					throw e;
 				}
+			} catch(SQLException e) {
+				conn.abort(AOServDaemon.executorService);
+				throw e;
 			}
 		}
 	}
@@ -441,29 +460,39 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	}
 
 	public static void getSlaveStatus(PosixPath failoverRoot, int nestedOperatingSystemVersion, Server.Name serverName, Port port, StreamableOutput out) throws IOException, SQLException {
-		try (
-			Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, serverName, port);
-			Statement stmt = conn.createStatement();
-			ResultSet results = stmt.executeQuery("SHOW SLAVE STATUS")
-		) {
-			if(results.next()) {
-				out.write(AOServDaemonProtocol.NEXT);
-				out.writeNullUTF(results.getString("Slave_IO_State"));
-				out.writeNullUTF(results.getString("Master_Log_File"));
-				out.writeNullUTF(results.getString("Read_Master_Log_Pos"));
-				out.writeNullUTF(results.getString("Relay_Log_File"));
-				out.writeNullUTF(results.getString("Relay_Log_Pos"));
-				out.writeNullUTF(results.getString("Relay_Master_Log_File"));
-				out.writeNullUTF(results.getString("Slave_IO_Running"));
-				out.writeNullUTF(results.getString("Slave_SQL_Running"));
-				out.writeNullUTF(results.getString("Last_Errno"));
-				out.writeNullUTF(results.getString("Last_Error"));
-				out.writeNullUTF(results.getString("Skip_Counter"));
-				out.writeNullUTF(results.getString("Exec_Master_Log_Pos"));
-				out.writeNullUTF(results.getString("Relay_Log_Space"));
-				out.writeNullUTF(results.getString("Seconds_Behind_Master"));
-			} else {
-				out.write(AOServDaemonProtocol.DONE);
+		try (Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, serverName, port)) {
+			try {
+				String currentSQL = null;
+				try (
+					Statement stmt = conn.createStatement();
+					ResultSet results = stmt.executeQuery(currentSQL = "SHOW SLAVE STATUS")
+				) {
+					if(results.next()) {
+						out.write(AOServDaemonProtocol.NEXT);
+						out.writeNullUTF(results.getString("Slave_IO_State"));
+						out.writeNullUTF(results.getString("Master_Log_File"));
+						out.writeNullUTF(results.getString("Read_Master_Log_Pos"));
+						out.writeNullUTF(results.getString("Relay_Log_File"));
+						out.writeNullUTF(results.getString("Relay_Log_Pos"));
+						out.writeNullUTF(results.getString("Relay_Master_Log_File"));
+						out.writeNullUTF(results.getString("Slave_IO_Running"));
+						out.writeNullUTF(results.getString("Slave_SQL_Running"));
+						out.writeNullUTF(results.getString("Last_Errno"));
+						out.writeNullUTF(results.getString("Last_Error"));
+						out.writeNullUTF(results.getString("Skip_Counter"));
+						out.writeNullUTF(results.getString("Exec_Master_Log_Pos"));
+						out.writeNullUTF(results.getString("Relay_Log_Space"));
+						out.writeNullUTF(results.getString("Seconds_Behind_Master"));
+					} else {
+						out.write(AOServDaemonProtocol.DONE);
+					}
+				} catch(Error | RuntimeException | SQLException e) {
+					ErrorPrinter.addSQL(e, currentSQL);
+					throw e;
+				}
+			} catch(SQLException e) {
+				conn.abort(AOServDaemon.executorService);
+				throw e;
 			}
 		}
 	}
@@ -523,75 +552,83 @@ final public class MySQLDatabaseManager extends BuilderThread {
 				),
 				() -> {
 					List<Database.TableStatus> statuses = new ArrayList<>();
-					try (
-						Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, serverName, port);
-						Statement stmt = conn.createStatement()
-					) {
-						boolean isMySQL40;
-						try (ResultSet results = stmt.executeQuery("SELECT VERSION()")) {
-							if(!results.next()) throw new SQLException("No row returned");
-							isMySQL40 = results.getString(1).startsWith(Server.VERSION_4_0_PREFIX);
-						}
-						try (ResultSet results = stmt.executeQuery("SHOW TABLE STATUS FROM `" + databaseName + '`')) {
-							while(results.next()) {
-								String engine = results.getString(isMySQL40 ? "Type" : "Engine");
-								Integer version;
-								if(isMySQL40) {
-									version = null;
-								} else {
-									version = results.getInt("Version");
-									if(results.wasNull()) version = null;
+					try (Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, serverName, port)) {
+						try {
+							String currentSQL = null;
+							try (Statement stmt = conn.createStatement()) {
+								boolean isMySQL40;
+								try (ResultSet results = stmt.executeQuery(currentSQL = "SELECT VERSION()")) {
+									if(!results.next()) throw new SQLException("No row returned");
+									isMySQL40 = results.getString(1).startsWith(Server.VERSION_4_0_PREFIX);
 								}
-								String rowFormat = results.getString("Row_format");
-								Long rows = results.getLong("Rows");
-								if(results.wasNull()) rows = null;
-								Long avgRowLength = results.getLong("Avg_row_length");
-								if(results.wasNull()) avgRowLength = null;
-								Long dataLength = results.getLong("Data_length");
-								if(results.wasNull()) dataLength = null;
-								Long maxDataLength = results.getLong("Max_data_length");
-								if(results.wasNull()) maxDataLength = null;
-								Long indexLength = results.getLong("Index_length");
-								if(results.wasNull()) indexLength = null;
-								Long dataFree = results.getLong("Data_free");
-								if(results.wasNull()) dataFree = null;
-								Long autoIncrement = results.getLong("Auto_increment");
-								if(results.wasNull()) autoIncrement = null;
-								String collation;
-								if(isMySQL40) {
-									collation = null;
-								} else {
-									collation = results.getString("Collation");
+								try (ResultSet results = stmt.executeQuery(currentSQL = "SHOW TABLE STATUS FROM `" + databaseName + '`')) {
+									while(results.next()) {
+										String engine = results.getString(isMySQL40 ? "Type" : "Engine");
+										Integer version;
+										if(isMySQL40) {
+											version = null;
+										} else {
+											version = results.getInt("Version");
+											if(results.wasNull()) version = null;
+										}
+										String rowFormat = results.getString("Row_format");
+										Long rows = results.getLong("Rows");
+										if(results.wasNull()) rows = null;
+										Long avgRowLength = results.getLong("Avg_row_length");
+										if(results.wasNull()) avgRowLength = null;
+										Long dataLength = results.getLong("Data_length");
+										if(results.wasNull()) dataLength = null;
+										Long maxDataLength = results.getLong("Max_data_length");
+										if(results.wasNull()) maxDataLength = null;
+										Long indexLength = results.getLong("Index_length");
+										if(results.wasNull()) indexLength = null;
+										Long dataFree = results.getLong("Data_free");
+										if(results.wasNull()) dataFree = null;
+										Long autoIncrement = results.getLong("Auto_increment");
+										if(results.wasNull()) autoIncrement = null;
+										String collation;
+										if(isMySQL40) {
+											collation = null;
+										} else {
+											collation = results.getString("Collation");
+										}
+										try {
+											statuses.add(
+												new Database.TableStatus(
+													Table_Name.valueOf(results.getString("Name")),
+													engine==null ? null : Database.Engine.valueOf(engine),
+													version,
+													rowFormat==null ? null : Database.TableStatus.RowFormat.valueOf(rowFormat),
+													rows,
+													avgRowLength,
+													dataLength,
+													maxDataLength,
+													indexLength,
+													dataFree,
+													autoIncrement,
+													results.getString("Create_time"),
+													isMySQL40 ? null : results.getString("Update_time"),
+													results.getString("Check_time"),
+													collation==null ? null : Database.TableStatus.Collation.valueOf(collation),
+													isMySQL40 ? null : results.getString("Checksum"),
+													results.getString("Create_options"),
+													results.getString("Comment")
+												)
+											);
+										} catch(ValidationException e) {
+											throw new SQLException(e);
+										} catch(IllegalArgumentException err) {
+											throw new IOException(err);
+										}
+									}
 								}
-								try {
-									statuses.add(
-										new Database.TableStatus(
-											Table_Name.valueOf(results.getString("Name")),
-											engine==null ? null : Database.Engine.valueOf(engine),
-											version,
-											rowFormat==null ? null : Database.TableStatus.RowFormat.valueOf(rowFormat),
-											rows,
-											avgRowLength,
-											dataLength,
-											maxDataLength,
-											indexLength,
-											dataFree,
-											autoIncrement,
-											results.getString("Create_time"),
-											isMySQL40 ? null : results.getString("Update_time"),
-											results.getString("Check_time"),
-											collation==null ? null : Database.TableStatus.Collation.valueOf(collation),
-											isMySQL40 ? null : results.getString("Checksum"),
-											results.getString("Create_options"),
-											results.getString("Comment")
-										)
-									);
-								} catch(ValidationException e) {
-									throw new SQLException(e);
-								} catch(IllegalArgumentException err) {
-									throw new IOException(err);
-								}
+							} catch(Error | RuntimeException | SQLException e) {
+								ErrorPrinter.addSQL(e, currentSQL);
+								throw e;
 							}
+						} catch(SQLException e) {
+							conn.abort(AOServDaemon.executorService);
+							throw e;
 						}
 					}
 					return Collections.unmodifiableList(statuses);
@@ -718,34 +755,44 @@ final public class MySQLDatabaseManager extends BuilderThread {
 								() -> {
 									final String dbNamePrefix = databaseName.toString()+'.';
 									final long startTime = System.currentTimeMillis();
-									try (
-										Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, serverName, port);
-										Statement stmt = conn.createStatement();
-										ResultSet results = stmt.executeQuery("CHECK TABLE `" + databaseName + "`.`" + tableName + "` FAST QUICK")
-									) {
-										long duration = System.currentTimeMillis() - startTime;
-										if(duration<0) duration = 0; // System time possibly reset
-										final List<Database.CheckTableResult> tableResults = new ArrayList<>();
-										while(results.next()) {
-											try {
-												String table = results.getString("Table");
-												if(table.startsWith(dbNamePrefix)) table = table.substring(dbNamePrefix.length());
-												final String msgType = results.getString("Msg_type");
-												tableResults.add(
-													new Database.CheckTableResult(
-														Table_Name.valueOf(table),
-														duration,
-														msgType==null ? null : Database.CheckTableResult.MsgType.valueOf(msgType),
-														results.getString("Msg_text")
-													)
-												);
-											} catch(ValidationException e) {
-												throw new SQLException(e);
-											} catch(IllegalArgumentException err) {
-												throw new IOException(err);
+									try (Connection conn = getMySQLConnection(failoverRoot, nestedOperatingSystemVersion, serverName, port)) {
+										try {
+											String currentSQL = null;
+											try (
+												Statement stmt = conn.createStatement();
+												ResultSet results = stmt.executeQuery(currentSQL = "CHECK TABLE `" + databaseName + "`.`" + tableName + "` FAST QUICK")
+											) {
+												long duration = System.currentTimeMillis() - startTime;
+												if(duration<0) duration = 0; // System time possibly reset
+												final List<Database.CheckTableResult> tableResults = new ArrayList<>();
+												while(results.next()) {
+													try {
+														String table = results.getString("Table");
+														if(table.startsWith(dbNamePrefix)) table = table.substring(dbNamePrefix.length());
+														final String msgType = results.getString("Msg_type");
+														tableResults.add(
+															new Database.CheckTableResult(
+																Table_Name.valueOf(table),
+																duration,
+																msgType==null ? null : Database.CheckTableResult.MsgType.valueOf(msgType),
+																results.getString("Msg_text")
+															)
+														);
+													} catch(ValidationException e) {
+														throw new SQLException(e);
+													} catch(IllegalArgumentException err) {
+														throw new IOException(err);
+													}
+												}
+												return tableResults;
+											} catch(Error | RuntimeException | SQLException e) {
+												ErrorPrinter.addSQL(e, currentSQL);
+												throw e;
 											}
+										} catch(SQLException e) {
+											conn.abort(AOServDaemon.executorService);
+											throw e;
 										}
-										return tableResults;
 									}
 								}
 							)

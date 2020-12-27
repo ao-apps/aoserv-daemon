@@ -31,6 +31,7 @@ import com.aoindustries.cron.CronDaemon;
 import com.aoindustries.cron.CronJob;
 import com.aoindustries.cron.Schedule;
 import com.aoindustries.net.Port;
+import com.aoindustries.util.ErrorPrinter;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -124,10 +125,15 @@ final public class MySQLCreditCardScanner implements CronJob {
 						AOServDaemonConfiguration.getMySqlUser(serverName),
 						AOServDaemonConfiguration.getMySqlPassword(serverName)
 					)) {
-						Account account = database.getPackage().getAccount();
-						StringBuilder report = reports.get(account);
-						if(report==null) reports.put(account, report=new StringBuilder());
-						scanForCards(thisServer, mysqlServer, database, conn, name.toString(), report);
+						try {
+							Account account = database.getPackage().getAccount();
+							StringBuilder report = reports.get(account);
+							if(report==null) reports.put(account, report=new StringBuilder());
+							scanForCards(thisServer, mysqlServer, database, conn, name.toString(), report);
+						} catch(SQLException e) {
+							conn.abort(AOServDaemon.executorService);
+							throw e;
+						}
 					}
 				}
 			}
@@ -200,15 +206,19 @@ final public class MySQLCreditCardScanner implements CronJob {
 					// Find total number of rows
 					long rowCount;
 					long ccCount;
+					String currentSQL = null;
 					try (Statement stmt = conn.createStatement()) {
-						try (ResultSet results = stmt.executeQuery("SELECT COUNT(*) FROM `" + table + "`")) {
+						try (ResultSet results = stmt.executeQuery(currentSQL = "SELECT COUNT(*) FROM `" + table + "`")) {
 							if(!results.next()) throw new SQLException("No results returned!");
 							rowCount = results.getLong(1);
 						}
-						try (ResultSet cardnumbers = stmt.executeQuery(buffer.toString())) {
+						try (ResultSet cardnumbers = stmt.executeQuery(currentSQL = buffer.toString())) {
 							if(!cardnumbers.next()) throw new SQLException("No results returned!");
 							ccCount = cardnumbers.getLong(1);
 						}
+					} catch(Error | RuntimeException | SQLException e) {
+						ErrorPrinter.addSQL(e, currentSQL);
+						throw e;
 					}
 					if(ccCount>50 && (ccCount*2)>=rowCount) {
 						report.append('\n')
