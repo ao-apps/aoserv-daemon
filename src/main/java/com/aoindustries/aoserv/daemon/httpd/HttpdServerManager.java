@@ -55,7 +55,7 @@ import com.aoindustries.aoserv.daemon.unix.linux.LinuxProcess;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.collections.AoCollections;
-import com.aoindustries.concurrent.ConcurrencyLimiter;
+import com.aoindustries.concurrent.KeyedConcurrencyReducer;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
@@ -3474,7 +3474,7 @@ public class HttpdServerManager {
 		}
 	}
 
-	private static final ConcurrencyLimiter<Integer,Integer> getHttpdServerConcurrencyLimiter = new ConcurrencyLimiter<>();
+	private static final KeyedConcurrencyReducer<Integer,Integer> getHttpdServerConcurrencyLimiter = new KeyedConcurrencyReducer<>();
 
 	/**
 	 * Gets the current concurrency for an Apache instance.

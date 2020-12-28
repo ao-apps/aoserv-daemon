@@ -34,7 +34,7 @@ import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
-import com.aoindustries.concurrent.ConcurrencyLimiter;
+import com.aoindustries.concurrent.KeyedConcurrencyReducer;
 import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.net.Port;
@@ -539,7 +539,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		}
 	}
 
-	private static final ConcurrencyLimiter<TableStatusConcurrencyKey,List<Database.TableStatus>> tableStatusLimiter = new ConcurrencyLimiter<>();
+	private static final KeyedConcurrencyReducer<TableStatusConcurrencyKey,List<Database.TableStatus>> tableStatusLimiter = new KeyedConcurrencyReducer<>();
 
 	public static void getTableStatus(PosixPath failoverRoot, int nestedOperatingSystemVersion, Server.Name serverName, Port port, Database.Name databaseName, StreamableOutput out) throws IOException, SQLException {
 		List<Database.TableStatus> tableStatuses;
@@ -715,7 +715,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		}
 	}
 
-	private static final ConcurrencyLimiter<CheckTableConcurrencyKey,List<Database.CheckTableResult>> checkTableLimiter = new ConcurrencyLimiter<>();
+	private static final KeyedConcurrencyReducer<CheckTableConcurrencyKey,List<Database.CheckTableResult>> checkTableLimiter = new KeyedConcurrencyReducer<>();
 
 	/**
 	 * Checks all tables, times-out in one minute.

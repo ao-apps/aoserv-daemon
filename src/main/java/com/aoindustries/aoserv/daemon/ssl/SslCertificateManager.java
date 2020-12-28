@@ -41,7 +41,7 @@ import com.aoindustries.aoserv.client.pki.CertificateOtherUse;
 import com.aoindustries.aoserv.client.web.VirtualHost;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.collections.AoCollections;
-import com.aoindustries.concurrent.ConcurrencyLimiter;
+import com.aoindustries.concurrent.KeyedConcurrencyReducer;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.Strings;
@@ -139,6 +139,7 @@ final public class SslCertificateManager {
 			synchronized(getHashedCache) {
 				Tuple2<Long,String> cached = allowCached ? getHashedCache.get(cacheKey) : null;
 				if(cached != null && cached.getElement1() == modifiedTime) return cached.getElement2();
+				@SuppressWarnings("deprecation")
 				String hashed = Strings.convertToHex(
 					MessageDigest.getInstance(ALGORITHM).digest(
 						AOServDaemon.execAndCaptureBytes(command)
@@ -520,7 +521,7 @@ final public class SslCertificateManager {
 		}
 	}
 
-	private static final ConcurrencyLimiter<Tuple2<Certificate,Boolean>,List<Check>> checkSslCertificateConcurrencyLimiter = new ConcurrencyLimiter<>();
+	private static final KeyedConcurrencyReducer<Tuple2<Certificate,Boolean>,List<Check>> checkSslCertificateConcurrencyLimiter = new KeyedConcurrencyReducer<>();
 
 	@SuppressWarnings("null")
 	public static List<Check> checkSslCertificate(Certificate certificate, boolean allowCached) throws IOException, SQLException {
