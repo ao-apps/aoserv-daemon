@@ -145,7 +145,7 @@ final public class HardLinkVarBackup {
 			final String[] iteratorStarts = iteratorStartsList.toArray(new String[numIterators]);
 			final UnixFile[] unixFiles = new UnixFile[numIterators];
 			final String[] relativePaths = new String[numIterators];
-			// For quicker comparisions, matches for lowest relative paths are cached here
+			// For quicker comparisons, matches for lowest relative paths are cached here
 			final boolean[] isLowestRelativePaths = new boolean[numIterators];
 
 			// Save RAM
@@ -168,7 +168,7 @@ final public class HardLinkVarBackup {
 			// During each unique path, the links created are tracked to improve performance when source and destination devices and inodes match
 			final Map<LinkKey,String> links = AoCollections.newHashMap(numIterators);
 
-			// When two files are compared but don't match, they are added here to avoid repetative comparisions for the same device/inode pairs
+			// When two files are compared but don't match, they are added here to avoid repetative comparisons for the same device/inode pairs
 			final Set<LinkKey> contentNotEquals = AoCollections.newHashSet(numIterators);
 
 			long lastDisplayTime = System.currentTimeMillis();
