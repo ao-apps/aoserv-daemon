@@ -250,7 +250,7 @@ abstract class VersionedTomcatStdSiteManager<TC extends VersionedTomcatCommon> e
 					+ "    find \"$TOMCAT_HOME/work/Catalina\" -type f \\( -path '*/org/apache/jsp/*.class' -or -path '*/org/apache/jsp/*.java' \\) -delete\n"
 					+ "    find \"$TOMCAT_HOME/work/Catalina\" -mindepth 1 -type d -empty -delete\n"
 					+ "    # Start Tomcat wrapper in the background\n"
-					+ "    \"$0\" daemon &\n"
+					+ "    nohup \"$0\" daemon </dev/null >&/dev/null &\n"
 					+ "    echo \"$!\" >\"$TOMCAT_HOME/var/run/tomcat.pid\"\n"
 					+ "elif [ \"$1\" = 'stop' ]; then\n"
 					+ "    if [ -f \"$TOMCAT_HOME/var/run/tomcat.pid\" ]; then\n"

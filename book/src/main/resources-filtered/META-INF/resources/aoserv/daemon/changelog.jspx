@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2020-12-30T03:50:31-06:00"
+		dateModified="2020-12-30T10:04:26-06:00"
 	>
 		<c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
 			<changelog:release
@@ -64,6 +64,10 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 					<li>
 						Added support for <ao:a href="https://www.postgresql.org/docs/12/index.html">PostgreSQL 12</ao:a>
 						and <ao:a href="https://www.postgresql.org/docs/13/index.html">PostgreSQL 13</ao:a>.
+					</li>
+					<li>
+						Launching Tomcat daemon wrapper scripts via <code>nohup</code> in order to release terminal.
+						This aids in the scripting of Tomcat restarts.
 					</li>
 				</ul>
 			</changelog:release>
