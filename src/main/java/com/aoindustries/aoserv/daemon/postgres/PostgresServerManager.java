@@ -79,6 +79,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 
 	private static final Object rebuildLock = new Object();
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	protected boolean doRebuild() {
 		try {
 			com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
@@ -125,10 +126,10 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 				// TODO: restart any that need started/restarted
 			}
 			return true;
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 			return false;
 		}
 	}
@@ -165,9 +166,12 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 					|| version.startsWith(Version.VERSION_10 + 'R')
 					|| version.startsWith(Version.VERSION_11 + '.')
 					|| version.startsWith(Version.VERSION_11 + 'R')
+					|| version.startsWith(Version.VERSION_12 + '.')
+					|| version.startsWith(Version.VERSION_12 + 'R')
+					|| version.startsWith(Version.VERSION_13 + '.')
+					|| version.startsWith(Version.VERSION_13 + 'R')
 				) {
 					// Connect to 127.0.0.1 or ::1
-					com.aoindustries.aoserv.client.linux.Server linuxServer = ps.getLinuxServer();
 					StringBuilder jdbcUrlSB = new StringBuilder();
 					jdbcUrlSB.append("jdbc:postgresql://");
 					Bind nb = ps.getBind();
@@ -210,6 +214,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 	}
 
 	private static PostgresServerManager postgresServerManager;
+	@SuppressWarnings("UseOfSystemOutOrSystemErr")
 	public static void start() throws IOException, SQLException {
 		com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
@@ -287,6 +292,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 	 * TODO: Should use standard log file rotation, so configuration still works if aoserv-daemon disabled or removed.
 	 */
 	@Override
+	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch"})
 	public void run(int minute, int hour, int dayOfMonth, int month, int dayOfWeek, int year) {
 		try {
 			AOServConnector conn = AOServDaemon.getConnector();
@@ -368,10 +374,10 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 					}
 				}
 			}
-		} catch(ThreadDeath TD) {
-			throw TD;
-		} catch(Throwable T) {
-			logger.log(Level.SEVERE, null, T);
+		} catch(ThreadDeath td) {
+			throw td;
+		} catch(Throwable t) {
+			logger.log(Level.SEVERE, null, t);
 		}
 	}
 }

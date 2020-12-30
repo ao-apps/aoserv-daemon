@@ -295,6 +295,10 @@ public final class PgHbaManager extends BuilderThread {
 										|| version.startsWith(Version.VERSION_10 + 'R')
 										|| version.startsWith(Version.VERSION_11 + '.')
 										|| version.startsWith(Version.VERSION_11 + 'R')
+										|| version.startsWith(Version.VERSION_12 + '.')
+										|| version.startsWith(Version.VERSION_12 + 'R')
+										|| version.startsWith(Version.VERSION_13 + '.')
+										|| version.startsWith(Version.VERSION_13 + 'R')
 									) {
 										// scram-sha-256 as of PostgreSQL 10
 										boolean isScramSha256 = Version.isScramSha256(version);

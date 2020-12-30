@@ -64,6 +64,7 @@ final public class PostgresUserManager extends BuilderThread {
 
 	/**
 	 * Gets the system roles for a given version of PostgreSQL.
+	 * Compare to <code>select rolname from pg_roles order by rolname;</code>
 	 */
 	private static Set<User.Name> getSystemRoles(String version) {
 		if(
@@ -108,6 +109,10 @@ final public class PostgresUserManager extends BuilderThread {
 		if(
 			version.startsWith(Version.VERSION_11 + '.')
 			|| version.startsWith(Version.VERSION_11 + 'R')
+			|| version.startsWith(Version.VERSION_12 + '.')
+			|| version.startsWith(Version.VERSION_12 + 'R')
+			|| version.startsWith(Version.VERSION_13 + '.')
+			|| version.startsWith(Version.VERSION_13 + 'R')
 		) {
 			return new HashSet<>(Arrays.asList(
 				User.POSTGRES,
@@ -127,32 +132,11 @@ final public class PostgresUserManager extends BuilderThread {
 	}
 
 	private static boolean supportsRoles(String version) {
-		if(
-			version.startsWith(Version.VERSION_7_1 + '.')
-			|| version.startsWith(Version.VERSION_7_2 + '.')
-			|| version.startsWith(Version.VERSION_7_3 + '.')
-			|| version.startsWith(Version.VERSION_8_0 + '.')
-		) {
-			return false;
-		}
-		if(
-			version.startsWith(Version.VERSION_8_1 + '.')
-			|| version.startsWith(Version.VERSION_8_3 + '.')
-			|| version.startsWith(Version.VERSION_8_3 + 'R')
-			|| version.startsWith(Version.VERSION_9_4 + '.')
-			|| version.startsWith(Version.VERSION_9_4 + 'R')
-			|| version.startsWith(Version.VERSION_9_5 + '.')
-			|| version.startsWith(Version.VERSION_9_5 + 'R')
-			|| version.startsWith(Version.VERSION_9_6 + '.')
-			|| version.startsWith(Version.VERSION_9_6 + 'R')
-			|| version.startsWith(Version.VERSION_10 + '.')
-			|| version.startsWith(Version.VERSION_10 + 'R')
-			|| version.startsWith(Version.VERSION_11 + '.')
-			|| version.startsWith(Version.VERSION_11 + 'R')
-		) {
-			return true;
-		}
-		throw new NotImplementedException("TODO: Implement for version " + version);
+		return
+			!version.startsWith(Version.VERSION_7_1 + '.')
+			&& !version.startsWith(Version.VERSION_7_2 + '.')
+			&& !version.startsWith(Version.VERSION_7_3 + '.')
+			&& !version.startsWith(Version.VERSION_8_0 + '.');
 	}
 
 	private static final Object rebuildLock = new Object();
