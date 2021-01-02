@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2005-2013, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2005-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -46,7 +46,6 @@ import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
 import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.io.unix.UnixFile;
-import com.aoindustries.lang.Strings;
 import com.aoindustries.net.InetAddress;
 import com.aoindustries.util.BufferManager;
 import java.io.BufferedReader;
@@ -64,6 +63,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 /**
  * Controls the configuration files for AWStats and provides access to the AWStats system.
@@ -740,7 +740,7 @@ final public class AWStatsManager extends BuilderThread {
 
 		if("awstats.pl".equals(path)) {
 			// Check the queryStrings
-			String escapedSiteName = Strings.replace(siteName, '.', "\\.");
+			String escapedSiteName = Pattern.quote(siteName);
 			if(
 				// Protect for use in '...' below:
 				queryString.indexOf('\'') == -1
@@ -751,14 +751,20 @@ final public class AWStatsManager extends BuilderThread {
 					|| queryString.equals("framename=mainright")
 					|| queryString.equals("framename=mainleft")
 					|| queryString.matches("^framename=mainright&output=\\w*$")
-					|| queryString.matches("^month=\\d*&year=\\d*&output=main&config="+escapedSiteName+"&framename=\\w*$")
-					|| queryString.matches("^month=\\d*&year=\\d*&config="+escapedSiteName+"&framename=\\w*$")
-					|| queryString.matches("^month=\\d*&year=\\d*&config="+escapedSiteName+"&framename=\\w*&output=\\w*$")
-					|| queryString.matches("^hostfilter=(\\w|\\.)*&hostfilterex=(\\w|\\.)*&output=\\w*&config="+escapedSiteName+"&year=\\d*&month=\\d*&framename=\\w*$")
-					|| queryString.matches("^hostfilter=(\\w|\\.)*&hostfilterex=(\\w|\\.)*&output=\\w*&config="+escapedSiteName+"&framename=\\w*$")
-					|| queryString.matches("^urlfilter=(\\w|\\.)*&urlfilterex=(\\w|\\.)*&output=\\w*&config="+escapedSiteName+"&year=\\d*&month=\\d*&framename=\\w*$")
-					|| queryString.matches("^urlfilter=(\\w|\\.)*&urlfilterex=(\\w|\\.)*&output=\\w*&config="+escapedSiteName+"&framename=\\w*$")
-					|| queryString.matches("^month=\\d*&year=\\d*&output=\\w*&config="+escapedSiteName+"&framename=\\w*$")
+					|| queryString.matches(
+						  "^"
+						+ "(databasebreak=(day|hour|month)&)?" // AWStats 7.8 added "databasebreak="
+						+ "month=\\d*&year=\\d*"
+						+ "(&day=\\d*)*"                      // AWStats 7.8 added "day=", but with multiple day parameters
+						+ "(&output=\\w*)?"                   // Sometimes "output=" is here
+						+ "&config=" + escapedSiteName
+						+ "&framename=\\w*"
+						+ "(&output=\\w*)?"                   // Sometimes "output=" is last
+						+ "$"
+					)
+					|| queryString.matches("^hostfilter=(\\w|\\.)*&hostfilterex=(\\w|\\.)*&output=\\w*&config="+escapedSiteName+"(&year=\\d*&month=\\d*)?&framename=\\w*$")
+					|| queryString.matches("^urlfilter=(\\w|\\.)*&urlfilterex=(\\w|\\.)*&output=\\w*&config="+escapedSiteName+"(&year=\\d*&month=\\d*)?&framename=\\w*$")
+					// TODO: refererpagesfilter=sadf+&refererpagesfilterex=asd+f&output=refererpages&config=boxer.aoapps.com&year=2020&month=03&framename=mainright
 				)
 			) {
 				String runascgi;
