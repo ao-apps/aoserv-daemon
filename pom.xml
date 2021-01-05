@@ -117,125 +117,125 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 									<artifactItems>
 										<!-- Direct -->
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>ao-collections</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.aoindustries</groupId><artifactId>ao-collections</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/ao-collections</outputDirectory>
 										</artifactItem>
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>ao-concurrent</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.aoindustries</groupId><artifactId>ao-concurrent</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/ao-concurrent</outputDirectory>
 										</artifactItem>
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>ao-cron</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.aoindustries</groupId><artifactId>ao-cron</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/ao-cron</outputDirectory>
 										</artifactItem>
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>ao-encoding</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.aoindustries</groupId><artifactId>ao-encoding</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/ao-encoding</outputDirectory>
 										</artifactItem>
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>ao-firewalld</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.aoindustries</groupId><artifactId>ao-firewalld</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/ao-firewalld</outputDirectory>
 										</artifactItem>
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>ao-io-filesystems</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.aoindustries</groupId><artifactId>ao-io-filesystems</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/ao-io-filesystems</outputDirectory>
 										</artifactItem>
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>ao-io-filesystems-posix</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.aoindustries</groupId><artifactId>ao-io-filesystems-posix</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/ao-io-filesystems-posix</outputDirectory>
 										</artifactItem>
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>ao-io-unix</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.aoindustries</groupId><artifactId>ao-io-unix</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/ao-io-unix</outputDirectory>
 										</artifactItem>
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>ao-lang</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.aoindustries</groupId><artifactId>ao-lang</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/ao-lang</outputDirectory>
 										</artifactItem>
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>ao-net-types</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.aoindustries</groupId><artifactId>ao-net-types</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/ao-net-types</outputDirectory>
 										</artifactItem>
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>ao-security</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.aoindustries</groupId><artifactId>ao-security</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/ao-security</outputDirectory>
 										</artifactItem>
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>ao-selinux</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.aoindustries</groupId><artifactId>ao-selinux</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/ao-selinux</outputDirectory>
 										</artifactItem>
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>ao-sql</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.aoindustries</groupId><artifactId>ao-sql</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/ao-sql</outputDirectory>
 										</artifactItem>
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>ao-sql-pool</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.aoindustries</groupId><artifactId>ao-sql-pool</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/ao-sql-pool</outputDirectory>
 										</artifactItem>
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>ao-tempfiles</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.aoindustries</groupId><artifactId>ao-tempfiles</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/ao-tempfiles</outputDirectory>
 										</artifactItem>
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>aocode-public</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.aoindustries</groupId><artifactId>aocode-public</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/aocode-public</outputDirectory>
 										</artifactItem>
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>aoserv-backup</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.aoindustries</groupId><artifactId>aoserv-backup</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/aoserv-backup</outputDirectory>
 										</artifactItem>
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>aoserv-client</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.aoindustries</groupId><artifactId>aoserv-client</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/aoserv-client</outputDirectory>
 										</artifactItem>
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/aoserv-daemon-client</outputDirectory>
 										</artifactItem>
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>aoserv-jilter-config</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.aoindustries</groupId><artifactId>aoserv-jilter-config</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/aoserv-jilter-config</outputDirectory>
 										</artifactItem>
 										<artifactItem>
-											<groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/org.apache.commons/commons-lang3</outputDirectory>
 										</artifactItem>
 										<artifactItem>
-											<groupId>com.google.code.gson</groupId><artifactId>gson</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.google.code.gson</groupId><artifactId>gson</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.google.code.gson/gson</outputDirectory>
 										</artifactItem>
 										<!-- ao-javadoc-offline: <groupId>com.sun.mail</groupId><artifactId>javax.mail</artifactId> -->
 										<artifactItem>
-											<groupId>com.aoindustries</groupId><artifactId>noc-monitor-portmon</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>com.aoindustries</groupId><artifactId>noc-monitor-portmon</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/com.aoindustries/noc-monitor-portmon</outputDirectory>
 										</artifactItem>
 										<!-- Test Direct -->
 										<artifactItem>
-											<groupId>junit</groupId><artifactId>junit</artifactId>
-											<classifier>javadoc</classifier><includes>element-list, package-list</includes>
+											<groupId>junit</groupId><artifactId>junit</artifactId><classifier>javadoc</classifier>
+											<includes>element-list, package-list</includes>
 											<outputDirectory>${project.build.directory}/offlineLinks/junit/junit</outputDirectory>
 										</artifactItem>
 									</artifactItems>
