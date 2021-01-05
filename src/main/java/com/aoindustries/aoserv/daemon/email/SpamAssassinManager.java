@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2005-2013, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2005-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -432,6 +432,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 						try {
 							AOServDaemon.suexec(
 								username,
+								new File(oldestLsa.getHome().toString()),
 								command,
 								15
 							);
@@ -441,6 +442,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 								//System.err.println("DEBUG: "+SpamAssassinManager.class.getName()+": processIncomingMessagesCentOs: username="+username+" and command2=\""+command2+"\"");
 								AOServDaemon.suexec(
 									username,
+									new File(oldestLsa.getHome().toString()),
 									command2,
 									15
 								);

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2015, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2015, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -343,13 +343,14 @@ final public class AOServDaemon {
 	public static <V> V execCall(
 		ConsumerE<? super OutputStream, ? extends IOException> stdin,
 		FunctionE<? super InputStream, V, ? extends IOException> stdout,
+		File workingDirectory,
 		String... command
 	) throws IOException {
 		if(DEBUG) {
 			System.out.print("DEBUG: AOServDaemon.execCall(): ");
 			System.out.println(getCommandString(command));
 		}
-		Process process = Runtime.getRuntime().exec(command);
+		Process process = new ProcessBuilder(command).directory(workingDirectory).start();
 		// Read and handle the standard output concurrently
 		Future<V> outputFuture = executorService.submit(() -> {
 			try (InputStream in = process.getInputStream()) {
@@ -437,9 +438,31 @@ final public class AOServDaemon {
 	 * </p>
 	 */
 	@SuppressWarnings("overloads")
+	public static <V> V execCall(
+		ConsumerE<? super OutputStream, ? extends IOException> stdin,
+		FunctionE<? super InputStream, V, ? extends IOException> stdout,
+		String... command
+	) throws IOException {
+		return execCall(stdin, stdout, (File)null, command);
+	}
+
+	/**
+	 * Executes a command, performing any arbitrary action with the command's output stream.
+	 * Command's input is written on the current thread.
+	 * Command's output is read, and handled, on a different thread.
+	 * Command's error output is also read on a different thread.
+	 * <p>
+	 * The command's standard error is logged to {@link System#err}.
+	 * </p>
+	 * <p>
+	 * Any non-zero exit value will result in an exception, including the standard error output when available.
+	 * </p>
+	 */
+	@SuppressWarnings("overloads")
 	public static void execRun(
 		ConsumerE<? super OutputStream, ? extends IOException> stdin,
 		ConsumerE<? super InputStream, ? extends IOException> stdout,
+		File workingDirectory,
 		String... command
 	) throws IOException {
 		execCall(
@@ -448,8 +471,30 @@ final public class AOServDaemon {
 				stdout.accept(_stdout);
 				return null;
 			},
+			workingDirectory,
 			command
 		);
+	}
+
+	/**
+	 * Executes a command, performing any arbitrary action with the command's output stream.
+	 * Command's input is written on the current thread.
+	 * Command's output is read, and handled, on a different thread.
+	 * Command's error output is also read on a different thread.
+	 * <p>
+	 * The command's standard error is logged to {@link System#err}.
+	 * </p>
+	 * <p>
+	 * Any non-zero exit value will result in an exception, including the standard error output when available.
+	 * </p>
+	 */
+	@SuppressWarnings("overloads")
+	public static void execRun(
+		ConsumerE<? super OutputStream, ? extends IOException> stdin,
+		ConsumerE<? super InputStream, ? extends IOException> stdout,
+		String... command
+	) throws IOException {
+		execRun(stdin, stdout, (File)null, command);
 	}
 
 	/**
@@ -468,13 +513,14 @@ final public class AOServDaemon {
 	@SuppressWarnings({"UseSpecificCatch", "TooBroadCatch", "UseOfSystemOutOrSystemErr", "overloads"})
 	public static <V> V execCall(
 		FunctionE<? super InputStream, V, ? extends IOException> stdout,
+		File workingDirectory,
 		String... command
 	) throws IOException {
 		if(DEBUG) {
 			System.out.print("DEBUG: AOServDaemon.execCall(): ");
 			System.out.println(getCommandString(command));
 		}
-		Process process = Runtime.getRuntime().exec(command);
+		Process process = new ProcessBuilder(command).directory(workingDirectory).start();
 		// Read the standard error concurrently
 		Future<String> errorFuture = executorService.submit(() -> {
 			try (Reader errIn = new InputStreamReader(process.getErrorStream())) {
@@ -552,8 +598,29 @@ final public class AOServDaemon {
 	 * </p>
 	 */
 	@SuppressWarnings("overloads")
+	public static <V> V execCall(
+		FunctionE<? super InputStream, V, ? extends IOException> stdout,
+		String... command
+	) throws IOException {
+		return execCall(stdout, (File)null, command);
+	}
+
+	/**
+	 * Executes a command, performing any arbitrary action with the command's output stream.
+	 * Command's input is opened then immediately closed.
+	 * Command's output is read, and handled, on the current thread.
+	 * Command's error output is read on a different thread.
+	 * <p>
+	 * The command's standard error is logged to {@link System#err}.
+	 * </p>
+	 * <p>
+	 * Any non-zero exit value will result in an exception, including the standard error output when available.
+	 * </p>
+	 */
+	@SuppressWarnings("overloads")
 	public static void execRun(
 		ConsumerE<? super InputStream, ? extends IOException> stdout,
+		File workingDirectory,
 		String... command
 	) throws IOException {
 		execCall(
@@ -561,6 +628,40 @@ final public class AOServDaemon {
 				stdout.accept(_stdout);
 				return null;
 			},
+			workingDirectory,
+			command
+		);
+	}
+
+	/**
+	 * Executes a command, performing any arbitrary action with the command's output stream.
+	 * Command's input is opened then immediately closed.
+	 * Command's output is read, and handled, on the current thread.
+	 * Command's error output is read on a different thread.
+	 * <p>
+	 * The command's standard error is logged to {@link System#err}.
+	 * </p>
+	 * <p>
+	 * Any non-zero exit value will result in an exception, including the standard error output when available.
+	 * </p>
+	 */
+	@SuppressWarnings("overloads")
+	public static void execRun(
+		ConsumerE<? super InputStream, ? extends IOException> stdout,
+		String... command
+	) throws IOException {
+		execRun(stdout, (File)null, command);
+	}
+
+	/**
+	 * Executes a command, opens then immediately closes both the command's input and output.
+	 *
+	 * @see  #execRun(com.aoindustries.util.function.ConsumerE, java.lang.String...)
+	 */
+	public static void exec(File workingDirectory, String... command) throws IOException {
+		execRun(
+			stdout -> {}, // Do nothing with the output
+			workingDirectory,
 			command
 		);
 	}
@@ -571,8 +672,20 @@ final public class AOServDaemon {
 	 * @see  #execRun(com.aoindustries.util.function.ConsumerE, java.lang.String...)
 	 */
 	public static void exec(String... command) throws IOException {
-		execRun(
-			stdout -> {}, // Do nothing with the output
+		exec((File)null, command);
+	}
+
+	/**
+	 * Executes a command, opens then immediately closes both the command's input, and captures the output.
+	 */
+	public static String execAndCapture(File workingDirectory, String... command) throws IOException {
+		return execCall(
+			stdout -> {
+				try (Reader in = new InputStreamReader(stdout)) {
+					return IoUtils.readFully(in);
+				}
+			},
+			workingDirectory,
 			command
 		);
 	}
@@ -581,12 +694,16 @@ final public class AOServDaemon {
 	 * Executes a command, opens then immediately closes both the command's input, and captures the output.
 	 */
 	public static String execAndCapture(String... command) throws IOException {
+		return execAndCapture((File)null, command);
+	}
+
+	/**
+	 * Executes a command, opens then immediately closes both the command's input, and captures the output.
+	 */
+	public static byte[] execAndCaptureBytes(File workingDirectory, String... command) throws IOException {
 		return execCall(
-			stdout -> {
-				try (Reader in = new InputStreamReader(stdout)) {
-					return IoUtils.readFully(in);
-				}
-			},
+			stdout -> IoUtils.readFully(stdout),
+			workingDirectory,
 			command
 		);
 	}
@@ -595,10 +712,7 @@ final public class AOServDaemon {
 	 * Executes a command, opens then immediately closes both the command's input, and captures the output.
 	 */
 	public static byte[] execAndCaptureBytes(String... command) throws IOException {
-		return execCall(
-			stdout -> IoUtils.readFully(stdout),
-			command
-		);
+		return execAndCaptureBytes((File)null, command);
 	}
 
 	/**
@@ -606,7 +720,8 @@ final public class AOServDaemon {
 	 * 
 	 * @param  nice  a nice level passed to /bin/nice, a value of zero (0) will cause nice to not be called
 	 */
-	public static void suexec(User.Name username, String command, int nice) throws IOException {
+	// TODO: Use ao-encoding to escape command
+	public static void suexec(User.Name username, File workingDirectory, String command, int nice) throws IOException {
 		/*
 		 * Not needed because command is passed as String[] and any funny stuff will
 		 * be executed as the proper user.
@@ -652,6 +767,6 @@ final public class AOServDaemon {
 				username.toString()
 			};
 		}
-		exec(cmd);
+		exec(workingDirectory, cmd);
 	}
 }

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -72,6 +72,8 @@ import java.util.logging.Logger;
 final public class PostgresDatabaseManager extends BuilderThread implements CronJob {
 
 	private static final Logger logger = Logger.getLogger(PostgresDatabaseManager.class.getName());
+
+	private static final File WORKING_DIRECTORY = new File("/var/lib/pgsql");
 
 	private PostgresDatabaseManager() {
 	}
@@ -229,7 +231,12 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 													version.startsWith("7.")
 													|| version.startsWith("8.")
 												) {
-													AOServDaemon.suexec(com.aoindustries.aoserv.client.linux.User.POSTGRES, createlang + " -p " + port + " plpgsql " + name, 0);
+													AOServDaemon.suexec(
+														com.aoindustries.aoserv.client.linux.User.POSTGRES,
+														WORKING_DIRECTORY,
+														createlang + " -p " + port + " plpgsql " + name,
+														0
+													);
 												}
 												if(
 													version.startsWith(Version.VERSION_7_1 + '.')
@@ -239,11 +246,25 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 													|| version.startsWith(Version.VERSION_8_1 + '.')
 													// Not supported as of 8.3 - it has built-in full text indexing
 												) {
-													AOServDaemon.suexec(com.aoindustries.aoserv.client.linux.User.POSTGRES, psql + " -p " + port + " -c \"create function fti() returns opaque as '" + lib + "/mfti.so' language 'c';\" " + name, 0);
+													AOServDaemon.suexec(
+														com.aoindustries.aoserv.client.linux.User.POSTGRES,
+														WORKING_DIRECTORY,
+														psql + " -p " + port + " -c \"create function fti() returns opaque as '" + lib + "/mfti.so' language 'c';\" " + name,
+														0);
 												}
 												if(database.getEnablePostgis()) {
-													AOServDaemon.suexec(com.aoindustries.aoserv.client.linux.User.POSTGRES, psql + " -p " + port + " " + name + " -f " + share + "/lwpostgis.sql", 0);
-													AOServDaemon.suexec(com.aoindustries.aoserv.client.linux.User.POSTGRES, psql + " -p " + port + " " + name + " -f " + share + "/spatial_ref_sys.sql", 0);
+													AOServDaemon.suexec(
+														com.aoindustries.aoserv.client.linux.User.POSTGRES,
+														WORKING_DIRECTORY,
+														psql + " -p " + port + " " + name + " -f " + share + "/lwpostgis.sql",
+														0
+													);
+													AOServDaemon.suexec(
+														com.aoindustries.aoserv.client.linux.User.POSTGRES,
+														WORKING_DIRECTORY,
+														psql + " -p " + port + " " + name + " -f " + share + "/spatial_ref_sys.sql",
+														0
+													);
 												}
 											} catch(IOException err) {
 												try {

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2013, 2014, 2017, 2018, 2020  AO Industries, Inc.
+ * Copyright (C) 2013, 2014, 2017, 2018, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -355,7 +355,7 @@ final public class NetworkMonitor {
 
 							// Make sure libpcap is installed as required by ip_counts
 							PackageManager.installPackage(PackageManager.PackageName.LIBPCAP);
-							final Process process = Runtime.getRuntime().exec(cmd);
+							final Process process = new ProcessBuilder(cmd).start();
 							try {
 								// Log all warnings from ip_counts to stderr
 								final InputStream errorIn = process.getErrorStream();

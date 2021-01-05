@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2007-2013, 2014, 2015, 2017, 2018, 2020  AO Industries, Inc.
+ * Copyright (C) 2007-2013, 2014, 2015, 2017, 2018, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -41,6 +41,7 @@ import com.aoindustries.collections.AoCollections;
 import com.aoindustries.io.FileUtils;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
+import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -142,6 +143,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 		if(pidFile.getStat().exists()) {
 			AOServDaemon.suexec(
 				getStartStopScriptUsername(),
+				getStartStopScriptWorkingDirectory(),
 				getStartStopScriptPath() + " stop",
 				0
 			);
@@ -158,6 +160,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 		if(!pidFile.getStat().exists()) {
 			AOServDaemon.suexec(
 				getStartStopScriptUsername(),
+				getStartStopScriptWorkingDirectory(),
 				getStartStopScriptPath() + " start",
 				0
 			);
@@ -173,6 +176,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 					pidFile.delete();
 					AOServDaemon.suexec(
 						getStartStopScriptUsername(),
+						getStartStopScriptWorkingDirectory(),
 						getStartStopScriptPath() + " start",
 						0
 					);
@@ -256,6 +260,11 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 	 * Gets the username to run the start/stop script as.
 	 */
 	public abstract User.Name getStartStopScriptUsername() throws IOException, SQLException;
+
+	/**
+	 * Gets the working directory to run the start/stop script in.
+	 */
+	public abstract File getStartStopScriptWorkingDirectory() throws IOException, SQLException;
 
 	@Override
 	protected Set<PackageManager.PackageName> getRequiredPackages() throws IOException, SQLException {

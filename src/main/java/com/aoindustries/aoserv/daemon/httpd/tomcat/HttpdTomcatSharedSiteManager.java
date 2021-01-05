@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2007-2013, 2016, 2017, 2018  AO Industries, Inc.
+ * Copyright (C) 2007-2013, 2016, 2017, 2018, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -34,6 +34,7 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.httpd.HttpdOperatingSystemConfiguration;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.validation.ValidationException;
+import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Set;
@@ -117,6 +118,15 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
 	@Override
 	public User.Name getStartStopScriptUsername() throws IOException, SQLException {
 		return tomcatSharedSite.getHttpdSharedTomcat().getLinuxServerAccount().getLinuxAccount_username_id();
+	}
+
+	@Override
+	public File getStartStopScriptWorkingDirectory() throws IOException, SQLException {
+		return new File(
+			HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
+			+ "/"
+			+ tomcatSharedSite.getHttpdSharedTomcat().getName()
+		);
 	}
 
 	@Override

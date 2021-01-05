@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -395,12 +395,21 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 		;
 	}
 
+	public File getStartStopScriptWorkingDirectory() throws IOException, SQLException {
+		return new File(
+			HttpdOperatingSystemConfiguration.getHttpOperatingSystemConfiguration().getHttpdSharedTomcatsDirectory()
+			+ "/"
+			+ sharedTomcat.getName()
+		);
+	}
+
 	@Override
 	public boolean stop() throws IOException, SQLException {
 		UnixFile pidFile = getPidFile();
 		if(pidFile.getStat().exists()) {
 			AOServDaemon.suexec(
 				sharedTomcat.getLinuxServerAccount().getLinuxAccount_username_id(),
+				getStartStopScriptWorkingDirectory(),
 				getStartStopScriptPath()+" stop",
 				0
 			);
@@ -417,6 +426,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 		if(!pidFile.getStat().exists()) {
 			AOServDaemon.suexec(
 				sharedTomcat.getLinuxServerAccount().getLinuxAccount_username_id(),
+				getStartStopScriptWorkingDirectory(),
 				getStartStopScriptPath()+" start",
 				0
 			);
@@ -432,6 +442,7 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 					pidFile.delete();
 					AOServDaemon.suexec(
 						sharedTomcat.getLinuxServerAccount().getLinuxAccount_username_id(),
+						getStartStopScriptWorkingDirectory(),
 						getStartStopScriptPath()+" start",
 						0
 					);
