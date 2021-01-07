@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -36,6 +36,8 @@ import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
 import com.aoindustries.encoding.ChainWriter;
+import com.aoindustries.io.IoUtils;
+import com.aoindustries.io.NullOutputStream;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.Strings;
@@ -266,7 +268,7 @@ public class SmtpRelayManager extends BuilderThread implements Runnable {
 			// access file only built when sendmail installed now: PackageManager.installPackage(PackageManager.PackageName.SENDMAIL);
 			AOServDaemon.execRun(
 				stdin -> stdin.write(accessBytes),
-				stdout -> {}, // Do nothing with the output
+				stdout -> IoUtils.copy(stdout, NullOutputStream.getInstance()), // Do nothing with the output
 				"/usr/sbin/makemap",
 				"hash",
 				NEW_ACCESS_DB.getPath()

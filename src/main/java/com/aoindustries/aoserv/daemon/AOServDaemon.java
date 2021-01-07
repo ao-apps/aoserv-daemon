@@ -71,6 +71,7 @@ import com.aoindustries.aoserv.daemon.timezone.TimeZoneManager;
 import com.aoindustries.aoserv.daemon.unix.linux.LinuxAccountManager;
 import com.aoindustries.exception.ConfigurationException;
 import com.aoindustries.io.IoUtils;
+import com.aoindustries.io.NullOutputStream;
 import com.aoindustries.io.unix.Stat;
 import com.aoindustries.io.unix.UnixFile;
 import com.aoindustries.lang.Throwables;
@@ -654,20 +655,20 @@ final public class AOServDaemon {
 	}
 
 	/**
-	 * Executes a command, opens then immediately closes both the command's input and output.
+	 * Executes a command, opens then immediately closes the command's input, and discards the output.
 	 *
 	 * @see  #execRun(com.aoindustries.util.function.ConsumerE, java.lang.String...)
 	 */
 	public static void exec(File workingDirectory, String... command) throws IOException {
 		execRun(
-			stdout -> {}, // Do nothing with the output
+			stdout -> IoUtils.copy(stdout, NullOutputStream.getInstance()), // Do nothing with the output
 			workingDirectory,
 			command
 		);
 	}
 
 	/**
-	 * Executes a command, opens then immediately closes both the command's input and output.
+	 * Executes a command, opens then immediately closes the command's input, and discards the output.
 	 *
 	 * @see  #execRun(com.aoindustries.util.function.ConsumerE, java.lang.String...)
 	 */
@@ -676,7 +677,7 @@ final public class AOServDaemon {
 	}
 
 	/**
-	 * Executes a command, opens then immediately closes both the command's input, and captures the output.
+	 * Executes a command, opens then immediately closes the command's input, and captures the output.
 	 */
 	public static String execAndCapture(File workingDirectory, String... command) throws IOException {
 		return execCall(
@@ -691,14 +692,14 @@ final public class AOServDaemon {
 	}
 
 	/**
-	 * Executes a command, opens then immediately closes both the command's input, and captures the output.
+	 * Executes a command, opens then immediately closes the command's input, and captures the output.
 	 */
 	public static String execAndCapture(String... command) throws IOException {
 		return execAndCapture((File)null, command);
 	}
 
 	/**
-	 * Executes a command, opens then immediately closes both the command's input, and captures the output.
+	 * Executes a command, opens then immediately closes the command's input, and captures the output.
 	 */
 	public static byte[] execAndCaptureBytes(File workingDirectory, String... command) throws IOException {
 		return execCall(
@@ -709,7 +710,7 @@ final public class AOServDaemon {
 	}
 
 	/**
-	 * Executes a command, opens then immediately closes both the command's input, and captures the output.
+	 * Executes a command, opens then immediately closes the command's input, and captures the output.
 	 */
 	public static byte[] execAndCaptureBytes(String... command) throws IOException {
 		return execAndCaptureBytes((File)null, command);
