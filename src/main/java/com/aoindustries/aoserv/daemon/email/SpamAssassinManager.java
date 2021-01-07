@@ -149,6 +149,11 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 
 	private static final UnixFile spamassassinRcFile = new UnixFile("/etc/rc.d/rc3.d/S78spamassassin");
 
+	/**
+	 * The expected file permissions for IMAP Spool.
+	 */
+	private static final long IMAP_SPOOL_MODE = 0644;
+
 	private SpamAssassinManager() {
 	}
 
@@ -342,6 +347,18 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 														|| (currentTime - timestamp) > 60000
 													) {
 														if(isFilenameOk(userFilename)) {
+															// We're getting files with permissions 0600 still, not sure why.  Fix permissions so accessible
+															long mode = userUfStat.getMode();
+															if(mode != IMAP_SPOOL_MODE) {
+																logger.log(
+																	Level.WARNING,
+																	"Fixing permissions for \"" + userUf.getPath() + "\": "
+																	+ UnixFile.getModeString(mode)
+																	+ " → "
+																	+ UnixFile.getModeString(IMAP_SPOOL_MODE)
+																);
+																userUf.setMode(IMAP_SPOOL_MODE);
+															}
 															readyMap.put(userUf, timestamp);
 
 															// Is the oldest?
