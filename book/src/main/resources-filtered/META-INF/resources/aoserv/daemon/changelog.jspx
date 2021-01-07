@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2021-01-05T01:47:29-06:00"
+		dateModified="2021-01-07T12:44:44-06:00"
 	>
 		<c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
 			<changelog:release
@@ -70,6 +70,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 						This aids in the scripting of Tomcat restarts.
 					</li>
 					<li>Setting working directory on all "su" execs.</li>
+					<li>Fixed bug in Tomcat symlink management that caused excessive Tomcat restarts.</li>
 				</ul>
 			</changelog:release>
 		</c:if>

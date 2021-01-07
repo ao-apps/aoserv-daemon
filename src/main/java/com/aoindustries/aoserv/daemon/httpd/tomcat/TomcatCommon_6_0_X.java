@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2013, 2015, 2016, 2017, 2018, 2020  AO Industries, Inc.
+ * Copyright (C) 2008-2013, 2015, 2016, 2017, 2018, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -107,31 +107,19 @@ class TomcatCommon_6_0_X extends TomcatCommon {
 					new UpgradeSymlink(
 						"lib/ecj-4.2.2.jar",
 						"../" + optSlash + "apache-tomcat-6.0/lib/ecj-4.2.2.jar",
-						null
-					),
-					new UpgradeSymlink(
 						"lib/ecj-4.3.1.jar",
-						null,
 						"../" + optSlash + "apache-tomcat-6.0/lib/ecj-4.3.1.jar"
 					),
 					new UpgradeSymlink(
 						"lib/mysql-connector-java-5.1.25-bin.jar",
 						"../" + optSlash + "apache-tomcat-6.0/lib/mysql-connector-java-5.1.25-bin.jar",
-						null
-					),
-					new UpgradeSymlink(
 						"lib/mysql-connector-java-5.1.38-bin.jar",
-						null,
 						"../" + optSlash + "apache-tomcat-6.0/lib/mysql-connector-java-5.1.38-bin.jar"
 					),
 					new UpgradeSymlink(
 						"lib/postgresql-9.2-1003.jdbc4.jar",
 						"../" + optSlash + "apache-tomcat-6.0/lib/postgresql-9.2-1003.jdbc4.jar",
-						null
-					),
-					new UpgradeSymlink(
 						"lib/postgresql-9.4.1208.jre6.jar",
-						null,
 						"../" + optSlash + "apache-tomcat-6.0/lib/postgresql-9.4.1208.jre6.jar"
 					)
 				};
