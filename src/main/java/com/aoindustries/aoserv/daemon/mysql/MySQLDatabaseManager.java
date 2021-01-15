@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2002-2013, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2002-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -80,6 +80,8 @@ import java.util.logging.Logger;
 final public class MySQLDatabaseManager extends BuilderThread {
 
 	private static final Logger logger = Logger.getLogger(MySQLDatabaseManager.class.getName());
+
+	private static final File WORKING_DIRECTORY = new File("/var/lib/mysql");
 
 	private MySQLDatabaseManager() {
 	}
@@ -303,7 +305,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 			output.getPath(),
 			Boolean.toString(gzip)
 		};
-		AOServDaemon.exec(command);
+		AOServDaemon.exec(WORKING_DIRECTORY, command);
 		if(output.length() == 0) {
 			throw new SQLException("Empty dump file: " + output + "\nCommand: " + AOServDaemon.getCommandString(command));
 		}

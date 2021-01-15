@@ -403,7 +403,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 			output.getPath(),
 			Boolean.toString(gzip)
 		};
-		AOServDaemon.exec(command);
+		AOServDaemon.exec(WORKING_DIRECTORY, command);
 		if(output.length() == 0) {
 			throw new SQLException("Empty dump file: " + output + "\nCommand: " + AOServDaemon.getCommandString(command));
 		}
