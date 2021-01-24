@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2008-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -667,11 +667,11 @@ public class HttpdServerManager {
 								+ "<IfModule !sapi_apache2.c>\n"
 								+ "    <IfModule !mod_php5.c>\n"
 								+ "        Action php-script /cgi-bin/php\n"
-								// Avoid *.php.txt going to PHP: http://php.net/manual/en/install.unix.apache2.php
+								// Avoid *.php.txt going to PHP: https://www.php.net/manual/en/install.unix.apache2.php
+								//+ "        AddHandler php-script .php\n"
 								+ "        <FilesMatch \\.php$>\n"
 								+ "            SetHandler php-script\n"
 								+ "        </FilesMatch>\n"
-								//+ "        AddHandler php-script .php\n"
 								+ "    </IfModule>\n"
 								+ "</IfModule>\n");
 					}
@@ -866,11 +866,11 @@ public class HttpdServerManager {
 						out
 							.print(indent).print("<IfModule actions_module>\n")
 							.print(indent).print("    Action php-script /cgi-bin/php\n")
-							// Avoid *.php.txt going to PHP: http://php.net/manual/en/install.unix.apache2.php
+							// Avoid *.php.txt going to PHP: https://www.php.net/manual/en/install.unix.apache2.php
+							//+ "            AddHandler php-script .php\n"
 							.print(indent).print("    <FilesMatch \\.php$>\n")
 							.print(indent).print("        SetHandler php-script\n")
 							.print(indent).print("    </FilesMatch>\n")
-							//+ "            AddHandler php-script .php\n"
 							.print(indent).print("</IfModule>\n");
 						for(int i=0; i<modPhpMajorVersions.size(); i++) {
 							indent = indent.substring(0, indent.length() - 4);
@@ -1702,8 +1702,22 @@ public class HttpdServerManager {
 				out.print("\n"
 						+ "# Enable mod_php\n"
 						+ "LoadModule ").print(escape(dollarVariable, "php" + phpMajorVersion + "_module")).print(" ").print(escape(dollarVariable, "/opt/php-" + phpMinorVersion + "-i686/lib/apache/libphp" + phpMajorVersion + ".so")).print("\n"
-						+ "AddType application/x-httpd-php .php\n"
-						+ "AddType application/x-httpd-php-source .phps\n");
+						// Avoid *.php.txt going to PHP: https://www.php.net/manual/en/install.unix.apache2.php
+						//+ "AddType application/x-httpd-php .php\n"
+						//+ "AddType application/x-httpd-php-source .phps\n");
+
+						// TODO: *.phar is not found in SELinux "sudo semanage fcontext -l", enable when first needed
+						//       by a client application, and as a default-off per-site option.
+						//+ "<FilesMatch \\.(php|phar)$>\n" 
+						+ "<FilesMatch \\.php$>\n"
+						+ "    SetHandler application/x-httpd-php\n"
+						+ "</FilesMatch>\n");
+
+						// TODO: Enable .phps when first needed by a client application, and as a default-off per-site option
+						//+ "<FilesMatch \\.phps$>\n"
+						//+ "    SetHandler application/x-httpd-php-source\n"
+						//+ "</FilesMatch>\n"
+
 			}
 			out.print("\n"
 					+ "Include conf/modules_conf/mod_ident\n"
@@ -2537,10 +2551,24 @@ public class HttpdServerManager {
 							+ "<IfModule php").print(phpMajorVersion.equals("8") ? "" : phpMajorVersion).print("_module>\n" // TODO: PHP 9: Avoid duplicates of just "php_module" here
 							+ "    PHPIniDir ").print(escape(dollarVariable, phpIniDir.toString())).print("\n"
 							+ "    php_value session.save_path ").print(escape(dollarVariable, sessionDir.toString())).print("\n"
-							+ "    <IfModule mime_module>\n"
-							+ "        AddType application/x-httpd-php .php\n"
-							+ "        AddType application/x-httpd-php-source .phps\n"
-							+ "    </IfModule>\n"
+							// Avoid *.php.txt going to PHP: https://www.php.net/manual/en/install.unix.apache2.php
+							//+ "    <IfModule mime_module>\n"
+							//+ "        AddType application/x-httpd-php .php\n"
+							//+ "        AddType application/x-httpd-php-source .phps\n"
+							//+ "    </IfModule>\n"
+
+							// TODO: *.phar is not found in SELinux "sudo semanage fcontext -l", enable when first needed
+							//       by a client application, and as a default-off per-site option.
+							//+ "    <FilesMatch \\.(php|phar)$>\n" 
+							+ "    <FilesMatch \\.php$>\n"
+							+ "        SetHandler application/x-httpd-php\n"
+							+ "    </FilesMatch>\n"
+
+							// TODO: Enable .phps when first needed by a client application, and as a default-off per-site option
+							//+ "    <FilesMatch \\.phps$>\n"
+							//+ "        SetHandler application/x-httpd-php-source\n"
+							//+ "    </FilesMatch>\n"
+
 							+ "</IfModule>\n");
 				}
 			}
