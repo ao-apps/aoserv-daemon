@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2006-2013, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2006-2013, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -260,7 +260,7 @@ final public class MySQLServerManager extends BuilderThread {
 				Integer.toString(mysqlServer.getBind().getPort().getPort()),
 				"-u",
 				AOServDaemonConfiguration.getMySqlUser(serverName),
-				"--password=" + AOServDaemonConfiguration.getMySqlPassword(serverName),
+				"--password=" + AOServDaemonConfiguration.getMySqlPassword(serverName), // TODO: use --login-path
 				"reload"
 			);
 		}

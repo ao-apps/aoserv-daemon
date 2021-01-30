@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -61,7 +61,7 @@ final public class MySQLAdmin extends DBReportData {
 				IpAddress.LOOPBACK_IP,
 				"-u",
 				user,
-				"--password="+password,
+				"--password="+password, // TODO: use --login-path
 				"status"
 			);
 			// Parse out the number of users
