@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2014, 2015, 2017, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2014, 2015, 2017, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -27,8 +27,10 @@ import com.aoindustries.collections.AoCollections;
 import com.aoindustries.exception.ConfigurationException;
 import com.aoindustries.io.AOPool;
 import com.aoindustries.lang.Strings;
+import com.aoindustries.security.HashedKey;
 import com.aoindustries.util.PropertiesUtils;
 import java.io.IOException;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -100,6 +102,17 @@ final public class AOServDaemonConfiguration {
 
 	public static String getServerHostname() throws ConfigurationException {
 		return getProperty("server.hostname", "[AO_SERVER_HOSTNAME]", true);
+	}
+
+	private static volatile HashedKey daemonKey;
+	public static HashedKey getDaemonKey() throws ConfigurationException {
+		if(daemonKey == null) {
+			daemonKey = HashedKey.valueOf(
+				HashedKey.Algorithm.SHA_256,
+				Base64.getDecoder().decode(getProperty("daemon_key", "[HASHED_DAEMON_KEY]", true))
+			);
+		}
+		return daemonKey;
 	}
 
 	public static String getSSLKeystorePassword() throws ConfigurationException {
@@ -222,6 +235,7 @@ final public class AOServDaemonConfiguration {
 			return device;
 		}
 
+		@SuppressWarnings("ReturnOfCollectionOrArrayField") // Returning unmodifiable
 		public List<String> getNetworkRanges() {
 			return networkRanges;
 		}

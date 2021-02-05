@@ -1,6 +1,6 @@
 #
 # aoserv-daemon - Server management daemon for the AOServ Platform.
-# Copyright (C) 2001-2006, 2008, 2010, 2013, 2015, 2016, 2019, 2020  AO Industries, Inc.
+# Copyright (C) 2001-2006, 2008, 2010, 2013, 2015, 2016, 2019, 2020, 2021  AO Industries, Inc.
 #     support@aoindustries.com
 #     7262 Bull Pen Cir
 #     Mobile, AL 36695
@@ -34,6 +34,9 @@ aoserv.daemon.monitor.smtp.server=[SMTP_SERVER]
 
 # The hostname of this server
 aoserv.daemon.server.hostname=[AO_SERVER_HOSTNAME]
+
+# The base64-encoded, sha-256 hash of the key the master uses to authenticate to this daemon
+aoserv.daemon.daemon_key=[HASHED_DAEMON_KEY]
 
 # The SSL certificates used
 aoserv.daemon.ssl.keystore.password=[KEYSTORE_PASSWORD]

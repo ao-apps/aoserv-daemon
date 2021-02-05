@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2000-2013, 2014, 2015, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2000-2013, 2014, 2015, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -32,7 +32,6 @@ import com.aoindustries.aoserv.client.mysql.Table_Name;
 import com.aoindustries.aoserv.client.net.Bind;
 import com.aoindustries.aoserv.client.net.Device;
 import com.aoindustries.aoserv.client.pki.Certificate;
-import com.aoindustries.aoserv.client.pki.HashedPassword;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
 import com.aoindustries.aoserv.daemon.client.AOServDaemonProtocol;
 import com.aoindustries.aoserv.daemon.distro.DistroManager;
@@ -63,6 +62,7 @@ import com.aoindustries.io.stream.StreamableOutput;
 import com.aoindustries.net.Port;
 import com.aoindustries.net.Protocol;
 import com.aoindustries.noc.monitor.portmon.PortMonitor;
+import com.aoindustries.security.Key;
 import com.aoindustries.util.Tuple2;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -73,6 +73,7 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -93,6 +94,7 @@ final public class AOServDaemonServerThread extends Thread {
 	 * The set of supported versions, with the most preferred versions first.
 	 */
 	private static final AOServDaemonProtocol.Version[] SUPPORTED_VERSIONS = {
+		AOServDaemonProtocol.Version.VERSION_1_84_13,
 		AOServDaemonProtocol.Version.VERSION_1_84_11,
 		AOServDaemonProtocol.Version.VERSION_1_83_0,
 		AOServDaemonProtocol.Version.VERSION_1_81_10,
@@ -140,12 +142,33 @@ final public class AOServDaemonServerThread extends Thread {
 			final Server thisServer = AOServDaemon.getThisServer();
 
 			final AOServDaemonProtocol.Version protocolVersion;
-			final String daemonKey;
+			final Key daemonKey;
 			{
-				// Write the most preferred version
+				// Read the most preferred version
 				String preferredVersion = in.readUTF();
 				// Then connector key
-				daemonKey = in.readNullUTF();
+				if(
+					preferredVersion.equals(AOServDaemonProtocol.Version.VERSION_1_77.getVersion())
+					|| preferredVersion.equals(AOServDaemonProtocol.Version.VERSION_1_80_0.getVersion())
+					|| preferredVersion.equals(AOServDaemonProtocol.Version.VERSION_1_80_1.getVersion())
+					|| preferredVersion.equals(AOServDaemonProtocol.Version.VERSION_1_81_10.getVersion())
+					|| preferredVersion.equals(AOServDaemonProtocol.Version.VERSION_1_83_0.getVersion())
+					|| preferredVersion.equals(AOServDaemonProtocol.Version.VERSION_1_84_11.getVersion())
+				) {
+					// Clients 1.84.11 and before send String
+					String str = in.readNullUTF();
+					daemonKey = (str == null) ? null : new Key(Base64.getDecoder().decode(str));
+				} else {
+					// Clients 1.84.13 and above send byte[]
+					int len = in.readUnsignedShort();
+					if(len == 0) {
+						daemonKey = null;
+					} else {
+						byte[] bytes = new byte[len];
+						in.readFully(bytes);
+						daemonKey = new Key(bytes);
+					}
+				}
 				// Now additional versions.
 				String[] versions;
 				if(preferredVersion.equals(AOServDaemonProtocol.Version.VERSION_1_77.getVersion())) {
@@ -198,8 +221,7 @@ final public class AOServDaemonServerThread extends Thread {
 				}
 				if(isOK) {
 					// Authenticate the client first
-					HashedPassword correctKey=thisServer.getDaemonKey();
-					if(!correctKey.passwordMatches(daemonKey)) {
+					if(!AOServDaemonConfiguration.getDaemonKey().matches(daemonKey)) {
 						System.err.println("Connection attempted from " + hostAddress + " with invalid key: " + daemonKey);
 						out.writeBoolean(false);
 						out.flush();

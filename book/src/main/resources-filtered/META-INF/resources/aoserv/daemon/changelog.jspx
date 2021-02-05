@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2021-01-23T23:17:16-06:00"
+		dateModified="2021-02-04T18:50:55-06:00"
 	>
 		<c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
 			<changelog:release
@@ -80,6 +80,9 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 						<code>*.phps</code> by default.  This makes the module configuration consistent with the CGI configuration
 						and represents the modern best practices.
 					</li>
+					<li>Removed <code>linux.Server.daemon_key</code>, now stored in <code>aoserv-daemon.properties</code></li>
+					<li>New daemon protocol: <code>1.84.13</code></li>
+					<li>Daemon key now sent in 256-bit binary form</li>
 				</ul>
 			</changelog:release>
 		</c:if>
