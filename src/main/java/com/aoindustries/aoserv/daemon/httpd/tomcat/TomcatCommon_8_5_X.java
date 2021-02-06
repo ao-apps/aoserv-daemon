@@ -557,6 +557,7 @@ class TomcatCommon_8_5_X extends VersionedTomcatCommon {
 			} else if(
 				rpmVersion.equals("8.5.60")
 				|| rpmVersion.equals("8.5.61")
+				|| rpmVersion.equals("8.5.63")
 			) {
 				UpgradeSymlink[] upgradeSymlinks_8_5_60 = {
 					// mysql-connector-java-8.0.21.jar -> mysql-connector-java-8.0.22.jar

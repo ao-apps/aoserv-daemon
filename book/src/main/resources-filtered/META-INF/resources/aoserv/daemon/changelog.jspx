@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2021-02-04T18:50:55-06:00"
+		dateModified="2021-02-05T20:17:59-06:00"
 	>
 		<c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
 			<changelog:release
@@ -60,7 +60,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 						logging standard error output, and including the standard error in exceptions.  This should help
 						us in resolving some scripts that work from command line, but not when called by the daemon.
 					</li>
-					<li>Added support for Apache Tomcat 7.0.107, 8.5.61, and 9.0.41.</li>
+					<li>Added support for Apache Tomcat 7.0.107, 8.5.63, and 9.0.43.</li>
 					<li>
 						Added support for <ao:a href="https://www.postgresql.org/docs/12/index.html">PostgreSQL 12</ao:a>
 						and <ao:a href="https://www.postgresql.org/docs/13/index.html">PostgreSQL 13</ao:a>.

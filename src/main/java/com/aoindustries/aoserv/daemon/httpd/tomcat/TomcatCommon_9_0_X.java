@@ -677,6 +677,21 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_40) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
+			} else if(
+				rpmVersion.equals("9.0.43")
+			) {
+				UpgradeSymlink[] upgradeSymlinks_9_0_43 = {
+					// ecj-4.17.jar.jar -> ecj-4.18.jar
+					new UpgradeSymlink(
+						"lib/ecj-4.17.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/ecj-4.17.jar",
+						"lib/ecj-4.18.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/ecj-4.18.jar"
+					),
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_43) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
 			} else {
 				throw new IllegalStateException("Unexpected version of Tomcat: " + rpmVersion);
 			}
