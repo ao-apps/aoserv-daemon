@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2021-02-05T20:17:59-06:00"
+		dateModified="2021-02-05T20:49:16-06:00"
 	>
 		<c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
 			<changelog:release
@@ -46,46 +46,55 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 				groupId="@{project.groupId}"
 				artifactId="@{documented.artifactId}"
 				scmUrl="@{project.scm.url}"
-			>
-				<ul>
-					<li>Added support for <ao:a href="https://www.php.net/releases/8.0/">PHP 8.0</ao:a>.</li>
-					<li>Added missing newline in server.xml generator.</li>
-					<li>
-						<code>dump_mysql_database</code> script now uses <code>--login-path=mysql=<var>\${name}</var></code>
-						instead of using the password on the command line.
-					</li>
-					<li>Logging generated commands when dump results in empty file.</li>
-					<li>
-						Centralized <code>exec</code> calls from Java into a couple methods that are very thorough in
-						logging standard error output, and including the standard error in exceptions.  This should help
-						us in resolving some scripts that work from command line, but not when called by the daemon.
-					</li>
-					<li>Added support for Apache Tomcat 7.0.107, 8.5.63, and 9.0.43.</li>
-					<li>
-						Added support for <ao:a href="https://www.postgresql.org/docs/12/index.html">PostgreSQL 12</ao:a>
-						and <ao:a href="https://www.postgresql.org/docs/13/index.html">PostgreSQL 13</ao:a>.
-					</li>
-					<li>
-						Launching Tomcat daemon wrapper scripts via <code>nohup</code> in order to release terminal.
-						This aids in the scripting of Tomcat restarts.
-					</li>
-					<li>Setting working directory on all "su" execs.</li>
-					<li>Fixed bug in Tomcat symlink management that caused excessive Tomcat restarts.</li>
-					<li>
-						Now fixing permissions in <code>/var/spool/aoserv/spamassassin/*/(ham|spam)_*</code>
-						before calling <code>sa-learn</code>.
-					</li>
-					<li>
-						For PHP as Apache module (mod_php), converted PHP configuration from <code>AddType</code> to <code>SetHandler</code>, and disabled
-						<code>*.phps</code> by default.  This makes the module configuration consistent with the CGI configuration
-						and represents the modern best practices.
-					</li>
-					<li>Removed <code>linux.Server.daemon_key</code>, now stored in <code>aoserv-daemon.properties</code></li>
-					<li>New daemon protocol: <code>1.84.13</code></li>
-					<li>Daemon key now sent in 256-bit binary form</li>
-				</ul>
-			</changelog:release>
+			/>
 		</c:if>
+
+		<changelog:release
+			projectName="@{documented.name}"
+			version="1.84.13"
+			datePublished="2021-02-05T20:49:16-06:00"
+			groupId="@{project.groupId}"
+			artifactId="@{documented.artifactId}"
+			scmUrl="@{project.scm.url}"
+		>
+			<ul>
+				<li>Added support for <ao:a href="https://www.php.net/releases/8.0/">PHP 8.0</ao:a>.</li>
+				<li>Added missing newline in server.xml generator.</li>
+				<li>
+					<code>dump_mysql_database</code> script now uses <code>--login-path=mysql=<var>\${name}</var></code>
+					instead of using the password on the command line.
+				</li>
+				<li>Logging generated commands when dump results in empty file.</li>
+				<li>
+					Centralized <code>exec</code> calls from Java into a couple methods that are very thorough in
+					logging standard error output, and including the standard error in exceptions.  This should help
+					us in resolving some scripts that work from command line, but not when called by the daemon.
+				</li>
+				<li>Added support for Apache Tomcat 7.0.107, 8.5.63, and 9.0.43.</li>
+				<li>
+					Added support for <ao:a href="https://www.postgresql.org/docs/12/index.html">PostgreSQL 12</ao:a>
+					and <ao:a href="https://www.postgresql.org/docs/13/index.html">PostgreSQL 13</ao:a>.
+				</li>
+				<li>
+					Launching Tomcat daemon wrapper scripts via <code>nohup</code> in order to release terminal.
+					This aids in the scripting of Tomcat restarts.
+				</li>
+				<li>Setting working directory on all "su" execs.</li>
+				<li>Fixed bug in Tomcat symlink management that caused excessive Tomcat restarts.</li>
+				<li>
+					Now fixing permissions in <code>/var/spool/aoserv/spamassassin/*/(ham|spam)_*</code>
+					before calling <code>sa-learn</code>.
+				</li>
+				<li>
+					For PHP as Apache module (mod_php), converted PHP configuration from <code>AddType</code> to <code>SetHandler</code>, and disabled
+					<code>*.phps</code> by default.  This makes the module configuration consistent with the CGI configuration
+					and represents the modern best practices.
+				</li>
+				<li>Removed <code>linux.Server.daemon_key</code>, now stored in <code>aoserv-daemon.properties</code></li>
+				<li>New daemon protocol: <code>1.84.13</code></li>
+				<li>Daemon key now sent in 256-bit binary form</li>
+			</ul>
+		</changelog:release>
 
 		<changelog:release
 			projectName="@{documented.name}"
