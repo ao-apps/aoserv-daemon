@@ -688,6 +688,19 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 						"lib/ecj-4.18.jar",
 						"../" + optSlash + "apache-tomcat-9.0/lib/ecj-4.18.jar"
 					),
+					// postgresql-42.2.18.jar -> postgresql-42.2.19.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.18.jar",
+						"/dev/null",
+						"lib/postgresql-42.2.19.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.18.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.18.jar",
+						"lib/postgresql-42.2.19.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.19.jar"
+					),
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_43) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
