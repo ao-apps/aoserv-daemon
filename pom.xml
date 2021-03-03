@@ -44,7 +44,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 			</ul>
 		</div>]]></javadoc.modules>
 		<!-- Dependencies -->
-		<commons-lang3.version>3.11</commons-lang3.version>
+		<commons-lang3.version>3.12.0</commons-lang3.version>
 		<gson.version>2.8.6</gson.version>
 	</properties>
 
@@ -329,7 +329,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 									<location>${project.build.directory}/offlineLinks/com.aoindustries/aoserv-jilter-config</location>
 								</offlineLink>
 								<offlineLink>
-									<url>https://commons.apache.org/proper/commons-lang/javadocs/api-${commons-lang3.version}/</url>
+									<url>https://javadoc.io/doc/org.apache.commons/commons-lang3/${commons-lang3.version}/</url>
 									<location>${project.build.directory}/offlineLinks/org.apache.commons/commons-lang3</location>
 								</offlineLink>
 								<!-- TODO: Add this once building with Java 12+ or using modules, due to: "javadoc: error - The code being documented uses packages in the unnamed module, but the packages defined in … are in named modules."
