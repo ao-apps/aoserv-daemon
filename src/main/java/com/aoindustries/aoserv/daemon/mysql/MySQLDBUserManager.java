@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2002-2013, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2002-2013, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -85,7 +85,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 					} else {
 						String version = mysqlServer.getVersion().getVersion();
 						// Different versions of MySQL have different sets of system db users
-						Set<Tuple2<Database.Name,User.Name>> systemDbUsers = new LinkedHashSet<>();
+						Set<Tuple2<Database.Name, User.Name>> systemDbUsers = new LinkedHashSet<>();
 						if(
 							version.startsWith(Server.VERSION_4_0_PREFIX)
 							|| version.startsWith(Server.VERSION_4_1_PREFIX)
@@ -102,7 +102,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 						}
 
 						// Verify has all system db users
-						Set<Tuple2<Database.Name,User.Name>> requiredDbUsers = new LinkedHashSet<>(systemDbUsers);
+						Set<Tuple2<Database.Name, User.Name>> requiredDbUsers = new LinkedHashSet<>(systemDbUsers);
 						for(DatabaseUser mdu : dbUsers) {
 							if(
 								requiredDbUsers.remove(new Tuple2<>(mdu.getMySQLDatabase().getName(), mdu.getMySQLServerUser().getMySQLUser().getKey()))
@@ -123,7 +123,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 									// TODO: As written, updates to mysql_users table (which are very rare) will be represented here.
 
 									// Get the list of all existing db entries
-									Set<Tuple2<Database.Name,User.Name>> existing = new HashSet<>();
+									Set<Tuple2<Database.Name, User.Name>> existing = new HashSet<>();
 									String currentSQL = null;
 									try (
 										Statement stmt = conn.createStatement();
@@ -131,7 +131,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 									) {
 										while (results.next()) {
 											try {
-												Tuple2<Database.Name,User.Name> tuple = new Tuple2<>(
+												Tuple2<Database.Name, User.Name> tuple = new Tuple2<>(
 													Database.Name.valueOf(results.getString(1)),
 													User.Name.valueOf(results.getString(2))
 												);
@@ -182,7 +182,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 												+ msu.getMySQLServer().getPkey()
 												+ ')'
 											);
-											Tuple2<Database.Name,User.Name> key = new Tuple2<>(db, user);
+											Tuple2<Database.Name, User.Name> key = new Tuple2<>(db, user);
 											if(!existing.remove(key)) {
 												// Add the db entry
 												String host = 
@@ -238,7 +238,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 									if (!existing.isEmpty()) {
 										currentSQL = null;
 										try (PreparedStatement pstmt = conn.prepareStatement(currentSQL = "DELETE FROM db WHERE db=? AND user=?")) {
-											for (Tuple2<Database.Name,User.Name> key : existing) {
+											for (Tuple2<Database.Name, User.Name> key : existing) {
 												if(systemDbUsers.contains(key)) {
 													logger.log(
 														Level.WARNING,

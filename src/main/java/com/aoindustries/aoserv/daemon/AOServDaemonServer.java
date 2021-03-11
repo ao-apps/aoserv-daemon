@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2012, 2013, 2015, 2017, 2018, 2020  AO Industries, Inc.
+ * Copyright (C) 2012, 2013, 2015, 2017, 2018, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -76,7 +76,7 @@ final public class AOServDaemonServer extends Thread {
 		this.protocol = protocol;
 	}
 
-	private static final Map<Long,DaemonAccessEntry> accessKeys=new HashMap<>();
+	private static final Map<Long, DaemonAccessEntry> accessKeys=new HashMap<>();
 	private static long lastAccessKeyCleaning=-1;
 
 	public static void grantDaemonAccess(long key, int command, String param1, String param2, String param3, String param4) {

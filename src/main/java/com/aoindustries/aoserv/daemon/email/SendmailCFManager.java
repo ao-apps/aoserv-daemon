@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -1063,9 +1063,9 @@ final public class SendmailCFManager extends BuilderThread {
 				}
 
 				// Get the values used by different files once for internal consistency on dynamic data
-				Map<SendmailServer,List<SendmailBind>> smtpBinds;
-				Map<SendmailServer,List<SendmailBind>> smtpsBinds;
-				Map<SendmailServer,List<SendmailBind>> submissionBinds;
+				Map<SendmailServer, List<SendmailBind>> smtpBinds;
+				Map<SendmailServer, List<SendmailBind>> smtpsBinds;
+				Map<SendmailServer, List<SendmailBind>> submissionBinds;
 				Set<String> certbotNames;
 				if(defaultServer == null) {
 					// Named instances may only exist when there is a default instance

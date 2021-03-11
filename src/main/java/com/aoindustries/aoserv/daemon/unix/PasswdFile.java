@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -319,10 +319,10 @@ final public class PasswdFile {
 	 *
 	 * Must hold {@link #passwdLock}
 	 */
-	public static Map<User.Name,Entry> readPasswdFile() throws IOException {
+	public static Map<User.Name, Entry> readPasswdFile() throws IOException {
 		assert Thread.holdsLock(passwdLock);
 		try {
-			Map<User.Name,Entry> passwdEntries = new LinkedHashMap<>();
+			Map<User.Name, Entry> passwdEntries = new LinkedHashMap<>();
 			try (
 				BufferedReader in = new BufferedReader(
 					new InputStreamReader(
@@ -383,14 +383,14 @@ final public class PasswdFile {
 	 *
 	 * Must hold {@link #passwdLock}
 	 */
-	public static byte[] buildPasswdFile(Map<User.Name,Entry> expectedEntries, int uidMin, int uidMax) throws IOException {
+	public static byte[] buildPasswdFile(Map<User.Name, Entry> expectedEntries, int uidMin, int uidMax) throws IOException {
 		assert Thread.holdsLock(passwdLock);
 		if(!expectedEntries.containsKey(User.ROOT)) throw new IllegalArgumentException(User.ROOT + " user not found");
-		Map<User.Name,Entry> passwdEntries = readPasswdFile();
+		Map<User.Name, Entry> passwdEntries = readPasswdFile();
 		// Remove any users that no longer exist and verify fields match
-		Iterator<Map.Entry<User.Name,Entry>> entryIter = passwdEntries.entrySet().iterator();
+		Iterator<Map.Entry<User.Name, Entry>> entryIter = passwdEntries.entrySet().iterator();
 		while(entryIter.hasNext()) {
-			Map.Entry<User.Name,Entry> mapEntry = entryIter.next();
+			Map.Entry<User.Name, Entry> mapEntry = entryIter.next();
 			User.Name username = mapEntry.getKey();
 			Entry existingEntry = mapEntry.getValue();
 			boolean existingIsSystem = existingEntry.uid < uidMin || existingEntry.uid > uidMax;

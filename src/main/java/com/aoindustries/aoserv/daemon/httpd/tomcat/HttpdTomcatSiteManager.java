@@ -101,8 +101,8 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 	 * paths.
 	 */
 	@Override
-	public Map<String,List<Location>> getRejectedLocations() throws IOException, SQLException {
-		Map<String,List<Location>> standardRejectedLocations = super.getRejectedLocations();
+	public Map<String, List<Location>> getRejectedLocations() throws IOException, SQLException {
+		Map<String, List<Location>> standardRejectedLocations = super.getRejectedLocations();
 
 		// Tomcats may now be disabled separately from the sites, and when disabled
 		// Apache will serve content directly.
@@ -122,7 +122,7 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 				locations.add(new Location(false, path + "/META-INF"));
 				locations.add(new Location(false, path + "/WEB-INF"));
 			}
-			Map<String,List<Location>> rejectedLocations = AoCollections.newLinkedHashMap(standardRejectedLocations.size() + 1);
+			Map<String, List<Location>> rejectedLocations = AoCollections.newLinkedHashMap(standardRejectedLocations.size() + 1);
 			rejectedLocations.putAll(standardRejectedLocations);
 			rejectedLocations.put(
 				"Protect Tomcat webapps",
@@ -221,8 +221,8 @@ public abstract class HttpdTomcatSiteManager<TC extends TomcatCommon> extends Ht
 	}
 
 	@Override
-	public SortedMap<String,WebAppSettings> getWebapps() throws IOException, SQLException {
-		SortedMap<String,WebAppSettings> webapps = new TreeMap<>();
+	public SortedMap<String, WebAppSettings> getWebapps() throws IOException, SQLException {
+		SortedMap<String, WebAppSettings> webapps = new TreeMap<>();
 
 		// Set up all of the webapps
 		for(Context htc : tomcatSite.getHttpdTomcatContexts()) {

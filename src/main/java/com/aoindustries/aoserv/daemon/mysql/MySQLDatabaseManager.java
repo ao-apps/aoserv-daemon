@@ -541,7 +541,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		}
 	}
 
-	private static final KeyedConcurrencyReducer<TableStatusConcurrencyKey,List<Database.TableStatus>> tableStatusLimiter = new KeyedConcurrencyReducer<>();
+	private static final KeyedConcurrencyReducer<TableStatusConcurrencyKey, List<Database.TableStatus>> tableStatusLimiter = new KeyedConcurrencyReducer<>();
 
 	public static void getTableStatus(PosixPath failoverRoot, int nestedOperatingSystemVersion, Server.Name serverName, Port port, Database.Name databaseName, StreamableOutput out) throws IOException, SQLException {
 		List<Database.TableStatus> tableStatuses;
@@ -717,7 +717,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 		}
 	}
 
-	private static final KeyedConcurrencyReducer<CheckTableConcurrencyKey,List<Database.CheckTableResult>> checkTableLimiter = new KeyedConcurrencyReducer<>();
+	private static final KeyedConcurrencyReducer<CheckTableConcurrencyKey, List<Database.CheckTableResult>> checkTableLimiter = new KeyedConcurrencyReducer<>();
 
 	/**
 	 * Checks all tables, times-out in one minute.

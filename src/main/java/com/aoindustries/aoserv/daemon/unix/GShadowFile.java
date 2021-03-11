@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -230,10 +230,10 @@ final public class GShadowFile {
 	/**
 	 * Reads the full contents of /etc/gshadow
 	 */
-	private static Map<Group.Name,Entry> readGShadowFile() throws IOException {
+	private static Map<Group.Name, Entry> readGShadowFile() throws IOException {
 		assert Thread.holdsLock(gshadowLock);
 		try {
-			Map<Group.Name,Entry> gshadowEntries = new LinkedHashMap<>();
+			Map<Group.Name, Entry> gshadowEntries = new LinkedHashMap<>();
 			try (
 				BufferedReader in = new BufferedReader(
 					new InputStreamReader(
@@ -315,14 +315,14 @@ final public class GShadowFile {
 	 *
 	 * Must hold {@link #gshadowLock}
 	 */
-	public static byte[] buildGShadowFile(Map<Group.Name,Set<User.Name>> groups) throws IOException {
+	public static byte[] buildGShadowFile(Map<Group.Name, Set<User.Name>> groups) throws IOException {
 		assert Thread.holdsLock(gshadowLock);
 		if(!groups.containsKey(Group.ROOT)) throw new IllegalArgumentException(Group.ROOT + " group not found");
-		Map<Group.Name,Entry> gshadowEntries = readGShadowFile();
+		Map<Group.Name, Entry> gshadowEntries = readGShadowFile();
 		// Remove any groups that no longer exist and verify group members
-		Iterator<Map.Entry<Group.Name,Entry>> entryIter = gshadowEntries.entrySet().iterator();
+		Iterator<Map.Entry<Group.Name, Entry>> entryIter = gshadowEntries.entrySet().iterator();
 		while(entryIter.hasNext()) {
-			Map.Entry<Group.Name,Entry> mapEntry = entryIter.next();
+			Map.Entry<Group.Name, Entry> mapEntry = entryIter.next();
 			Group.Name groupName = mapEntry.getKey();
 			if(groups.containsKey(groupName)) {
 				// Verify group members match
@@ -351,7 +351,7 @@ final public class GShadowFile {
 		}
 
 		// Add new groups
-		for(Map.Entry<Group.Name,Set<User.Name>> entry : groups.entrySet()) {
+		for(Map.Entry<Group.Name, Set<User.Name>> entry : groups.entrySet()) {
 			Group.Name groupName = entry.getKey();
 			if(!gshadowEntries.containsKey(groupName)) {
 				if(logger.isLoggable(Level.INFO)) {

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2007-2013, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2007-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -154,8 +154,8 @@ public class JilterConfigurationWriter extends BuilderThread {
 				boolean restrict_outbound_email = thisServer.getRestrictOutboundEmail();
 
 				// domainPackages and domainAddresses
-				Map<String,String> domainPackages = new HashMap<>();
-				Map<String,Set<String>> domainAddresses = new HashMap<>();
+				Map<String, String> domainPackages = new HashMap<>();
+				Map<String, Set<String>> domainAddresses = new HashMap<>();
 				for(Domain ed : thisServer.getEmailDomains()) {
 					DomainName domain = ed.getDomain();
 					// domainPackages
@@ -203,9 +203,9 @@ public class JilterConfigurationWriter extends BuilderThread {
 
 				// Builds email limits only for the packages referenced in domainPackages
 				int size = domainPackages.size();
-				Map<String,EmailLimit> emailInLimits = AoCollections.newHashMap(size);
-				Map<String,EmailLimit> emailOutLimits = AoCollections.newHashMap(size);
-				Map<String,EmailLimit> emailRelayLimits = AoCollections.newHashMap(size);
+				Map<String, EmailLimit> emailInLimits = AoCollections.newHashMap(size);
+				Map<String, EmailLimit> emailOutLimits = AoCollections.newHashMap(size);
+				Map<String, EmailLimit> emailRelayLimits = AoCollections.newHashMap(size);
 				for(String packageName : domainPackages.values()) {
 					Package pk = AOServDaemon.getConnector().getBilling().getPackage().get(Account.Name.valueOf(packageName));
 					if(pk == null) throw new SQLException("Unable to find Package: " + packageName);

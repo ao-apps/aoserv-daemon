@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2008-2013, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2008-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -242,12 +242,12 @@ final public class ImapManager extends BuilderThread {
 	private ImapManager() {
 	}
 
-	private static final Map<Tuple3<InetAddress,Port,Boolean>,Session> _sessions = new HashMap<>();
+	private static final Map<Tuple3<InetAddress, Port, Boolean>, Session> _sessions = new HashMap<>();
 
 	/**
 	 * Gets a cached Session
 	 */
-	private static Session getSession(Tuple3<InetAddress,Port,Boolean> imapServer) throws IOException, SQLException {
+	private static Session getSession(Tuple3<InetAddress, Port, Boolean> imapServer) throws IOException, SQLException {
 		synchronized(_sessions) {
 			Session session = _sessions.get(imapServer);
 			if(session == null) {
@@ -279,13 +279,13 @@ final public class ImapManager extends BuilderThread {
 	 * 
 	 * @return  The (IP address, port, starttls) or <code>null</code> if not an IMAP server.
 	 */
-	private static Tuple3<InetAddress,Port,Boolean> getImapServer() throws IOException, SQLException {
+	private static Tuple3<InetAddress, Port, Boolean> getImapServer() throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		CyrusImapdServer cyrusServer = thisServer.getCyrusImapdServer();
 		if(cyrusServer == null) return null;
 		// Look for primary IP match
 		InetAddress primaryIp = thisServer.getPrimaryIPAddress().getInetAddress();
-		Tuple3<InetAddress,Port,Boolean> firstImap = null;
+		Tuple3<InetAddress, Port, Boolean> firstImap = null;
 		for(CyrusImapdBind cib : cyrusServer.getCyrusImapdBinds()) {
 			Bind nb = cib.getNetBind();
 			if(nb.getAppProtocol().getProtocol().equals(AppProtocol.IMAP2)) {
@@ -312,7 +312,7 @@ final public class ImapManager extends BuilderThread {
 	 */
 	private static IMAPStore getAdminStore() throws IOException, SQLException, MessagingException {
 		// Get things that may failed externally before allocating session and store
-		Tuple3<InetAddress,Port,Boolean> imapServer = getImapServer();
+		Tuple3<InetAddress, Port, Boolean> imapServer = getImapServer();
 		if(imapServer == null) return null;
 		String user = User.CYRUS + "@default";
 		String password = AOServDaemonConfiguration.getCyrusPassword();
@@ -386,7 +386,7 @@ final public class ImapManager extends BuilderThread {
 		UnixFile passwordBackup
 	) throws IOException, SQLException, MessagingException {
 		if(!WUIMAP_CONVERSION_ENABLED) throw new AssertionError();
-		Tuple3<InetAddress,Port,Boolean> imapServer = getImapServer();
+		Tuple3<InetAddress, Port, Boolean> imapServer = getImapServer();
 		if(imapServer == null) throw new IOException("Not an IMAP server");
 		String usernameStr = username.toString();
 		return getUserStore(
@@ -404,7 +404,7 @@ final public class ImapManager extends BuilderThread {
 	 */
 	private static IMAPStore getUserStore(
 		PrintWriter logOut,
-		Tuple3<InetAddress,Port,Boolean> imapServer,
+		Tuple3<InetAddress, Port, Boolean> imapServer,
 		User.Name username,
 		String imapUsername,
 		String[] tempPassword,
@@ -670,7 +670,7 @@ final public class ImapManager extends BuilderThread {
 							}
 
 							// All services that support TLS or SSL will be added here
-							Map<String,CyrusImapdBind> tlsServices = new LinkedHashMap<>();
+							Map<String, CyrusImapdBind> tlsServices = new LinkedHashMap<>();
 
 							// Update /etc/cyrus.conf
 							{
@@ -1004,7 +1004,7 @@ final public class ImapManager extends BuilderThread {
 									//     file:///home/orion/temp/cyrus/cyrus-imapd-2.3.7/doc/install-configure.html
 									//     value of "disabled='disabled'" if the certificate file doesn't exist (or use server default)
 									//     openssl req -new -x509 -nodes -out cyrus-imapd.pem -keyout cyrus-imapd.pem -days 3650
-									for(Map.Entry<String,CyrusImapdBind> entry : tlsServices.entrySet()) {
+									for(Map.Entry<String, CyrusImapdBind> entry : tlsServices.entrySet()) {
 										String serviceName = entry.getKey();
 										CyrusImapdBind cib = entry.getValue();
 										Bind netBind = cib.getNetBind();
@@ -1326,7 +1326,7 @@ final public class ImapManager extends BuilderThread {
 	 * The ? should be equal to the first letter of *
 	 */
 	@SuppressWarnings("AssignmentToForLoopParameter")
-	private static void addUserDirectories(File directory, Set<String> ignoreList, String domain, Map<String,Set<String>> allUsers) throws IOException {
+	private static void addUserDirectories(File directory, Set<String> ignoreList, String domain, Map<String, Set<String>> allUsers) throws IOException {
 		String[] hashFilenames = directory.list();
 		if(hashFilenames != null) {
 			boolean isTrace = logger.isLoggable(Level.FINER);
@@ -1759,7 +1759,7 @@ final public class ImapManager extends BuilderThread {
 			List<UserServer> lsas = AOServDaemon.getThisServer().getLinuxServerAccounts();
 			Set<String> validEmailUsernames = AoCollections.newHashSet(lsas.size());
 			// Conversions are done concurrently
-			Map<UserServer,Future<Object>> convertors = WUIMAP_CONVERSION_ENABLED ? AoCollections.newHashMap(lsas.size()) : null;
+			Map<UserServer, Future<Object>> convertors = WUIMAP_CONVERSION_ENABLED ? AoCollections.newHashMap(lsas.size()) : null;
 			ExecutorService executorService = WUIMAP_CONVERSION_ENABLED ? Executors.newFixedThreadPool(WUIMAP_CONVERSION_CONCURRENCY) : null;
 			try {
 				for(final UserServer lsa : lsas) {
@@ -1950,7 +1950,7 @@ final public class ImapManager extends BuilderThread {
 					List<UserServer> deleteMe = new ArrayList<>();
 					while(!convertors.isEmpty()) {
 						deleteMe.clear();
-						for(Map.Entry<UserServer,Future<Object>> entry : convertors.entrySet()) {
+						for(Map.Entry<UserServer, Future<Object>> entry : convertors.entrySet()) {
 							UserServer lsa = entry.getKey();
 							Future<Object> future = entry.getValue();
 							// Wait for completion
@@ -1989,7 +1989,7 @@ final public class ImapManager extends BuilderThread {
 
 			// Get the list of domains and users from the filesystem
 			// (including the default).
-			Map<String,Set<String>> allUsers = new HashMap<>();
+			Map<String, Set<String>> allUsers = new HashMap<>();
 
 			// The default users are in /var/spool/imap/?/user/*
 			addUserDirectories(imapSpool, imapSpoolIgnoreDirectories, "default", allUsers);
@@ -2141,9 +2141,9 @@ final public class ImapManager extends BuilderThread {
 	static class Annotation {
 		private final String mailboxName;
 		private final String entry;
-		private final Map<String,String> attributes;
+		private final Map<String, String> attributes;
 
-		Annotation(String mailboxName, String entry, Map<String,String> attributes) {
+		Annotation(String mailboxName, String entry, Map<String, String> attributes) {
 			this.mailboxName = mailboxName;
 			this.entry = entry;
 			this.attributes = attributes;
@@ -2202,7 +2202,7 @@ final public class ImapManager extends BuilderThread {
 							String[] list = ir.readStringList();
 							// Must be even number of elements in list
 							if((list.length & 1) != 0) throw new ProtocolException("Uneven number of elements in attribute list: " + list.length);
-							Map<String,String> attributes = AoCollections.newHashMap(list.length >> 1);
+							Map<String, String> attributes = AoCollections.newHashMap(list.length >> 1);
 							for(int j = 0; j < list.length; j += 2) {
 								attributes.put(list[j], list[j + 1]);
 							}
@@ -2496,7 +2496,7 @@ ad OK Completed
 	/**
 	 * Configures backups for cyrus-imapd
 	 */
-	public static void addFilesystemIteratorRules(FileReplication ffr, Map<String,FilesystemIteratorRule> filesystemRules) throws IOException, SQLException {
+	public static void addFilesystemIteratorRules(FileReplication ffr, Map<String, FilesystemIteratorRule> filesystemRules) throws IOException, SQLException {
 		Server thisServer = AOServDaemon.getThisServer();
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();

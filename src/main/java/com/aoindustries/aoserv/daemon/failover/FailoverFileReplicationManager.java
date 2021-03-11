@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2003-2013, 2015, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2003-2013, 2015, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -467,7 +467,7 @@ final public class FailoverFileReplicationManager {
 	/**
 	 * Tracks the most recent action on a per-FileReplication basis.
 	 */
-	private static final Map<Integer,Activity> activities = new HashMap<>();
+	private static final Map<Integer, Activity> activities = new HashMap<>();
 	public static Activity getActivity(Integer failoverFileReplicationPkey) {
 		synchronized(activities) {
 			Activity activity = activities.get(failoverFileReplicationPkey);
@@ -600,7 +600,7 @@ final public class FailoverFileReplicationManager {
 		rename(activity, from, to);
 	}
 
-	private static final Map<String,DedupDataIndex> dedupIndexes = new HashMap<>();
+	private static final Map<String, DedupDataIndex> dedupIndexes = new HashMap<>();
 	/**
 	 * Only one data index is created per backup partition, and a cron job is created
 	 * for daily cleaning.  The cron job is also launched immediately in quick mode.
@@ -955,7 +955,7 @@ final public class FailoverFileReplicationManager {
 
 				String[] paths = null;
 				boolean[] isLogDirs = null;
-				Map<UnixFile,ModifyTimeAndSizeCache> modifyTimeAndSizeCaches = new HashMap<>();
+				Map<UnixFile, ModifyTimeAndSizeCache> modifyTimeAndSizeCaches = new HashMap<>();
 
 				UnixFile[] tempNewFiles = null;
 				UnixFile[] chunkingFroms = null;
@@ -2080,7 +2080,7 @@ final public class FailoverFileReplicationManager {
 	/**
 	 * Called before something is removed, to keep the cache in sync.
 	 */
-	private static void removing(Map<UnixFile,ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, UnixFile uf, Stat ufStat, UnixFile ufParent) throws FileNotFoundException {
+	private static void removing(Map<UnixFile, ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, UnixFile uf, Stat ufStat, UnixFile ufParent) throws FileNotFoundException {
 		if(!modifyTimeAndSizeCaches.isEmpty()) {
 			if(ufStat.isRegularFile()) {
 				// For a regular file, just removeByValue it from its parent, this is the fastest case
@@ -2095,9 +2095,9 @@ final public class FailoverFileReplicationManager {
 				// Remove any items that are this or are children of this
 				String prefix = uf.getPath();
 				if(!prefix.endsWith("/")) prefix += '/';
-				Iterator<Map.Entry<UnixFile,ModifyTimeAndSizeCache>> iter = modifyTimeAndSizeCaches.entrySet().iterator();
+				Iterator<Map.Entry<UnixFile, ModifyTimeAndSizeCache>> iter = modifyTimeAndSizeCaches.entrySet().iterator();
 				while(iter.hasNext()) {
-					Map.Entry<UnixFile,ModifyTimeAndSizeCache> entry = iter.next();
+					Map.Entry<UnixFile, ModifyTimeAndSizeCache> entry = iter.next();
 					UnixFile key = entry.getKey();
 					if(
 						key.equals(uf)
@@ -2111,7 +2111,7 @@ final public class FailoverFileReplicationManager {
 	/**
 	 * Called after a file is added, to keep the cache in sync.
 	 */
-	private static void added(Activity activity, Map<UnixFile,ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, UnixFile uf, UnixFile ufParent, ModifyTimeAndSize ufModifyTimeAndSize) throws IOException {
+	private static void added(Activity activity, Map<UnixFile, ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, UnixFile uf, UnixFile ufParent, ModifyTimeAndSize ufModifyTimeAndSize) throws IOException {
 		if(!modifyTimeAndSizeCaches.isEmpty()) {
 			ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.get(ufParent);
 			if(modifyTimeAndSizeCache!=null) {
@@ -2126,7 +2126,7 @@ final public class FailoverFileReplicationManager {
 	/**
 	 * Called after a file is renamed, to keep the cache in sync.
 	 */
-	private static void renamed(Map<UnixFile,ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, UnixFile oldUF, UnixFile newUF, UnixFile ufParent) {
+	private static void renamed(Map<UnixFile, ModifyTimeAndSizeCache> modifyTimeAndSizeCaches, UnixFile oldUF, UnixFile newUF, UnixFile ufParent) {
 		if(!modifyTimeAndSizeCaches.isEmpty()) {
 			ModifyTimeAndSizeCache modifyTimeAndSizeCache = modifyTimeAndSizeCaches.get(ufParent);
 			if(modifyTimeAndSizeCache!=null) {
@@ -2174,8 +2174,8 @@ final public class FailoverFileReplicationManager {
 	final static class ModifyTimeAndSizeCache {
 
 		final private UnixFile directory;
-		final private Map<String,ModifyTimeAndSize> filenameMap = new HashMap<>();
-		final private Map<ModifyTimeAndSize,List<String>> modifyTimeAndSizeMap = new HashMap<>();
+		final private Map<String, ModifyTimeAndSize> filenameMap = new HashMap<>();
+		final private Map<ModifyTimeAndSize, List<String>> modifyTimeAndSizeMap = new HashMap<>();
 
 		ModifyTimeAndSizeCache(Activity activity, UnixFile directory) throws IOException {
 			this.directory = directory;
@@ -2358,7 +2358,7 @@ final public class FailoverFileReplicationManager {
 			gcal.set(Calendar.SECOND, 0);
 			gcal.set(Calendar.MILLISECOND, 0);
 			long fromServerDate = gcal.getTimeInMillis();
-			Map<Integer,List<String>> directoriesByAge;
+			Map<Integer, List<String>> directoriesByAge;
 			{
 				String[] list = list(activity, serverRootUF);
 				directoriesByAge = AoCollections.newHashMap((list == null) ? -1 : list.length);
@@ -2613,7 +2613,7 @@ final public class FailoverFileReplicationManager {
 		}
 	}
 
-	private static boolean hasComplete(Map<Integer,List<String>> directoriesByAge, int age, List<String> deleteFilenames) {
+	private static boolean hasComplete(Map<Integer, List<String>> directoriesByAge, int age, List<String> deleteFilenames) {
 		List<String> directories = directoriesByAge.get(age);
 		if(directories!=null) {
 			for(String directory : directories) {
@@ -2629,7 +2629,7 @@ final public class FailoverFileReplicationManager {
 		return false;
 	}
 
-	private static void delete(Map<Integer,List<String>> directoriesByAge, int age, List<String> deleteFilenames) throws IOException {
+	private static void delete(Map<Integer, List<String>> directoriesByAge, int age, List<String> deleteFilenames) throws IOException {
 		List<String> directories = directoriesByAge.get(age);
 		if(directories!=null) {
 			for(String directory : directories) {

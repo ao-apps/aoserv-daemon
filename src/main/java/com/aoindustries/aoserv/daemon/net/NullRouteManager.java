@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2013, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2013, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -207,7 +207,7 @@ final public class NullRouteManager {
 		}
 	}
 
-	private static final Map<Integer,NullRoute> nullRoutes = new LinkedHashMap<>();
+	private static final Map<Integer, NullRoute> nullRoutes = new LinkedHashMap<>();
 
 	private static final Object threadLock = new Object();
 	private Thread thread;
@@ -230,9 +230,9 @@ final public class NullRouteManager {
 										newContents.setLength(0);
 										final long currentTime = System.currentTimeMillis();
 										long nearestEnding = Long.MAX_VALUE;
-										Iterator<Map.Entry<Integer,NullRoute>> iter = nullRoutes.entrySet().iterator();
+										Iterator<Map.Entry<Integer, NullRoute>> iter = nullRoutes.entrySet().iterator();
 										while(iter.hasNext()) {
-											Map.Entry<Integer,NullRoute> entry = iter.next();
+											Map.Entry<Integer, NullRoute> entry = iter.next();
 											NullRoute nullRoute = entry.getValue();
 											// If null route currently in progress, add to the output file
 											if(currentTime >= nullRoute.startTime && currentTime < nullRoute.endTime) {

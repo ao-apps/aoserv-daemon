@@ -650,7 +650,7 @@ final public class AOServDaemonServerThread extends Thread {
 								if(AOServDaemon.DEBUG) System.out.println("DEBUG: AOServDaemonServerThread performing GET_ENCRYPTED_LINUX_ACCOUNT_PASSWORD, Thread="+toString());
 								User.Name username=User.Name.valueOf(in.readUTF());
 								if(daemonKey==null) throw new IOException("Only the master server may GET_ENCRYPTED_LINUX_ACCOUNT_PASSWORD");
-								Tuple2<String,Integer> encryptedPassword = LinuxAccountManager.getEncryptedPassword(username);
+								Tuple2<String, Integer> encryptedPassword = LinuxAccountManager.getEncryptedPassword(username);
 								out.write(AOServDaemonProtocol.DONE);
 								out.writeUTF(encryptedPassword.getElement1());
 								if(protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_80_1) >= 0) {

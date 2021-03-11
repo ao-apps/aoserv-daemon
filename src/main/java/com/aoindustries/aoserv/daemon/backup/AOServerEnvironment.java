@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -90,8 +90,8 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		// TODO: BackupManager.backupPostgresDatabases();
 	}
 
-	private final Map<FileReplication,List<com.aoindustries.aoserv.client.mysql.Server.Name>> replicatedMySQLServerses = new HashMap<>();
-	private final Map<FileReplication,List<String>> replicatedMySQLMinorVersionses = new HashMap<>();
+	private final Map<FileReplication, List<com.aoindustries.aoserv.client.mysql.Server.Name>> replicatedMySQLServerses = new HashMap<>();
+	private final Map<FileReplication, List<String>> replicatedMySQLMinorVersionses = new HashMap<>();
 
 	@Override
 	public void init(FileReplication ffr) throws IOException, SQLException {
@@ -148,12 +148,12 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 	}
 
 	@Override
-	protected Map<String,FilesystemIteratorRule> getFilesystemIteratorRules(FileReplication ffr) throws IOException, SQLException {
+	protected Map<String, FilesystemIteratorRule> getFilesystemIteratorRules(FileReplication ffr) throws IOException, SQLException {
 		final Server thisServer = AOServDaemon.getThisServer();
 		final short retention = ffr.getRetention().getDays();
 		final OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		final int osvId = osv.getPkey();
-		final Map<String,FilesystemIteratorRule> filesystemRules=new HashMap<>();
+		final Map<String, FilesystemIteratorRule> filesystemRules=new HashMap<>();
 		if(
 			osvId != OperatingSystemVersion.CENTOS_5_DOM0_I686
 			&& osvId != OperatingSystemVersion.CENTOS_5_DOM0_X86_64
@@ -450,9 +450,9 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 	}
 
 	@Override
-	protected Map<String,FilesystemIteratorRule> getFilesystemIteratorPrefixRules(FileReplication ffr) throws IOException, SQLException {
+	protected Map<String, FilesystemIteratorRule> getFilesystemIteratorPrefixRules(FileReplication ffr) throws IOException, SQLException {
 		final Server thisServer = AOServDaemon.getThisServer();
-		Map<String,FilesystemIteratorRule> filesystemPrefixRules = new HashMap<>();
+		Map<String, FilesystemIteratorRule> filesystemPrefixRules = new HashMap<>();
 		for(com.aoindustries.aoserv.client.mysql.Server mysqlServer : thisServer.getMySQLServers()) {
 			com.aoindustries.aoserv.client.mysql.Server.Name name = mysqlServer.getName();
 			filesystemPrefixRules.put("/var/lib/mysql/" + name + "/mysql-bin.", FilesystemIteratorRule.SKIP);

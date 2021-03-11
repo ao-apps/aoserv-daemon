@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -207,7 +207,7 @@ final public class Fail2banManager extends BuilderThread {
 						if(logger.isLoggable(Level.FINE)) logger.fine("netBinds: " + netBinds);
 
 						// Resolves the unique ports for each supported jail
-						Map<Jail,SortedSet<Integer>> jailPorts = new HashMap<>();
+						Map<Jail, SortedSet<Integer>> jailPorts = new HashMap<>();
 						for(Bind nb : netBinds) {
 							InetAddress ip = nb.getIpAddress().getInetAddress();
 							if(!ip.isLoopback()) {

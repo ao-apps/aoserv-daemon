@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2006-2013, 2015, 2017, 2020  AO Industries, Inc.
+ * Copyright (C) 2006-2013, 2015, 2017, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -127,8 +127,8 @@ final public class HardLinkVarBackup {
 							try {
 								if(uf.getStat().isDirectory()) {
 									out.print("Scanning "); out.println(path);
-									Map<String,FilesystemIteratorRule> rules = Collections.singletonMap(path, FilesystemIteratorRule.OK);
-									Map<String,FilesystemIteratorRule> prefixRules = Collections.emptyMap();
+									Map<String, FilesystemIteratorRule> rules = Collections.singletonMap(path, FilesystemIteratorRule.OK);
+									Map<String, FilesystemIteratorRule> prefixRules = Collections.emptyMap();
 									iteratorStartsList.add(path);
 									iteratorList.add(new FilesystemIterator(rules, prefixRules, path));
 								}
@@ -166,7 +166,7 @@ final public class HardLinkVarBackup {
 			}
 
 			// During each unique path, the links created are tracked to improve performance when source and destination devices and inodes match
-			final Map<LinkKey,String> links = AoCollections.newHashMap(numIterators);
+			final Map<LinkKey, String> links = AoCollections.newHashMap(numIterators);
 
 			// When two files are compared but don't match, they are added here to avoid repetative comparisons for the same device/inode pairs
 			final Set<LinkKey> contentNotEquals = AoCollections.newHashSet(numIterators);

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2007-2013, 2014, 2015, 2017, 2018  AO Industries, Inc.
+ * Copyright (C) 2007-2013, 2014, 2015, 2017, 2018, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -121,9 +121,9 @@ public class HttpdStaticSiteManager extends HttpdSiteManager {
 	}
 
 	@Override
-	public SortedMap<String,WebAppSettings> getWebapps() throws IOException, SQLException {
+	public SortedMap<String, WebAppSettings> getWebapps() throws IOException, SQLException {
 		try {
-			SortedMap<String,WebAppSettings> webapps = new TreeMap<>();
+			SortedMap<String, WebAppSettings> webapps = new TreeMap<>();
 			webapps.put(
 				"",
 				new WebAppSettings(

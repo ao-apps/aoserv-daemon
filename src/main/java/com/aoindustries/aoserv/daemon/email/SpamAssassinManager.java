@@ -284,7 +284,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 
 					// Find the username that has the oldest timestamp that is also at least one minute old or one minute in the future
 					UserServer oldestLsa = null;
-					Map<UnixFile,Long> oldestReadyMap = null;
+					Map<UnixFile, Long> oldestReadyMap = null;
 					long oldestTimestamp = -1;
 
 					// The files will be backed-up before being deleted
@@ -328,7 +328,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 							// Check each filename, searching if this lsa has the oldest timestamp (older or newer than one minute)
 							String[] userDirectoryList = userDirectoryUf.list();
 							if(userDirectoryList != null && userDirectoryList.length > 0) {
-								Map<UnixFile,Long> readyMap = AoCollections.newHashMap(userDirectoryList.length);
+								Map<UnixFile, Long> readyMap = AoCollections.newHashMap(userDirectoryList.length);
 								for(String userFilename : userDirectoryList) {
 									UnixFile userUf = new UnixFile(userDirectoryUf, userFilename, false);
 									File userFile = userUf.getFile();
@@ -403,7 +403,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 					assert oldestReadyMap != null;
 
 					// Sort the list by oldest time first
-					final Map<UnixFile,Long> readyMap = oldestReadyMap;
+					final Map<UnixFile, Long> readyMap = oldestReadyMap;
 					List<UnixFile> readyList = new ArrayList<>(oldestReadyMap.keySet());
 					Collections.sort(
 						readyList,

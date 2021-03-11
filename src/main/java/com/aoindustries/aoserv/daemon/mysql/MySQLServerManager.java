@@ -125,7 +125,7 @@ final public class MySQLServerManager extends BuilderThread {
 		}
 	}
 
-	private static final Map<Integer,AOConnectionPool> pools=new HashMap<>();
+	private static final Map<Integer, AOConnectionPool> pools=new HashMap<>();
 	static AOConnectionPool getPool(Server ms) throws IOException, SQLException {
 		synchronized(pools) {
 			Integer I=ms.getPkey();

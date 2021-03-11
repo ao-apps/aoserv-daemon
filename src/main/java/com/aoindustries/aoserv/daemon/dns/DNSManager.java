@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2000-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2000-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -151,7 +151,7 @@ final public class DNSManager extends BuilderThread {
 	/**
 	 * Each zone is only rebuild if the zone file does not exist or its serial has changed.
 	 */
-	private static final Map<Zone,Long> zoneSerials = new HashMap<>();
+	private static final Map<Zone, Long> zoneSerials = new HashMap<>();
 
 	private static final Object rebuildLock = new Object();
 	@Override
@@ -286,7 +286,7 @@ final public class DNSManager extends BuilderThread {
 										//+ "\talso-notify { none; };\n"
 										+ "\tallow-query { " + ACL + " };\n"
 										+ "\tallow-recursion { " + ACL + " };\n");
-								Map<Integer,Set<InetAddress>> alreadyAddedIPs = new HashMap<>();
+								Map<Integer, Set<InetAddress>> alreadyAddedIPs = new HashMap<>();
 								for(Bind nb : netBinds) {
 									int port = nb.getPort().getPort();
 									InetAddress ip = nb.getIpAddress().getInetAddress();
@@ -331,12 +331,12 @@ final public class DNSManager extends BuilderThread {
 							} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 								out.print("options {\n");
 								// Find all unique InetAddresses per port
-								Map<Integer,Set<InetAddress>> ipsPerPortV4 = new HashMap<>();
-								Map<Integer,Set<InetAddress>> ipsPerPortV6 = new HashMap<>();
+								Map<Integer, Set<InetAddress>> ipsPerPortV4 = new HashMap<>();
+								Map<Integer, Set<InetAddress>> ipsPerPortV6 = new HashMap<>();
 								for(Bind nb : netBinds) {
 									int port = nb.getPort().getPort();
 									InetAddress ip = nb.getIpAddress().getInetAddress();
-									Map<Integer,Set<InetAddress>> ipsPerPort;
+									Map<Integer, Set<InetAddress>> ipsPerPort;
 									ProtocolFamily family = ip.getProtocolFamily();
 									if(family.equals(StandardProtocolFamily.INET)) {
 										ipsPerPort = ipsPerPortV4;
@@ -349,7 +349,7 @@ final public class DNSManager extends BuilderThread {
 									if(ips == null) ipsPerPort.put(port, ips = new LinkedHashSet<>());
 									ips.add(ip);
 								}
-								for(Map.Entry<Integer,Set<InetAddress>> entry : ipsPerPortV4.entrySet()) {
+								for(Map.Entry<Integer, Set<InetAddress>> entry : ipsPerPortV4.entrySet()) {
 									out.print("\tlisten-on port ").print(entry.getKey()).print(" {");
 									for(InetAddress ip : entry.getValue()) {
 										assert ip.getProtocolFamily().equals(StandardProtocolFamily.INET);
@@ -357,7 +357,7 @@ final public class DNSManager extends BuilderThread {
 									}
 									out.print(" };\n");
 								}
-								for(Map.Entry<Integer,Set<InetAddress>> entry : ipsPerPortV6.entrySet()) {
+								for(Map.Entry<Integer, Set<InetAddress>> entry : ipsPerPortV6.entrySet()) {
 									out.print("\tlisten-on-v6 port ").print(entry.getKey()).print(" {");
 									for(InetAddress ip : entry.getValue()) {
 										assert ip.getProtocolFamily().equals(StandardProtocolFamily.INET6);

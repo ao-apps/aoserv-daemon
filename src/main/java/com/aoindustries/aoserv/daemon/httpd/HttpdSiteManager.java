@@ -861,12 +861,12 @@ public abstract class HttpdSiteManager {
 	/**
 	 * Gets an unmodifiable map of URL patterns that should be rejected.
 	 */
-	public Map<String,List<Location>> getRejectedLocations() throws IOException, SQLException {
+	public Map<String, List<Location>> getRejectedLocations() throws IOException, SQLException {
 		OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 			// Protection is built into the config files
-			Map<String,List<Location>> rejectedLocations = new LinkedHashMap<>();
+			Map<String, List<Location>> rejectedLocations = new LinkedHashMap<>();
 			if(httpdSite.getBlockScm()) {
 				rejectedLocations.put("Protect CVS files", cvsRejectedLocations);
 				rejectedLocations.put("Protect Subversion files", subversionRejectedLocations);
@@ -1140,5 +1140,5 @@ public abstract class HttpdSiteManager {
 	 * and the value is the settings for that path.  If any webapp enables
 	 * CGI, then this site overall must allow CGI.
 	 */
-	public abstract SortedMap<String,WebAppSettings> getWebapps() throws IOException, SQLException;
+	public abstract SortedMap<String, WebAppSettings> getWebapps() throws IOException, SQLException;
 }

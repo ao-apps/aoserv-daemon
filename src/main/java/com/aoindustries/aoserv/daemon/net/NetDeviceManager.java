@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2006-2013, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2006-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -533,15 +533,15 @@ final public class NetDeviceManager extends BuilderThread {
 	 */
 	private static final Object _netDeviceStatisticsLock = new Object();
 	private static Thread _netDeviceStatisticsThread;
-	private static final Map<Device,Long> _lastTime = new HashMap<>();
-	private static final Map<Device,Long> _lastTxBytes = new HashMap<>();
-	private static final Map<Device,Long> _lastRxBytes = new HashMap<>();
-	private static final Map<Device,Long> _lastTxPackets = new HashMap<>();
-	private static final Map<Device,Long> _lastRxPackets = new HashMap<>();
-	private static final Map<Device,Long> _totalTxBytes = new HashMap<>();
-	private static final Map<Device,Long> _totalRxBytes = new HashMap<>();
-	private static final Map<Device,Long> _totalTxPackets = new HashMap<>();
-	private static final Map<Device,Long> _totalRxPackets = new HashMap<>();
+	private static final Map<Device, Long> _lastTime = new HashMap<>();
+	private static final Map<Device, Long> _lastTxBytes = new HashMap<>();
+	private static final Map<Device, Long> _lastRxBytes = new HashMap<>();
+	private static final Map<Device, Long> _lastTxPackets = new HashMap<>();
+	private static final Map<Device, Long> _lastRxPackets = new HashMap<>();
+	private static final Map<Device, Long> _totalTxBytes = new HashMap<>();
+	private static final Map<Device, Long> _totalRxBytes = new HashMap<>();
+	private static final Map<Device, Long> _totalTxPackets = new HashMap<>();
+	private static final Map<Device, Long> _totalRxPackets = new HashMap<>();
 
 	private static final long MAX_GIGABIT_BIT_RATE = 2000000000L; // Allow twice gigabit speed before assuming counter reset
 	private static final long MAX_GIGABIT_PACKET_RATE = MAX_GIGABIT_BIT_RATE / (64 * 8); // Smallest packet is 64 octets

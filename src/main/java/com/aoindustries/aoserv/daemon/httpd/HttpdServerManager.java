@@ -695,8 +695,8 @@ public class HttpdServerManager {
 					}
 
 					// Rejected URLs
-					Map<String,List<HttpdSiteManager.Location>> rejectedLocations = manager.getRejectedLocations();
-					for(Map.Entry<String,List<HttpdSiteManager.Location>> entry : rejectedLocations.entrySet()) {
+					Map<String, List<HttpdSiteManager.Location>> rejectedLocations = manager.getRejectedLocations();
+					for(Map.Entry<String, List<HttpdSiteManager.Location>> entry : rejectedLocations.entrySet()) {
 						out.print("\n"
 								+ "# ").print(entry.getKey()).print('\n');
 						for(HttpdSiteManager.Location location : entry.getValue()) {
@@ -765,8 +765,8 @@ public class HttpdServerManager {
 
 					// Error if no root webapp found
 					boolean foundRoot = false;
-					SortedMap<String,HttpdSiteManager.WebAppSettings> webapps = manager.getWebapps();
-					for(Map.Entry<String,HttpdSiteManager.WebAppSettings> entry : webapps.entrySet()) {
+					SortedMap<String, HttpdSiteManager.WebAppSettings> webapps = manager.getWebapps();
+					for(Map.Entry<String, HttpdSiteManager.WebAppSettings> entry : webapps.entrySet()) {
 						String path = entry.getKey();
 						HttpdSiteManager.WebAppSettings settings = entry.getValue();
 						PosixPath docBase = settings.getDocBase();
@@ -935,8 +935,8 @@ public class HttpdServerManager {
 					}
 
 					// Rejected URLs
-					Map<String,List<HttpdSiteManager.Location>> rejectedLocations = manager.getRejectedLocations();
-					for(Map.Entry<String,List<HttpdSiteManager.Location>> entry : rejectedLocations.entrySet()) {
+					Map<String, List<HttpdSiteManager.Location>> rejectedLocations = manager.getRejectedLocations();
+					for(Map.Entry<String, List<HttpdSiteManager.Location>> entry : rejectedLocations.entrySet()) {
 						out.print("\n"
 								+ "# ").print(entry.getKey()).print('\n'
 								+ "<IfModule authz_core_module>\n");
@@ -1048,8 +1048,8 @@ public class HttpdServerManager {
 
 					// Error if no root webapp found
 					boolean foundRoot = false;
-					SortedMap<String,HttpdSiteManager.WebAppSettings> webapps = manager.getWebapps();
-					for(Map.Entry<String,HttpdSiteManager.WebAppSettings> entry : webapps.entrySet()) {
+					SortedMap<String, HttpdSiteManager.WebAppSettings> webapps = manager.getWebapps();
+					for(Map.Entry<String, HttpdSiteManager.WebAppSettings> entry : webapps.entrySet()) {
 						String path = entry.getKey();
 						HttpdSiteManager.WebAppSettings settings = entry.getValue();
 						PosixPath docBase = settings.getDocBase();
@@ -3502,7 +3502,7 @@ public class HttpdServerManager {
 		}
 	}
 
-	private static final KeyedConcurrencyReducer<Integer,Integer> getHttpdServerConcurrencyLimiter = new KeyedConcurrencyReducer<>();
+	private static final KeyedConcurrencyReducer<Integer, Integer> getHttpdServerConcurrencyLimiter = new KeyedConcurrencyReducer<>();
 
 	/**
 	 * Gets the current concurrency for an Apache instance.

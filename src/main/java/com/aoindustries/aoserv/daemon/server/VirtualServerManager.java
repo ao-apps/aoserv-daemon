@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2012, 2013, 2014, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2012, 2013, 2014, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -152,7 +152,7 @@ final public class VirtualServerManager {
 				// Should have one child
 				if(rootList.size()!=1) throw new ParseException("Expected one element in the root array, got "+rootList.size(), 0);
 				Map<String, Object> domainNode = rootList.get(0);
-				//for(Map.Entry<String,Object> entry : domainNode.entrySet()) {
+				//for(Map.Entry<String, Object> entry : domainNode.entrySet()) {
 				//	System.out.println(entry.getKey() + ": (" + entry.getValue().getClass() + ") " + entry.getValue());
 				//}
 				domid = ((Double)domainNode.get("domid")).intValue();
@@ -455,7 +455,7 @@ final public class VirtualServerManager {
 	/**
 	 * Tracks the open connections to close them when new connections are established.
 	 */
-	private static final Map<Integer,Socket> openVncSockets = new HashMap<>();
+	private static final Map<Integer, Socket> openVncSockets = new HashMap<>();
 
 	/**
 	 * Gets a socket connection to the provided VNC port.  If any connection

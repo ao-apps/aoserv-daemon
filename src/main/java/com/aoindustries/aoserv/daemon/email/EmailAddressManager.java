@@ -220,10 +220,10 @@ final public class EmailAddressManager extends BuilderThread {
 						}
 						// Specific address@domain combinations
 						String[] devNullUsername = new String[1];
-						Map<Email,String> singleForwardingTies = new HashMap<>();
-						Map<PosixPath,String> singleListTies = new HashMap<>();
-						Map<String,String> singlePipeTies = new HashMap<>();
-						Map<User.Name,String> singleInboxTies = new HashMap<>();
+						Map<Email, String> singleForwardingTies = new HashMap<>();
+						Map<PosixPath, String> singleListTies = new HashMap<>();
+						Map<String, String> singlePipeTies = new HashMap<>();
+						Map<User.Name, String> singleInboxTies = new HashMap<>();
 						{
 							boolean didOne = false;
 							for(Address ea : eas) {
@@ -358,10 +358,10 @@ final public class EmailAddressManager extends BuilderThread {
 		Address ea,
 		Set<String> usernamesUsed,
 		String[] devNullUsername,
-		Map<Email,String> singleForwardingTies,
-		Map<PosixPath,String> singleListTies,
-		Map<String,String> singlePipeTies,
-		Map<User.Name,String> singleInboxTies,
+		Map<Email, String> singleForwardingTies,
+		Map<PosixPath, String> singleListTies,
+		Map<String, String> singlePipeTies,
+		Map<User.Name, String> singleInboxTies,
 		ChainWriter aliasesOut,
 		ChainWriter usersOut
 	) throws IOException, SQLException {

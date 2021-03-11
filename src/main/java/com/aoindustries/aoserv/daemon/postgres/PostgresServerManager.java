@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2002-2013, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2002-2013, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -134,7 +134,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 		}
 	}
 
-	private static final Map<Integer,AOConnectionPool> pools = new HashMap<>();
+	private static final Map<Integer, AOConnectionPool> pools = new HashMap<>();
 	static AOConnectionPool getPool(Server ps) throws IOException, SQLException {
 		AOServConnector connector  =AOServDaemon.getConnector();
 		String version = ps.getVersion().getTechnologyVersion(connector).getVersion();

@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2007-2013, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2007-2013, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -108,7 +108,7 @@ final public class MySQLCreditCardScanner implements CronJob {
 		try {
 			com.aoindustries.aoserv.client.linux.Server thisServer = AOServDaemon.getThisServer();
 
-			Map<Account,StringBuilder> reports = new HashMap<>();
+			Map<Account, StringBuilder> reports = new HashMap<>();
 
 			List<Server> mysqlServers = thisServer.getMySQLServers();
 			for(Server mysqlServer : mysqlServers) {

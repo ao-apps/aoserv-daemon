@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2017, 2018, 2020  AO Industries, Inc.
+ * Copyright (C) 2017, 2018, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -183,10 +183,10 @@ final public class GroupFile {
 	 *
 	 * Must hold {@link #groupLock}
 	 */
-	public static Map<Group.Name,Entry> readGroupFile() throws IOException {
+	public static Map<Group.Name, Entry> readGroupFile() throws IOException {
 		assert Thread.holdsLock(groupLock);
 		try {
-			Map<Group.Name,Entry> groupEntries = new LinkedHashMap<>();
+			Map<Group.Name, Entry> groupEntries = new LinkedHashMap<>();
 			try (
 				BufferedReader in = new BufferedReader(
 					new InputStreamReader(
@@ -247,14 +247,14 @@ final public class GroupFile {
 	 *
 	 * Must hold {@link #groupLock}
 	 */
-	public static byte[] buildGroupFile(Map<Group.Name,Entry> groups, int gidMin, int gidMax) throws IOException {
+	public static byte[] buildGroupFile(Map<Group.Name, Entry> groups, int gidMin, int gidMax) throws IOException {
 		assert Thread.holdsLock(groupLock);
 		if(!groups.containsKey(Group.ROOT)) throw new IllegalArgumentException(Group.ROOT + " group not found");
-		Map<Group.Name,Entry> groupEntries = readGroupFile();
+		Map<Group.Name, Entry> groupEntries = readGroupFile();
 		// Remove any groups that no longer exist and verify group members
-		Iterator<Map.Entry<Group.Name,Entry>> entryIter = groupEntries.entrySet().iterator();
+		Iterator<Map.Entry<Group.Name, Entry>> entryIter = groupEntries.entrySet().iterator();
 		while(entryIter.hasNext()) {
-			Map.Entry<Group.Name,Entry> mapEntry = entryIter.next();
+			Map.Entry<Group.Name, Entry> mapEntry = entryIter.next();
 			Group.Name groupName = mapEntry.getKey();
 			Entry existingEntry = mapEntry.getValue();
 			boolean existingIsSystem = existingEntry.gid < gidMin || existingEntry.gid > gidMax;

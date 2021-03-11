@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -124,7 +124,7 @@ final public class SslCertificateManager {
 	private static final long CERTBOT_LOCKED_SLEEP = 6000;
 	private static final int CERTBOT_LOCKED_ATTEMPTS = 10;
 
-	private static final Map<Tuple2<UnixFile,String>,Tuple2<Long,String>> getHashedCache = new HashMap<>();
+	private static final Map<Tuple2<UnixFile, String>, Tuple2<Long, String>> getHashedCache = new HashMap<>();
 
 	/**
 	 * Gets the SHA-256 hashed output from a command, caching results when the file has not changed modified times.
@@ -135,9 +135,9 @@ final public class SslCertificateManager {
 	 */
 	private static String getCommandHash(UnixFile file, String type, long modifiedTime, boolean allowCached, String ... command) throws IOException {
 		try {
-			Tuple2<UnixFile,String> cacheKey = new Tuple2<>(file, type);
+			Tuple2<UnixFile, String> cacheKey = new Tuple2<>(file, type);
 			synchronized(getHashedCache) {
-				Tuple2<Long,String> cached = allowCached ? getHashedCache.get(cacheKey) : null;
+				Tuple2<Long, String> cached = allowCached ? getHashedCache.get(cacheKey) : null;
 				if(cached != null && cached.getElement1() == modifiedTime) return cached.getElement2();
 				@SuppressWarnings("deprecation")
 				String hashed = Strings.convertToHex(
@@ -197,7 +197,7 @@ final public class SslCertificateManager {
 
 	private static final String FACTORY_TYPE = "X.509";
 
-	private static final Map<UnixFile,X509Status> x509Cache = new HashMap<>();
+	private static final Map<UnixFile, X509Status> x509Cache = new HashMap<>();
 	/**
 	 * Gets the x509 status.
 	 */
@@ -391,7 +391,7 @@ final public class SslCertificateManager {
 		}
 	}
 
-	private static final Map<String,CertbotStatus> certbotCache = new HashMap<>();
+	private static final Map<String, CertbotStatus> certbotCache = new HashMap<>();
 	/**
 	 * Gets the certificate status from certbot.
 	 */
@@ -521,7 +521,7 @@ final public class SslCertificateManager {
 		}
 	}
 
-	private static final KeyedConcurrencyReducer<Tuple2<Certificate,Boolean>,List<Check>> checkSslCertificateConcurrencyLimiter = new KeyedConcurrencyReducer<>();
+	private static final KeyedConcurrencyReducer<Tuple2<Certificate, Boolean>, List<Check>> checkSslCertificateConcurrencyLimiter = new KeyedConcurrencyReducer<>();
 
 	@SuppressWarnings("null")
 	public static List<Check> checkSslCertificate(Certificate certificate, boolean allowCached) throws IOException, SQLException {

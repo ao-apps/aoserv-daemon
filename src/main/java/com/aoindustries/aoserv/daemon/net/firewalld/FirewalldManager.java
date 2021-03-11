@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -162,7 +162,7 @@ final public class FirewalldManager extends BuilderThread {
 					//       service on that zone for all ports.
 
 					// Gather the set of firewalld zones per service name
-					List<Tuple2<ServiceSet,Set<FirewallZone.Name>>> serviceSets = new ArrayList<>();
+					List<Tuple2<ServiceSet, Set<FirewallZone.Name>>> serviceSets = new ArrayList<>();
 					// SSH
 					{
 						List<Target> targets = new ArrayList<>();
@@ -660,8 +660,8 @@ final public class FirewalldManager extends BuilderThread {
 						);
 					}
 					// Group service sets by unique set of targets
-					Map<Set<FirewallZone.Name>,List<ServiceSet>> serviceSetsByZones = new LinkedHashMap<>();
-					for(Tuple2<ServiceSet,Set<FirewallZone.Name>> tuple : serviceSets) {
+					Map<Set<FirewallZone.Name>, List<ServiceSet>> serviceSetsByZones = new LinkedHashMap<>();
+					for(Tuple2<ServiceSet, Set<FirewallZone.Name>> tuple : serviceSets) {
 						ServiceSet serviceSet = tuple.getElement1();
 						Set<FirewallZone.Name> zones = tuple.getElement2();
 						List<ServiceSet> list = serviceSetsByZones.get(zones);
@@ -672,7 +672,7 @@ final public class FirewalldManager extends BuilderThread {
 						list.add(serviceSet);
 					}
 					// Commit all service sets
-					for(Map.Entry<Set<FirewallZone.Name>,List<ServiceSet>> entry : serviceSetsByZones.entrySet()) {
+					for(Map.Entry<Set<FirewallZone.Name>, List<ServiceSet>> entry : serviceSetsByZones.entrySet()) {
 						ServiceSet.commit(entry.getValue(), toStringSet(entry.getKey()));
 					}
 				}

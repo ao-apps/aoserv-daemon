@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2012, 2013, 2017, 2018, 2020  AO Industries, Inc.
+ * Copyright (C) 2012, 2013, 2017, 2018, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -84,7 +84,7 @@ final public class Ipset {
 	 * To minimize the kernel locking duration, each ipset is only updated with
 	 * what has changed since the last build.
 	 */
-	//private static final Map<Set,Set<Integer>> lastNetworks=new HashMap<Set,Set<Integer>>();
+	//private static final Map<Set, Set<Integer>> lastNetworks=new HashMap<Set, Set<Integer>>();
 
 	/**
 	 * Calls ipset -S, skipping any comment lines

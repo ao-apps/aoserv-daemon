@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2002-2013, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2002-2013, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -100,7 +100,7 @@ final public class MySQLUserManager extends BuilderThread {
 							try (Connection conn = MySQLServerManager.getPool(mysqlServer).getConnection()) {
 								try {
 									// Get the list of all existing users
-									Set<Tuple2<String,User.Name>> existing = new HashSet<>();
+									Set<Tuple2<String, User.Name>> existing = new HashSet<>();
 									String currentSQL = null;
 									try (
 										Statement stmt = conn.createStatement();
@@ -108,7 +108,7 @@ final public class MySQLUserManager extends BuilderThread {
 									) {
 										try {
 											while (results.next()) {
-												Tuple2<String,User.Name> tuple = new Tuple2<>(
+												Tuple2<String, User.Name> tuple = new Tuple2<>(
 													results.getString(1),
 													User.Name.valueOf(results.getString(2))
 												);
@@ -459,7 +459,7 @@ final public class MySQLUserManager extends BuilderThread {
 											String host = msu.getHost();
 											if(host == null) host = "";
 											User.Name username = mu.getKey();
-											Tuple2<String,User.Name> key = new Tuple2<>(host, username);
+											Tuple2<String, User.Name> key = new Tuple2<>(host, username);
 											if(existing.contains(key)) {
 												int pos = 1;
 												// Update the user
@@ -603,7 +603,7 @@ final public class MySQLUserManager extends BuilderThread {
 											String host = msu.getHost();
 											if(host == null) host = "";
 											User.Name username = mu.getKey();
-											Tuple2<String,User.Name> key = new Tuple2<>(host, username);
+											Tuple2<String, User.Name> key = new Tuple2<>(host, username);
 											if(!existing.remove(key)) {
 												// Add the user
 												if(mu.isSpecial()) {
@@ -685,7 +685,7 @@ final public class MySQLUserManager extends BuilderThread {
 									if(!existing.isEmpty()) {
 										currentSQL = null;
 										try (PreparedStatement pstmt = conn.prepareStatement(currentSQL = "DELETE FROM user WHERE host=? AND user=?")) {
-											for (Tuple2<String,User.Name> key : existing) {
+											for (Tuple2<String, User.Name> key : existing) {
 												// Remove the extra host entry
 												String host = key.getElement1();
 												User.Name user = key.getElement2();

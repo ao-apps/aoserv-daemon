@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -365,7 +365,7 @@ final public class ShadowFile {
 	 *
 	 * If there is no entry for the user in the shadow file, returns <code>({@link User#NO_PASSWORD_CONFIG_VALUE}, null)</code>.
 	 */
-	public static Tuple2<String,Integer> getEncryptedPassword(User.Name username) throws IOException, SQLException {
+	public static Tuple2<String, Integer> getEncryptedPassword(User.Name username) throws IOException, SQLException {
 		OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
@@ -402,10 +402,10 @@ final public class ShadowFile {
 	/**
 	 * Reads the full contents of /etc/shadow
 	 */
-	private static Map<User.Name,Entry> readShadowFile() throws IOException {
+	private static Map<User.Name, Entry> readShadowFile() throws IOException {
 		assert Thread.holdsLock(shadowLock);
 		try {
-			Map<User.Name,Entry> shadowEntries = new LinkedHashMap<>();
+			Map<User.Name, Entry> shadowEntries = new LinkedHashMap<>();
 			try (
 				BufferedReader in = new BufferedReader(
 					new InputStreamReader(
@@ -490,11 +490,11 @@ final public class ShadowFile {
 	public static byte[] buildShadowFile(Set<User.Name> usernames) throws IOException {
 		assert Thread.holdsLock(shadowLock);
 		if(!usernames.contains(User.ROOT)) throw new IllegalArgumentException(User.ROOT + " user not found");
-		Map<User.Name,Entry> shadowEntries = readShadowFile();
+		Map<User.Name, Entry> shadowEntries = readShadowFile();
 		// Remove any users that no longer exist
-		Iterator<Map.Entry<User.Name,Entry>> entryIter = shadowEntries.entrySet().iterator();
+		Iterator<Map.Entry<User.Name, Entry>> entryIter = shadowEntries.entrySet().iterator();
 		while(entryIter.hasNext()) {
-			Map.Entry<User.Name,Entry> mapEntry = entryIter.next();
+			Map.Entry<User.Name, Entry> mapEntry = entryIter.next();
 			User.Name username = mapEntry.getKey();
 			if(!usernames.contains(username)) {
 				if(logger.isLoggable(Level.INFO)) {
@@ -530,7 +530,7 @@ final public class ShadowFile {
 	 */
 	public static void setEncryptedPassword(User.Name username, String encryptedPassword, Integer newChangedDate) throws IOException, SQLException {
 		synchronized(shadowLock) {
-			Map<User.Name,Entry> shadowEntries = readShadowFile();
+			Map<User.Name, Entry> shadowEntries = readShadowFile();
 
 			Entry entry = shadowEntries.get(username);
 			if(entry != null) {

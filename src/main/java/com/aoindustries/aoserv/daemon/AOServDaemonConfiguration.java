@@ -282,7 +282,7 @@ final public class AOServDaemonConfiguration {
 			return Collections.emptyMap();
 		} else {
 			List<String> networkNames = Strings.splitCommaSpace(networkNamesProp);
-			Map<String,NetworkMonitorConfiguration> networkMonitors = AoCollections.newLinkedHashMap(networkNames.size());
+			Map<String, NetworkMonitorConfiguration> networkMonitors = AoCollections.newLinkedHashMap(networkNames.size());
 			for(String name : networkNames) {
 				String nullRouteFifoErrorRate = getProperty("monitor.NetworkMonitor.network." + name + ".nullRoute.fifoErrorRate", null);
 				String nullRouteFifoErrorRateMinPps = getProperty("monitor.NetworkMonitor.network." + name + ".nullRoute.fifoErrorRateMinPps", null);

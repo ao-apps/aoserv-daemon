@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2001-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2001-2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -177,11 +177,11 @@ public class LinuxAccountManager extends BuilderThread {
 			final Set<String> usernameStrs;
 			final Set<Integer> uids;
 			final Set<String> homeDirs;
-			final Map<User.Name,PasswdFile.Entry> passwdEntries;
+			final Map<User.Name, PasswdFile.Entry> passwdEntries;
 
 			List<GroupServer> lsgs = thisServer.getLinuxServerGroups();
-			final Map<Group.Name,Set<User.Name>> groups;
-			final Map<Group.Name,GroupFile.Entry> groupEntries;
+			final Map<Group.Name, Set<User.Name>> groups;
+			final Map<Group.Name, GroupFile.Entry> groupEntries;
 
 			Set<UnixFile> restorecon = new LinkedHashSet<>();
 			try {
@@ -191,7 +191,7 @@ public class LinuxAccountManager extends BuilderThread {
 				) {
 					// Add any system groups found, updating lsgs
 					{
-						Map<Group.Name,GroupFile.Entry> groupFile;
+						Map<Group.Name, GroupFile.Entry> groupFile;
 						synchronized(GroupFile.groupLock) {
 							groupFile = GroupFile.readGroupFile();
 						}
@@ -234,7 +234,7 @@ public class LinuxAccountManager extends BuilderThread {
 					}
 					// Add any system users found, updating lsas
 					{
-						Map<User.Name,PasswdFile.Entry> passwdFile;
+						Map<User.Name, PasswdFile.Entry> passwdFile;
 						synchronized(PasswdFile.passwdLock) {
 							passwdFile = PasswdFile.readPasswdFile();
 						}
@@ -687,7 +687,7 @@ public class LinuxAccountManager extends BuilderThread {
 
 				// Configure sudo
 				if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
-					Map<String,String> sudoers = new LinkedHashMap<>();
+					Map<String, String> sudoers = new LinkedHashMap<>();
 					for(UserServer lsa : lsas) {
 						String sudo = lsa.getSudo();
 						if(sudo != null) {
@@ -702,7 +702,7 @@ public class LinuxAccountManager extends BuilderThread {
 						if(!SUDOERS_D.getStat().exists()) SUDOERS_D.mkdir(false, 0750);
 						// Update any files
 						ByteArrayOutputStream bout = new ByteArrayOutputStream();
-						for(Map.Entry<String,String> entry : sudoers.entrySet()) {
+						for(Map.Entry<String, String> entry : sudoers.entrySet()) {
 							String username = entry.getKey();
 							String sudo = entry.getValue();
 							bout.reset();
@@ -948,7 +948,7 @@ public class LinuxAccountManager extends BuilderThread {
 	/**
 	 * @see  ShadowFile#getEncryptedPassword(com.aoindustries.aoserv.client.validator.User.Name)
 	 */
-	public static Tuple2<String,Integer> getEncryptedPassword(User.Name username) throws IOException, SQLException {
+	public static Tuple2<String, Integer> getEncryptedPassword(User.Name username) throws IOException, SQLException {
 		return ShadowFile.getEncryptedPassword(username);
 	}
 

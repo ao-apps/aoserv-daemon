@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2000-2013, 2018, 2020  AO Industries, Inc.
+ * Copyright (C) 2000-2013, 2018, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -129,10 +129,10 @@ public class LinuxProcess extends UnixProcess {
 	 *
 	 * @see  #getStatus(java.lang.String)
 	 */
-	public Map<String,String> getStatus() throws IOException {
+	public Map<String, String> getStatus() throws IOException {
 		File statusFile = new File(getProc(), "status");
 		final int expectedMaxLength = 45; // "wc -l /proc/*/status" shows maximum 45 lines in kernel 3.10.0-514.16.1.el7.x86_64
-		Map<String,String> status = AoCollections.newLinkedHashMap(expectedMaxLength);
+		Map<String, String> status = AoCollections.newLinkedHashMap(expectedMaxLength);
 		try (BufferedReader in = new BufferedReader(new FileReader(statusFile))) {
 			String line;
 			while((line = in.readLine()) != null) {

@@ -345,11 +345,11 @@ final public class DistroGenerator {
 		}
 	}
 
-	private final Map<Integer,Map<Integer,String>> usernames = new HashMap<>();
+	private final Map<Integer, Map<Integer, String>> usernames = new HashMap<>();
 	private String getUsername(OSFilename osFilename, int fileUID) throws IOException {
 		Integer osv = osFilename.osv;
 		synchronized(usernames) {
-			Map<Integer,String> realNames = usernames.get(osv);
+			Map<Integer, String> realNames = usernames.get(osv);
 			if(realNames == null) {
 				realNames = new HashMap<>();
 				try (BufferedReader in = new BufferedReader(
@@ -379,11 +379,11 @@ final public class DistroGenerator {
 		}
 	}
 
-	private final Map<Integer,Map<Integer,String>> groupnames = new HashMap<>();
+	private final Map<Integer, Map<Integer, String>> groupnames = new HashMap<>();
 	private String getGroupname(OSFilename osFilename, int fileGID) throws IOException {
 		Integer I = osFilename.osv;
 		synchronized(groupnames) {
-			Map<Integer,String> realGroups = groupnames.get(I);
+			Map<Integer, String> realGroups = groupnames.get(I);
 			if(realGroups == null) {
 				realGroups = new HashMap<>();
 				try (BufferedReader in = new BufferedReader(
@@ -423,7 +423,7 @@ final public class DistroGenerator {
 		/**
 		 * Track which filenames exist and have been seen.
 		 */
-		private final Map<OSFilename,Boolean>
+		private final Map<OSFilename, Boolean>
 			configs = new HashMap<>(),
 			nevers = new HashMap<>(),
 			noRecurses = new HashMap<>(),
@@ -455,7 +455,7 @@ final public class DistroGenerator {
 		 * Lines containing a path are not trimmed.
 		 * </p>
 		 */
-		private void readFileLists(ConfigFile configFile, Map<OSFilename,Boolean> map, int ... osvs) throws IOException {
+		private void readFileLists(ConfigFile configFile, Map<OSFilename, Boolean> map, int ... osvs) throws IOException {
 			for(int osv : osvs) {
 				String path = getOperatingSystemPath(osv) + configFile.fileExtension;
 				try (
@@ -627,7 +627,7 @@ final public class DistroGenerator {
 		 * Also flags the path as seen.
 		 */
 		private boolean containsFile(
-			Map<OSFilename,Boolean> osVersions,
+			Map<OSFilename, Boolean> osVersions,
 			OSFilename osFilename
 		) {
 			synchronized(osVersions) {
@@ -681,7 +681,7 @@ final public class DistroGenerator {
 
 		// First do a quick scan for nevers
 		Set<String> foundNevers = new LinkedHashSet<>();
-		for(Map.Entry<OSFilename,Boolean> entry : runState.nevers.entrySet()) {
+		for(Map.Entry<OSFilename, Boolean> entry : runState.nevers.entrySet()) {
 			OSFilename osFilename = entry.getKey();
 			String path = osFilename.getFullPath();
 			UnixFile uf = new UnixFile(path);
@@ -956,10 +956,10 @@ final public class DistroGenerator {
 		throw new RuntimeException("Unsupported operating system: name=" + name + ", version=" + version+", architecture=" + architecture);
 	}
 
-	private void reportMissingTemplateFiles(ConfigFile configFile, Map<OSFilename,Boolean> map, PrintWriter err) {
+	private void reportMissingTemplateFiles(ConfigFile configFile, Map<OSFilename, Boolean> map, PrintWriter err) {
 		// Filter all not seen
 		SortedSet<OSFilename> notSeen = new TreeSet<>();
-		for(Map.Entry<OSFilename,Boolean> entry : map.entrySet()) {
+		for(Map.Entry<OSFilename, Boolean> entry : map.entrySet()) {
 			if(!entry.getValue()) notSeen.add(entry.getKey());
 		}
 		if(!notSeen.isEmpty()) {
