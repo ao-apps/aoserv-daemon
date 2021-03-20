@@ -679,6 +679,7 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 				}
 			} else if(
 				rpmVersion.equals("9.0.43")
+				|| rpmVersion.equals("9.0.44")
 			) {
 				UpgradeSymlink[] upgradeSymlinks_9_0_43 = {
 					// ecj-4.17.jar.jar -> ecj-4.18.jar
