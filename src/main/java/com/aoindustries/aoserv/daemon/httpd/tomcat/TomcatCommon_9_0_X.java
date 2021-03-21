@@ -68,6 +68,8 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 		return "apache-tomcat-9.0";
 	}
 
+	// Note: Updates here should be matched between all VersionTomcat versions (8.5, 9.0, 10.0 currently)
+	//       in order to allow both upgrade and downgrade between them.
 	@Override
 	protected List<Install> getInstallFiles(String optSlash, UnixFile installDir, int confMode) throws IOException, SQLException {
 		return Arrays.asList(
@@ -75,14 +77,16 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 			new Symlink      ("bin/bootstrap.jar"),
 			new ProfileScript("bin/catalina.sh"),
 			new ProfileScript("bin/ciphers.sh"), // Tomcat 8.5+
-			new ProfileScript("bin/configtest.sh"),
 			new Symlink      ("bin/commons-daemon.jar"),
+			// Skipped bin/commons-daemon-native.tar.gz
 			new Delete       ("bin/commons-logging-api.jar"), // Tomcat 5.5
+			new ProfileScript("bin/configtest.sh"),
 			// Skipped bin/daemon.sh
 			new ProfileScript("bin/digest.sh"),
 			new Delete       ("bin/jasper.sh"), // Tomcat 4.1
 			new Delete       ("bin/jspc.sh"), // Tomcat 4.1
 			// Skipped bin/makebase.sh
+			new Delete       ("bin/migrate.sh"), // Tomcat 10.0+
 			new Delete       ("bin/profile"), // Tomcat 4.1, Tomcat 5.5, Tomcat 6.0, Tomcat 7.0, Tomcat 8.0
 			new Mkdir        ("bin/profile.d", 0750),
 			new Generated    ("bin/profile.d/catalina.sh",                    0640, VersionedTomcatCommon::generateProfileCatalinaSh),
@@ -97,6 +101,7 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 			new Generated    ("bin/startup.sh",  0700, VersionedTomcatCommon::generateStartupSh),
 			new Delete       ("bin/tomcat-jni.jar"), // Tomcat 4.1
 			new Symlink      ("bin/tomcat-juli.jar"),
+			// Skipped bin/tomcat-native.tar.gz
 			new Symlink      ("bin/tool-wrapper.sh"),
 			new ProfileScript("bin/version.sh"),
 			new Delete       ("common"), // Tomcat 4.1, Tomcat 5.5

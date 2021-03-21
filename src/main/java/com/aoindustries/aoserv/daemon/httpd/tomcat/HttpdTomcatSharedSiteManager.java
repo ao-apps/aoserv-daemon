@@ -53,15 +53,16 @@ abstract class HttpdTomcatSharedSiteManager<TC extends TomcatCommon> extends Htt
 		AOServConnector connector=AOServDaemon.getConnector();
 
 		Version htv=shrSite.getHttpdTomcatSite().getHttpdTomcatVersion();
-		if(htv.isTomcat3_1(connector)) return new HttpdTomcatSharedSiteManager_3_1(shrSite);
-		if(htv.isTomcat3_2_4(connector)) return new HttpdTomcatSharedSiteManager_3_2_4(shrSite);
-		if(htv.isTomcat4_1_X(connector)) return new HttpdTomcatSharedSiteManager_4_1_X(shrSite);
-		if(htv.isTomcat5_5_X(connector)) return new HttpdTomcatSharedSiteManager_5_5_X(shrSite);
-		if(htv.isTomcat6_0_X(connector)) return new HttpdTomcatSharedSiteManager_6_0_X(shrSite);
-		if(htv.isTomcat7_0_X(connector)) return new HttpdTomcatSharedSiteManager_7_0_X(shrSite);
-		if(htv.isTomcat8_0_X(connector)) return new HttpdTomcatSharedSiteManager_8_0_X(shrSite);
-		if(htv.isTomcat8_5_X(connector)) return new HttpdTomcatSharedSiteManager_8_5_X(shrSite);
-		if(htv.isTomcat9_0_X(connector)) return new HttpdTomcatSharedSiteManager_9_0_X(shrSite);
+		if(htv.isTomcat3_1(connector))    return new HttpdTomcatSharedSiteManager_3_1(shrSite);
+		if(htv.isTomcat3_2_4(connector))  return new HttpdTomcatSharedSiteManager_3_2_4(shrSite);
+		if(htv.isTomcat4_1_X(connector))  return new HttpdTomcatSharedSiteManager_4_1_X(shrSite);
+		if(htv.isTomcat5_5_X(connector))  return new HttpdTomcatSharedSiteManager_5_5_X(shrSite);
+		if(htv.isTomcat6_0_X(connector))  return new HttpdTomcatSharedSiteManager_6_0_X(shrSite);
+		if(htv.isTomcat7_0_X(connector))  return new HttpdTomcatSharedSiteManager_7_0_X(shrSite);
+		if(htv.isTomcat8_0_X(connector))  return new HttpdTomcatSharedSiteManager_8_0_X(shrSite);
+		if(htv.isTomcat8_5_X(connector))  return new HttpdTomcatSharedSiteManager_8_5_X(shrSite);
+		if(htv.isTomcat9_0_X(connector))  return new HttpdTomcatSharedSiteManager_9_0_X(shrSite);
+		if(htv.isTomcat10_0_X(connector)) return new HttpdTomcatSharedSiteManager_10_0_X(shrSite);
 		throw new SQLException("Unsupported version of shared Tomcat: "+htv.getTechnologyVersion(connector).getVersion()+" on "+shrSite);
 	}
 

@@ -82,15 +82,16 @@ public abstract class HttpdSharedTomcatManager<TC extends TomcatCommon> implemen
 		AOServConnector connector=AOServDaemon.getConnector();
 
 		Version htv=sharedTomcat.getHttpdTomcatVersion();
-		if(htv.isTomcat3_1(connector)) return new HttpdSharedTomcatManager_3_1(sharedTomcat);
-		if(htv.isTomcat3_2_4(connector)) return new HttpdSharedTomcatManager_3_2_4(sharedTomcat);
-		if(htv.isTomcat4_1_X(connector)) return new HttpdSharedTomcatManager_4_1_X(sharedTomcat);
-		if(htv.isTomcat5_5_X(connector)) return new HttpdSharedTomcatManager_5_5_X(sharedTomcat);
-		if(htv.isTomcat6_0_X(connector)) return new HttpdSharedTomcatManager_6_0_X(sharedTomcat);
-		if(htv.isTomcat7_0_X(connector)) return new HttpdSharedTomcatManager_7_0_X(sharedTomcat);
-		if(htv.isTomcat8_0_X(connector)) return new HttpdSharedTomcatManager_8_0_X(sharedTomcat);
-		if(htv.isTomcat8_5_X(connector)) return new HttpdSharedTomcatManager_8_5_X(sharedTomcat);
-		if(htv.isTomcat9_0_X(connector)) return new HttpdSharedTomcatManager_9_0_X(sharedTomcat);
+		if(htv.isTomcat3_1(connector))    return new HttpdSharedTomcatManager_3_1(sharedTomcat);
+		if(htv.isTomcat3_2_4(connector))  return new HttpdSharedTomcatManager_3_2_4(sharedTomcat);
+		if(htv.isTomcat4_1_X(connector))  return new HttpdSharedTomcatManager_4_1_X(sharedTomcat);
+		if(htv.isTomcat5_5_X(connector))  return new HttpdSharedTomcatManager_5_5_X(sharedTomcat);
+		if(htv.isTomcat6_0_X(connector))  return new HttpdSharedTomcatManager_6_0_X(sharedTomcat);
+		if(htv.isTomcat7_0_X(connector))  return new HttpdSharedTomcatManager_7_0_X(sharedTomcat);
+		if(htv.isTomcat8_0_X(connector))  return new HttpdSharedTomcatManager_8_0_X(sharedTomcat);
+		if(htv.isTomcat8_5_X(connector))  return new HttpdSharedTomcatManager_8_5_X(sharedTomcat);
+		if(htv.isTomcat9_0_X(connector))  return new HttpdSharedTomcatManager_9_0_X(sharedTomcat);
+		if(htv.isTomcat10_0_X(connector)) return new HttpdSharedTomcatManager_10_0_X(sharedTomcat);
 		throw new SQLException("Unsupported version of shared Tomcat: "+htv.getTechnologyVersion(connector).getVersion()+" on "+sharedTomcat);
 	}
 

@@ -56,15 +56,16 @@ abstract class HttpdTomcatStdSiteManager<TC extends TomcatCommon> extends HttpdT
 	static HttpdTomcatStdSiteManager<? extends TomcatCommon> getInstance(PrivateTomcatSite stdSite) throws IOException, SQLException {
 		AOServConnector connector=AOServDaemon.getConnector();
 		Version htv=stdSite.getHttpdTomcatSite().getHttpdTomcatVersion();
-		if(htv.isTomcat3_1(connector)) return new HttpdTomcatStdSiteManager_3_1(stdSite);
-		if(htv.isTomcat3_2_4(connector)) return new HttpdTomcatStdSiteManager_3_2_4(stdSite);
-		if(htv.isTomcat4_1_X(connector)) return new HttpdTomcatStdSiteManager_4_1_X(stdSite);
-		if(htv.isTomcat5_5_X(connector)) return new HttpdTomcatStdSiteManager_5_5_X(stdSite);
-		if(htv.isTomcat6_0_X(connector)) return new HttpdTomcatStdSiteManager_6_0_X(stdSite);
-		if(htv.isTomcat7_0_X(connector)) return new HttpdTomcatStdSiteManager_7_0_X(stdSite);
-		if(htv.isTomcat8_0_X(connector)) return new HttpdTomcatStdSiteManager_8_0_X(stdSite);
-		if(htv.isTomcat8_5_X(connector)) return new HttpdTomcatStdSiteManager_8_5_X(stdSite);
-		if(htv.isTomcat9_0_X(connector)) return new HttpdTomcatStdSiteManager_9_0_X(stdSite);
+		if(htv.isTomcat3_1(connector))    return new HttpdTomcatStdSiteManager_3_1(stdSite);
+		if(htv.isTomcat3_2_4(connector))  return new HttpdTomcatStdSiteManager_3_2_4(stdSite);
+		if(htv.isTomcat4_1_X(connector))  return new HttpdTomcatStdSiteManager_4_1_X(stdSite);
+		if(htv.isTomcat5_5_X(connector))  return new HttpdTomcatStdSiteManager_5_5_X(stdSite);
+		if(htv.isTomcat6_0_X(connector))  return new HttpdTomcatStdSiteManager_6_0_X(stdSite);
+		if(htv.isTomcat7_0_X(connector))  return new HttpdTomcatStdSiteManager_7_0_X(stdSite);
+		if(htv.isTomcat8_0_X(connector))  return new HttpdTomcatStdSiteManager_8_0_X(stdSite);
+		if(htv.isTomcat8_5_X(connector))  return new HttpdTomcatStdSiteManager_8_5_X(stdSite);
+		if(htv.isTomcat9_0_X(connector))  return new HttpdTomcatStdSiteManager_9_0_X(stdSite);
+		if(htv.isTomcat10_0_X(connector)) return new HttpdTomcatStdSiteManager_10_0_X(stdSite);
 		throw new SQLException("Unsupported version of standard Tomcat: " + htv.getTechnologyVersion(connector).getVersion() + " on " + stdSite);
 	}
 

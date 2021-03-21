@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -73,6 +73,12 @@ public abstract class VersionedTomcatCommon extends TomcatCommon {
 	 *   <ol type="a">
 	 *   <li><a href="https://tomcat.apache.org/tomcat-9.0-doc/jndi-datasource-examples-howto.html">JNDI Datasource HOW-TO</a></li>
 	 *   <li><a href="https://tomcat.apache.org/tomcat-9.0-doc/jdbc-pool.html">The Tomcat JDBC Connection Pool</a></li>
+	 *   </ol>
+	 * </li>
+	 * <li>Tomcat 10.0:
+	 *   <ol type="a">
+	 *   <li><a href="https://tomcat.apache.org/tomcat-10.0-doc/jndi-datasource-examples-howto.html">JNDI Datasource HOW-TO</a></li>
+	 *   <li><a href="https://tomcat.apache.org/tomcat-10.0-doc/jdbc-pool.html">The Tomcat JDBC Connection Pool</a></li>
 	 *   </ol>
 	 * </li>
 	 * </ol>
