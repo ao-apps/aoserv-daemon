@@ -145,7 +145,10 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 		OperatingSystemConfiguration osConfig = OperatingSystemConfiguration.getOperatingSystemConfiguration();
 		if(osConfig == OperatingSystemConfiguration.CENTOS_7_X86_64) {
 			String rpmVersion = PackageManager.getInstalledPackage(PackageManager.PackageName.APACHE_TOMCAT_10_0).getVersion().toString();
-			if(rpmVersion.equals("10.0.4")) {
+			if(
+				rpmVersion.equals("10.0.4")
+				|| rpmVersion.equals("10.0.5")
+			) {
 				// Nothing to do
 			} else {
 				throw new IllegalStateException("Unexpected version of Tomcat: " + rpmVersion);
