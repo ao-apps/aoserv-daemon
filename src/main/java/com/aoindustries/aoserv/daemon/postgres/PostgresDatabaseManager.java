@@ -88,9 +88,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
-				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
@@ -207,18 +205,11 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 														lib = "/opt/postgresql-" + minorVersion + "-i686/lib";
 														share = "/opt/postgresql-" + minorVersion + "-i686/share";
 														break;
-													case OperatingSystemVersion.REDHAT_ES_4_X86_64:
 													case OperatingSystemVersion.CENTOS_7_X86_64:
 														createlang = "/opt/postgresql-" + minorVersion + "/bin/createlang";
 														psql = "/opt/postgresql-" + minorVersion + "/bin/psql";
 														lib = "/opt/postgresql-" + minorVersion + "/lib";
 														share = "/opt/postgresql-" + minorVersion + "/share";
-														break;
-													case OperatingSystemVersion.MANDRIVA_2006_0_I586:
-														createlang = "/usr/postgresql/" + minorVersion + "/bin/createlang";
-														psql = "/usr/postgresql/" + minorVersion + "/bin/psql";
-														lib = "/usr/postgresql/" + minorVersion + "/lib";
-														share = "/usr/postgresql/" + minorVersion + "/share";
 														break;
 													default:
 														throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -381,13 +372,10 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 			OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
-				osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-				|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 				|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 			) {
 				commandPath = "/opt/aoserv-daemon/bin/dump_postgres_database";
-			} else if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-				commandPath = "/usr/aoserv/daemon/bin/dump_postgres_database";
 			} else {
 				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 			}
@@ -433,9 +421,7 @@ final public class PostgresDatabaseManager extends BuilderThread implements Cron
 				System.out.print("Starting PostgresDatabaseManager: ");
 				// Must be a supported operating system
 				if(
-					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 				) {
 					if(postgresDatabaseManager == null) {

@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2021-04-12T15:02:09-05:00"
+		dateModified="2021-04-14T18:55:31-05:00"
 	>
 		<c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
 			<changelog:release
@@ -51,6 +51,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 					<li>Updated to Apache Tomcat 8.5.65.</li>
 					<li>Updated to Apache Tomcat 9.0.45.</li>
 					<li>Updated to Apache Tomcat 10.0.5.</li>
+					<li>Removed unsupported operating systems Gentoo, Mandrake, Mandriva, and RedHat.</li>
 				</ul>
 			</changelog:release>
 		</c:if>

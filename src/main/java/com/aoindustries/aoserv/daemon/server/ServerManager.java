@@ -61,11 +61,7 @@ final public class ServerManager {
 			if(lock==null) processLocks.put(process, lock=new Object());
 		}
 		synchronized(lock) {
-			if(
-				osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-				|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-				|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-			) {
+			if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 				AOServDaemon.exec(
 					"/etc/rc.d/init.d/" + process,
 					command
@@ -199,8 +195,7 @@ final public class ServerManager {
 		OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
-			osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-			|| osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
+			osvId == OperatingSystemVersion.CENTOS_5_DOM0_I686
 			|| osvId == OperatingSystemVersion.CENTOS_5_DOM0_X86_64
 			|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			|| osvId == OperatingSystemVersion.CENTOS_7_DOM0_X86_64
@@ -210,10 +205,6 @@ final public class ServerManager {
 			PackageManager.installPackage(PackageManager.PackageName.PERL);
 			return AOServDaemon.execAndCapture(
 				"/opt/aoserv-daemon/bin/filesystemscsv"
-			);
-		} else if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-			return AOServDaemon.execAndCapture(
-				"/usr/aoserv/daemon/bin/filesystemscsv"
 			);
 		} else {
 			throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);

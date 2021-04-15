@@ -93,9 +93,7 @@ final public class NullRouteManager {
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(NullRouteManager.class)

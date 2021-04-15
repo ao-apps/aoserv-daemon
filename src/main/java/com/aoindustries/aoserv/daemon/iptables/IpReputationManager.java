@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2012, 2013, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2012, 2013, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -94,9 +94,7 @@ final public class IpReputationManager extends BuilderThread {
 		synchronized(System.out) {
 			if(
 				// Nothing is done for these operating systems
-				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 				// Check config after OS check so config entry not needed
 				&& AOServDaemonConfiguration.isManagerEnabled(IpReputationManager.class)

@@ -96,9 +96,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
-				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
@@ -332,9 +330,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 				System.out.print("Starting MySQLDatabaseManager: ");
 				// Must be a supported operating system
 				if(
-					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
@@ -410,18 +406,7 @@ final public class MySQLDatabaseManager extends BuilderThread {
 			password = AOServDaemonConfiguration.getMySqlPassword(serverName);
 		} else {
 			// Load the properties from the failover image
-			File file;
-			if(nestedOperatingSystemVersion == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-				file = new File(failoverRoot + "/etc/aoserv/daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
-			} else if(
-				nestedOperatingSystemVersion == OperatingSystemVersion.REDHAT_ES_4_X86_64
-				|| nestedOperatingSystemVersion == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-				|| nestedOperatingSystemVersion == OperatingSystemVersion.CENTOS_7_X86_64
-			) {
-				file = new File(failoverRoot + "/etc/opt/aoserv-daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
-			} else {
-				throw new AssertionError("Unsupported nested OperatingSystemVersion: #" + nestedOperatingSystemVersion);
-			}
+			File file = new File(failoverRoot + "/etc/opt/aoserv-daemon/com/aoindustries/aoserv/daemon/aoserv-daemon.properties");
 			if(!file.exists()) throw new IOException("Properties file doesn't exist: " + file.getPath());
 
 			// TODO: Might be worth making AOServDaemonConfiguration more reusable, than duplicating so much here:

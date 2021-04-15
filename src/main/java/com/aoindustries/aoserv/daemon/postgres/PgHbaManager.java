@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -102,9 +102,7 @@ public final class PgHbaManager extends BuilderThread {
 			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
-				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
@@ -566,9 +564,7 @@ public final class PgHbaManager extends BuilderThread {
 				System.out.print("Starting PgHbaManager: ");
 				// Must be a supported operating system
 				if(
-					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();

@@ -369,9 +369,7 @@ final public class ShadowFile {
 		OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
-			osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-			&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
-			&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
@@ -455,13 +453,7 @@ final public class ShadowFile {
 		{
 			OperatingSystemVersion osv = AOServDaemon.getThisServer().getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
-			if(
-				osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-				|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-			) {
-				// Permissions remain 0600
-				mode = 0600;
-			} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+			if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 				// Set to 0400
 				mode = 0400;
 			} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {

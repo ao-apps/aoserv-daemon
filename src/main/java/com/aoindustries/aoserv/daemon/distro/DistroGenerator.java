@@ -287,8 +287,6 @@ final public class DistroGenerator {
 				case CENTOS_7_X86_64 :
 				case CENTOS_7_DOM0_X86_64 :
 					return CENTOS;
-				//case REDHAT_ES_4_X86_64 :
-				//	return REDHAT;
 				default:
 					throw new RuntimeException("Unsupported operating_system_version: " + osv);
 			}
@@ -300,7 +298,6 @@ final public class DistroGenerator {
 				case CENTOS_5_DOM0_X86_64 :     return VERSION_5_DOM0;
 				case CENTOS_7_X86_64 :          return VERSION_7;
 				case CENTOS_7_DOM0_X86_64 :     return VERSION_7_DOM0;
-				//case REDHAT_ES_4_X86_64 :       return VERSION_ES_4;
 				default: throw new RuntimeException("Unsupported operating_system_version: "+osv);
 			}
 		}
@@ -312,7 +309,6 @@ final public class DistroGenerator {
 				case CENTOS_5_DOM0_X86_64 :
 				case CENTOS_7_X86_64 :
 				case CENTOS_7_DOM0_X86_64 :
-				//case REDHAT_ES_4_X86_64 :
 					return X86_64;
 				default:
 					throw new RuntimeException("Unexpected value for osv: "+osv);
@@ -338,8 +334,6 @@ final public class DistroGenerator {
 				return root + '/' + CENTOS + '/' + VERSION_7      + '/' + X86_64;
 			case CENTOS_7_DOM0_X86_64 :
 				return root + '/' + CENTOS + '/' + VERSION_7_DOM0 + '/' + X86_64;
-			//case REDHAT_ES_4_X86_64 :
-			//	return root + '/' + REDHAT + '/' + VERSION_ES_4   + '/' + X86_64;
 			default :
 				throw new RuntimeException("Unexpected value for osv: " + osv);
 		}
@@ -496,7 +490,6 @@ final public class DistroGenerator {
 				CENTOS_5_DOM0_X86_64,
 				CENTOS_7_X86_64,
 				CENTOS_7_DOM0_X86_64
-				//REDHAT_ES_4_X86_64
 			);
 			readFileLists(
 				ConfigFile.NEVERS_TXT,
@@ -505,7 +498,6 @@ final public class DistroGenerator {
 				CENTOS_5_DOM0_X86_64,
 				CENTOS_7_X86_64,
 				CENTOS_7_DOM0_X86_64
-				//REDHAT_ES_4_X86_64
 			);
 			readFileLists(
 				ConfigFile.NO_RECURSES_TXT,
@@ -514,7 +506,6 @@ final public class DistroGenerator {
 				CENTOS_5_DOM0_X86_64,
 				CENTOS_7_X86_64,
 				CENTOS_7_DOM0_X86_64
-				//REDHAT_ES_4_X86_64
 			);
 			readFileLists(
 				ConfigFile.OPTIONALS_TXT,
@@ -523,7 +514,6 @@ final public class DistroGenerator {
 				CENTOS_5_DOM0_X86_64,
 				CENTOS_7_X86_64,
 				CENTOS_7_DOM0_X86_64
-				//REDHAT_ES_4_X86_64
 			);
 			readFileLists(
 				ConfigFile.PRELINKS_TXT,
@@ -538,7 +528,6 @@ final public class DistroGenerator {
 				CENTOS_5_DOM0_X86_64,
 				CENTOS_7_X86_64,
 				CENTOS_7_DOM0_X86_64
-				//REDHAT_ES_4_X86_64
 			);
 		}
 
@@ -946,12 +935,6 @@ final public class DistroGenerator {
 			if(version.equals(VERSION_7_DOM0) && architecture.equals(X86_64)) {
 				return CENTOS_7_DOM0_X86_64;
 			}
-		//} else if(
-		//	name.equals(REDHAT)
-		//	&& version.equals(VERSION_ES_4)
-		//	&& architecture.equals(X86_64)
-		//) {
-		//	return REDHAT_ES_4_X86_64;
 		}
 		throw new RuntimeException("Unsupported operating system: name=" + name + ", version=" + version+", architecture=" + architecture);
 	}

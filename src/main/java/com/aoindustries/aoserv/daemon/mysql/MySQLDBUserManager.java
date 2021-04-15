@@ -69,9 +69,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
-				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
@@ -297,9 +295,7 @@ final public class MySQLDBUserManager extends BuilderThread {
 				System.out.print("Starting MySQLDBUserManager: ");
 				// Must be a supported operating system
 				if(
-					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();

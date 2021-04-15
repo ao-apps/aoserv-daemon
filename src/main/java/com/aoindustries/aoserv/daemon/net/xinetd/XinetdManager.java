@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2003-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -81,10 +81,9 @@ public final class XinetdManager extends BuilderThread {
 			Server linuxServer = AOServDaemon.getThisServer();
 			OperatingSystemVersion osv = linuxServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
-			if(
-				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+			if(osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+				throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
+			}
 
 			// Reused on inner loops
 			final ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -140,16 +139,6 @@ public final class XinetdManager extends BuilderThread {
 						|| protocol.equals(AppProtocol.TALK)
 						|| protocol.equals(AppProtocol.TELNET)
 						|| (
-							// POP and IMAP is handled through xinetd on Mandriva 2006.0
-							osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586
-							&& (
-								//protocol.equals(AppProtocol.POP2)
-								protocol.equals(AppProtocol.POP3)
-								|| protocol.equals(AppProtocol.SIMAP)
-								|| protocol.equals(AppProtocol.SPOP3)
-								|| protocol.equals(AppProtocol.IMAP2)
-							)
-						) || (
 							// FTP is handled through xinetd on CentOS 5
 							osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 							&& protocol.equals(AppProtocol.FTP)
@@ -210,39 +199,7 @@ public final class XinetdManager extends BuilderThread {
 							switch (protocol) {
 								case AppProtocol.CVSPSERVER:
 									List<CvsRepository> repos=linuxServer.getCvsRepositories();
-									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-										StringBuilder server_args=new StringBuilder();
-										for(int d=0;d<repos.size();d++) {
-											CvsRepository repo=repos.get(d);
-											if(d>0) server_args.append(' ');
-											server_args.append("--allow-root=").append(repo.getPath());
-										}
-										if(!repos.isEmpty()) server_args.append(' ');
-										server_args.append("-f pserver");
-										service=new Service(
-											portMatches?null:UNLISTED,
-											-1,
-											-1,
-											"100 30",
-											null,
-											"REUSE",
-											portMatches?"cvspserver":"cvspserver-unlisted",
-											port.getProtocol(),
-											bind.getIpAddress(),
-											portMatches?null:port,
-											false,
-											rootUser,
-											null,
-											"/usr/bin/cvs",
-											null,
-											server_args.toString(),
-											"HOST DURATION",
-											"HOST USERID",
-											-1,
-											null,
-											null
-										);
-									} else if(osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+									if(osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 										StringBuilder server_args=new StringBuilder();
 										server_args.append("-f");
 										for(CvsRepository repo : repos) {
@@ -301,59 +258,8 @@ public final class XinetdManager extends BuilderThread {
 										);
 									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									break;
-								case AppProtocol.IMAP2:
-									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-										service=new Service(
-											portMatches?null:UNLISTED,
-											-1,
-											-1,
-											"100 30",
-											null,
-											null,
-											portMatches?"imap":"imap-unlisted",
-											port.getProtocol(),
-											bind.getIpAddress(),
-											portMatches?null:port,
-											false,
-											rootUser,
-											null,
-											"/usr/sbin/imapd",
-											null,
-											null,
-											"HOST DURATION",
-											"HOST USERID",
-											-1,
-											null,
-											null
-										);
-									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-									break;
 								case AppProtocol.NTALK:
-									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-										service=new Service(
-											portMatches?null:UNLISTED,
-											-1,
-											-1,
-											null,
-											null,
-											null,
-											portMatches?"ntalk":"ntalk-unlisted",
-											port.getProtocol(),
-											bind.getIpAddress(),
-											portMatches?null:port,
-											true,
-											nobodyUser,
-											ttyGroup,
-											"/usr/sbin/in.ntalkd",
-											null,
-											null,
-											"HOST DURATION",
-											"HOST USERID",
-											-1,
-											null,
-											null
-										);
-									} else if(osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+									if(osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 										service=new Service(
 											portMatches?null:UNLISTED,
 											-1, // instances
@@ -378,140 +284,9 @@ public final class XinetdManager extends BuilderThread {
 											null
 										);
 									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-									/*} else if(protocol.equals(AppProtocol.POP2)) {
-									if(osv==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-									service=new Service(
-									portMatches?null:UNLISTED,
-									-1,
-									-1,
-									"100 30",
-									null,
-									null,
-									portMatches?"pop2":"pop2-unlisted",
-									bind.getNetProtocol(),
-									bind.getInetAddress(),
-									portMatches?null:port,
-									false,
-									rootUser,
-									null,
-									"/usr/sbin/ipop2d",
-									null,
-									null,
-									"HOST DURATION",
-									"HOST USERID",
-									-1,
-									null,
-									null
-									);
-									} else throw new AssertionError("Unsupported OperatingSystemVersion: "+osv);*/
-									break;
-								case AppProtocol.POP3:
-									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-										service=new Service(
-											portMatches?null:UNLISTED,
-											-1,
-											-1,
-											"100 30",
-											null,
-											null,
-											portMatches?"pop3":"pop3-unlisted",
-											port.getProtocol(),
-											bind.getIpAddress(),
-											portMatches?null:port,
-											false,
-											rootUser,
-											null,
-											"/usr/sbin/ipop3d",
-											null,
-											null,
-											"HOST DURATION",
-											"HOST USERID",
-											-1,
-											null,
-											null
-										);
-									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-									break;
-								case AppProtocol.SIMAP:
-									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-										service=new Service(
-											portMatches?null:UNLISTED,
-											-1,
-											-1,
-											"100 30",
-											null,
-											null,
-											portMatches?"imaps":"imaps-unlisted",
-											port.getProtocol(),
-											bind.getIpAddress(),
-											portMatches?null:port,
-											false,
-											rootUser,
-											null,
-											"/usr/sbin/imapsd",
-											null,
-											null,
-											"HOST DURATION",
-											"HOST USERID",
-											-1,
-											null,
-											null
-										);
-									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-									break;
-								case AppProtocol.SPOP3:
-									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-										service=new Service(
-											portMatches?null:UNLISTED,
-											-1,
-											-1,
-											"100 30",
-											null,
-											null,
-											portMatches?"pop3s":"pop3s-unlisted",
-											port.getProtocol(),
-											bind.getIpAddress(),
-											portMatches?null:port,
-											false,
-											rootUser,
-											null,
-											"/usr/sbin/ipop3sd",
-											null,
-											null,
-											"HOST DURATION",
-											"HOST USERID",
-											-1,
-											null,
-											null
-										);
-									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									break;
 								case AppProtocol.TALK:
-									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-										service=new Service(
-											portMatches?null:UNLISTED,
-											-1,
-											-1,
-											null,
-											null,
-											null,
-											portMatches?"talk":"talk-unlisted",
-											port.getProtocol(),
-											bind.getIpAddress(),
-											portMatches?null:port,
-											true,
-											nobodyUser,
-											ttyGroup,
-											"/usr/sbin/in.talkd",
-											null,
-											null,
-											"HOST DURATION",
-											"HOST USERID",
-											-1,
-											null,
-											null
-										);
-									} else if(osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+									if(osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 										service=new Service(
 											portMatches?null:UNLISTED,
 											-1, // instances
@@ -538,31 +313,7 @@ public final class XinetdManager extends BuilderThread {
 									} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 									break;
 								case AppProtocol.TELNET:
-									if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-										service=new Service(
-											portMatches?null:UNLISTED,
-											-1,
-											-1,
-											"100 30",
-											null,
-											"REUSE",
-											portMatches?"telnet":"telnet-unlisted",
-											port.getProtocol(),
-											bind.getIpAddress(),
-											portMatches?null:port,
-											false,
-											rootUser,
-											null,
-											"/usr/sbin/telnetd",
-											null,
-											"-a none",
-											"HOST DURATION",
-											"HOST USERID",
-											-1,
-											null,
-											null
-										);
-									} else if(osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+									if(osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 										service=new Service(
 											portMatches?null:UNLISTED,
 											-1,
@@ -666,9 +417,7 @@ public final class XinetdManager extends BuilderThread {
 						// Stop service
 						AOServDaemon.exec("/etc/rc.d/init.d/xinetd", "stop");
 						// Disable with chkconfig
-						if(osvId==OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-							AOServDaemon.exec("/sbin/chkconfig", "--del", "xinetd");
-						} else if(osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+						if(osvId==OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 							AOServDaemon.exec("/sbin/chkconfig", "xinetd", "off");
 						} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 					}
@@ -676,9 +425,7 @@ public final class XinetdManager extends BuilderThread {
 					// Turn on xinetd if not already on
 					if(!rcFile.getStat().exists()) {
 						// Enable with chkconfig
-						if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-							AOServDaemon.exec("/sbin/chkconfig", "--add", "xinetd");
-						} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+						if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 							AOServDaemon.exec("/sbin/chkconfig", "xinetd", "on");
 						} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 						// Start service
@@ -747,10 +494,7 @@ public final class XinetdManager extends BuilderThread {
 			) {
 				System.out.print("Starting XinetdManager: ");
 				// Must be a supported operating system
-				if(
-					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-				) {
+				if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 					AOServConnector conn = AOServDaemon.getConnector();
 					xinetdManager = new XinetdManager();
 					conn.getScm().getCvsRepository().addTableListener(xinetdManager, 0);

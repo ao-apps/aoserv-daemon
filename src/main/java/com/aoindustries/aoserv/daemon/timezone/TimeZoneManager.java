@@ -1,6 +1,6 @@
 /*
  * aoserv-daemon - Server management daemon for the AOServ Platform.
- * Copyright (C) 2006-2013, 2015, 2016, 2017, 2018, 2019, 2020  AO Industries, Inc.
+ * Copyright (C) 2006-2013, 2015, 2016, 2017, 2018, 2019, 2020, 2021  AO Industries, Inc.
  *     support@aoindustries.com
  *     7262 Bull Pen Cir
  *     Mobile, AL 36695
@@ -73,9 +73,7 @@ public class TimeZoneManager extends BuilderThread {
 				System.out.print("Starting TimeZoneManager: ");
 				// Must be a supported operating system
 				if(
-					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
@@ -99,11 +97,7 @@ public class TimeZoneManager extends BuilderThread {
 			int osvId = osv.getPkey();
 			String timeZone = thisServer.getTimeZone().getName();
 			synchronized(rebuildLock) {
-				if(
-					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-				) {
+				if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 					/*
 					 * Control the /etc/localtime symbolic link
 					 */
@@ -133,13 +127,6 @@ public class TimeZoneManager extends BuilderThread {
 							newOut.print("ZONE=\"").print(timeZone).print("\"\n"
 									   + "UTC=true\n"
 									   + "ARC=false\n");
-						} else if(
-							osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-							|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-						) {
-							newOut.print("ARC=false\n"
-									   + "ZONE=").print(timeZone).print("\n"
-									   + "UTC=false\n");
 						} else {
 							throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 						}

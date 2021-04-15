@@ -75,9 +75,7 @@ final public class MySQLServerManager extends BuilderThread {
 			OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 			int osvId = osv.getPkey();
 			if(
-				osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-				&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
-				&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+				osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 				&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 			) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
@@ -176,9 +174,7 @@ final public class MySQLServerManager extends BuilderThread {
 				System.out.print("Starting MySQLServerManager: ");
 				// Must be a supported operating system
 				if(
-					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
@@ -240,14 +236,9 @@ final public class MySQLServerManager extends BuilderThread {
 			}
 			*/
 			String path;
-			if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-				path="/usr/mysql/"+mysqlServer.getMinorVersion()+"/bin/mysqladmin";
-			} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
+			if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 				path="/opt/mysql-"+mysqlServer.getMinorVersion()+"-i686/bin/mysqladmin";
-			} else if(
-				osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-				|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
-			) {
+			} else if(osvId == OperatingSystemVersion.CENTOS_7_X86_64) {
 				path = "/opt/mysql-" + mysqlServer.getMinorVersion() + "/bin/mysqladmin";
 			} else throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 

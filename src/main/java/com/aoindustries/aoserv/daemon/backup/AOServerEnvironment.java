@@ -356,7 +356,6 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		filesystemRules.put("/var/lock/subsys/messagebus", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lock/subsys/network", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lock/subsys/numlock", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/lock/subsys/proftpd", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lock/subsys/route", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lock/subsys/saslauthd", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/lock/subsys/sendmail", FilesystemIteratorRule.SKIP);
@@ -399,8 +398,6 @@ public class AOServerEnvironment extends UnixFileEnvironment {
 		filesystemRules.put("/var/run/identd.pid", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/run/klogd.pid", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/run/lock/subsys/", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/run/proftpd.pid", FilesystemIteratorRule.SKIP);
-		filesystemRules.put("/var/run/proftpd/proftpd.scoreboard", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/run/rpcbind.lock", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/run/rpcbind.sock", FilesystemIteratorRule.SKIP);
 		filesystemRules.put("/var/run/rpc.statd.pid", FilesystemIteratorRule.SKIP);

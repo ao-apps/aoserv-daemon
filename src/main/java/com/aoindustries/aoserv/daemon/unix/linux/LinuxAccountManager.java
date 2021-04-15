@@ -156,9 +156,7 @@ public class LinuxAccountManager extends BuilderThread {
 		OperatingSystemVersion osv = thisServer.getHost().getOperatingSystemVersion();
 		int osvId = osv.getPkey();
 		if(
-			osvId != OperatingSystemVersion.MANDRIVA_2006_0_I586
-			&& osvId != OperatingSystemVersion.REDHAT_ES_4_X86_64
-			&& osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+			osvId != OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 			&& osvId != OperatingSystemVersion.CENTOS_7_X86_64
 		) throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
 
@@ -382,23 +380,6 @@ public class LinuxAccountManager extends BuilderThread {
 									User.Name userId = altAccount.getLinuxAccount_username_id();
 									if(!groupMembers.add(userId)) throw new SQLException("Duplicate group member: " + userId);
 								}
-								if(groupName.equals(Group.PROFTPD_JAILED)) {
-									if(
-										osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-										|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-									) {
-										for(GuestUser guestUser : thisServer.getFTPGuestUsers()) {
-											groupMembers.add(guestUser.getLinuxAccount().getUsername_id());
-										}
-									} else if(
-										osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-										|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
-									) {
-										// Nothing to do, no special FTP server groups
-									} else {
-										throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-									}
-								}
 							}
 							if(groups.put(groupName, groupMembers) != null) throw new SQLException("Duplicate group name: " + groupName);
 							if(
@@ -443,57 +424,6 @@ public class LinuxAccountManager extends BuilderThread {
 				// A list of all files to delete is created so that all the data can
 				// be backed-up before removal.
 				List<File> deleteFileList = new ArrayList<>();
-
-				if(osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586) {
-					// Create any inboxes that need to exist.
-					GroupServer mailGroup = connector.getLinux().getGroup().get(Group.MAIL).getLinuxServerGroup(thisServer);
-					if(mailGroup == null) throw new SQLException("Unable to find GroupServer: " + Group.MAIL + " on " + thisServer.getHostname());
-					for(UserServer lsa : lsas) {
-						User la = lsa.getLinuxAccount();
-						if(la.getType().isEmail()) {
-							User.Name username = la.getUsername_id();
-							File file = new File(ImapManager.mailSpool, username.toString());
-							if(!file.exists()) {
-								UnixFile unixFile = new UnixFile(file.getPath());
-								if(logger.isLoggable(Level.INFO)) logger.info("Creating inbox: \"" + unixFile + '"');
-								unixFile.getSecureOutputStream(
-									lsa.getUid().getId(),
-									mailGroup.getGid().getId(),
-									0660,
-									false,
-									uidMin,
-									gidMin
-								).close();
-							}
-						}
-					}
-
-					// Remove any inboxes that should not exist.
-					String[] list = ImapManager.mailSpool.list();
-					if(list != null) {
-						for(String filename : list) {
-							if(!usernameStrs.contains(filename)) {
-								// Also allow a username.lock file to remain
-								if(
-									!filename.endsWith(".lock")
-									|| !usernameStrs.contains(filename.substring(0, filename.length() - ".lock".length()))
-								) {
-									File spoolFile = new File(ImapManager.mailSpool, filename);
-									if(logger.isLoggable(Level.INFO)) logger.info("Scheduling for removal: " + spoolFile);
-									deleteFileList.add(spoolFile);
-								}
-							}
-						}
-					}
-				} else if(
-					osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
-				) {
-					// Nothing done, user management put in ImapManager
-				} else {
-					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
-				}
 
 				// Create any home directories that do not exist.
 				for(UserServer lsa : lsas) {
@@ -758,11 +688,7 @@ public class LinuxAccountManager extends BuilderThread {
 							}
 						}
 					}
-				} else if(
-					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
-				) {
+				} else if(osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64) {
 					// Not supporting sudo on these operating system versions
 				} else {
 					throw new AssertionError("Unsupported OperatingSystemVersion: " + osv);
@@ -1060,8 +986,6 @@ public class LinuxAccountManager extends BuilderThread {
 		UnixFile.CryptAlgorithm cryptAlgorithm;
 		OperatingSystemVersion osv = linuxServer.getHost().getOperatingSystemVersion();
 		switch(osv.getPkey()) {
-			case OperatingSystemVersion.MANDRIVA_2006_0_I586 :
-			case OperatingSystemVersion.REDHAT_ES_4_X86_64 :
 			case OperatingSystemVersion.CENTOS_5_I686_AND_X86_64 :
 				cryptAlgorithm = UnixFile.CryptAlgorithm.MD5;
 				break;
@@ -1094,9 +1018,7 @@ public class LinuxAccountManager extends BuilderThread {
 				System.out.print("Starting LinuxAccountManager: ");
 				// Must be a supported operating system
 				if(
-					osvId == OperatingSystemVersion.MANDRIVA_2006_0_I586
-					|| osvId == OperatingSystemVersion.REDHAT_ES_4_X86_64
-					|| osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
+					osvId == OperatingSystemVersion.CENTOS_5_I686_AND_X86_64
 					|| osvId == OperatingSystemVersion.CENTOS_7_X86_64
 				) {
 					AOServConnector conn = AOServDaemon.getConnector();
