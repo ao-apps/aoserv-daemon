@@ -31,6 +31,7 @@ import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.ProfileScript;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.Symlink;
 import com.aoindustries.aoserv.daemon.httpd.tomcat.Install.SymlinkAll;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
+import com.aoindustries.aoserv.daemon.util.UpgradeSymlink;
 import com.aoindustries.io.unix.UnixFile;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -149,7 +150,37 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 				rpmVersion.equals("10.0.4")
 				|| rpmVersion.equals("10.0.5")
 			) {
-				// Nothing to do
+				UpgradeSymlink[] upgradeSymlinks_10_0_5 = {
+					// mysql-connector-java-8.0.23.jar -> mysql-connector-java-8.0.24.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.23.jar",
+						"/dev/null",
+						"lib/mysql-connector-java-8.0.24.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.23.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/mysql-connector-java-8.0.23.jar",
+						"lib/mysql-connector-java-8.0.24.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/mysql-connector-java-8.0.24.jar"
+					),
+					// postgresql-42.2.19.jar -> postgresql-42.2.20.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.19.jar",
+						"/dev/null",
+						"lib/postgresql-42.2.20.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.19.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/postgresql-42.2.19.jar",
+						"lib/postgresql-42.2.20.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/postgresql-42.2.20.jar"
+					),
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_10_0_5) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
 			} else {
 				throw new IllegalStateException("Unexpected version of Tomcat: " + rpmVersion);
 			}

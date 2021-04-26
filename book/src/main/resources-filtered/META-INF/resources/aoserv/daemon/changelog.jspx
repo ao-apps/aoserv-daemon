@@ -46,7 +46,14 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 				groupId="@{project.groupId}"
 				artifactId="@{documented.artifactId}"
 				scmUrl="@{project.scm.url}"
-			/>
+			>
+				<ul>
+					<li>Updated PostgreSQL JDBC Drivers to 42.2.20.</li>
+					<li>Updated Apache Tomcat 8.5.65 to MySQL JDBC 8.0.24 and PostgreSQL JDBC 42.2.20.</li>
+					<li>Updated Apache Tomcat 9.0.45 to MySQL JDBC 8.0.24 and PostgreSQL JDBC 42.2.20.</li>
+					<li>Updated Apache Tomcat 10.0.5 to MySQL JDBC 8.0.24 and PostgreSQL JDBC 42.2.20.</li>
+				</ul>
+			</changelog:release>
 		</c:if>
 
 		<changelog:release

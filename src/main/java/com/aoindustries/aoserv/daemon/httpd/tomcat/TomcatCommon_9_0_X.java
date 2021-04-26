@@ -708,6 +708,32 @@ class TomcatCommon_9_0_X extends VersionedTomcatCommon {
 						"lib/postgresql-42.2.19.jar",
 						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.19.jar"
 					),
+					// mysql-connector-java-8.0.23.jar -> mysql-connector-java-8.0.24.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.23.jar",
+						"/dev/null",
+						"lib/mysql-connector-java-8.0.24.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.23.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.23.jar",
+						"lib/mysql-connector-java-8.0.24.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/mysql-connector-java-8.0.24.jar"
+					),
+					// postgresql-42.2.19.jar -> postgresql-42.2.20.jar
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.19.jar",
+						"/dev/null",
+						"lib/postgresql-42.2.20.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/postgresql-42.2.19.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.19.jar",
+						"lib/postgresql-42.2.20.jar",
+						"../" + optSlash + "apache-tomcat-9.0/lib/postgresql-42.2.20.jar"
+					),
 				};
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_9_0_43) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;

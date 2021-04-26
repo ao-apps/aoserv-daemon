@@ -29,7 +29,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		<relativePath>../../ao-oss-parent/pom.xml</relativePath>
 	</parent>
 
-	<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon</artifactId><version>1.84.18-POST-SNAPSHOT</version>
+	<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon</artifactId><version>1.84.19-SNAPSHOT</version>
 	<packaging>bundle</packaging>
 
 	<properties>
@@ -464,7 +464,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 				<groupId>mysql</groupId><artifactId>mysql-connector-java</artifactId><version>5.1.49</version>
 			</dependency>
 			<dependency>
-				<groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.2.19</version>
+				<groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.2.20</version>
 			</dependency>
 			<!-- Runtime Transitive -->
 			<dependency>
