@@ -93,7 +93,9 @@ final public class AOServDaemonServerThread extends Thread {
 	/**
 	 * The set of supported versions, with the most preferred versions first.
 	 */
+	// Matches AOServDaemonConnection.java
 	private static final AOServDaemonProtocol.Version[] SUPPORTED_VERSIONS = {
+		AOServDaemonProtocol.Version.VERSION_1_84_19,
 		AOServDaemonProtocol.Version.VERSION_1_84_13,
 		AOServDaemonProtocol.Version.VERSION_1_84_11,
 		AOServDaemonProtocol.Version.VERSION_1_83_0,
@@ -340,6 +342,7 @@ final public class AOServDaemonServerThread extends Thread {
 									socket,
 									in,
 									out,
+									protocolVersion,
 									Integer.parseInt(dae.param1), // failover_file_replication.pkey
 									dae.param2, // fromServer
 									useCompression,

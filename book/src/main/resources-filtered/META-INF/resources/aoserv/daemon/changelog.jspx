@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2021-04-14T20:54:18-05:00"
+		dateModified="2021-04-29T23:57:14-05:00"
 	>
 		<c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
 			<changelog:release
@@ -52,6 +52,10 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 					<li>Updated Apache Tomcat 8.5.65 to MySQL JDBC 8.0.24 and PostgreSQL JDBC 42.2.20.</li>
 					<li>Updated Apache Tomcat 9.0.45 to MySQL JDBC 8.0.24 and PostgreSQL JDBC 42.2.20.</li>
 					<li>Updated Apache Tomcat 10.0.5 to MySQL JDBC 8.0.24 and PostgreSQL JDBC 42.2.20.</li>
+					<li>
+						Enabled GZIP compression of backup uploads when compression is enabled.
+						Previously, the compression flag would only enable MD5-based chunked transfers.
+					</li>
 				</ul>
 			</changelog:release>
 		</c:if>

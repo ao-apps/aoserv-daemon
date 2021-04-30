@@ -73,6 +73,7 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.GZIPInputStream;
 
 /**
  * Handles the replication of data for the failover and backup system.
@@ -173,13 +174,26 @@ Maximum number of chunks per file: 2 ^ (44 - 20): 2 ^ 24
  * TODO: Can't have any regular file exactly named "&lt;A&lt;O&lt;SURROGATE&gt;O&gt;A&gt;"
  * </p>
  * <p>
- * TODO: Handle hard links (pertinence space savings)
- *
+ * TODO: Handle hard links (pertinence space savings), and also meet expectations.  Our ParallelPack/ParallelUnpack are
+ *       a good reference.
+ * </p>
+ * <p>
  * TODO: Need to do mysqldump and postgresql dump on preBackup
- *
- * TODO: Use more compression within the protocol (perhaps to byte[] in RAM and then across the network, or an OutputStream "wrapper")
- *
+ * </p>
+ * <p>
  * TODO: Use LVM snapshots within the client layer
+ * </p>
+ * <p>
+ * TODO: Support chunking from either data set: current file or in linkToRoot, also possibly try to guess the last temp file?
+ *       This would allow to not have to resend all data when a chunked transfer is interrupted.  This would have the
+ *       cost of additional reads and MD5 CPU, so may not be worth it in the general case; any way to detect when it is
+ *       worth it, such as a certain number of chunks transferred?
+ * </p>
+ * <p>
+ * TODO: Support sparse files.  In simplest form, use RandomAccessFile to write new files, and detect sequences of zeros,
+ *       possibly only when 4k aligned, and use seek instead of writing the zeros.  Could also build the zero detection
+ *       into the protocol, which would put more of the work on the client and remove the need for MD5 and compression
+ *       of the zeros, at least in the case of full 1 MiB chunks of zeros.
  * </p>
  *
  * @see  DedupDataIndex
@@ -667,6 +681,7 @@ final public class FailoverFileReplicationManager {
 		final Socket socket,
 		final StreamableInput rawIn,
 		final StreamableOutput out,
+		final AOServDaemonProtocol.Version protocolVersion,
 		final int failoverFileReplicationPkey,
 		final String fromServer,
 		final boolean useCompression,
@@ -948,9 +963,10 @@ final public class FailoverFileReplicationManager {
 				}
 
 				final StreamableInput in =
-					/*useCompression
-					? new StreamableInput(new GZIPInputStream(new DontCloseInputStream(rawIn), BufferManager.BUFFER_SIZE))
-					:*/ rawIn
+					useCompression && protocolVersion.compareTo(AOServDaemonProtocol.Version.VERSION_1_84_19) >= 0
+					? new StreamableInput(new GZIPInputStream(rawIn, AOServDaemonProtocol.FAILOVER_FILE_REPLICATION_GZIP_BUFFER_SIZE))
+					// ? new StreamableInput(new GZIPInputStream(new DontCloseInputStream(rawIn), BufferManager.BUFFER_SIZE))
+					: rawIn
 				;
 
 				String[] paths = null;
