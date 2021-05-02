@@ -27,10 +27,13 @@ import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.lang.EmptyArrays;
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
@@ -227,6 +230,31 @@ final public class ServerManager {
 			while((ch=in.read())!=-1) report.append((char)ch);
 		}
 		return report.toString();
+	}
+
+	/**
+	 * Gets the "MemTotal" from <code>/proc/meminfo</code>, converted to bytes.
+	 */
+	public static long getMemTotal() throws IOException {
+		final String PREFIX = "MemTotal:";
+		final String SUFFIX = " kB";
+		try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(procMeminfo), StandardCharsets.US_ASCII))) {
+			String line;
+			while((line = in.readLine()) != null) {
+				if(line.startsWith(PREFIX)) {
+					if(!line.endsWith(SUFFIX)) {
+						throw new IOException("Line does not end with expected suffix \"" + SUFFIX + "\": " + line);
+					}
+					return 1024L * Long.parseLong(
+						line.substring(
+							PREFIX.length(),
+							line.length() - SUFFIX.length()
+						).trim()
+					);
+				}
+			}
+		}
+		throw new IOException("Prefix not found in " + procMeminfo + ": \"" + PREFIX + '"');
 	}
 
 	/**

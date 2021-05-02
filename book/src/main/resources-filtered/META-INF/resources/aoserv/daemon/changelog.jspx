@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2021-04-30T11:17:40-05:00"
+		dateModified="2021-05-02T17:04:53-05:00"
 	>
 		<c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
 			<changelog:release
@@ -46,7 +46,22 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 				groupId="@{project.groupId}"
 				artifactId="@{documented.artifactId}"
 				scmUrl="@{project.scm.url}"
-			/>
+			>
+				<ul>
+					<li>
+						<p>
+							The config builder for SpamAssassin now scales the maximum children by the total system memory.
+							It it scaled to allow one child per 100 MiB of total memory, then bounded to be no less than 5
+							and no more than 25.
+						</p>
+						<p>
+							Each spamd child currently consumes between 50 MiB and 90 MiB of resident memory.  With our
+							previous hard-coded setting of 25, this could cause swap thrashing with heavy email load on
+							smaller servers.
+						</p>
+					</li>
+				</ul>
+			</changelog:release>
 		</c:if>
 
 		<changelog:release

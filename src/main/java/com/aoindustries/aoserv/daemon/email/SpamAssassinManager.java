@@ -38,6 +38,7 @@ import com.aoindustries.aoserv.client.net.IpAddress;
 import com.aoindustries.aoserv.daemon.AOServDaemon;
 import com.aoindustries.aoserv.daemon.AOServDaemonConfiguration;
 import com.aoindustries.aoserv.daemon.backup.BackupManager;
+import com.aoindustries.aoserv.daemon.server.ServerManager;
 import com.aoindustries.aoserv.daemon.unix.linux.PackageManager;
 import com.aoindustries.aoserv.daemon.util.BuilderThread;
 import com.aoindustries.aoserv.daemon.util.DaemonFileUtils;
@@ -129,7 +130,27 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 	 */
 	private static final int SALEARN_NOSYNC_THRESHOLD = 5;
 
+	/**
+	 * The minimum number of children processes.
+	 */
+	private static final int MIN_CHILDREN = 5;
+
+	/**
+	 * The maximum number of children processes.
+	 */
 	private static final int MAX_CHILDREN = 25;
+
+	/**
+	 * The number of bytes of RAM reserved per child process.  This is used to scale the maximum number of children
+	 * based on total system memory (as obtained by "MemTotal" in <code>/proc/meminfo</code>).  The result is then
+	 * bounded within {@link #MIN_CHILDREN} and {@link #MAX_CHILDREN}.
+	 * <p>
+	 * We're seeing between 50 MiB and 90 MiB per child in 64-bit CentOS 7, so we're going with 100 MiB per-child.  The
+	 * servers certainly have other processes as well, so this should be sufficient to avoid spamd causing swap
+	 * thrashing.
+	 * </p>
+	 */
+	private static final long PER_CHILD_MEMORY = 100L * 1024 * 1024; // 100 MiB
 
 	static final int DEFAULT_SPAMD_PORT = 783;
 
@@ -536,7 +557,16 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 						spamdInstalled = PackageManager.getInstalledPackage(PackageManager.PackageName.SPAMASSASSIN) != null;
 					}
 					if(spamdInstalled) {
-						/**
+						// Scale the number of children by system memory.
+						long maxChildren = Math.max(
+							(int)Math.min(
+								ServerManager.getMemTotal() / PER_CHILD_MEMORY,
+								MAX_CHILDREN
+							),
+							MIN_CHILDREN
+						);
+
+						/*
 						 * Build the /etc/sysconfig/spamassassin file.
 						 */
 						bout.reset();
@@ -557,7 +587,7 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 								+ "#\n"
 								+ "\n"
 								+ "# Options to spamd\n"
-								+ "SPAMDOPTIONS=\"-d -c -m" + MAX_CHILDREN + " -H");
+								+ "SPAMDOPTIONS=\"-d -c -m" + maxChildren + " -H");
 							if(spamdInetAddress != null) {
 								if(!spamdInetAddress.isLoopback() && !spamdInetAddress.isUnspecified()) hasSpecificAddress = true;
 								// Listen address
