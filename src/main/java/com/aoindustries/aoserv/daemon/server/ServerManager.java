@@ -211,7 +211,7 @@ final public class ServerManager {
 		}
 	}
 
-	public static String getLoadAvgReport() throws IOException, SQLException {
+	public static String getLoadAvgReport() throws IOException {
 		StringBuilder report = new StringBuilder(40);
 		try (InputStream in = new BufferedInputStream(new FileInputStream(procLoadavg))) {
 			int ch;
@@ -220,7 +220,7 @@ final public class ServerManager {
 		return report.toString();
 	}
 
-	public static String getMemInfoReport() throws IOException, SQLException {
+	public static String getMemInfoReport() throws IOException {
 		StringBuilder report = new StringBuilder(40);
 		try (InputStream in = new BufferedInputStream(new FileInputStream(procMeminfo))) {
 			int ch;
