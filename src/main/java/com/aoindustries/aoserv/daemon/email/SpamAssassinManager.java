@@ -83,23 +83,28 @@ import java.util.logging.Logger;
  * The primary purpose of the manager is to decouple the IMAP server from the SpamAssassin training.
  * The training process is slow and makes the IMAP server hesitate in ways that interfere with the
  * mail client and user.
- *
- * The SpamAssassin manager looks for emails left in a specific directories by the IMAP server.
- * When these files are found, the SpamAssassin training command (sa-learn) is invoked
- * on these directories.  The directories start with either ham_ or spam_ depending on
- * the type of messages.  In order to maintain the expected behavior, the directories
+ * <p>
+ * The SpamAssassin manager looks for emails left in specific directories by the IMAP server.
+ * When these files are found, the SpamAssassin training command (<code>sa-learn</code>) is invoked
+ * on these files.  The files start with either <code>ham_</code> or <code>spam_</code> depending on
+ * the type of messages.  In order to maintain the expected behavior, the files
  * are processed in chronological order.  That way if a user drags a message to the Junk
  * folder then back to the INBOX, it will not be considered spam.
- *
- * To help avoid any race conditions, only directories that are at least 1 minute old (or in the future by 1 or more minutes
+ * </p>
+ * <p>
+ * To help avoid any race conditions, only files that are at least 1 minute old (or in the future by 1 or more minutes
  * to handle clock changes) are considered on each pass.  This gives the IMAP server at least one minute to write all of
  * its files.
- *
- * Multiple directories from one user are sent to sa-learn at once when possible for efficiency.
- *
+ * </p>
+ * <p>
+ * Multiple files from one user are sent to <code>sa-learn</code> at once when possible for efficiency.
+ * </p>
+ * <p>
  * TODO: SELinux port management for non-standard (other than 783) ports.
- *
+ * </p>
+ * <p>
  * TODO: Somehow report when users drag from Junk to elsewhere (ham training), perhaps we can tweak our sa_discard_score some
+ * </p>
  *
  * @author  AO Industries, Inc.
  */
@@ -113,8 +118,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 	private static final long DELAY_INTERVAL = (long)60*1000;
 
 	/**
-	 * The maximum number of messages that will be sent to sa-learn as a single command.
-	 * This is kept fairly low so the sa-learn --sync doesn't take too long and hold
+	 * The maximum number of messages that will be sent to <code>sa-learn</code> as a single command.
+	 * This is kept fairly low so the <code>sa-learn --sync</code> doesn't take too long and hold
 	 * locks that could prevent new mail from arriving.  Between executions, new
 	 * mail would have a chance to be scanned.
 	 */
@@ -122,11 +127,12 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 
 	/**
 	 * The minimum number of messages being sent to sa-learn that will use a two step
-	 * sa-learn --no-sync then sa-learn --sync
-	 * 
+	 * <code>sa-learn --no-sync</code> then <code>sa-learn --sync</code>.
+	 * <p>
 	 * The choice of 5 here is arbitrary, we have not measured the performance of this versus other values.
 	 * This needs to balance the overhead of the additional exec versus the overhead of the sync.
 	 * This balance may consider that CPU is generally more plentiful than disk I/O.
+	 * </p>
 	 */
 	private static final int SALEARN_NOSYNC_THRESHOLD = 5;
 
@@ -255,8 +261,8 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 	}
 
 	/**
-	 * The entire filename must be acceptable characters a-z, A-Z, 0-9, -, and _
-	 * This is, along with the character restrictions for usernames, are the key aspects
+	 * The entire filename must be acceptable characters in <code>[a-zA-Z0-9_-]</code>.
+	 * This is, along with the character restrictions for usernames, the key aspect
 	 * of the security of the following suexec call.
 	 */
 	private static boolean isFilenameOk(String filename) {
@@ -502,8 +508,9 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 	/**
 	 * Gets the {@link Bind} for the <code>spamd</code> process, or {@code null}
 	 * if SpamAssassin is not enabled.
-	 *
-	 * Note: CentOS 7 supports more than one bind for spamd, but we have not need for it at this time.
+	 * <p>
+	 * Note: CentOS 7 supports more than one bind for spamd, but we have no need for it at this time.
+	 * </p>
 	 */
 	public static Bind getSpamdBind() throws IOException, SQLException {
 		AOServConnector conn = AOServDaemon.getConnector();
@@ -959,8 +966,9 @@ public class SpamAssassinManager extends BuilderThread implements Runnable {
 	 * TODO: Make this be a standard Unix-based cron job, outside aoserv-daemon
 	 * package, so that functionality remains when aoserv-daemon disabled or
 	 * uninstalled.
-	 *
+	 * <p>
 	 * TODO: Check for compatibility with CentOS 7
+	 * </p>
 	 */
 	public static class RazorLogTrimmer implements CronJob {
 
