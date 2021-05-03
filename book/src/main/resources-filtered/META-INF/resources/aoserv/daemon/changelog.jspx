@@ -37,7 +37,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 		shortTitle="Changelog"
 		tocLevels="1"
 		datePublished="2020-04-16T21:06:03-05:00"
-		dateModified="2021-05-02T17:04:53-05:00"
+		dateModified="2021-05-02T20:02:01-05:00"
 	>
 		<c:if test="${fn:endsWith('@{project.version}', '-SNAPSHOT') and !fn:endsWith('@{project.version}', '-POST-SNAPSHOT')}">
 			<changelog:release
@@ -51,7 +51,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 					<li>
 						<p>
 							The config builder for SpamAssassin now scales the maximum children by the total system memory.
-							It it scaled to allow one child per 100 MiB of total memory, then bounded to be no less than 5
+							It is scaled to allow one child per 100 MiB of total memory, then bounded to be no less than 5
 							and no more than 25.
 						</p>
 						<p>
