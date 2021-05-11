@@ -88,7 +88,7 @@ import java.util.zip.GZIPInputStream;
  * index).
  * </p>
  * <p>
- * Compression may be enabled, which will compare chunks of files by MD5 hash.
+ * Compression may be enabled, which will compare chunks of files by MD5 hash and GZIP compress the upload stream.
  * This will save networking at the cost of additional CPU cycles.  This is
  * generally a good thing, but when your network is significantly faster than
  * your processor, it may be better to turn off compression.
@@ -101,7 +101,7 @@ import java.util.zip.GZIPInputStream;
  * <p>
  * Files are compared only by modified time and file length.  If both these are
  * the same, the file is assumed to be the same.  There is currently no facility
- * to for full checksumming or copying of data.
+ * for full checksumming or copying of data.
  * </p>
  * <p>
  * When the data index is enabled, the underlying filesystem must have the
@@ -120,9 +120,9 @@ import java.util.zip.GZIPInputStream;
  * </p>
  * <p>
  * When data index is off, each file is simply stored, in its entirety, directly
- * in-place.  If the file contents (possibly assumed only be length and modified
+ * in-place.  If the file contents (possibly assumed only by length and modified
  * time) and all attributes (ownership, permission, times, ...) match another
- * backup directory, the files will be linked together to save space.
+ * backup directory, the files will be hard linked together to save space.
  * </p>
  * <p>
  * When the data index is enabled, each file is handled one of three ways:
@@ -270,6 +270,7 @@ final public class FailoverFileReplicationManager {
 	/**
 	 * The number of recycled copies varies based on retention.
 	 */
+	// Matches prices.ods
 	private static int getNumberRecycleDirectories(int retention) {
 		if(retention <= 7) return 1;
 		if(retention <= 31) return 2;
