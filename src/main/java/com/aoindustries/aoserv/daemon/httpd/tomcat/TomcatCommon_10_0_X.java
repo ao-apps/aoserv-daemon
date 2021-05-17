@@ -181,6 +181,32 @@ class TomcatCommon_10_0_X extends VersionedTomcatCommon {
 				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_10_0_5) {
 					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
 				}
+			} else if(rpmVersion.equals("10.0.6")) {
+				UpgradeSymlink[] upgradeSymlinks_10_0_6 = {
+					// jakartaee-migration-0.2.0-shaded.jar.jar -> jakartaee-migration-1.0.0-shaded.jar
+					new UpgradeSymlink(
+						"lib/jakartaee-migration-0.2.0-shaded.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/jakartaee-migration-0.2.0-shaded.jar",
+						"lib/jakartaee-migration-1.0.0-shaded.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/jakartaee-migration-1.0.0-shaded.jar"
+					),
+					// mysql-connector-java-8.0.24.jar -> mysql-connector-java-8.0.25.jar
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.24.jar",
+						"/dev/null",
+						"lib/mysql-connector-java-8.0.25.jar",
+						"/dev/null"
+					),
+					new UpgradeSymlink(
+						"lib/mysql-connector-java-8.0.24.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/mysql-connector-java-8.0.24.jar",
+						"lib/mysql-connector-java-8.0.25.jar",
+						"../" + optSlash + "apache-tomcat-10.0/lib/mysql-connector-java-8.0.25.jar"
+					),
+				};
+				for(UpgradeSymlink upgradeSymlink : upgradeSymlinks_10_0_6) {
+					if(upgradeSymlink.upgradeLinkTarget(tomcatDirectory, uid, gid)) needsRestart = true;
+				}
 			} else {
 				throw new IllegalStateException("Unexpected version of Tomcat: " + rpmVersion);
 			}
