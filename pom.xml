@@ -419,7 +419,7 @@ along with aoserv-daemon.  If not, see <http://www.gnu.org/licenses />.
 				<groupId>com.aoindustries</groupId><artifactId>aoserv-backup</artifactId><version>1.84.19${POST-SNAPSHOT}</version>
 			</dependency>
 			<dependency>
-				<groupId>com.aoindustries</groupId><artifactId>aoserv-client</artifactId><version>1.84.18${POST-SNAPSHOT}</version>
+				<groupId>com.aoindustries</groupId><artifactId>aoserv-client</artifactId><version>1.84.22-SNAPSHOT<!-- ${POST-SNAPSHOT} --></version>
 			</dependency>
 			<dependency>
 				<groupId>com.aoindustries</groupId><artifactId>aoserv-daemon-client</artifactId><version>1.84.19${POST-SNAPSHOT}</version>
