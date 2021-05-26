@@ -39,6 +39,7 @@ import com.aoindustries.sql.pool.AOConnectionPool;
 import java.io.File;
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -135,9 +136,9 @@ final public class MySQLServerManager extends BuilderThread {
 				Server.Name serverName = ms.getName();
 				String jdbcUrl;
 				if(port == Server.DEFAULT_PORT) {
-					jdbcUrl = "jdbc:mysql://127.0.0.1/" + URLEncoder.encode(md.getName().toString(), "UTF-8") + "?useSSL=false";
+					jdbcUrl = "jdbc:mysql://127.0.0.1/" + URLEncoder.encode(md.getName().toString(), StandardCharsets.UTF_8.name()) + "?useSSL=false"; // Java 10: No .name()
 				} else {
-					jdbcUrl = "jdbc:mysql://127.0.0.1:" + port.getPort() + "/" + URLEncoder.encode(md.getName().toString(), "UTF-8") + "?useSSL=false";
+					jdbcUrl = "jdbc:mysql://127.0.0.1:" + port.getPort() + "/" + URLEncoder.encode(md.getName().toString(), StandardCharsets.UTF_8.name()) + "?useSSL=false"; // Java 10: No .name()
 				}
 				pool = new AOConnectionPool(
 					AOServDaemonConfiguration.getMySqlDriver(),

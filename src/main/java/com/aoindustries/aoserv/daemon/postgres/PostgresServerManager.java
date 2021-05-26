@@ -48,6 +48,7 @@ import java.io.IOException;
 import java.net.ProtocolFamily;
 import java.net.StandardProtocolFamily;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -192,7 +193,7 @@ final public class PostgresServerManager extends BuilderThread implements CronJo
 					}
 					jdbcUrlSB
 						.append('/')
-						.append(URLEncoder.encode(pd.getName().toString(), "UTF-8"));
+						.append(URLEncoder.encode(pd.getName().toString(), StandardCharsets.UTF_8.name())); // Java 10: No .name()
 					jdbcUrl = jdbcUrlSB.toString();
 				} else {
 					throw new RuntimeException("Unexpected version of PostgreSQL: " + version);

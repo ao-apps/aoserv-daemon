@@ -52,6 +52,7 @@ import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -386,12 +387,12 @@ final public class MySQLDatabaseManager extends BuilderThread {
 	public static String getJdbcUrl(Port port, Database.Name database) {
 		try {
 			if(port == Server.DEFAULT_PORT) {
-				return "jdbc:mysql://127.0.0.1/" + URLEncoder.encode(database.toString(), "UTF-8") + "?useSSL=false";
+				return "jdbc:mysql://127.0.0.1/" + URLEncoder.encode(database.toString(), StandardCharsets.UTF_8.name()) + "?useSSL=false"; // Java 10: No .name()
 			} else {
-				return "jdbc:mysql://127.0.0.1:" + port.getPort() + "/" + URLEncoder.encode(database.toString(), "UTF-8") + "?useSSL=false";
+				return "jdbc:mysql://127.0.0.1:" + port.getPort() + "/" + URLEncoder.encode(database.toString(), StandardCharsets.UTF_8.name()) + "?useSSL=false"; // Java 10: No .name()
 			}
 		} catch(UnsupportedEncodingException e) {
-			throw new AssertionError("UTF-8 encoding should be always supported", e);
+			throw new AssertionError("Standard encoding (" + StandardCharsets.UTF_8 + ") should always exist", e);
 		}
 	}
 
